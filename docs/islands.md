@@ -1,16 +1,23 @@
 # Islands — a `.tsx`, `.vue` or `.svelte` file as a Rask component
 
 An **island** is an ordinary Rask component whose markup is produced by a front-end
-framework. Derive from `ReactComponent`, `VueComponent`, `SvelteComponent` or `LitComponent`, drop the
-front-end file beside it, and it goes anywhere the chain goes — a leaf inside a card, a subtree, or
-the whole of a `[Route]` page's `Render()`.
+framework. Derive from one of the seven base classes below, drop the front-end file beside it, and it
+goes anywhere the chain goes — a leaf inside a card, a subtree, or the whole of a `[Route]` page's
+`Render()`.
 
 | Base class | Pairs with | Compiled by | Covers |
 |---|---|---|---|
 | `ReactComponent` | `Chart.tsx` | `@vitejs/plugin-react` | React, and Preact through a `preact/compat` alias |
+| `PreactComponent` | `Chart.tsx` | `@preact/preset-vite` | Preact directly |
+| `SolidComponent` | `Chart.tsx` | `vite-plugin-solid` | Solid |
 | `VueComponent` | `Chart.vue` | `@vitejs/plugin-vue` | Vue 3 |
 | `SvelteComponent` | `Chart.svelte` | `@sveltejs/vite-plugin-svelte` | Svelte 5 |
+| `AngularComponent` | `Chart.ts` | `@analogjs/vite-plugin-angular` | Angular, as a standalone component |
 | `LitComponent` | `Chart.ts` | nothing — it is ordinary TypeScript | Lit, and any custom element with property-shaped inputs |
+
+The same seven the [SPA lane](spa.md) scaffolds a whole client for. Which one an island uses is
+decided by its **base class**, never by its file extension — three of them write `.tsx` and two write
+`.ts`, so the extension names a family and only the C# says which member.
 
 ```csharp
 [Route("/dashboard")]
@@ -108,12 +115,78 @@ The alternative — a marker attribute usable on any class — was tried first. 
 writing the runtime twice (once as an attribute argument, once in the front-end file) with nothing
 keeping the two in step.
 
-### Preact needs nothing
+### Two runtimes that share an extension need separate folders
 
-`ReactComponent` covers Preact unchanged. A Preact project aliases `react` and `react-dom` to
-`preact/compat` in both tsconfig and the Vite plugin — the same aliasing the [TypeScript SPA
-lane](spa.md) already relies on — so one adapter serves both and Rask never needs to know which it
-got.
+React, Preact and Solid all compile `.tsx`. When two of them are in one project, each Vite plugin is
+scoped to the directories its own islands live in — so they need folders of their own, and one must
+not nest inside the other:
+
+```
+Features/Islands/React/Counter.tsx      ✓ each runtime in its own folder
+Features/Islands/Solid/Spark.tsx
+
+Features/Islands/Counter.tsx            ✗ refused: one tree, two JSX runtimes
+Features/Islands/Solid/Spark.tsx
+```
+
+The build refuses the second arrangement by name rather than building it, because getting it wrong is
+silent. Scoping has to be by **directory**, not by file: a file-level scope transforms the island
+correctly and leaves every module it *imports* to the other plugin, so a `Row.tsx` beside a Solid
+island gets compiled as Preact — which builds, ships, loads, and mounts a foreign vnode into Solid's
+renderer. Astro documents the same rule for the same reason.
+
+A runtime that owns its extension alone — Vue, Svelte — needs none of this and can live anywhere.
+Angular is never scoped either: its plugin compiles the Angular island ahead of time and passes
+ordinary TypeScript through untouched, so a Lit element sits happily beside one.
+
+### React and Preact cannot share a project
+
+Not a Rask rule. `@vitejs/plugin-react` resolves Babel 8 and `@preact/preset-vite` pins a
+`@babel/core@"7.x"` peer, so **npm refuses to install both**. Pick one; the build says so by name
+rather than leaving an ERESOLVE tree that names four Babel packages and neither island.
+
+`ReactComponent` also still covers Preact the old way, for a project already built on it: alias
+`react` and `react-dom` to `preact/compat` in both tsconfig and the Vite plugin — the same aliasing
+the [TypeScript SPA lane](spa.md) relies on — and one adapter serves both. New code should reach for
+`PreactComponent`, which imports Preact directly and needs no aliasing to be right.
+
+### What Angular needs
+
+Angular's plugin imports two packages it does not depend on, so both have to be installed beside it,
+at the same major:
+
+```
+@analogjs/vite-plugin-angular  @angular/compiler-cli  @angular/build
+@angular/core  @angular/common  @angular/compiler  @angular/platform-browser  rxjs
+```
+
+It also pins **TypeScript below 6.1**, which constrains the whole project. And its islands are far
+the heaviest: a one-component Angular chunk is around 73 kB gzipped, against 12 kB for Preact and
+10 kB for Solid.
+
+Every prop must be an `@Input()` (or `input()`). The adapter drives updates through
+`ComponentRef.setInput`, which is the only route that marks the view dirty — a plain public field is
+not an input at all, and Angular reports that in a development build while ignoring it silently in a
+production one.
+
+Angular is also the only runtime whose bootstrap is asynchronous. Props that arrive before
+`createApplication()` resolves are held and applied on arrival rather than dropped, and an island
+removed while still booting destroys the application when it appears instead of leaking it.
+
+### What Solid needs
+
+Never destructure `props`. Solid tracks the *access*, not the value, so pulling a prop into a local
+reads it once and freezes it — the component renders correctly and then never updates again:
+
+```tsx
+export default function Spark(props: SparkProps) {   // ✓
+  return <div>{props.caption}</div>
+}
+
+export default function Spark({ caption }: SparkProps) {   // ✗ renders once, never again
+  return <div>{caption}</div>
+}
+```
 
 ## C# owns the props
 
@@ -344,6 +417,50 @@ Callbacks keep their identity across updates for the same reason. React compares
 a fresh closure per render would invalidate every `useCallback` and `memo` keyed on it and re-fire
 every `useEffect` that lists it.
 
+## Hot reload
+
+`rask dev` runs a Vite dev server for the islands beside the app, so editing a `.tsx` or a `.svelte`
+hot-replaces in place instead of rebuilding:
+
+```
+$ rask dev
+Serving islands from http://localhost:5174 (hot reload)…
+```
+
+Nothing to configure. The dev server starts when the project has islands, dies with the host, and
+listens on **5174** — not Vite's 5173, which belongs to the [SPA lane's](spa.md) client, so a solution
+with both does not have two dev servers fighting for one port. Override it with
+`<RaskExternalDevServerPort>` if something else is already there.
+
+**It answers loopback origins only** — `localhost`, `127.0.0.1`, `[::1]`. Not a default worth
+loosening: the dev server also serves `/@fs/<path>`, so an allow-everything CORS policy would let any
+website open in your browser fetch files from under your workspace root while `rask dev` is running.
+The cost is that an app you serve on a non-loopback address in development (a LAN IP, a custom
+hostname) will not load its islands; run it on localhost, or bundle normally with a plain
+`dotnet run`.
+
+What changes during a dev session is one step: the production `vite build` is skipped, because it
+would rebuild every island in the project on every save and nothing would read the result. Everything
+else still runs — the entry modules, the prop types, the type-check — and the manifest is still
+written, pointing at the dev server rather than at chunks.
+
+**How much you get back depends on the runtime, and that is upstream's call, not Rask's.** Once the
+modules are served by the dev server, each framework's own refresh integration owns them:
+
+| Runtime | On save |
+|---|---|
+| React, Preact | Fast Refresh — component state survives |
+| Solid | `solid-refresh` — signals survive |
+| Vue, Svelte | plugin HMR — component state survives |
+| Lit | full page reload (a custom element cannot be re-registered) |
+| Angular | full page reload |
+
+Even the reload cases skip the C# rebuild, which is the slow half.
+
+Rask deliberately does not replace a mounted island itself. Doing so would fight the framework
+integrations and lose: they preserve component state, and a remount is precisely what the [diff
+boundary](#the-diff-boundary) exists to avoid.
+
 ## What the build does
 
 `dotnet build` writes one entry module per component — pairing your component with its runtime's adapter,
@@ -355,12 +472,25 @@ through.
 without one runs no npm, probes for no node, and never learns this package has a build step. A Rask app
 with no islands is unaffected, which is most of them.
 
+A project that *does* have both is checked before `npm` runs: too old a Node fails with
+**`RASKISLAND001`** naming the version it found, rather than failing later inside vite with an engines
+error nobody reads. The floor is `RaskExternalMinimumNode`, **22.12.0** — the same number as the SPA
+host's `RaskSpaMinimumNode`, because both run vite and vite asks for `^20.19.0 || >=22.12.0`. That
+range has a hole (21.x satisfies neither arm) and a numeric floor cannot express it, so 22.12.0 is the
+lowest version with nothing unsupported beneath it. A Node whose version is not exactly `X.Y.Z` — a
+nightly, a release candidate — is allowed through rather than refused. Override the bar with
+`-p:RaskExternalMinimumNode=…` if you have a reason to.
+
 ```bash
 npm init -y
-npm install -D vite @vitejs/plugin-react react react-dom          # React (or Preact)
+npm install -D vite @vitejs/plugin-react react react-dom          # React
+npm install -D vite @preact/preset-vite preact                    # Preact (not beside React)
+npm install -D vite vite-plugin-solid solid-js                    # Solid
 npm install -D vite @vitejs/plugin-vue vue vue-tsc                # Vue
 npm install -D vite @sveltejs/vite-plugin-svelte svelte svelte-check   # Svelte
 npm install -D vite lit                                           # Lit
+npm install -D vite @analogjs/vite-plugin-angular @angular/compiler-cli @angular/build \
+    @angular/core @angular/common @angular/compiler @angular/platform-browser rxjs   # Angular
 ```
 
 Install only what you use. A plugin is written into the generated Vite config **only** when an island

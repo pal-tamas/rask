@@ -51,6 +51,26 @@ internal sealed record DevTarget(
     /// <summary>The npm script that starts it: <c>dev</c> for Vite, <c>start</c> for the Angular CLI.</summary>
     public string? ClientDevScript { get; init; }
 
+    /// <summary>
+    ///     Whether this project has islands worth running a Vite dev server for.
+    /// </summary>
+    /// <remarks>
+    ///     Orthogonal to <see cref="Kind" />: islands live in the HOST project, so a plain
+    ///     <see cref="DevTemplateKind.Server" /> app can have them and a SPA-hosted one can have both a
+    ///     client dev server and an island one.
+    /// </remarks>
+    public bool HasIslands { get; init; }
+
+    /// <summary>
+    ///     Where the island dev server will listen. Null when the project has no islands.
+    /// </summary>
+    /// <remarks>
+    ///     Read from the csproj so an app that moved the port keeps working, and defaulted to 5174 —
+    ///     NOT Vite's 5173, which is the SPA client's. A solution with both would otherwise have two
+    ///     dev servers fighting for one port, and the loser fails in a way that reads as a Rask bug.
+    /// </remarks>
+    public string? IslandDevServerUrl { get; init; }
+
     /// <summary>The project name, used in the banner.</summary>
     public string Name => Path.GetFileNameWithoutExtension(ProjectPath);
 
@@ -80,12 +100,114 @@ internal sealed record DevTarget(
         var (url, launchesBrowser) = ReadLaunchProfile(fileSystem, directory);
         var kind = Classify(fileSystem, csproj);
         var client = kind == DevTemplateKind.SpaHosted ? SpaClientDirectory(fileSystem, resolved) : null;
+
+        // Once. It walks the project tree, and the tree it walks contains node_modules — which for a
+        // project with islands is tens of thousands of files. Calling it from two initialisers walked
+        // it twice on every `rask dev` startup.
+        var islands = HasIslandSources(fileSystem, directory);
+
         return new DevTarget(kind, resolved, directory, url, launchesBrowser)
         {
             ClientDirectory = client,
             ClientDevServerUrl = client is null ? null : ReadDevServerUrl(fileSystem, csproj),
             ClientDevScript = client is null ? null : ReadDevScript(fileSystem, client),
+            HasIslands = islands,
+            IslandDevServerUrl = islands ? ReadIslandDevServerUrl(fileSystem, csproj) : null,
         };
+    }
+
+    /// <summary>
+    ///     Whether the project holds an island front end the bundler would build.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A cheaper approximation of the discovery globs in <c>Rask.External.targets</c>, and it only
+    ///         has to be right about WHETHER to start a dev server — the build decides what is actually an
+    ///         island. Erring towards yes costs a Vite process that serves nothing; erring towards no
+    ///         costs the hot reload this exists for.
+    ///     </para>
+    ///     <para>
+    ///         The <c>package.json</c> check comes first and is the same gate the targets use: without one
+    ///         the bundler cannot run at all, so there is nothing to serve however many <c>.tsx</c> files
+    ///         are lying around.
+    ///     </para>
+    /// </remarks>
+    private static bool HasIslandSources(IFileSystem fileSystem, string projectDirectory)
+    {
+        if (!fileSystem.FileExists(Path.Combine(projectDirectory, "package.json")))
+        {
+            return false;
+        }
+
+        try
+        {
+            foreach (var pattern in new[] { "*.tsx", "*.jsx", "*.vue", "*.svelte" })
+            {
+                foreach (var file in fileSystem.ListFilesRecursive(projectDirectory, pattern))
+                {
+                    if (!IsBuildOutput(projectDirectory, file))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // A .ts counts only beside a .cs of the same name — the Lit and Angular pairing rule.
+            // Without that filter every piece of scoped TypeScript in the project would start a dev
+            // server.
+            foreach (var file in fileSystem.ListFilesRecursive(projectDirectory, "*.ts"))
+            {
+                if (IsBuildOutput(projectDirectory, file)
+                    || file.EndsWith(".d.ts", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (fileSystem.FileExists(Path.ChangeExtension(file, ".cs")))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+        {
+            // One unreadable directory anywhere under the project must not stop `rask dev` from
+            // running the app. Losing hot reload for the islands is the right failure here; refusing
+            // to start is not.
+            return false;
+        }
+
+        return false;
+    }
+
+    /// <summary>Where the island dev server listens, as the csproj set it or 5174 by default.</summary>
+    private static string ReadIslandDevServerUrl(IFileSystem fileSystem, string csproj)
+    {
+        var text = ReadOrEmpty(fileSystem, csproj);
+
+        var explicitUrl = Regex.Match(
+            text, @"<RaskExternalDevServerUrl>\s*([^<\s]+)\s*</RaskExternalDevServerUrl>");
+        if (explicitUrl.Success)
+        {
+            return explicitUrl.Groups[1].Value;
+        }
+
+        var port = Regex.Match(
+            text, @"<RaskExternalDevServerPort>\s*(\d+)\s*</RaskExternalDevServerPort>");
+
+        return "http://localhost:" + (port.Success ? port.Groups[1].Value : "5174");
+    }
+
+    /// <summary>Whether a discovered file is build output rather than someone's source.</summary>
+    private static bool IsBuildOutput(string projectDirectory, string file)
+    {
+        var relative = Path.GetRelativePath(projectDirectory, file)
+            .Replace(Path.DirectorySeparatorChar, '/');
+
+        return relative.StartsWith("obj/", StringComparison.OrdinalIgnoreCase)
+               || relative.StartsWith("bin/", StringComparison.OrdinalIgnoreCase)
+               || relative.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase)
+               || relative.Contains("node_modules/", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

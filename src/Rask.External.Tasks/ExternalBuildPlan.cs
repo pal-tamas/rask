@@ -76,12 +76,23 @@ internal static class ExternalBuildPlan
     /// <param name="outputDirectory">Where the built chunks land.</param>
     /// <param name="manifestPath">The manifest file <c>rask-external.js</c> fetches.</param>
     /// <param name="publicBase">The URL prefix the built files are served from.</param>
+    /// <param name="tsConfigPath">The Angular plugin's tsconfig, which Rask writes. May be null.</param>
+    /// <param name="devServerUrl">
+    ///     Where <c>rask dev</c> will serve the islands from, or null for an ordinary build. Present, it
+    ///     adds the <c>server</c> block the same config serves both roles through — <c>vite build</c>
+    ///     ignores it, so there is no second file to keep in step with this one.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     The islands name a combination no config can express — see <see cref="Refuse" />.
+    /// </exception>
     public static string ViteConfig(
         IReadOnlyList<ExternalEntry> islands,
         string entryDirectory,
         string outputDirectory,
         string manifestPath,
-        string publicBase)
+        string publicBase,
+        string? tsConfigPath = null,
+        string? devServerUrl = null)
     {
         var input = new StringBuilder();
         foreach (var island in islands)
@@ -95,13 +106,17 @@ internal static class ExternalBuildPlan
         // Ordered by the table rather than by the islands, so the config is byte-identical whatever
         // order the components were discovered in: this file is a bundler input compared against what
         // is already on disk, and rewriting it restarts the dev server's dependency graph.
-        var used = ExternalRuntime.All
-            .Where(r => r.PluginImport is not null)
+        var present = ExternalRuntime.All
             .Where(r => islands.Any(i => string.Equals(i.Runtime, r.Key, StringComparison.Ordinal)))
             .ToList();
 
+        Refuse(islands, present);
+
+        var used = present.Where(r => r.PluginImport is not null).ToList();
+
         var pluginImports = string.Concat(used.Select(r => $"import {r.PluginImport}\n"));
-        var pluginCalls = string.Concat(used.Select(r => $"{r.PluginCall}, "));
+        var pluginCalls = string.Concat(used.Select(r => $"{PluginCall(r, present, islands, tsConfigPath)}, "));
+        var server = ServerBlock(devServerUrl);
 
         return $$"""
             {{Header}}
@@ -135,7 +150,7 @@ internal static class ExternalBuildPlan
 
             export default defineConfig({
               plugins: [{{pluginCalls}}raskIslandManifest()],
-              build: {
+            {{server}}  build: {
                 outDir: {{Literal(Posix(outputDirectory))}},
                 emptyOutDir: true,
                 rollupOptions: {
@@ -153,6 +168,365 @@ internal static class ExternalBuildPlan
 
             """;
     }
+
+    /// <summary>
+    ///     One plugin's call expression, scoped to its own islands when another runtime competes for
+    ///     the same files.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Scoped by DIRECTORY, never by file, and that distinction was measured rather than
+    ///         reasoned about. A file-level <c>include</c> naming the island itself transforms the
+    ///         island correctly and leaves every module it IMPORTS to whichever plugin claims the rest
+    ///         of the tree: a Solid island importing a <c>Row.tsx</c> beside it built green, emitted a
+    ///         shared <c>jsxRuntime</c> chunk, and shipped a Preact vnode into Solid's renderer. A
+    ///         directory scope covers the helpers, because that is where they live.
+    ///     </para>
+    ///     <para>
+    ///         Only applied when it is needed. With one JSX runtime in the project there is nothing to
+    ///         disambiguate, and an unscoped plugin is both simpler to read and safe — it sees files
+    ///         no other plugin wants.
+    ///     </para>
+    /// </remarks>
+    private static string PluginCall(
+        ExternalRuntime runtime,
+        IReadOnlyList<ExternalRuntime> present,
+        IReadOnlyList<ExternalEntry> islands,
+        string? tsConfigPath)
+    {
+        var options = new List<string>();
+
+        if (runtime.PluginOptions is { Length: > 0 } baseline)
+        {
+            options.Add(baseline);
+        }
+
+        // A tsconfig Rask writes, never the app's own.
+        //
+        // The plugin looks for tsconfig.app.json and only WARNS when it is missing, then builds anyway
+        // with the compiler configured by nothing — so it does need to be told. But pointing it at the
+        // app's tsconfig.json breaks the build outright: that file carries "noEmit": true, which is
+        // correct for a type-check and fatal here, because ngtsc then emits nothing and rolldown
+        // reports `"default" is not exported by <island>.ts` for every .ts island in the project —
+        // naming files that plainly export one. Measured: bare and include-scoped both build; the
+        // app's tsconfig fails; a generated one without noEmit builds AND silences the warning.
+        if (ReferenceEquals(runtime, ExternalRuntime.Angular) && tsConfigPath is { Length: > 0 })
+        {
+            options.Add($"tsconfig: {Literal(Posix(tsConfigPath))}");
+        }
+
+        if (present.Any(runtime.SharesExtensionWith))
+        {
+            var globs = Directories(islands, runtime)
+                .Select(d => Literal(d + "/**/*" + Extensions(runtime)))
+                .ToList();
+
+            if (globs.Count > 0)
+            {
+                options.Add("include: [" + string.Join(", ", globs) + "]");
+            }
+        }
+
+        return options.Count == 0
+            ? $"{runtime.PluginFactory}()"
+            : $"{runtime.PluginFactory}({{ {string.Join(", ", options)} }})";
+    }
+
+    /// <summary>
+    ///     The <c>server</c> block for <c>rask dev</c>, or nothing for an ordinary build.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>cors</c> and <c>origin</c> are the load-bearing pair. The PAGE is served by the
+    ///         ASP.NET host and the island modules by Vite, so every import is cross-origin: without
+    ///         CORS the browser refuses the module script, and without an explicit origin Vite writes
+    ///         relative URLs into the modules it serves, which the browser then resolves against the
+    ///         host and fetches as the app's own HTML.
+    ///     </para>
+    ///     <para>
+    ///         <strong>CORS is restricted to loopback, never <c>true</c>.</strong> <c>cors: true</c>
+    ///         answers every origin with <c>Access-Control-Allow-Origin: *</c>, and this server also
+    ///         serves <c>/@fs/&lt;absolute path&gt;</c> — so any website open in the developer's browser
+    ///         while <c>rask dev</c> runs could fetch files off their machine and read the response.
+    ///         That is the same class of hole Vite itself has had to close more than once. A loopback
+    ///         allow-list costs nothing here, because the only legitimate caller IS the app on
+    ///         localhost.
+    ///     </para>
+    ///     <para>
+    ///         <c>strictPort</c> because the port is baked into the manifest at build time. Letting
+    ///         Vite pick the next free one would leave the page importing from a port nothing is
+    ///         listening on, and the only symptom would be islands that never mount.
+    ///     </para>
+    /// </remarks>
+    private static string ServerBlock(string? devServerUrl)
+    {
+        if (string.IsNullOrEmpty(devServerUrl))
+        {
+            return string.Empty;
+        }
+
+        var port = Port(devServerUrl!);
+
+        return $$"""
+              server: {
+                port: {{port}},
+                strictPort: true,
+                // Loopback only. Allowing every origin would answer them all with a wildcard, and
+                // this server also serves /@fs/<absolute path> — so any page open in the developer's
+                // browser could read files from under their workspace root.
+                cors: { origin: /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/ },
+                origin: {{Literal(devServerUrl!.TrimEnd('/'))}},
+              },
+
+            """;
+    }
+
+    /// <summary>
+    ///     The port the dev server must listen on, taken from the URL the page will import from.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Parsed with <see cref="Uri" /> rather than by hand. A hand-rolled scan cannot tell
+    ///         <c>http://localhost:5174/islands</c> or <c>http://islands.local</c> from the shape it
+    ///         expects, and falling back to a default there is the worst outcome available: the config
+    ///         would pin <c>strictPort</c> to one port while <c>origin</c> and the manifest named
+    ///         another, so Vite would come up on a port nothing imports from and the only symptom
+    ///         would be islands that never appear — the exact failure <c>strictPort</c> exists to
+    ///         prevent.
+    ///     </para>
+    ///     <para>
+    ///         So an unusable URL is refused by name instead. It can only come from someone setting
+    ///         <c>RaskExternalDevServerUrl</c> by hand, which is a mistake worth reporting rather than
+    ///         absorbing.
+    ///     </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The URL is not one this can serve from.</exception>
+    private static string Port(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var parsed)
+            || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new InvalidOperationException(
+                $"Rask islands: '{url}' is not a usable dev-server URL. RaskExternalDevServerUrl has to "
+                + "be an absolute http(s) URL naming the port the islands are served from, e.g. "
+                + "http://localhost:5174.");
+        }
+
+        if (parsed.AbsolutePath.Trim('/').Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"Rask islands: '{url}' carries a path. The dev server is addressed by origin only, so "
+                + "RaskExternalDevServerUrl has to stop at the port — e.g. http://localhost:5174.");
+        }
+
+        return parsed.Port.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    ///     The manifest for <c>rask dev</c>: island name to a module the Vite dev server serves.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The same shape and the same path the built manifest uses, so the client runtime resolves
+    ///         an island exactly one way in dev and in production. A second code path there would be a
+    ///         branch only dev exercises, which is the kind that rots unnoticed until production needs
+    ///         it.
+    ///     </para>
+    ///     <para>
+    ///         <c>/@fs/</c> because the generated entry modules live under <c>obj/</c>, outside any root
+    ///         Vite would serve from. That is Vite's own escape hatch for a file outside the root, and
+    ///         the reason the config does not try to set <c>root</c> to something that would contain
+    ///         both <c>obj/</c> and the author's source tree.
+    ///     </para>
+    /// </remarks>
+    public static string DevManifest(
+        IReadOnlyList<ExternalEntry> islands, string entryDirectory, string devServerUrl)
+    {
+        var origin = devServerUrl.TrimEnd('/');
+        var json = new StringBuilder();
+        json.AppendLine("{");
+
+        var ordered = islands.OrderBy(i => i.Name, StringComparer.Ordinal).ToList();
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            // "/@fs/" + the path WITHOUT its leading slash, which is Vite's own form. Concatenating
+            // "/@fs" with the path directly happens to work on Unix, where the path starts with "/",
+            // and produces "/@fsC:/app/..." on Windows — every island 404s and nothing mounts.
+            var entry = Posix(Path.Combine(entryDirectory, ordered[i].Name + ".entry.ts")).TrimStart('/');
+            json.Append("  \"").Append(ordered[i].Name).Append("\": \"")
+                .Append(origin).Append("/@fs/").Append(entry).Append('"')
+                .AppendLine(i == ordered.Count - 1 ? string.Empty : ",");
+        }
+
+        json.AppendLine("}");
+        return json.ToString();
+    }
+
+    /// <summary>
+    ///     The tsconfig the Angular plugin compiles against, or null when the project has no Angular
+    ///     island.
+    /// </summary>
+    /// <remarks>
+    ///     Written rather than borrowed. The app's own tsconfig is the obvious candidate and the wrong
+    ///     one: it carries <c>"noEmit": true</c> — correct for a type-check, fatal for a compiler whose
+    ///     output is the bundle — and the failure names neither Angular nor noEmit, only a missing
+    ///     default export in a file that has one. This config exists to emit, so it says nothing about
+    ///     noEmit at all.
+    /// </remarks>
+    public static string? AngularTsConfig(IReadOnlyList<ExternalEntry> islands, string directory)
+    {
+        var files = islands
+            .Where(i => string.Equals(i.Runtime, ExternalRuntime.Angular.Key, StringComparison.Ordinal))
+            .Select(i => Posix(i.Source))
+            .OrderBy(f => f, StringComparer.Ordinal)
+            .ToList();
+
+        if (files.Count == 0)
+        {
+            return null;
+        }
+
+        var json = new StringBuilder();
+        json.AppendLine("{");
+        json.AppendLine("  // <auto-generated/> Rask writes this for @analogjs/vite-plugin-angular.");
+        json.AppendLine("  // Deliberately NOT the app's tsconfig. That one suppresses emit for its");
+        json.AppendLine("  // type-check, which leaves ngtsc producing nothing and every .ts island in");
+        json.AppendLine("  // the project without a default export. This config exists to emit.");
+        json.AppendLine("  \"compilerOptions\": {");
+        json.AppendLine("    \"target\": \"es2022\",");
+        json.AppendLine("    \"module\": \"esnext\",");
+        json.AppendLine("    \"moduleResolution\": \"bundler\",");
+        json.AppendLine("    \"strict\": true,");
+        json.AppendLine("    \"skipLibCheck\": true,");
+        // Angular's decorators are the TypeScript 4 form; Lit 3's standard decorators need this off,
+        // which is why this config covers the Angular islands only.
+        json.AppendLine("    \"experimentalDecorators\": true,");
+        json.AppendLine("    \"useDefineForClassFields\": false,");
+        json.AppendLine("    \"paths\": {");
+        json.Append("      \"@rask/*\": [\"").Append(Posix(directory)).AppendLine("/types/*\"]");
+        json.AppendLine("    }");
+        json.AppendLine("  },");
+        json.AppendLine("  \"files\": [");
+
+        for (var i = 0; i < files.Count; i++)
+        {
+            json.Append("    \"").Append(files[i]).Append('"')
+                .AppendLine(i == files.Count - 1 ? string.Empty : ",");
+        }
+
+        json.AppendLine("  ]");
+        json.AppendLine("}");
+
+        return json.ToString();
+    }
+
+    /// <summary>The distinct directories a runtime's islands live in, sorted so the config is stable.</summary>
+    private static IEnumerable<string> Directories(IReadOnlyList<ExternalEntry> islands, ExternalRuntime runtime) =>
+        islands
+            .Where(i => string.Equals(i.Runtime, runtime.Key, StringComparison.Ordinal))
+            .Select(i => Posix(Path.GetDirectoryName(i.Source) ?? string.Empty))
+            .Where(d => d.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(d => d, StringComparer.Ordinal);
+
+    /// <summary>A runtime's extensions as one brace expansion, e.g. <c>.{jsx,tsx}</c>.</summary>
+    private static string Extensions(ExternalRuntime runtime)
+    {
+        var bare = runtime.Extensions
+            .Select(e => e.TrimStart('.'))
+            .OrderBy(e => e, StringComparer.Ordinal)
+            .ToList();
+
+        return bare.Count == 1 ? "." + bare[0] : ".{" + string.Join(",", bare) + "}";
+    }
+
+    /// <summary>
+    ///     Refuses the island combinations no generated config could build correctly.
+    /// </summary>
+    /// <remarks>
+    ///     Both of these used to be possible to express and impossible to notice. Named here, at the
+    ///     point the config would have been written, so the message can name the islands rather than
+    ///     leaving npm or the browser to describe the symptom.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The combination cannot be built.</exception>
+    private static void Refuse(IReadOnlyList<ExternalEntry> islands, IReadOnlyList<ExternalRuntime> present)
+    {
+        // React and Preact cannot be INSTALLED together, let alone configured: @vitejs/plugin-react
+        // resolves Babel 8 and @preact/preset-vite pins a @babel/core@"7.x" peer. Left to npm, the
+        // failure is an ERESOLVE tree that names four Babel packages and neither island.
+        if (present.Contains(ExternalRuntime.React) && present.Contains(ExternalRuntime.Preact))
+        {
+            throw new InvalidOperationException(
+                "Rask islands: this project has both React and Preact islands ("
+                + Naming(islands, ExternalRuntime.React) + " and " + Naming(islands, ExternalRuntime.Preact)
+                + "), and their Vite plugins cannot be installed side by side — @vitejs/plugin-react "
+                + "resolves Babel 8 while @preact/preset-vite pins @babel/core 7. Pick one for the "
+                + "project. A Preact island can also be rendered by ReactComponent if the app aliases "
+                + "react to preact/compat.");
+        }
+
+        // Two runtimes that claim the same extension CAN share a project, but not a directory tree:
+        // each plugin is confined to the directories its own islands live in, so overlapping trees
+        // leave both claiming the same files. Whichever loses compiles the other's island — and every
+        // helper beside it — with the wrong transform, which builds, ships, and mounts nothing.
+        //
+        // Ancestry counts, not just equality. A React island in Features/Islands and a Solid one in
+        // Features/Islands/Solid look like different directories and are not: React's scope is
+        // 'Features/Islands/**', which contains Solid's islands whole.
+        foreach (var a in present)
+        {
+            foreach (var b in present)
+            {
+                if (string.CompareOrdinal(a.Key, b.Key) >= 0 || !a.SharesExtensionWith(b))
+                {
+                    continue;
+                }
+
+                foreach (var left in Directories(islands, a))
+                {
+                    foreach (var right in Directories(islands, b))
+                    {
+                        if (!Overlaps(left, right))
+                        {
+                            continue;
+                        }
+
+                        throw new InvalidOperationException(
+                            $"Rask islands: the {a.Key} island(s) in '{left}' ({Naming(islands, a, left)}) and "
+                            + $"the {b.Key} island(s) in '{right}' ({Naming(islands, b, right)}) share a "
+                            + "directory tree, and both runtimes compile "
+                            + string.Join("/", a.Extensions.Where(e => b.Extensions.Contains(e, StringComparer.Ordinal)))
+                            + ". Each plugin is scoped to the directories its own islands live in, so "
+                            + "overlapping trees leave one of them compiling the other's island — and the "
+                            + "helper modules beside it — with the wrong transform. That builds, ships, and "
+                            + "then mounts nothing. Give each runtime a folder of its own, and do not nest "
+                            + "one inside the other.");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>Whether two island directories are the same, or one contains the other.</summary>
+    private static bool Overlaps(string left, string right) =>
+        string.Equals(left, right, StringComparison.Ordinal)
+        || left.StartsWith(right + "/", StringComparison.Ordinal)
+        || right.StartsWith(left + "/", StringComparison.Ordinal);
+
+    /// <summary>The islands of one runtime, named for an error message. Optionally one directory's.</summary>
+    private static string Naming(
+        IReadOnlyList<ExternalEntry> islands, ExternalRuntime runtime, string? directory = null) =>
+        string.Join(
+            ", ",
+            islands
+                .Where(i => string.Equals(i.Runtime, runtime.Key, StringComparison.Ordinal))
+                .Where(i => directory is null
+                            || string.Equals(
+                                Posix(Path.GetDirectoryName(i.Source) ?? string.Empty),
+                                directory,
+                                StringComparison.Ordinal))
+                .Select(i => i.Name)
+                .OrderBy(n => n, StringComparer.Ordinal));
 
     /// <summary>
     ///     Forward slashes, always.

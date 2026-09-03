@@ -892,9 +892,12 @@ public sealed class SpaTemplateTests
     ///         slow upgrade, so that half is checked against the shipped props rather than a literal.
     ///     </para>
     ///     <para>
-    ///         The second half is a literal on purpose: nothing in the repo knows which line Node currently
-    ///         calls Active LTS. Raise it when that moves — it only ever goes up, and going backwards is
-    ///         exactly the regression worth failing over.
+    ///         The second half used to be a literal, because nothing in the repo knew which line Node calls
+    ///         Active LTS. Something does now: <c>NodeRequirement.ScaffoldLine</c> states it once, the
+    ///         installers and docs are held to it by <c>NodeRequirementTests</c>, and
+    ///         <c>.github/workflows/lts-watch.yml</c> opens an issue when nodejs.org moves past it. So this
+    ///         reads that one number instead of restating it — going backwards is still the regression
+    ///         worth failing over, but "which line" is no longer this test's to know.
     ///     </para>
     /// </remarks>
     [Fact]
@@ -914,7 +917,12 @@ public sealed class SpaTemplateTests
             major >= floor.Major,
             $"the image installs Node {major}.x, which the build's own floor ({floor}) refuses.");
 
-        // Node 24 "Krypton" is the Active LTS as of 2026-08; 20 "Iron" is EOL and 22 "Jod" is maintenance.
-        Assert.True(major >= 24, $"the image installs Node {major}.x, which is no longer the Active LTS.");
+        // Against NodeRequirement.ScaffoldLine rather than a literal. The repo now DOES know which line it
+        // calls Active LTS — it is stated once, in NodeRequirement, and .github/workflows/lts-watch.yml
+        // opens an issue when nodejs.org moves past it. A literal here was a third copy of that number.
+        Assert.True(
+            major >= NodeRequirement.ScaffoldLine.Major,
+            $"the image installs Node {major}.x, below the scaffold line "
+            + $"({NodeRequirement.ScaffoldLine}) this repo states in src/Rask.Cli/NodeRequirement.cs.");
     }
 }

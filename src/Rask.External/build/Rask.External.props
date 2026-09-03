@@ -77,6 +77,28 @@
       shelling `npm ci || npm install`, which prints a wall of npm errors on every first build and
       reads exactly like a failure.
     -->
+    <!--
+      Dev-server mode, set by `rask dev`. The islands are served by a Vite dev server instead of being
+      bundled into wwwroot, so each framework's own hot-replacement works on them.
+
+      This is NOT RaskExternalBuild=false. That switch turns the whole feature off — no entry modules,
+      no manifest, no prop types — and an app run that way has islands that never mount. This one
+      keeps every input being written and skips exactly one step: the production `vite build`. The
+      manifest is still written, pointing at the dev server rather than at chunks.
+    -->
+    <RaskExternalDevServer Condition="'$(RaskExternalDevServer)' == ''">false</RaskExternalDevServer>
+
+    <!--
+      The port the island dev server listens on, and the origin the page imports modules from.
+
+      Not 5173: that is the SPA lane's, and a solution with both would have them fight for it. Baked
+      into the manifest at build time, which is why the generated config sets strictPort — Vite
+      quietly picking the next free port would leave the page importing from one nothing is on, with
+      no symptom but islands that never appear.
+    -->
+    <RaskExternalDevServerPort Condition="'$(RaskExternalDevServerPort)' == ''">5174</RaskExternalDevServerPort>
+    <RaskExternalDevServerUrl Condition="'$(RaskExternalDevServerUrl)' == ''">http://localhost:$(RaskExternalDevServerPort)</RaskExternalDevServerUrl>
+
     <RaskExternalInstallCommand Condition="'$(RaskExternalInstallCommand)' == ''">npm ci</RaskExternalInstallCommand>
     <RaskExternalFirstInstallCommand Condition="'$(RaskExternalFirstInstallCommand)' == ''">npm install</RaskExternalFirstInstallCommand>
 
@@ -84,9 +106,15 @@
          so the project does not have to carry a script whose name Rask would then depend on. -->
     <RaskExternalBuildCommand Condition="'$(RaskExternalBuildCommand)' == ''">npx --no-install vite build --config</RaskExternalBuildCommand>
 
-    <!-- Vite's own floor. The probe reports anything older rather than letting vite fail with an
-         engines error nobody reads. -->
-    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">20.19.0</RaskExternalMinimumNode>
+    <!-- The floor _RaskExternalProbeNode enforces as RASKISLAND001, so an old Node is reported here
+         rather than failing inside vite with an engines error nobody reads.
+
+         22.12.0, matching RaskSpaMinimumNode. Both paths run vite, so both take vite's requirement:
+         `^20.19.0 || >=22.12.0`. That range has a HOLE — 21.x satisfies neither arm — and a numeric
+         floor cannot express it, so a floor of 20.19.0 (what this said while nothing read it) would
+         have admitted 21.x and let it fail in the bundler anyway. 22.12.0 is the lowest version with
+         no hole beneath it, and Node 20 "Iron" is EOL besides. -->
+    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">22.12.0</RaskExternalMinimumNode>
   </PropertyGroup>
 
 </Project>

@@ -103,6 +103,43 @@ public static class LivePayload
     }
 
     /// <summary>
+    ///     Stamps where the islands' Vite dev server is, as <c>data-rask-islands-dev</c>, so the island
+    ///     runtime can load <c>@vite/client</c> and let each framework hot-replace its own modules.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Only the HMR CLIENT is signalled here; the island chunks themselves are already pointed
+    ///         at the dev server by the manifest the build wrote. That split is deliberate — resolution
+    ///         stays one mechanism with two tables, rather than two code paths in the runtime that
+    ///         would then differ in dev and in production.
+    ///     </para>
+    ///     <para>
+    ///         Development only, and never emitted otherwise: a production page carrying a localhost
+    ///         URL would have every visitor's browser try to open a websocket to their own machine.
+    ///     </para>
+    /// </remarks>
+    public static string InjectIslandsDevAttr(string html, bool dev, string? devServerUrl)
+    {
+        if (!dev || string.IsNullOrEmpty(devServerUrl))
+        {
+            return html;
+        }
+
+        var i = IndexOfBodyOpen(html);
+        if (i < 0)
+        {
+            return html;
+        }
+
+        var insertAt = i + "<body".Length;
+        var attribute = " data-rask-islands-dev=\"" + HtmlEncoder.Default.Encode(devServerUrl) + "\"";
+        return string.Concat(
+            html.AsSpan(0, insertAt),
+            attribute.AsSpan(),
+            html.AsSpan(insertAt));
+    }
+
+    /// <summary>
     ///     Stamps where the browser bundle's boot module lives, as <c>data-rask-wasm</c>, so the live
     ///     runtime can fetch it once the page is idle and stand a browser runtime up beside itself.
     /// </summary>

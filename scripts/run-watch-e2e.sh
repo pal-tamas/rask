@@ -35,7 +35,20 @@ export RASK_WATCH_E2E=1
 echo "==> Build the test project (MinVer must stamp a real version — the feed is read off the nupkg name)"
 dotnet build tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release -m:1
 
+# A package cache of the gate's OWN, for the reason run-cli-build-e2e.sh:50-63 spells out: turning on
+# RASK_CLI_BUILD_E2E above also turns on CliBuildE2E.EvictFromGlobalCache, which DELETES
+# ~/.nuget/packages/<pkg>/<version> for all 22 Rask packages. MinVer stamps the same version for the
+# same commit in every worktree, so without this the gate reaches outside its own sandbox and deletes
+# packages another worktree's build is restoring at that moment.
+#
+# That gate got the fix when it was written; this one shares its switch and its feed and was simply
+# missed — the eviction is in the fixture, not in either script, so nothing here named the hazard.
+# Same directory on purpose: the two gates then share what they have already downloaded.
+gate_packages="$root/artifacts/cli-gate-packages"
+mkdir -p "$gate_packages"
+
 echo "==> Watch hot-reload gate (real dotnet watch + a real live session)"
+NUGET_PACKAGES="$gate_packages" \
 dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release --no-build \
   --filter "FullyQualifiedName~WatchHotReloadE2ETests" \
   --logger "console;verbosity=normal"
