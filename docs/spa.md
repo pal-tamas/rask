@@ -428,6 +428,56 @@ Generate a key pair with `VapidKeys.Generate()` and put it in user-secrets; unti
 answers with an empty key and `subscribeToPush()` returns `null` rather than throwing. See
 [Web Push](pwa.md).
 
+## Signing people in
+
+The [accounts battery](authentication.md) is on in the host, so the four endpoints it maps are already
+there. A TypeScript front end talks to them directly — there is no Rask client to install, because
+there is nothing to install: they are ordinary JSON over ordinary `fetch`.
+
+```
+POST /api/auth/register   { email, password, firstRunToken? }
+POST /api/auth/login      { email, password, remember? }
+POST /api/auth/logout
+GET  /api/auth/me         -> { id, email, roles }  |  204
+```
+
+```ts
+const res = await fetch('/api/auth/login', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'X-Rask-Auth': '1' },
+  body: JSON.stringify({ email, password }),
+})
+
+if (!res.ok) {
+  const { error } = await res.json()   // "InvalidCredentials", "LockedOut", …
+}
+```
+
+Three things to know, and only three:
+
+- **`X-Rask-Auth` is required on every state-changing call.** Cross-site markup — a form, an `<img>`,
+  a `<script>` — cannot set a custom header, so requiring one is what keeps another origin from
+  driving these endpoints with your visitor's cookie. It is a CSRF defence that costs no round-trip.
+- **You do not attach the cookie.** It is `HttpOnly`, so JavaScript cannot read it and does not need
+  to: these calls are same-origin, and a same-origin `fetch` sends cookies by default. Nothing goes in
+  `localStorage`, so there is no token for a script on the page to steal.
+- **`/api/auth/me` answers `204`, not `401`, when nobody is signed in.** "Nobody" is a perfectly good
+  answer to that question; treating it as a failure would fill your logs with errors on every
+  anonymous page load.
+
+Read it once when the app loads, and again after a successful login or logout — those are the only
+three moments the answer changes.
+
+### Protecting the server side
+
+Client-side routing decides what a visitor *sees*, which is presentation rather than security. What
+actually protects data is the endpoint: put `[Authorize]` on your controllers and minimal APIs, and
+they answer `401` regardless of what the front end chose to render.
+
+> **Map your API before `UseRaskSpa()`.** It ends the pipeline with a fallback that serves the bundle
+> for anything unmatched, so an endpoint mapped after it is never reached — the same ordering rule
+> `MapRaskCqrs()` has.
+
 ## See also
 
 - [`docs/tailwind.md`](tailwind.md) — Tailwind on a C# host, with no npm at all.

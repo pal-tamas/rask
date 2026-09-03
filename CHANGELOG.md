@@ -155,6 +155,23 @@ them until tagged releases begin.
 
 ### Added
 
+- **Signing people in is documented for the hosts that have no C# API.** "Auth in every host" was true
+  in the code and absent from `docs/spa.md`, `docs/meta.md` and `docs/islands.md` — the three places a
+  reader of those lanes would look.
+
+  The meta section is the one worth reading: the visitor's cookie reaches the Node process on every
+  proxied request and **Node cannot read it**, because it is Data-Protection sealed and Node holds no
+  key ring. So server-side rendering calls back into the C# app over loopback carrying the visitor's
+  own cookie, and the side that can decrypt it answers. `RASK_BASE_URL` is configuration rather than a
+  request header on purpose: a destination an attacker could influence, plus a request carrying
+  somebody's session, is a confused deputy.
+
+  The islands section says there is nothing to wire, and why — a callback re-enters through the host's
+  existing channel, so it lands in the session every other handler runs in. It also says the two things
+  people get backwards: do not send the principal into an island as a prop (props are serialized into
+  the page), and gating the host component gates the island.
+
+
 - **`Rask.Auth.Client` — the browser half, so a WebAssembly app writes the same three calls.** Until
   now a WASM app had `IAuth` and `IUserProvider` but no implementation of either; the documented answer
   was to copy an `ApiUserProvider` out of a sample. `AddRaskAuthClient()` now supplies both, over the
