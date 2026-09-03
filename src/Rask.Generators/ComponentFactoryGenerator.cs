@@ -366,7 +366,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate,
                     p.IsAutoRerenderDelegate || folded, generic: false,
                     !folded && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
-                    c.TypeParameters, c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name),
+                    AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name),
                     p.Summary,
                     // A form control's chain carries its mode, so its steps are written over it: the
                     // controlled-mode props (Checked, OnInput, OnChange) only on Controlled, everything
@@ -767,7 +767,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             var pending = OwnSetterProps(c).Where(p => bits.ContainsKey(p.Name)).ToList();
 
             sb.Append("    ").Append(visibility).Append(" static void ").Append(EagerResetName(c))
-                .Append(c.TypeParameters).Append("(global::Rask.Core.Component __c0)")
+                .Append(AnnotateDecl(c, c.TypeParameters)).Append("(global::Rask.Core.Component __c0)")
                 .AppendLine(c.TypeParameterConstraints);
             sb.AppendLine("    {");
             sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
@@ -785,7 +785,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.AppendLine("    }");
 
             sb.Append("    ").Append(visibility).Append(" static void ").Append(PendingResetName(c))
-                .Append(c.TypeParameters).Append("(global::Rask.Core.Component __c0, ulong __p)")
+                .Append(AnnotateDecl(c, c.TypeParameters)).Append("(global::Rask.Core.Component __c0, ulong __p)")
                 .AppendLine(c.TypeParameterConstraints);
             sb.AppendLine("    {");
             sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
@@ -938,8 +938,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // opened with `Value` never sees them — `.AfterBind(…)` on it is a compile error naming
             // Build<…, Controlled>, where before it compiled and the hook simply never ran.
             EmitSetter(sb, name, typeFqn, c.FullyQualifiedName, isDelegate: false, wrap: false, generic: false,
-                fold: false, c.TypeParameters, c.TypeParameterConstraints, visibility, pendingBit: -1,
-                summary: summary, mode: ModeOf(name));
+                fold: false, AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility,
+                pendingBit: -1, summary: summary, mode: ModeOf(name));
         }
     }
 
