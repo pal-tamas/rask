@@ -1,0 +1,52 @@
+#nullable enable
+Rask.Wire.FileDownload
+Rask.Wire.FileDownload.ContentType.get -> string!
+Rask.Wire.FileDownload.FileName.get -> string!
+Rask.Wire.FileDownload.Length.get -> long?
+Rask.Wire.FileDownload.OpenReadStream() -> System.IO.Stream!
+Rask.Wire.FileDownload.WriteToAsync(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Wire.RemoteFile
+Rask.Wire.RemoteFile.RemoteFile() -> void
+Rask.Wire.WireJson
+abstract Rask.Wire.RemoteFile.ContentType.get -> string!
+abstract Rask.Wire.RemoteFile.Name.get -> string!
+abstract Rask.Wire.RemoteFile.OpenReadStream(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
+abstract Rask.Wire.RemoteFile.Size.get -> long
+const Rask.Wire.RemoteFile.UnknownSize = -1 -> long
+static Rask.Wire.FileDownload.FromBytes(string! fileName, string? contentType, byte[]! bytes) -> Rask.Wire.FileDownload!
+static Rask.Wire.FileDownload.FromStream(string! fileName, string? contentType, System.IO.Stream! stream, long? length = null) -> Rask.Wire.FileDownload!
+static Rask.Wire.RemoteFile.FromBytes(string! name, string? contentType, byte[]! bytes, System.DateTimeOffset? lastModified = null) -> Rask.Wire.RemoteFile!
+static Rask.Wire.RemoteFile.FromStream(string! name, string? contentType, long size, System.Func<System.Threading.CancellationToken, System.IO.Stream!>! openReadStream, System.DateTimeOffset? lastModified = null) -> Rask.Wire.RemoteFile!
+static Rask.Wire.WireJson.ExpectStartArray(ref System.Text.Json.Utf8JsonReader reader, string! property) -> void
+static Rask.Wire.WireJson.ExpectStartObject(ref System.Text.Json.Utf8JsonReader reader, string! property) -> void
+static Rask.Wire.WireJson.ReadBoolean(ref System.Text.Json.Utf8JsonReader reader, string! property) -> bool
+static Rask.Wire.WireJson.ReadByte(ref System.Text.Json.Utf8JsonReader reader, string! property) -> byte
+static Rask.Wire.WireJson.ReadBytes(ref System.Text.Json.Utf8JsonReader reader, string! property) -> byte[]?
+static Rask.Wire.WireJson.ReadChar(ref System.Text.Json.Utf8JsonReader reader, string! property) -> char
+static Rask.Wire.WireJson.ReadDateOnly(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateOnly
+static Rask.Wire.WireJson.ReadDateTime(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateTime
+static Rask.Wire.WireJson.ReadDateTimeOffset(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.DateTimeOffset
+static Rask.Wire.WireJson.ReadDecimal(ref System.Text.Json.Utf8JsonReader reader, string! property) -> decimal
+static Rask.Wire.WireJson.ReadDouble(ref System.Text.Json.Utf8JsonReader reader, string! property) -> double
+static Rask.Wire.WireJson.ReadGuid(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.Guid
+static Rask.Wire.WireJson.ReadInt16(ref System.Text.Json.Utf8JsonReader reader, string! property) -> short
+static Rask.Wire.WireJson.ReadInt32(ref System.Text.Json.Utf8JsonReader reader, string! property) -> int
+static Rask.Wire.WireJson.ReadInt64(ref System.Text.Json.Utf8JsonReader reader, string! property) -> long
+static Rask.Wire.WireJson.ReadRequiredString(ref System.Text.Json.Utf8JsonReader reader, string! property) -> string!
+static Rask.Wire.WireJson.ReadSByte(ref System.Text.Json.Utf8JsonReader reader, string! property) -> sbyte
+static Rask.Wire.WireJson.ReadSingle(ref System.Text.Json.Utf8JsonReader reader, string! property) -> float
+static Rask.Wire.WireJson.ReadString(ref System.Text.Json.Utf8JsonReader reader, string! property) -> string?
+static Rask.Wire.WireJson.ReadTimeOnly(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.TimeOnly
+static Rask.Wire.WireJson.ReadTimeSpan(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.TimeSpan
+static Rask.Wire.WireJson.ReadUInt16(ref System.Text.Json.Utf8JsonReader reader, string! property) -> ushort
+static Rask.Wire.WireJson.ReadUInt32(ref System.Text.Json.Utf8JsonReader reader, string! property) -> uint
+static Rask.Wire.WireJson.ReadUInt64(ref System.Text.Json.Utf8JsonReader reader, string! property) -> ulong
+static Rask.Wire.WireJson.ReadUri(ref System.Text.Json.Utf8JsonReader reader, string! property) -> System.Uri?
+static Rask.Wire.WireJson.ResolveFile(System.Collections.Generic.IReadOnlyList<Rask.Wire.RemoteFile!>! files, int index, string! property) -> Rask.Wire.RemoteFile?
+static Rask.Wire.WireJson.SkipValue(ref System.Text.Json.Utf8JsonReader reader) -> void
+static Rask.Wire.WireJson.WriteCharValue(System.Text.Json.Utf8JsonWriter! writer, char value) -> void
+static Rask.Wire.WireJson.WriteDateOnlyValue(System.Text.Json.Utf8JsonWriter! writer, System.DateOnly value) -> void
+static Rask.Wire.WireJson.WriteTimeOnlyValue(System.Text.Json.Utf8JsonWriter! writer, System.TimeOnly value) -> void
+static Rask.Wire.WireJson.WriteTimeSpanValue(System.Text.Json.Utf8JsonWriter! writer, System.TimeSpan value) -> void
+static Rask.Wire.WireJson.WriteUriValue(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value) -> void
+virtual Rask.Wire.RemoteFile.LastModified.get -> System.DateTimeOffset?

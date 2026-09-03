@@ -69,6 +69,8 @@ public static class GuideCatalog
             IconName.DatabaseGear, "One Person Framework"),
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.",
             IconName.Shuffle, "One Person Framework"),
+        new("api-endpoints", "HTTP APIs", "Controllers and minimal APIs, called through a generated typed client.",
+            IconName.Shuffle, "One Person Framework"),
         new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.",
             IconName.FiletypeTsx, "One Person Framework"),
         new("meta", "Meta framework front ends",

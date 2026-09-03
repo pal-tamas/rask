@@ -1,4 +1,4 @@
-namespace Rask.Cqrs.Tests;
+namespace Rask.Wire.Tests;
 
 public sealed class FileDownloadTests
 {

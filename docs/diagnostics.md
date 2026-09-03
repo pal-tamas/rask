@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK066)
+# Rask diagnostics (RASK001–RASK070)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -99,6 +99,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK062](#rask062) | Error | An island takes no children |
 | [RASK064](#rask064) | Error | Blazor island name collision |
 | [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
+| [RASK067](#rask067) | Error | Endpoint shape has no wire encoding |
+| [RASK068](#rask068) | Warning | Endpoint has no generated client method |
+| [RASK069](#rask069) | Error | Two endpoints claim one client method |
+| [RASK070](#rask070) | Warning | Endpoint's response type is not statically known |
 
 ---
 
@@ -1402,3 +1406,95 @@ public sealed partial class WidgetIsland : BlazorComponent<Widget> { }
 **Fix:** move the `.razor` into a Razor Class Library and reference it. That is also where a Blazor
 component belongs if anything else will ever use it — and it is why hosting MudBlazor or Radzen,
 which are referenced packages, is fully checked with no warning at all.
+
+---
+
+## RASK067
+
+**Endpoint shape has no wire encoding** · Error
+
+A parameter or response type of an API endpoint cannot be encoded on the wire, so no typed client
+method can call it. The message names the shape and says what is wrong with it — the same walk, and
+the same vocabulary, as [RASK053](#rask053) for a CQRS message.
+
+```csharp
+[HttpPost("")]
+public ActionResult<Post> Create([FromBody] Stream body) => ...;   // ✗ RASK067
+```
+
+**Fix:** take a record, a class or a collection of them. A type Rask can encode is one whose public
+properties are themselves encodable — the shapes a JSON body can carry. If the parameter is really a
+service rather than something the caller sends, mark it `[FromServices]`, and it leaves the client's
+signature instead of being reported.
+
+---
+
+## RASK068
+
+**Endpoint has no generated client method** · Warning
+
+The endpoint works over plain HTTP; it just gets no typed caller, because something about it cannot be
+expressed as a method signature. The message says which:
+
+- its route has a **catch-all** segment (`{*rest}`), which no single parameter can fill;
+- its route names a token **no parameter supplies**, so the client would build a URL with a hole in it;
+- it would take a **second request body**, and a request has one.
+
+```csharp
+[HttpGet("files/{*path}")]                    // ⚠ RASK068 — catch-all
+public ActionResult<string> Read(string path) => ...;
+
+[HttpGet("{id:int}")]                         // ⚠ RASK068 — nothing supplies {id}
+public ActionResult<Post> Get() => ...;
+```
+
+A warning rather than an error, because one unusual endpoint should not break a build. It is reported
+rather than skipped in silence for the opposite reason: a method simply missing from the client reads
+as a broken generator, and the author has no way to find out why.
+
+**Fix:** give the route a normal parameter segment, add the parameter it names, or accept that this
+endpoint is called by hand.
+
+---
+
+## RASK069
+
+**Two endpoints claim one client method** · Error
+
+Two actions on the same controller generate the same client method name — an overload the generator
+cannot distinguish, and a CS0111 inside generated code if it were emitted.
+
+```csharp
+[HttpGet("{id:int}")] public ActionResult<Post> Get(int id) => ...;
+[HttpGet("by-slug/{slug}")] public ActionResult<Post> Get(string slug) => ...;   // ✗ RASK069
+```
+
+**Fix:** rename one of the actions. The client method takes the action's own name, so naming them for
+what they do — `Get` and `GetBySlug` — fixes the client and reads better on the server too.
+
+---
+
+## RASK070
+
+**Endpoint's response type is not statically known** · Warning
+
+The action returns `IActionResult`, `ActionResult` or `IResult`, so what it answers with is decided at
+run time and there is no type for a client method to return.
+
+```csharp
+[HttpGet("{id:int}")]
+public IActionResult Get(int id) => Ok(new Post(id));   // ⚠ RASK070
+```
+
+**Fix:** return the type, and let ASP.NET wrap it — `ActionResult<Post>` still lets you
+`return NotFound()`. Where the return type genuinely has to stay open, declare what the success case
+sends and the client is generated from that:
+
+```csharp
+[HttpGet("{id:int}")]
+[ProducesResponseType(typeof(Post), 200)]
+public IActionResult Get(int id) => ...;               // typed client method
+```
+
+An action that answers **nothing** does not need either: return `Task` or `void` and the client method
+returns a bare `Task`.

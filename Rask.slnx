@@ -27,6 +27,8 @@
         <Project Path="src/Rask.Cache/Rask.Cache.csproj"/>
         <Project Path="src/Rask.Cli/Rask.Cli.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
+        <Project Path="src/Rask.Api.Client/Rask.Api.Client.csproj"/>
+        <Project Path="src/Rask.Api/Rask.Api.csproj"/>
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
         <Project Path="src/Rask.Batteries.Generators/Rask.Batteries.Generators.csproj"/>
         <Project Path="src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj"/>
@@ -65,8 +67,12 @@
         <Project Path="src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj"/>
         <Project Path="src/Rask.Wasm.Tasks/Rask.Wasm.Tasks.csproj"/>
         <Project Path="src/Rask.Wasm/Rask.Wasm.csproj"/>
+        <Project Path="src/Rask.Wire/Rask.Wire.csproj"/>
     </Folder>
     <Folder Name="/tests/">
+        <Project Path="tests/Rask.Api.Client.Tests/Rask.Api.Client.Tests.csproj"/>
+        <Project Path="tests/Rask.Api.Generators.Tests/Rask.Api.Generators.Tests.csproj"/>
+        <Project Path="tests/Rask.Api.Tests/Rask.Api.Tests.csproj"/>
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj"/>
         <Project Path="tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj"/>
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
@@ -121,5 +127,6 @@
         <Project Path="tests/Rask.Wasm.Hosting.Tests/Rask.Wasm.Hosting.Tests.csproj"/>
         <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj"/>
         <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj"/>
+        <Project Path="tests/Rask.Wire.Tests/Rask.Wire.Tests.csproj"/>
     </Folder>
 </Solution>

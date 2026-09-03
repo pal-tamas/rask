@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <Using Include="Rask.Api"/>
+  </ItemGroup>
+</Project>

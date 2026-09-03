@@ -51,9 +51,10 @@ public static class RaskSpaEndpointExtensions
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         <b>Map your API before calling this.</b> <c>MapRaskCqrs()</c>, any minimal APIs and any
-    ///         health checks must be mapped first. The fallback registered here is lowest-precedence, so
-    ///         a literal route still wins — but the ordering is the contract, not a coincidence.
+    ///         <b>Map your API before calling this</b> — as a convention, not a correctness rule. The
+    ///         fallback registered here is lowest-precedence, so <c>MapRaskCqrs()</c>, a minimal API or a
+    ///         health check still wins for the paths it names whichever side of this call it sits on.
+    ///         Keeping them above it is what makes the file readable.
     ///     </para>
     ///     <para>
     ///         There is deliberately no <c>UseRask</c> overload. <c>Rask.Wasm.Hosting</c> already
