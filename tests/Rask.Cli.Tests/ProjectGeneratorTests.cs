@@ -540,6 +540,22 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("/css/app.css", files["Features/Shared/App.cs"], StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Wasm_pwa_and_docker_toggle_their_files()
+    {
+        var pwa = Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: true, docker: false, Version));
+        Assert.True(pwa.ContainsKey("wwwroot/icon.svg"));
+        Assert.Contains("serviceWorker", pwa["wwwroot/index.html"], StringComparison.Ordinal);
+
+        var noPwa = Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: false, Version));
+        Assert.DoesNotContain("serviceWorker", noPwa["wwwroot/index.html"], StringComparison.Ordinal);
+
+        var docker = Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: true, Version));
+        Assert.True(docker.ContainsKey("Dockerfile"));
+        Assert.True(docker.ContainsKey("nginx.conf"));
+        Assert.True(docker.ContainsKey(".dockerignore"));
+    }
+
     [Theory]
     [MemberData(nameof(WasmFlagCombinations))]
     public void Every_wasm_flag_combination_holds_the_invariants(bool pwa, bool docker)

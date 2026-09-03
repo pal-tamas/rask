@@ -441,6 +441,17 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | **Adding or removing a type** — a new component, page, handler, job | ⚠️ Rude edit → the app restarts, and the browser reloads itself. |
 | **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |
 | Renaming a job or outbox event type | ✅ Applied. The old name stops resolving too. |
+| An island's `.tsx` / `.vue` / `.svelte` | ✅ Hot-replaced by its own framework — see below. |
+
+**Islands hot-reload too, on a second dev server.** When the project has islands, `rask dev` starts
+Vite for them on `http://localhost:5174` — not the SPA lane's 5173, so a solution with both does not
+have two dev servers fighting for one port — and skips only the production island bundle. Everything
+else still runs, including the prop type-check.
+
+How much survives a save is the framework's call rather than Rask's: React, Preact, Solid, Vue and
+Svelte keep component state through their own refresh integrations, while Lit and Angular have none
+and fall back to a page reload. Even those skip the C# rebuild, which is the slow half. See
+[islands](islands.md#hot-reload).
 
 One thing it does not cover:
 
