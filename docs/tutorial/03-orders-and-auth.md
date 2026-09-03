@@ -82,7 +82,7 @@ Run `rask dev` and browse to `/orders` — a second working CRUD feature, in the
 
 ## 2. Require a login to edit the catalog
 
-Right now anyone can create or delete products. Chapter 1's `--auth` gave us a login; let's use it. Rask
+Right now anyone can create or delete products. The app already has accounts and a login; let's use them. Rask
 offers two gates, and you'll use both:
 
 - **`[Authorize]`** on a page — route-level. An anonymous deep-link to the page gets redirected to `/login`.
@@ -107,7 +107,7 @@ Leave the read-only `ProductsPage` (`/products`) public so shoppers can browse.
 ### Hide the "New / Edit / Delete" buttons from anonymous users
 
 Route gating stops direct navigation, but you also don't want to *show* buttons that will just bounce to the
-login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`), which the `--auth` scaffold
+login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`), which the accounts battery
 already uses in `Auth/MembersPage.cs`:
 
 ```csharp
@@ -127,7 +127,7 @@ Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
 - `/orders` renders and creating an order persists it (same `app.db` as products).
 - Signed out, visiting `/products/new` redirects to `/login`; the "New product" button isn't shown on
   `/products`.
-- After signing in (the `--auth` scaffold's `DemoCredentialStore` has demo users — see `Auth/CredentialStore.cs`),
+- After signing in (register an account first at `/register` — the first one is the administrator),
   the create/edit/delete pages and buttons appear and work.
 
 **Learn more:** [authentication](../authentication.md) · [the `rask` CLI](../cli.md)

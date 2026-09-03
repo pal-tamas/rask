@@ -154,10 +154,12 @@ host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<JwtUserPro
 > ⚠️ A token in `localStorage` is readable by any script on the page (XSS). For maximum security prefer the
 > **HttpOnly-cookie** scheme — the token never reaches JS at all (see [Cookie + WASM](authentication-cookie.md#cookie--wasm)).
 >
-> Note: the runnable JWT samples and `rask new MyApp --template wasm --auth` scaffold this **plaintext-`localStorage`**
-> `TokenStore` as the starting point. Treat it as the floor, not the recommendation — pair it with
-> short-lived access tokens (minutes, not hours), HTTPS, and a strict CSP, or graft on the encrypted-at-rest
-> `ProtectedTokenStore` below before going to production.
+> Note: the runnable JWT samples show this **plaintext-`localStorage`** `TokenStore` as a starting point.
+> Treat it as the floor, not the recommendation — pair it with short-lived access tokens (minutes, not
+> hours), HTTPS, and a strict CSP, or graft on the encrypted-at-rest `ProtectedTokenStore` below before
+> going to production. `rask new` no longer scaffolds any of it: a browser app calls
+> `AddRaskAuthClient()` and authenticates against its own server over a same-origin cookie, so no token
+> reaches JavaScript at all.
 
 **Harden it — encrypted at rest (`ProtectedTokenStore`).** Instead of plain `localStorage`, encrypt the token
 with ASP.NET Data Protection before storing — the browser holds only ciphertext (a server protect/unprotect
@@ -198,8 +200,10 @@ runtime is entirely in-browser (no WebSocket back to a Rask host). So there's no
 store the JWT client-side, decode it to a principal, and attach it to your `HttpClient` calls.** The external
 API must enable **CORS** for your app's origin and allow the `Authorization` header.
 
-> **Scaffold it:** `rask new MyApp --template wasm --auth` generates the client pieces below (`TokenStore`,
-> `BearerTokenHandler`, `JwtUserProvider`, a login page) with a `BaseAddress` stub — point it at your API.
+> **Not scaffolded.** This is the hand-written path for a browser app talking to an API that is *not* a
+> Rask server. If yours is one — the ordinary case — `AddRaskAuthClient()` gives you `IAuth` and
+> `IUserProvider` over a same-origin cookie and none of the code below is needed. See
+> [the browser half](authentication.md).
 
 > No host means no ASP.NET Data Protection key ring, so the encrypted "protected storage" option isn't
 > available here. Use a **short-lived** JWT in `sessionStorage` (cleared on tab close) with refresh, a strict

@@ -2,13 +2,40 @@
 
 > **In practice:** [Tutorial Ch 3](tutorial/03-orders-and-auth.md) · recipe [require login on a page](recipes.md#require-login-on-a-page) · [cheat sheet](cheatsheet.md).
 
-Rask ships the *plumbing* for authentication — a scoped current-user, a sign-in/out handshake, route
-guards, and a declarative gate — and lets you bring any backing store (a cookie, a JWT, ASP.NET Identity,
-Keycloak/OIDC, …). This guide shows the complete, copy-pasteable flow for each combination.
+**Authentication is on by default.** A fresh app can register somebody, sign them in and sign them out
+without a line of auth code: accounts are backed by ASP.NET Core Identity, the three flows are routed at
+`/login`, `/register` and `/logout`, and the first account to register becomes the administrator.
+
+The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and
+signed-in, and `IUserProvider` to read who that is — identical on the Server host, in WebAssembly, and
+inside an island. A TypeScript front end and a meta framework's Node process reach the same three flows
+through `/api/auth`.
+
+```csharp
+public sealed partial class SignIn(IAuth auth) : Component
+{
+    private async Task SubmitAsync(Credentials c) =>
+        await auth.SignInAsync(c.Email, c.Password, returnUrl: "/");
+}
+
+public sealed partial class Header(IUserProvider users) : Component
+{
+    protected override Component? Render() =>
+        Authorize
+            .NotAuthorized(NavLink.Href(Routes.LoginPage())["Sign in"])
+            .Authorized(user => Span[$"Hi, {user.Identity?.Name}"]);
+}
+```
+
+To do without it, drop the `AddRaskAuth` line from `Program.cs` — or, in an app built on the `Rask`
+package, write `app.Configure(c => c.Auth.Off())`. Bringing your own store or an external provider
+(a JWT, Keycloak/OIDC, an existing users table) is still supported: the pages, the guards and the
+`Authorize` component are written against `ClaimsPrincipal`, so they do not care where it came from.
 
 ## On this page
 
 - [Concepts](#concepts)
+- [The first account is the administrator](#the-first-account-is-the-administrator)
 - [Configuration](#configuration)
 - [Declarative gating — the `Authorize` component](#declarative-gating)
 - [Cookie authentication](authentication-cookie.md) — cookie login/session on Server and WASM.
@@ -26,11 +53,34 @@ Keycloak/OIDC, …). This guide shows the complete, copy-pasteable flow for each
 
 | Piece | What it is |
 |---|---|
-| `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, optional `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: you supply one (or the anonymous default). |
+| `IAuth` | The three flows: `RegisterAsync` / `SignInAsync` / `SignOutAsync`. The same injected type on every host — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
+| `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
 | `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
 | `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
+
+## The first account is the administrator
+
+The first account to register gets the `admin` role; every one after it gets `user`. That removes the
+worst step in self-hosting — "it is deployed, now how do I make an admin?" — with no seeding migration
+and no create-admin command. `/_rask`, the operator console, is gated on that role.
+
+It is a single-winner guarantee rather than a race: one row with a constant primary key records the
+claim, so two registrations arriving together cannot both take it, on any database provider.
+
+Because an app with an empty user table and an open registration page is a land-grab, the **first**
+registration — and only the first — needs a one-time token. It is generated while the instance is
+unclaimed and written to the startup log:
+
+```text
+warn: Rask.Auth[1]
+      This Rask app has no accounts yet. The first registration claims it and becomes the
+      administrator, and needs this one-time token: 8f2c…  Claim it at /register.
+```
+
+Every registration after that is an ordinary open one. Both behaviours are options:
+`c.Auth.Configure(o => o.FirstUserIsAdmin = false)` and `o.RequireFirstRunToken = false`.
 
 **The Server cookie handshake.** A WebSocket can't write a `Set-Cookie`, so sign-in is a four-step relay:
 `IAuthSignIn.SignInAsync(principal)` (in an event handler) → the framework issues a single-use,

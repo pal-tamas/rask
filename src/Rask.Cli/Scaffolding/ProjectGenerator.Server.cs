@@ -26,13 +26,6 @@ internal static partial class ProjectGenerator
             ("appsettings.Production.json", AppSettingsProduction),
         };
 
-        if (batteries.Auth)
-        {
-            files.Add(("Features/Auth/CredentialStore.cs", AuthCredentialStore));
-            files.Add(("Features/Auth/LoginPage.cs", AuthLoginPage));
-            files.Add(("Features/Auth/MembersPage.cs", AuthMembersPage));
-        }
-
         if (batteries.Data)
         {
             files.Add(("Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
@@ -289,12 +282,6 @@ internal static partial class ProjectGenerator
         var sb = new StringBuilder();
         // App (and, with --data, AppDbContext) live in the Features/Shared bucket.
         sb.Append("using Company.RaskServer.Features.Shared;\nusing Microsoft.AspNetCore.HttpOverrides;\nusing Rask.Server;\nusing Rask.Server.Diagnostics;\n");
-        if (batteries.Auth)
-        {
-            sb.Append("using Company.RaskServer.Features.Auth;\n");
-            sb.Append("using Microsoft.AspNetCore.Authentication.Cookies;\n");
-        }
-
         if (batteries.Push)
         {
             sb.Append("using Company.RaskServer.Features.Push;\n");
@@ -429,10 +416,10 @@ internal static partial class ProjectGenerator
 
         if (batteries is { Wasm: true, Cqrs: true })
         {
-            // The secure default stands wherever there is a sign-in to enforce. Without --auth there is
-            // no authentication to require, and leaving it on would make every message answer 401 — the
+            // The secure default stands wherever there is a sign-in to enforce. An app with no database
+            // has no accounts to require, and leaving it on would make every message answer 401 — the
             // scaffold would ship a page that looks eligible for the browser and cannot reach its server.
-            sb.Append(batteries.Auth
+            sb.Append(batteries.Data
                 ? """
                   // The endpoint half of remote dispatch, for the pages that move into the browser.
                   // Fails closed: every message is authenticated by default, [AllowAnonymous] is the only
@@ -446,10 +433,10 @@ internal static partial class ProjectGenerator
                   // An anonymous caller gets the same answer for a real message name as for a typo, so
                   // the endpoint cannot be walked to enumerate this app's messages.
                   //
-                  // RequireAuthenticatedUser is OFF because this app has no authentication to require —
-                  // left on, every message would answer 401 and nothing would work. Add a cookie or JWT
-                  // scheme and DELETE this argument: the default is on for a reason, and a message
-                  // reachable by anyone is a decision worth making per app.
+                  // RequireAuthenticatedUser is OFF because this app has no database, so it has no
+                  // accounts to require — left on, every message would answer 401 and nothing would
+                  // work. Add --data (or a scheme of your own) and DELETE this argument: the default is
+                  // on for a reason, and a message reachable by anyone is a decision worth making.
                   builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
 
                   """.TrimStart('\n'));
@@ -477,29 +464,6 @@ internal static partial class ProjectGenerator
                     Display = DisplayMode.Standalone,
                     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
                 });
-
-                """.TrimStart('\n'));
-        }
-
-        if (batteries.Auth)
-        {
-            sb.Append("""
-
-                // Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem.
-                builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                    .AddCookie(o =>
-                    {
-                        o.Cookie.Name = "rask.auth";
-                        // Secure-by-default: never send the auth cookie over plain HTTP, and use SameSite=Lax so it
-                        // doesn't ride cross-site POSTs (CSRF). The dev launch profile runs on HTTPS so the cookie
-                        // is set in development too; if you must serve over plain HTTP, relax SecurePolicy.
-                        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                        // Fully qualified: the --pwa `using Rask.Core.Browser` also defines a SameSiteMode.
-                        o.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-                        o.LoginPath = "/login";
-                        o.AccessDeniedPath = "/forbidden";
-                    });
-                builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
 
                 """.TrimStart('\n'));
         }
@@ -559,10 +523,8 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
-        // Emitted once for either reason. An app with a database has accounts (the auth battery is on by
-        // default), and --auth adds its own cookie scheme on top; emitting this twice would run the
-        // middleware twice.
-        if (batteries.Data || batteries.Auth)
+        // An app with a database has accounts, so it has a cookie scheme to authenticate against.
+        if (batteries.Data)
         {
             sb.Append("// Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.\n");
             sb.Append("app.UseAuthentication();\n");
@@ -898,92 +860,6 @@ internal static partial class ProjectGenerator
         """;
 
     // ---- server-only template files ----
-
-    private const string AuthLoginPage =
-        """
-        using System.Security.Claims;
-        using Microsoft.AspNetCore.Authentication.Cookies;
-        using Microsoft.AspNetCore.Authorization;
-        using Rask.Core.Authentication;
-        using Rask.Core.Components;
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer.Features.Auth;
-
-        [AllowAnonymous]
-        [Route("login")]
-        public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
-        {
-            private readonly LoginModel _model = new();
-            private string? _error;
-
-            [QueryParam] public string? ReturnUrl { get; set; }
-
-            protected override Component? Render() =>
-                Div.Class("welcome-card")[
-                    H1["Sign in"],
-                    _error is null ? null : Div.Style("color:#b00020")[_error],
-                    // Async submit uses the generated OnValidSubmitAsync sibling (like Button's OnClickAsync).
-                    Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
-                        Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
-                        Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
-                        Button.Type("submit")["Sign in"]
-                    ],
-                    P["Try alice / password (user) or root / password (admin)."]
-                ];
-
-            private async Task SubmitAsync(LoginModel m)
-            {
-                var claims = creds.Validate(m.Username, m.Password);
-                if (claims is null)
-                {
-                    _error = "Invalid username or password.";
-                    return;
-                }
-
-                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                await auth.SignInAsync(new ClaimsPrincipal(identity), returnUrl: ReturnUrl ?? "/members");
-            }
-        }
-
-        """;
-
-    private const string AuthMembersPage =
-        """
-        using Microsoft.AspNetCore.Authorization;
-        using Rask.Core.Authentication;
-        using Rask.Core.Components;
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer.Features.Auth;
-
-        // [Authorize] blocks anonymous deep-links (full GET → 302 to /login). The Authorize component gates the
-        // content and re-renders when the post-sign-in reconnect re-seeds the principal; the signed-in view lives
-        // in its own component that injects IUserProvider, so it reads the freshly-authenticated principal — no
-        // manual Changed subscription.
-        [Authorize]
-        [Route("members")]
-        public sealed partial class MembersPage : Component
-        {
-            protected override Component? Render() =>
-                Div.Class("welcome-card")[
-                    Authorize
-                        .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
-                ];
-        }
-
-        public sealed partial class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
-        {
-            protected override Component? Render() =>
-                [
-                    H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
-                    Authorize.Roles(["admin"])[
-                        Div.Style("color:#7a5c00")["🔑 You have admin access."]],
-                    Button.OnClickAsync(() => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
-                ];
-        }
-
-        """;
 
     /// <summary>
     /// The production image. With <c>--data</c> on a file database it also carries the <c>litestream</c>

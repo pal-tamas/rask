@@ -217,7 +217,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void The_shell_and_welcome_page_are_feature_slices_and_no_demo_files_are_scaffolded()
     {
-        var (files, _) = Generate(auth: true, pwa: true, cqrs: true, docker: true);
+        var (files, _) = Generate(pwa: true, cqrs: true, docker: true);
 
         foreach (var gone in NeverPresent)
         {
@@ -255,7 +255,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Project_name_replaces_the_placeholder_namespace_everywhere()
     {
-        var (files, _) = Generate(auth: true, pwa: true, cqrs: true, docker: true);
+        var (files, _) = Generate(pwa: true, cqrs: true, docker: true);
 
         // The csproj is renamed to the project, and nothing retains the placeholder.
         Assert.True(files.ContainsKey("App.csproj"));
@@ -330,20 +330,6 @@ public sealed class ProjectGeneratorTests
     }
 
     [Fact]
-    public void Auth_flag_toggles_the_auth_files_and_wiring()
-    {
-        var (on, _) = Generate(auth: true);
-        Assert.True(on.ContainsKey("Features/Auth/CredentialStore.cs"));
-        Assert.True(on.ContainsKey("Features/Auth/LoginPage.cs"));
-        Assert.True(on.ContainsKey("Features/Auth/MembersPage.cs"));
-        Assert.Contains("AddAuthentication", on["Program.cs"], StringComparison.Ordinal);
-
-        var (off, _) = Generate(auth: false);
-        Assert.DoesNotContain("Features/Auth/CredentialStore.cs", off.Keys);
-        Assert.DoesNotContain("AddAuthentication", off["Program.cs"], StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Pwa_flag_toggles_the_manifest_assets_and_wiring()
     {
         var (on, _) = Generate(pwa: true);
@@ -403,17 +389,17 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain(".dockerignore", off.Keys);
     }
 
-    // "test every scenario" — all 16 flag combinations keep the invariants: core files always present,
+    // "test every scenario" — all 8 flag combinations keep the invariants: core files always present,
     // no placeholder leakage, packages always include the framework, opt-in files exactly track their flag.
     [Theory]
     [MemberData(nameof(AllFlagCombinations))]
-    public void Every_flag_combination_holds_the_invariants(bool auth, bool pwa, bool cqrs, bool docker)
+    public void Every_flag_combination_holds_the_invariants(bool pwa, bool cqrs, bool docker)
     {
-        var (files, result) = Generate(auth, pwa, cqrs, docker);
+        var (files, result) = Generate(pwa, cqrs, docker);
 
         foreach (var expected in AlwaysPresent)
         {
-            Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{cqrs},{docker}] missing {expected}");
+            Assert.True(files.ContainsKey(expected), $"[{pwa},{cqrs},{docker}] missing {expected}");
         }
 
         Assert.Contains("Rask.Server", result.Packages);
@@ -427,7 +413,6 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("Rask.Tailwind", result.Packages);
         Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
 
-        Assert.Equal(auth, files.ContainsKey("Features/Auth/CredentialStore.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
 
@@ -444,19 +429,19 @@ public sealed class ProjectGeneratorTests
 
     public static IEnumerable<object[]> AllFlagCombinations()
     {
-        for (var mask = 0; mask < 16; mask++)
+        for (var mask = 0; mask < 8; mask++)
         {
-            yield return [(mask & 1) != 0, (mask & 2) != 0, (mask & 4) != 0, (mask & 8) != 0];
+            yield return [(mask & 1) != 0, (mask & 2) != 0, (mask & 4) != 0];
         }
     }
 
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(
-        bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
+        bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
     {
         var result = ProjectGenerator.GenerateServer(
             Root,
             "App",
-            new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs, Data = data, Docker = docker },
+            new ServerBatteries { Pwa = pwa, Cqrs = cqrs, Data = data, Docker = docker },
             Version);
         return (Index(result), result);
     }
@@ -481,7 +466,7 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Wasm_base_emits_core_files_and_the_wasm_packages()
     {
-        var result = ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version);
+        var result = ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: false, Version);
         var files = Index(result);
 
         Assert.Equal(WithHygiene(WasmAlwaysPresent).Order(), files.Keys.Order());
@@ -542,7 +527,7 @@ public sealed class ProjectGeneratorTests
     public void Wasm_compiles_its_own_stylesheet()
     {
         var result = ProjectGenerator.GenerateWasm(
-            Root, "App", auth: false, pwa: false, docker: false, Version, new ServerBatteries());
+            Root, "App", pwa: false, docker: false, Version, new ServerBatteries());
         var files = Index(result);
 
         Assert.Equal(["Rask.Wasm"], result.Packages);
@@ -555,48 +540,16 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("/css/app.css", files["Features/Shared/App.cs"], StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Wasm_auth_adds_the_jwt_files_and_the_framework_package_refs()
-    {
-        var on = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: true, pwa: false, docker: false, Version));
-        Assert.True(on.ContainsKey("Features/Auth/Auth.cs"));
-        Assert.True(on.ContainsKey("Features/Auth/LoginPage.cs"));
-        Assert.True(on.ContainsKey("Features/Auth/MembersPage.cs"));
-        // WASM has no Microsoft.AspNetCore.App framework ref, so the JWT scaffold pins these directly.
-        Assert.Contains("<PackageReference Include=\"Microsoft.JSInterop\"", on["App.csproj"], StringComparison.Ordinal);
-        Assert.Contains("<PackageReference Include=\"Microsoft.AspNetCore.Authorization\"", on["App.csproj"], StringComparison.Ordinal);
-
-        var off = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version));
-        Assert.DoesNotContain("Features/Auth/Auth.cs", off.Keys);
-        Assert.DoesNotContain("<PackageReference Include=\"Microsoft.JSInterop\"", off["App.csproj"], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Wasm_pwa_and_docker_toggle_their_files()
-    {
-        var pwa = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: true, docker: false, Version));
-        Assert.True(pwa.ContainsKey("wwwroot/icon.svg"));
-        Assert.Contains("serviceWorker", pwa["wwwroot/index.html"], StringComparison.Ordinal);
-
-        var noPwa = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version));
-        Assert.DoesNotContain("serviceWorker", noPwa["wwwroot/index.html"], StringComparison.Ordinal);
-
-        var docker = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: true, Version));
-        Assert.True(docker.ContainsKey("Dockerfile"));
-        Assert.True(docker.ContainsKey("nginx.conf"));
-        Assert.True(docker.ContainsKey(".dockerignore"));
-    }
-
     [Theory]
     [MemberData(nameof(WasmFlagCombinations))]
-    public void Every_wasm_flag_combination_holds_the_invariants(bool auth, bool pwa, bool docker)
+    public void Every_wasm_flag_combination_holds_the_invariants(bool pwa, bool docker)
     {
-        var result = ProjectGenerator.GenerateWasm(Root, "App", auth, pwa, docker, Version);
+        var result = ProjectGenerator.GenerateWasm(Root, "App", pwa, docker, Version);
         var files = Index(result);
 
         foreach (var expected in WasmAlwaysPresent)
         {
-            Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
+            Assert.True(files.ContainsKey(expected), $"[{pwa},{docker}] missing {expected}");
         }
 
         Assert.Contains("public sealed partial class HomePage : Component", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
@@ -604,7 +557,6 @@ public sealed class ProjectGeneratorTests
         // Plain is what you get by not choosing, here as everywhere else — so the base package set is
         // Rask.Wasm alone. Bootstrap and Tailwind are covered by their own case below.
         Assert.Equal(["Rask.Wasm"], result.Packages);
-        Assert.Equal(auth, files.ContainsKey("Features/Auth/Auth.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
 
@@ -622,9 +574,9 @@ public sealed class ProjectGeneratorTests
 
     public static IEnumerable<object[]> WasmFlagCombinations()
     {
-        for (var mask = 0; mask < 8; mask++)
+        for (var mask = 0; mask < 4; mask++)
         {
-            yield return [(mask & 1) != 0, (mask & 2) != 0, (mask & 4) != 0];
+            yield return [(mask & 1) != 0, (mask & 2) != 0];
         }
     }
 }

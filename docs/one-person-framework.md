@@ -71,7 +71,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[`Rask.Outbox`](outbox.md)** | Transactional outbox — domain events captured in the same transaction and relayed at-least-once, no external broker. |
 | **[`Rask.Dashboard`](dashboard.md)** | An operator dashboard at `/_rask` over the pillars above: queue depth, dead letters and the error behind each, one-click retry, and the log. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
-| **[Auth](authentication.md)** | Cookie & JWT sessions, claims and authorization. The **user store is yours** — `--auth` scaffolds a demo one; see the [roadmap](roadmap.md#not-shipped). |
+| **[Auth](authentication.md)** | Accounts, on by default: register, sign in, sign out, with the first account as administrator. Cookie sessions, claims and authorization. Verification, reset and MFA are still [ahead](roadmap.md#not-shipped). |
 | **[PWA](pwa.md)** | Installable, offline, native-feeling apps from the same components. |
 | **[Web Push](webpush.md)** | Server-sent Web Push on your own VAPID keys (RFC 8292/8291), zero external deps — pairs with the client `IWebPush`. |
 | **[Secrets](secrets.md)** | Environment variables, remembered by name so a redeploy can't silently drop one. No vault or rotation. |
@@ -80,7 +80,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 ## See it running
 
 [`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop) wires **every battery above into one app** —
-and it is the CLI's own output, not a hand-written showcase: `rask new Shop --auth`
+and it is the CLI's own output, not a hand-written showcase: `rask new Shop`
 plus the slices from the tutorial. Place an order and watch `/ops`: the domain event commits with
 the order through the outbox, the relay queues the confirmation email and schedules a follow-up job, and
 every pillar's state sits in the same SQLite file.
@@ -88,8 +88,8 @@ every pillar's state sits in the same SQLite file.
 ## What isn't in the box
 
 The claim above is "everything a solo developer needs to go from empty folder to shipped", and it's worth
-being precise about the edges. Rask does **not** ship a user store (registration, password hashing, reset,
-MFA — `--auth` scaffolds a demo credential store you replace), file/blob storage, rate limiting, or a
+being precise about the edges. Rask does **not** ship the rest of the account lifecycle (email
+verification, password reset, MFA, external providers), file/blob storage, rate limiting, or a
 secret store beyond environment variables. The [roadmap](roadmap.md#not-shipped) lists each one and what
 you'd reach for instead. Knowing that before you start is worth more than a longer list of batteries.
 

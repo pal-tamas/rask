@@ -19,32 +19,32 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly string _workingDirectory = workingDirectory;
 
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
-    /// <summary>Every template-scoped flag <c>rask new</c> understands — the batteries plus <c>auth</c>.</summary>
+    /// <summary>Every template-scoped flag <c>rask new</c> understands — the batteries plus <c>wasm</c>.</summary>
     internal static readonly string[] FeatureFlags =
     [
-        "auth", "wasm", "pwa", "cqrs", "data", "docker",
+        "wasm", "pwa", "cqrs", "data", "docker",
         "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops",
     ];
 
     /// <summary>
-    /// The batteries — everything a template supports <em>except</em> auth, and therefore exactly what a
+    /// The batteries — everything a template supports <em>except</em> wasm, and therefore exactly what a
     /// bare <c>rask new</c> turns on.
     /// </summary>
     /// <remarks>
-    /// Derived from <see cref="FeatureFlags"/> minus <c>auth</c> rather than listed a second time. The
+    /// Derived from <see cref="FeatureFlags"/> minus <c>wasm</c> rather than listed a second time. The
     /// default set is then <c>template.SupportedFlags</c> intersected with this, so a template that cannot
     /// host a database gets the right answer without anyone maintaining a per-template default list — the
     /// same reasoning that keeps <see cref="TemplateCatalog"/> derived from <see cref="SpaFramework.All"/>.
     ///
     /// <para>
-    /// Auth and wasm are the two left off, because they are the ones that change what the app <em>is</em>
-    /// rather than what it can do. A login wall in front of a project you are about to show someone is a
-    /// decision, not a convenience; and shipping a browser bundle makes every publish link a WebAssembly
-    /// runtime and starts moving pages off the server. Styling is not a decision: Tailwind is built in.
+    /// Wasm is the one left off, because it is the one that changes what the app <em>is</em> rather than
+    /// what it can do: shipping a browser bundle makes every publish link a WebAssembly runtime and starts
+    /// moving pages off the server. Styling is not a decision — Tailwind is built in — and neither is
+    /// authentication any more: an app with a database has accounts.
     /// </para>
     /// </remarks>
     internal static readonly string[] BatteryFlags =
-        [.. FeatureFlags.Where(f => f is not ("auth" or "wasm"))];
+        [.. FeatureFlags.Where(f => f is not "wasm")];
 
     /// <summary>The <c>--no-*</c> spelling of a battery.</summary>
     internal static string OffFlag(string battery) => "no-" + battery;
@@ -78,7 +78,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
-            .Flag("auth", description: "Add cookie authentication (login + members pages). Off by default, like --wasm.")
             .Flag("wasm", description: "Also publish a browser bundle from this project, so an eligible page moves into WebAssembly once it has downloaded. Publish takes minutes longer; `dotnet run` is unaffected.")
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
@@ -186,7 +185,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // line was written against a different template, and silently accepting it would hide that.
         var absent = off.Where(flag => !template.SupportedFlags.Contains(flag))
             .Select(OffFlag)
-            .Concat(auth && !template.SupportedFlags.Contains("auth") ? ["auth"] : Array.Empty<string>())
             .ToArray();
         if (absent.Length > 0)
         {
@@ -228,7 +226,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
-                        dir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries),
+                        dir, name, batteries.Pwa, batteries.Docker, version, batteries),
                     _ => ProjectGenerator.GenerateServer(dir, name, batteries, version),
                 };
             },
@@ -271,6 +269,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             {
                 return "--bootstrap is gone: Rask.Bootstrap has been removed and every project is styled "
                     + "with Tailwind, which is built in.";
+            }
+
+            if (name.Equals("auth", StringComparison.Ordinal))
+            {
+                return "--auth is gone: every app with a database has accounts now. Register, sign in and "
+                    + "sign out work out of the box, and /login, /register and /logout are already routed. "
+                    + "To do without them, delete the AddRaskAuth line from Program.cs.";
             }
 
             if (name.Equals("all-batteries", StringComparison.Ordinal))
@@ -343,7 +348,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         new()
         {
             Localization = on.Contains("localization"),
-            Auth = on.Contains("auth"),
             Wasm = on.Contains("wasm"),
             Pwa = on.Contains("pwa"),
             Cqrs = on.Contains("cqrs"),
@@ -372,8 +376,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         return new ServerBatteries
         {
-            Auth = auth,
-            // Like auth: asked for by name, and only honoured by a template that can host it.
+            // Asked for by name, and only honoured by a template that can host it.
             Wasm = wasm && template.SupportedFlags.Contains("wasm"),
             // Not a flag any more (#854): the languages an app ships are configured in Program.cs, so
             // this is only "does this template scaffold the registration at all". CultureList stays empty
@@ -443,15 +446,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         // Styling asks nothing: Tailwind is built in, so there is no answer a project could give.
 
-        // Auth and the browser rung get questions of their own because they are the two that are off by
-        // default. Everything else on the list is already on, so the checklist below is about taking
-        // things away; mixing the things you ADD into a list of things you remove would read as the
-        // opposite of what it does.
-        if (!parsed.HasFlag("auth") && template.SupportedFlags.Contains("auth")
-            && prompt.Confirm("Add [bold]authentication[/] — login, sessions, members pages?", @default: false))
-        {
-            filled.Add("--auth");
-        }
+        // The browser rung gets a question of its own because it is the one thing still off by default.
+        // Everything else on the list is already on, so the checklist below is about taking things away;
+        // mixing something you ADD into a list of things you remove would read as the opposite of what it
+        // does. Authentication used to be asked here and is not any more: an app with a database has
+        // accounts, so there is no longer a question to put.
 
         // The cost is named in the question. It is the one answer here that makes every later publish
         // minutes slower, and finding that out afterwards is worse than being asked.
@@ -545,7 +544,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         grid.AddRow(
             Label("🔑", "Auth"),
-            new Text(batteries.Auth ? "cookie login + members pages" : "none"));
+            new Text(batteries.Data
+                ? "accounts — sign in, register, sign out"
+                : "none (accounts need a database)"));
 
         if (batteries.Data)
         {
@@ -586,7 +587,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "snapshots" => batteries.Snapshots,
         "logs" => batteries.Logs,
         "ops" => batteries.Ops,
-        "auth" => batteries.Auth,
         _ => false,
     };
 

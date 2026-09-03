@@ -55,7 +55,7 @@ internal static class TemplateCatalog
     ///     every template that lists it.
     ///     </para>
     /// </remarks>
-    private static readonly string[] WebFlags = ["auth", "pwa", "docker"];
+    private static readonly string[] WebFlags = ["pwa", "docker"];
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a

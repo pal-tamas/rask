@@ -9,6 +9,23 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`--auth` is gone.** It scaffolded a second auth system beside the battery: a demo credential store
+  comparing passwords as **plaintext**, its own login and members pages, and a hand-written cookie
+  scheme. The flag is removed and refused by name — a flag the CLI accepts and then disregards is the
+  most expensive kind to discover — and the error names what replaced it.
+
+  Gone with it: the server template's demo store and pages, 246 lines of the standalone WASM template's
+  hand-rolled JWT/`localStorage` demo (a browser app calls `AddRaskAuthClient()` now, so no token
+  reaches JavaScript), the wizard's authentication question, and `ServerBatteries.Auth`.
+
+  Two defaults that keyed off the flag now follow the **database**, because that is what brings
+  accounts: the CQRS endpoint's `RequireAuthenticatedUser`, and `UseAuthentication`/`UseAuthorization`.
+
+  The docs follow: `docs/roadmap.md` no longer says the user store is not shipped,
+  `docs/one-person-framework.md` no longer disclaims it twice, the cookie and JWT guides are reframed
+  as the bring-your-own-store paths they now are, and the tutorial — whose text is compile-gated — no
+  longer types a flag that errors.
+
 - **The operator console is gated on the `admin` role, not on being signed in.** `/_rask` shows job
   payloads, stored email bodies, log lines and the database configuration. `RequireAuthenticatedUser`
   was defensible while the scaffolded credential store had two hardcoded logins and no roles; it

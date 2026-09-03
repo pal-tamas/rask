@@ -184,7 +184,7 @@ public sealed class ServerBatteryScaffoldTests
     {
         var files = Generate(
             "data", "cqrs", "jobs", "mail", "cache", "outbox", "push", "pwa", "snapshots", "logs", "ops",
-            "auth", "docker");
+            "docker");
         var program = files["Program.cs"];
 
         foreach (var registration in new[]
@@ -192,8 +192,7 @@ public sealed class ServerBatteryScaffoldTests
             "AddRaskCqrs()", "AddRaskData(", "AddRaskOutbox<AppDbContext>()", "AddDbContextFactory<AppDbContext>",
             "AddRaskJobs<AppDbContext>()", "AddRaskMail<AppDbContext>(", "AddRaskCache<AppDbContext>()",
             "AddRaskSqliteSnapshots(", "AddRaskSqliteLitestream(", "AddRaskWebPush(", "AddRaskPwa(",
-            "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()",
-            "AddAuthentication(",
+            "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()", "AddRaskAuth<AppDbContext>()",
         })
         {
             Assert.Contains(registration, program, StringComparison.Ordinal);
