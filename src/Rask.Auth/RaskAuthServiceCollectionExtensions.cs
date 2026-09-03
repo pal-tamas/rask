@@ -89,6 +89,7 @@ public static class RaskAuthServiceCollectionExtensions
             // apps that had already stored one.
             .AddDefaultTokenProviders();
 
+        services.TryAddSingleton<IRoleSeedContexts, RoleSeedContexts<TContext>>();
         services.AddScoped<AccountService<TUser>>();
 
         // The endpoints resolve the store without naming the user type — MapRaskAuth() is a

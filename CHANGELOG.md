@@ -45,6 +45,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Concurrent registrations could collide on the roles table.** Two people registering at the same
+  moment could get a 500 — `UNIQUE constraint failed: AspNetRoles.NormalizedName` — on the path
+  "the first account is the administrator" depends on.
+
+  The exception did not point at the cause. `RoleManager` resolves the same scoped `DbContext` the
+  `UserManager` uses, so a racer that lost the role race left its rejected `AspNetRoles` row in the
+  change tracker as `Added`, and the **next** `SaveChanges` on that context — the user insert — retried
+  it and threw there. The stack blamed `UserManager.CreateAsync` for a constraint on a table it never
+  touches.
+
+  Roles are now seeded through a context of their own, so a lost race is a non-event and the context
+  carrying the rejected entry never reaches the caller. Verified by running the concurrency tests
+  twelve times: 12 failures before, 0 after.
+
 - **A scaffolded app had accounts mapped but never registered.** The battery slot alone reached no
   `rask new` project: a generated `Program.cs` is `WebApplication.CreateBuilder` + `AddRask()` with
   individual package references, not `RaskApp.Create`, so `RaskBatteryWiring` never runs there. The

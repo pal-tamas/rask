@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Rask.Core.Authentication;
 
 namespace Rask.Auth;
@@ -39,7 +40,7 @@ internal interface IAccounts
 internal sealed class AccountService<TUser>(
     UserManager<TUser> users,
     SignInManager<TUser> signIn,
-    RoleManager<IdentityRole> roles,
+    IRoleSeedContexts contexts,
     IInstanceClaimStore claims,
     FirstRunToken firstRun,
     AuthOptions options,
@@ -62,6 +63,16 @@ internal sealed class AccountService<TUser>(
             return new AccountOutcome(AuthResult.Fail(AuthError.FirstRunTokenRequired), null);
         }
 
+        // Both roles, before any account exists to hold one. Seeded here rather than at startup because a
+        // freshly scaffolded app boots before its first migration has run, and a hosted service writing
+        // to a table that does not exist yet would stop it starting at all.
+        //
+        // Before the user is created rather than after, and BOTH rather than the one this registration
+        // needs: AddToRoleAsync below resolves the role itself and hits the same unique index, and it is
+        // Identity's call, so there is no result to inspect — a lost race throws out of it. Seeding first
+        // means that by the time any racer assigns a role, the row it needs is already there.
+        await EnsureRolesAsync(cancellationToken).ConfigureAwait(false);
+
         var user = new TUser
         {
             UserName = email,
@@ -83,12 +94,6 @@ internal sealed class AccountService<TUser>(
                       && await claims.TryClaimAsync(user.Id, cancellationToken).ConfigureAwait(false);
 
         var role = isAdmin ? RaskRoles.Admin : RaskRoles.User;
-
-        // Seeded here rather than at startup on purpose: a freshly scaffolded app boots before its
-        // first migration has run, and a hosted service that writes to a table which does not exist
-        // yet would stop the app from starting at all. Nothing can hold a role before the first
-        // registration, so first use is the earliest moment the seeding is actually needed.
-        await EnsureRoleAsync(role).ConfigureAwait(false);
         await users.AddToRoleAsync(user, role).ConfigureAwait(false);
 
         if (isAdmin)
@@ -136,20 +141,52 @@ internal sealed class AccountService<TUser>(
         return new AccountOutcome(AuthResult.Success, principal);
     }
 
-    private async Task EnsureRoleAsync(string role)
+    /// <summary>Creates the built-in roles if they are not there yet, tolerating a lost race.</summary>
+    /// <remarks>
+    /// <para>
+    /// Written against a context of its own rather than the <see cref="RoleManager{TRole}" />, and that is
+    /// the whole point. <c>RoleManager</c> resolves the same scoped <c>DbContext</c> the
+    /// <see cref="UserManager{TUser}" /> uses, so when a racer loses this race its rejected
+    /// <c>AspNetRoles</c> row stays in the change tracker as <c>Added</c> — and the next
+    /// <c>SaveChanges</c> on that context, the user insert, retries it and throws there. The stack then
+    /// blames <c>UserManager.CreateAsync</c> for a constraint on a table it never touched, which is a
+    /// long way from the cause.
+    /// </para>
+    /// <para>
+    /// Check-then-insert is not atomic, so several registrations arriving together can all find a role
+    /// missing and all try to add it. The unique index on the normalized name keeps it single; every
+    /// loser is a non-event, because the row it wanted is there.
+    /// </para>
+    /// </remarks>
+    private async Task EnsureRolesAsync(CancellationToken cancellationToken)
     {
-        if (!await roles.RoleExistsAsync(role).ConfigureAwait(false))
+        foreach (var role in RaskRoles.All)
         {
-            // A concurrent registration may create it between the check and the write; the unique
-            // index on the normalized name is what actually keeps it single, so a failure here is only
-            // interesting if the role still does not exist afterwards.
-            var created = await roles.CreateAsync(new IdentityRole(role)).ConfigureAwait(false);
+            var normalized = role.ToUpperInvariant();
 
-            if (!created.Succeeded && !await roles.RoleExistsAsync(role).ConfigureAwait(false))
+            await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            var set = db.Set<IdentityRole>();
+
+            if (await set.AnyAsync(r => r.NormalizedName == normalized, cancellationToken).ConfigureAwait(false))
             {
-                throw new InvalidOperationException(
-                    $"The '{role}' role could not be created: "
-                    + string.Join(" ", created.Errors.Select(e => e.Description)));
+                continue;
+            }
+
+            set.Add(new IdentityRole(role)
+            {
+                NormalizedName = normalized,
+                ConcurrencyStamp = Guid.NewGuid().ToString(),
+            });
+
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (DbUpdateException)
+            {
+                // Somebody else created it between the check and the insert. The row exists, which is
+                // all this method promised — and the context carrying the rejected entry is disposed on
+                // the way out of this iteration, so nothing downstream inherits it.
             }
         }
     }
