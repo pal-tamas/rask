@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK070)
+# Rask diagnostics (RASK001–RASK071)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -16,6 +16,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
+| **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 | **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
@@ -103,6 +104,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK068](#rask068) | Warning | Endpoint has no generated client method |
 | [RASK069](#rask069) | Error | Two endpoints claim one client method |
 | [RASK070](#rask070) | Warning | Endpoint's response type is not statically known |
+| [RASK071](#rask071) | Error | ASP.NET route attribute on a Rask component |
 
 ---
 
@@ -1498,3 +1500,70 @@ public IActionResult Get(int id) => ...;               // typed client method
 
 An action that answers **nothing** does not need either: return `Task` or `void` and the client method
 returns a bare `Task`.
+
+---
+## RASK071
+
+**ASP.NET route attribute on a Rask component** · Error
+
+Rask's route attribute and ASP.NET's share the short name `Route` and differ only by namespace. In a
+server project that already has `using Microsoft.AspNetCore.Mvc;` — or in a file written by someone
+arriving from Blazor, where the attribute is `Microsoft.AspNetCore.Components.RouteAttribute` — the
+wrong one is one completion away, and nothing downstream notices:
+
+- MVC reads its attribute only while building the controller application model, and a `Component` is
+  never scanned.
+- Blazor's is read by a renderer this framework does not run.
+- Rask's `RoutesGenerator` matches on the full name, so it sees nothing to register.
+
+The build is green and the page is simply absent from the route table. The first sign of it is a 404
+in a browser, which is why this is an Error rather than a warning you could scroll past.
+
+```csharp
+using Rask.Core;
+using Microsoft.AspNetCore.Mvc;
+
+// ✗ RASK071 — binds to MVC's attribute; this page is never registered
+[Route("/orders")]
+public sealed partial class Orders : Component
+{
+    protected override Component? Render() => Div["orders"];
+}
+```
+
+**Fix:** apply `Rask.Core.Routing.RouteAttribute` instead (**quick-fix available** — "Use Rask's
+`[Route]`").
+
+The quick-fix rewrites only the attribute's **name**. It adds no `using` and removes none, and it
+writes the name qualified wherever the short form would bind back to ASP.NET's attribute or be
+ambiguous — so on the file above, with `using Microsoft.AspNetCore.Mvc;` still present, the lightbulb
+produces:
+
+```csharp
+[Rask.Core.Routing.Route("/orders")]       // qualified: a bare `Route` would still be MVC's
+```
+
+Tidying the imports by hand gives the shorter spelling:
+
+```csharp
+using Rask.Core;
+using Rask.Core.Routing;                   // MVC's import dropped
+
+[Route("/orders")]                         // Rask's — the page registers
+public sealed partial class Orders : Component
+{
+    protected override Component? Render() => Div["orders"];
+}
+```
+
+The lightbulb is **withheld** where carrying the arguments over would not compile: MVC's attribute
+also has settable `Name` and `Order`, which Rask's does not, and an alias may bake its template in
+and take no arguments at all. Rewriting those would answer RASK071 with a CS0117 or CS7036, so the
+attribute is left for you to move over deliberately.
+
+A page carrying **both** attributes is left alone. It registers correctly through Rask's, so the
+ASP.NET one is inert rather than harmful, and failing a build that is producing the right route
+table would be the worse outcome.
+
+This does not fire on ordinary classes. A Rask server project is an ASP.NET project and may hold
+genuine controllers; `[Route]` on one of those is correct and is never reported.

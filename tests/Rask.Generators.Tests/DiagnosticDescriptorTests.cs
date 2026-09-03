@@ -22,6 +22,7 @@ public class DiagnosticDescriptorTests
                  {
                      typeof(RoutesGenerator).Assembly,
                      typeof(Rask.Cqrs.Generators.CqrsDispatchGenerator).Assembly,
+                     typeof(Rask.Api.Generators.ApiClientGenerator).Assembly,
                  })
         {
             foreach (var type in assembly.GetTypes())
@@ -75,6 +76,7 @@ public class DiagnosticDescriptorTests
                  {
                      typeof(RoutesGenerator).Assembly,
                      typeof(Rask.Cqrs.Generators.CqrsDispatchGenerator).Assembly,
+                     typeof(Rask.Api.Generators.ApiClientGenerator).Assembly,
                  })
         {
             foreach (var type in assembly.GetTypes())

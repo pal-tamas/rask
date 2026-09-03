@@ -38,6 +38,10 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
+        description: "A parameter or response type of this endpoint cannot be encoded on the wire, so no "
+                     + "typed client method can call it. The message names the offending shape and says what "
+                     + "is wrong with it, walking the type the same way — and in the same vocabulary — as "
+                     + "RASK053 does for a CQRS message.",
         helpLinkUri: DiagnosticHelp.Link("RASK067"));
 
     private static readonly DiagnosticDescriptor EndpointSkipped = new(
@@ -47,6 +51,12 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
+        description: "The endpoint works over plain HTTP; it simply gets no typed caller, because something "
+                     + "about it cannot be expressed as a method signature — a catch-all route segment that "
+                     + "no single parameter can fill, a route token no parameter supplies, or a second "
+                     + "request body where a request has one. This is a warning rather than an error because "
+                     + "one unusual endpoint should not break a build, and it is reported rather than skipped "
+                     + "silently because a method simply missing from the client reads as a broken generator.",
         helpLinkUri: DiagnosticHelp.Link("RASK068"));
 
     private static readonly DiagnosticDescriptor DuplicateClientMethod = new(
@@ -56,6 +66,10 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
+        description: "Two actions on the same controller produce the same client method name — an overload "
+                     + "the generator cannot tell apart, and a CS0111 inside generated code if it were "
+                     + "emitted. The client method takes the action's own name, so naming the actions for "
+                     + "what they do fixes the client and usually reads better on the server too.",
         helpLinkUri: DiagnosticHelp.Link("RASK069"));
 
     private static readonly DiagnosticDescriptor UntypedResult = new(
@@ -67,6 +81,11 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
+        description: "The action returns IActionResult, ActionResult or IResult, so what it answers with is "
+                     + "decided at run time and there is no type for a client method to return. Returning the "
+                     + "type and letting ASP.NET wrap it keeps the escape hatches — ActionResult<T> still "
+                     + "allows a NotFound() — and where the return type genuinely has to stay open, "
+                     + "[ProducesResponseType] declares the success case the client is generated from.",
         helpLinkUri: DiagnosticHelp.Link("RASK070"));
 
     /// <inheritdoc />
