@@ -86,7 +86,22 @@
 
     <_RaskMetaGenerated Condition="'$(_RaskMetaDir)' != '' AND '$(RaskMetaGeneratedDir)' != ''"
     >$(_RaskMetaDir)/$(RaskMetaGeneratedDir)</_RaskMetaGenerated>
+
+    <!--
+      Contracts are emitted whenever an app is resolved — including under RaskMetaBuild=false, which
+      is what `rask dev` is meant to pass. The framework's own dev server still has to compile against
+      contracts that match the host it is talking to; skipping the production build does not make the
+      wire optional.
+
+      Declared visible to the compiler in the .props, because the generator reads it through Roslyn's
+      analyzer config rather than as an MSBuild property.
+    -->
+    <RaskEmitTypeScript Condition="'$(RaskEmitTypeScript)' == '' AND '$(_RaskMetaGenerated)' != ''"
+    >true</RaskEmitTypeScript>
   </PropertyGroup>
+
+  <UsingTask TaskName="Rask.Spa.Tasks.WriteGeneratedTypeScriptTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Spa.Tasks.dll"/>
 
   <!--
     Narrow globs on purpose. A `**/*` over the app directory would enumerate node_modules — tens of
@@ -171,12 +186,42 @@
     An empty glob makes both tasks no-ops, which is what happens when this file runs from the
     repository rather than an installed package.
   -->
+  <!--
+    DependsOnTargets includes ResolveProjectReferences because this invokes a task whose assembly is
+    produced by exactly that reference edge. Without it, a tree that has never built dies with MSB4062
+    naming a file nobody wrote (#878) — and PackagingContractTests enforces it, which is how this line
+    came to be here rather than in a bug report.
+  -->
   <Target Name="_RaskMetaCopyBrowserModules"
           AfterTargets="CoreCompile"
+          DependsOnTargets="ResolveProjectReferences"
           Condition="'$(_RaskMetaGenerated)' != '' AND '$(DesignTimeBuild)' != 'true'">
+    <!--
+      The typed wire: your C# message records, projected into TypeScript the front end imports. Read
+      out of the COMPILED assembly rather than the source tree, because the generator wrote them there
+      as constants — a source generator cannot write files.
+
+      AfterTargets="CoreCompile" for that reason: before it, @(IntermediateAssembly) is the previous
+      build's, and the contracts would be one build stale in exactly the way that is hardest to
+      notice — a renamed C# property still compiling on both sides.
+    -->
+    <WriteGeneratedTypeScriptTask AssemblyPath="@(IntermediateAssembly)"
+                                  OutputDirectory="$(_RaskMetaGenerated)"
+                                  Condition="'$(RaskEmitTypeScript)' == 'true'"/>
+
+    <!--
+      The dispatcher rides alongside, refreshed from the package on every build — the same thing that
+      keeps the SPA client wire-locked to its server. The generated messages import from './client',
+      so upgrading this package has to upgrade both halves together or the pair drifts.
+    -->
     <ItemGroup>
+      <_RaskMetaClientSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
       <_RaskMetaBrowserSource Include="$(MSBuildThisFileDirectory)../client/browser/*.ts"/>
     </ItemGroup>
+
+    <Copy SourceFiles="@(_RaskMetaClientSource)"
+          DestinationFolder="$(_RaskMetaGenerated)"
+          SkipUnchangedFiles="true"/>
 
     <Copy SourceFiles="@(_RaskMetaBrowserSource)"
           DestinationFolder="$(_RaskMetaGenerated)/browser"

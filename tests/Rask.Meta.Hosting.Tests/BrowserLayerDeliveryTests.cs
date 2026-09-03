@@ -93,6 +93,35 @@ public sealed class BrowserLayerDeliveryTests
     }
 
     [Fact]
+    public void The_typed_wire_is_generated_and_the_dispatcher_ships_with_it()
+    {
+        var csproj = File.ReadAllText(Path.Combine(
+            _repoRoot, "src", "Rask.Meta.Hosting", "Rask.Meta.Hosting.csproj"));
+        var props = File.ReadAllText(Path.Combine(
+            _repoRoot, "src", "Rask.Meta.Hosting", "build", "Rask.Meta.Hosting.props"));
+        var targets = Targets;
+
+        // Without this the CqrsCodecGenerator emits NOTHING — it reads the flag through Roslyn's
+        // analyzer config, so an MSBuild property that is merely set is invisible to it. That was this
+        // lane's state: no contracts, no error, no hint that a feature had not run.
+        Assert.Contains(@"<CompilerVisibleProperty Include=""RaskEmitTypeScript""/>", props, StringComparison.Ordinal);
+        Assert.Contains("<RaskEmitTypeScript", targets, StringComparison.Ordinal);
+
+        Assert.Contains("WriteGeneratedTypeScriptTask", targets, StringComparison.Ordinal);
+        Assert.Contains(@"AssemblyPath=""@(IntermediateAssembly)""", targets, StringComparison.Ordinal);
+
+        // The dispatcher the generated messages import from. Packed from the SPA lane's client/ rather
+        // than copied into this project, so the two lanes cannot drift into two wires.
+        Assert.Contains(@"..\Rask.Spa.Hosting\client\*.ts", csproj, StringComparison.Ordinal);
+
+        // #852: a Pack glob is expanded at evaluation, so the task assembly is named on its own line
+        // and excluded from build\**. A glob alone silently packs nothing on a tree where the DLL is
+        // not yet built, and the consumer's <UsingTask> then points at a file that never shipped.
+        Assert.Contains(@"Exclude=""build\Rask.Spa.Tasks.dll""", csproj, StringComparison.Ordinal);
+        Assert.Contains(@"<None Include=""build\Rask.Spa.Tasks.dll""", csproj, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_alias_is_written_beside_the_modules()
     {
         // `@rask/browser/geolocation` rather than a relative path, because the physical directory

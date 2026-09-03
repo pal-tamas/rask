@@ -126,6 +126,64 @@ The rule is **a file on disk**, not the shape of the URL. A generated `/sitemap.
 ending in `.json` still reaches the framework, because nothing that is not on disk is treated as
 static.
 
+## Calling your C#
+
+Your message records are projected into TypeScript on every build, into the same directory the
+browser layer lands in. The front end dispatches through them:
+
+```ts
+import { rask } from '@rask/client'
+import { getOrder } from '@rask/messages'
+
+const order = await rask.dispatch(getOrder({ id }))
+```
+
+`order` is typed from the C# record. Rename a property there and this stops compiling, which is the
+entire point — there is no schema file to keep in sync and no wire name written at a call site.
+
+This is the same generated wire [the SPA lane](spa.md) has had; the difference is that until now this
+package did not deliver it. `RaskEmitTypeScript` was defaulted and made visible to the compiler only
+by `Rask.Spa.Hosting`, so a meta host referencing `Rask.Cqrs.Server` got no contracts at all — no
+error, no warning, nothing to notice.
+
+### From the server render
+
+The half that is specific to this lane. A route module in `Client/` runs in **Node** before it ever
+runs in a browser, and two things differ there: a relative URL has no origin to resolve against, and
+there is no cookie jar — so a dispatch from a loader is anonymous unless you say otherwise.
+
+Both are options on the transport rather than new API:
+
+```ts
+import { createDispatcher, httpTransport } from '@rask/client'
+
+// In a loader / server function, where `request` is the framework's incoming request.
+const rask = createDispatcher(httpTransport({
+  baseUrl: process.env.RASK_BASE_URL,
+  onRequest: (outgoing) => {
+    const cookie = request.headers.get('cookie')
+    if (cookie) outgoing.headers.set('cookie', cookie)
+    return outgoing
+  },
+}))
+```
+
+`RASK_BASE_URL` is injected into the Node process by the host, and carries whatever you set:
+
+```csharp
+builder.Services.AddRaskMeta(o =>
+{
+    o.Framework = MetaFramework.Next;
+    o.BaseUrl = "http://127.0.0.1:5000";   // where this host listens
+});
+```
+
+Point it at the loopback address this host is listening on and an SSR dispatch never leaves the
+container. It is a configured value rather than one derived from the incoming request, and
+deliberately so: a header an attacker can influence, turned into the destination of a request that
+carries the visitor's cookie, is a confused deputy. Leave it unset and dispatch from the browser only
+— `httpTransport` then resolves relative URLs against the page, as it does on the SPA lane.
+
 ## Browser APIs
 
 Rask ships typed wrappers over the browser's Web APIs, and on a Rask component front end you inject

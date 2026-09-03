@@ -9,6 +9,25 @@ them until tagged releases begin.
 
 ### Added
 
+- **A meta framework front end gets the typed wire — generated contracts and the dispatcher.** It had
+  neither, and the reason was one line's absence: `RaskEmitTypeScript` was defaulted and made visible
+  to the compiler only by `Rask.Spa.Hosting`. The CQRS generator reads that flag through Roslyn's
+  analyzer config, so for a meta host it was not false — it was absent, and the generator emitted
+  nothing. No error, no warning, and a front end left hand-writing `fetch` against a wire it could not
+  see.
+
+  `Rask.Meta.Hosting` now declares the property, runs the same `WriteGeneratedTypeScriptTask` the SPA
+  lane runs, and ships the same `client.ts`. Not a second copy of either: the task is packed from
+  `Rask.Spa.Tasks` and the dispatcher from `Rask.Spa.Hosting/client/`, because what they do — project
+  C# records into TypeScript, and dispatch over the CQRS endpoint — is neither lane's private
+  business, and two implementations of one file format are two things waiting to disagree.
+
+  **The server-render half is documented rather than invented.** `client.ts` already carried the three
+  seams a Node render needs — an explicit `baseUrl`, an injectable `fetch`, and an `onRequest` hook —
+  so forwarding the visitor's cookie from a loader is a composition of options that existed, and
+  `RASK_BASE_URL` (injected since #960, read by nothing) is finally what it is for.
+  [docs/meta.md](docs/meta.md#calling-your-c) shows both.
+
 - **A meta framework front end gets Rask's browser layer, imported as `@rask/browser/…`.** The lane
   had no C#-to-TypeScript delivery of any kind — `Rask.Meta.Hosting` packed `build/**` and nothing
   else — so a Nuxt or Next app hosted by Rask could reach none of the browser APIs the Server, WASM
