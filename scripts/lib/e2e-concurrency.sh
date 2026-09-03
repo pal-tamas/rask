@@ -175,43 +175,10 @@ rask_e2e_etime_of() {
   ps -o etime= -p "$1" 2>/dev/null | tr -d ' '
 }
 
-# Of the other live gates, which ones outrank us for the lane? Prints their pids, one per line.
-# Empty output means it is our turn.
-#
-# This is what makes WAITING safe, and it is the whole reason the queue is not a plain sleep loop.
-#
-# A gate that is waiting for the lane is itself a `run-e2e-local.sh` process, so process detection
-# alone cannot tell a waiter from the run that holds the machine. Two waiters therefore see each
-# other. If both wait until no other gate exists, they deadlock; if both instead proceed the moment
-# the holder exits, they start simultaneously -- which is exactly the contention this guard exists to
-# prevent. A naive queue converts one honest refusal into either a hang or the very bug it replaced.
-#
-# Resolved by AGE, which totally orders the contenders with no shared state: you wait only for gates
-# OLDER than you. The holder is older than every waiter, so everyone waits for it. Among waiters each
-# waits for all of its seniors, so when the holder exits exactly one waiter -- the oldest -- is
-# released, and the others keep waiting because that one is still older than they are. FIFO, and fair.
-#
-# Ties (the same whole second, plausible when a merge train fires several pushes at once) break on
-# numeric pid, purely to make the order total. Any deterministic tiebreak would do; what matters is
-# that both sides compute the same one, so two processes never each conclude they outrank the other.
-#
-# Still no lockfile, for the reason this file has always given: process age is self-healing. Ctrl-C a
-# waiter and it drops out of everyone else's ordering with nothing to clean up.
-rask_e2e_lane_holders() {
-  self_pid="${1:-$$}"
-  parent_pid="${2:-$PPID}"
-
-  self_age="$(rask_etime_seconds "$(rask_e2e_etime_of "$self_pid")")"
-
-  for pid in $(rask_other_e2e_runs "$self_pid" "$parent_pid"); do
-    age="$(rask_etime_seconds "$(rask_e2e_etime_of "$pid")")"
-    if [ "$age" -gt "$self_age" ]; then
-      printf '%s\n' "$pid"
-    elif [ "$age" -eq "$self_age" ] && [ "$pid" -lt "$self_pid" ]; then
-      printf '%s\n' "$pid"
-    fi
-  done
-}
+# rask_e2e_lane_holders lived here until the gates moved to a slot budget. It ordered browser
+# gates against each other by process age; scripts/lib/machine-lane.sh now does that for every
+# gate and every phase, and carries the age-ordering argument in full. Two copies of an ordering
+# rule that must agree is a bug waiting for the day they stop agreeing, so there is one.
 
 # Indirected so the test can stub it without spawning real processes.
 rask_e2e_command_of() {

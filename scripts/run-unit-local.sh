@@ -33,6 +33,48 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
+# Sourced at the TOP, not inside the failure branch below where the contention hint used to reach for
+# it. A helper that only exists on one branch of an `if` is the shape run-e2e-local.sh argues against:
+# it is loaded exactly when things are already going wrong, which is the worst moment to discover that
+# the load itself is broken.
+# shellcheck source=lib/machine-lane.sh
+. "$root/scripts/lib/machine-lane.sh"
+
+# How much of this machine may we take?
+#
+# This gate NEVER WAITS, and that is a deliberate inheritance from .githooks/pre-commit, which runs it
+# on every commit and decided that a blocked commit costs more than a slow one -- "the person
+# committing is usually not the person who can decide to wait". So instead of queueing, it asks how
+# much room is left and SHRINKS INTO IT. On an idle box that is the full eight slots and nothing has
+# changed; on a box with two other gates running it is two, and the commit still starts immediately.
+#
+# The count goes into ARGV via a one-time re-exec rather than into the environment, because the whole
+# point is that a gate in ANOTHER worktree can read it back out of `ps` and account for it. An
+# environment variable is invisible there. The re-exec happens before any work, so nothing is
+# repeated; the guard is the presence of the flag itself.
+case "${1:-}" in
+  --lane-slots)
+    # ${2:?} rather than $2: with `set -u` a bare $2 aborts with "unbound variable" and no hint, and
+    # this is the one flag the script now advertises in its own argv.
+    lane_slots="${2:?run-unit-local: --lane-slots needs a number}"
+    shift 2
+    ;;
+  *)
+    # An ABSOLUTE path, not "$0". `cd "$root"` above has already moved us, so a relative $0 — which is
+    # what `bash ../scripts/run-unit-local.sh` from a subdirectory gives — no longer resolves, and a
+    # failed exec kills the shell outright rather than falling through. Verified: it dies with
+    # "No such file or directory" and the gate never runs.
+    #
+    # The ceiling comes from rask_lane_unit_max, because that is the number every OTHER gate credits a
+    # unit gate with before this re-exec lands. Hardcoding 8 here meant RASK_LANE_UNIT_MAX=4 would make
+    # readers account for 4 while this took 8 — over-subscribing the box silently, which is the
+    # direction the library says is unsafe.
+    exec "$root/scripts/run-unit-local.sh" --lane-slots "$(rask_lane_fit 2 "$(rask_lane_unit_max)")" "$@"
+    ;;
+esac
+
+echo "run-unit-local: taking $lane_slots of $(rask_lane_budget) slots on this machine."
+
 # Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
 # you your branch is broken or your machine is busy, and it is plain bash, so nothing else would catch a
 # regression in it.
@@ -43,7 +85,13 @@ for t in scripts/tests/*.test.sh; do
 done
 
 echo "==> Build once (Release, no WASM bundle: -p:RaskWasm=false -p:WasmBuildNative=false)"
-dotnet build Rask.slnx -c Release -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true
+# -m:$lane_slots is the lever that actually bounds this gate. Left at MSBuild's default it takes every
+# logical core, and three of these running from three worktrees is how the machine reached 35 worker
+# nodes on 14 cores, load average 98, 0.0% idle -- at which point every timing-sensitive test in all
+# three runs was untrustworthy. This was the only gate in the repo without an -m cap; the others all
+# pass -m:1.
+dotnet build Rask.slnx -c Release -m:"$lane_slots" \
+  -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true
 
 echo "==> Source generators in Debug (dotnet format resolves analyzers from the default configuration)"
 for proj in src/*.Generators/*.csproj; do
@@ -80,7 +128,14 @@ echo "==> Unit & integration tests (excludes the browser E2E)"
 # sequence file naming the test in flight and collects a dump, so the next occurrence is diagnosable
 # instead of merely observed. It costs nothing on a green run.
 set +e
-dotnet test Rask.slnx -c Release --no-build \
+# Half the slots here, not all of them, because the other half is spent INSIDE each assembly:
+# tests/xunit.runner.json caps a single assembly at 2 concurrent tests, so (assemblies in flight) x
+# (threads each) lands back on the slot count this gate was granted. Passing the full count to both
+# would square it, which is the shape of the original bug rather than a fix for it.
+test_slots=$((lane_slots / 2))
+[ "$test_slots" -lt 1 ] && test_slots=1
+
+dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
   --filter "FullyQualifiedName!~Rask.Examples.E2E$tsc_filter" \
   --blame-crash \
   --results-directory "$root/artifacts/test-blame" \

@@ -3231,6 +3231,7 @@ static Rask.Core.Live.LivePayload.BuildPayloadUtf8WithRoot(System.Buffers.ArrayB
 static Rask.Core.Live.LivePayload.BuildPayloadUtf8WithRoot(string! html, string! sessionId, string? historyUrl, bool replace, Rask.Core.Authentication.AuthInstruction? auth = null, Rask.Core.Routing.PendingDownload? download = null, System.Collections.Generic.IReadOnlyList<Rask.Core.Live.PendingJsInvoke>? jsInvokes = null) -> byte[]!
 static Rask.Core.Live.LivePayload.ExtractBody(string! html) -> string!
 static Rask.Core.Live.LivePayload.ExtractBodyUtf8(System.ReadOnlySpan<byte> html) -> System.ReadOnlySpan<byte>
+static Rask.Core.Live.LivePayload.InjectIslandsDevAttr(string! html, bool dev, string? devServerUrl) -> string!
 static Rask.Core.Live.LivePayload.InjectRootAttr(string! html, string! sessionId, bool dev = false) -> string!
 static Rask.Core.Live.LivePayload.InjectRootAttr(string! html, string! sessionId, bool dev, string? devStatusUrl) -> string!
 static Rask.Core.Live.LivePayload.InjectWasmBundleAttr(string! html, string? bootModuleUrl) -> string!

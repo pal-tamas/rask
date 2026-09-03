@@ -1,0 +1,68 @@
+<Project>
+
+  <!--
+    Consumer-facing knobs for the front-end build Rask.Meta.Hosting runs.
+
+    ONE property turns the whole thing on:
+
+        <RaskMetaFramework>nuxt</RaskMetaFramework>
+
+    Nothing below happens without it. That is deliberate — this file is imported into every project of
+    every consumer, and a package that started probing for node because a directory happened to be
+    called `Client` would be intolerable. Naming the framework is also what lets `AddRaskMeta()` take
+    no arguments: the name is baked into the assembly, so the build and the running host cannot
+    disagree about which framework was built.
+
+    Accepted names: nuxt · tanstack-start · solidstart · analog · sveltekit · nextjs
+  -->
+  <PropertyGroup>
+    <!--
+      Master switch. False skips the install, the build and the node probe entirely — the app still
+      compiles and its API still works. `rask dev` passes false, because the framework's own dev server
+      owns the build during a dev session; the repo's unit gate passes it too, so a machine with no
+      node can still build a solution containing one of these. Same shape as RaskSpaBuild.
+    -->
+    <RaskMetaBuild Condition="'$(RaskMetaBuild)' == ''">true</RaskMetaBuild>
+
+    <!--
+      Where the front end lives, relative to the host project: a `Client` FOLDER inside the host,
+      rather than a sibling `.Client` PROJECT. One project owns both halves, because a meta framework
+      app has no separate client artifact for a host to reference — it has a server of its own — so a
+      second project would buy nothing and cost a reference nobody uses.
+    -->
+    <RaskMetaAppDir Condition="'$(RaskMetaAppDir)' == ''">Client</RaskMetaAppDir>
+
+    <!--
+      `npm ci` where it can run: reproducible, faster, and loud when package-lock.json has drifted
+      instead of quietly rewriting it. It needs the lockfile, which a freshly scaffolded app does not
+      have yet — so the targets choose between these two by looking for one. Picked up front rather
+      than as `npm ci || npm install`, which works but prints a wall of npm errors on a first build and
+      reads exactly like a failure.
+    -->
+    <RaskMetaInstallCommand Condition="'$(RaskMetaInstallCommand)' == ''">npm ci</RaskMetaInstallCommand>
+    <RaskMetaFirstInstallCommand Condition="'$(RaskMetaFirstInstallCommand)' == ''">npm install</RaskMetaFirstInstallCommand>
+    <RaskMetaBuildCommand Condition="'$(RaskMetaBuildCommand)' == ''">npm run build</RaskMetaBuildCommand>
+
+    <!--
+      Where the built front end is copied inside the publish output, and the directory the host looks
+      in at runtime. It matches RaskMetaAppDir on purpose: in development the content root is the
+      project directory and the build output sits under `Client/`, and in a published app the same
+      relative path holds. One default that is correct in both places is worth more than two that have
+      to be kept in step.
+    -->
+    <RaskMetaPublishDir Condition="'$(RaskMetaPublishDir)' == ''">$(RaskMetaAppDir)</RaskMetaPublishDir>
+
+    <!--
+      The floor the probe enforces, rather than letting the framework's own toolchain fail later with
+      an engines error nobody reads. Same number as the SPA lane, and for the same reason: Vite asks
+      for `^20.19.0 || >=22.12.0`, a range with a hole in it, and 22.12.0 is the lowest version that
+      satisfies it with no hole while still being on a line Node patches. A floor is a minimum, not a
+      recommendation — what Rask recommends is the current Active LTS.
+
+      Several of these frameworks set their own floor above this one and enforce it themselves, which
+      is why this does not try to track them.
+    -->
+    <RaskMetaMinimumNode Condition="'$(RaskMetaMinimumNode)' == ''">22.12.0</RaskMetaMinimumNode>
+  </PropertyGroup>
+
+</Project>

@@ -12,6 +12,11 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
     private const int MaxTransientRetries = 3;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);
 
+    // A fetch that never settles is the one failure the retry loop below could not see. Without a
+    // per-attempt deadline the await simply never returns: no exception, no retry, and the spinner
+    // stays up for ever — which is precisely the outcome the retries were written to prevent.
+    private static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(5);
+
     private string? _error;
     private Post? _post;
 
@@ -19,14 +24,33 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
     {
         for (var attempt = 0; ; attempt++)
         {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+            deadline.CancelAfter(AttemptTimeout);
+
             try
             {
                 _post = await http.GetFromJsonAsync("data/posts-1.json", HttpJsonContext.Default.Post,
-                    CancellationToken);
+                    deadline.Token);
                 return;
             }
             // Navigating away unmounts the page and cancels the token — the page is gone, nothing to show.
-            catch (OperationCanceledException) { return; }
+            // Distinguished from the deadline below by asking the COMPONENT's token, since a linked
+            // source reports both the same way.
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested) { return; }
+            // The attempt itself ran out of time: a fetch that never settled. Retried like any other
+            // transient transport failure.
+            catch (OperationCanceledException) when (attempt < MaxTransientRetries)
+            {
+                try { await Task.Delay(RetryDelay, CancellationToken); }
+                catch (OperationCanceledException) { return; }
+            }
+            // Still not settling after every retry. Says so, rather than reporting the framework's
+            // "A task was canceled." — which tells a reader nothing about what was being waited on.
+            catch (OperationCanceledException)
+            {
+                _error = $"The request did not complete within {AttemptTimeout.TotalSeconds:0}s.";
+                return;
+            }
             // On WASM a hard browser refresh kills the in-flight fetch outside the AbortController, so it
             // surfaces as an HttpRequestException with no StatusCode ("TypeError: Load failed") rather than
             // an OperationCanceledException. The same null-status failure also fires transiently on the

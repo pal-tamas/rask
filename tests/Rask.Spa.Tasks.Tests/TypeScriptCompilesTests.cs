@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Xml.Linq;
 using Microsoft.Build.Framework;
 using Rask.Spa.Tasks;
 using Rask.TypeScript.Tasks;
@@ -85,7 +86,32 @@ public class TypeScriptCompilesTests : IDisposable
     /// <summary>
     ///     The dev build of tsgo this gate runs. Dated, and deliberately not <c>latest</c>.
     /// </summary>
-    private const string CompilerVersion = "7.0.0-dev.20260707.2";
+    /// <remarks>
+    ///     Read out of <c>Rask.Core.targets</c> rather than restated. That file is the single source — it
+    ///     ships to consumers inside every host package — and this was a second copy of the string with
+    ///     nothing asserting the two agreed, so bumping the dated build left this gate resolving a version
+    ///     the build no longer uses. <c>ResolveTypeScriptToolTaskTests</c> reads the same file for the same
+    ///     reason.
+    /// </remarks>
+    private static string CompilerVersion => PinnedTsgoVersion.Value;
+
+    private static readonly Lazy<string> PinnedTsgoVersion = new(() =>
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Rask.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(directory);
+
+        return XDocument
+            .Load(Path.Combine(directory!.FullName, "src", "Rask.Core", "build", "Rask.Core.targets"))
+            .Descendants()
+            .Single(e => e.Name.LocalName == "RaskTsgoVersion")
+            .Value
+            .Trim();
+    });
 
     [Fact]
     public void The_generated_TypeScript_compiles_against_the_client()

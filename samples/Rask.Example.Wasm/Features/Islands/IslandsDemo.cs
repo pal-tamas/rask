@@ -15,9 +15,14 @@ namespace Rask.Example.Wasm.Features.Islands;
 ///         queue-while-reconnecting for free.
 ///     </para>
 ///     <para>
-///         Lit is absent here and that is deliberate rather than an omission: a Lit island's
-///         <c>.ts</c> collides with Rask's scoped TypeScript, which this app genuinely uses. The
-///         Server showcase, which has no scoped TypeScript at all, carries the Lit case.
+///         Lit and Angular are absent here, and that is deliberate rather than an omission: both pair
+///         with a plain <c>.ts</c>, which collides with Rask's scoped TypeScript — and this app
+///         genuinely uses it. The Server showcase, which has no scoped TypeScript at all, carries both.
+///     </para>
+///     <para>
+///         React and Solid sit in folders of their own because they both compile <c>.tsx</c>, so their
+///         Vite plugins are each scoped to their own island directory. Sharing one — or nesting one
+///         inside the other — is refused by the build rather than mis-compiled.
 ///     </para>
 /// </remarks>
 public sealed partial class IslandsDemo : Component
@@ -30,11 +35,14 @@ public sealed partial class IslandsDemo : Component
         new("Apr", 82),
     ];
 
+    private readonly List<int> _readings = [12, 30, 22, 48, 35, 61];
+
     private int _reading = 40;
     private int _lastClicked;
     private int _clicks;
     private int _step = 1;
     private int _reactTotal;
+    private int _hoveredPoint = -1;
 
     protected override Component? Render() =>
     [
@@ -85,6 +93,24 @@ public sealed partial class IslandsDemo : Component
                     Span[" back to C#."]
                 ]
             ]
+        ],
+
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
+                H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
+                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                    "Byte-identical to ", Code["SolidSpark.tsx"], " on the Server host. Its hover count ",
+                    "belongs to Solid and C# never sees it, so raising the reading has to reach it as a ",
+                    "prop change rather than a remount."
+                ],
+
+                SolidSpark.Readings(_readings).Caption("Throughput").OnPointHovered(PointHovered),
+
+                P.Class("text-sm mt-3 mb-0")[
+                    "Last point hovered: ",
+                    Code.Id("island-hovered")[_hoveredPoint < 0 ? "(none)" : _hoveredPoint.ToString()]
+                ]
+            ]
         ]
     ];
 
@@ -96,6 +122,8 @@ public sealed partial class IslandsDemo : Component
 
     private void TotalChanged(int total) => _reactTotal = total;
 
+    private void PointHovered(int index) => _hoveredPoint = index;
+
     private void Raise()
     {
         _reading = Math.Min(100, _reading + 15);
@@ -104,6 +132,11 @@ public sealed partial class IslandsDemo : Component
         for (var i = 0; i < _series.Count; i++)
         {
             _series[i] = _series[i] with { Value = Math.Min(100, _series[i].Value + 4) };
+        }
+
+        for (var i = 0; i < _readings.Count; i++)
+        {
+            _readings[i] = Math.Min(100, _readings[i] + 5);
         }
     }
 
@@ -114,6 +147,10 @@ public sealed partial class IslandsDemo : Component
         _clicks = 0;
         _step = 1;
         _reactTotal = 0;
+        _hoveredPoint = -1;
+
+        _readings.Clear();
+        _readings.AddRange([12, 30, 22, 48, 35, 61]);
 
         _series.Clear();
         _series.AddRange([new("Jan", 38), new("Feb", 64), new("Mar", 51), new("Apr", 82)]);

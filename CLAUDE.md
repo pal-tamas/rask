@@ -13,7 +13,7 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
 - **open-pr** — branch off main, Conventional-Commit, **no AI-attribution footers**, delete branch after merge.
-- **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-nuget-updates** — dependency hygiene.
+- **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 Standing rules: do your best every PR, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E
@@ -50,11 +50,15 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
   and the island renders EMPTY with a green build; never in the meta-package. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
   in every version and the .NET 10 SDK compiler is closed (23 IVT friends) — see `docs/blazor-components.md`.
 - `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
-  `partial` class from `ReactComponent`/`VueComponent`/`SvelteComponent`/`LitComponent` (the base class IS the
-  declaration — no attribute; one `ExternalRuntime` table drives extension, adapter and Vite plugin), front-end
-  file paired by filename like scoped JS. Props declared in C#, serialized reflection-free; callbacks re-enter C#
-  over the existing handler channel AND escalate the page to interactive. Its subtree is a **diff boundary**
-  (`Component.OpaqueSubtree` + `data-rask-opaque`) — see `docs/islands.md`.
+  `partial` class from `ReactComponent`/`PreactComponent`/`SolidComponent`/`VueComponent`/`SvelteComponent`/
+  `AngularComponent`/`LitComponent` (the base class IS the
+  declaration — no attribute, and the BUILD reads it too: three runtimes write `.tsx` and two write `.ts`, so the
+  extension names a family and the generator carries the declared runtime out as a constant). Two runtimes sharing
+  an extension are scoped by DIRECTORY and overlapping trees are refused; React+Preact is refused (npm cannot
+  install both). Front-end file paired by filename like scoped JS. Props declared in C#, serialized reflection-free;
+  callbacks re-enter C# over the existing handler channel AND escalate the page to interactive. Its subtree is a
+  **diff boundary** (`Component.OpaqueSubtree` + `data-rask-opaque`). `rask dev` serves islands from Vite on 5174
+  for HMR — see `docs/islands.md`.
 - `samples/` — showcase apps. `tests/` — sibling `*.Tests` per project + `Rask.Examples.E2E.Tests` (Playwright). `benchmarks/`.
 
 ## Commands

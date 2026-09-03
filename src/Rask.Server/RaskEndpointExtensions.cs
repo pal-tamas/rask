@@ -702,10 +702,13 @@ public static partial class RaskEndpointExtensions
                     return;
                 }
 
-                content = LivePayload.InjectWasmBundleAttr(
-                    LivePayload.InjectRootAttr(
-                        html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
-                    WasmBootModuleUrl(limits));
+                content = LivePayload.InjectIslandsDevAttr(
+                    LivePayload.InjectWasmBundleAttr(
+                        LivePayload.InjectRootAttr(
+                            html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
+                        WasmBootModuleUrl(limits)),
+                    dev,
+                    dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null);
             }
             else
             {
@@ -729,11 +732,14 @@ public static partial class RaskEndpointExtensions
                         return;
                     }
 
-                    content = LivePayload.InjectWasmBundleAttr(
-                        LivePayload.InjectRootAttr(
-                            html, session.Id, dev,
-                            dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
-                        WasmBootModuleUrl(limits));
+                    content = LivePayload.InjectIslandsDevAttr(
+                        LivePayload.InjectWasmBundleAttr(
+                            LivePayload.InjectRootAttr(
+                                html, session.Id, dev,
+                                dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
+                            WasmBootModuleUrl(limits)),
+                        dev,
+                        dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null);
                 }
                 else
                 {
