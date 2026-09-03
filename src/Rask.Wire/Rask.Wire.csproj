@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Wire</PackageId>
+    <Title>Rask.Wire — Reflection-Free JSON Wire Primitives</Title>
+    <Description>The primitives Rask's generated wire codecs are written against: reflection-free `Utf8JsonReader`/`Utf8JsonWriter` helpers with one well-worded error per shape mismatch, plus the file carriers a message uses in each direction (`RemoteFile` up, `FileDownload` down). Shared by Rask.Cqrs and Rask.Api so a codec reads the same on either wire and neither package has to depend on the other. No reflection, no assembly scanning: publishes clean under the WASM/AOT trimmer.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — this is a standalone,
+         host-agnostic serialization primitive with no web/UI coupling. -->
+    <PackageTags>json serialization wire source-generator reflection-free aot trimming dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Wire;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

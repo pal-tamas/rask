@@ -117,6 +117,7 @@ no arguments for a wizard.
 | **[Building components](docs/building-components.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | How markup is written, the URLs it answers, and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |
 | **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[SQLite](docs/sqlite.md)** | The database-backed pillars |
+| **[HTTP APIs](docs/api-endpoints.md)** | API controllers and minimal APIs, hosted properly and called through a client generated from them |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | Day-to-day differences side by side; every RASK build error and its fix |
 
 The full index is **[`docs/`](docs/)**, and the other packages are listed in

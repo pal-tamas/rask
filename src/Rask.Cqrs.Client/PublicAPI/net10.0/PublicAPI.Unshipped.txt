@@ -17,5 +17,5 @@ Rask.Cqrs.Client.RaskCqrsClientOptions.Timeout.set -> void
 Rask.Cqrs.Client.RaskCqrsClientOptions.UploadChunkSize.get -> long
 Rask.Cqrs.Client.RaskCqrsClientOptions.UploadChunkSize.set -> void
 Rask.Cqrs.Client.RaskCqrsClientServiceCollectionExtensions
-static Rask.Cqrs.Client.FileBridgeExtensions.Download(this Rask.Core.Routing.Navigator! navigator, Rask.Cqrs.FileDownload! download) -> void
+static Rask.Cqrs.Client.FileBridgeExtensions.Download(this Rask.Core.Routing.Navigator! navigator, Rask.Wire.FileDownload! download) -> void
 static Rask.Cqrs.Client.RaskCqrsClientServiceCollectionExtensions.AddRaskCqrsClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.Client.RaskCqrsClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Api;
 using Rask.Cache;
 using Rask.Core.Browser;
 using Rask.Cqrs;
@@ -94,6 +95,14 @@ internal static class RaskBatteryWiring
             var manifest = DefaultManifest(builder.Environment);
             options.Pwa.Apply(manifest);
             services.AddRaskPwa(manifest);
+        }
+
+        // Above the early return, because HTTP endpoints have nothing to do with the database — an app
+        // with no DbContext still has an API, and wiring this alongside the pillars would silently give
+        // it none.
+        if (options.Api.Enabled)
+        {
+            services.AddRaskApi(o => options.Api.Apply(o));
         }
 
         if (!data)
