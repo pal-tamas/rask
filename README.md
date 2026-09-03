@@ -80,7 +80,8 @@ rask new Shop --template react
 ### Islands
 
 A `.tsx`, `.vue`, `.svelte` or Lit file as an *ordinary* Rask component. Derive from
-`ReactComponent`, `VueComponent`, `SvelteComponent` or `LitComponent`, drop the front-end file beside
+`ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`, `SvelteComponent`,
+`AngularComponent` or `LitComponent`, drop the front-end file beside
 it, and place it anywhere the chain goes — a leaf inside a card, or a whole route. Props are declared
 in C#, callbacks re-enter C# over the channel every handler already uses, and the live diff leaves the
 subtree alone because its own renderer owns it. This is the one pillar `Rask` does not bring on its

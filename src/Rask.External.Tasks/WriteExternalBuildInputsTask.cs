@@ -41,6 +41,28 @@ public sealed class WriteExternalBuildInputsTask : Task
     [Required]
     public string PublicBase { get; set; } = string.Empty;
 
+    /// <summary>
+    ///     The compiled assembly, which is what actually knows each island's runtime.
+    /// </summary>
+    /// <remarks>
+    ///     Optional, because an island can exist as a front-end file with no C# class yet — a
+    ///     hand-written <c>&lt;RaskExternal&gt;</c> item, or a <c>.tsx</c> added before its component.
+    ///     When it is there it WINS: see <see cref="Runtimes" />.
+    /// </remarks>
+    public string AssemblyPath { get; set; } = string.Empty;
+
+
+
+    /// <summary>
+    ///     Where <c>rask dev</c> serves the islands from, or empty for an ordinary build.
+    /// </summary>
+    /// <remarks>
+    ///     Present, the manifest is written HERE with dev-server URLs instead of by the bundler with
+    ///     hashed chunk paths — the bundler does not run at all under <c>rask dev</c>. Same file, same
+    ///     shape, so the client runtime resolves an island one way in both modes.
+    /// </remarks>
+    public string DevServerUrl { get; set; } = string.Empty;
+
     /// <summary>The generated Vite config, for the target that invokes the bundler.</summary>
     [Output]
     public string ConfigPath { get; private set; } = string.Empty;
@@ -51,6 +73,7 @@ public sealed class WriteExternalBuildInputsTask : Task
         var entryDirectory = Path.Combine(IntermediateDirectory, "entries");
         var islands = new List<ExternalEntry>();
         var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var declared = Runtimes();
 
         foreach (var item in Islands)
         {
@@ -76,7 +99,15 @@ public sealed class WriteExternalBuildInputsTask : Task
 
             seen[name] = source;
 
-            var runtime = item.GetMetadata("Runtime");
+            // The C# class first, the file extension only as a fallback. An extension used to name a
+            // runtime; with seven of them it names a FAMILY — React, Preact and Solid all write .tsx,
+            // Lit and Angular both write .ts — so the glob that discovered this file cannot know which
+            // one it belongs to, and guessing is silent: a Solid island handed React's adapter builds,
+            // bundles, ships, loads, and mounts nothing.
+            var runtime = declared.TryGetValue(name, out var fromCSharp)
+                ? fromCSharp
+                : item.GetMetadata("Runtime");
+
             if (string.IsNullOrEmpty(runtime))
             {
                 runtime = ExternalRuntime.React.Key;
@@ -118,17 +149,81 @@ public sealed class WriteExternalBuildInputsTask : Task
                 : 0;
         }
 
+        // The Angular plugin has to be told which tsconfig to compile against, and it has to be one
+        // Rask writes: the app's own carries "noEmit", which makes ngtsc emit nothing and every .ts
+        // island lose its default export. Written before the config that names it.
+        string? angularTsConfig = null;
+        if (ExternalBuildPlan.AngularTsConfig(islands, IntermediateDirectory.TrimEnd('/', '\\')) is { } ngConfig)
+        {
+            angularTsConfig = Path.Combine(IntermediateDirectory, "tsconfig.angular.build.json");
+            written += ExternalBuildPlan.WriteIfDifferent(angularTsConfig, ngConfig) ? 1 : 0;
+        }
+
         ConfigPath = Path.Combine(IntermediateDirectory, "vite.islands.config.mjs");
-        written += ExternalBuildPlan.WriteIfDifferent(
-            ConfigPath,
-            ExternalBuildPlan.ViteConfig(islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase))
-            ? 1
-            : 0;
+
+        string config;
+        try
+        {
+            config = ExternalBuildPlan.ViteConfig(
+                islands, entryDirectory, OutputDirectory, ManifestPath, PublicBase, angularTsConfig,
+                string.IsNullOrEmpty(DevServerUrl) ? null : DevServerUrl);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // A combination no generated config could build correctly — two JSX runtimes sharing a
+            // directory, or React beside Preact. Reported as a build error rather than written out,
+            // because both alternatives are silent: one ships a bundle that mounts nothing, the other
+            // fails inside npm with a message naming neither island.
+            Log.LogError(ex.Message);
+            return false;
+        }
+
+        written += ExternalBuildPlan.WriteIfDifferent(ConfigPath, config) ? 1 : 0;
+
+        // Under `rask dev` the bundler never runs, so nothing else would write the manifest the client
+        // resolves through. Written here instead, pointing at the dev server rather than at chunks
+        // that do not exist.
+        if (!string.IsNullOrEmpty(DevServerUrl))
+        {
+            written += ExternalBuildPlan.WriteIfDifferent(
+                ManifestPath,
+                ExternalBuildPlan.DevManifest(islands, entryDirectory, DevServerUrl))
+                ? 1
+                : 0;
+        }
 
         Log.LogMessage(
             written > 0 ? MessageImportance.High : MessageImportance.Low,
             $"Rask islands: {islands.Count} island(s), {written} build input(s) written.");
 
         return true;
+    }
+
+    /// <summary>
+    ///     Each island's runtime as its C# class declared it, keyed by component name.
+    /// </summary>
+    /// <remarks>
+    ///     Empty is not an error. A project can have a front-end file before it has the component, and
+    ///     a hand-written <c>&lt;RaskExternal&gt;</c> item never has one; those keep the runtime the
+    ///     item declared.
+    /// </remarks>
+    private Dictionary<string, string> Runtimes()
+    {
+        try
+        {
+            return ExternalIslandMetadata.Runtimes(AssemblyPath);
+        }
+        catch (Exception ex)
+        {
+            // Not fatal on its own: the extension fallback still produces a buildable config for the
+            // single-runtime projects that are the common case. Loud, though, because in a project
+            // mixing .tsx runtimes the fallback is exactly the silent mis-pairing this read exists to
+            // prevent.
+            Log.LogWarning(
+                $"Rask islands: could not read the declared runtimes from '{AssemblyPath}' ({ex.Message}). "
+                + "Falling back to the file extension, which cannot tell React, Preact and Solid apart.");
+
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
     }
 }

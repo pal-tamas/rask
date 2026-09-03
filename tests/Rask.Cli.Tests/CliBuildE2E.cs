@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -159,12 +158,10 @@ internal static class CliBuildE2E
         throw new InvalidOperationException($"No version known for '{package}'. Pin it in Directory.Packages.props.");
     }
 
-    private static Dictionary<string, string> RepoPackagePins()
-    {
-        var props = File.ReadAllText(Path.Combine(FindRepoRoot(), "Directory.Packages.props"));
-        return Regex.Matches(props, """<PackageVersion\s+Include="([^"]+)"\s+Version="([^"]+)"\s*/>""")
-            .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value, StringComparer.Ordinal);
-    }
+    // Parsed as XML by RepoPins rather than by a regex here: the regex this replaced only matched the
+    // exact self-closing single-space form, so reformatting Directory.Packages.props would have dropped
+    // packages silently and surfaced as VersionFor's "No version known" throw.
+    private static Dictionary<string, string> RepoPackagePins() => RepoPins.Packages();
 
     // Local feed first (this commit's packages), nuget.org for the framework/Microsoft.* deps.
     internal static void WriteNuGetConfig(SystemFileSystem fs, string projectDir, string feed) =>

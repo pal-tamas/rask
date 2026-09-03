@@ -108,6 +108,67 @@ them until tagged releases begin.
   `ApiOptions` carries `Prefix` (default `/api`), `NotFound` and `Controllers`. `MapRaskApi()` returns
   the endpoint group, so rate limiting, CORS or output caching attach to the whole API in one line.
 
+- **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
+  SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
+  same seven — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`,
+  `SvelteComponent`, `AngularComponent`, `LitComponent`.
+
+  **The base class is now the build's authority on which runtime an island uses.** An extension used
+  to identify one — `.tsx` meant React, a `.cs`-paired `.ts` meant Lit — and it cannot any more: React,
+  Preact and Solid all write `.tsx`, and Angular writes the same `.ts` Lit does. So the generator
+  carries each island's declared runtime out of the compilation as a constant and the build reads it
+  back, rather than each half guessing from a filename and agreeing by luck. Guessing wrong was silent
+  all the way to the browser — a Solid island handed React's adapter compiles, bundles, ships, loads,
+  and mounts nothing.
+
+  **Two runtimes that compile the same extension are scoped to their own island directories**, and
+  overlapping trees are refused by name. Scoping has to be by directory rather than by file: a
+  file-level scope transforms the island and leaves every module it *imports* to the other plugin, so a
+  helper beside a Solid island came back compiled as Preact — a green build that shipped a foreign
+  vnode into Solid's renderer. React beside Preact is refused outright, and not by Rask's choice:
+  `@vitejs/plugin-react` resolves Babel 8 where `@preact/preset-vite` pins `@babel/core@"7.x"`, so npm
+  will not install both.
+
+  **The prop type-check splits by runtime too.** One `jsx` setting cannot serve three JSX runtimes, and
+  Angular's decorators need an `experimentalDecorators` that Lit 3's standard decorators need off.
+  Merged into one config the check did not get weaker — it reported errors that were not in the
+  author's code and failed builds whose TypeScript was fine.
+
+  **`rask dev` now serves islands from a Vite dev server** on port 5174, skipping only the production
+  bundle. Editing a `.tsx` hot-replaces in place: React and Preact through Fast Refresh, Solid through
+  `solid-refresh`, Vue and Svelte through their plugins, all keeping component state. Lit and Angular
+  have no refresh integration upstream and fall back to a page reload — still with no C# rebuild.
+  Resolution stays one path in dev and production; only the manifest's contents differ.
+
+  The island dev server answers **loopback origins only**. It serves `/@fs/<path>`, so an
+  allow-everything CORS policy — which is what `cors: true` is — would let any website open in the
+  developer's browser fetch files from under their workspace root while `rask dev` runs, the same
+  class of hole Vite itself has had to close more than once. An app served on a non-loopback address
+  in development will not load its islands.
+
+  Angular's plugin needs `@angular/compiler-cli` and `@angular/build` installed beside it — it imports
+  both and depends on neither — pins TypeScript below 6.1, and must be pointed at a tsconfig Rask
+  writes: the app's own sets `noEmit`, which leaves ngtsc emitting nothing and every `.ts` island
+  without a default export, reported against files that plainly have one.
+
+  The Server showcase now runs six runtimes on one page. See [docs/islands.md](docs/islands.md).
+- **Node's LTS calendar now reaches the repo on its own.** `.github/workflows/lts-watch.yml` runs
+  monthly, asks nodejs.org which line is Active LTS, and opens (or updates) a single issue when it has
+  moved past what `NodeRequirement.ScaffoldLine` states — naming every file the bump has to touch, and
+  which ones deliberately must not move. It reuses `rask.sh`'s own `rask_node_lts_version` through the
+  existing `RASK_INSTALL_LIB_ONLY` guard rather than restating that logic, and it is **not** a gate: it
+  cannot go red on a branch, is not a required check, and a nodejs.org outage makes it say so and stop
+  instead of opening a bogus issue. Node 24 "Krypton" is Active LTS today; 26 takes over on
+  2026-10-28, which is the first thing this will report.
+
+  The standing rule it serves — always the latest LTS — is now written down, in a new
+  **Dependencies** section of `docs/development-workflow.md`: what Dependabot covers, which pins it
+  cannot see and where they live, which tests keep the copies honest, and why a Dependabot PR has to
+  be landed locally rather than merged from the web UI (it is authored server-side, so it never
+  touches `.githooks/`, and `main` has no required checks — a web merge is a version change that
+  nothing built, formatted or tested). The `check-nuget-updates` skill is now
+  **`check-dependency-updates`**, widened to every axis and carrying an explicit do-not-bump list.
+
 ### Changed
 
 - **BREAKING: `WireJson`, `RemoteFile` and `FileDownload` moved from `Rask.Cqrs` to a new `Rask.Wire`
@@ -150,6 +211,60 @@ them until tagged releases begin.
   everywhere else. `Every_file_a_project_packs_by_name_exists` checks every literal `Pack="true"`
   include against disk, and reports *"Rask.Api.Client packs 'NUGET.md', which does not exist"* in 81ms.
 
+- **The gates now share this machine by a slot budget instead of one all-or-nothing lane, so several
+  worktrees can test at once without lying to each other.** Eight worktrees run on one box here, and
+  the old arrangement went wrong in both directions at the same time.
+
+  Too much at once: nothing throttled `run-unit-local.sh`. It was the only gate in the repo without an
+  `-m` cap, so each run took every core, and three of them running from three worktrees put **35
+  MSBuild worker nodes on 14 cores, load average 98 at 0.0% idle, 41 of 48 GB resident**. That is not
+  merely slow — under load this repo's timing-sensitive tests fail in ways indistinguishable from real
+  bugs, so the standing rule is that a green under contention is trustworthy and a red is not. Every
+  contended run costs a re-run at minimum, and one previously cost an investigation into a test the
+  change under review could not reach (#850).
+
+  Too little at once: `run-e2e-local.sh` took the whole machine from its *first line* — before the
+  build. Measured on a live run, **9m30s of its first 10m12s was build and publish**, roughly a
+  quarter of the ~40m norm, during which it blocked every other worktree while using a single core
+  (that build is `-m:1`, and stays that way: three targets files shell out to nested `dotnet publish`
+  of the same projects, so raising it races on output paths).
+
+  Now the box publishes **10 slots** — the performance cores, not all 14, so the efficiency cores stay
+  free and no timing-sensitive test lands somewhere slower than the run that set its timeout — and
+  each gate claims against them:
+
+  - **The unit gate never waits.** It takes whatever is left, floor 2, and shrinks into it: `-m` on
+    the build and on `dotnet test` follow the number, and it prints the size it chose. `pre-commit`
+    decided long ago that a blocked commit costs more than a slow one, and that still holds — the gate
+    just gets smaller on a busy box.
+  - **The browser gate's build and publishes take a partial claim**, so several worktrees may build
+    concurrently. Only the suite itself serialises, and a gate queued for it has already built.
+
+  Precisely what that buys: two browser suites never overlap. It does *not* mean an empty machine — a
+  unit gate that started while the browser gate was building is younger than it, so it is not waited
+  for and keeps its slots. That follows from the unit gate never blocking a commit; making the suite
+  wait for unit gates too would let a stream of commits starve it, since unit gates never queue.
+
+  Ordering is unchanged from #934 and now covers every gate: you wait only for claims *older* than
+  yours, which is what stops two waiters deadlocking (a waiter is itself a gate process) and what
+  stops anything starving (a gate's age only grows, so nobody can be inserted ahead of you). Claims
+  are processes rather than files, for the reason this repo has always given — a file survives
+  `kill -9` and a laptop sleep and then wedges every gate until someone works out what to delete. A
+  gate *queued* for the suite publishes its claim **before** it waits, because it has not started
+  `dotnet test` yet and nothing in its process tree would otherwise say what it is about to need.
+
+  The per-assembly half is a new shared `tests/xunit.runner.json`: xUnit's default is a thread per
+  core, so bounding assemblies alone still allowed 14 × 14. The gate now spends half its slots across
+  assemblies and half inside them. `tests/Rask.Examples.E2E.Tests` keeps its own file — a browser
+  collection is a published host plus a Chromium page, tuned against the exclusive claim that suite
+  takes.
+
+  `RASK_LANE_SLOTS` sets the budget; `RASK_LANE_DISABLE=1` switches the whole thing off. Every
+  existing knob still works, and `RASK_E2E_ALLOW_CONCURRENT=1` is now strictly better than it was: the
+  claim stays published, so other gates account for the load it adds. `rask_e2e_lane_holders` is gone,
+  replaced by the budget's ordering — two copies of an ordering rule that must agree is a bug waiting
+  for the day they stop agreeing.
+
 ### Fixed
 
 - **The docs said an endpoint mapped after `UseRask` "never runs". It runs.** The claim appeared in
@@ -172,6 +287,80 @@ them until tagged releases begin.
   one whose route was deleted, renders the app with a 200 where the caller expected JSON, and the failure
   surfaces later as a parse error far from its cause. That is a genuine defect, it is not what the old
   comments described, and this entry does not fix it.
+
+- **A version pinned in two places was held together by a comment, and one of the comments was
+  describing a test that did not exist.** `ProjectGenerator.Wasm.AspNetCoreFrameworkVersion` must match
+  what `Directory.Packages.props` pins, because `Rask.Wasm` references the same two packages and its
+  nuspec demands `>=` that version — scaffold lower and a generated project fails restore with NU1605
+  under warnings-as-errors. The constant's comment had named
+  `ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin` since the day it was
+  written; that test was never added. The last grouped bump hand-edited the constant and got away with
+  it, and nothing would have caught the next one, because this repo's own projects reach those packages
+  through central package management and never read the constant — the failure surfaces only when a
+  *user* runs `rask new --wasm --auth`. The test now exists.
+
+  Four more copies-of-a-number are now asserted rather than commented. `NodeRequirementTests` holds
+  `rask.sh`, `rask.ps1` and `docs/installation.md` to `ScaffoldLine` (carefully **not** the places
+  quoting Angular's own `^22.22.3 || ^24.15.0 || >=26.0.0`, which contains 24.15.0 by coincidence and
+  must not move when Rask's line does), and holds the two Node build floors to each other.
+  `PackagePinFamilyTests` asserts the Spectre pair, the SQLitePCLRaw pair, and that the platform stack
+  is on one version. `TypeScriptCompilesTests` reads the tsgo pin out of `Rask.Core.targets` instead of
+  restating it. The Dockerfile check in `SpaTemplateTests` reads `ScaffoldLine` rather than a literal
+  `>= 24`. Dependabot now groups `Spectre.Console*` and `SQLitePCLRaw.*` so it cannot split either
+  pair in the first place, and its comment no longer sends you to a `global.json` this repo does not
+  have.
+
+- **The CVE hold on SQLitePCLRaw was load-bearing and unenforced.** The 3.x pin exists to escape
+  CVE-2025-6965 in the SQLite that 2.1.11 carries, and it works only because
+  `CentralPackageTransitivePinning` is off and something in each project's graph asks for 3.x
+  *directly*, lifting the rest. Nothing checked that. A new SQLite-touching project naming only
+  `Microsoft.Data.Sqlite` would quietly resolve the vulnerable family, and the build would stay green,
+  because falling back to a transitive default is not a downgrade NuGet reports.
+  `PackagePinFamilyTests` now walks the project-reference closure of every SQLite-touching project —
+  reachability, not a direct reference, because `Rask.Logging` names no `SQLitePCLRaw` and is correct
+  today through `Rask.SQLite`. No project is currently affected; the point is that the next one cannot
+  be, silently.
+
+- **`RaskExternalMinimumNode` was declared, documented, and read by nothing.** Its comment promised a
+  probe that "reports anything older rather than letting vite fail with an engines error nobody
+  reads", and `Rask.External.targets` referenced the property nowhere at all — so setting it insisted
+  on nothing and an old Node went straight to `npm` and failed inside vite with exactly that error.
+  This is the same defect `Rask.Spa.Hosting` had and fixed, down to the wording. Islands now probe for
+  node before installing and fail with **`RASKISLAND001`** naming the version found.
+
+  The floor moves from 20.19.0 to **22.12.0**, matching `RaskSpaMinimumNode`. Both paths run vite, so
+  both take vite's `^20.19.0 || >=22.12.0` — a range with a hole, since 21.x satisfies neither arm, and
+  a numeric floor cannot express it. The old 20.19.0 would have admitted 21.x and let it fail in the
+  bundler anyway, and Node 20 "Iron" is EOL besides. The one behavioural consequence: a project
+  building islands on Node 20.19–21.x is now refused at the probe instead of by vite a moment later.
+
+- **The release skill claimed CI gates a release. It does not.** `cut-release` said `release.yml`
+  "runs the unit gate + sharded E2E matrix"; those jobs went with `ci.yml`/`e2e.yml`, and `release.yml`
+  restores, builds, packs and pushes with no `dotnet test` anywhere. Since a push to nuget.org is
+  permanent, the skill now says plainly that nothing between the tag and nuget.org will catch a
+  regression, and to run the local gates first.
+
+- **`scripts/run-watch-e2e.sh` deleted packages out of the machine-global NuGet cache, which another
+  worktree's build could be restoring at that moment.** It exports `RASK_CLI_BUILD_E2E=1` to share the
+  CLI gate's packed feed, and that switch also arms `CliBuildE2E.EvictFromGlobalCache`, which removes
+  `~/.nuget/packages/<pkg>/<version>` for all 22 `Rask.*` packages. The eviction itself is
+  load-bearing — without it a restore silently reuses a cached nupkg of the same version and the gate
+  tests stale bits (#534). But MinVer stamps the *same* version for the same commit in every worktree,
+  so the deletion reached straight out of this gate's sandbox into every other one.
+
+  `run-cli-build-e2e.sh` was given a gate-private `NUGET_PACKAGES` for exactly this reason and
+  documents it at length; the watch gate shares its switch and its feed and was simply missed, because
+  the eviction lives in the fixture rather than in either script. It now points at the same private
+  directory, which also means the two gates share what they have already downloaded.
+
+- **Two E2E suites running from different worktrees published different commits into one directory.**
+  The on-demand publish fallback in `ExampleAppFixture` resolved to
+  `$TMPDIR/rask-e2e-publish/<app>` — keyed on the app alone, so every checkout on the machine shared
+  it. The code comment already stated that two processes writing one MSBuild output directory corrupts
+  it, and guarded against it with a `lock`; a lock only reaches the fixtures inside one process, and
+  each worktree's suite is its own process. The path now carries a hash of the checkout's absolute
+  path as well, since the lock cannot be made to reach and the path can.
+
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
@@ -249,6 +438,103 @@ them until tagged releases begin.
   were once blind.
 
 ### Added
+
+- **The meta lane builds, publishes and serves its own assets — two lines of configuration.**
+  [#946](https://github.com/pal-tamas/rask/issues/946) continued: `dotnet build` now runs the
+  framework's own toolchain, `dotnet publish` copies its output next to the app, and Kestrel serves the
+  built client assets itself. See [`docs/meta.md`](docs/meta.md).
+
+  ```xml
+  <RaskMetaFramework>nuxt</RaskMetaFramework>
+  ```
+
+  ```csharp
+  builder.Services.AddRaskMeta();   // no argument: the build baked which framework
+  ```
+
+  **The framework is named once, in the project file**, because the build needs it there anyway to know
+  what to publish. Baking it into the assembly is what lets `AddRaskMeta()` take nothing and still be
+  certain it fronts the framework that was actually built; a C# option still overrides. The front end
+  lives in `Client/` inside the host project — one project owning both halves, since a meta framework
+  app has no separate client artifact for a host to reference.
+
+  **Kestrel serves the built client assets** rather than forwarding them: one hop less per asset, and
+  the immutable cache headers written for you. That makes good on a claim this package had to walk back
+  — Next's standalone output deliberately omits `public` and `.next/static` because it assumes a CDN,
+  and here Kestrel *is* the thing in front, so the omission stops being a problem instead of needing a
+  hand-written `cp`. The rule is **a file on disk**, never the shape of the URL, so a generated
+  `/sitemap.xml` still reaches the framework.
+
+  Each framework's working directory is taken from its own documented invocation rather than assumed
+  uniform: Nitro's and SvelteKit's run from the app root, Next's from inside `.next/standalone`.
+
+  The publish is gated by driving the **shipped** props and targets through a real `dotnet publish` and
+  asserting on the published tree. That is not ceremony: the first run of it found that the targets
+  file did not parse at all — an XML comment cannot contain `--`, and `npm ci --omit=dev` was sitting
+  in one — which a test reading the file as text would have passed straight over.
+
+- **`Rask.Meta.Hosting` — a meta framework front end and your C# in one container.** The first landing
+  of [#946](https://github.com/pal-tamas/rask/issues/946): `AddRaskMeta()` supervises the framework's
+  own Node server, and `UseRaskMeta()` forwards to it everything Kestrel did not answer itself.
+
+  This is a third lane, not a change to either existing one. `Rask.Spa.Hosting` serves a static bundle
+  and needs no Node at runtime; islands put a `.tsx` inside a Rask page. Here the meta framework owns
+  the **whole** front end — routing, rendering, its own server — and Rask is the backend it integrates
+  with. Kestrel keeps the public port, so ASP.NET authentication, rate limiting, logging and health
+  still sit in front of every request, and `rask deploy` still ships one container on one port.
+
+  Six frameworks reduce to **three server shapes**, which is why the adapter is data rather than a class
+  per framework: `MetaFramework.Nuxt`, `.TanStackStart` and `.SolidStart` share `.output/server/index.mjs`
+  (Nitro), `.Analog` is Nitro under `dist/analog/server`, `.SvelteKit` is `adapter-node`'s
+  `build/index.js`, and `.Next` is standalone's `server.js` — which reads `HOSTNAME` where every other
+  one reads `HOST`. Each preset is a record, so `MetaFramework.Next with { ServerEntry = … }` adjusts one
+  field and keeps the rest. Every value is pinned by a test, because each was read out of the framework's
+  current documentation and none of it is checkable anywhere else.
+
+  All six expose a single directly executable entry, so the supervisor runs `node <entry>` and never
+  `npm start` — npm spawns the real server as a grandchild, and killing npm would orphan it. The process
+  binds `127.0.0.1` only, never `0.0.0.0`, so publishing the container's ports cannot expose an
+  unauthenticated renderer beside the app. Its stdout and stderr both arrive as `Information`, since a
+  great deal of Node tooling writes ordinary progress to stderr; the exit code is what signals a fault.
+
+  Before the port answers, requests get **503 with `Retry-After`** rather than being forwarded into a
+  closed socket and surfacing as 502 — for the first seconds of a container's life that state is normal
+  and genuinely temporary. A crash is retried with capped exponential backoff, and when the budget is
+  spent the **host stops** rather than serving errors indefinitely: an orchestrator restarting the
+  container is a better supervisor than this loop, and an exit is visible where a degraded process is
+  not. That budget counts **consecutive** failures — a run that stayed up past
+  `HealthyRunThreshold` resets it, so a server that crashes once a month is never mistaken for one that
+  will not start. On shutdown the process gets `SIGTERM` and a grace period before its tree is killed.
+
+  **No built front end fails startup**, with a message naming the path it looked for and the option
+  that moves it. Detecting it in the supervision loop instead would also have ended the process, but by
+  cancelling Kestrel's own bind mid-startup — so the app died with `TaskCanceledException`, which says
+  nothing about the front end and buries the line that did.
+
+  Forwarding is YARP's `IHttpForwarder` — the direct-forwarding API only, no route table or config
+  model. That is the package's one external dependency and a deliberate one: it already gets right
+  WebSocket upgrade, hop-by-hop header handling, and **unbuffered response streaming**, which is the
+  property the whole lane rests on. React Server Components and streaming SSR send a page over many
+  flushes, and a proxy that waits for the last byte turns a streaming page into a slow blank one while
+  every other test still passes — so a test holds the backend open until the client has already read the
+  first chunk, and cannot pass if anything starts buffering. An **upgraded connection gets no idle
+  cap**: the request timeout is an idle one and applies to WebSockets too, so leaving it on would drop
+  any socket quiet for 100 seconds and show the client a disconnect with no cause.
+
+  Asset URLs forward like everything else. That is worth stating because the obvious spelling of the
+  fallback — `MapFallback(handler)` — maps `{*path:nonfile}` and silently matches **nothing with a dot
+  in its last segment**, so every hashed chunk, `favicon.ico` and `robots.txt` would 404 and the page
+  would load with no JS and no CSS. `Rask.Spa.Hosting` leans on that same behaviour deliberately,
+  because there a static-file middleware serves the assets; here the Node server is the origin for its
+  own, so nothing else can.
+
+  `UseRaskMeta()` registers a **fallback**, so mapped endpoints still win — but map your API first; the
+  symptom of getting it wrong is an API call answered with a rendered page. `SuperviseNode = false`
+  forwards to a front end you are running yourself.
+
+  Not here yet, and tracked on the epic: the build and publish targets, the Node-bearing runtime image,
+  the generated server-side contract client that lets SSR call back carrying the visitor's cookie, and
+  `rask new` templates. Until those land this package is usable but unwired.
 
 - **Tailwind reaches inside an island.** A utility written in a `.vue`, `.tsx` or `.svelte` now
   survives into the emitted stylesheet, and editing one rebuilds it.

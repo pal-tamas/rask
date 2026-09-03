@@ -571,6 +571,42 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("<PackageReference Include=\"Microsoft.JSInterop\"", off["App.csproj"], StringComparison.Ordinal);
     }
 
+    /// <summary>
+    ///     The framework version the WASM auth scaffold writes is the one this repo pins.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         WASM has no <c>Microsoft.AspNetCore.App</c> framework reference, so the JWT scaffold names
+    ///         <c>Microsoft.JSInterop</c> and <c>Microsoft.AspNetCore.Authorization</c> at an explicit
+    ///         version. <c>Rask.Wasm</c> references those same two packages at whatever
+    ///         <c>Directory.Packages.props</c> pins, and its nuspec therefore demands <c>&gt;=</c> that
+    ///         version — so scaffolding a LOWER one puts the generated project below its own dependency and
+    ///         NuGet reports NU1605, an error under <c>-warnaserror</c>.
+    ///     </para>
+    ///     <para>
+    ///         The constant's comment has named this test since the constant was introduced, and the test
+    ///         did not exist. The last grouped bump hand-edited the constant and got away with it; nothing
+    ///         would have caught the next one, because this repo's own projects reference those packages
+    ///         through central package management and never read the constant. The failure surfaces only
+    ///         when a user runs <c>rask new --wasm --auth</c>.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void Wasm_auth_framework_version_matches_the_repo_pin()
+    {
+        foreach (var package in new[] { "Microsoft.JSInterop", "Microsoft.AspNetCore.Authorization" })
+        {
+            var pinned = RepoPins.Package(package);
+
+            Assert.True(
+                pinned == ProjectGenerator.AspNetCoreFrameworkVersion,
+                $"Directory.Packages.props pins {package} at {pinned}, but the WASM auth scaffold writes "
+                + $"{ProjectGenerator.AspNetCoreFrameworkVersion}. Rask.Wasm's nuspec demands >= the pin, so "
+                + "a scaffolded project fails restore with NU1605. Update AspNetCoreFrameworkVersion in "
+                + "src/Rask.Cli/Scaffolding/ProjectGenerator.Wasm.cs.");
+        }
+    }
+
     [Fact]
     public void Wasm_pwa_and_docker_toggle_their_files()
     {

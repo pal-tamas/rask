@@ -46,6 +46,27 @@ public sealed partial class Meter : SvelteComponent
     public double Value { get; set; }
 }
 
+/// <summary>A tile rendered by a sibling Tile.tsx — Preact's, not React's.</summary>
+public sealed partial class Tile : PreactComponent
+{
+    /// <summary>Caption shown on the tile.</summary>
+    public required string Caption { get; set; }
+}
+
+/// <summary>A spark rendered by a sibling Spark.tsx — Solid's, not React's.</summary>
+public sealed partial class Spark : SolidComponent
+{
+    /// <summary>The reading, 0..1.</summary>
+    public double Value { get; set; }
+}
+
+/// <summary>A quote rendered by a sibling Quote.ts — Angular's, not Lit's.</summary>
+public sealed partial class Quote : AngularComponent
+{
+    /// <summary>The symbol being quoted.</summary>
+    public required string Symbol { get; set; }
+}
+
 // Renders real components rather than asserting on generator output as text. What has to work is the
 // whole seam: the base class is discovered, the partial is generated, the host element serializes
 // with the diff-boundary marker, and the props JSON is exactly what the front end will be typed
@@ -113,12 +134,38 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
                      Render(Dial.Value(0)),
                      Render(Board.Heading("Sales")),
                      Render(Meter.Value(0)),
+                     Render(Tile.Caption("Sales")),
+                     Render(Spark.Value(0)),
+                     Render(Quote.Symbol("RSK")),
                  })
         {
             Assert.StartsWith("<rask-external ", html, StringComparison.Ordinal);
             Assert.Contains("data-rask-opaque", html, StringComparison.Ordinal);
             Assert.Contains("props=", html, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public void Three_runtimes_share_dot_tsx_and_the_base_class_tells_them_apart()
+    {
+        // The whole reason the build stopped reading a runtime off the extension. All three of these
+        // pair with a .tsx, so the file name says nothing about which adapter mounts it — only the
+        // base class does, and it is what both halves now read.
+        Assert.Contains("runtime=\"react\"", Render(Chart.Series([])), StringComparison.Ordinal);
+        Assert.Contains("runtime=\"preact\"", Render(Tile.Caption("Sales")), StringComparison.Ordinal);
+        Assert.Contains("runtime=\"solid\"", Render(Spark.Value(0.5)), StringComparison.Ordinal);
+
+        Assert.Contains("module=\"./Tile.tsx\"", Render(Tile.Caption("Sales")), StringComparison.Ordinal);
+        Assert.Contains("module=\"./Spark.tsx\"", Render(Spark.Value(0.5)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Angular_and_lit_share_dot_ts_and_the_base_class_tells_them_apart()
+    {
+        Assert.Contains("runtime=\"lit\"", Render(Dial.Value(0)), StringComparison.Ordinal);
+        Assert.Contains("runtime=\"angular\"", Render(Quote.Symbol("RSK")), StringComparison.Ordinal);
+
+        Assert.Contains("module=\"./Quote.ts\"", Render(Quote.Symbol("RSK")), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -61,6 +61,18 @@ public sealed class WriteExternalPropTypesTask : Task
     /// <summary>Where the Svelte checker's tsconfig goes. <c>svelte-check</c> reads it.</summary>
     public string SvelteConfigPath { get; set; } = string.Empty;
 
+    /// <summary>Where the Solid islands' tsconfig goes. tsgo reads it, with Solid's JSX factory.</summary>
+    public string SolidConfigPath { get; set; } = string.Empty;
+
+    /// <summary>Where the Preact islands' tsconfig goes. tsgo reads it, with Preact's JSX factory.</summary>
+    public string PreactConfigPath { get; set; } = string.Empty;
+
+    /// <summary>Where the Angular islands' tsconfig goes. tsgo reads it, with decorators enabled.</summary>
+    public string AngularConfigPath { get; set; } = string.Empty;
+
+    /// <summary>The compiled assembly, which is what actually knows each island's runtime.</summary>
+    public string IslandAssemblyPath { get; set; } = string.Empty;
+
     /// <summary>Whether the check config was written, so the caller knows there is one to run.</summary>
     [Output]
     public bool HasCheckConfig { get; private set; }
@@ -68,6 +80,18 @@ public sealed class WriteExternalPropTypesTask : Task
     /// <summary>Whether any Vue island was found, so the caller knows to run <c>vue-tsc</c>.</summary>
     [Output]
     public bool HasVueConfig { get; private set; }
+
+    /// <summary>Whether any Solid island was found, so the caller knows to check it separately.</summary>
+    [Output]
+    public bool HasSolidConfig { get; private set; }
+
+    /// <summary>Whether any Preact island was found, so the caller knows to check it separately.</summary>
+    [Output]
+    public bool HasPreactConfig { get; private set; }
+
+    /// <summary>Whether any Angular island was found, so the caller knows to check it separately.</summary>
+    [Output]
+    public bool HasAngularConfig { get; private set; }
 
     /// <summary>Whether any Svelte island was found, so the caller knows to run <c>svelte-check</c>.</summary>
     [Output]
@@ -221,19 +245,72 @@ public sealed class WriteExternalPropTypesTask : Task
         var directory = Path.GetDirectoryName(CheckConfigPath) ?? ProjectDirectory;
         var written = false;
 
-        // Split by what can actually READ the file, not by runtime. tsgo parses TypeScript and JSX and
-        // nothing else — a single .vue reaching its "files" array is not a weaker check, it is a build
-        // that stops working. So each checker gets a config listing only its own files, and the
-        // targets run the ones that have something in them.
-        HasCheckConfig = WriteConfigFor(CheckConfigPath, directory, IsTypeScript, ref written);
-        HasVueConfig = WriteConfigFor(VueConfigPath, directory, p => HasExtension(p, ".vue"), ref written);
-        HasSvelteConfig = WriteConfigFor(SvelteConfigPath, directory, p => HasExtension(p, ".svelte"), ref written);
+        // Split by what can actually READ the file — tsgo parses TypeScript and JSX and nothing else,
+        // so a single .vue reaching its "files" array is not a weaker check but a build that stops
+        // working — and then, WITHIN what tsgo can read, by what the file needs to be read CORRECTLY.
+        //
+        // That second split is what Solid and Angular added. One "jsx" setting cannot serve three JSX
+        // runtimes: Solid's `class=` attribute is an error under React's JSX types, and Preact's hooks
+        // resolve to React's without its own jsxImportSource. Angular is worse than wrong — its
+        // decorators need experimentalDecorators, which Lit 3's standard decorators need OFF.
+        //
+        // A config that fails for the wrong reason is worse than no config: the targets run a checker
+        // whenever its config exists, so a Solid island in the shared config would break the build of
+        // a project whose TypeScript is perfectly fine.
+        var runtimes = Runtimes();
+
+        HasSolidConfig = WriteConfigFor(
+            SolidConfigPath, directory, p => Is(runtimes, p, "solid"), ref written,
+            // "preserve" hands the JSX to the Solid plugin rather than compiling it here, and
+            // jsxImportSource is what points the TYPES at solid-js instead of React.
+            ["\"jsx\": \"preserve\"", "\"jsxImportSource\": \"solid-js\""]);
+
+        HasPreactConfig = WriteConfigFor(
+            PreactConfigPath, directory, p => Is(runtimes, p, "preact"), ref written,
+            ["\"jsx\": \"react-jsx\"", "\"jsxImportSource\": \"preact\""]);
+
+        HasAngularConfig = WriteConfigFor(
+            AngularConfigPath, directory, p => Is(runtimes, p, "angular"), ref written,
+            // Angular's decorators are the TypeScript 4 form. Lit 3's are the standard ones and need
+            // this OFF, which is exactly why the two cannot share a config.
+            ["\"experimentalDecorators\": true", "\"emitDecoratorMetadata\": true"]);
+
+        // Everything else tsgo can read: React, Lit, and any file no component has claimed yet.
+        HasCheckConfig = WriteConfigFor(
+            CheckConfigPath,
+            directory,
+            p => IsTypeScript(p) && !Is(runtimes, p, "solid") && !Is(runtimes, p, "preact")
+                 && !Is(runtimes, p, "angular"),
+            ref written,
+            ReactJsx);
+
+        // Vue and Svelte keep the JSX setting every config used to carry unconditionally. Their own
+        // checkers read it: a .vue with `lang="tsx"` or a JSX render function, or a .svelte whose
+        // program pulls in a TSX helper, would otherwise be checked under TypeScript's default `jsx`
+        // and fail on code that checked cleanly before.
+        HasVueConfig = WriteConfigFor(
+            VueConfigPath, directory, p => HasExtension(p, ".vue"), ref written, ReactJsx);
+        HasSvelteConfig = WriteConfigFor(
+            SvelteConfigPath, directory, p => HasExtension(p, ".svelte"), ref written, ReactJsx);
 
         return written;
     }
 
     /// <summary>Writes one checker's config over the files it can read, or removes a stale one.</summary>
-    private bool WriteConfigFor(string configPath, string directory, Func<string, bool> matches, ref bool written)
+    /// <param name="configPath">Where the config goes. Empty skips it.</param>
+    /// <param name="directory">The config's own directory, which its relative paths are resolved from.</param>
+    /// <param name="matches">Which front-end files belong to this checker.</param>
+    /// <param name="written">Raised when anything was written or deleted.</param>
+    /// <param name="options">
+    ///     Compiler options this checker needs and the others must not have — the JSX factory, or
+    ///     Angular's decorators. Written as raw JSON lines, already quoted.
+    /// </param>
+    private bool WriteConfigFor(
+        string configPath,
+        string directory,
+        Func<string, bool> matches,
+        ref bool written,
+        IReadOnlyList<string>? options = null)
     {
         if (configPath.Length == 0)
         {
@@ -278,7 +355,12 @@ public sealed class WriteExternalPropTypesTask : Task
         json.AppendLine("    \"module\": \"preserve\",");
         json.AppendLine("    \"moduleResolution\": \"bundler\",");
         json.AppendLine("    \"lib\": [\"esnext\", \"dom\"],");
-        json.AppendLine("    \"jsx\": \"react-jsx\",");
+
+        foreach (var option in options ?? [])
+        {
+            json.Append("    ").Append(option).AppendLine(",");
+        }
+
         json.AppendLine("    \"paths\": {");
         json.Append("      \"@rask/*\": [\"").Append(Dotted(Relative(directory, OutputDirectory)))
             .AppendLine("/*\"]");
@@ -301,6 +383,34 @@ public sealed class WriteExternalPropTypesTask : Task
         }
 
         return true;
+    }
+
+    /// <summary>The JSX setting every checker but Solid's and Angular's uses.</summary>
+    private static readonly string[] ReactJsx = ["\"jsx\": \"react-jsx\""];
+
+    /// <summary>Whether a front-end file's C# class declared the given runtime.</summary>
+    private static bool Is(IReadOnlyDictionary<string, string> runtimes, string path, string runtime) =>
+        string.Equals(ExternalIslandMetadata.RuntimeFor(runtimes, path), runtime, StringComparison.Ordinal);
+
+    /// <summary>Each island's declared runtime, or an empty map when the assembly cannot be read.</summary>
+    private Dictionary<string, string> Runtimes()
+    {
+        try
+        {
+            // IslandAssemblyPath rather than AssemblyPath: the same file, but the caller may not have
+            // passed it, and falling back to the props assembly keeps this working either way.
+            return ExternalIslandMetadata.Runtimes(
+                string.IsNullOrEmpty(IslandAssemblyPath) ? AssemblyPath : IslandAssemblyPath);
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(
+                $"Rask.External: could not read the declared runtimes ({ex.Message}). Solid, Preact and "
+                + "Angular islands will be type-checked with React's JSX settings, which will report "
+                + "errors that are not in your code.");
+
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     /// <summary>Whether tsgo can read this file at all.</summary>
