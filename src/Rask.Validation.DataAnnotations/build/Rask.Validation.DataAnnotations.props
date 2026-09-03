@@ -1,6 +1,0 @@
-<Project>
-  <ItemGroup>
-    <Using Include="Rask.Validation.DataAnnotations"/>
-    <!-- Auto-generated DataAnnotationsValidator() factory lives here. -->
-  </ItemGroup>
-</Project>

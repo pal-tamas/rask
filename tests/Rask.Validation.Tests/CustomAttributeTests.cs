@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.DataAnnotations.Tests;
+namespace Rask.Validation.Tests;
 
 // Custom ValidationAttribute subclasses are walked by System.ComponentModel.DataAnnotations.Validator
 // at validation time — DataAnnotationsValidator doesn't need to know about them. These tests pin:

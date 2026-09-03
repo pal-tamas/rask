@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // on Name) with an IValidatableObject.Validate method that yields both a per-field result
 // (MemberNames=[nameof(Departure)]) and a form-level result (no MemberNames). The BCL's own
 // Validator.TryValidateObject would silence Validate() once the attribute fails — Rask's
-// DataAnnotationsValidator calls IValidatableObject directly so all errors accumulate.
+// built-in pass calls IValidatableObject directly so all errors accumulate.
 public sealed partial class ValidatableObjectDemo : Component
 {
     private readonly BookingModel _model = new();
@@ -32,7 +32,6 @@ public sealed partial class ValidatableObjectDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
-            DataAnnotationsValidator,
             ValidationSummary.Template(SummaryAlert),
             Div[
                 Label.For("v11-name").Class($"{Ui.Label} text-sm mb-1")["Name"],

@@ -7,8 +7,8 @@ namespace Rask.Example.Shared;
 // (https://getbootstrap.com/docs/5.3/forms/floating-labels/). It owns no validation state and needs
 // no extra CSS: the framework's ValidationMessage reads the EditContext, and the error text uses
 // its own .field-error class, which is always shown -- there is no valid/invalid toggle to set.
-// Pairs with any validator dropped into the surrounding Form — DataAnnotationsValidator(),
-// FluentValidationValidator(…), or a per-field Validate:.
+// Pairs with whatever validates the surrounding Form — the built-in DataAnnotations pass, an
+// AbstractValidator<T>, or a per-field Validate:.
 //
 // Generic so the typed Bind expression can be handed straight to Input(Bind, …) in Render; TProp is
 // inferred from the lambda at the call site. The label comes from the bound property's
