@@ -16,8 +16,47 @@ public static class ApiUri
     /// <summary>Renders a value as one path segment.</summary>
     /// <param name="value">The value. Formatted invariantly.</param>
     /// <returns>The escaped segment.</returns>
-    public static string Segment(object? value) =>
-        Uri.EscapeDataString(Format(value) ?? string.Empty);
+    /// <exception cref="ArgumentException">
+    ///     The value is null or empty. A route token with nothing in it collapses the segment, and the
+    ///     request then addresses whatever the shortened path matches — for
+    ///     <c>/api/items/{id}</c> that is the <em>collection</em> endpoint, reached with a verb meant for
+    ///     one item. Refused here, loudly, rather than sent.
+    /// </exception>
+    /// <remarks>
+    ///     <para>
+    ///         <see cref="Uri.EscapeDataString(string)" /> alone is NOT enough, which is the whole reason
+    ///         this method exists rather than the call site escaping inline. It leaves <c>.</c> and
+    ///         <c>..</c> untouched — they are unreserved — and <see cref="HttpClient" /> resolves dot
+    ///         segments while combining the path with its base address. So a value of <c>..</c> in
+    ///         <c>/api/tenants/{tenant}/orders</c> puts <c>GET /api/orders</c> on the wire: a different
+    ///         endpoint, reached with the caller's credentials already attached.
+    ///     </para>
+    ///     <para>
+    ///         Percent-encoding them is the fix rather than rejecting them, because <c>.</c> and
+    ///         <c>..</c> are legitimate values for a name or a slug. A server reads <c>%2E%2E</c> as the
+    ///         two characters, and does not re-normalise a decoded segment back into a traversal.
+    ///     </para>
+    /// </remarks>
+    public static string Segment(object? value)
+    {
+        var text = Format(value);
+
+        if (string.IsNullOrEmpty(text))
+        {
+            throw new ArgumentException(
+                "A route value cannot be null or empty: the segment would collapse and the request would "
+                + "address a different endpoint.", nameof(value));
+        }
+
+        var escaped = Uri.EscapeDataString(text);
+
+        return escaped switch
+        {
+            "." => "%2E",
+            ".." => "%2E%2E",
+            _ => escaped,
+        };
+    }
 
     /// <summary>
     ///     Renders query parameters, skipping any whose value is null.

@@ -53,6 +53,29 @@ public sealed class ApiClientGeneratorTests
             }
             [System.AttributeUsage(System.AttributeTargets.Parameter)]
             public sealed class FromBodyAttribute : System.Attribute { }
+            [System.AttributeUsage(System.AttributeTargets.Parameter)]
+            public sealed class FromHeaderAttribute : System.Attribute { }
+        }
+        """;
+
+    /// <summary>
+    ///     The minimal-API surface, stubbed to the shape the generator matches on: the extension class
+    ///     by name, its first parameter by type, and <c>RouteGroupBuilder</c> as a receiver.
+    /// </summary>
+    private const string Routing = """
+        namespace Microsoft.AspNetCore.Routing
+        {
+            public interface IEndpointRouteBuilder { }
+            public sealed class RouteGroupBuilder : IEndpointRouteBuilder { }
+        }
+        namespace Microsoft.AspNetCore.Builder
+        {
+            using Microsoft.AspNetCore.Routing;
+            public static class EndpointRouteBuilderExtensions
+            {
+                public static RouteGroupBuilder MapGroup(this IEndpointRouteBuilder builder, string prefix) => null!;
+                public static object MapGet(this IEndpointRouteBuilder builder, string pattern, System.Delegate handler) => null!;
+            }
         }
         """;
 
@@ -81,7 +104,7 @@ public sealed class ApiClientGeneratorTests
 
         Assert.Contains("class PostsClient", source, StringComparison.Ordinal);
         Assert.Contains("Get(int id", source, StringComparison.Ordinal);
-        Assert.Contains("\"/api/posts/\"", source, StringComparison.Ordinal);
+        Assert.Contains("\"api/posts/\"", source, StringComparison.Ordinal);
         Assert.Empty(run.GeneratedCompileErrors());
     }
 
@@ -240,6 +263,90 @@ public sealed class ApiClientGeneratorTests
         });
 
         Assert.False(baked.HasGeneratedSource("__RaskApiClients"));
+    }
+
+    [Fact]
+    public void A_FromHeader_parameter_costs_ONE_endpoint_and_not_the_whole_compilation()
+    {
+        // It used to cost all of them. The emitter threw on a header-bound parameter, believing the
+        // generator refused them earlier — it did not — and an exception from a generator is CS8785,
+        // which takes down every client in the compilation rather than the one it cannot express.
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("api/tenants")]
+            public sealed class TenantsController : ControllerBase
+            {
+                [HttpGet("by-header")]
+                public ActionResult<string> ByHeader([FromHeader] string tenant) => null!;
+            }
+
+            [ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        Assert.True(Reported(run, "RASK068"));
+
+        // The other controller still got its client — the assertion that would have failed before.
+        var source = run.GeneratedSource("__RaskApiClients");
+        Assert.Contains("class PostsClient", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ByHeader", source, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void The_generated_path_is_relative_so_a_sub_path_deployment_survives()
+    {
+        // A root-absolute path replaces the whole path of HttpClient.BaseAddress, so an app under
+        // /myapp/ would send its calls to the site root and 404 — issue #893, which Rask.Cqrs.Client
+        // already carries a fix for. Asserted on the emitted text because the failure only shows up in
+        // a deployment under a prefix, which no unit test hosts.
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            [ApiController]
+            [Route("api/posts")]
+            public sealed class PostsController : ControllerBase
+            {
+                [HttpGet("{id}")]
+                public ActionResult<string> Get(int id) => null!;
+            }
+            """);
+
+        var source = run.GeneratedSource("__RaskApiClients");
+
+        Assert.Contains("\"api/posts/\"", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"/api/posts/\"", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_endpoint_mapped_on_a_MapGroup_is_refused_rather_than_given_a_wrong_url()
+    {
+        // The group's prefix lives on the RouteGroupBuilder, not at this call site, so the client would
+        // call "/{id}" where the server answers "/api/widgets/{id}". Emitting that is worse than
+        // emitting nothing: it type-checks on both sides and 404s in production.
+        var run = Run("""
+            using Microsoft.AspNetCore.Builder;
+            using Microsoft.AspNetCore.Routing;
+
+            public static class Endpoints
+            {
+                public static void Map(IEndpointRouteBuilder app)
+                {
+                    // Held in a local, which is how groups are normally written — and what a syntax-only
+                    // check for the name "MapGroup" would miss.
+                    var widgets = app.MapGroup("/api/widgets");
+                    widgets.MapGet("/{id}", (int id) => id);
+                }
+            }
+            """ + Routing);
+
+        Assert.True(Reported(run, "RASK068"));
+        Assert.False(run.HasGeneratedSource("__RaskApiClients"));
     }
 
     [Fact]

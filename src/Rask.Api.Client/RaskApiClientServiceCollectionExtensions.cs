@@ -29,6 +29,17 @@ public static class RaskApiClientServiceCollectionExtensions
 
         services.TryAddSingleton(options);
 
+        // ONE HttpClient for the app, not one per scope. The clients are scoped (they are cheap, and a
+        // scope is the natural lifetime for anything carrying per-request state), but the transport
+        // underneath must not be: a new HttpClient is a new SocketsHttpHandler and a new connection
+        // pool, nothing disposes it, and a server-rendered app would open one per request until it ran
+        // out of sockets. Singleton also means DNS is not pinned per scope.
+        services.TryAddSingleton(provider =>
+        {
+            var (client, owned) = Resolve(provider, options);
+            return new ApiHttpClient(client, owned);
+        });
+
         // Each client is resolved from the registry rather than named here: the client types live in the
         // consumer's compilation, so this package cannot name them, and the generated module initializer
         // has already run by the time anything resolves one.
@@ -39,27 +50,52 @@ public static class RaskApiClientServiceCollectionExtensions
             services.TryAddScoped(
                 registration.ClientType,
                 provider => registration.Factory(
-                    Resolve(provider, provider.GetRequiredService<ApiClientOptions>()),
+                    provider.GetRequiredService<ApiHttpClient>().Value,
                     provider.GetRequiredService<ApiClientOptions>()));
         }
 
         return services;
     }
 
+    /// <summary>
+    ///     The one <see cref="HttpClient" /> every generated client sends on.
+    /// </summary>
+    /// <remarks>
+    ///     A wrapper rather than registering <see cref="HttpClient" /> itself, because an app very often
+    ///     already has one in the container — a Rask WASM host registers it at the page origin — and
+    ///     taking that registration over would change what every other injection in the app resolves.
+    ///     Owned by the container: disposed with it, and never per scope.
+    /// </remarks>
+    private sealed class ApiHttpClient(HttpClient value, bool owned) : IDisposable
+    {
+        public HttpClient Value { get; } = value;
+
+        // Only what this package CREATED. When the transport is the container's own HttpClient — the
+        // usual case in a browser app — disposing it here would tear down a client the app registered
+        // and still uses elsewhere.
+        public void Dispose()
+        {
+            if (owned)
+            {
+                Value.Dispose();
+            }
+        }
+    }
+
     // An absolute BaseAddress means "build a client for it". Otherwise take the container's, which in a
     // browser app is the page origin — the right answer, and the one every Rask WASM host registers.
-    private static HttpClient Resolve(IServiceProvider provider, ApiClientOptions options)
+    private static (HttpClient Client, bool Owned) Resolve(IServiceProvider provider, ApiClientOptions options)
     {
         if (options.BaseAddress is { IsAbsoluteUri: true })
         {
-            return new HttpClient { BaseAddress = options.BaseAddress, Timeout = options.Timeout };
+            return (new HttpClient { BaseAddress = options.BaseAddress, Timeout = options.Timeout }, true);
         }
 
         var existing = provider.GetService<HttpClient>();
 
         if (existing?.BaseAddress is not null)
         {
-            return existing;
+            return (existing, false);
         }
 
         throw new InvalidOperationException(

@@ -146,7 +146,13 @@ internal static class ClientEmitter
 
     private static void EmitPath(StringBuilder builder, ApiEndpoint endpoint)
     {
-        var route = RouteTemplate.Bareize(endpoint.Route);
+        // RELATIVE, with the leading slash dropped. A root-absolute path replaces the whole path of
+        // HttpClient.BaseAddress, so an app deployed under a sub-path — a WASM bundle at /myapp/, whose
+        // BaseAddress is the page origin including it — would send /api/posts/3 to the site root and get
+        // a 404. That is #893, and Rask.Cqrs.Client carries the same fix with the same reasoning
+        // (RemoteDispatch prepends LiveOptions.PathBase). Resolving against the base address gets it
+        // here without this package needing to know what a path base is.
+        var route = RouteTemplate.Bareize(endpoint.Route).TrimStart('/');
         var path = new StringBuilder();
         var literal = new StringBuilder();
         var parts = new List<string>();
@@ -183,7 +189,9 @@ internal static class ClientEmitter
 
         if (parts.Count == 0)
         {
-            parts.Add(Quote("/"));
+            // The empty relative path — "resolve to the base address itself" — not "/", which would
+            // send the call to the site root.
+            parts.Add(Quote(string.Empty));
         }
 
         path.Append(string.Join(" + ", parts));
@@ -229,12 +237,14 @@ internal static class ClientEmitter
 
     private static void EmitHeaders(StringBuilder builder, ApiEndpoint endpoint)
     {
-        // Header parameters are not yet routed through ApiCall's request builder; an endpoint declaring
-        // one is refused before it reaches here, so this is only a guard against that changing silently.
-        if (endpoint.Parameters.Any(p => p.Binding == ApiBinding.Header))
-        {
-            throw new InvalidOperationException("Header-bound parameters are not emitted.");
-        }
+        // Header-bound parameters never reach here: Compose refuses the endpoint and reports RASK068.
+        // This used to throw "as a guard against that changing silently", which was the wrong shape of
+        // guard entirely — an exception from a generator is CS8785, and it takes down the whole
+        // compilation's output rather than one endpoint. Deliberately does nothing now; the assertion
+        // that matters lives in ApiClientGeneratorTests, where a [FromHeader] action is compiled and the
+        // other clients are required to still be emitted.
+        _ = builder;
+        _ = endpoint;
     }
 
     private static void EmitRegistry(StringBuilder builder, IReadOnlyList<(string Namespace, string Name)> clients)

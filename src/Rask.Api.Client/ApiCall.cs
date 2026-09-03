@@ -41,7 +41,12 @@ public static class ApiCall
         ArgumentNullException.ThrowIfNull(method);
         ArgumentNullException.ThrowIfNull(path);
 
-        using var request = new HttpRequestMessage(method, path);
+        // Resolved once, and reported. An exception naming the RELATIVE path would make a caller
+        // guess which host and prefix it actually reached — the very thing a base address decides.
+        var uri = Resolve(http.BaseAddress, path);
+        var reported = uri.IsAbsoluteUri ? uri.ToString() : path;
+
+        using var request = new HttpRequestMessage(method, uri);
 
         // Say JSON explicitly. Without it, content negotiation hands a `string`-returning action to
         // ASP.NET's StringOutputFormatter, which answers text/plain — so `return "ok"` arrives as the
@@ -72,19 +77,19 @@ public static class ApiCall
         }
         catch (HttpRequestException ex)
         {
-            throw Unreachable(method, path, ex);
+            throw Unreachable(method, reported, ex);
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             // The caller did not cancel, so this is our own timeout rather than an abandoned call.
-            throw Unreachable(method, path, ex);
+            throw Unreachable(method, reported, ex);
         }
 
         using (response)
         {
             if (!response.IsSuccessStatusCode)
             {
-                throw await FailureAsync(response, method, path, cancellationToken).ConfigureAwait(false);
+                throw await FailureAsync(response, method, reported, cancellationToken).ConfigureAwait(false);
             }
 
             if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
@@ -95,6 +100,31 @@ public static class ApiCall
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
             return bytes.Length == 0 ? null : bytes;
         }
+    }
+
+    /// <summary>
+    ///     Combines the relative path a generated client built with the client's base address.
+    /// </summary>
+    /// <remarks>
+    ///     The trailing slash is the point. RFC 3986 resolution treats the last segment of a base
+    ///     address as a <em>file</em> unless it ends in <c>/</c>, so a base of
+    ///     <c>https://host/myapp</c> combined with <c>api/posts</c> gives <c>https://host/api/posts</c> —
+    ///     the sub-path silently dropped, which is the failure this whole relative-path arrangement
+    ///     exists to prevent. Adding it back makes the combination mean what an app deployed under a
+    ///     prefix expects.
+    /// </remarks>
+    private static Uri Resolve(Uri? baseAddress, string path)
+    {
+        if (baseAddress is null)
+        {
+            return new Uri(path, UriKind.Relative);
+        }
+
+        var root = baseAddress.AbsolutePath.EndsWith('/')
+            ? baseAddress
+            : new UriBuilder(baseAddress) { Path = baseAddress.AbsolutePath + "/" }.Uri;
+
+        return new Uri(root, path);
     }
 
     private static ApiException Unreachable(HttpMethod method, string path, Exception cause) =>
@@ -151,38 +181,25 @@ public static class ApiCall
             return;
         }
 
-        var depth = 0;
-
-        while (reader.Read())
+        // Skip() rather than hand-tracked depth. The previous version consumed a nested object or
+        // array as a property VALUE without counting it, so its closing token read as top-level and
+        // parsing stopped there: for an ASP.NET validation problem — {"errors":{...},"detail":"..."} —
+        // detail was never reached, and {"errors":{"detail":"inner"},"detail":"real"} reported the
+        // inner one. The BCL already knows how to step over a value; it does not need help.
+        while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
         {
-            if (reader.TokenType == JsonTokenType.StartObject || reader.TokenType == JsonTokenType.StartArray)
-            {
-                depth++;
-                continue;
-            }
-
-            if (reader.TokenType == JsonTokenType.EndObject || reader.TokenType == JsonTokenType.EndArray)
-            {
-                if (depth == 0)
-                {
-                    return;
-                }
-
-                depth--;
-                continue;
-            }
-
-            if (depth != 0 || reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
-
             var isType = reader.ValueTextEquals("type");
             var isDetail = reader.ValueTextEquals("detail");
 
             if (!reader.Read())
             {
                 return;
+            }
+
+            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                reader.Skip();
+                continue;
             }
 
             if (reader.TokenType != JsonTokenType.String)

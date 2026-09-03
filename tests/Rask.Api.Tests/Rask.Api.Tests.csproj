@@ -32,6 +32,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Api\Rask.Api.csproj"/>
+    <!-- ApiUri's escaping rules are asserted here: they are hosting-adjacent security behaviour, and
+         Rask.Api.Client.Tests is about the generated client rather than the primitives under it. -->
+    <ProjectReference Include="..\..\src\Rask.Api.Client\Rask.Api.Client.csproj"/>
   </ItemGroup>
 
 </Project>

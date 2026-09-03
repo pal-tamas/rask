@@ -232,6 +232,16 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             ? registration.Verb + " (route not a constant)"
             : registration.Verb + " " + registration.Pattern;
 
+        if (registration.Pattern == MinimalApi.GroupedMarker)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                EndpointSkipped, registration.Site, registration.Verb + " (in a MapGroup)",
+                "it is mapped on a MapGroup, whose prefix is not visible from this call. The client "
+                + "would build the route without it and address an endpoint the server does not answer. "
+                + "Map it on the app with its full route, or call it by hand"));
+            return null;
+        }
+
         if (registration.Pattern.Length == 0)
         {
             spc.ReportDiagnostic(Diagnostic.Create(
@@ -352,6 +362,20 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 spc.ReportDiagnostic(Diagnostic.Create(
                     EndpointSkipped, site, declaredBy,
                     $"parameter '{parameter.Name}' would be a second request body, and a request has one"));
+                return null;
+            }
+
+            // Refused HERE, where it can be reported. The emitter has no way to attach a header to the
+            // request, and a comment further down once claimed this case never reached it — it did, and
+            // the emitter threw, which fails the whole generator with CS8785 and leaves the compilation
+            // with no clients at all. One unsupported parameter must cost one endpoint, not all of them.
+            if (binding == ApiBinding.Header)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    EndpointSkipped, site, declaredBy,
+                    $"parameter '{parameter.Name}' binds from a request header, which a generated client "
+                    + "cannot send. Pass it as a route or query value, or set it for every call with "
+                    + "ApiClientOptions.ConfigureRequestAsync"));
                 return null;
             }
 

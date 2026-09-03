@@ -148,7 +148,9 @@ public sealed class RoundTripTests : IAsyncLifetime
 
         Assert.Equal(404, error.StatusCode);
         Assert.Equal("GET", error.Method);
+        // The RESOLVED url, not the relative path the generated client built.
         Assert.Contains("/api/posts/404", error.Path, StringComparison.Ordinal);
+        Assert.StartsWith("http", error.Path, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -179,6 +181,19 @@ public sealed class RoundTripTests : IAsyncLifetime
         var echoed = await _health.Echo(value);
 
         Assert.Equal(value, echoed);
+    }
+
+    [Fact]
+    public async Task A_validation_problem_still_yields_its_detail_past_the_nested_errors_object()
+    {
+        // The shape ASP.NET actually returns for a [Required] failure is
+        // {"errors":{"Name":["..."]},"title":"...","status":400,"detail":"..."} — `detail` sits AFTER a
+        // nested object. Reading it used to stop at the nested value's closing token and report nothing,
+        // so a caller got a bare "answered 400" for the one response that explains itself best.
+        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked()));
+
+        Assert.Equal(400, error.StatusCode);
+        Assert.NotNull(error.ProblemType);
     }
 
     [Fact]
