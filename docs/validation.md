@@ -1,0 +1,114 @@
+# Validation
+
+Validation is built in. Put `[Required]` on a model, or write an `AbstractValidator<T>` for it, and
+the rules run — in a form as the user types, and again on the server before a dispatched request
+reaches its handler. There is no package to add for DataAnnotations and nothing to declare anywhere.
+
+> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does
+> without it says so:
+>
+> ```csharp
+> app.Configure(c => c.Validation.Off());
+> ```
+
+## Where it runs
+
+| Where | What runs | Guide |
+| --- | --- | --- |
+| A `Form<T>` | The model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
+| A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
+| A controller or minimal API endpoint | Not yet — see [what is not covered](#what-is-not-covered-yet) | — |
+
+The two halves share one validator: an `AbstractValidator<Order>` validates a `Form<Order>` while the
+user types **and** an `Order` command when it is dispatched. Write the rules once.
+
+## The two sources
+
+**DataAnnotations** lives in `Rask.Core`, which every host already bundles, so it costs no reference
+at all. It covers `[Required]`, `[Range]`, `[StringLength]`, `[EmailAddress]`,
+`[RegularExpression]`, custom `ValidationAttribute` subclasses and `IValidatableObject`, across the
+whole reachable object graph.
+
+**FluentValidation** is the `Rask.Validation.FluentValidation` package, referenced for you by the
+`Rask` package on both the server and the browser. Declaring the validator is the registration — a
+generator finds every `AbstractValidator<T>` at compile time and emits a `[ModuleInitializer]`. There
+is no assembly scan, which is what lets a WebAssembly app use it and still publish trimmed.
+
+A validator with constructor dependencies is resolved from the scope, so the uniqueness-check
+validator — the usual reason to reach for FluentValidation — needs no extra wiring.
+
+## Requests
+
+Every dispatched request is validated before its handler runs, by a `ValidationBehavior` that
+`AddRaskCqrs` registers **outermost**: a request that is not valid should never reach a transaction,
+a log line saying it was handled, or the handler.
+
+Rules that fit neither source go in an `IRequestValidator<TRequest>`, which is asynchronous by
+construction:
+
+```csharp
+public sealed class NoDuplicateOrders(IOrderStore store) : IRequestValidator<PlaceOrder>
+{
+    public async ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
+        PlaceOrder request, CancellationToken ct) =>
+        await store.ExistsAsync(request.Reference, ct)
+            ? [new RequestValidationError(nameof(PlaceOrder.Reference), "That reference is already used.")]
+            : [];
+}
+
+builder.Services.AddSingleton<IRequestValidator<PlaceOrder>, NoDuplicateOrders>();
+```
+
+Every validator runs and their failures are collected. This is deliberately **not** the form's
+first-error-wins: a form gates per field because the user is typing into it, while a caller fixing a
+request wants the whole list rather than one problem per round trip.
+
+<a id="rejected"></a>
+
+## A rejected request
+
+In process, a failure reaches the caller as a `RaskValidationException` whose `Errors` are grouped by
+field, with the empty key holding rules about the request as a whole.
+
+Over [remote dispatch](cqrs.md#remote-dispatch--a-client-and-a-server-raskcqrsclient--raskcqrsserver)
+it becomes **400** `application/problem+json`:
+
+```json
+{
+  "type": "https://github.com/pal-tamas/rask/blob/main/docs/validation.md#rejected",
+  "title": "Validation failed",
+  "status": 400,
+  "errors": {
+    "Product": ["No such product."],
+    "Quantity": ["Quantity must be at least 1."]
+  }
+}
+```
+
+The `type` is stable across releases, so it is the right thing for a client to branch on. The client
+surfaces it as a `RemoteDispatchException` with `Errors` populated.
+
+Note that this is the one failure whose text crosses the wire. A handler exception is opaque by
+default because its message is written for an operator and routinely names tables, paths and
+credentials; a validation message is the opposite — it was authored to be shown to whoever sent the
+request.
+
+### The browser checks first
+
+On a WebAssembly client the request is validated **before** it is sent, so an invalid command costs a
+message rather than a round trip. The server runs the same rules again and remains the authority —
+the local check is a convenience, never a control, and a caller that skips it gains nothing.
+
+## What is not covered yet
+
+MVC controllers and minimal API endpoints are **not** covered. Rask hosts them but has no concept of
+them, so validating them is tracked separately; the intended shape is the platform's own synchronous
+pass (`AddValidation()` for minimal APIs, ModelState for controllers) plus a Rask asynchronous filter
+merging into the same 400 shown above, so `MustAsync` rules work there too.
+
+## See also
+
+- [forms-validation.md](forms-validation.md) — inline, per-field, async, and the validating indicator.
+- [forms.md](forms.md) — binding and the `EditContext`.
+- [cqrs.md](cqrs.md) — dispatch, pipeline behaviors, remote errors.
+- [diagnostics.md](diagnostics.md#raskval001) — RASKVAL001, RASKVAL002.
