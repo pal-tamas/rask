@@ -127,6 +127,8 @@ public static class GuideCatalog
             IconName.InputCursorText, "Core"),
         new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.",
             IconName.InputCursorText, "Core"),
+        new("validation", "Validation", "Built in and on: attributes and AbstractValidator<T>, in forms and on requests.",
+            IconName.Check2Circle, "Core"),
         new("js-interop", "JavaScript interop", "Scoped CSS/TypeScript, element refs, IJSRuntime, typed APIs.",
             IconName.Braces, "Core"),
         new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.",

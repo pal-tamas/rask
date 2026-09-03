@@ -15,19 +15,21 @@ namespace Rask.Html.Components;
 // whole generator path went with them. The three-way validator fan-out went too: it existed so a sync
 // and an async validator could each be a required, correctly-typed PARAMETER, and as two setters they
 // simply coexist.
+//
+// TModel is DAM-annotated because the built-in DataAnnotations pass reflects over the model's public
+// properties, and so does the graph walk that reaches its sub-objects. Without the annotation the
+// trimmer removes those properties from a published WebAssembly build and the form validates NOTHING —
+// silently, with a green build and no IL warning. Same annotation, same reason, as BlazorComponent<T>'s
+// type parameter; the difference is that this one has to travel through the generated chain, which is
+// why ComponentFactoryGenerator repeats it on every declaration it emits.
 /// <summary>
 ///     A form over a model of type <c>TModel</c>. Submission is handled in-process — the bound fields
 ///     are parsed and validated, then <c>OnValidSubmit</c> or <c>OnInvalidSubmit</c> runs — so there is
 ///     no <c>action</c> or <c>method</c> to set: the page reacts rather than navigating away.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form">MDN</see>
 /// </summary>
-public sealed partial class Form<
-    // The built-in DataAnnotations pass reflects over the model's public properties, and so does the
-    // graph walk that reaches its sub-objects. Without this the trimmer removes those properties from a
-    // published WebAssembly build and the form validates NOTHING — silently, with a green build and no IL
-    // warning. Same annotation, same reason, as BlazorComponent<T>'s type parameter.
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-    TModel> : Element
+public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
+    : Element
 {
     private EditContext? _context;
 
