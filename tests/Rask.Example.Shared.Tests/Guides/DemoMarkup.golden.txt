@@ -9,7 +9,8 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -34,7 +35,8 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -58,7 +60,8 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -80,7 +83,8 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -102,7 +106,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -127,7 +132,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -152,7 +158,8 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -199,7 +206,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -230,7 +238,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -260,7 +269,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -287,7 +297,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -309,7 +320,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -343,7 +355,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -380,7 +393,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -402,7 +416,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -422,7 +437,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -432,7 +448,8 @@ div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-danger .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-2
+svg .me-2
+path
 
 === boom-nested ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -443,7 +460,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -455,7 +473,8 @@ p .mb-2 .text-sm .text-ui-muted
 div .bg-ui-well .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-danger .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-2
+svg .me-2
+path
 
 === boom-render ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -466,7 +485,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -476,7 +496,8 @@ div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-warn .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-warn/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-2
+svg .me-2
+path
 
 === browser-battery ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -487,7 +508,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -516,7 +538,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -538,7 +561,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -565,7 +589,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -593,7 +618,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -625,7 +651,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -660,7 +687,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -671,9 +699,11 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 div .mb-2 .text-sm .text-ui-muted
 code
@@ -690,7 +720,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -714,7 +745,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -738,7 +770,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -766,7 +799,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -801,7 +835,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -836,7 +871,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -861,7 +897,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -885,7 +922,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -914,7 +952,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -945,7 +984,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -969,7 +1009,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -993,7 +1034,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1019,7 +1061,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1048,7 +1091,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1072,7 +1116,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1096,7 +1141,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1124,7 +1170,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1147,7 +1194,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1173,7 +1221,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1196,7 +1245,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1222,7 +1272,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1247,7 +1298,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1273,7 +1325,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1301,7 +1354,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1325,7 +1379,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1350,7 +1405,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1374,7 +1430,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1400,7 +1457,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1411,7 +1469,8 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 div .text-sm .text-ui-muted
 code
@@ -1427,7 +1486,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1447,7 +1507,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1472,7 +1533,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1482,9 +1544,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1501,7 +1565,8 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1543,7 +1608,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1562,7 +1628,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1583,7 +1650,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1591,7 +1659,8 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none .me-2
+svg .me-2
+path
 
 === context-theme ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1602,7 +1671,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1628,7 +1698,8 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1653,7 +1724,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1662,7 +1734,8 @@ div .sample-result-label
 div .sample-result-body
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-2
+svg .me-2
+path
 div .mt-2 .text-sm .text-ui-muted
 
 === data-http-fetch ===
@@ -1676,7 +1749,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1697,7 +1771,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1721,7 +1796,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1741,7 +1817,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1751,9 +1828,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1767,7 +1846,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1777,9 +1857,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1793,7 +1875,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1803,9 +1886,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1819,7 +1904,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1835,25 +1921,18 @@ span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .inline-block .leading-none .text-ui-muted
-span
-div .col-span-12
-div .dd-column .h-full
-div .dd-column-header .flex .items-center .justify-between
-span .font-semibold
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
-div .dd-column-body
-div .card .dd-card
-div .flex .gap-2 .items-center .p-2 .p-5
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span
 div .col-span-12
 div .dd-column .h-full
@@ -1863,7 +1942,19 @@ span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
+span
+div .col-span-12
+div .dd-column .h-full
+div .dd-column-header .flex .items-center .justify-between
+span .font-semibold
+span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+div .dd-column-body
+div .card .dd-card
+div .flex .gap-2 .items-center .p-2 .p-5
+svg .text-ui-muted
+path
 span
 
 === drag-drop-sortable ===
@@ -1875,7 +1966,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1884,19 +1976,24 @@ div .sample-result-label
 div .sample-result-body
 ul .dd-list .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .inline-block .leading-none .text-ui-muted
+svg .text-ui-muted
+path
 span .font-semibold
 
 === elements-forms ===
@@ -1908,7 +2005,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -1961,7 +2059,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2007,7 +2106,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2040,7 +2140,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2090,7 +2191,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2120,7 +2222,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2162,7 +2265,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2202,7 +2306,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2261,7 +2366,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2294,7 +2400,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2302,7 +2409,8 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-2
+svg .me-2
+path
 
 === events-form ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -2315,7 +2423,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2326,7 +2435,8 @@ form .mb-2
 div .flex .gap-2 .items-stretch
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 p .mb-0 .text-sm
 strong
 
@@ -2339,7 +2449,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2359,7 +2470,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2382,7 +2494,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2411,7 +2524,8 @@ textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline
 label
 div .mt-1
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === form-controls-input ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -2422,7 +2536,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2451,7 +2566,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2486,7 +2602,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2517,7 +2634,8 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2540,7 +2658,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2554,11 +2673,14 @@ label .block .font-medium .mb-1 .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 div .mb-2
 span .text-sm .text-ui-muted .uppercase
 div
@@ -2581,7 +2703,8 @@ button .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2608,7 +2731,8 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2626,7 +2750,8 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
 div .rask-gantt
 div .bg-ui-bg .gantt-log .ring-1 .ring-ui-line .rounded-xl
@@ -2675,7 +2800,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2685,16 +2811,21 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-ok .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ok/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .mx-1 .vr
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
 span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
@@ -2726,7 +2857,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2736,9 +2868,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -2752,7 +2886,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2762,7 +2897,8 @@ div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .mb-3
 span .bg-ui-brand/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-base .text-ui-brand-ink .text-xs
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
 ol .divide-ui-line .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
@@ -2785,7 +2921,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2835,7 +2972,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2884,7 +3022,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -2900,28 +3039,34 @@ th
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-span .inline-block .leading-none .opacity-50 .text-xs
+svg .opacity-50 .text-xs
+path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-span .inline-block .leading-none .opacity-50 .text-xs
+svg .opacity-50 .text-xs
+path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-span .inline-block .leading-none .opacity-50 .text-xs
+svg .opacity-50 .text-xs
+path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-span .inline-block .leading-none .opacity-50 .text-xs
+svg .opacity-50 .text-xs
+path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-span .inline-block .leading-none .opacity-50 .text-xs
+svg .opacity-50 .text-xs
+path
 tbody
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -2931,7 +3076,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -2941,7 +3087,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -2951,7 +3098,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -2961,7 +3109,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -2971,7 +3120,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -2981,7 +3131,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -2991,7 +3142,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -3001,7 +3153,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -3011,7 +3164,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -3021,7 +3175,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -3031,7 +3186,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -3041,7 +3197,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -3051,7 +3208,8 @@ td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
@@ -3068,7 +3226,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3100,12 +3259,15 @@ td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === nested-list-foreach ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3116,7 +3278,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3138,12 +3301,15 @@ td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === nested-list-indexer ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3154,7 +3320,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3178,14 +3345,18 @@ td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .me-1 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-span .inline-block .leading-none
+svg .shrink-0 .size-5
+path
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === nested-subobject ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3196,7 +3367,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3224,7 +3396,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === primitives-children ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3235,7 +3408,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3254,7 +3428,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3273,7 +3448,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3292,7 +3468,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3311,7 +3488,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3329,7 +3507,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3337,7 +3516,8 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === props-attribute-order ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3348,7 +3528,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3366,7 +3547,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3386,7 +3568,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3409,7 +3592,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3427,7 +3611,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3445,7 +3630,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3482,7 +3668,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3501,7 +3688,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3518,7 +3706,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3542,7 +3731,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3566,7 +3756,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3587,7 +3778,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3607,7 +3799,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3629,7 +3822,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3647,7 +3841,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3678,7 +3873,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3701,7 +3897,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3721,7 +3918,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3734,7 +3932,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-cross-field ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3745,7 +3944,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3761,7 +3961,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-custom-attribute ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3772,7 +3973,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3791,7 +3993,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-fields ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3804,7 +4007,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3830,7 +4034,8 @@ option
 option
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-first-error-wins ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3841,7 +4046,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3854,7 +4060,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-fluent ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3867,7 +4074,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3883,7 +4091,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-fluent-async ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3894,7 +4103,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3907,7 +4117,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-inline ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3920,7 +4131,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3939,7 +4151,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-inline-async ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3950,7 +4163,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -3963,7 +4177,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-nested-async ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3974,7 +4189,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -4025,7 +4241,8 @@ span
 span
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-programmatic ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -4036,7 +4253,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -4049,9 +4267,11 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-summary ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -4062,7 +4282,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -4088,7 +4309,8 @@ option
 option
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === validation-validatable-object ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -4099,7 +4321,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -4118,7 +4341,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 
 === virtualize-items ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -4129,7 +4353,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
@@ -4239,7 +4464,8 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-span .inline-block .leading-none .me-1
+svg .me-1
+path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp

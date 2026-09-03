@@ -68,7 +68,7 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
                         .Id("install-button")
                         .Disabled(!_canInstall)
                         .OnClickAsync(Install)[
-                        Icon.Name(IconName.Download).Class("me-1"), "Install app"],
+                        UiIcon.Name(UiIconName.Download).Class("me-1"), "Install app"],
                     Button
                         .Class(Tw.BtnOutlineSecondary)
                         .Id("install-refresh")

@@ -97,7 +97,7 @@ public sealed partial class TodosPage : Component
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
                 Button.Type("button").Class(Tw.BtnPrimary).OnClick(OpenAdd)[
-                    Icon.Name(IconName.PlusLg).Class("me-1"), "New todo"
+                    UiIcon.Name(UiIconName.Plus).Class("me-1"), "New todo"
                 ]
             ],
             _todos.Count == 0
@@ -121,12 +121,12 @@ public sealed partial class TodosPage : Component
                         Button.Type("button").Class(Tw.BtnOutlineSecondary)
                             .Aria(new Dictionary<string, string?> { ["label"] = $"Edit {item.Title}" })
                             .OnClick(() => OpenEdit(item))[
-                            Icon.Name(IconName.Pencil)
+                            UiIcon.Name(UiIconName.Pencil)
                         ],
                         Button.Type("button").Class(Tw.BtnOutlineDanger)
                             .Aria(new Dictionary<string, string?> { ["label"] = $"Delete {item.Title}" })
                             .OnClick(() => Delete(item))[
-                            Icon.Name(IconName.Trash)
+                            UiIcon.Name(UiIconName.Trash)
                         ]
                     ])
                 ],
@@ -206,7 +206,7 @@ public sealed partial class TodoFormDialog : Component
                     Div.Class("flex justify-end gap-2")[
                         Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(OnCancel)["Cancel"],
                         Button.Class(Tw.BtnPrimary).Type("submit")[
-                            Icon.Name(IconName.Check2Circle).Class("me-1"),
+                            UiIcon.Name(UiIconName.CheckCircle).Class("me-1"),
                             IsAdding ? "Add" : "Save"
                         ]
                     ]

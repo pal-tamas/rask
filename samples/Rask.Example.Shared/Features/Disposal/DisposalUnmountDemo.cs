@@ -14,11 +14,11 @@ public sealed partial class DisposalUnmountDemo : Component
                 Button.Type("button").Class(Tw.BtnPrimary)
                     .Id("unmount-hook-mount")
                     .Disabled(_hookMounted)
-                    .OnClick(MountHook)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Start ticker"],
+                    .OnClick(MountHook)[UiIcon.Name(UiIconName.Play).Class("me-1"), "Start ticker"],
                 Button.Type("button").Class(Tw.BtnOutlineSecondary)
                     .Id("unmount-hook-unmount")
                     .Disabled(!_hookMounted)
-                    .OnClick(UnmountHook)[Icon.Name(IconName.StopCircle).Class("me-1"), "Stop ticker"]
+                    .OnClick(UnmountHook)[UiIcon.Name(UiIconName.Stop).Class("me-1"), "Stop ticker"]
             ],
             _hookMounted
                 ? UnmountTimerProbe.Log(AppendHookLog).InstanceId(_nextHookId)

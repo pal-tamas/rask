@@ -72,7 +72,7 @@ public sealed partial class MasterDetailDemo : Component
                         .Class($"{Tw.BtnLink} p-0 no-underline")
                         .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
                         .OnClick(() => Toggle(order.Id))[
-                        Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight)
+                        UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)
                     ]
                 ],
                 Td.Class("font-semibold")[order.Customer],
@@ -205,8 +205,8 @@ public sealed partial class MasterDetailDemo : Component
     {
         var sorted = sort.Col == columnId;
         var icon = sorted
-            ? sort.Asc ? IconName.ChevronUp : IconName.ChevronDown
-            : IconName.ArrowDownUp;
+            ? sort.Asc ? UiIconName.ChevronUp : UiIconName.ChevronDown
+            : UiIconName.ArrowsUpDown;
 
         return Th.Scope("col").Key(columnId)[
             Button
@@ -215,7 +215,7 @@ public sealed partial class MasterDetailDemo : Component
                        "items-center gap-1")
                 .OnClick(() => toggle(columnId))[
                 Span[header],
-                Icon.Name(icon).Class(sorted ? "text-xs" : "text-xs opacity-50")
+                UiIcon.Name(icon).Class(sorted ? "text-xs" : "text-xs opacity-50")
             ]
         ];
     }

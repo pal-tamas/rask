@@ -27,9 +27,9 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
                     .Class("rounded border mb-2 bg-slate-900 block"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Button.Class(Tw.BtnPrimary).Id("media-start").OnClickAsync(StartCamera)[
-                        Icon.Name(IconName.CameraVideo).Class("me-1"), "Start camera"],
+                        UiIcon.Name(UiIconName.VideoCamera).Class("me-1"), "Start camera"],
                     Button.Class(Tw.BtnOutlinePrimary).Id("media-screen").OnClickAsync(ShareScreen)[
-                        Icon.Name(IconName.Display).Class("me-1"), "Share screen"],
+                        UiIcon.Name(UiIconName.Desktop).Class("me-1"), "Share screen"],
                     Button
                         .Class(Tw.BtnOutlineDanger)
                         .Id("media-stop")

@@ -59,13 +59,13 @@ public sealed partial class NestedSubObjectDemo : Component
             ],
             Div[
                 Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-submit")[
-                    Icon.Name(IconName.Check2Circle).Class("me-1"), "Place order"]
+                    UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Place order"]
             ]
         ],
         _submission is null
             ? null
             : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-result")[
-                Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+                UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

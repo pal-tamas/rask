@@ -18,12 +18,12 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Class(Tw.BtnPrimary).Id("fs-open").OnClickAsync(Open)[
-                        Icon.Name(IconName.Folder2Open).Class("me-1"), "Open file"],
+                        UiIcon.Name(UiIconName.Folder).Class("me-1"), "Open file"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("fs-save")
                         .Disabled(_handle is null)
-                        .OnClickAsync(Save)[Icon.Name(IconName.Save).Class("me-1"), "Save"],
+                        .OnClickAsync(Save)[UiIcon.Name(UiIconName.Save).Class("me-1"), "Save"],
                     Button.Class(Tw.BtnOutlinePrimary).Id("fs-saveas").OnClickAsync(SaveAs)[
                         "Save as…"]
                 ],

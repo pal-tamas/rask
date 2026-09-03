@@ -30,12 +30,12 @@ public sealed partial class FirstErrorWinsDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.Unlock).Class("me-1"), "Activate"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Unlock).Class("me-1"), "Activate"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

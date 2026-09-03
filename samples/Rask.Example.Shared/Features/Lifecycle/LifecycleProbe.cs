@@ -34,7 +34,7 @@ public sealed partial class LifecycleProbe : Component
                 // badge repaints with no StateHasChanged (RASK026). Works the same through Button.Type("button").Class(Tw.BtnSecondary),
                 // which forwards the callback down to the native <button>.
                 Button.Type("button").Class(Tw.BtnPrimary)
-                    .OnClick(() => _log.Add("Trigger re-render (button click)"))[Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Trigger re-render"]
+                    .OnClick(() => _log.Add("Trigger re-render (button click)"))[UiIcon.Name(UiIconName.Retry).Class("me-1"), "Trigger re-render"]
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
             Ol.Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-ui-line")[

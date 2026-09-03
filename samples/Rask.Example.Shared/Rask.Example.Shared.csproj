@@ -97,4 +97,11 @@
   </Target>
 
 
+  <!-- The kit's namespace, project-wide. Its icons and components are named in markup all over this
+       project, and a per-file using on ~60 files would be noise. Mirrors how Rask.Html imports
+       Rask.Core for the same reason. -->
+  <ItemGroup>
+    <Using Include="Rask.Ui"/>
+  </ItemGroup>
+
 </Project>

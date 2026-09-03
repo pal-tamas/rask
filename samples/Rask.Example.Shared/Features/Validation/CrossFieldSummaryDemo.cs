@@ -39,12 +39,12 @@ public sealed partial class CrossFieldSummaryDemo : Component
                 Input.Bind(() => _model.Return).Id("v5-return").Class(Tw.Input)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.Airplane).Class("me-1"), "Book"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.PaperAirplane).Class("me-1"), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

@@ -221,7 +221,7 @@ public sealed partial class LiveTicker : Component
                 _error is null
                     ? null
                     : Div.Class($"{Tw.AlertWarning} py-2 px-3 text-sm mb-3").Id("ticker-error")[
-                        Icon.Name(IconName.ExclamationTriangle).Class("me-2"), $"Feed error: {_error}"
+                        UiIcon.Name(UiIconName.Warning).Class("me-2"), $"Feed error: {_error}"
                     ],
                 // The chart is a server-rendered SVG drawn straight from the rolling buffer —
                 // no canvas, no Chart.js, no JS. The fixed-height container gives the stretchy

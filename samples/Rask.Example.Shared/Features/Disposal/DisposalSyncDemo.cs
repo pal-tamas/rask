@@ -14,11 +14,11 @@ public sealed partial class DisposalSyncDemo : Component
                 Button.Type("button").Class(Tw.BtnPrimary)
                     .Id("dispose-sync-mount")
                     .Disabled(_syncMounted)
-                    .OnClick(MountSync)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Mount sync probe"],
+                    .OnClick(MountSync)[UiIcon.Name(UiIconName.Play).Class("me-1"), "Mount sync probe"],
                 Button.Type("button").Class(Tw.BtnOutlineSecondary)
                     .Id("dispose-sync-unmount")
                     .Disabled(!_syncMounted)
-                    .OnClick(UnmountSync)[Icon.Name(IconName.StopCircle).Class("me-1"), "Unmount sync probe"]
+                    .OnClick(UnmountSync)[UiIcon.Name(UiIconName.Stop).Class("me-1"), "Unmount sync probe"]
             ],
             _syncMounted
                 ? DisposableTimerProbe.Log(AppendSyncLog).InstanceId(_nextSyncId)

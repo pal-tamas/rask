@@ -25,12 +25,12 @@ public sealed partial class FluentValidationDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.BagCheck).Class("me-1"), "Order"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.ShoppingBag).Class("me-1"), "Order"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

@@ -10,6 +10,6 @@ public sealed partial class PropsAriaDemo : Component
             .Role("switch")
             .TabIndex(0)
             .Aria(new Dictionary<string, string?> { ["label"] = "Toggle dark mode", ["pressed"] = "false" })[
-            Icon.Name(IconName.MoonStars).Class("me-1"),
+            UiIcon.Name(UiIconName.Moon).Class("me-1"),
             "Theme"];
 }

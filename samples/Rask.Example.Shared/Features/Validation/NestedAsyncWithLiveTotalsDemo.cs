@@ -38,7 +38,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 
     private static Component Checking() =>
         Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking delivery zone…"
+            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking delivery zone…"
         ];
 
     private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
@@ -174,13 +174,13 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div[
-                    Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.CreditCard).Class("me-1"), "Pay"]
+                    Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CreditCard).Class("me-1"), "Pay"]
                 ]
             ],
             _submission is null
                 ? null
                 : Div.Id("v-nlive-submission").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[
-                    Icon.Name(IconName.CheckCircle).Class("me-2"), _submission
+                    UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission
                 ]
         ];
     }

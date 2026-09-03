@@ -47,7 +47,7 @@ public sealed partial class GanttDemo : Component
                 ],
                 // Add/remove push a new task list at the library — the prop-change path.
                 Button.Type("button").Class(Tw.BtnOutlinePrimary).OnClick(AddTask)[
-                    Icon.Name(IconName.Plus), " Add task"],
+                    UiIcon.Name(UiIconName.Plus), " Add task"],
                 // Disabled at one task rather than rendered conditionally: a component's identity is its
                 // (type, position) among its parent's children, so a sibling that disappears shifts every
                 // later child's position by one. The Gantt below would be matched against the wrong slot

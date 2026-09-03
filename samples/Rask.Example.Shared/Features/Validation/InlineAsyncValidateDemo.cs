@@ -20,7 +20,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
 
     private static Component Checking() =>
         Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking…"
+            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking…"
         ];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
@@ -68,12 +68,12 @@ public sealed partial class InlineAsyncValidateDemo : Component
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.Gift).Class("me-1"), "Redeem"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Gift).Class("me-1"), "Redeem"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

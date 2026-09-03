@@ -165,7 +165,7 @@ public sealed class ShowcaseLayoutTests
 
         // The "Apps" accordion (Examples section, holding Todos) is collapsed at "/" — only the guide
         // groups auto-open (OpenGuideGroups). Its toggle carries the "open" class only when expanded.
-        var appsExpanded = new Regex("nav-group-toggle open\"[\\s\\S]{0,200}nav-group-label\">Apps<");
+        var appsExpanded = GroupExpanded("Apps");
         Assert.DoesNotMatch(appsExpanded, CollapseWhitespace(page.Html));
 
         // Open the mobile drawer via the hamburger (it toggles _drawerOpen); the backdrop marks it open.
@@ -183,6 +183,25 @@ public sealed class ShowcaseLayoutTests
         Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
         Assert.DoesNotContain("nav-backdrop", atTodos);         // drawer closed
     }
+
+    /// <summary>
+    ///     Matches the group toggle for <paramref name="group" /> only while it carries the "open" class.
+    ///     The label has to sit INSIDE that toggle button: the tempered token cannot cross the button's own
+    ///     closing tag, so a match means real containment.
+    ///     <para>
+    ///         The tempering is the point, and the reason this is not a distance window. A plain
+    ///         "[\s\S]{0,N}" — and equally a lazy "svg ... /svg" — backtracks FORWARD across element
+    ///         boundaries, so it cheerfully pairs one group's open toggle with a different group's label
+    ///         further down the rail, and whether it does depends on how big the chevron's markup happens
+    ///         to be. That made the old assertion silently size-dependent: it passed while the chevron was
+    ///         a one-character glyph and broke the moment the showcase moved to real SVG icons. Widening
+    ///         the window would have hidden that rather than fixed it, and would have weakened the negative
+    ///         assertion, which must mean "this group is not open" and not "no open group is nearby".
+    ///     </para>
+    /// </summary>
+    private static Regex GroupExpanded(string group) =>
+        new("<button class=\"nav-group-toggle open\"(?:(?!</button>)[\\s\\S])*?"
+            + $"<span class=\"nav-group-label\">{Regex.Escape(group)}</span>");
 
     private static string CollapseWhitespace(string s) =>
         Regex.Replace(s, @"\s+", " ");

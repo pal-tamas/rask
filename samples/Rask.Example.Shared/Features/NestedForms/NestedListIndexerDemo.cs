@@ -36,9 +36,9 @@ public sealed partial class NestedListIndexerDemo : Component
                     Button.Class($"{Tw.BtnOutlineSecondary} me-1").Type("button")
                         .Disabled(i == 0)
                         .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
-                        Icon.Name(IconName.ArrowUp)],
+                        UiIcon.Name(UiIconName.ArrowUp)],
                     Button.Type("button").Class(Tw.BtnOutlineDanger)
-                        .OnClick(() => _model.Skus.RemoveAt(i))[Icon.Name(IconName.XLg)]
+                        .OnClick(() => _model.Skus.RemoveAt(i))[UiIcon.Name(UiIconName.Close)]
                 ]
             ]);
         }
@@ -56,9 +56,9 @@ public sealed partial class NestedListIndexerDemo : Component
                     Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("nf-idx-add")
                         .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
-                        Icon.Name(IconName.PlusLg).Class("me-1"), "Add row"],
+                        UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add row"],
                     Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-idx-submit")[
-                        Icon.Name(IconName.Check2Circle).Class("me-1"), "Submit"]
+                        UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Submit"]
                 ]
             ],
             _submission is null

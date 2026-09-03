@@ -32,7 +32,7 @@ public sealed partial class NestedListForeachDemo : Component
                 ],
                 Td.Style("width: 3rem;")[
                     Button.Type("button").Class(Tw.BtnOutlineDanger)
-                        .OnClick(() => _model.Items.Remove(captured))[Icon.Name(IconName.XLg)]
+                        .OnClick(() => _model.Items.Remove(captured))[UiIcon.Name(UiIconName.Close)]
                 ]
             ]);
         }
@@ -50,9 +50,9 @@ public sealed partial class NestedListForeachDemo : Component
                         .Id("nf-list-add")
                         .OnClick(() =>
                             _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[
-                        Icon.Name(IconName.PlusLg).Class("me-1"), "Add row"],
+                        UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add row"],
                     Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-list-submit")[
-                        Icon.Name(IconName.Check2Circle).Class("me-1"), "Submit"]
+                        UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Submit"]
                 ]
             ],
             _submission is null

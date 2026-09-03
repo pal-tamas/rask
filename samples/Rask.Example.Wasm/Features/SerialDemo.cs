@@ -35,7 +35,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .Class(Tw.BtnPrimary)
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClickAsync(Connect)[Icon.Name(IconName.UsbPlug).Class("me-1"), "Connect"],
+                        .OnClickAsync(Connect)[UiIcon.Name(UiIconName.Cube).Class("me-1"), "Connect"],
                     Button
                         .Class(Tw.BtnOutlineDanger)
                         .Id("serial-disconnect")

@@ -2,11 +2,20 @@ using Rask.Html.Components;
 
 namespace Rask.Ui;
 
-/// <summary>The icons the operator dashboard draws. A closed set, because the dashboard owns its own chrome.</summary>
+/// <summary>The icons the kit draws. A closed set.</summary>
 /// <remarks>
-/// Named rather than free-form so a panel declares an icon that is certain to exist — a panel supplying a
-/// string could name one that does not, and the dashboard would render a blank space with nothing
+/// <para>
+/// Named rather than free-form so a caller declares an icon that is certain to exist — a caller supplying
+/// a string could name one that does not, and the surface would render a blank space with nothing
 /// reporting it.
+/// </para>
+/// <para>
+/// Closed, and deliberately smaller than the set it replaced. The showcase used to carry 132
+/// Bootstrap-shaped members, 67 of which existed only to give each guide its own glyph; those collapsed
+/// onto one icon per guide GROUP. What is here is what a surface actually needs to SAY — actions,
+/// states, controls — rather than a decorative spectrum. Adding a member is cheap; adding one that
+/// duplicates the meaning of another is what makes an icon set stop being a vocabulary.
+/// </para>
 /// </remarks>
 public enum UiIconName
 {
@@ -133,6 +142,123 @@ public enum UiIconName
 
     /// <summary>Documentation.</summary>
     Book,
+
+    // Added when the showcase retired its own 132-member Bootstrap-shaped set. Same source and
+    // style as the rest: Heroicons v2 outline, MIT, vendored as path data.
+
+    /// <summary>Send it.</summary>
+    PaperAirplane,
+
+    /// <summary>Step back.</summary>
+    Undo,
+
+    /// <summary>Reorder.</summary>
+    ArrowsUpDown,
+
+    /// <summary>Back.</summary>
+    ArrowLeft,
+
+    /// <summary>Onward.</summary>
+    ArrowRight,
+
+    /// <summary>Upward.</summary>
+    ArrowUp,
+
+    /// <summary>A basket of goods.</summary>
+    ShoppingBag,
+
+    /// <summary>A radio link — Bluetooth, a broadcast.</summary>
+    Signal,
+
+    /// <summary>A defect.</summary>
+    Bug,
+
+    /// <summary>A date, or a schedule.</summary>
+    Calendar,
+
+    /// <summary>A camera.</summary>
+    VideoCamera,
+
+    /// <summary>Confirmed.</summary>
+    CheckCircle,
+
+    /// <summary>Payment.</summary>
+    CreditCard,
+
+    /// <summary>Remove one.</summary>
+    Minus,
+
+    /// <summary>A screen.</summary>
+    Desktop,
+
+    /// <summary>Save it locally.</summary>
+    Download,
+
+    /// <summary>Pick a colour.</summary>
+    EyeDropper,
+
+    /// <summary>A file.</summary>
+    Document,
+
+    /// <summary>A passkey, or biometrics.</summary>
+    FingerPrint,
+
+    /// <summary>A directory.</summary>
+    Folder,
+
+    /// <summary>Something given.</summary>
+    Gift,
+
+    /// <summary>Source.</summary>
+    CodeBracket,
+
+    /// <summary>A drag handle.</summary>
+    Grip,
+
+    /// <summary>A pointer, or a gesture.</summary>
+    Cursor,
+
+    /// <summary>The start.</summary>
+    Home,
+
+    /// <summary>An aside.</summary>
+    Info,
+
+    /// <summary>Night, or a dark theme.</summary>
+    Moon,
+
+    /// <summary>Edit.</summary>
+    Pencil,
+
+    /// <summary>Add somebody.</summary>
+    UserPlus,
+
+    /// <summary>Add one.</summary>
+    Plus,
+
+    /// <summary>Persist it.</summary>
+    Save,
+
+    /// <summary>Halt.</summary>
+    Stop,
+
+    /// <summary>A token, or an entry.</summary>
+    Ticket,
+
+    /// <summary>Unsecured.</summary>
+    Unlock,
+
+    /// <summary>A section that opens.</summary>
+    ChevronDown,
+
+    /// <summary>A section that closes.</summary>
+    ChevronUp,
+
+    /// <summary>Fill the screen.</summary>
+    Fullscreen,
+
+    /// <summary>A credential.</summary>
+    Key,
 }
 
 /// <summary>
@@ -141,10 +267,9 @@ public enum UiIconName
 /// <remarks>
 /// <para>
 /// The geometry is <see href="https://heroicons.com">Heroicons</see> v2 (outline), MIT-licensed, by the
-/// makers of Tailwind — which is what the rest of this dashboard is styled with. Vendored as path data
-/// rather than taken as a dependency: thirteen icons is not worth a package, and inlining them means the
-/// dashboard carries no icon font, no stylesheet and no static assets at all. That is what lets it ship as
-/// a plain assembly and is why <c>Rask.Bootstrap</c> is no longer in its graph.
+/// makers of Tailwind — which is what the kit is styled with. Vendored as path data rather than taken as
+/// a dependency: inlining means this package carries no icon font, no stylesheet and no static assets at
+/// all, which is what lets it ship as a plain assembly.
 /// </para>
 /// <para>
 /// Stroked in <c>currentColor</c>, so an icon takes the colour of whatever it sits in.
@@ -376,6 +501,164 @@ public sealed partial class UiIcon : Component
             "M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 "
             + "4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 "
             + "0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"),
+
+        UiIconName.PaperAirplane => SvgPath.D(
+            "M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7."
+            + "5"),
+
+        UiIconName.Undo => SvgPath.D("M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"),
+
+        UiIconName.ArrowsUpDown => SvgPath.D("M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"),
+
+        UiIconName.ArrowLeft => SvgPath.D("M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"),
+
+        UiIconName.ArrowRight => SvgPath.D("M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"),
+
+        UiIconName.ArrowUp => SvgPath.D("M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"),
+
+        UiIconName.ShoppingBag => SvgPath.D(
+            "M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25"
+            + "a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119"
+            + " 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.37"
+            + "5 0 0 1 .75 0Z"),
+
+        UiIconName.Signal => SvgPath.D(
+            "M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0"
+            + " 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 "
+            + "0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 "
+            + "0 1 .75 0Z"),
+
+        UiIconName.Bug => SvgPath.D(
+            "M12 12.75c1.148 0 2.278.08 3.383.237 1.037.146 1.866.966 1.866 2.013 0 3.728-2.35 6.75-5.25 6.75"
+            + "S6.75 18.728 6.75 15c0-1.046.83-1.867 1.866-2.013A24.204 24.204 0 0 1 12 12.75Zm0 0c2.883 0 5.64"
+            + "7.508 8.207 1.44a23.91 23.91 0 0 1-1.152 6.06M12 12.75c-2.883 0-5.647.508-8.208 1.44.125 2.104.5"
+            + "2 4.136 1.153 6.06M12 12.75a2.25 2.25 0 0 0 2.248-2.354M12 12.75a2.25 2.25 0 0 1-2.248-2.354M12 "
+            + "8.25c.995 0 1.971-.08 2.922-.236.403-.066.74-.358.795-.762a3.778 3.778 0 0 0-.399-2.25M12 8.25c-"
+            + ".995 0-1.97-.08-2.922-.236-.402-.066-.74-.358-.795-.762a3.734 3.734 0 0 1 .4-2.253M12 8.25a2.25 "
+            + "2.25 0 0 0-2.248 2.146M12 8.25a2.25 2.25 0 0 1 2.248 2.146M8.683 5a6.032 6.032 0 0 1-1.155-1.002"
+            + "c.07-.63.27-1.222.574-1.747m.581 2.749A3.75 3.75 0 0 1 15.318 5m0 0c.427-.283.815-.62 1.155-.999"
+            + "a4.471 4.471 0 0 0-.575-1.752M4.921 6a24.048 24.048 0 0 0-.392 3.314c1.668.546 3.416.914 5.223 1"
+            + ".082M19.08 6c.205 1.08.337 2.187.392 3.314a23.882 23.882 0 0 1-5.223 1.082"),
+
+        UiIconName.Calendar => SvgPath.D(
+            "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.2"
+            + "5m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h"
+            + "13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.0"
+            + "08H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 "
+            + "2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008"
+            + "v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z"),
+
+        UiIconName.VideoCamera => SvgPath.D(
+            "m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.2"
+            + "5 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 "
+            + "0 2.25 2.25Z"),
+
+        UiIconName.CheckCircle => SvgPath.D("M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"),
+
+        UiIconName.CreditCard => SvgPath.D(
+            "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.2"
+            + "5 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"),
+
+        UiIconName.Minus => SvgPath.D("M5 12h14"),
+
+        UiIconName.Desktop => SvgPath.D(
+            "M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2"
+            + ".25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0"
+            + " 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25"),
+
+        UiIconName.Download => SvgPath.D(
+            "M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 "
+            + "12m4.5 4.5V3"),
+
+        UiIconName.EyeDropper => SvgPath.D(
+            "m15 11.25 1.5 1.5.75-.75V8.758l2.276-.61a3 3 0 1 0-3.675-3.675l-.61 2.277H12l-.75.75 1.5 1.5M15 "
+            + "11.25l-8.47 8.47c-.34.34-.8.53-1.28.53s-.94.19-1.28.53l-.97.97-.75-.75.97-.97c.34-.34.53-.8.53-1"
+            + ".28s.19-.94.53-1.28L12.75 9M15 11.25 12.75 9"),
+
+        UiIconName.Document => SvgPath.D(
+            "M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3."
+            + "375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v1"
+            + "7.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"),
+
+        UiIconName.FingerPrint => SvgPath.D(
+            "M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0"
+            + " 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1"
+            + " 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666"
+            + " 0 0 1-2.485 5.33"),
+
+        UiIconName.Folder => SvgPath.D(
+            "M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1"
+            + ".883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25"
+            + " 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1"
+            + ".5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"),
+
+        UiIconName.Gift => SvgPath.D(
+            "M20.625 11.505v8.25a1.5 1.5 0 0 1-1.5 1.5H4.875a1.5 1.5 0 0 1-1.5-1.5v-8.25m8.25-6.375A2.625 2.6"
+            + "25 0 1 0 9 7.755h2.625m0-2.625v2.625m0-2.625a2.625 2.625 0 1 1 2.625 2.625h-2.625m0 0v13.5M3 11."
+            + "505h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.622-.504-1.125-1.125-1.125H3c-.621 0-1.125.503-1.12"
+            + "5 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"),
+
+        UiIconName.CodeBracket => SvgPath.D("M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"),
+
+        UiIconName.Grip => SvgPath.D(
+            "M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12"
+            + " 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"),
+
+        UiIconName.Cursor => SvgPath.D(
+            "M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166"
+            + "-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59"),
+
+        UiIconName.Home => SvgPath.D(
+            "m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125"
+            + " 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 "
+            + "0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"),
+
+        UiIconName.Info => SvgPath.D(
+            "m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9"
+            + " 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"),
+
+        UiIconName.Moon => SvgPath.D(
+            "M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752"
+            + "A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"),
+
+        UiIconName.Pencil => SvgPath.D(
+            "m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2."
+            + "685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"),
+
+        UiIconName.UserPlus => SvgPath.D(
+            "M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 1"
+            + "9.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374"
+            + "-1.766Z"),
+
+        UiIconName.Plus => SvgPath.D("M12 4.5v15m7.5-7.5h-15"),
+
+        UiIconName.Save => SvgPath.D(
+            "M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9"
+            + "a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25"),
+
+        UiIconName.Stop => SvgPath.D("M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"),
+
+        UiIconName.Ticket => SvgPath.D(
+            "M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.12"
+            + "5v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.1"
+            + "25-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"),
+
+        UiIconName.Unlock => SvgPath.D(
+            "M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25"
+            + " 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"),
+
+        UiIconName.ChevronDown => SvgPath.D("m19.5 8.25-7.5 7.5-7.5-7.5"),
+
+        UiIconName.ChevronUp => SvgPath.D("m4.5 15.75 7.5-7.5 7.5 7.5"),
+
+        UiIconName.Fullscreen => SvgPath.D(
+            "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4."
+            + "5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"),
+
+        UiIconName.Key => SvgPath.D(
+            "M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25"
+            + "H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1."
+            + "563A6 6 0 1 1 21.75 8.25Z"),
 
         // Unreachable for a declared name. A new enum member without a shape would otherwise draw an empty
         // box and read as a styling fault rather than a missing case.

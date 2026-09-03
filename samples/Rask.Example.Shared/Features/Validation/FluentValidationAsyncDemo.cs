@@ -16,7 +16,7 @@ public sealed partial class FluentValidationAsyncDemo : Component
 
     private static Component Checking() =>
         Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking availability..."
+            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking availability..."
         ];
 
     protected override Component? Render() =>
@@ -30,12 +30,12 @@ public sealed partial class FluentValidationAsyncDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[Icon.Name(IconName.TicketPerforated).Class("me-1"), "Reserve"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Ticket).Class("me-1"), "Reserve"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

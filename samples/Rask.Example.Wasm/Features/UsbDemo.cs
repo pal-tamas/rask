@@ -21,7 +21,7 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Button.Class(Tw.BtnPrimary).Id("usb-request").OnClickAsync(RequestDevice)[
-                        Icon.Name(IconName.UsbDrive).Class("me-1"), "Pair device"],
+                        UiIcon.Name(UiIconName.Cube).Class("me-1"), "Pair device"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("usb-open")

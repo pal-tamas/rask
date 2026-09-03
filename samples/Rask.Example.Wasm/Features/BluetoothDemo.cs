@@ -22,7 +22,7 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Button.Class(Tw.BtnPrimary).Id("bt-request").OnClickAsync(PairAndRead)[
-                        Icon.Name(IconName.Bluetooth).Class("me-1"), "Pair & read battery"],
+                        UiIcon.Name(UiIconName.Signal).Class("me-1"), "Pair & read battery"],
                     Button
                         .Class(Tw.BtnOutlineDanger)
                         .Id("bt-disconnect")

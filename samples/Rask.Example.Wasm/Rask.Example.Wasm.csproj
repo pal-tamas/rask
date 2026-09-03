@@ -139,4 +139,11 @@
            Text="Duplicate embedded-source leaf name(s) under Features/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.js/.css must have a unique file name across the project (and not collide with a Rask.Example.Shared leaf). Rename the collision." />
   </Target>
 
+  <!-- The kit's namespace, project-wide. Its icons and components are named in markup all over this
+       project, and a per-file using on ~60 files would be noise. Mirrors how Rask.Html imports
+       Rask.Core for the same reason. -->
+  <ItemGroup>
+    <Using Include="Rask.Ui"/>
+  </ItemGroup>
+
 </Project>

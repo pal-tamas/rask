@@ -20,7 +20,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
 
     private static Component Checking() =>
         Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking…"
+            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking…"
         ];
 
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
@@ -36,14 +36,14 @@ public sealed partial class ProgrammaticValidateDemo : Component
             ],
             Div.Class("flex gap-2 flex-wrap items-center")[
                 Button.Type("button").Class(Tw.BtnOutlineSecondary).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
-                    Icon.Name(IconName.Search).Class("me-1"), "Validate now"
+                    UiIcon.Name(UiIconName.Search).Class("me-1"), "Validate now"
                 ],
-                Button.Class(Tw.BtnPrimary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[Icon.Name(IconName.Check2Circle).Class("me-1"), "Save"]
+                Button.Class(Tw.BtnPrimary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Save"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

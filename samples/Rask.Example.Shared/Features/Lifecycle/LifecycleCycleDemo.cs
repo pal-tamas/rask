@@ -15,11 +15,11 @@ public sealed partial class LifecycleCycleDemo : Component
                 Button.Type("button").Class(Tw.BtnPrimary)
                     .Id("lifecycle-cycle-mount")
                     .Disabled(_cycleMounted)
-                    .OnClick(MountCycle)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Mount probe"],
+                    .OnClick(MountCycle)[UiIcon.Name(UiIconName.Play).Class("me-1"), "Mount probe"],
                 Button.Type("button").Class(Tw.BtnOutlineSecondary)
                     .Id("lifecycle-cycle-unmount")
                     .Disabled(!_cycleMounted)
-                    .OnClick(UnmountCycle)[Icon.Name(IconName.StopCircle).Class("me-1"), "Unmount probe"]
+                    .OnClick(UnmountCycle)[UiIcon.Name(UiIconName.Stop).Class("me-1"), "Unmount probe"]
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.Log(AppendCycleLog).InstanceId(_nextCycleId)

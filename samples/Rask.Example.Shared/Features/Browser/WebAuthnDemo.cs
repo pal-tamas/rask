@@ -51,7 +51,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Class(Tw.BtnPrimary).Id("webauthn-create").OnClickAsync(Create)[
-                        Icon.Name(IconName.Fingerprint).Class("me-1"), "Create passkey"],
+                        UiIcon.Name(UiIconName.FingerPrint).Class("me-1"), "Create passkey"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("webauthn-auth")

@@ -56,7 +56,7 @@ public sealed partial class DragDropKanbanDemo : Component
                     .OnDragEnd(ctx.DragEnd)
                     .Data(new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
                     Div.Class($"{Tw.CardBody} p-2 flex items-center gap-2")[
-                        Icon.Name(IconName.GripVertical).Class("text-ui-muted"),
+                        UiIcon.Name(UiIconName.Grip).Class("text-ui-muted"),
                         Span[card.Title]
                     ]
                 ]);

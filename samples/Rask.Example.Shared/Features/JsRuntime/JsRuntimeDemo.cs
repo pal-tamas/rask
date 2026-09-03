@@ -45,15 +45,15 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                     Button.Type("button").Class(Tw.BtnPrimary).Id("demo-set").OnClickAsync(SetAsync)[
-                        Icon.Name(IconName.Save).Class("me-1"), "Set"],
+                        UiIcon.Name(UiIconName.Save).Class("me-1"), "Set"],
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("demo-read")
                         .OnClickAsync(ReadAsync)[
-                        Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Read"],
+                        UiIcon.Name(UiIconName.Retry).Class("me-1"), "Read"],
                     Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("demo-remove")
                         .OnClickAsync(RemoveAsync)[
-                        Icon.Name(IconName.Trash).Class("me-1"), "Remove"]
+                        UiIcon.Name(UiIconName.Trash).Class("me-1"), "Remove"]
                 ],
                 Div.Class("mb-2")[
                     Span.Class("text-ui-muted text-sm uppercase")["Last read"],

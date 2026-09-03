@@ -26,24 +26,24 @@ public sealed partial class KeyedListsReorderDemo : Component
                     .Class(_useKeys ? $"{Tw.BtnSuccess}" : $"{Tw.BtnOutlineSecondary}")
                     .Id("kl-toggle-keys")
                     .OnClick(() => _useKeys = !_useKeys)[
-                    Icon.Name(_useKeys ? IconName.KeyFill : IconName.Key).Class("me-1"),
+                    UiIcon.Name(_useKeys ? UiIconName.Key : UiIconName.Key).Class("me-1"),
                     _useKeys ? "Keys: ON" : "Keys: OFF"
                 ],
                 Span.Class("vr mx-1"),
                 Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-rotate").OnClick(Rotate)[
-                    Icon.Name(IconName.ArrowDownUp).Class("me-1"), "Rotate"
+                    UiIcon.Name(UiIconName.ArrowsUpDown).Class("me-1"), "Rotate"
                 ],
                 Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-reverse").OnClick(Reverse)[
-                    Icon.Name(IconName.ArrowRepeat).Class("me-1"), "Reverse"
+                    UiIcon.Name(UiIconName.Retry).Class("me-1"), "Reverse"
                 ],
                 Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-add").OnClick(AddTop)[
-                    Icon.Name(IconName.PlusLg).Class("me-1"), "Add to top"
+                    UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add to top"
                 ],
                 Button.Type("button").Class(Tw.BtnOutlineDanger)
                     .Id("kl-remove")
                     .Disabled(_items.Count == 0)
                     .OnClick(RemoveTop)[
-                    Icon.Name(IconName.DashLg).Class("me-1"), "Remove top"
+                    UiIcon.Name(UiIconName.Minus).Class("me-1"), "Remove top"
                 ]
             ],
             Ul.Class(Tw.ListGroup).Id("kl-list")[BuildRows()]

@@ -404,6 +404,23 @@ them until tagged releases begin.
 
 ### Removed
 
+- **The showcase's 132-member icon set is gone; one Heroicons vocabulary now covers every surface.**
+  `samples/Rask.Example.Shared/Shared/Icon.cs` declared 132 Bootstrap-Icons-shaped members
+  (`XLg`, `PlayFill`, `Speedometer2`) and rendered each as a **unicode text glyph in a `<span>`** —
+  `◐`, `⌁`, `▤` — so the docs site's iconography depended on whichever font the visitor happened to
+  have. Every call site now draws a real Heroicons v2 outline path through `Rask.Ui`'s `UiIcon`, which
+  the operator console and the landing site already use.
+
+  **The set did not grow to 132 to absorb it.** `UiIconName` went from 39 members to 77, because the
+  67 bespoke per-guide glyphs collapsed to **one icon per guide group**: `GuideEntry` no longer stores
+  an icon at all, it derives one from `Group`. That removed 135 hand-picked arguments from
+  `GuideCatalog` and makes forgetting to pick an icon for a new guide impossible rather than merely
+  unlikely. Several near-duplicates merged on the same reasoning — `ArrowClockwise`/`ArrowRepeat` both
+  meant "retry", `UsbDrive`/`UsbPlug`/`Controller` all meant "a device". Three names have no Heroicons
+  equivalent and take the nearest honest match rather than vendoring a second icon style:
+  `Bluetooth`/`Broadcast` → `Signal`, and `Github` → `CodeBracket`, since Heroicons ships no brand marks.
+
+
 - **An island takes no children, in either island family — and saying so is now a compile error
   ([RASK062](docs/diagnostics.md#rask062)).** Both kinds offered a way in and neither could keep its
   promise past the first paint, which is the failure this repository treats as worse than the missing

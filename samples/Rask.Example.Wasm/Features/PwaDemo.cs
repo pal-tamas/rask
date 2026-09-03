@@ -27,7 +27,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
     [
         Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
             Div.Class(Tw.CardBody)[
-                H6.Class("font-bold")[Icon.Name(IconName.Bell).Class("me-2"), "Local notification (INotifications)"],
+                H6.Class("font-bold")[UiIcon.Name(UiIconName.Bell).Class("me-2"), "Local notification (INotifications)"],
                 P.Class("text-sm text-ui-muted")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
@@ -39,7 +39,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
 
         Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
             Div.Class(Tw.CardBody)[
-                H6.Class("font-bold")[Icon.Name(IconName.Broadcast).Class("me-2"), "Web Push (IWebPush)"],
+                H6.Class("font-bold")[UiIcon.Name(UiIconName.Signal).Class("me-2"), "Web Push (IWebPush)"],
                 P.Class("text-sm text-ui-muted")[
                     "Subscribes with a demo VAPID key and registers with this app's ", Code["Rask.WebPush"],
                     " backend, then sends a real push that the service worker shows even when the tab is ",
@@ -62,7 +62,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
 
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
-                H6.Class("font-bold")[Icon.Name(IconName.AppIndicator).Class("me-2"), "App badge (IBadge)"],
+                H6.Class("font-bold")[UiIcon.Name(UiIconName.Overview).Class("me-2"), "App badge (IBadge)"],
                 P.Class("text-sm text-ui-muted")[
                     "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",
                     "A silent no-op in a normal browser tab."

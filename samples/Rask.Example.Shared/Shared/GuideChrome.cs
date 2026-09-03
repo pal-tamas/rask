@@ -95,19 +95,19 @@ public sealed partial class GuideChrome : Component
             .Href(Features.Routes.GuidesIndexPage())
             .ActiveClass("")
             .Class("inline-flex items-center mb-3 no-underline text-sm guide-backlink")[
-            Icon.Name(IconName.ArrowLeft).Class("me-1"), "All guides"
+            UiIcon.Name(UiIconName.ArrowLeft).Class("me-1"), "All guides"
         ];
 
     private Component Banner() =>
         Div.Class("guide-banner")[
-            Icon.Name(IconName.InfoCircle).Class("me-2"),
+            UiIcon.Name(UiIconName.Info).Class("me-2"),
             Span[$"You're reading the Rask v{RaskVersion.Current} guides."],
             A
                 .Href($"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}")
                 .Target("_blank")
                 .Rel("noopener")
                 .Class("guide-banner-src")[
-                Icon.Name(IconName.Github).Class("me-1"), "View source"
+                UiIcon.Name(UiIconName.CodeBracket).Class("me-1"), "View source"
             ]
         ];
 
@@ -195,7 +195,7 @@ public sealed partial class GuideChrome : Component
                     .Href(Features.Routes.GuidePage(prev.Slug))
                     .ActiveClass("")
                     .Class("guide-prevnext-link guide-prevnext-prev")[
-                    Icon.Name(IconName.ArrowLeft).Class("me-2"),
+                    UiIcon.Name(UiIconName.ArrowLeft).Class("me-2"),
                     Span.Class("guide-prevnext-body")[
                         Span.Class("guide-prevnext-label")["Previous"],
                         Span.Class("guide-prevnext-title")[prev.Title]
@@ -211,7 +211,7 @@ public sealed partial class GuideChrome : Component
                         Span.Class("guide-prevnext-label")["Next"],
                         Span.Class("guide-prevnext-title")[next.Title]
                     ],
-                    Icon.Name(IconName.ArrowRight).Class("ms-2")
+                    UiIcon.Name(UiIconName.ArrowRight).Class("ms-2")
                 ]
         ];
     }
