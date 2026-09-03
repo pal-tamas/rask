@@ -17,7 +17,7 @@ reaches its handler. There is no package to add for DataAnnotations and nothing 
 | --- | --- | --- |
 | A `Form<T>` | The model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
 | A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
-| A controller or minimal API endpoint | Not yet — see [what is not covered](#what-is-not-covered-yet) | — |
+| A controller or minimal API endpoint | ASP.NET's own DataAnnotations pass only — an `AbstractValidator<T>` does not run there yet | [what is not covered](#what-is-not-covered-yet) |
 
 The two halves share one validator: an `AbstractValidator<Order>` validates a `Form<Order>` while the
 user types **and** an `Order` command when it is dispatched. Write the rules once.
@@ -101,12 +101,18 @@ the local check is a convenience, never a control, and a caller that skips it ga
 
 ## What is not covered yet
 
-MVC controllers and minimal API endpoints are **not** covered — tracked in
-[#988](https://github.com/pal-tamas/rask/issues/988). Rask hosts them but has no concept of them, and
-ASP.NET already validates DataAnnotations on both (`[ApiController]`'s `ModelState`, and .NET 10's
-`AddValidation()` for minimal APIs), so the gap there is FluentValidation and async rules rather than
-attributes. The intended shape is the platform's own synchronous pass plus a Rask asynchronous filter
-merging into the same 400 shown above.
+[HTTP endpoints](api-endpoints.md) are **not** covered by the two passes above — tracked in
+[#988](https://github.com/pal-tamas/rask/issues/988).
+
+They are not unvalidated. `AddRaskApi` registers `AddMvcCore().AddDataAnnotations()`, so a
+controller's `[Required]` and `[Range]` are enforced by `ModelState` exactly as they are in any
+ASP.NET app. What is missing is the other half of what a form and a request get: an
+`AbstractValidator<T>` written for a request type does **not** run on a controller action or a minimal
+API endpoint, and neither does an async rule.
+
+The intended shape is the platform's own synchronous pass — `ModelState` for controllers, .NET 10's
+`AddValidation()` for minimal APIs — plus a Rask asynchronous filter running the discovered validator
+and merging into the same 400 shown above, so one client handles a rejection from any seam.
 
 ## See also
 
