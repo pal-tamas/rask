@@ -30,9 +30,9 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
                         .OnClickAsync(Query)[
                         "Query held locks"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Status: ", Code.Id("locks-status")[_status]],
+                Div.Class("text-sm text-ui-muted mb-1")["Status: ", Code.Id("locks-status")[_status]],
                 _snapshot.Count == 0
-                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("locks-snapshot")["(query to see held locks)"]
+                    ? Div.Class("text-sm text-ui-muted italic").Id("locks-snapshot")["(query to see held locks)"]
                     : Ul.Class("text-sm mb-0").Id("locks-snapshot")[
                         _snapshot.Select(l => Li.Key($"{l.Name}:{l.ClientId}:{l.Held}")[
                             $"{l.Name} — {l.Mode} — {(l.Held ? "held" : "pending")}"])

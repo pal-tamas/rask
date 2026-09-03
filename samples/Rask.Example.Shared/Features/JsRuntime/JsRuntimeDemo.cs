@@ -56,11 +56,11 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
                         Icon.Name(IconName.Trash).Class("me-1"), "Remove"]
                 ],
                 Div.Class("mb-2")[
-                    Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Last read"],
+                    Span.Class("text-ui-muted text-sm uppercase")["Last read"],
                     Div[Code.Class("text-base").Id("demo-last-read")[_lastRead ?? "(null)"]]
                 ],
                 Div[
-                    Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Status"],
+                    Span.Class("text-ui-muted text-sm uppercase")["Status"],
                     Div[Code.Class("text-base").Id("demo-status")[_status ?? "(idle)"]]
                 ]
             ]

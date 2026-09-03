@@ -34,7 +34,7 @@ public sealed partial class BoomRenderDemo : Component
                 recover();
             }))[
             Div.Class("p-3 border rounded bg-white").Id("boom-render-host")[
-                P.Class("text-slate-500 dark:text-slate-400 text-sm mb-2")["Healthy. Click below to make my next render throw."],
+                P.Class("text-ui-muted text-sm mb-2")["Healthy. Click below to make my next render throw."],
                 Button.Type("button").Class(Tw.BtnWarning).Id("boom-render-trigger").OnClick(() => _throwOnRender = true)[Icon.Name(IconName.Bug).Class("me-2"), "Throw on next render"],
 #pragma warning disable RASK014
                 // Intentionally bypass the factory: RenderThrower is [SkipFactory] and

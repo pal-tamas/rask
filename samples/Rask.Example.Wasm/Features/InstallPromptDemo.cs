@@ -75,7 +75,7 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
                         .OnClickAsync(RefreshAsync)[
                         "Re-check"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("install-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("install-status")[_status]]
             ]
         ];
 }

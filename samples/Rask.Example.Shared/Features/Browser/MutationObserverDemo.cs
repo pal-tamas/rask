@@ -67,11 +67,11 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
                         Enumerable.Range(1, _items).Select(i => Li.Key(i.ToString())[$"item {i}"])
                     ]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")[
+                Div.Class("text-sm text-ui-muted")[
                     "childList changes: ", Code.Id("mo-child")[$"{_childChanges}"],
                     " · attribute changes: ", Code.Id("mo-attr")[$"{_attrChanges}"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last: ", Code.Id("mo-last")[_last]]
+                Div.Class("text-sm text-ui-muted")["Last: ", Code.Id("mo-last")[_last]]
             ]
         ];
 

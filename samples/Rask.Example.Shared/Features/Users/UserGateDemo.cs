@@ -24,7 +24,7 @@ public sealed partial class UserGateDemo : Component
                         : null,
                     Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(_auth.SignOut)["Sign out"]]
                 : [
-                    P.Class("text-slate-500 dark:text-slate-400")["You are signed out."],
+                    P.Class("text-ui-muted")["You are signed out."],
                     Div.Class("flex gap-2 flex-wrap items-center")[
                         Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => _auth.SignIn("alice", "user"))[
                             "Sign in as user"],

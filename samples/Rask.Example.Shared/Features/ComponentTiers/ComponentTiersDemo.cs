@@ -24,7 +24,7 @@ public sealed partial class ComponentTiersDemo : Component
             Div.Class($"{Tw.Card} h-full")[
                 Div.Class(Tw.CardBody)[
                     H6.Class("font-semibold mb-1")[title],
-                    P.Class("text-sm text-slate-500 dark:text-slate-400")[blurb],
+                    P.Class("text-sm text-ui-muted")[blurb],
                     body
                 ]
             ]

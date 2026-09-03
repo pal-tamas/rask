@@ -23,19 +23,19 @@ public sealed partial class LiveTickerDemo : Component
                 LiveTicker.Symbol(_symbol).Log(AppendLog)
             ],
             Div.Class("lg:col-span-5")[
-                Div.Class($"{Tw.Card} border-0 bg-slate-100 h-full")[
+                Div.Class($"{Tw.Card} border-0 bg-ui-well h-full")[
                     Div.Class(Tw.CardBody)[
                         Div.Class("mb-3 flex flex-wrap items-center justify-between")[
-                            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mb-0")["Hook activity"],
+                            H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mb-0")["Hook activity"],
                             Button.Class(Tw.BtnLink).Type("button")
                                 .Id("ticker-clear-log")
                                 .OnClick(ClearLog)["clear"]
                         ],
                         _log.Count == 0
-                            ? P.Class("text-slate-500 dark:text-slate-400 italic text-sm mb-0")[
+                            ? P.Class("text-ui-muted italic text-sm mb-0")[
                                 "Empty — hooks will fire as the component mounts and ticks."]
                             : (Component)Ol
-                                .Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700")
+                                .Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-ui-line")
                                 .Id("ticker-log")
                                 .Style("max-height: 360px; overflow-y: auto;")[
                                 _log.Select((l, i) => Li

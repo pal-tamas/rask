@@ -69,9 +69,9 @@ public sealed partial class GanttDemo : Component
 
             Div.Class($"{Tw.Card} gantt-log")[
                 Div.Class($"{Tw.CardBody} py-2")[
-                    Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Events from the chart:"],
+                    Div.Class("text-sm text-ui-muted mb-1")["Events from the chart:"],
                     _log.Count == 0
-                        ? Div.Class("text-sm italic text-slate-500 dark:text-slate-400")[
+                        ? Div.Class("text-sm italic text-ui-muted")[
                             "Nothing yet — click a bar, or drag one to move it."]
                         : Ul.Class("list-unstyled text-sm mb-0 font-mono")[
                             _log.Select(e => Li.Key(e.Seq.ToString())[e.Text])]

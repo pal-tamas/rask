@@ -106,7 +106,7 @@ public sealed partial class CodeSample : Component
                     Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
                     Notes is null
                         ? null
-                        : P.Class($"text-slate-500 dark:text-slate-400 text-sm mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
+                        : P.Class($"text-ui-muted text-sm mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
                 ],
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either

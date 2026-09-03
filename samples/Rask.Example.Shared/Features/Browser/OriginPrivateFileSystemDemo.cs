@@ -35,9 +35,9 @@ public sealed partial class OriginPrivateFileSystemDemo(
                         .OnClickAsync(Persist)[
                         "Request persistence"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
+                Div.Class("text-sm text-ui-muted")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
             ]
         ];
 

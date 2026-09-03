@@ -19,7 +19,7 @@ public sealed partial class BindingClearDefaultDemo : Component
                 .Class(Tw.Input)
                 .Placeholder("leave empty for null")
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-clear-echo")[
                 $"Age         = {_model.Age}\n" +
                 $"OptionalAge = {_model.OptionalAge?.ToString() ?? "null"}"

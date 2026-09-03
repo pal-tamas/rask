@@ -53,7 +53,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             return Task.CompletedTask;
                         }),
                     _install is null
-                        ? Span.Class("text-sm text-slate-500 dark:text-slate-400")["not prompted"]
+                        ? Span.Class("text-sm text-ui-muted")["not prompted"]
                         : Span.Class("text-sm")["install: ", Code.Id("install-outcome")[_install]]
                 ],
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
@@ -70,7 +70,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             return Task.CompletedTask;
                         }),
                     _color is null
-                        ? Span.Class("text-sm text-slate-500 dark:text-slate-400")["no colour picked"]
+                        ? Span.Class("text-sm text-ui-muted")["no colour picked"]
                         : Span.Class("inline-flex items-center gap-2 text-sm")[
                             Span
                                 .Id("eyedropper-swatch")
@@ -122,7 +122,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Muted(true)
                         .Style("width:12rem;max-width:100%;border-radius:.25rem;background:#000")
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mt-3")[
+                Div.Class("text-sm text-ui-muted mt-3")[
                     "Every button runs inside its own click gesture, so they all work on the Server too. ",
                     "Camera + picture-in-picture need HTTPS and a real device; install needs an installable PWA ",
                     "(", Code["AddRaskPwa"], "); orientation lock only takes effect while fullscreen (pair it ",

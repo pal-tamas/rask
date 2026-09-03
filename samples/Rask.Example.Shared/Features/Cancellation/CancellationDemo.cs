@@ -20,11 +20,11 @@ public sealed partial class CancellationDemo : Component
             ],
             _mounted
                 ? CancellationProbe.Log(AppendLog).InstanceId(_nextInstance)
-                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe is not mounted."],
-            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mt-4")["Log"],
+                : P.Class("text-ui-muted italic mb-0")["Probe is not mounted."],
+            H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             _log.Count == 0
-                ? P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0")["Mount and unmount the probe to populate this log."]
-                : Ol.Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700 cancel-log").Id("cancel-log")[
+                ? P.Class("text-ui-muted text-sm mb-0")["Mount and unmount the probe to populate this log."]
+                : Ol.Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-ui-line cancel-log").Id("cancel-log")[
                     _log.Select(line => Li
                         .Key(line)
                         .Class($"{Tw.ListGroupItem} ps-2 text-sm")[Code.Class("text-sm")[line]])]

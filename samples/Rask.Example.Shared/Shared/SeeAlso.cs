@@ -10,7 +10,7 @@ internal static partial class SeeAlso
     {
         var children = new List<Component>
         {
-            Span.Class("text-slate-500 font-semibold")[
+            Span.Class("text-ui-muted font-semibold")[
                 Icon.Name(IconName.JournalText).Class("me-1"), "See also"
             ]
         };

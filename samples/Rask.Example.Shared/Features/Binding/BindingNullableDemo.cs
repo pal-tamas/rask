@@ -36,7 +36,7 @@ public sealed partial class BindingNullableDemo : Component
                 .Class(Tw.Input)
                 .Placeholder("clear me for null")
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[
                 $"OptionalAge = {_model.OptionalAge?.ToString() ?? "null"}\n" +
                 $"StartDate   = {_model.StartDate?.ToString("yyyy-MM-dd") ?? "null"}\n" +

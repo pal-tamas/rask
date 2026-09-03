@@ -22,7 +22,7 @@ public sealed partial class DisposalSyncDemo : Component
             ],
             _syncMounted
                 ? DisposableTimerProbe.Log(AppendSyncLog).InstanceId(_nextSyncId)
-                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe not mounted."],
+                : P.Class("text-ui-muted italic mb-0")["Probe not mounted."],
             DisposalDemoLog.Entries(_syncLog).ListId("dispose-sync-log")
         ];
 

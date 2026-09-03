@@ -31,7 +31,7 @@ public sealed partial class EventsDemo : Component
                     .OnMouseLeave(_ => _hovering = false)
                     .OnWheel(e => _wheel += (int)e.DeltaY)[
                     Strong["Move / scroll here"],
-                    Div.Class("text-slate-500 dark:text-slate-400 mt-2")[
+                    Div.Class("text-ui-muted mt-2")[
                         $"x: {Fmt(_x)}, y: {Fmt(_y)} · {(_hovering ? "inside" : "outside")} · wheel Σ {_wheel}"]
                 ]
             ],
@@ -42,7 +42,7 @@ public sealed partial class EventsDemo : Component
                     .OnDoubleClick(_ => _doubleClicks++)
                     .OnContextMenu(_ => _contextMenu = !_contextMenu)[
                     "Double-click or right-click me"],
-                Div.Class("text-slate-500 dark:text-slate-400 mt-2")[
+                Div.Class("text-ui-muted mt-2")[
                     $"double-clicks: {_doubleClicks} · context-menu toggled: {_contextMenu}"]
             ],
             // Focus / blur + keyboard on a focusable div.
@@ -55,7 +55,7 @@ public sealed partial class EventsDemo : Component
                     .OnBlur(() => _focused = false)
                     .OnKeyDown(e => _lastKey = e.Key)[
                     Strong["Click to focus, then type"],
-                    Div.Class("text-slate-500 dark:text-slate-400 mt-2")[
+                    Div.Class("text-ui-muted mt-2")[
                         $"{(_focused ? "focused" : "blurred")} · last key: {_lastKey}"]
                 ]
             ],
@@ -65,7 +65,7 @@ public sealed partial class EventsDemo : Component
                     .Class("border rounded p-4")
                     .OnPaste(e => _pasted = e.Text)[
                     Strong["Paste text here"],
-                    Div.Class("text-slate-500 dark:text-slate-400 mt-2")[$"pasted: {_pasted}"]
+                    Div.Class("text-ui-muted mt-2")[$"pasted: {_pasted}"]
                 ]
             ]
         ];

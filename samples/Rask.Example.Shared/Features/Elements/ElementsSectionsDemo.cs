@@ -8,7 +8,7 @@ public sealed partial class ElementsSectionsDemo : Component
         Header[
             Hgroup[
                 H1.Class("text-xl font-semibold mb-1")["Article title"],
-                P.Class("text-slate-500 dark:text-slate-400 mb-0")["A subtitle grouped with the heading"]
+                P.Class("text-ui-muted mb-0")["A subtitle grouped with the heading"]
             ],
             Nav.Class("text-sm")[
                 A.Href("#a").Class("me-2")["Intro"], A.Href("#b")["Details"]
@@ -25,11 +25,11 @@ public sealed partial class ElementsSectionsDemo : Component
                     H5.Class("text-base font-semibold mb-0")["H5"], H6.Class("text-base font-semibold mb-0")["H6"]
                 ]
             ],
-            Aside.Class("col-span-4 text-slate-500 dark:text-slate-400 text-sm")[
+            Aside.Class("col-span-4 text-ui-muted text-sm")[
                 "An ", Code["aside"], " — complementary content."
             ]
         ],
-        Footer.Class("border-t pt-2 mt-2 text-sm text-slate-500 dark:text-slate-400")[
+        Footer.Class("border-t pt-2 mt-2 text-sm text-ui-muted")[
             "Footer · ", Address.Class("inline italic")["contact@example.com"]
         ]
     ];

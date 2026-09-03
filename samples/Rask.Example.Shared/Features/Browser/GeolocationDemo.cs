@@ -16,8 +16,8 @@ public sealed partial class GeolocationDemo(IGeolocation geolocation) : Componen
                     .Id("geo-get")
                     .OnClickAsync(Get)[
                     "Get current position"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Position: ", Code.Id("geo-value")[_location ?? "(not requested)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("geo-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Position: ", Code.Id("geo-value")[_location ?? "(not requested)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("geo-status")[_status ?? "(idle)"]]
             ]
         ];
 

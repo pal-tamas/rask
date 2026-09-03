@@ -19,7 +19,7 @@ public sealed partial class FormControlsInputDemo : Component
                     .Class($"{Tw.Input} mb-2")
                     .Placeholder("Type, then blur…")
                     .Id("fc-input-controlled"),
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-input-controlled-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-input-controlled-out")[
                     "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]
                 ]
             ],
@@ -31,7 +31,7 @@ public sealed partial class FormControlsInputDemo : Component
                         .Placeholder("Type…")
                         .Id("fc-input-bound")
                 ],
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-input-bound-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-input-bound-out")[
                     "Echo: ", Strong[_model.Text.Length == 0 ? "(empty)" : _model.Text]
                 ]
             ]

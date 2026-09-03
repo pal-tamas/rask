@@ -23,7 +23,7 @@ public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsync
                         .OnClickAsync(Toggle)[
                         _sentinel is null ? "Keep screen awake" : "Release"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
             ]
         ];
 

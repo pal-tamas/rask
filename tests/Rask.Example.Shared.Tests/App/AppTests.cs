@@ -12,7 +12,7 @@ public sealed class AppTests
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         Assert.Contains("<html lang=\"en\">", html);
-        Assert.Contains("<body class=\"bg-slate-50 dark:bg-slate-900\">", html);
+        Assert.Contains("<body class=\"bg-ui-well\">", html);
     }
 
     [Fact]

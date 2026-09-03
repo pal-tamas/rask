@@ -25,9 +25,9 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
                         .OnClickAsync(QueryClipboard)[
                         "Query clipboard-read"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
+                Div.Class("text-sm text-ui-muted")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
             ]
         ];
 

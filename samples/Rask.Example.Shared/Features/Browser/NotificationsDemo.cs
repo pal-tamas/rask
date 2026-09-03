@@ -28,7 +28,7 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
                         .Id("badge-clear")
                         .OnClickAsync(ClearBadge)["Clear badge"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
             ]
         ];
 

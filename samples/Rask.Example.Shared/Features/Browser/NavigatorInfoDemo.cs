@@ -15,8 +15,8 @@ public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Compon
                     .Id("nav-read")
                     .OnClickAsync(Read)[
                     "Read navigator info"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("nav-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("nav-status")[_status ?? "(idle)"]]
             ]
         ];
 

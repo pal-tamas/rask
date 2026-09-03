@@ -16,6 +16,6 @@ internal sealed partial class PageHeader : Component
     protected override Component? Render() =>
         Div.Class("mb-4 pb-3 border-b")[
             H1.Class("text-3xl font-bold mb-2")[Title],
-            P.Class("text-lg text-slate-500 dark:text-slate-400 mb-0")[Lead]
+            P.Class("text-lg text-ui-muted mb-0")[Lead]
         ];
 }

@@ -23,7 +23,7 @@ public sealed partial class NestedListIndexerDemo : Component
         {
             var i = idx; // Per-iteration capture — without this every lambda closes over Skus.Count.
             rows.Add(Tr.Key(_model.Skus[i].Id)[
-                Td.Class("text-slate-500 dark:text-slate-400 text-sm")[$"#{i + 1}"],
+                Td.Class("text-ui-muted text-sm")[$"#{i + 1}"],
                 Td[
                     Input.Bind(() => _model.Skus[i].Code).Class(Tw.Input),
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Code)

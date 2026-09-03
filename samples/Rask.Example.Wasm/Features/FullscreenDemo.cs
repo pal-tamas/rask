@@ -19,9 +19,9 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
             Div.Class(Tw.CardBody)[
                 Div
                     .Ref(_stage)
-                    .Class("border rounded bg-slate-100 flex items-center justify-center mb-2")
+                    .Class("border rounded bg-ui-well flex items-center justify-center mb-2")
                     .Style("min-height: 8rem")[
-                    Span.Class("text-slate-500 dark:text-slate-400 text-sm")["This box goes fullscreen."]
+                    Span.Class("text-ui-muted text-sm")["This box goes fullscreen."]
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Button.Class(Tw.BtnPrimary).Id("fullscreen-enter").OnClickAsync(Enter)[
@@ -30,7 +30,7 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
                         "Fullscreen the page"],
                     Button.Class(Tw.BtnOutlineDanger).Id("fullscreen-exit").OnClickAsync(Exit)["Exit"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ]
         ];
 

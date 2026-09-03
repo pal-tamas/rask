@@ -30,7 +30,7 @@ public sealed partial class MetricsGauge(IMetricsFeed feed) : Component
         return Div.Class($"{Tw.Card} shadow-sm border-0 h-full")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex justify-between items-baseline flex-wrap items-center mb-3")[
-                    H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mb-0")["System metrics"],
+                    H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mb-0")["System metrics"],
                     Span.Class(Tw.BadgeSecondary).Id("metrics-tick")[
                         $"tick {s.Tick.ToString(Inv)}"]
                 ],
@@ -38,7 +38,7 @@ public sealed partial class MetricsGauge(IMetricsFeed feed) : Component
                     Stat("CPU", $"{s.CpuPercent.ToString("0.0", Inv)}%", "metrics-cpu"),
                     Stat("Active jobs", s.ActiveJobs.ToString(Inv), "metrics-jobs")
                 ],
-                P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0 mt-3")[
+                P.Class("text-ui-muted text-sm mb-0 mt-3")[
                     "updated ", Code[s.At.ToString("HH:mm:ss", Inv)], " · pushed by the background feed"
                 ]
             ]
@@ -48,6 +48,6 @@ public sealed partial class MetricsGauge(IMetricsFeed feed) : Component
     private static Component Stat(string label, string value, string id) =>
         Div.Class("col-span-6")[
             Div.Class("text-2xl font-bold").Id(id)[value],
-            Div.Class("text-slate-500 dark:text-slate-400 text-sm")[label]
+            Div.Class("text-ui-muted text-sm")[label]
         ];
 }

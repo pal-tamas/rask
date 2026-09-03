@@ -40,9 +40,9 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
                     Button.Class(Tw.BtnOutlineSecondary).Id("idb-keys").OnClickAsync(Keys)["List keys"],
                     Button.Class(Tw.BtnOutlineDanger).Id("idb-clear").OnClickAsync(Clear)["Clear"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("idb-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
+                Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("idb-status")[_status ?? "(idle)"]]
             ]
         ];
 

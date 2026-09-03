@@ -29,9 +29,9 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
                     Button.Class(Tw.BtnOutlineDanger).Id("orientation-unlock").OnClickAsync(Unlock)[
                         "Unlock"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
+                Div.Class("text-sm text-ui-muted mb-1")[
                     "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("orientation-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("orientation-status")[_status ?? "(idle)"]]
             ]
         ];
 

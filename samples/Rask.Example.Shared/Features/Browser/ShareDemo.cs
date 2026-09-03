@@ -29,7 +29,7 @@ public sealed partial class ShareDemo : Component
                             .Id("share-btn")
                             .Data(share)["Share this page"])
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")[
+                Div.Class("text-sm text-ui-muted")[
                     "Works on every host — the click fires ", Code["navigator.share"],
                     " inside the gesture (so it works on Server too, where an imperative round-trip would lose "
                     + "the activation). Unsupported browsers (e.g. desktop Firefox) no-op."]

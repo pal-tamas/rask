@@ -20,9 +20,9 @@ public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IA
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnPrimary} mb-3").Id("idle-start").OnClickAsync(Start)[
                     "Start watching (60s threshold)"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["User: ", Code.Id("idle-user")[_user]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Screen: ", Code.Id("idle-screen")[_screen]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("idle-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["User: ", Code.Id("idle-user")[_user]],
+                Div.Class("text-sm text-ui-muted")["Screen: ", Code.Id("idle-screen")[_screen]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("idle-status")[_status]]
             ]
         ];
 

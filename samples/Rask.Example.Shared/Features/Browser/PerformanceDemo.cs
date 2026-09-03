@@ -15,8 +15,8 @@ public sealed partial class PerformanceDemo(IPerformance performance) : Componen
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Id("perf-read").OnClickAsync(Read)[
                     "Read performance timing"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Timing: ", Code.Id("perf-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("perf-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Timing: ", Code.Id("perf-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("perf-status")[_status ?? "(idle)"]]
             ]
         ];
 

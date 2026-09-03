@@ -5,7 +5,7 @@ public sealed partial class ElementsGroupingDemo : Component
 {
     protected override Component? Render() => Div.Class("flex flex-col gap-3")[
         P["A paragraph of flow content, grouped in a ", Code["Div"], "."],
-        Pre.Class("bg-slate-100 border rounded p-2 mb-0")["  preformatted\n  text  keeps   spacing"],
+        Pre.Class("bg-ui-well border rounded p-2 mb-0")["  preformatted\n  text  keeps   spacing"],
         Blockquote.Class($"{Tw.Blockquote} text-base border-l ps-3").Cite("https://example.com")[
             "A small DSL, an honest day's HTML."],
         Hr,

@@ -28,8 +28,8 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
                     Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("cookie-get").OnClickAsync(Get)["Get"],
                     Button.Type("button").Class(Tw.BtnOutlineDanger).Id("cookie-delete").OnClickAsync(Delete)["Delete"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
             ]
         ];
 

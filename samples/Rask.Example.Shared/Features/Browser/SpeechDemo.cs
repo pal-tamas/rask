@@ -22,7 +22,7 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
                         .Id("speech-cancel")
                         .OnClickAsync(Cancel)["Stop"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
             ]
         ];
 

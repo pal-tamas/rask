@@ -93,7 +93,7 @@ public sealed partial class TodosPage : Component
                 .Lead("A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
             Div
                 .Class("flex justify-between items-center mb-3")[
-                Span.Class("text-slate-500 dark:text-slate-400 text-sm")[
+                Span.Class("text-ui-muted text-sm")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
                 Button.Type("button").Class(Tw.BtnPrimary).OnClick(OpenAdd)[
@@ -101,9 +101,9 @@ public sealed partial class TodosPage : Component
                 ]
             ],
             _todos.Count == 0
-                ? Div.Class("text-slate-500 dark:text-slate-400 text-sm")["No todos yet — click \"New todo\" to add one."]
+                ? Div.Class("text-ui-muted text-sm")["No todos yet — click \"New todo\" to add one."]
                 : Ul.Id("todo-list")
-                    .Class("divide-y divide-slate-200 rounded-lg ring-1 ring-slate-200 dark:divide-slate-700 dark:ring-slate-700")[
+                    .Class("divide-y divide-ui-line rounded-lg ring-1 ring-ui-line")[
                     _todos.Select(item => Li
                         .Key(item.Id)
                         .Class("flex items-center gap-2 px-3 py-2")[
@@ -167,7 +167,7 @@ public sealed partial class TodoFormDialog : Component
     // Template is required, so it is the chain's opening step: a validation message with no way to
     // render itself is not a thing the type system lets you ask for.
     private static Component FieldError(IReadOnlyList<string> errors) =>
-        Div.Class("field-error text-sm text-red-600 dark:text-red-400")[errors.Select(e => Div.Key(e)[e])];
+        Div.Class("field-error text-sm text-ui-danger")[errors.Select(e => Div.Key(e)[e])];
 
     protected override Component? Render() =>
         // The native <dialog>. BsModal supplied a backdrop, Escape-to-dismiss and a focus trap. A
@@ -182,8 +182,7 @@ public sealed partial class TodoFormDialog : Component
                 ? null
                 : Div.Class("dialog-backdrop fixed inset-0 z-40 bg-black/40").OnClick(() => OnCancel?.Invoke()),
             Dialog.Open(Open).Class(
-                "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-white p-5 shadow-xl "
-                + "dark:bg-slate-800")
+                "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-ui-bg p-5 shadow-xl")
                 // Escape dismisses. A non-modal dialog fires no `cancel` event, so the key is read
                 // where it lands — no client script, just the same routed cancel the backdrop uses.
                 .OnKeyDown(e =>

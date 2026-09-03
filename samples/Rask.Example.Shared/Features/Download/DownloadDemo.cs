@@ -26,7 +26,7 @@ public sealed partial class DownloadDemo(Navigator nav) : Component
                 "Download report"
             ],
             Div
-                .Class("text-sm text-slate-500 dark:text-slate-400 mt-2")
+                .Class("text-sm text-ui-muted mt-2")
                 .Data(new Dictionary<string, string?> { ["rask-report-count"] = "true" })[
                 $"Generated {_reportCount} time(s)."
             ]

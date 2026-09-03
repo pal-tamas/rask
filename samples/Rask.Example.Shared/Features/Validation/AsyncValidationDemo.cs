@@ -16,7 +16,7 @@ public sealed partial class AsyncValidationDemo : Component
     }
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
+        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
             Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking availability..."
         ];
 

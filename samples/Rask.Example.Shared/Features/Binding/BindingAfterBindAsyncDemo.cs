@@ -77,7 +77,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                     : _languages.Select(l => Option.Value(l).Key(l)[l])
             ]
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-async-echo")[
                 $"Track    = {_model.Track}\n" +
                 $"Language = {_model.Language}"

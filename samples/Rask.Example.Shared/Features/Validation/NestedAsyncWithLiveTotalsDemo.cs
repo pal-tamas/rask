@@ -37,7 +37,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
+        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
             Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking delivery zone…"
         ];
 
@@ -96,7 +96,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Div[
                     Label.For("v-nlive-postal").Class($"{Tw.Label} text-sm mb-1")[
-                        "Postal code ", Span.Class("text-slate-500 dark:text-slate-400")["(try 12345, 99999, or any 5-digit code)"]
+                        "Postal code ", Span.Class("text-ui-muted")["(try 12345, 99999, or any 5-digit code)"]
                     ],
                     Input.Bind(() => _model.Address.PostalCode)
                         .Id("v-nlive-postal")
@@ -148,11 +148,11 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Div[
                     Label.For("v-nlive-promo").Class($"{Tw.Label} text-sm mb-1")[
-                        "Promo code ", Span.Class("text-slate-500 dark:text-slate-400")["(try SAVE10 or SAVE25)"]
+                        "Promo code ", Span.Class("text-ui-muted")["(try SAVE10 or SAVE25)"]
                     ],
                     Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class(Tw.Input)
                 ],
-                Div.Id("v-nlive-totals").Class("bg-slate-100 rounded p-3 text-sm")[
+                Div.Id("v-nlive-totals").Class("bg-ui-well rounded p-3 text-sm")[
                     Div.Class("flex justify-between flex-wrap items-center")[
                         Span["Subtotal"],
                         Span.Id("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]

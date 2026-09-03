@@ -30,6 +30,6 @@ public sealed partial class UnmountTimerProbe : Component
     protected override Component? Render() =>
         Div.Class("flex gap-2 items-center flex-wrap items-center")[
             Span.Class(Tw.BadgeWarning)[$"#{InstanceId} tick {_ticks}"],
-            Span.Class("text-slate-500 dark:text-slate-400 text-sm")["Stop me to fire OnUnmount and dispose the Timer."]
+            Span.Class("text-ui-muted text-sm")["Stop me to fire OnUnmount and dispose the Timer."]
         ];
 }

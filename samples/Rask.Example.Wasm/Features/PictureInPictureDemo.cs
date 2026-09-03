@@ -53,7 +53,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
                         "Open miniplayer"],
                     Button.Class(Tw.BtnOutlineDanger).Id("pip-exit").OnClickAsync(Exit)["Exit"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("pip-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pip-status")[_status]]
             ]
         ];
 

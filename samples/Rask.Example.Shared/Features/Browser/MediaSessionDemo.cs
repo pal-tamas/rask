@@ -68,11 +68,11 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
                         .OnClickAsync(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
                     Button.Class(Tw.BtnOutlineDanger).Id("ms-clear").OnClickAsync(Clear)["Clear"]
                 ],
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")[
+                P.Class("text-sm text-ui-muted mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "
                     + "shows below. Lock-screen integration activates fully while audio is playing."],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("ms-status")[_status]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last action: ", Code.Id("ms-last")[_last]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("ms-status")[_status]],
+                Div.Class("text-sm text-ui-muted")["Last action: ", Code.Id("ms-last")[_last]]
             ]
         ];
 

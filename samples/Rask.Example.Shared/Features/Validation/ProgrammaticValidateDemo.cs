@@ -19,7 +19,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
+        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
             Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking…"
         ];
 

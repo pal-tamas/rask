@@ -66,7 +66,7 @@ public partial class App : Component
             .Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override string? BodyClass => "bg-slate-50 dark:bg-slate-900";
+    protected override string? BodyClass => "bg-ui-well";
 
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
     protected override Component? Render() => Router;

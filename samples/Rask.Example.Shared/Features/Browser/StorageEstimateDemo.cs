@@ -15,8 +15,8 @@ public sealed partial class StorageEstimateDemo(IStorageEstimator storage) : Com
                     .Id("storage-est-read")
                     .OnClickAsync(Read)[
                     "Estimate storage"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]
             ]
         ];
 

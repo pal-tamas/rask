@@ -22,7 +22,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Label.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").For("serial-baud")["Baud"],
+                    Label.Class("text-sm text-ui-muted mb-0").For("serial-baud")["Baud"],
                     Input
                         .Value(_baudRate.ToString())
                         .Id("serial-baud")
@@ -61,7 +61,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                     .Id("serial-log")
                     .Style("min-height: 6rem; max-height: 12rem; overflow: auto")[
                     _log.Count == 0 ? "(no data yet)" : string.Join("\n", _log)],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("serial-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("serial-status")[_status]]
             ]
         ];
 

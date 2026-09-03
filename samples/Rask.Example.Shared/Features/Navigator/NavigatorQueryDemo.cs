@@ -14,11 +14,11 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                 Div.Class(Tw.CardBody)[
                     Div.Class("grid grid-cols-12 gap-4")[
                         Div.Class("md:col-span-6")[
-                            Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Path"],
+                            Span.Class("text-ui-muted text-sm uppercase")["Path"],
                             Div[Code.Class("text-base").Id("nav-path")[route.Path]]
                         ],
                         Div.Class("md:col-span-6")[
-                            Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Query"],
+                            Span.Class("text-ui-muted text-sm uppercase")["Query"],
                             Div[
                                 Code.Class("text-base").Id("nav-query")[
                                     route.Query.Count == 0 ? "(empty)" : BuildQuery(route)

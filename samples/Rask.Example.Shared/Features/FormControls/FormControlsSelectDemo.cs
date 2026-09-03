@@ -21,7 +21,7 @@ public sealed partial class FormControlsSelectDemo : Component
                     .Id("fc-select-controlled")[
                     Option.Value("Rask"), Option.Value("Blazor"), Option.Value("htmx")
                 ],
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-select-controlled-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-select-controlled-out")[
                     "Picked: ", Strong[_controlled]
                 ]
             ],
@@ -32,7 +32,7 @@ public sealed partial class FormControlsSelectDemo : Component
                         Option.Value("Rask"), Option.Value("Blazor"), Option.Value("htmx")
                     ]
                 ],
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-select-bound-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-select-bound-out")[
                     "Picked: ", Strong[_model.Framework]
                 ]
             ]

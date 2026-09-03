@@ -23,12 +23,12 @@ public sealed partial class LifecycleCycleDemo : Component
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.Log(AppendCycleLog).InstanceId(_nextCycleId)
-                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe not mounted."],
-            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm mt-4")["Log"],
+                : P.Class("text-ui-muted italic mb-0")["Probe not mounted."],
+            H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             _cycleLog.Count == 0
-                ? P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0")["Empty — mount and unmount the probe."]
+                ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
                 : Ol
-                    .Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700")
+                    .Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-ui-line")
                     .Id("lifecycle-cycle-log")[
                     _cycleLog.Select((l, i) => Li
                         .Key(i)

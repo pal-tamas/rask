@@ -24,7 +24,7 @@ public sealed partial class BlazorIslandPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Blazor island"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "A real Blazor component — compiled by the Razor SDK, in a referenced class library that ",
             "knows nothing about Rask — rendered inside this page, in the browser, on WebAssembly. ",
             "Deriving from BlazorComponent<T> is the whole declaration: the chain steps are read from ",

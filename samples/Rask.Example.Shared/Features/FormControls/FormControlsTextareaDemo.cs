@@ -20,7 +20,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                     .Rows(3)
                     .Placeholder("Type, then blur…")
                     .Id("fc-textarea-controlled"),
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-textarea-controlled-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
                     "Length: ", Strong[_controlled.Length.ToString()]
                 ]
             ],
@@ -33,7 +33,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                         .Placeholder("Type…")
                         .Id("fc-textarea-bound")
                 ],
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-textarea-bound-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-bound-out")[
                     "Length: ", Strong[_model.Bio.Length.ToString()]
                 ]
             ]

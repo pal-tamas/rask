@@ -37,7 +37,7 @@ public sealed partial class BindingAfterBindDemo : Component
                 _cities.Select(c => Option.Value(c).Key(c)[c])
             ]
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-after-echo")[
                 $"Country = {_model.Country}\n" +
                 $"City    = {_model.City}"

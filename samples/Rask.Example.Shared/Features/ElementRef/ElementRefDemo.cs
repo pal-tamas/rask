@@ -25,11 +25,11 @@ public sealed partial class ElementRefDemo : Component
                 Button.Type("button").Class(Tw.BtnPrimary).OnClickAsync(FocusInput)["Focus the input"],
                 Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClickAsync(MeasureBox)["Measure the box"]
             ],
-            Div.Ref(_box).Class("border rounded p-3 bg-slate-100")[
+            Div.Ref(_box).Class("border rounded p-3 bg-ui-well")[
                 "A box carrying an ElementRef — its width is read by passing the ref to JS."
             ],
             _measured.Length > 0
-                ? P.Class("text-sm text-slate-500 dark:text-slate-400 mt-2 mb-0")[_measured]
+                ? P.Class("text-sm text-ui-muted mt-2 mb-0")[_measured]
                 : null
         ];
 

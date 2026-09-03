@@ -53,7 +53,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 !_supported
-                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("rtc-state")[
+                    ? Div.Class("text-sm text-ui-muted italic").Id("rtc-state")[
                         "This browser has no WebRTC support."]
                     : Div[
                         Div.Class("flex gap-2 mb-2")[
@@ -66,14 +66,14 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                                 .Disabled(!_everConnected)
                                 .OnClickAsync(SendAsync)["Send a message"]
                         ],
-                        Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
+                        Div.Class("text-sm text-ui-muted mb-1")[
                             "Connection state: ", Span.Id("rtc-state")[_state]],
-                        Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
+                        Div.Class("text-sm text-ui-muted mb-1")[
                             "Local ICE candidates gathered: ",
                             Span.Id("rtc-candidates")[_localCandidates.ToString()]],
-                        Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Received by the other peer:"],
+                        Div.Class("text-sm text-ui-muted mb-1")["Received by the other peer:"],
                         _log.Count == 0
-                            ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("rtc-log")["(nothing yet)"]
+                            ? Div.Class("text-sm text-ui-muted italic").Id("rtc-log")["(nothing yet)"]
                             : Ul.Class("text-sm mb-0").Id("rtc-log")[
                                 _log.Select(m => Li.Key(m)[m])
                             ]

@@ -27,7 +27,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                     Button.Class(Tw.BtnOutlinePrimary).Id("fs-saveas").OnClickAsync(SaveAs)[
                         "Save as…"]
                 ],
-                Div.Class("mb-2 text-sm text-slate-500 dark:text-slate-400")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
+                Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
                 Textarea
                     .Value(_text)
                     .Id("fs-text")
@@ -35,7 +35,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                     .Rows(8)
                     .Placeholder("Open a text file, or type here and Save as…")
                     .OnInput(v => _text = v),
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("fs-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fs-status")[_status]]
             ]
         ];
 

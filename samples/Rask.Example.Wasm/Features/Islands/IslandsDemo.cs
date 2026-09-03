@@ -49,7 +49,7 @@ public sealed partial class IslandsDemo : Component
         Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
             Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "The same ", Code["VueChart.vue"], " the Server showcase builds. Clicking a bar ",
                     "re-enters C# — here through a ", Code["[JSExport]"], " call into this tab's ",
                     "runtime rather than over a socket."
@@ -70,7 +70,7 @@ public sealed partial class IslandsDemo : Component
         Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
             Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
                     "the counters below have to survive it — a remount would reset them, and nothing ",
                     "else on the page would look any different."
@@ -98,7 +98,7 @@ public sealed partial class IslandsDemo : Component
         Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
             Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "Byte-identical to ", Code["SolidSpark.tsx"], " on the Server host. Its hover count ",
                     "belongs to Solid and C# never sees it, so raising the reading has to reach it as a ",
                     "prop change rather than a remount."

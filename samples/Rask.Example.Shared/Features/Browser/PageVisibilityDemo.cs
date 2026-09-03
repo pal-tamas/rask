@@ -18,8 +18,8 @@ public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Com
                     .Id("vis-read")
                     .OnClickAsync(Read)[
                     "Read visibility"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["State: ", Code.Id("vis-value")[_state ?? "(not read)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("vis-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["State: ", Code.Id("vis-value")[_state ?? "(not read)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vis-status")[_status ?? "(idle)"]]
             ]
         ];
 

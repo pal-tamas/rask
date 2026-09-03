@@ -16,7 +16,7 @@ public sealed partial class PageHeaderTests : global::Rask.Core.RaskMarkup
         // <h1> is the heading LEVEL; the utilities set its size, which used to be Bootstrap's .h2.
         Assert.Contains("<h1 class=\"text-3xl font-bold mb-2\">Greetings</h1>", html);
         Assert.Contains(
-            "<p class=\"text-lg text-slate-500 dark:text-slate-400 mb-0\">A welcoming subtitle.</p>", html);
+            "<p class=\"text-lg text-ui-muted mb-0\">A welcoming subtitle.</p>", html);
     }
 
     [Fact]

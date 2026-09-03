@@ -36,7 +36,7 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
                         .Disabled(_stream is null)
                         .OnClickAsync(Stop)["Stop"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("media-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status]]
             ]
         ];
 

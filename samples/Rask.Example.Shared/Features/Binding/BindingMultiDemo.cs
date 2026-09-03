@@ -38,7 +38,7 @@ public sealed partial class BindingMultiDemo : Component
                 Option.Value("Blue")["Blue"]
             ]
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[
                 $"Subscribe = {(_model.Subscribe ? "true" : "false")}\n" +
                 $"Age       = {_model.Age}\n" +

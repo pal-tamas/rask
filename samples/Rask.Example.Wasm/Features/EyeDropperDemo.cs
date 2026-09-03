@@ -19,7 +19,7 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
                     Button.Class(Tw.BtnPrimary).Id("eyedropper-pick").OnClickAsync(Pick)[
                         Icon.Name(IconName.Eyedropper).Class("me-1"), "Pick a color"],
                     _hex is null
-                        ? (Component)Span.Class("text-slate-500 dark:text-slate-400 text-sm")["No color picked yet"]
+                        ? (Component)Span.Class("text-ui-muted text-sm")["No color picked yet"]
                         : Div.Class("flex items-center gap-2")[
                             Span
                                 .Id("eyedropper-swatch")
@@ -28,7 +28,7 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
                             Code.Id("eyedropper-hex")[_hex]
                         ]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("eyedropper-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("eyedropper-status")[_status]]
             ]
         ];
 

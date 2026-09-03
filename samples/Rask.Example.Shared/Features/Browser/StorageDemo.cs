@@ -27,8 +27,8 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
                     Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("storage-read").OnClickAsync(Read)["Read"],
                     Button.Type("button").Class(Tw.BtnOutlineDanger).Id("storage-remove").OnClickAsync(Remove)["Remove"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
             ]
         ];
 

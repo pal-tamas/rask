@@ -43,7 +43,7 @@ div .sample-result-label
 div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .js-only-btn .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-span .dark:text-slate-400 .text-slate-500
+span .text-ui-muted
 strong
 
 === asset-lazy-mount ===
@@ -94,7 +94,7 @@ div .twin-tag
 === auth-authorize ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -119,7 +119,7 @@ div .bg-ui-well .mb-0 .px-4 .py-2 .py-3 .rounded-lg .text-sm .text-ui-ink
 === auth-user-gate ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -135,7 +135,7 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div
-p .dark:text-slate-400 .text-slate-500
+p .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-ui-warn .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-warn/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
@@ -164,21 +164,21 @@ div .lg:col-span-5
 div .bg-ui-bg .border-0 .h-full .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .items-baseline .items-center .justify-between .mb-3
-h3 .dark:text-slate-400 .font-semibold .mb-0 .text-base .text-slate-500 .text-sm .uppercase
+h3 .font-semibold .mb-0 .text-base .text-sm .text-ui-muted .uppercase
 span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
 div .gap-4 .grid .grid-cols-12 .text-center
 div .col-span-6
 div .font-bold .text-2xl
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 div .col-span-6
 div .font-bold .text-2xl
-div .dark:text-slate-400 .text-slate-500 .text-sm
-p .dark:text-slate-400 .mb-0 .mt-3 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
+p .mb-0 .mt-3 .text-sm .text-ui-muted
 code
 div .lg:col-span-7
 div .bg-ui-bg .border-0 .h-full .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-h3 .dark:text-slate-400 .font-semibold .mb-3 .text-base .text-slate-500 .text-sm .uppercase
+h3 .font-semibold .mb-3 .text-base .text-sm .text-ui-muted .uppercase
 div .metrics-chart-container
 svg .metrics-chart-svg
 line
@@ -218,7 +218,7 @@ select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-n
 option
 option
 option
-pre .bg-slate-100 .border .mb-0 .p-3 .rounded .text-sm
+pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-afterbind-async ===
@@ -248,7 +248,7 @@ div .mb-3
 label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
 select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 option
-pre .bg-slate-100 .border .mb-0 .p-3 .rounded .text-sm
+pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-clear-default ===
@@ -273,13 +273,13 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 div .mb-3
 label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-pre .bg-slate-100 .border .mb-0 .p-3 .rounded .text-sm
+pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-manual ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -301,7 +301,7 @@ code
 === binding-multi ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -331,7 +331,7 @@ select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-n
 option
 option
 option
-pre .bg-slate-100 .border .mb-0 .p-3 .rounded .text-sm
+pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-nullable ===
@@ -366,13 +366,13 @@ option
 div .mb-3
 label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-pre .bg-slate-100 .border .mb-0 .p-3 .rounded .text-sm
+pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-textarea ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -388,13 +388,13 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-pre .bg-slate-100 .border .mb-0 .p-3 .rounded .text-sm
+pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-typed ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -430,7 +430,7 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .bg-white .border .p-3 .rounded
-p .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-danger .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 span .inline-block .leading-none .me-2
 
@@ -451,9 +451,9 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .bg-white .border .p-3 .rounded
-p .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
-div .bg-slate-100 .border .p-3 .rounded
-p .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+p .mb-2 .text-sm .text-ui-muted
+div .bg-ui-well .border .p-3 .rounded
+p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-danger .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 span .inline-block .leading-none .me-2
 
@@ -474,7 +474,7 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .bg-white .border .p-3 .rounded
-p .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-warn .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-warn/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
 span .inline-block .leading-none .me-2
 
@@ -498,13 +498,13 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-broadcast-channel ===
@@ -526,8 +526,8 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
-div .dark:text-slate-400 .italic .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
+div .italic .text-sm .text-ui-muted
 
 === browser-clipboard ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -551,9 +551,9 @@ div .flex .gap-2 .mb-2
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-cookies ===
@@ -579,9 +579,9 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-crypto ===
@@ -605,15 +605,15 @@ div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+div .mb-2 .text-sm .text-ui-muted
 code
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-div .dark:text-slate-400 .text-break .text-slate-500 .text-sm
+div .text-break .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-device-sensors ===
@@ -635,18 +635,18 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .mb-3 .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-div .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+div .mb-2 .text-sm .text-ui-muted
 code
 div .gap-4 .grid .grid-cols-12
 div .sm:col-span-6
 div .font-semibold .mb-1 .text-sm
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 code
 code
 div .sm:col-span-6
 div .font-semibold .mb-1 .text-sm
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 code
 code
@@ -675,10 +675,10 @@ span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+div .mb-2 .text-sm .text-ui-muted
 code
 textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-gamepad ===
@@ -699,11 +699,11 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-div .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+div .mb-2 .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+div .mb-2 .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 
 === browser-geolocation ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -724,9 +724,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-geolocation-watch ===
@@ -749,16 +749,16 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 span .ms-2
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-gesture-bridge ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -779,16 +779,16 @@ div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ok/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-ok/40 .rounded-md .text-sm .text-ui-ok-ink .transition
-span .dark:text-slate-400 .text-slate-500 .text-sm
+span .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-span .dark:text-slate-400 .text-slate-500 .text-sm
+span .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 video
-div .dark:text-slate-400 .mt-3 .text-slate-500 .text-sm
+div .mt-3 .text-sm .text-ui-muted
 code
 code
 
@@ -820,11 +820,11 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-intersection ===
@@ -847,10 +847,10 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
-span .dark:text-slate-400 .text-slate-500 .text-sm
-p .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+span .text-sm .text-ui-muted
+p .mb-2 .text-sm .text-ui-muted
 div
-div .bg-slate-100 .p-4 .rounded .text-center
+div .bg-ui-well .p-4 .rounded .text-center
 
 === browser-media-query ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -871,9 +871,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-media-session ===
@@ -899,10 +899,10 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-p .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
-div .dark:text-slate-400 .text-slate-500 .text-sm
+p .mb-2 .text-sm .text-ui-muted
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-mutation ===
@@ -930,10 +930,10 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 div .border .mb-3 .p-3 .rounded
 ul .mb-0
 li
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-navigator-info ===
@@ -955,9 +955,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-network ===
@@ -979,9 +979,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-notifications ===
@@ -1007,7 +1007,7 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-opfs ===
@@ -1032,11 +1032,11 @@ div .flex .flex-wrap .gap-2 .mb-2
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-page-visibility ===
@@ -1058,9 +1058,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-performance ===
@@ -1082,9 +1082,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-permissions ===
@@ -1108,11 +1108,11 @@ div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-resize ===
@@ -1133,10 +1133,10 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-div .dark:text-slate-400 .mb-2 .text-slate-500 .text-sm
+div .mb-2 .text-sm .text-ui-muted
 code
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .bg-slate-100 .rounded .text-center .w-fullp-4
+div .bg-ui-well .rounded .text-center .w-fullp-4
 
 === browser-screen ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1157,15 +1157,15 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-share ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1184,7 +1184,7 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-signaling ===
@@ -1208,10 +1208,10 @@ div .p-5
 div .flex .gap-2 .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-ui-well .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-line/40 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
 span
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
-div .dark:text-slate-400 .italic .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
+div .italic .text-sm .text-ui-muted
 
 === browser-speech ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1235,7 +1235,7 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-speech-recognition ===
@@ -1259,9 +1259,9 @@ div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-storage ===
@@ -1287,9 +1287,9 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-storage-estimate ===
@@ -1311,9 +1311,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-vibration ===
@@ -1338,7 +1338,7 @@ div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-visual-viewport ===
@@ -1360,9 +1360,9 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-web-locks ===
@@ -1387,9 +1387,9 @@ div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .italic .text-slate-500 .text-sm
+div .italic .text-sm .text-ui-muted
 
 === browser-webauthn ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1413,9 +1413,9 @@ div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 code
 
 === browser-webrtc ===
@@ -1436,7 +1436,7 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-div .dark:text-slate-400 .italic .text-slate-500 .text-sm
+div .italic .text-sm .text-ui-muted
 
 === callback-rating ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1461,7 +1461,7 @@ button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leadin
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
-p .dark:text-slate-400 .mb-0 .mt-2 .text-slate-500 .text-sm
+p .mb-0 .mt-2 .text-sm .text-ui-muted
 
 === cancellation ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1485,9 +1485,9 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 span .inline-block .leading-none .me-1
-p .dark:text-slate-400 .italic .mb-0 .text-slate-500
-h3 .dark:text-slate-400 .font-semibold .mt-4 .text-base .text-slate-500 .text-sm .uppercase
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .italic .mb-0 .text-ui-muted
+h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
+p .mb-0 .text-sm .text-ui-muted
 
 === component-tiers ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1513,7 +1513,7 @@ div .md:col-span-4
 div .bg-ui-bg .h-full .ring-1 .ring-ui-line .rounded-xl
 div .p-5
 h6 .font-semibold .mb-1
-p .dark:text-slate-400 .text-slate-500 .text-sm
+p .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center
 span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
 span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
@@ -1522,20 +1522,20 @@ div .md:col-span-4
 div .bg-ui-bg .h-full .ring-1 .ring-ui-line .rounded-xl
 div .p-5
 h6 .font-semibold .mb-1
-p .dark:text-slate-400 .text-slate-500 .text-sm
+p .text-sm .text-ui-muted
 p .mb-0
 strong
 div .md:col-span-4
 div .bg-ui-bg .h-full .ring-1 .ring-ui-line .rounded-xl
 div .p-5
 h6 .font-semibold .mb-1
-p .dark:text-slate-400 .text-slate-500 .text-sm
+p .text-sm .text-ui-muted
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 
 === components-di ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1554,7 +1554,7 @@ div .sample-result-body
 === components-greeting ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1575,7 +1575,7 @@ strong
 === components-skipfactory ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1612,13 +1612,13 @@ div .sample-result-body
 div .border .p-3 .rounded
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .mb-3 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 div .flex .flex-wrap .gap-2 .items-center .items-center
-span .dark:text-slate-400 .text-slate-500 .text-sm
+span .text-sm .text-ui-muted
 span .bg-amber-100 .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-amber-900 .text-ui-muted .text-xs .theme-badge
 
 === cqrs-counter ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1645,7 +1645,7 @@ li .bg-ui-bg .flex .gap-2 .items-center .px-4 .py-1 .py-2 .text-sm .text-ui-ink
 === data-download ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1663,12 +1663,12 @@ div .sample-result-body
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 span .inline-block .leading-none .me-2
-div .dark:text-slate-400 .mt-2 .text-slate-500 .text-sm
+div .mt-2 .text-sm .text-ui-muted
 
 === data-http-fetch ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1683,13 +1683,13 @@ code .language-csharp
 div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-div .dark:text-slate-400 .flex .items-center .text-slate-500
+div .flex .items-center .text-ui-muted
 span .animate-spin .border-2 .border-current .border-r-transparent .inline-block .me-2 .rounded-full .size-4 .size-5
 
 === data-http-register ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1704,16 +1704,16 @@ code .language-csharp
 div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-div .bg-slate-100 .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl
+div .bg-ui-bg .bg-ui-well .border-0 .ring-1 .ring-ui-line .rounded-xl
 div .p-5
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm .uppercase
+div .mb-1 .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm
 code
 
 === data-upload ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -1730,7 +1730,7 @@ div .sample-result-label
 div .sample-result-body
 div
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-3 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-div .dark:text-slate-400 .text-slate-500 .text-sm
+div .text-sm .text-ui-muted
 
 === disposal-async ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1754,9 +1754,9 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 span .inline-block .leading-none .me-1
-p .dark:text-slate-400 .italic .mb-0 .text-slate-500
-h3 .dark:text-slate-400 .font-semibold .mt-4 .text-base .text-slate-500 .text-sm .uppercase
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .italic .mb-0 .text-ui-muted
+h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
+p .mb-0 .text-sm .text-ui-muted
 
 === disposal-sync ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1780,9 +1780,9 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 span .inline-block .leading-none .me-1
-p .dark:text-slate-400 .italic .mb-0 .text-slate-500
-h3 .dark:text-slate-400 .font-semibold .mt-4 .text-base .text-slate-500 .text-sm .uppercase
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .italic .mb-0 .text-ui-muted
+h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
+p .mb-0 .text-sm .text-ui-muted
 
 === disposal-unmount ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1806,9 +1806,9 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 span .inline-block .leading-none .me-1
-p .dark:text-slate-400 .italic .mb-0 .text-slate-500
-h3 .dark:text-slate-400 .font-semibold .mt-4 .text-base .text-slate-500 .text-sm .uppercase
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .italic .mb-0 .text-ui-muted
+h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
+p .mb-0 .text-sm .text-ui-muted
 
 === drag-drop-kanban ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -1835,25 +1835,15 @@ span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
-span
-div .col-span-12
-div .dd-column .h-full
-div .dd-column-header .flex .items-center .justify-between
-span .font-semibold
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
-div .dd-column-body
-div .card .dd-card
-div .flex .gap-2 .items-center .p-2 .p-5
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span
 div .col-span-12
 div .dd-column .h-full
@@ -1863,7 +1853,17 @@ span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
+span
+div .col-span-12
+div .dd-column .h-full
+div .dd-column-header .flex .items-center .justify-between
+span .font-semibold
+span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+div .dd-column-body
+div .card .dd-card
+div .flex .gap-2 .items-center .p-2 .p-5
+span .inline-block .leading-none .text-ui-muted
 span
 
 === drag-drop-sortable ===
@@ -1884,19 +1884,19 @@ div .sample-result-label
 div .sample-result-body
 ul .dd-list .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-span .dark:text-slate-400 .inline-block .leading-none .text-slate-500
+span .inline-block .leading-none .text-ui-muted
 span .font-semibold
 
 === elements-forms ===
@@ -1971,7 +1971,7 @@ div .sample-result-body
 div .flex .flex-col .gap-3
 p
 code
-pre .bg-slate-100 .border .mb-0 .p-2 .rounded
+pre .bg-ui-well .border .mb-0 .p-2 .rounded
 blockquote .border-l .border-l-4 .border-ui-line .italic .pl-4 .ps-3 .text-base .text-ui-muted
 hr
 div .gap-4 .grid .grid-cols-12
@@ -2017,12 +2017,12 @@ div .sample-result-body
 div .flex .flex-col .gap-3
 details .border .p-2 .rounded
 summary .font-semibold
-p .dark:text-slate-400 .mb-0 .mt-2 .text-slate-500
+p .mb-0 .mt-2 .text-ui-muted
 dialog .block .border .m-0 .p-3 .position-static .rounded .shadow-sm
 p .mb-0
 code
 div
-p .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+p .mb-1 .text-sm .text-ui-muted
 menu .list-inline .mb-0
 li .list-inline-item
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
@@ -2074,10 +2074,10 @@ area
 figcaption .mt-2 .text-sm .text-ui-muted
 div .gap-4 .grid .grid-cols-12
 div .md:col-span-6
-p .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+p .mb-1 .text-sm .text-ui-muted
 audio .w-full
 div .md:col-span-6
-p .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+p .mb-1 .text-sm .text-ui-muted
 video .border .rounded
 track
 
@@ -2099,16 +2099,16 @@ div .sample-result-label
 div .sample-result-body
 div .flex .flex-col .gap-3
 div
-p .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+p .mb-1 .text-sm .text-ui-muted
 pre .bg-slate-900 .mb-0 .p-3 .rounded .text-slate-100
 code
 div
-p .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
+p .mb-1 .text-sm .text-ui-muted
 div .border .p-2 .rounded
 template
 li
 slot
-p .dark:text-slate-400 .mb-0 .mt-1 .text-slate-500 .text-sm
+p .mb-0 .mt-1 .text-sm .text-ui-muted
 code
 
 === elements-sections ===
@@ -2131,7 +2131,7 @@ article .border .p-3 .rounded
 header
 hgroup
 h1 .font-semibold .mb-1 .text-xl
-p .dark:text-slate-400 .mb-0 .text-slate-500
+p .mb-0 .text-ui-muted
 nav .text-sm
 a .me-2
 a
@@ -2148,9 +2148,9 @@ h3 .font-semibold .mb-0 .text-base
 h4 .font-semibold .mb-0 .text-base
 h5 .font-semibold .mb-0 .text-base
 h6 .font-semibold .mb-0 .text-base
-aside .col-span-4 .dark:text-slate-400 .text-slate-500 .text-sm
+aside .col-span-4 .text-sm .text-ui-muted
 code
-footer .border-t .dark:text-slate-400 .mt-2 .pt-2 .text-slate-500 .text-sm
+footer .border-t .mt-2 .pt-2 .text-sm .text-ui-muted
 address .inline .italic
 
 === elements-tables ===
@@ -2172,7 +2172,7 @@ div .sample-result-body
 table .[&amp;_td]:border .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:border .[&amp;_th]:px-3 .[&amp;_th]:py-2 .mb-0 .text-left .text-sm .text-sm .w-full
 caption .caption-top
 colgroup
-col .bg-slate-100
+col .bg-ui-well
 col
 thead
 tr
@@ -2253,7 +2253,7 @@ del
 === events ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -2272,18 +2272,18 @@ div .gap-4 .grid .grid-cols-12
 div .md:col-span-6
 div .border .p-4 .rounded .text-center .user-select-none
 strong
-div .dark:text-slate-400 .mt-2 .text-slate-500
+div .mt-2 .text-ui-muted
 div .md:col-span-6
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .py-4 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition .w-full
-div .dark:text-slate-400 .mt-2 .text-slate-500
+div .mt-2 .text-ui-muted
 div .md:col-span-6
 div .border .p-4 .rounded
 strong
-div .dark:text-slate-400 .mt-2 .text-slate-500
+div .mt-2 .text-ui-muted
 div .md:col-span-6
 div .border .p-4 .rounded
 strong
-div .dark:text-slate-400 .mt-2 .text-slate-500
+div .mt-2 .text-ui-muted
 
 === events-click ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -2307,7 +2307,7 @@ span .inline-block .leading-none .me-2
 === events-form ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -2433,13 +2433,13 @@ div .gap-4 .grid .grid-cols-12
 div .md:col-span-6
 label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 strong
 div .md:col-span-6
 label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 form
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 strong
 
 === form-controls-select ===
@@ -2465,7 +2465,7 @@ select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-n
 option
 option
 option
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 strong
 div .md:col-span-6
 label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
@@ -2474,7 +2474,7 @@ select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-n
 option
 option
 option
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 strong
 
 === form-controls-textarea ===
@@ -2497,13 +2497,13 @@ div .gap-4 .grid .grid-cols-12
 div .md:col-span-6
 label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 strong
 div .md:col-span-6
 label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 form
 textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 strong
 
 === js-interop-elementref ===
@@ -2529,7 +2529,7 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-div .bg-slate-100 .border .p-3 .rounded
+div .bg-ui-well .border .p-3 .rounded
 
 === js-interop-jsruntime ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -2560,11 +2560,11 @@ span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
 span .inline-block .leading-none .me-1
 div .mb-2
-span .dark:text-slate-400 .text-slate-500 .text-sm .uppercase
+span .text-sm .text-ui-muted .uppercase
 div
 code .text-base
 div
-span .dark:text-slate-400 .text-slate-500 .text-sm .uppercase
+span .text-sm .text-ui-muted .uppercase
 div
 code .text-base
 
@@ -2597,7 +2597,7 @@ span .dot
 === js-interop-thirdparty ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -2631,8 +2631,8 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 div .rask-gantt
 div .bg-ui-bg .gantt-log .ring-1 .ring-ui-line .rounded-xl
 div .p-5 .py-2
-div .dark:text-slate-400 .mb-1 .text-slate-500 .text-sm
-div .dark:text-slate-400 .italic .text-slate-500 .text-sm
+div .mb-1 .text-sm .text-ui-muted
+div .italic .text-sm .text-ui-muted
 table .border-collapse .text-left .text-sm .w-full
 thead
 tr
@@ -2739,9 +2739,9 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 span .inline-block .leading-none .me-1
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 span .inline-block .leading-none .me-1
-p .dark:text-slate-400 .italic .mb-0 .text-slate-500
-h3 .dark:text-slate-400 .font-semibold .mt-4 .text-base .text-slate-500 .text-sm .uppercase
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .italic .mb-0 .text-ui-muted
+h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
+p .mb-0 .text-sm .text-ui-muted
 
 === lifecycle-hooks ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -2763,8 +2763,8 @@ div .flex .flex-wrap .gap-3 .items-center .mb-3
 span .bg-ui-brand/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-base .text-ui-brand-ink .text-xs
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
 span .inline-block .leading-none .me-1
-h3 .dark:text-slate-400 .font-semibold .text-base .text-slate-500 .text-sm .uppercase
-ol .dark:divide-slate-700 .divide-slate-200 .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
+h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
+ol .divide-ui-line .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
 code .text-sm
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
@@ -2777,7 +2777,7 @@ code .text-sm
 === lifecycle-ticker ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -2802,18 +2802,18 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .items-baseline .items-center .justify-between .mb-3
 h3 .font-semibold .mb-0 .text-xl
-span .dark:text-slate-400 .text-slate-500 .text-sm
+span .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-3 .items-baseline .items-center .mb-3
 span .font-bold .text-3xl
 div .ticker-chart-container
 svg .ticker-chart-svg
 div .lg:col-span-5
-div .bg-slate-100 .bg-ui-bg .border-0 .h-full .ring-1 .ring-ui-line .rounded-xl
+div .bg-ui-bg .bg-ui-well .border-0 .h-full .ring-1 .ring-ui-line .rounded-xl
 div .p-5
 div .flex .flex-wrap .items-center .justify-between .mb-3
-h3 .dark:text-slate-400 .font-semibold .mb-0 .text-base .text-slate-500 .text-sm .uppercase
+h3 .font-semibold .mb-0 .text-base .text-sm .text-ui-muted .uppercase
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-ol .dark:divide-slate-700 .divide-slate-200 .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
+ol .divide-ui-line .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-transparent .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
 code .text-sm
 li .bg-transparent .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
@@ -2827,7 +2827,7 @@ code .text-sm
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
 h5 .font-semibold .mb-0
-p .dark:text-slate-400 .mb-0 .mt-1 .text-slate-500 .text-sm
+p .mb-0 .mt-1 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -2893,28 +2893,28 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .overflow-x-auto
-table .[&amp;_tbody_tr:hover]:bg-slate-50 .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .align-middle .mb-0 .text-left .text-sm .w-full
-thead .bg-slate-100
+table .[&amp;_tbody_tr:hover]:bg-ui-well .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .align-middle .mb-0 .text-left .text-sm .w-full
+thead .bg-ui-well
 tr
 th
 th
-button .dark:text-slate-100 .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-slate-900 .text-sm .text-ui-brand-ink .underline-offset-2
+button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
 span .inline-block .leading-none .opacity-50 .text-xs
 th
-button .dark:text-slate-100 .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-slate-900 .text-sm .text-ui-brand-ink .underline-offset-2
+button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
 span .inline-block .leading-none .opacity-50 .text-xs
 th
-button .dark:text-slate-100 .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-slate-900 .text-sm .text-ui-brand-ink .underline-offset-2
+button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
 span .inline-block .leading-none .opacity-50 .text-xs
 th
-button .dark:text-slate-100 .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-slate-900 .text-sm .text-ui-brand-ink .underline-offset-2
+button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
 span .inline-block .leading-none .opacity-50 .text-xs
 th
-button .dark:text-slate-100 .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-slate-900 .text-sm .text-ui-brand-ink .underline-offset-2
+button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
 span .inline-block .leading-none .opacity-50 .text-xs
 tbody
@@ -2923,140 +2923,140 @@ td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-brand/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-brand-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-warn/15 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-warn-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-danger/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-ok/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-brand/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-brand-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-ok/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-brand/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-brand-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-danger/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-warn/15 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-warn-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-warn/15 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-warn-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-danger/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-danger/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-ok/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 tr .md-row
 td
 button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
 span .inline-block .leading-none
 td .font-semibold
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 span .bg-ui-ok/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
-td .dark:text-slate-400 .text-slate-500
+td .text-ui-muted
 td
 
 === nested-fluent ===
@@ -3171,7 +3171,7 @@ th
 th
 tbody
 tr
-td .dark:text-slate-400 .text-slate-500 .text-sm
+td .text-sm .text-ui-muted
 td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
@@ -3261,7 +3261,7 @@ code .language-csharp
 div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-span .dark:text-slate-400 .text-slate-500
+span .text-ui-muted
 code
 
 === primitives-fragment ===
@@ -3416,7 +3416,7 @@ code .language-csharp
 div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-div .bg-slate-100 .border .p-2 .rounded
+div .bg-ui-well .border .p-2 .rounded
 
 === props-id-class-style ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
@@ -3457,11 +3457,11 @@ div .bg-ui-bg .border-0 .mb-3 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .gap-4 .grid .grid-cols-12
 div .md:col-span-6
-span .dark:text-slate-400 .text-slate-500 .text-sm .uppercase
+span .text-sm .text-ui-muted .uppercase
 div
 code .text-base
 div .md:col-span-6
-span .dark:text-slate-400 .text-slate-500 .text-sm .uppercase
+span .text-sm .text-ui-muted .uppercase
 div
 code .text-base
 div .flex-wrap
@@ -3474,7 +3474,7 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 === routing-nested-layout ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -3493,7 +3493,7 @@ div .sample-result-body
 === routing-route-state ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -3530,7 +3530,7 @@ circle
 circle
 circle
 circle
-p .dark:text-slate-400 .mb-0 .mt-2 .text-slate-500 .text-sm
+p .mb-0 .mt-2 .text-sm .text-ui-muted
 strong
 
 === svg-gradient ===
@@ -3796,7 +3796,7 @@ span .inline-block .leading-none .me-1
 === validation-fields ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -3859,7 +3859,7 @@ span .inline-block .leading-none .me-1
 === validation-fluent ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -3912,7 +3912,7 @@ span .inline-block .leading-none .me-1
 === validation-inline ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .bg-white .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
-p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+p .mb-0 .text-sm .text-ui-muted
 div .sample-code-col
 div .sample-code-header
 span .dot-r .sample-dot
@@ -3987,7 +3987,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-span .dark:text-slate-400 .text-slate-500
+span .text-ui-muted
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .border .p-3 .rounded
 div .font-semibold .mb-2 .text-sm
@@ -4007,9 +4007,9 @@ div .col-span-3
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-span .dark:text-slate-400 .text-slate-500
+span .text-ui-muted
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-div .bg-slate-100 .p-3 .rounded .text-sm
+div .bg-ui-well .p-3 .rounded .text-sm
 div .flex .flex-wrap .items-center .justify-between
 span
 span

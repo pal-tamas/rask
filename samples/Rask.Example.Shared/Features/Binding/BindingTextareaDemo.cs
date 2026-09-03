@@ -11,7 +11,7 @@ public sealed partial class BindingTextareaDemo : Component
             .Class($"{Tw.Input} mb-2")
             .Rows(3)
             .Placeholder("Jot something down…"),
-        Pre.Class("text-sm mb-0 p-3 bg-slate-100 border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[
                 $"Notes  = \"{_model.Notes}\"\n" +
                 $"Length = {_model.Notes.Length}"

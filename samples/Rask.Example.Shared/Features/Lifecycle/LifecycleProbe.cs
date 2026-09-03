@@ -36,8 +36,8 @@ public sealed partial class LifecycleProbe : Component
                 Button.Type("button").Class(Tw.BtnPrimary)
                     .OnClick(() => _log.Add("Trigger re-render (button click)"))[Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Trigger re-render"]
             ],
-            H3.Class("text-base font-semibold text-slate-500 dark:text-slate-400 uppercase text-sm")["Hook log"],
-            Ol.Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-slate-200 dark:divide-slate-700")[
+            H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
+            Ol.Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-ui-line")[
                 _log.Select((l, i) => Li.Key(i).Class($"{Tw.ListGroupItem} ps-2 text-sm")[Code.Class("text-sm")[l]])
                     .ToArray()]
         ];

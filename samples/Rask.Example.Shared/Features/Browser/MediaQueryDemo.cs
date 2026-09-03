@@ -15,8 +15,8 @@ public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
                     .Id("media-read")
                     .OnClickAsync(Read)[
                     "Evaluate media queries"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]
             ]
         ];
 

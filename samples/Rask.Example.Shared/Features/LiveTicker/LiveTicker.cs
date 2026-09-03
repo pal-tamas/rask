@@ -200,7 +200,7 @@ public sealed partial class LiveTicker : Component
             Div.Class(Tw.CardBody)[
                 Div.Class("flex justify-between items-baseline flex-wrap items-center mb-3")[
                     H3.Class("text-xl font-semibold mb-0").Id("ticker-symbol")[Symbol],
-                    Span.Class("text-slate-500 dark:text-slate-400 text-sm")[
+                    Span.Class("text-ui-muted text-sm")[
                         $"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
                 ],
                 Div.Class("flex gap-3 items-baseline flex-wrap items-center mb-3")[

@@ -31,12 +31,12 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
                         .Disabled(!Listening)
                         .OnClickAsync(Stop)["Stop"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
+                Div.Class("text-sm text-ui-muted mb-1")[
                     "Transcript: ",
                     Code.Id("speech-recognize-transcript")[_transcript.Length == 0 ? "(none)" : _transcript],
-                    _interim.Length == 0 ? (Component?)null : Span.Class("text-slate-500 dark:text-slate-400 italic")[" ", _interim]
+                    _interim.Length == 0 ? (Component?)null : Span.Class("text-ui-muted italic")[" ", _interim]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("speech-recognize-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-recognize-status")[_status]]
             ]
         ];
 
