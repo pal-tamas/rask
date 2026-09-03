@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The Shop provenance suite now looks both ways.** It walked the CLI's output and checked each file
+  was in the sample, which cannot see an **orphan** — a file the sample still carries and the generator
+  no longer emits. That blind spot is not hypothetical: removing `--auth` left a demo credential store
+  and a login page committed in the sample, and the suite stayed green. The new check fails with the
+  path and what to do about it, and was verified by planting an orphan and watching it name it.
+
 - **The Shop sample is `rask new` output again, on the accounts battery.** Removing `--auth` made its
   provenance claim false in a way `ShopProvenanceTests` could not see — the test walks the CLI's output
   and checks each file is in the sample, so files the sample carries and the CLI no longer writes are
