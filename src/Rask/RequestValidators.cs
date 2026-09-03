@@ -40,7 +40,11 @@ public sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValidato
     public ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
         TRequest request, CancellationToken cancellationToken)
     {
-        if (request is null)
+        // One switch means one switch. On the server c.Validation.Off() also clears
+        // CqrsOptions.ValidateRequests, so this is redundant there; on WebAssembly there is no options
+        // object to configure, and without this line turning validation off would stop forms validating
+        // and quietly leave requests being validated.
+        if (request is null || !RaskValidation.AutoValidate)
         {
             return ValueTask.FromResult<IReadOnlyList<RequestValidationError>>([]);
         }
@@ -83,7 +87,8 @@ public sealed class FluentValidationRequestValidator<TRequest> : IRequestValidat
     public async ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
         TRequest request, CancellationToken cancellationToken)
     {
-        if (request is null || RaskValidators.Find(typeof(TRequest)) is not { } factory)
+        if (request is null || !RaskValidation.AutoValidate
+            || RaskValidators.Find(typeof(TRequest)) is not { } factory)
         {
             return [];
         }
@@ -136,7 +141,7 @@ public sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
     public async ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
         object request, CancellationToken cancellationToken)
     {
-        if (request is null)
+        if (request is null || !RaskValidation.AutoValidate)
         {
             return [];
         }
