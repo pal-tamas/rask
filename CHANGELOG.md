@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The Shop sample is `rask new` output again, on the accounts battery.** Removing `--auth` made its
+  provenance claim false in a way `ShopProvenanceTests` could not see — the test walks the CLI's output
+  and checks each file is in the sample, so files the sample carries and the CLI no longer writes are
+  invisible to it. Shop kept a demo credential store comparing passwords as plaintext, a login page
+  built on it, and a README documenting a command that now errors on both its flags.
+
+  Shop now calls `AddRaskAuth<AppDbContext>()` and lets `/login` be the framework's. `MembersPage`
+  stays as the sample's own — a protected page with `[Authorize]` and `Authorize.Roles` is worth
+  showing — and is listed as hand-written in the provenance exemptions.
+
+  It also carried the `RequireAuthenticatedUser` gap on `/_rask` that this release already fixed in the
+  templates; it requires the `admin` role now.
+
+  `NewCommand.ToBatteries` had kept a `bool auth = false` parameter that nothing read.
+
 - **`--auth` is gone.** It scaffolded a second auth system beside the battery: a demo credential store
   comparing passwords as **plaintext**, its own login and members pages, and a hand-written cookie
   scheme. The flag is removed and refused by name — a flag the CLI accepts and then disregards is the

@@ -178,7 +178,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Everything the template can do is on unless it was turned off, so the only per-battery input is
         // the --no-* set. Auth is the exception in both directions: off by default, and asked for by name.
         var off = BatteryFlags.Where(flag => parsed.HasFlag(OffFlag(flag))).ToArray();
-        var auth = parsed.HasFlag("auth");
         var wasm = parsed.HasFlag("wasm");
 
         // Turning off something this template never had is a mistake worth naming: it means the command
@@ -206,7 +205,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 + "through it, so it is the template rather than a battery in it.");
         }
 
-        var batteries = ToBatteries(template, off, auth, wasm);
+        var batteries = ToBatteries(template, off, wasm);
 
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
@@ -366,7 +365,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     internal static ServerBatteries ToBatteries(
         TemplateInfo template,
         IReadOnlyCollection<string> off,
-        bool auth = false,
         bool wasm = false)
     {
         // Every battery a template supports is on unless it was turned off. There is no longer an
@@ -531,7 +529,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var off = BatteryFlags.Where(f => args.Contains("--" + OffFlag(f), StringComparer.Ordinal)).ToArray();
         var batteries = ToBatteries(
             template, off,
-            auth: args.Contains("--auth", StringComparer.Ordinal),
             wasm: args.Contains("--wasm", StringComparer.Ordinal));
 
         var on = BatteryFlags.Where(f => f != "docker" && Includes(batteries, f)).ToArray();

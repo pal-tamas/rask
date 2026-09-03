@@ -7,7 +7,7 @@ one server.
 The project itself came from the CLI:
 
 ```bash
-rask new Rask.Example.Shop --auth --bootstrap
+rask new Rask.Example.Shop
 ```
 
 Everything inside it — the `Product` and `Order` slices, the job, the email, the cache and the ops page —
@@ -50,7 +50,9 @@ through the outbox; the cleanup is *scheduled*, so it goes to jobs.
 dotnet run --project samples/Rask.Example.Shop
 ```
 
-Then sign in at `/login` (`alice` / `password`), and visit `/products`, `/orders` and `/ops`.
+Then create an account at `/register` — the first one becomes the administrator, and the one-time
+token it asks for is in the startup log. Sign in at `/login`, and visit `/products`, `/orders`
+and `/ops` (the operator console is admin-only).
 
 Configuration (all optional — the defaults keep it self-contained):
 

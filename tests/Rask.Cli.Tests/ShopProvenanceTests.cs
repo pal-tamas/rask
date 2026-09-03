@@ -23,6 +23,7 @@ public sealed class ShopProvenanceTests
         "Features/Shared/DbInitializer.cs",   // a real app migrates; this one uses EnsureCreated so it just runs
         "Features/Orders/OrderCreatedHandler.cs", // the generator scaffolds a logging stub; this is the body
         "Features/Orders/OrderConfirmation.cs",   // ditto, for the email content
+        "Features/Auth/MembersPage.cs",           // a protected page of its own; /login is the framework's
         "Features/Ops/OpsPage.cs",                // the hand-rolled dashboard over every pillar's table
         "Features/Ops/BackupProbe.cs",            // lights up the built-in dashboard's Backup card
         "Program.cs",                             // + the DbInitializer call and SnapshotOnStartup
@@ -68,10 +69,9 @@ public sealed class ShopProvenanceTests
         var generated = ProjectGenerator.GenerateServer(
             "/generated",
             ProjectName,
-            // Exactly `rask new Rask.Example.Shop --auth --bootstrap`: the batteries are the defaults now,
-            // so the sample is the CLI's plain output plus the two things it still asks you — auth, and the
-            // Bs* styling the sample is written in.
-            NewCommand.ToBatteries(TemplateCatalog.Default, [], auth: true),
+            // Exactly `rask new Rask.Example.Shop`: every battery is a default now, and authentication is
+            // one of them, so the sample is the CLI's plain output with nothing added on the command line.
+            NewCommand.ToBatteries(TemplateCatalog.Default, []),
             version: "0.0.0");
 
         var sampleDirectory = SampleDirectory();

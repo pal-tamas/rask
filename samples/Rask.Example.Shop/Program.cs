@@ -1,15 +1,14 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Rask.Auth;
 using Rask.Cache;
 using Rask.Core.Browser;
 using Rask.Cqrs;
 using Rask.Dashboard;
 using Rask.Dashboard.Panels;
 using Rask.Data;
-using Rask.Example.Shop.Features.Auth;
 using Rask.Example.Shop.Features.Ops;
 using Rask.Example.Shop.Features.Push;
 using Rask.Example.Shop.Features.Shared;
@@ -195,7 +194,7 @@ builder.Services.AddSingleton<IDashboardBackupProbe, BackupProbe>();
 // is gated on this policy. Without one it would deny everyone outside Development. The demo credential
 // store has no roles, so this admits any signed-in user; a real app would require one.
 builder.Services.AddAuthorization(o =>
-    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
+    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin)));
 
 // The read-through cache accessor `rask generate cache` scaffolded. Scoped, like any component
 // dependency; the ICache it wraps is backed by the same database as everything else.
@@ -215,20 +214,10 @@ builder.Services.AddRaskPwa(new WebAppManifest
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
 });
 // Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem.
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(o =>
-    {
-        o.Cookie.Name = "rask.auth";
-        // Secure-by-default: never send the auth cookie over plain HTTP, and use SameSite=Lax so it
-        // doesn't ride cross-site POSTs (CSRF). The dev launch profile runs on HTTPS so the cookie
-        // is set in development too; if you must serve over plain HTTP, relax SecurePolicy.
-        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        // Fully qualified: the --pwa `using Rask.Core.Browser` also defines a SameSiteMode.
-        o.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-        o.LoginPath = "/login";
-        o.AccessDeniedPath = "/forbidden";
-    });
-builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
+// Accounts: register, sign in, sign out, on ASP.NET Core Identity. The cookie scheme comes with it, so
+// RaskApp's UseAuthentication/UseAuthorization below find a scheme provider and wire themselves in the
+// right order. The FIRST account to register becomes the administrator — which is what gates /_rask above.
+builder.Services.AddRaskAuth<AppDbContext>();
 var app = builder.Build();
 
 // Create the schema and seed, BEFORE app.Run() starts the hosted processors. A real app runs

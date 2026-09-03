@@ -433,7 +433,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         {
             var result = ProjectGenerator.GenerateServer(
                 projectDir, name,
-                NewCommand.ToBatteries(TemplateCatalog.Default, [], auth: true), version);
+                NewCommand.ToBatteries(TemplateCatalog.Default, []), version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
