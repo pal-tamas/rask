@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
@@ -20,7 +21,13 @@ namespace Rask.Html.Components;
 ///     no <c>action</c> or <c>method</c> to set: the page reacts rather than navigating away.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form">MDN</see>
 /// </summary>
-public sealed partial class Form<TModel> : Element
+public sealed partial class Form<
+    // The built-in DataAnnotations pass reflects over the model's public properties, and so does the
+    // graph walk that reaches its sub-objects. Without this the trimmer removes those properties from a
+    // published WebAssembly build and the form validates NOTHING — silently, with a green build and no IL
+    // warning. Same annotation, same reason, as BlazorComponent<T>'s type parameter.
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+    TModel> : Element
 {
     private EditContext? _context;
 
@@ -103,6 +110,18 @@ public sealed partial class Form<TModel> : Element
 
     /// <inheritdoc cref="Validate" />
     public ValidateAsync<TModel>? ValidateAsync { get; set; }
+
+    /// <summary>
+    ///     Whether this form validates its model with no validator declared — its
+    ///     <c>System.ComponentModel.DataAnnotations</c> attributes, plus any validator discovered for
+    ///     <c>TModel</c>. <see langword="true" /> by default.
+    ///     <para>
+    ///         Set it to <see langword="false" /> to take this one form out while leaving the rest of the
+    ///         app alone; <see cref="RaskValidation.AutoValidate" /> is the same switch for every form at
+    ///         once, and the global off wins — a form cannot opt back in.
+    ///     </para>
+    /// </summary>
+    public bool AutoValidate { get; set; } = true;
 
     /// <summary>
     ///     The relationship between this form and the destination it submits to — MDN lists
@@ -192,12 +211,41 @@ public sealed partial class Form<TModel> : Element
                 : new EditContext(Model);
         }
 
-        // RegisterFormValidator(null) clears any prior registration so a re-render that
-        // drops the Validate parameter doesn't leave a stale callback behind.
+        RegisterBuiltInValidators(ctx);
+
         // Whichever shape was given; null clears a prior registration so a re-render that drops the
         // validator does not leave a stale callback behind.
         ctx.RegisterFormValidator((Delegate?)Validate ?? ValidateAsync);
         return ctx;
+    }
+
+    // The built-in pass. This is what replaced writing `DataAnnotationsValidator,` inside every form:
+    // the attributes are already on the model, so there was never anything for that line to say that
+    // the model had not said already.
+    //
+    // Registering on every render is deliberate and free — EditContext.AddValidator dedups by runtime
+    // type, so the second and later calls are discarded. That is the same property the old component
+    // relied on to survive re-rendering.
+    //
+    // Order matters and is the decided one: DataAnnotations is an IFieldValidator (the sync stage) and a
+    // discovered validator is an IAsyncFieldValidator (the async stage), so EditContext's existing
+    // pipeline order already runs attributes first, and its per-field first-error-wins gating means an
+    // attribute message shadows a discovered one on the same field. Nothing here reorders anything.
+    private void RegisterBuiltInValidators(EditContext ctx)
+    {
+        if (!RaskValidation.AutoValidate || !AutoValidate)
+        {
+            return;
+        }
+
+        var services = LiveRenderContext.CurrentSync?.Services;
+
+        ctx.AddValidator(new DataAnnotationsFieldValidator(services));
+
+        if (RaskValidation.Resolve(typeof(TModel), services) is { } discovered)
+        {
+            ctx.AddValidator(discovered);
+        }
     }
 
     // Which form, when a page has several. Nothing identifies a Form intrinsically, so this leans on

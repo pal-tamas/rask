@@ -272,6 +272,8 @@ Rask.Html.Components.ForeignObject.Y.set -> void
 Rask.Html.Components.Form<TModel>
 Rask.Html.Components.Form<TModel>.AcceptCharset.get -> string?
 Rask.Html.Components.Form<TModel>.AcceptCharset.set -> void
+Rask.Html.Components.Form<TModel>.AutoValidate.get -> bool
+Rask.Html.Components.Form<TModel>.AutoValidate.set -> void
 Rask.Html.Components.Form<TModel>.Autocomplete.get -> string?
 Rask.Html.Components.Form<TModel>.Autocomplete.set -> void
 Rask.Html.Components.Form<TModel>.Context.get -> Rask.Core.Forms.EditContext?
@@ -1346,6 +1348,7 @@ static RaskBuilderSettersRask_Html.Alt<T, TMode>(this Rask.Core.Build<Rask.Html.
 static RaskBuilderSettersRask_Html.As(this Rask.Core.Build<Rask.Html.Components.Link!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Link!>
 static RaskBuilderSettersRask_Html.Async(this Rask.Core.Build<Rask.Html.Components.Script!> __b, bool? value) -> Rask.Core.Build<Rask.Html.Components.Script!>
 static RaskBuilderSettersRask_Html.AutoDismissAfter(this Rask.Core.Build<Rask.Html.Components.ToastOutlet!> __b, System.TimeSpan? value) -> Rask.Core.Build<Rask.Html.Components.ToastOutlet!>
+static RaskBuilderSettersRask_Html.AutoValidate<TModel>(this Rask.Core.Build<Rask.Html.Components.Form<TModel>!> __b, bool value) -> Rask.Core.Build<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.Autocomplete<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
 static RaskBuilderSettersRask_Html.Autocomplete<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, TMode>
 static RaskBuilderSettersRask_Html.Autocomplete<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, TMode>
