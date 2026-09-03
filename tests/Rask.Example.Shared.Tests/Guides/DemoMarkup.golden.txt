@@ -9,7 +9,7 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -35,7 +35,7 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -60,7 +60,7 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -83,7 +83,7 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -106,7 +106,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -132,7 +132,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -158,7 +158,7 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -206,7 +206,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -238,7 +238,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -269,7 +269,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -297,7 +297,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -320,7 +320,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -355,7 +355,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -393,7 +393,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -416,7 +416,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -437,7 +437,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -448,7 +448,7 @@ div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-danger .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-2
+svg .me-2 .shrink-0 .size-5
 path
 
 === boom-nested ===
@@ -460,7 +460,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -473,7 +473,7 @@ p .mb-2 .text-sm .text-ui-muted
 div .bg-ui-well .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-danger .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-2
+svg .me-2 .shrink-0 .size-5
 path
 
 === boom-render ===
@@ -485,7 +485,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -496,7 +496,7 @@ div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .bg-ui-warn .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-warn/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
-svg .me-2
+svg .me-2 .shrink-0 .size-5
 path
 
 === browser-battery ===
@@ -508,7 +508,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -538,7 +538,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -561,7 +561,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -589,7 +589,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -618,7 +618,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -651,7 +651,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -687,7 +687,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -699,10 +699,10 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 div .mb-2 .text-sm .text-ui-muted
@@ -720,7 +720,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -745,7 +745,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -770,7 +770,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -799,7 +799,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -835,7 +835,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -871,7 +871,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -897,7 +897,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -922,7 +922,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -952,7 +952,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -984,7 +984,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1009,7 +1009,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1034,7 +1034,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1061,7 +1061,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1091,7 +1091,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1116,7 +1116,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1141,7 +1141,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1170,7 +1170,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1194,7 +1194,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1221,7 +1221,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1245,7 +1245,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1272,7 +1272,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1298,7 +1298,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1325,7 +1325,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1354,7 +1354,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1379,7 +1379,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1405,7 +1405,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1430,7 +1430,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1457,7 +1457,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1469,7 +1469,7 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
 div .text-sm .text-ui-muted
@@ -1486,7 +1486,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1507,7 +1507,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1533,7 +1533,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1544,10 +1544,10 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
@@ -1565,7 +1565,7 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1608,7 +1608,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1628,7 +1628,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1650,7 +1650,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1659,7 +1659,7 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-2
+svg .me-2 .shrink-0 .size-5
 path
 
 === context-theme ===
@@ -1671,7 +1671,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1698,7 +1698,7 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1724,7 +1724,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1734,7 +1734,7 @@ div .sample-result-label
 div .sample-result-body
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-2
+svg .me-2 .shrink-0 .size-5
 path
 div .mt-2 .text-sm .text-ui-muted
 
@@ -1749,7 +1749,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1771,7 +1771,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1796,7 +1796,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1817,7 +1817,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1828,10 +1828,10 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
@@ -1846,7 +1846,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1857,10 +1857,10 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
@@ -1875,7 +1875,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1886,10 +1886,10 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
@@ -1904,7 +1904,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1921,28 +1921,17 @@ span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-svg .text-ui-muted
-path
-span
-div .col-span-12
-div .dd-column .h-full
-div .dd-column-header .flex .items-center .justify-between
-span .font-semibold
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
-div .dd-column-body
-div .card .dd-card
-div .flex .gap-2 .items-center .p-2 .p-5
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span
 div .col-span-12
@@ -1953,7 +1942,18 @@ span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2 .p-5
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
+path
+span
+div .col-span-12
+div .dd-column .h-full
+div .dd-column-header .flex .items-center .justify-between
+span .font-semibold
+span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+div .dd-column-body
+div .card .dd-card
+div .flex .gap-2 .items-center .p-2 .p-5
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span
 
@@ -1966,7 +1966,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -1976,23 +1976,23 @@ div .sample-result-label
 div .sample-result-body
 ul .dd-list .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
 li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
-svg .text-ui-muted
+svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
 
@@ -2005,7 +2005,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2059,7 +2059,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2106,7 +2106,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2140,7 +2140,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2191,7 +2191,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2222,7 +2222,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2265,7 +2265,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2306,7 +2306,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2366,7 +2366,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2400,7 +2400,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2409,7 +2409,7 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-2
+svg .me-2 .shrink-0 .size-5
 path
 
 === events-form ===
@@ -2423,7 +2423,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2435,7 +2435,7 @@ form .mb-2
 div .flex .gap-2 .items-stretch
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 p .mb-0 .text-sm
 strong
@@ -2449,7 +2449,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2470,7 +2470,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2494,7 +2494,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2524,7 +2524,7 @@ textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline
 label
 div .mt-1
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === form-controls-input ===
@@ -2536,7 +2536,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2566,7 +2566,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2602,7 +2602,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2634,7 +2634,7 @@ span .ms-2 .sample-tabs
 button .active .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2658,7 +2658,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2673,13 +2673,13 @@ label .block .font-medium .mb-1 .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 div .mb-2
 span .text-sm .text-ui-muted .uppercase
@@ -2703,7 +2703,7 @@ button .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2731,7 +2731,7 @@ button .active .sample-tab
 button .sample-tab
 button .sample-tab
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2800,7 +2800,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2811,20 +2811,20 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-ok .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ok/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .mx-1 .vr
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
@@ -2857,7 +2857,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2868,10 +2868,10 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
@@ -2886,7 +2886,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2897,7 +2897,7 @@ div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .mb-3
 span .bg-ui-brand/10 .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-base .text-ui-brand-ink .text-xs
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
 ol .divide-ui-line .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
@@ -2921,7 +2921,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -2972,7 +2972,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3022,7 +3022,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3039,27 +3039,27 @@ th
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-svg .opacity-50 .text-xs
+svg .opacity-50 .shrink-0 .size-5 .text-xs
 path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-svg .opacity-50 .text-xs
+svg .opacity-50 .shrink-0 .size-5 .text-xs
 path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-svg .opacity-50 .text-xs
+svg .opacity-50 .shrink-0 .size-5 .text-xs
 path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-svg .opacity-50 .text-xs
+svg .opacity-50 .shrink-0 .size-5 .text-xs
 path
 th
 button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
 span
-svg .opacity-50 .text-xs
+svg .opacity-50 .shrink-0 .size-5 .text-xs
 path
 tbody
 tr .md-row
@@ -3226,7 +3226,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3263,10 +3263,10 @@ svg .shrink-0 .size-5
 path
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === nested-list-foreach ===
@@ -3278,7 +3278,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3305,10 +3305,10 @@ svg .shrink-0 .size-5
 path
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === nested-list-indexer ===
@@ -3320,7 +3320,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3352,10 +3352,10 @@ svg .shrink-0 .size-5
 path
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === nested-subobject ===
@@ -3367,7 +3367,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3396,7 +3396,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === primitives-children ===
@@ -3408,7 +3408,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3428,7 +3428,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3448,7 +3448,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3468,7 +3468,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3488,7 +3488,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3507,7 +3507,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3516,7 +3516,7 @@ div .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === props-attribute-order ===
@@ -3528,7 +3528,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3547,7 +3547,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3568,7 +3568,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3592,7 +3592,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3611,7 +3611,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3630,7 +3630,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3668,7 +3668,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3688,7 +3688,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3706,7 +3706,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3731,7 +3731,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3756,7 +3756,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3778,7 +3778,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3799,7 +3799,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3822,7 +3822,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3841,7 +3841,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3873,7 +3873,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3897,7 +3897,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3918,7 +3918,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3932,7 +3932,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-cross-field ===
@@ -3944,7 +3944,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3961,7 +3961,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-custom-attribute ===
@@ -3973,7 +3973,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -3993,7 +3993,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-fields ===
@@ -4007,7 +4007,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4034,7 +4034,7 @@ option
 option
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-first-error-wins ===
@@ -4046,7 +4046,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4060,7 +4060,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-fluent ===
@@ -4074,7 +4074,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4091,7 +4091,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-fluent-async ===
@@ -4103,7 +4103,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4117,7 +4117,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-inline ===
@@ -4131,7 +4131,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4151,7 +4151,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-inline-async ===
@@ -4163,7 +4163,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4177,7 +4177,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-nested-async ===
@@ -4189,7 +4189,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4241,7 +4241,7 @@ span
 span
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-programmatic ===
@@ -4253,7 +4253,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4267,10 +4267,10 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-summary ===
@@ -4282,7 +4282,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4309,7 +4309,7 @@ option
 option
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === validation-validatable-object ===
@@ -4321,7 +4321,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4341,7 +4341,7 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 
 === virtualize-items ===
@@ -4353,7 +4353,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code
@@ -4464,7 +4464,7 @@ span .dot-y .sample-dot
 span .dot-g .sample-dot
 span .ms-2 .sample-code-label
 button .sample-copy
-svg .me-1
+svg .me-1 .shrink-0 .size-5
 path
 span .sample-copy-text
 pre .m-0 .sample-code

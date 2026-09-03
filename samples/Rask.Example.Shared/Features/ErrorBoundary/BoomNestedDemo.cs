@@ -27,7 +27,7 @@ public sealed partial class BoomNestedDemo : Component
     private static Component InnerFallback(Exception ex, Action recover) =>
         Div.Class($"{Tw.AlertWarning} flex items-start")
             .Id("boom-nested-inner-fallback")[
-            UiIcon.Name(UiIconName.ShieldWarning).Class("me-3 text-xl"),
+            UiIcon.Name(UiIconName.ShieldWarning).Class("me-3 size-6"),
             Div[
                 Strong["Inner boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],

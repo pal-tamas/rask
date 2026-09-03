@@ -247,6 +247,27 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`UiIcon` sized itself only until a caller asked for anything, and then rendered nothing at all.**
+  `Class` REPLACED the icon's own `size-5 shrink-0` rather than adding to it, so every call site that
+  passed a margin — `me-1`, `me-2`, a colour, a scoped class — shipped an inline SVG with no width and
+  no height. An SVG, unlike the text glyph the showcase used to draw, has no intrinsic size, so those
+  icons did not render small or unstyled: they rendered as nothing.
+
+  It is now additive, and the default steps aside only when the caller names a size (`size-*`, `w-*`,
+  `h-*`) — dropped rather than merged, because two competing Tailwind size utilities on one element are
+  resolved by stylesheet order, not by the order they appear in the attribute.
+
+  **Nothing downstream could have caught it**, which is the reason this entry exists. Markup assertions
+  and the demo golden file see exactly the class list the call site asked for and pass; a browser
+  reports only "element is not visible", which reads as a layout or timing bug and points at the page
+  rather than at the icon. `tests/Rask.Ui.Tests` is new — the kit shipped with no test project of its
+  own — and pins the composition directly.
+
+  Two sizing leftovers from the glyph era went with it: `text-xl`/`text-2xl` on an icon (a font size,
+  which does nothing to an SVG) and `.nav-group-chevron { font-size: 0.7rem }`, which had been the
+  showcase sidebar chevron's only size.
+
+
 - **A version pinned in two places was held together by a comment, and one of the comments was
   describing a test that did not exist.** `ProjectGenerator.Wasm.AspNetCoreFrameworkVersion` must match
   what `Directory.Packages.props` pins, because `Rask.Wasm` references the same two packages and its

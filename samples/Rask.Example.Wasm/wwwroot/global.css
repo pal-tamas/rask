@@ -322,7 +322,9 @@ button, a, [role="button"] {
 }
 
 .nav-group-chevron {
-    font-size: 0.7rem;
+    /* Sized by the icon's own size-* utility, not here: this used to say font-size, which sized the
+       one-character glyph the chevron was before the showcase moved to real SVG icons. font-size does
+       nothing to an SVG that carries no width or height, so the rule quietly left it a zero box. */
     opacity: 0.7;
 }
 

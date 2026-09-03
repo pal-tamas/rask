@@ -284,7 +284,12 @@ public sealed partial class UiIcon : Component
     /// <summary>Which icon to draw.</summary>
     public required UiIconName Name { get; set; }
 
-    /// <summary>Extra classes, for sizing at the call site.</summary>
+    /// <summary>
+    ///     Extra classes for the call site. ADDITIVE: these are appended to the icon's own sizing
+    ///     (<c>size-5 shrink-0</c>) rather than replacing it, so a caller can add a margin or a colour
+    ///     without having to restate a size. Naming a size — any <c>size-*</c>, <c>w-*</c> or <c>h-*</c>
+    ///     utility — suppresses the default instead of competing with it.
+    /// </summary>
     public string? Class { get; set; }
 
     /// <inheritdoc />
@@ -295,9 +300,55 @@ public sealed partial class UiIcon : Component
             .StrokeWidth("1.5")
             .StrokeLinecap("round")
             .Attributes(("stroke-linejoin", "round"), ("aria-hidden", "true"), ("focusable", "false"))
-            .Class(Class ?? "size-5 shrink-0")[
+            .Class(ComposeClass())[
             Shapes()
         ];
+
+    /// <summary>
+    ///     The icon's own sizing plus whatever the call site asked for.
+    /// </summary>
+    /// <remarks>
+    ///     The default is DROPPED rather than merged when the caller names a size, because two competing
+    ///     Tailwind size utilities on one element are resolved by stylesheet order, not by the order they
+    ///     appear in the attribute — so merging would make the rendered size depend on how the sheet was
+    ///     generated.
+    ///     <para>
+    ///         Applying it at all is the load-bearing part. This property used to REPLACE the sizing, which
+    ///         reads as harmless until you remember an inline SVG has no intrinsic size the way a text glyph
+    ///         does: a caller adding <c>me-1</c> for a margin got an icon with no width or height, which does
+    ///         not render small or unstyled, it renders as nothing. Nothing catches that downstream either —
+    ///         markup assertions see the class list they expected, and a browser test reports only
+    ///         "element is not visible", which points at the page rather than at here.
+    ///     </para>
+    /// </remarks>
+    private string ComposeClass()
+    {
+        const string ownSizing = "size-5 shrink-0";
+        if (string.IsNullOrWhiteSpace(Class))
+        {
+            return ownSizing;
+        }
+
+        return NamesASize(Class) ? Class : ownSizing + " " + Class;
+    }
+
+    private static bool NamesASize(string classes)
+    {
+        foreach (var token in classes.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            // Tailwind sizing utilities, including their variant-prefixed (`md:size-4`) and negative
+            // forms. Matching the prefix is enough: nothing else in the vocabulary starts this way.
+            var bare = token[(token.LastIndexOf(':') + 1)..].TrimStart('-');
+            if (bare.StartsWith("size-", StringComparison.Ordinal)
+                || bare.StartsWith("w-", StringComparison.Ordinal)
+                || bare.StartsWith("h-", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private Component Shapes() => Name switch
     {

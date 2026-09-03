@@ -224,7 +224,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Type("button")
                 .Class(open ? "nav-group-toggle open" : "nav-group-toggle")
                 .OnClick(() => ToggleGroup(key))[
-                UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight).Class("nav-group-chevron"),
+                UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight).Class("nav-group-chevron size-3.5"),
                 Span.Class("nav-group-label")[group]
             ],
             !open

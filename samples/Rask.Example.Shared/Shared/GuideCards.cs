@@ -38,7 +38,7 @@ public sealed partial class GuideCards : Component
             NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("no-underline")[
                 Div.Class($"{Tw.Card} h-full border-0 shadow-sm feature-card")[
                     Div.Class($"{Tw.CardBody} p-4")[
-                        Div.Class("feature-icon mb-3")[UiIcon.Name(g.Icon).Class("text-2xl")],
+                        Div.Class("feature-icon mb-3")[UiIcon.Name(g.Icon).Class("size-7")],
                         H3.Class("font-semibold mb-2 text-base text-ui-ink")[g.Title],
                         P.Class("text-ui-muted mb-0 text-sm")[g.Blurb]
                     ]
