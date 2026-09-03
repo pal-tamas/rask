@@ -41,8 +41,8 @@ public sealed class AuthExampleTests : IAsyncLifetime
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         // 2. Sign in as the admin user — the form submit drives the redeem handshake + reconnect.
-        await _page.Locator("#username").FillAsync("root");
-        await _page.Locator("#password").FillAsync("password");
+        await _page.Locator("#email").FillAsync("ada@example.com");
+        await _page.Locator("#password").FillAsync("Password1");
         await _page.Locator("#login-submit").ClickAsync();
 
         // 3. Handshake completes → returnUrl lands us back on the protected page, authenticated,
@@ -50,7 +50,7 @@ public sealed class AuthExampleTests : IAsyncLifetime
         await Expect(_page).ToHaveURLAsync(new Regex(@"/members$"),
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
         await Expect(_page.Locator("#members-greeting"))
-            .ToContainTextAsync("root", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+            .ToContainTextAsync("ada@example.com", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(_page.Locator("#admin-note"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
@@ -67,11 +67,11 @@ public sealed class AuthExampleTests : IAsyncLifetime
         // 5. Non-admin sign-in: authenticates but the admin-only note must be absent (role gating).
         await Expect(_page.Locator("#login-submit"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-        await _page.Locator("#username").FillAsync("alice");
-        await _page.Locator("#password").FillAsync("password");
+        await _page.Locator("#email").FillAsync("bob@example.com");
+        await _page.Locator("#password").FillAsync("Password1");
         await _page.Locator("#login-submit").ClickAsync();
         await Expect(_page.Locator("#members-greeting"))
-            .ToContainTextAsync("alice", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+            .ToContainTextAsync("bob@example.com", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Expect(_page.Locator("#admin-note")).ToHaveCountAsync(0);
     }
 
