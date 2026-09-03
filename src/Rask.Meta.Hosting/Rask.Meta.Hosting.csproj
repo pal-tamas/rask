@@ -31,6 +31,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Build-order-only edge to the MSBuild task project, which drops Rask.Spa.Tasks.dll into this
+      package's build/ folder for <UsingTask> to load. ReferenceOutputAssembly is false because the
+      task runs inside MSBuild, not inside this library — nothing here calls it.
+
+      The same task the SPA lane loads, and deliberately not a second copy of it: what it does is read
+      the generated contract constants out of the compiled assembly and write them as TypeScript,
+      which is neither lane's private business.
+    -->
+    <ProjectReference Include="..\Rask.Spa.Tasks\Rask.Spa.Tasks.csproj"
+                      PrivateAssets="all"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Rask.Meta.Hosting.Tests"/>
   </ItemGroup>
 
@@ -42,7 +57,42 @@
       expanded at project EVALUATION and would silently pack nothing on a tree where the DLL is not yet
       on disk (#852).
     -->
-    <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <!--
+      The DLL is EXCLUDED from the glob and named on its own line, which is #852's lesson: a Pack glob
+      is expanded at project EVALUATION, so on a tree where the task assembly is not yet on disk the
+      glob silently packs nothing and the consumer gets a package whose <UsingTask> points at a file
+      that was never shipped. Naming it fails loudly instead.
+    -->
+    <None Include="build\**" Exclude="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="build\"/>
+
+    <!--
+      Rask's browser layer, packed FROM Rask.Core rather than copied into this project, exactly as
+      Rask.Spa.Hosting packs it. One source of truth for code three very different consumers run: the
+      Server client and the WASM client bundle it through Resources/browser/globals.ts, and a meta
+      framework's front end imports these same files as `@rask/browser/…`.
+
+      Packing across a directory boundary rather than taking a ProjectReference keeps this package's
+      dependency surface at one entry (Yarp.ReverseProxy) — the same reach the SPA package makes, and
+      safe under the rule above because every file matched is committed source.
+
+      globals.ts is excluded: it publishes the window.__rask* namespaces .NET resolves dotted
+      identifiers against, and a front end has no use for it. It is also the one module in that
+      directory with an import-time side effect, which would be a ReferenceError in a Node SSR pass.
+    -->
+    <None Include="..\Rask.Core\Resources\browser\*.ts"
+          Exclude="..\Rask.Core\Resources\browser\globals.ts"
+          Pack="true"
+          PackagePath="client\browser"/>
+
+    <!--
+      The dispatcher, packed from Rask.Spa.Hosting's client/ for the same one-source-of-truth reason
+      as the browser layer above. It is the wire, not an SPA concern: `client.ts` already carries the
+      three seams a server render needs — an explicit `baseUrl` (a relative URL has no origin in
+      Node), an injectable `fetch`, and an `onRequest` hook to attach the visitor's cookie — and its
+      own `defaultBaseUrl()` says so, falling back to '' "outside a bundler (tests, SSR)".
+    -->
+    <None Include="..\Rask.Spa.Hosting\client\*.ts" Pack="true" PackagePath="client"/>
   </ItemGroup>
 
 </Project>

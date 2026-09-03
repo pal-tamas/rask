@@ -9,6 +9,125 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new --template nuxt` — and nextjs, sveltekit, solidstart, tanstack-start, analog.** The meta
+  framework lane could be hosted but not started: you hand-wrote the csproj, the `Program.cs`, the
+  adapter or preset that emits a node server, and the dev proxy that makes a `rask dev` session
+  dispatch anywhere. All six are now templates, each reaching its framework through that framework's
+  **own** creator, because the argument of this lane is that the framework's conventions win.
+
+  What Rask adds is only what the creator cannot know: the build must emit a node server, and the dev
+  server must proxy `/_rask` back to the host. Two of the configs are **patched, never overwritten** —
+  SvelteKit's `vite.config.ts` carries its node adapter (modern SvelteKit configures kit through the
+  Vite plugin and writes no `svelte.config.js` at all) and TanStack's carries the Start plugin and
+  Nitro, so writing our own file over either would delete the thing that makes the build produce a
+  server at all.
+
+  Every invocation was established by running it, not by reading docs, and none of them was uniform:
+  `nuxi` refuses without `--template` and `--gitInit`; `create-start-app` is deprecated in favour of
+  `@tanstack/cli`, whose `--deployment nitro` is what produces the node entry; `create-solid` needs
+  both `--v2` and a named template; and `create-analog` answers even `--help` with a prompt and needs
+  an undocumented `--skipTailwind`. A prompt inside `rask new` is a hang rather than an error, which is
+  why each of those is pinned by a test.
+
+  **The front end lives in `client/`, lower case** — where the SPA lane uses `Client/`. Half of these
+  creators derive an npm package name from the target directory and reject capitals: `create-next-app`
+  and `@tanstack/cli` exit, and `create-analog` stops to ask. So all six are run from inside the
+  project directory with a target of `client`, and the scaffold sets `RaskMetaAppDir` to match.
+
+  Tailwind comes from each creator where one can be asked — Next's `--tailwind`, SvelteKit's add-on,
+  SolidStart's `with-tailwindcss` template, and TanStack's standard scaffold. Nuxt has no such option
+  and Analog will not take an answer, so Rask installs it for those two, by the same rule the SPA lane
+  uses: the Vite plugin where Rask writes the Vite config, `@tailwindcss/postcss` where it does not.
+
+  `--docker` means something specific here: the image keeps a **node runtime**, because the front end
+  has a server of its own that the host supervises for the life of the container. That is the honest
+  cost of this lane, and [docs/meta.md](docs/meta.md) says so.
+
+- **`rask dev` knows the meta framework lane (#983).** It classified a meta host as a plain server
+  app, which failed in the quiet direction: nothing broke, and every save ran a full **production**
+  build of Nuxt, Next or SvelteKit through the framework's own toolchain, whose output the session
+  then never read.
+
+  It is now its own template kind, with the same two-process shape the SPA lane has: `dotnet watch`
+  for the host, the framework's own dev server for the front end, `-p:RaskMetaBuild=false` to skip
+  that production build, and `--open` pointed at the dev server rather than at ASP.NET. The port comes
+  from the framework (3000 for Nuxt, Next, TanStack Start and SolidStart; 5173 for SvelteKit and
+  Analog), and `RaskMetaAppDir` is honoured, so an app that was moved still gets a dev server instead
+  of silently getting none. The banner names the framework, because on this lane six of them share one
+  kind.
+
+  **The host had to be told too.** Skipping the build leaves no server entry, and the supervisor
+  refuses to start rather than forward into nothing — so the session would have died before its first
+  page. `rask dev` now hands the host the dev server's address in `RASK_META_DEV`, which is the
+  documented `SuperviseNode = false` case with the port filled in: the host stops supervising and
+  forwards to the process the CLI started beside it. Both addresses work for the session — `:3000` is
+  where HMR is native, and the host's own port still renders rather than being a dead end.
+  [docs/meta.md](docs/meta.md#development).
+
+- **A meta framework front end gets the typed wire — generated contracts and the dispatcher.** It had
+  neither, and the reason was one line's absence: `RaskEmitTypeScript` was defaulted and made visible
+  to the compiler only by `Rask.Spa.Hosting`. The CQRS generator reads that flag through Roslyn's
+  analyzer config, so for a meta host it was not false — it was absent, and the generator emitted
+  nothing. No error, no warning, and a front end left hand-writing `fetch` against a wire it could not
+  see.
+
+  `Rask.Meta.Hosting` now declares the property, runs the same `WriteGeneratedTypeScriptTask` the SPA
+  lane runs, and ships the same `client.ts`. Not a second copy of either: the task is packed from
+  `Rask.Spa.Tasks` and the dispatcher from `Rask.Spa.Hosting/client/`, because what they do — project
+  C# records into TypeScript, and dispatch over the CQRS endpoint — is neither lane's private
+  business, and two implementations of one file format are two things waiting to disagree.
+
+  **The server-render half is documented rather than invented.** `client.ts` already carried the three
+  seams a Node render needs — an explicit `baseUrl`, an injectable `fetch`, and an `onRequest` hook —
+  so forwarding the visitor's cookie from a loader is a composition of options that existed, and
+  `RASK_BASE_URL` (injected since #960, read by nothing) is finally what it is for.
+  [docs/meta.md](docs/meta.md#calling-your-c) shows both.
+
+- **A meta framework front end gets Rask's browser layer, imported as `@rask/browser/…`.** The lane
+  had no C#-to-TypeScript delivery of any kind — `Rask.Meta.Hosting` packed `build/**` and nothing
+  else — so a Nuxt or Next app hosted by Rask could reach none of the browser APIs the Server, WASM
+  and SPA front ends share. It now packs the same modules from `Rask.Core` and copies them into the
+  app on every build.
+
+  Into the source directory that framework actually uses: `app/rask/browser/` for Nuxt 4 and Next's
+  App Router, `src/rask/browser/` for SvelteKit, SolidStart, TanStack Start and Analog. That is the
+  lane's own argument — the framework's conventions win — and the framework table in the targets was
+  already the place where six frameworks differ by data rather than by code. `RaskMetaGeneratedDir`
+  overrides it.
+
+  **The import specifier does not vary with that.** A `tsconfig.rask.json` is written beside the
+  modules mapping `@rask/*`, so every app writes `@rask/browser/geolocation` whatever its layout.
+  `rask new` wires that alias through whichever mechanism the framework actually honours, and it is
+  not the same one twice: a `paths` entry merged into the app's own `tsconfig.json` for Next,
+  TanStack, SolidStart and Analog; `alias` in the `sveltekit()` plugin options for SvelteKit, which
+  is what generates its tsconfig; `alias` in `nuxt.config.ts` for Nuxt; and a Vite `resolve.alias`
+  for SolidStart, since Vite does not read tsconfig paths on its own.
+
+  Two of those are not preferences but corrections, each found by building a scaffolded app rather
+  than by reading the file. TypeScript does **not** merge `paths` across an `extends` — the
+  inheriting file replaces the inherited mapping wholesale — so extending the generated config was
+  silently overridden by the `paths` that Next, TanStack and Solid write into that same file, and
+  `@rask/client` resolved to nothing. And on SvelteKit a hand-written `paths` displaces the
+  generated `$lib`: `svelte-check` reports it as an error in code the developer never touched.
+
+  **The SPA lane writes the same alias**, so the two TypeScript lanes are imported identically — its
+  generated directory never moves, so a relative path would have worked there, but two conventions
+  for one thing is worse than either. Relative imports keep working on both.
+
+  Two properties of this lane made the plumbing more than a copy. The destination is inside
+  `_RaskMetaInput`'s own glob, so the copy and the alias file are both written only when they differ —
+  otherwise every build leaves the next one looking dirty and re-runs a full production build of the
+  front end. And `_RaskMetaCopyBrowserModules` and `_RaskMetaBuildApp` both hang off `CoreCompile`, so
+  the ordering is an explicit `DependsOnTargets`: without it the first build of a fresh checkout
+  compiles an app whose imports are not there yet.
+
+  `globals.ts` is excluded, as on the SPA lane. It publishes the `window.__rask*` namespaces .NET
+  resolves dotted identifiers against, and it is the one module with an import-time side effect —
+  which on this lane is not academic, since every route module is loaded by Node before any browser
+  sees it.
+
+
+### Added
 - **RASK071 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
   route attribute and ASP.NET's share the short name `Route` and differ only by namespace, so a server
   file that already imports `Microsoft.AspNetCore.Mvc` — or one written by someone arriving from Blazor,

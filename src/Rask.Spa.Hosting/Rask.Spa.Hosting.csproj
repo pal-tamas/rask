@@ -45,7 +45,7 @@
   <ItemGroup>
     <!--
       Build-order-only edge to the MSBuild task project, which drops Rask.Spa.Tasks.dll into build/
-      here (CopyTaskAssemblyToRaskSpaBuild) for <UsingTask> to load and for the build\** Pack glob to
+      here (CopyTaskAssemblyToHostingBuildFolders) for <UsingTask> to load and for the build\** Pack glob to
       collect. The DLL is a generated artifact, gitignored rather than committed, so this reference is
       what guarantees it exists before this project builds or packs. ReferenceOutputAssembly="false"
       keeps it purely an ordering edge — no compile reference, no nupkg dependency, and no cross-TFM

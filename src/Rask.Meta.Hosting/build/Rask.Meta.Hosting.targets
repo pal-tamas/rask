@@ -35,29 +35,73 @@
     The framework table, and the only place in the build that knows one framework from another. It is
     the same table MetaFramework holds in C#, for the same reason: six frameworks, three server shapes,
     and the differences are data.
+
+    _RaskMetaSourceDir is where each framework keeps source, and the six do not agree: Nuxt 4 and
+    Next's App Router use `app/`, the rest use `src/`. It decides where the browser layer is copied,
+    so that a generated module lands where that framework's tooling, tsconfig paths and conventions
+    already look — which is this lane's whole argument. Override RaskMetaGeneratedDir to move it.
   -->
   <Choose>
-    <When Condition="'$(RaskMetaFramework)' == 'nuxt' OR '$(RaskMetaFramework)' == 'tanstack-start' OR '$(RaskMetaFramework)' == 'solidstart'">
+    <When Condition="'$(RaskMetaFramework)' == 'nuxt'">
       <PropertyGroup>
         <_RaskMetaEntry>.output/server/index.mjs</_RaskMetaEntry>
+        <_RaskMetaSourceDir>app</_RaskMetaSourceDir>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(RaskMetaFramework)' == 'tanstack-start' OR '$(RaskMetaFramework)' == 'solidstart'">
+      <PropertyGroup>
+        <_RaskMetaEntry>.output/server/index.mjs</_RaskMetaEntry>
+        <_RaskMetaSourceDir>src</_RaskMetaSourceDir>
       </PropertyGroup>
     </When>
     <When Condition="'$(RaskMetaFramework)' == 'analog'">
       <PropertyGroup>
         <_RaskMetaEntry>dist/analog/server/index.mjs</_RaskMetaEntry>
+        <_RaskMetaSourceDir>src</_RaskMetaSourceDir>
       </PropertyGroup>
     </When>
     <When Condition="'$(RaskMetaFramework)' == 'sveltekit'">
       <PropertyGroup>
         <_RaskMetaEntry>build/index.js</_RaskMetaEntry>
+        <_RaskMetaSourceDir>src</_RaskMetaSourceDir>
       </PropertyGroup>
     </When>
     <When Condition="'$(RaskMetaFramework)' == 'nextjs'">
       <PropertyGroup>
         <_RaskMetaEntry>.next/standalone/server.js</_RaskMetaEntry>
+        <_RaskMetaSourceDir>app</_RaskMetaSourceDir>
       </PropertyGroup>
     </When>
   </Choose>
+
+  <!--
+    Where the browser layer is copied. Defaulted HERE rather than in the props, because the default
+    depends on RaskMetaFramework — which the consumer sets in its own csproj, evaluated after the
+    props import and before this file. A default in the props would read an empty framework and pick
+    the wrong directory, silently.
+  -->
+  <PropertyGroup>
+    <RaskMetaGeneratedDir Condition="'$(RaskMetaGeneratedDir)' == '' AND '$(_RaskMetaSourceDir)' != ''"
+    >$(_RaskMetaSourceDir)/rask</RaskMetaGeneratedDir>
+
+    <_RaskMetaGenerated Condition="'$(_RaskMetaDir)' != '' AND '$(RaskMetaGeneratedDir)' != ''"
+    >$(_RaskMetaDir)/$(RaskMetaGeneratedDir)</_RaskMetaGenerated>
+
+    <!--
+      Contracts are emitted whenever an app is resolved — including under RaskMetaBuild=false, which
+      is what `rask dev` is meant to pass. The framework's own dev server still has to compile against
+      contracts that match the host it is talking to; skipping the production build does not make the
+      wire optional.
+
+      Declared visible to the compiler in the .props, because the generator reads it through Roslyn's
+      analyzer config rather than as an MSBuild property.
+    -->
+    <RaskEmitTypeScript Condition="'$(RaskEmitTypeScript)' == '' AND '$(_RaskMetaGenerated)' != ''"
+    >true</RaskEmitTypeScript>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Rask.Spa.Tasks.WriteGeneratedTypeScriptTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Spa.Tasks.dll"/>
 
   <!--
     Narrow globs on purpose. A `**/*` over the app directory would enumerate node_modules — tens of
@@ -125,9 +169,80 @@
           IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
+  <!--
+    Rask's browser layer, into the app's own source directory.
+
+    The same modules the Server and WASM clients bundle — one implementation, so a quirk fixed for the
+    C# caller is fixed here in the same commit. They are imported as `@rask/browser/geolocation`
+    rather than by a relative path, which is what tsconfig.rask.json below is for: the physical
+    directory differs per framework (`app/` for Nuxt and Next, `src/` for the rest) and the import
+    specifier should not.
+
+    SkipUnchangedFiles is mandatory, not tidiness. This writes INTO _RaskMetaInput's own glob
+    ($(_RaskMetaDir)/src/**/* and app/**/*), so copying unconditionally would make every build look
+    dirty to the next one and re-run `npm run build` — a full Nuxt or Next production build, every
+    time.
+
+    An empty glob makes both tasks no-ops, which is what happens when this file runs from the
+    repository rather than an installed package.
+  -->
+  <!--
+    DependsOnTargets includes ResolveProjectReferences because this invokes a task whose assembly is
+    produced by exactly that reference edge. Without it, a tree that has never built dies with MSB4062
+    naming a file nobody wrote (#878) — and PackagingContractTests enforces it, which is how this line
+    came to be here rather than in a bug report.
+  -->
+  <Target Name="_RaskMetaCopyBrowserModules"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(_RaskMetaGenerated)' != '' AND '$(DesignTimeBuild)' != 'true'">
+    <!--
+      The typed wire: your C# message records, projected into TypeScript the front end imports. Read
+      out of the COMPILED assembly rather than the source tree, because the generator wrote them there
+      as constants — a source generator cannot write files.
+
+      AfterTargets="CoreCompile" for that reason: before it, @(IntermediateAssembly) is the previous
+      build's, and the contracts would be one build stale in exactly the way that is hardest to
+      notice — a renamed C# property still compiling on both sides.
+    -->
+    <WriteGeneratedTypeScriptTask AssemblyPath="@(IntermediateAssembly)"
+                                  OutputDirectory="$(_RaskMetaGenerated)"
+                                  Condition="'$(RaskEmitTypeScript)' == 'true'"/>
+
+    <!--
+      The dispatcher rides alongside, refreshed from the package on every build — the same thing that
+      keeps the SPA client wire-locked to its server. The generated messages import from './client',
+      so upgrading this package has to upgrade both halves together or the pair drifts.
+    -->
+    <ItemGroup>
+      <_RaskMetaClientSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
+      <_RaskMetaBrowserSource Include="$(MSBuildThisFileDirectory)../client/browser/*.ts"/>
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_RaskMetaClientSource)"
+          DestinationFolder="$(_RaskMetaGenerated)"
+          SkipUnchangedFiles="true"/>
+
+    <Copy SourceFiles="@(_RaskMetaBrowserSource)"
+          DestinationFolder="$(_RaskMetaGenerated)/browser"
+          SkipUnchangedFiles="true"/>
+
+    <!--
+      The alias, written beside the modules so `extends` finds it with a relative path that cannot go
+      stale. WriteLinesToFile with Overwrite + WriteOnlyWhenDifferent for the same reason the copy
+      skips unchanged files: rewriting it every build would retrigger the front-end build.
+    -->
+    <WriteLinesToFile
+      File="$(_RaskMetaGenerated)/tsconfig.rask.json"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"
+      Lines="{&quot;compilerOptions&quot;:{&quot;paths&quot;:{&quot;@rask/*&quot;:[&quot;./*&quot;]}}}"
+      Condition="'@(_RaskMetaBrowserSource)' != ''"/>
+  </Target>
+
   <Target Name="_RaskMetaBuildApp"
           AfterTargets="CoreCompile"
-          DependsOnTargets="_RaskMetaInstallDeps"
+          DependsOnTargets="_RaskMetaInstallDeps;_RaskMetaCopyBrowserModules"
           Condition="'$(_RaskMetaDoBuild)' == 'true'"
           Inputs="@(_RaskMetaInput)"
           Outputs="$(_RaskMetaDir)/$(_RaskMetaEntry);$(IntermediateOutputPath)rask-meta.build.stamp">

@@ -225,6 +225,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                     return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version);
                 }
 
+                // The other front-end lane, asked the same way and for the same reason: the meta
+                // templates' keys ARE the RaskMetaFramework values, so this asks the table that decides
+                // what gets built rather than a second list that can drift from it.
+                if (MetaTemplate.TryGet(template.Key, out var meta))
+                {
+                    return ProjectGenerator.GenerateMeta(dir, name, meta, batteries, version);
+                }
+
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
@@ -837,11 +845,22 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // The scaffolder writes INTO the target directory, which nothing has created yet on a fresh run.
         _fileSystem.CreateDirectory(targetDirectory);
 
+        // A creator that will only take one path segment is run from inside the project directory
+        // instead, with that directory created first — see ExternalScaffold.WorkingSubdirectory.
+        var workingDirectory = external.WorkingSubdirectory.Length == 0
+            ? targetDirectory
+            : Path.Combine(targetDirectory, external.WorkingSubdirectory);
+
+        if (external.WorkingSubdirectory.Length != 0)
+        {
+            _fileSystem.CreateDirectory(workingDirectory);
+        }
+
         int exitCode;
         try
         {
             exitCode = await _process
-                .RunAsync(external.Command, external.Arguments, targetDirectory, cancellationToken)
+                .RunAsync(external.Command, external.Arguments, workingDirectory, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (System.ComponentModel.Win32Exception)
