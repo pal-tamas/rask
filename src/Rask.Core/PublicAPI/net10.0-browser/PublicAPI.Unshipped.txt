@@ -1880,6 +1880,10 @@ Rask.Core.FactoryGenericAttribute.TypedValidatorProperties.init -> void
 Rask.Core.Forms.BindingHelpers
 Rask.Core.Forms.Bound
 Rask.Core.Forms.Controlled
+Rask.Core.Forms.DataAnnotationsFieldValidator
+Rask.Core.Forms.DataAnnotationsFieldValidator.DataAnnotationsFieldValidator(System.IServiceProvider? services = null) -> void
+Rask.Core.Forms.DataAnnotationsFieldValidator.Validate(Rask.Core.Forms.EditContext! context) -> void
+Rask.Core.Forms.DataAnnotationsFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field) -> void
 Rask.Core.Forms.EditContext
 Rask.Core.Forms.EditContext.AddValidationMessage(Rask.Core.Forms.FieldIdentifier field, string! message) -> void
 Rask.Core.Forms.EditContext.AddValidator(Rask.Core.Forms.IAsyncFieldValidator! validator) -> void
@@ -1974,6 +1978,7 @@ Rask.Core.Forms.ModelGraphWalker
 Rask.Core.Forms.RaskBinding
 Rask.Core.Forms.RaskFile
 Rask.Core.Forms.RaskFile.RaskFile() -> void
+Rask.Core.Forms.RaskValidation
 Rask.Core.Forms.Validate<T>
 Rask.Core.Forms.ValidateAsync<T>
 Rask.Core.Forms.ValidationEntry
@@ -3174,6 +3179,7 @@ static Rask.Core.Forms.BindingHelpers.SetCollectionMembership<T>(System.Collecti
 static Rask.Core.Forms.BindingHelpers.StringSetHandler(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, bool validateOnSet, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<string!, System.Threading.Tasks.Task!>!
 static Rask.Core.Forms.BindingHelpers.TouchAndValidateHandler(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, bool setOnChange, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<string!, System.Threading.Tasks.Task!>!
 static Rask.Core.Forms.BindingHelpers.TryParseValue(System.Type! targetType, string! raw, out object? value) -> bool
+static Rask.Core.Forms.DataAnnotationsFieldValidator.Validate(object! model, System.IServiceProvider? services = null) -> System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.ValidationEntry>!
 static Rask.Core.Forms.EditContextScope.Current.get -> Rask.Core.Forms.EditContext?
 static Rask.Core.Forms.ExpressionAccessor.Accessor.operator !=(Rask.Core.Forms.ExpressionAccessor.Accessor? left, Rask.Core.Forms.ExpressionAccessor.Accessor? right) -> bool
 static Rask.Core.Forms.ExpressionAccessor.Accessor.operator ==(Rask.Core.Forms.ExpressionAccessor.Accessor? left, Rask.Core.Forms.ExpressionAccessor.Accessor? right) -> bool
@@ -3181,6 +3187,11 @@ static Rask.Core.Forms.ExpressionAccessor.Parse(System.Linq.Expressions.LambdaEx
 static Rask.Core.Forms.ModelGraphWalker.Resolve(object! root, string! path) -> (object! Owner, string! Property)?
 static Rask.Core.Forms.ModelGraphWalker.Walk(object! root) -> System.Collections.Generic.IEnumerable<object!>!
 static Rask.Core.Forms.RaskBinding.RegisterParsable<T>() -> void
+static Rask.Core.Forms.RaskValidation.AutoValidate.get -> bool
+static Rask.Core.Forms.RaskValidation.AutoValidate.set -> void
+static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) -> bool
+static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
+static Rask.Core.Forms.RaskValidation.Resolve(System.Type! modelType, System.IServiceProvider? services) -> Rask.Core.Forms.IAsyncFieldValidator?
 static Rask.Core.Forms.ValidationEntry.operator !=(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Forms.ValidationEntry.operator ==(Rask.Core.Forms.ValidationEntry left, Rask.Core.Forms.ValidationEntry right) -> bool
 static Rask.Core.Globalization.CultureNegotiation.operator !=(Rask.Core.Globalization.CultureNegotiation left, Rask.Core.Globalization.CultureNegotiation right) -> bool

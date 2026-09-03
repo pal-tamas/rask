@@ -52,7 +52,6 @@ internal static class CliBuildE2E
         "Rask.Cache",                       // tutorial ch6 — AddRaskCache / ICache.GetOrAddAsync
         "Rask.Logging",                     // --logs — AddRaskLogging, and the dashboard's History mode
         "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_rask pages
-        "Rask.Validation.DataAnnotations",  // tutorial ch.2's form validation
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
     ];
 

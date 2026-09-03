@@ -6,9 +6,8 @@ Nested/complex models, radio & checkbox groups, and building your own form contr
 
 ## Nested / complex models
 
-`Bind` and validation extend transparently through sub-objects and collections. A single
-`DataAnnotationsValidator()` or `FluentValidationValidator(...)` at the top of the form covers the
-whole reachable graph — no per-level opt-in. `FieldIdentifier` is **reference-based** (keyed off the
+`Bind` and validation extend transparently through sub-objects and collections. The form's built-in
+validation covers the whole reachable graph — no per-level opt-in, and nothing declared. `FieldIdentifier` is **reference-based** (keyed off the
 owner sub-instance, not a dotted path from the root), so removing or replacing a row drops its error
 state with it.
 

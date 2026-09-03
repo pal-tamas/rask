@@ -63,6 +63,7 @@ public class HotReloadPhaseTests
             [
                 "__RaskRoutesRegistry",
                 "__RaskCqrsRegistry",
+                "__RaskValidatorRegistry",
                 "Rask.Jobs.Generated.__RaskJobsRegistry",
                 "Rask.Outbox.Generated.__RaskOutboxRegistry"
             ],

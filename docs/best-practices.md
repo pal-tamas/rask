@@ -138,11 +138,12 @@ mistake, the rule notes the ID.
   installs its own write-back, so `Value`/`Checked`/`OnInput`/`OnChange` are not offered on a bound
   chain (and `AfterBind` is not offered on a controlled one) — reach for `AfterBind` when you want a
   side effect on each bound write. See [forms §1](forms.md#1-two-way-binding).
-- **Wrap inputs in `Form<TModel>` and add exactly one validator.** The form owns the `EditContext`
-  (touched/modified state + the validator pipeline). One `DataAnnotationsValidator()` or
-  `FluentValidationValidator(...)` at the top covers the whole reachable object graph — including
-  nested sub-objects and collections. Pick the lightest layer that fits: inline `Validate:` lambdas
-  (no package), DataAnnotations, FluentValidation, or async. See [forms §2–§6](forms.md).
+- **Wrap inputs in `Form<TModel>` and let it validate.** The form owns the `EditContext`
+  (touched/modified state + the validator pipeline) and registers the built-in passes itself, so
+  the model's attributes and the `AbstractValidator<T>` you wrote both cover the whole reachable
+  object graph — including nested sub-objects and collections — with nothing declared. Reach for an
+  inline `Validate:` lambda on top of that when a rule belongs to one field on one form. See
+  [validation.md](validation.md).
 - **Bind collections with `foreach` + per-item capture** — the canonical pattern. Each iteration
   closes over a distinct instance, so each row owns its validation state and `foreach` has no closure
   trap:

@@ -269,6 +269,62 @@ them until tagged releases begin.
   `ApiOptions` carries `Prefix` (default `/api`), `NotFound` and `Controllers`. `MapRaskApi()` returns
   the endpoint group, so rate limiting, CORS or output caching attach to the whole API in one line.
 
+- **Validation is built in and on.** Put `[Required]` on a model, or write an
+  `AbstractValidator<T>` for it, and the rules run — in a `Form<T>` as the user types, and again on
+  the server before a dispatched request reaches its handler. Nothing is declared and, for
+  DataAnnotations, nothing is referenced.
+
+  Validation was the one obvious battery that never got the batteries treatment: it needed a package
+  **and** a component inside the form, and `rask new` scaffolded neither, so a user who put
+  `[Required]` on a model and wired a `Form<T>` saw nothing happen — no message, no diagnostic, and a
+  tutorial that had to stop and apologise for it.
+
+  **DataAnnotations moved into `Rask.Core`**, which every host already bundles, and
+  `Rask.Validation.DataAnnotations` is deleted. The `Form` registers the pass itself; `AddValidator`'s
+  type dedup is what makes doing that on every render free. Behaviour is carried over unchanged,
+  including `IValidatableObject` running alongside the attributes (ASP.NET Core MVC parity) and the
+  render-scoped `IServiceProvider` reaching a custom `ValidationAttribute`.
+
+  **Declaring an `AbstractValidator<T>` is now its whole registration.** A generator finds each one at
+  compile time and emits a `[ModuleInitializer]` — there is no assembly scan anywhere in it, which is
+  what lets a WebAssembly app use FluentValidation and still publish trimmed. A validator with
+  constructor parameters is resolved from the render scope, so the uniqueness-check validator, the
+  usual reason to reach for FluentValidation at all, needs no extra wiring. `Rask.Validation.FluentValidation`
+  stays a package and joins **both** halves of the `Rask` meta-package; its component is deleted too.
+
+  Both passes run with **attributes first**, which needed no reordering: DataAnnotations is the
+  synchronous `IFieldValidator` stage and a discovered validator the asynchronous one, so
+  `EditContext`'s existing order and its per-field first-error-wins gating already produce that.
+
+  **Requests are validated too.** `AddRaskCqrs` registers a `ValidationBehavior` outermost, so an
+  invalid request never reaches a transaction, a log line saying it was handled, or the handler.
+  Custom rules go in an `IRequestValidator<TRequest>`, asynchronous by construction. `Rask.Cqrs`
+  itself gains only the abstraction — it stays standalone and trim-clean, and the two
+  implementations live in the `Rask` package.
+
+  A rejected request becomes **400 `application/problem+json` with an `errors` object** and its own
+  stable `type`. That is the one failure whose text crosses the wire: a handler exception stays opaque
+  because it is written for an operator and names tables and credentials, while a validation message
+  was authored to be shown to whoever sent the request. On a WebAssembly client the request is checked
+  **before** it is sent, so an invalid command costs a message rather than a round trip — the server
+  runs the same rules again and remains the authority.
+
+  Off switches: `app.Configure(c => c.Validation.Off())`, `RaskValidation.AutoValidate = false` on any
+  host, or `Form.Model(m).AutoValidate(false)` for a single form. The global off wins.
+
+  New diagnostics [RASKVAL001](docs/diagnostics.md#raskval001) (two validators for one model) and
+  [RASKVAL002](docs/diagnostics.md#raskval002) (no single public constructor). New guide:
+  [docs/validation.md](docs/validation.md).
+
+  MVC controllers and minimal API endpoints are **not** covered yet — tracked in [#988](https://github.com/pal-tamas/rask/issues/988).
+
+- **The chain generator carries a type parameter's `[DynamicallyAccessedMembers]` into what it
+  emits.** `Form<TModel>` needs the annotation so a published WebAssembly build keeps the model's
+  properties — without it the trimmer removes them and the form validates nothing, silently, with a
+  green build and no IL warning. The chain is the only way to build a component, so an annotation the
+  generated seed, stage and `Of` declarations did not repeat was one no call site could satisfy
+  (IL2091 on every one). Any component whose type parameter is annotated now gets the same treatment.
+
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
   same seven — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`,

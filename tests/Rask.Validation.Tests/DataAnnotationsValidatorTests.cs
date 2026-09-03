@@ -2,8 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core;
 using Rask.Core.Forms;
 
-
-namespace Rask.Validation.DataAnnotations.Tests;
+namespace Rask.Validation.Tests;
 
 public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarkup
 {
@@ -11,17 +10,16 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     public async Task SubmitFlow_FirstInvalid_ThenFilled_RoutesToOnValidSubmit()
     {
         // Reproduces the showcase ValidationSummary demo flow as a unit test:
-        //   1. Render Form (auto-attached via DataAnnotationsValidator child).
+        //   1. Render Form — the validator is registered by the form itself, nothing declared.
         //   2. Submit empty payload — must route to OnInvalidSubmit (which is null here,
         //      so neither typed handler fires; the bridge returns quietly).
-        //   3. Re-render — the same EditContext must survive, the child re-registers
+        //   3. Re-render — the same EditContext must survive, the form re-registers
         //      idempotently, and the freshly-issued submit handler id must close over a
         //      context that still recognises the validator.
         //   4. Submit a valid payload via the new handler — must reach OnValidSubmit.
         var p = new Person { Name = "", Age = 0 };
         Person? captured = null;
         var page = RaskTest.Render(() => Form.Model(p).OnValidSubmit((Action<Person>)(m => captured = m))[
-            DataAnnotationsValidator,
             Input.Bind(() => p.Name),
             Input.Bind(() => p.Age)
         ]);
@@ -184,23 +182,55 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Component_Render_IsIdempotent_AcrossMultipleRenders()
+    public void Registration_IsIdempotent_AcrossMultipleRenders()
     {
         var p = new Person { Name = "" };
-        EditContext? captured = null;
+        var ctx = new EditContext(p);
 
-        // Two separate component instances each Render under the same context: AddValidator's
-        // type-dedup should prevent double-registration. If duplicated, "Name is required"
-        // would appear twice in the messages list.
-        RaskTest.Render(() => Form.Model(p)[
-            DataAnnotationsValidator,
-            DataAnnotationsValidator,
-            RaskTest.EditContextProbe(c => captured = c)
+        // The form registers the built-in validator on EVERY render, which is only safe because
+        // AddValidator dedups by runtime type. Two renders sharing one context is the cheapest way to
+        // hold that: if the dedup ever stops working, "Name is required" appears twice rather than once
+        // — and it would appear once per re-render in a real app, which is every keystroke.
+        RaskTest.Render(() => Form.Model(p).Context(ctx)[
+            RaskTest.EditContextProbe(_ => { })
         ]);
-        var ctx = captured!;
+        RaskTest.Render(() => Form.Model(p).Context(ctx)[
+            RaskTest.EditContextProbe(_ => { })
+        ]);
 
         ctx.Validate();
         Assert.Single(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
+    }
+
+    [Fact]
+    public void AutoValidate_False_TakesTheFormOutOfIt()
+    {
+        var p = new Person { Name = "" };
+
+        // Nothing declared means nothing to delete when you want out, so the opt-out is the only thing
+        // an author writes — and it has to actually stop the pass, not just stop reporting it.
+        var ctx = WithoutAutoValidation(p);
+
+        ctx.Validate();
+        Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
+    }
+
+    [Fact]
+    public void RaskValidation_AutoValidate_False_TakesEveryFormOutOfIt()
+    {
+        var p = new Person { Name = "" };
+
+        RaskValidation.AutoValidate = false;
+        try
+        {
+            var ctx = RegisterValidator(p);
+            ctx.Validate();
+            Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
+        }
+        finally
+        {
+            RaskValidation.AutoValidate = true;
+        }
     }
 
     private sealed class BookingModel : IValidatableObject
