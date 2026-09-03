@@ -4,6 +4,17 @@ Rask hosts a **meta framework** — Nuxt, TanStack Start, SolidStart, SvelteKit,
 that owns the *whole* front end: its own routing, its own rendering, its own Node server. Rask is the
 backend it integrates with, and the two ship as **one container on one port**.
 
+```bash
+rask new Shop --template nuxt   # or nextjs, sveltekit, solidstart, tanstack-start, analog
+```
+
+That runs the framework's **own** creator — `nuxi`, `create-next-app`, `sv`, `create-solid`,
+`@tanstack/cli`, `create-analog` — and then adjusts two things it could not know about: the build has
+to emit a **node server**, and the dev server has to **proxy `/_rask`** back to the host. Everything
+else is whatever that creator ships today, which is the point.
+
+The whole surface it adds to your project file is one property:
+
 ```xml
 <RaskMetaFramework>nuxt</RaskMetaFramework>
 ```
@@ -52,6 +63,43 @@ loopback: publishing the container's ports cannot expose an unauthenticated rend
 `UseRaskMeta()` registers a **fallback**, so anything you mapped first still wins. Map your API
 before it — the symptom of getting that backwards is an API call answered with a rendered page.
 
+## What the scaffold does per framework
+
+`rask new` reaches each framework through its own creator, non-interactively — and getting there was
+not uniform, so this table is the record of what each one actually needs:
+
+| Template | Creator | What Rask arranges |
+|---|---|---|
+| `nuxt` | `nuxi init --template minimal` | Writes `nuxt.config.ts`: Nitro's node preset, the dev proxy, the `@rask` alias (Nuxt's tsconfigs are generated, so the alias belongs in the config), and Tailwind through its Vite plugin. |
+| `nextjs` | `create-next-app --app --tailwind` | Writes `next.config.ts`: `output: 'standalone'` and a `/_rask` rewrite. |
+| `sveltekit` | `sv create --add sveltekit-adapter=adapter:node tailwindcss=plugins:typography` | Nothing overlaid — the add-ons install *and* configure adapter-node and Tailwind. The dev proxy is patched into the `vite.config.ts` that also holds them. |
+| `solidstart` | `create-solid --solidstart --v2 -t with-tailwindcss` | Dev proxy patched into `vite.config.ts`. Version 2 is a Vite app, not the `app.config.ts` shape v1 had. |
+| `tanstack-start` | `@tanstack/cli create --deployment nitro` | Dev proxy patched in. `--deployment nitro` is what makes the build emit a node server; the other adapters produce something this host cannot run. |
+| `analog` | `create-analog --template angular-v20 --skipTailwind` | Dev proxy patched in, and Tailwind added through PostCSS — its creator asks about Tailwind and takes no answer on the command line. |
+
+**Four of the six take Tailwind from their own creator**, which is the better answer on a lane whose
+argument is that the framework's conventions win. Nuxt's creator has no option for it and Analog's
+asks a question it will not accept an answer to, so for those two Rask installs it — the same way [the
+SPA lane](spa.md) does, and with the same rule: the Vite plugin where there is a Vite config Rask
+writes, `@tailwindcss/postcss` where the config belongs to the framework.
+
+**The front end lives in `client/`, lower case** — where [the SPA lane](spa.md) uses `Client/`. Not a
+stylistic difference: half of these creators derive an npm package name from the target directory and
+will not accept one with capitals in it. `create-next-app` and `@tanstack/cli` exit outright ("name can
+no longer contain capital letters"), and `create-analog` stops and asks, which is worse — a prompt
+inside `rask new` is a hang, not a failure you can act on. So every creator here is run from *inside*
+the project directory with a target of `client`, and the scaffold sets `RaskMetaAppDir` to match, so
+the build and the host look in the same place. The casing matters on Linux even where macOS forgives
+it.
+
+Two of those configs are **patched, never overwritten**. SvelteKit's `vite.config.ts` carries the node
+adapter (modern SvelteKit configures kit through the Vite plugin and writes no `svelte.config.js` at
+all) and TanStack's carries the Start plugin and Nitro — writing our own file over either would delete
+exactly the thing that makes the build produce a server.
+
+The creators are all run with installation skipped: your first `dotnet build` installs, so `rask new`
+does not do that work twice.
+
 ## Six frameworks, three server shapes
 
 The frameworks converge, which is why this is a table rather than six integrations:
@@ -82,12 +130,13 @@ needs a separate Node host in front of it, which would be a fourth server shape.
 MyApp/
   MyApp.csproj
   Program.cs
-  Client/            <- the meta framework app
+  client/            <- the meta framework app
 ```
 
-A `Client` **folder** inside the host, not a sibling `.Client` **project**: one project owns both
-halves, because a meta framework app has no separate client artifact for a host to reference — it has
-a server of its own.
+A **folder** inside the host, not a sibling `.Client` **project**: one project owns both halves,
+because a meta framework app has no separate client artifact for a host to reference — it has a server
+of its own. Lower case, because several of these creators refuse a directory name with capitals in it;
+`rask new` writes `RaskMetaAppDir` so the build agrees.
 
 Override with `<RaskMetaAppDir>`; the same value is where the built front end lands inside the publish
 output, so one relative path is correct both when you `dotnet run` from the project and in the

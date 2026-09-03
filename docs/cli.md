@@ -102,6 +102,8 @@ rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
+rask new Shop --template nuxt        # a Nuxt app Rask fronts and supervises (node at runtime)
+rask new Shop --template nextjs      # …or sveltekit, solidstart, tanstack-start, analog
 ```
 
 **Batteries are included.** `rask new MyApp` gives you everything the template carries as standard — a

@@ -29,7 +29,20 @@ internal sealed record ExternalScaffold(
     string Command,
     IReadOnlyList<string> Arguments,
     string Description,
-    string MissingHint);
+    string MissingHint)
+{
+    /// <summary>
+    ///     A directory under the target to run the command in, created first. Empty means the target
+    ///     itself, which is what every scaffolder that accepts a nested path uses.
+    /// </summary>
+    /// <remarks>
+    ///     For creators that will only take a single path segment. <c>create-analog</c> is the one:
+    ///     given <c>Shop/Client</c> it stops and asks for a package name — for ANY nested path, lower
+    ///     case included — and a prompt inside <c>rask new</c> is a hang rather than a failure anyone can
+    ///     act on. Run from inside <c>Shop</c> with a target of <c>Client</c>, it completes.
+    /// </remarks>
+    public string WorkingSubdirectory { get; init; } = string.Empty;
+}
 
 /// <summary>
 ///     An in-place edit to a file the scaffold did not write.

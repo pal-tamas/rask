@@ -640,18 +640,29 @@ internal static partial class ProjectGenerator
     ///     committing them would produce a diff on every contract change and invite a hand-edit that the
     ///     next build silently discards. Appended rather than replaced, and idempotent.
     /// </remarks>
-    internal static string IgnoreGeneratedContracts(string gitIgnore)
+    internal static string IgnoreGeneratedContracts(string gitIgnore) =>
+        IgnoreGeneratedDirectory(gitIgnore, "src/rask/", "Rask.Spa.Hosting");
+
+    /// <summary>
+    ///     Adds the generated directory to a client's <c>.gitignore</c>, once.
+    /// </summary>
+    /// <remarks>
+    ///     Parameterised because the meta lane does not put it in the same place: Nuxt and Next keep
+    ///     source in <c>app/</c>, so their generated code lands in <c>app/rask/</c> and an ignore line
+    ///     naming <c>src/rask/</c> would match nothing — committing a directory the build rewrites on
+    ///     every run.
+    /// </remarks>
+    internal static string IgnoreGeneratedDirectory(string gitIgnore, string entry, string package)
     {
-        const string Entry = "src/rask/";
-        if (gitIgnore.Split('\n').Any(line => line.Trim() == Entry))
+        if (gitIgnore.Split('\n').Any(line => line.Trim() == entry))
         {
             return gitIgnore;
         }
 
         var separator = gitIgnore.EndsWith('\n') ? string.Empty : "\n";
         return gitIgnore + separator
-               + "\n# Generated from the server's CQRS contracts on every build (Rask.Spa.Hosting).\n"
-               + Entry + "\n";
+               + $"\n# Generated from the server's CQRS contracts on every build ({package}).\n"
+               + entry + "\n";
     }
 
     private static string SpaServerCsproj(ServerBatteries batteries, SpaFramework framework, string name, string version)

@@ -9,6 +9,40 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new --template nuxt` — and nextjs, sveltekit, solidstart, tanstack-start, analog.** The meta
+  framework lane could be hosted but not started: you hand-wrote the csproj, the `Program.cs`, the
+  adapter or preset that emits a node server, and the dev proxy that makes a `rask dev` session
+  dispatch anywhere. All six are now templates, each reaching its framework through that framework's
+  **own** creator, because the argument of this lane is that the framework's conventions win.
+
+  What Rask adds is only what the creator cannot know: the build must emit a node server, and the dev
+  server must proxy `/_rask` back to the host. Two of the configs are **patched, never overwritten** —
+  SvelteKit's `vite.config.ts` carries its node adapter (modern SvelteKit configures kit through the
+  Vite plugin and writes no `svelte.config.js` at all) and TanStack's carries the Start plugin and
+  Nitro, so writing our own file over either would delete the thing that makes the build produce a
+  server at all.
+
+  Every invocation was established by running it, not by reading docs, and none of them was uniform:
+  `nuxi` refuses without `--template` and `--gitInit`; `create-start-app` is deprecated in favour of
+  `@tanstack/cli`, whose `--deployment nitro` is what produces the node entry; `create-solid` needs
+  both `--v2` and a named template; and `create-analog` answers even `--help` with a prompt and needs
+  an undocumented `--skipTailwind`. A prompt inside `rask new` is a hang rather than an error, which is
+  why each of those is pinned by a test.
+
+  **The front end lives in `client/`, lower case** — where the SPA lane uses `Client/`. Half of these
+  creators derive an npm package name from the target directory and reject capitals: `create-next-app`
+  and `@tanstack/cli` exit, and `create-analog` stops to ask. So all six are run from inside the
+  project directory with a target of `client`, and the scaffold sets `RaskMetaAppDir` to match.
+
+  Tailwind comes from each creator where one can be asked — Next's `--tailwind`, SvelteKit's add-on,
+  SolidStart's `with-tailwindcss` template, and TanStack's standard scaffold. Nuxt has no such option
+  and Analog will not take an answer, so Rask installs it for those two, by the same rule the SPA lane
+  uses: the Vite plugin where Rask writes the Vite config, `@tailwindcss/postcss` where it does not.
+
+  `--docker` means something specific here: the image keeps a **node runtime**, because the front end
+  has a server of its own that the host supervises for the life of the container. That is the honest
+  cost of this lane, and [docs/meta.md](docs/meta.md) says so.
+
 - **`rask dev` knows the meta framework lane (#983).** It classified a meta host as a plain server
   app, which failed in the quiet direction: nothing broke, and every save ran a full **production**
   build of Nuxt, Next or SvelteKit through the framework's own toolchain, whose output the session

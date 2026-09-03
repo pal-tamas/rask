@@ -261,7 +261,8 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit, "
+            + "nuxt, nextjs, sveltekit, solidstart, tanstack-start, analog.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
