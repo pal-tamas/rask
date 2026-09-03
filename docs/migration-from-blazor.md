@@ -23,7 +23,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `OnAfterRender(firstRender)` / async | `OnRendered(firstRender)` / `OnRenderedAsync` |
 | `Dispose` / `DisposeAsync` | implement `IDisposable` / `IAsyncDisposable`; or use `OnUnmount` / `OnUnmountAsync` |
 | `NavigationManager` | `Navigator` (event-handler-only) + `RouteState` (current path/params) |
-| `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK067](diagnostics.md#rask067)) |
+| `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK071](diagnostics.md#rask071)) |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
 | `<EditForm>` + `InputText`/`InputNumber` | `Form.Model(model).OnValidSubmit(…)` + `Input.Bind(() => model.X)` |
 | `<DataAnnotationsValidator>` | drop `DataAnnotationsValidator` inside the `Form` |

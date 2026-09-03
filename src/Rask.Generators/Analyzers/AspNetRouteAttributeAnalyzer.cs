@@ -34,8 +34,8 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
     private const string MvcRouteAttribute = "Microsoft.AspNetCore.Mvc.RouteAttribute";
     private const string BlazorRouteAttribute = "Microsoft.AspNetCore.Components.RouteAttribute";
 
-    private static readonly DiagnosticDescriptor Rask067 = new(
-        "RASK067",
+    private static readonly DiagnosticDescriptor Rask071 = new(
+        "RASK071",
         "ASP.NET route attribute on a Rask component",
         "'{0}' carries {1}, which Rask's router never reads, so this page is never registered and its "
         + "URL 404s — apply Rask's own [Route] from Rask.Core.Routing instead",
@@ -50,10 +50,10 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
                      + "the build succeeds and the page is simply absent from the route table. Apply "
                      + "Rask.Core.Routing.RouteAttribute instead; the quick-fix rewrites the attribute in "
                      + "place, qualifying it where the short name would be ambiguous.",
-        helpLinkUri: DiagnosticHelp.Link("RASK067"));
+        helpLinkUri: DiagnosticHelp.Link("RASK071"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(Rask067);
+        ImmutableArray.Create(Rask071);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -88,7 +88,7 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
             }
 
             context.ReportDiagnostic(Diagnostic.Create(
-                Rask067,
+                Rask071,
                 attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
                 ?? type.Locations[0],
                 type.Name,

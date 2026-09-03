@@ -7,7 +7,7 @@ using Rask.Generators.Analyzers;
 namespace Rask.Generators.Tests;
 
 /// <summary>
-///     RASK067: a Rask component wearing ASP.NET's <c>[Route]</c> rather than Rask's.
+///     RASK071: a Rask component wearing ASP.NET's <c>[Route]</c> rather than Rask's.
 /// </summary>
 /// <remarks>
 ///     The real attributes, not stand-ins. Both live in the ASP.NET Core shared framework, which the
@@ -18,7 +18,7 @@ namespace Rask.Generators.Tests;
 public class AspNetRouteAttributeAnalyzerTests
 {
     [Fact]
-    public async Task AnMvcRouteOnAComponent_ReportsRask067()
+    public async Task AnMvcRouteOnAComponent_ReportsRask071()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -43,7 +43,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // The same trap from the other direction, and the likelier one: someone arriving from Blazor types
     // the attribute they have always typed.
     [Fact]
-    public async Task ABlazorRouteOnAComponent_ReportsRask067()
+    public async Task ABlazorRouteOnAComponent_ReportsRask071()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -62,7 +62,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // MVC's attribute is not sealed, so a project-local alias deriving from it is a real shape — and it
     // is exactly as invisible to Rask's router as the original. Matching on the name alone would miss it.
     [Fact]
-    public async Task AnAliasDerivedFromMvcsRoute_ReportsRask067()
+    public async Task AnAliasDerivedFromMvcsRoute_ReportsRask071()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -204,6 +204,6 @@ public class AspNetRouteAttributeAnalyzerTests
         var withAnalyzers = compilation.WithAnalyzers(
             ImmutableArray.Create<DiagnosticAnalyzer>(new AspNetRouteAttributeAnalyzer()));
         var all = await withAnalyzers.GetAnalyzerDiagnosticsAsync();
-        return all.Where(d => d.Id == "RASK067").ToImmutableArray();
+        return all.Where(d => d.Id == "RASK071").ToImmutableArray();
     }
 }

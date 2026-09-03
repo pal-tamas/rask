@@ -1,4 +1,4 @@
-namespace Rask.Cqrs;
+namespace Rask.Wire;
 
 /// <summary>
 ///     A file returned <b>from</b> a message — the download direction. Declare it as a query's result

@@ -108,7 +108,9 @@ public sealed class ServerBatteryScaffoldTests
     [Fact]
     public void Push_maps_its_endpoints_before_the_UseRask_catch_all()
     {
-        // UseRask serves the SPA for anything unmatched, so a minimal API mapped after it is unreachable.
+        // Not a correctness rule — routing matches on precedence, so mapping after UseRask would work
+        // too (RaskAppTests.An_endpoint_mapped_after_UseRask_still_runs pins that). This pins the
+        // scaffold's LAYOUT: endpoints read in one place, above the line that ends the pipeline.
         var files = Generate("push");
         var program = files["Program.cs"];
 

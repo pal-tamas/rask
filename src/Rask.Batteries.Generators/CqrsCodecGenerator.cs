@@ -32,6 +32,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 {
     private const string CqrsNamespace = "Rask.Cqrs";
     private const string CqrsAssembly = "Rask.Cqrs";
+    private const string WireNamespace = "Rask.Wire";
 
     private static readonly DiagnosticDescriptor Rask053 = new(
         "RASK053",
@@ -466,7 +467,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             Message = message,
             Result = result,
             ResultFqn = returnsFile
-                ? "global::Rask.Cqrs.FileDownload"
+                ? "global::Rask.Wire.FileDownload"
                 : resultType is null
                     ? "global::Rask.Cqrs.Unit"
                     : resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
@@ -476,8 +477,11 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         };
     }
 
+    // FileDownload lives in Rask.Wire, not Rask.Cqrs: it is a wire carrier, and Rask.Api's codecs need
+    // the same one. Matched by name and namespace rather than by symbol identity so this generator keeps
+    // no reference to either package.
     private static bool IsFileDownload(ITypeSymbol type) =>
-        type.Name == "FileDownload" && type.ContainingNamespace?.ToDisplayString() == CqrsNamespace;
+        type.Name == "FileDownload" && type.ContainingNamespace?.ToDisplayString() == WireNamespace;
 
     private static string Build(List<ContractModel> contracts)
     {
@@ -592,9 +596,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             sb.AppendLine(
                 "internal sealed class __RaskCqrsUploadedFile : global::Rask.Core.Forms.RaskFile");
             sb.AppendLine("{");
-            sb.AppendLine("    private readonly global::Rask.Cqrs.RemoteFile _wire;");
+            sb.AppendLine("    private readonly global::Rask.Wire.RemoteFile _wire;");
             sb.AppendLine();
-            sb.AppendLine("    public __RaskCqrsUploadedFile(global::Rask.Cqrs.RemoteFile wire) { _wire = wire; }");
+            sb.AppendLine("    public __RaskCqrsUploadedFile(global::Rask.Wire.RemoteFile wire) { _wire = wire; }");
             sb.AppendLine();
             sb.AppendLine("    public override string Name => _wire.Name;");
             sb.AppendLine();
@@ -632,7 +636,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         sb.AppendLine("{");
         sb.AppendLine("    // Results never carry files, so their codecs are handed a list that can be shared and");
         sb.AppendLine("    // never written to.");
-        sb.AppendLine("    private static readonly global::Rask.Cqrs.RemoteFile[] NoFiles = new global::Rask.Cqrs.RemoteFile[0];");
+        sb.AppendLine("    private static readonly global::Rask.Wire.RemoteFile[] NoFiles = new global::Rask.Wire.RemoteFile[0];");
         sb.AppendLine();
         sb.Append(emitter.Methods);
 
@@ -674,7 +678,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     }
 
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";
-    private const string FileListRead = "global::System.Collections.Generic.IReadOnlyList<global::Rask.Cqrs.RemoteFile>";
+    private const string FileListRead = "global::System.Collections.Generic.IReadOnlyList<global::Rask.Wire.RemoteFile>";
 
     private enum RemoteKind
     {

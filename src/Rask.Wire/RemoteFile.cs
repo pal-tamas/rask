@@ -1,4 +1,4 @@
-namespace Rask.Cqrs;
+namespace Rask.Wire;
 
 /// <summary>
 ///     A file carried <b>by</b> a message — the upload direction. Declare it as a property on a

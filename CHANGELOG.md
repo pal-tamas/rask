@@ -9,7 +9,7 @@ them until tagged releases begin.
 
 ### Added
 
-- **RASK067 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
+- **RASK071 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
   route attribute and ASP.NET's share the short name `Route` and differ only by namespace, so a server
   file that already imports `Microsoft.AspNetCore.Mvc` — or one written by someone arriving from Blazor,
   where the attribute is `Microsoft.AspNetCore.Components.RouteAttribute` — can bind the wrong one from a
@@ -20,11 +20,11 @@ them until tagged releases begin.
 
   The lightbulb rewrites only the attribute's **name**, so the template and any sibling attributes
   survive, and it writes the name qualified wherever a bare `Route` would bind back to ASP.NET's
-  attribute or be ambiguous — never trading RASK067 for CS0104, which is asserted by compiling the
+  attribute or be ambiguous — never trading RASK071 for CS0104, which is asserted by compiling the
   fixed file with a genuine MVC controller still in it. Where the arguments themselves would not fit
   Rask's `RouteAttribute(string template)` the fix is **withheld** rather than offered: MVC's
   attribute also has settable `Name` and `Order`, and an alias may bake its template in and take no
-  arguments at all, so rewriting those would answer RASK067 with a CS0117 or CS7036.
+  arguments at all, so rewriting those would answer RASK071 with a CS0117 or CS7036.
 
   A page that already registers is left alone, both ways it can: Rask's own `[Route]`, and
   `[NotFound]`, which registers the catch-all with no `[Route]` at all. The second one matters more
@@ -32,6 +32,123 @@ them until tagged releases begin.
   `[NotFound]`, which is RASK013 and drops the catch-all from the registry entirely. An alias
   deriving from MVC's (unsealed) attribute is matched through the base chain, and the message names
   the alias the developer actually wrote rather than only the base it derives from.
+
+  Note that this is deliberately silent on the API controllers `Rask.Api` introduces: those are real
+  MVC controllers, not components, and `[Route]` on one of them is correct.
+
+- **`Rask.Api.Client` — a typed client generated from your own controllers, so a call site carries no
+  URL.** The server declaration is the source of truth: an ordinary `[ApiController]` is read for its
+  routes, verbs, parameters and response types, and one client class per controller is generated from
+  it. `PostsController` becomes `PostsClient`, and a component writes `await posts.Get(3)` rather than
+  `http.GetFromJsonAsync<Post>($"/api/posts/{id}")`. Rename the route on the server and the call site
+  fails at compile time instead of at 404 time.
+
+  Reflection-free throughout — the JSON codecs come from the same `WireCodecEmitter` the CQRS wire
+  uses, so a shape means the same thing on either — and `AddRaskApiClient()` registers every generated
+  client from a module initializer, so this package never has to name types that live in your
+  compilation.
+
+  **The round-trip suite found two bugs a compile-only generator test cannot see**, which is the whole
+  reason it hosts the real controllers and calls them over HTTP rather than asserting on emitted text:
+
+  1. An action returning `string` answers **`text/plain`**, not JSON — ASP.NET's `StringOutputFormatter`
+     wins content negotiation — so `return "ok"` arrived as `ok` and the decoder failed on a perfectly
+     valid response. The client now says `Accept: application/json`.
+  2. Optional parameters were emitted as `= default`, so calling `List()` sent `page=0` and **silently
+     overrode the action's own `page = 1`** with a zero that type-checks on both sides. The generator
+     now emits the action's real default.
+
+  **Minimal API endpoints get the same treatment**, read from the `MapGet`/`MapPost`/… invocations
+  themselves. They have no controller to be named after — and most live in a `Program.cs` whose
+  enclosing type is `Program`, which would tell a reader nothing — so they group by route instead:
+  everything under `/api/widgets` lands on `WidgetsClient`. The method name is derived from the verb and
+  the route (`GET /api/widgets/{id}` → `GetById`), and a chained `.WithName("…")` overrides it, which is
+  ASP.NET's own way of naming an endpoint rather than a Rask invention.
+
+  `TypedResults` is read properly: `Ok<T>`, `Results<Ok<T>, NotFound>` and `NoContent` all carry their
+  response type in the signature, and the first alternative with a body supplies the client's return
+  type. Without that, the entire style Microsoft recommends for minimal APIs would have reported as
+  having no statically known response type and got no client at all.
+
+  **The client reaches the WASM bundle on its own.** A controller lives under `Server/`, which the
+  browser companion does not compile — so a generator running in the browser half sees no controllers at
+  all. What crosses instead is the *file* the server's generator wrote: `EmitCompilerGeneratedFiles`
+  puts it on disk and the companion compiles that exact file, so the two halves cannot disagree about
+  the client because there is only one of it. `Rask.Api.Client` is added to the companion automatically
+  when that file exists.
+
+  Not the shape `Rask.Cqrs` uses for its TypeScript, deliberately: there the text has to travel as a
+  string constant inside the assembly because a `.ts` cannot be compiled into one, and a task lifts it
+  back out of the PE metadata. C# needs none of that — no task assembly, no escaping, no copy of the
+  client embedded in every server assembly forever, and no staleness, since the file is an output of
+  `CoreCompile`.
+
+  Nor is it the `Rask.Cqrs.Client` split, and for a reason worth stating: that split exists because
+  `AddRaskCqrsClient()` rewrites a process-wide registry, so a server holding it bounces its own
+  messages back out. A typed API client has no such property — it dials routes that are public anyway —
+  and the server half genuinely needs it, since a component that calls its API renders on both.
+
+  One rule this makes real: **the shapes that cross the wire live outside `Server/`**, exactly as a CQRS
+  message record does. A response type declared inside `Server/` is invisible to the bundle, and the
+  author meets it as `CS0246` inside generated code they never wrote. Documented, and pinned by
+  `The_bundle_can_call_an_API_controller_that_only_the_server_compiles` — a real `--wasm` publish, which
+  is the only thing that can tell.
+
+  Four diagnostics, RASK067–RASK070: no wire encoding, endpoint skipped (with the reason — a silent
+  skip reads as a broken generator), two endpoints claiming one client method, and a response type that
+  is not statically known. They are RASK067–070 rather than the 061–064 first written, because those
+  were free on `main` and already taken on this branch's base — the collision CLAUDE.md warns about,
+  hit again. Its note now says **four** assemblies allocate in that space.
+
+- **`[Authorize]` on an API endpoint is enforced, and now proven so.** Nothing was added for it — an API
+  controller is its own endpoint, so ASP.NET's own authorization applies and Rask stays out of the way.
+  What was missing was evidence, and the lean `AddMvcCore()` registration is exactly the kind of edit
+  that could have taken enforcement away.
+
+  `AuthorizeTests` asks a running server: 401 for an anonymous caller, 403 for a role the caller lacks,
+  200 for one they hold, and `[AllowAnonymous]` still opening one route on an otherwise protected
+  controller. The failure it guards against is the reason it exists over HTTP rather than over the
+  service collection — an `[Authorize]` that quietly stopped being enforced would still *read* as
+  protection in the source, and the endpoint would answer 200 to anyone.
+
+  Deliberately unlike CQRS remote dispatch: there, two shared endpoints cannot carry per-message
+  metadata, so `Rask.Cqrs.Server` reads `[Authorize]` off the handler at compile time and enforces it
+  imperatively. None of that machinery is repeated here, because none of it is needed.
+
+- **HTTP endpoints are a battery, so there is nothing to wire.** `Rask.Api` and `Rask.Api.Client` are
+  in the `Rask` meta-package like every other battery — referencing the framework is what turns them on.
+  Write a controller and it answers; no `AddRaskApi()`, no `MapRaskApi()`, no `AddControllers()`. An app
+  without endpoints says `c.Api.Off()`, and one that wants a different prefix says
+  `c.Api.Configure(o => o.Prefix = "/services")`.
+
+  Registered as **`AddMvcCore().AddDataAnnotations()`**, not `AddControllers()`. An API controller needs
+  the core — routing, model binding, the JSON formatters, the `[ApiController]` conventions — while
+  `AddControllers` layers on the API explorer, CORS services and formatter mappings that an app gets
+  whether it asks or not. DataAnnotations stays because dropping it changes *behaviour* rather than
+  weight: a `[Required]` on a request body silently stops being enforced. Measured, not assumed —
+  removing it turns `A_required_member_is_still_enforced_by_the_lean_registration` red with a 200 where
+  a 400 belongs.
+
+  Wired above the database early-return, deliberately: HTTP endpoints have nothing to do with EF Core,
+  and putting them beside the pillars would have given an app with no `DbContext` no API at all.
+
+- **`Rask.Api` — API controllers and minimal API endpoints, hosted properly.** `AddRaskApi()` +
+  `MapRaskApi()`. Controllers are mapped (nothing in `src/` referenced MVC before this), and a request
+  under the API prefix that matches **nothing** now answers 404 with an RFC 9457 problem document.
+
+  That second part is the real defect, and it is not the one the docs used to describe. Endpoint
+  routing matches on precedence, so an app's own routes were never at risk from `UseRask`'s catch-all.
+  An *unmatched* path was: it reached the catch-all and rendered the app, so a mistyped or deleted API
+  route answered `200` with a web page and the caller's JSON parse failed a long way from the cause.
+
+  The guard is an ordinary endpoint at the default order, not a fallback. A fallback sits at
+  `int.MaxValue` and loses to the catch-all — checked, not assumed: swapping `MapMethods` for
+  `MapFallback` turns three tests in `NotFoundGuardTests` red. At the same order `/api/{**rest}`
+  outranks `/{**path}`, and loses in turn to every real route beneath it. It names every verb, so a
+  POST to a wrong path answers 404 rather than a 405 that would claim the route exists.
+
+  `ApiOptions` carries `Prefix` (default `/api`), `NotFound` and `Controllers`. `MapRaskApi()` returns
+  the endpoint group, so rate limiting, CORS or output caching attach to the whole API in one line.
 
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
@@ -95,6 +212,46 @@ them until tagged releases begin.
   **`check-dependency-updates`**, widened to every axis and carrying an explicit do-not-bump list.
 
 ### Changed
+
+- **BREAKING: `WireJson`, `RemoteFile` and `FileDownload` moved from `Rask.Cqrs` to a new `Rask.Wire`
+  package.** Same code, same behaviour, new namespace — an app that names one of these types adds
+  `using Rask.Wire;` (a package consumer gets it as a global using, so most apps change nothing).
+
+  These are the primitives Rask's generated wire codecs are written against, and CQRS is about to stop
+  being the only thing that generates them: the typed API client does too. Leaving them in `Rask.Cqrs`
+  left only bad options — have the REST client depend on a mediator it never uses, or duplicate the
+  three types and hand any app referencing both a CS0433 collision. A shared package they both depend
+  on is the version with no downside.
+
+  Done now because pre-1.0 every `PublicAPI.Shipped.txt` is empty, so moving a public type costs a
+  namespace and nothing else. It never gets cheaper than this.
+
+  **A packable dependency has a fourth registration point, and nothing policed it.** `Rask.Cqrs`
+  depending on `Rask.Wire` makes it a real `<dependency>` in the nuspec, so every scaffolded project
+  restoring against the CLI gate's local feed failed `NU1101` — all of `ProjectGeneratorBuildE2E`,
+  `TutorialChapterBuildE2E` and `SpaTailwindBuildE2E` at once, because the feed list in
+  `tests/Rask.Cli.Tests/CliBuildE2E.cs` is separate from `release.yml`, `nightly.yml` and the root
+  `NUGET.md` and no test compared them. It surfaced only on the far side of an opt-in gate that packs
+  a feed, waits for a machine-wide lane and then builds real projects.
+
+  `The_local_feed_carries_what_its_own_packages_depend_on` now answers the same question from the
+  csproj graph in milliseconds, naming the missing package and what depends on it. Verified by
+  deleting the entry and watching it go red — a guard that has never failed is not known to work.
+
+- **Two more pack-time-only failures now fail fast.** Both were found by the browser-rung publish gate,
+  minutes in, and both were invisible to `dotnet build` and to all 6,700 unit tests:
+
+  `Rask.Api` **shipped no generator at all** — a consumer would have installed it, followed the docs and
+  got hosting with no typed client. Every in-repo test passed because they name the generator as an
+  explicit `OutputItemType="Analyzer"` ProjectReference, and analyzers do **not** flow through one; a
+  package dependency is the only thing that carries them to a real consumer.
+  `Every_generator_assembly_is_packed_by_someone` now asserts each `*.Generators`/`*.CodeFixes` assembly
+  is packed by *some* package. Deliberately not "a project referencing an analyzer must pack it" — 17
+  projects correctly do the opposite, receiving it transitively.
+
+  `Rask.Api.Client` named a `NUGET.md` it did not have, which is `NU5019` at pack time and silence
+  everywhere else. `Every_file_a_project_packs_by_name_exists` checks every literal `Pack="true"`
+  include against disk, and reports *"Rask.Api.Client packs 'NUGET.md', which does not exist"* in 81ms.
 
 - **The gates now share this machine by a slot budget instead of one all-or-nothing lane, so several
   worktrees can test at once without lying to each other.** Eight worktrees run on one box here, and
@@ -180,7 +337,71 @@ them until tagged releases begin.
   projects; those are real .NET projects, and nesting one inside the host needs the host to exclude it
   from its own compile globs. That lands separately.
 
+- **The browser layer is becoming ordinary TypeScript modules, shared by every front end.** The
+  helpers Rask's C# wrappers call through — `window.__raskApi`, `window.__raskGeoWatch` and the rest —
+  were framework-agnostic TypeScript already, but reachable only by shipping through Rask's own client
+  entry point. They are moving to `src/Rask.Core/Resources/browser/`, one module per API, so a
+  TypeScript front end (SPA, or a meta framework) can `import { getCurrentPosition } from
+  "./rask/browser/geolocation"` while Server and WASM keep resolving the same code by dotted
+  identifier through the one module that registers the globals, `browser/globals.ts`.
+
+  This lands API by API; 37 modules have moved so far. `rask-api.ts` is down from 1,975 lines to 443
+  and `rask-pwa.ts` is gone entirely, its four APIs (Web Push, notifications, badging, wake lock)
+  now ordinary modules like the rest.
+
+  What is deliberately NOT moving is as much of the design as what is. `RTCPeerConnection`, the
+  device APIs (serial, USB, HID, Bluetooth), `element.animate()`, `navigator.clipboard` and
+  `localStorage` stay where they are: they are native, well typed, and a wrapper would hand a
+  TypeScript caller something worse than `lib.dom.d.ts` already gives them. What survives the cut
+  either has a server half that is ours (`signaling`, `webPush`) or is ceremony nobody should write
+  twice (`webAuthn`'s base64url dance, OPFS's ranged writes, the wake lock's re-acquire). Two rules hold for every module:
+  the names are idiomatic TypeScript (`getCurrentPosition`, not `GetCurrentPositionAsync`, and the
+  platform's own name wins wherever it has one), and **side effects live in `globals.ts` alone** —
+  a module that touched `window` at import time would break a Next or Nuxt server render and would
+  defeat tree-shaking. A node fixture proves that by construction: it imports the modules in a process
+  with no `window` and no `document`, so an import-time DOM access fails the test.
+
+  Nothing about the C# surface changes, and the `__rask*` keys stay byte-identical — `GlobalsContractTests`
+  now scans every `__raskApi.x` a C# wrapper names and fails if `globals.ts` does not register it,
+  because that pairing is a string on one side and an object key on the other with no compiler between.
+
+  **A TypeScript front end receives them the way it receives the wire.** `Rask.Spa.Hosting` packs the
+  modules from `Rask.Core` — no `ProjectReference`, so it still depends on nothing else in Rask — and
+  the build copies them into the client's `src/rask/browser/` beside the generated contracts, refreshed
+  from the package every build like `client.ts`. So `import { getCurrentPosition } from
+  './rask/browser/geolocation'` is typed, tree-shaken, and locked to the host that shipped it.
+  `globals.ts` is excluded from that copy: it exists for .NET's dotted identifiers and a front end has
+  no use for it. See [TypeScript front ends → Browser APIs](docs/spa.md#browser-apis).
+
+  The [capability matrix](docs/browser-capabilities.md) gains a third column, because a React developer
+  reading two columns of C# interfaces would reasonably conclude none of it was theirs. Each row now
+  says either the module to import or "the platform" — and the notes say why the 🟡 and ⬜ rows are not
+  restrictions there: those are properties of the SERVER transport, which loses transient user
+  activation over a round trip, so a TypeScript front end calling inside the click's own stack has the
+  complete surface.
+
 ### Fixed
+
+- **The docs said an endpoint mapped after `UseRask` "never runs". It runs.** The claim appeared in
+  `RaskApp.MapEndpoints`' own XML docs, in `Rask.Spa.Hosting`, in `docs/getting-started.md`, in a test
+  comment, and — worst — in the comment `rask new` scaffolds into every generated `Program.cs`, where it
+  told authors something false about their own file. Nothing pinned it, because both existing tests only
+  proved the seam *works*.
+
+  It is not true. Rask's catch-all is a plain `MapGet("/{**path}")` — an ordinary endpoint, not a
+  terminal middleware and not `MapFallback` — and endpoint routing matches on **precedence**, never on
+  registration order. Every route an app writes is more specific than a catch-all, so it wins from either
+  side of the call. `An_endpoint_mapped_after_UseRask_still_runs` now pins that with a literal route, a
+  parameterised one and a POST, all mapped after `UseRask`, so the false version cannot come back.
+
+  `MapEndpoints` keeps its place and its name — it is a readable spot for an app's endpoints, and it does
+  order against genuine *middleware* — but it is documented as a place rather than as a fix for a bug
+  that was never there.
+
+  What the catch-all really does swallow is a request matching **nothing**: an API path with a typo, or
+  one whose route was deleted, renders the app with a 200 where the caller expected JSON, and the failure
+  surfaces later as a parse error far from its cause. That is a genuine defect, it is not what the old
+  comments described, and this entry does not fix it.
 
 - **A version pinned in two places was held together by a comment, and one of the comments was
   describing a test that did not exist.** `ProjectGenerator.Wasm.AspNetCoreFrameworkVersion` must match
@@ -255,115 +476,6 @@ them until tagged releases begin.
   each worktree's suite is its own process. The path now carries a hash of the checkout's absolute
   path as well, since the lock cannot be made to reach and the path can.
 
-### Changed
-
-- **The browser layer is becoming ordinary TypeScript modules, shared by every front end.** The
-  helpers Rask's C# wrappers call through — `window.__raskApi`, `window.__raskGeoWatch` and the rest —
-  were framework-agnostic TypeScript already, but reachable only by shipping through Rask's own client
-  entry point. They are moving to `src/Rask.Core/Resources/browser/`, one module per API, so a
-  TypeScript front end (SPA, or a meta framework) can `import { getCurrentPosition } from
-  "./rask/browser/geolocation"` while Server and WASM keep resolving the same code by dotted
-  identifier through the one module that registers the globals, `browser/globals.ts`.
-
-  This lands API by API; 37 modules have moved so far. `rask-api.ts` is down from 1,975 lines to 443
-  and `rask-pwa.ts` is gone entirely, its four APIs (Web Push, notifications, badging, wake lock)
-  now ordinary modules like the rest.
-
-  What is deliberately NOT moving is as much of the design as what is. `RTCPeerConnection`, the
-  device APIs (serial, USB, HID, Bluetooth), `element.animate()`, `navigator.clipboard` and
-  `localStorage` stay where they are: they are native, well typed, and a wrapper would hand a
-  TypeScript caller something worse than `lib.dom.d.ts` already gives them. What survives the cut
-  either has a server half that is ours (`signaling`, `webPush`) or is ceremony nobody should write
-  twice (`webAuthn`'s base64url dance, OPFS's ranged writes, the wake lock's re-acquire). Two rules hold for every module:
-  the names are idiomatic TypeScript (`getCurrentPosition`, not `GetCurrentPositionAsync`, and the
-  platform's own name wins wherever it has one), and **side effects live in `globals.ts` alone** —
-  a module that touched `window` at import time would break a Next or Nuxt server render and would
-  defeat tree-shaking. A node fixture proves that by construction: it imports the modules in a process
-  with no `window` and no `document`, so an import-time DOM access fails the test.
-
-  Nothing about the C# surface changes, and the `__rask*` keys stay byte-identical — `GlobalsContractTests`
-  now scans every `__raskApi.x` a C# wrapper names and fails if `globals.ts` does not register it,
-  because that pairing is a string on one side and an object key on the other with no compiler between.
-
-  **A TypeScript front end receives them the way it receives the wire.** `Rask.Spa.Hosting` packs the
-  modules from `Rask.Core` — no `ProjectReference`, so it still depends on nothing else in Rask — and
-  the build copies them into the client's `src/rask/browser/` beside the generated contracts, refreshed
-  from the package every build like `client.ts`. So `import { getCurrentPosition } from
-  './rask/browser/geolocation'` is typed, tree-shaken, and locked to the host that shipped it.
-  `globals.ts` is excluded from that copy: it exists for .NET's dotted identifiers and a front end has
-  no use for it. See [TypeScript front ends → Browser APIs](docs/spa.md#browser-apis).
-
-  The [capability matrix](docs/browser-capabilities.md) gains a third column, because a React developer
-  reading two columns of C# interfaces would reasonably conclude none of it was theirs. Each row now
-  says either the module to import or "the platform" — and the notes say why the 🟡 and ⬜ rows are not
-  restrictions there: those are properties of the SERVER transport, which loses transient user
-  activation over a round trip, so a TypeScript front end calling inside the click's own stack has the
-  complete surface.
-
-### Fixed
-
-- **A hosted Blazor component's `[Inject]` never ran, so every injected service was silently null
-  ([#956](https://github.com/pal-tamas/rask/issues/956)).** `BlazorComponent` constructed the hosted
-  component with `new()` and handed the finished instance to `AssignRootComponentId`, which skips
-  `ComponentFactory` — the only place Blazor performs property injection. Constructor injection was
-  never available either (the `new()` constraint rules it out), so a hosted component had no way to
-  reach a service at all. It surfaced as an `ArgumentNullException` or an NRE from inside the
-  component, naming nothing that pointed at the cause.
-
-  The whole service story was inert as a result, including what this package deliberately registers:
-  `NavigationManager` is registered precisely because MudBlazor and Radzen inject it, and it could
-  never be delivered. So could nothing else — `IJSRuntime`, or any of Rask's typed browser APIs.
-
-  Built through the renderer's own `InstantiateComponent` now, which runs injection and honours a
-  registered `IComponentActivator`. The `Create()` hook is gone with it: a hook there would have had
-  to re-implement injection to be useful, and Blazor's activator is the seam that already exists.
-
-  `BlazorComponent<TComponent>`'s annotation widens from `PublicProperties` to `All`, and not by
-  preference — `InstantiateComponent` declares `LinkerFlags.Component`, which IS `All`, so anything
-  narrower is IL2087 in every consuming WASM app. Injection also reflects over NON-public `[Inject]`
-  properties, so a narrower annotation would reproduce #945 with a second face: an island that
-  renders perfectly with every injected service null. Gated the way #945 was — the trimmed WASM
-  showcase publishes clean, and `TrimmingContractTests` fails in milliseconds if the annotation moves.
-
-- **A `--push` client lost its push code on a fresh clone ([#957](https://github.com/pal-tamas/rask/issues/957)).**
-  `rask new --push` wrote `push.ts` into the client's `src/rask/` — the directory the same scaffolder
-  adds to `.gitignore`, because everything else in it is regenerated from the package on every build.
-  `push.ts` was not: it was written once, by the CLI, and by nothing afterwards. So it was never
-  committed, a fresh clone did not have it, and the client failed to build on an unresolved import in a
-  project whose `--push` flag was the entire reason the file existed.
-
-  Split rather than moved, because the file was doing two jobs. The browser ceremony — the base64url
-  VAPID key, and flattening a `PushSubscription` into the shape the host binds — is
-  `rask/browser/webPush`, copied from the package like the rest of the layer. What is left is the app's
-  own wiring (which endpoints, and when to ask for permission), scaffolded to `src/push.ts` as an
-  ordinary committed file the developer owns and edits.
-
-  The test is the general form rather than this instance: no scaffolded file may land under any
-  directory the scaffold itself gitignores. Verified by putting the path back and watching it fail,
-  naming the file.
-
-- **The shipped browser modules did not compile in a consumer's project.** Eight of them leaned on
-  ambient declarations from `rask-window.d.ts` — `BatteryManagerLike`, `EyeDropper`,
-  `SpeechRecognitionLike`, `navigator.getBattery`, `window.showOpenFilePicker`, the vendor-prefixed
-  `connection` spellings, iOS's `requestPermission` statics — and that file never leaves the framework.
-  They compiled here, the packaging test passed, and the failure surfaced only when a scaffolded React
-  and Angular client ran `npm run build`, as an MSBuild error carrying an npm exit code.
-
-  Each module declares the vendor shape it needs now, so it is droppable into any TypeScript project.
-  And the missing gate exists: the shipped modules are type-checked against `lib.dom` and nothing else,
-  with the framework's declarations deliberately withheld — verified by deleting one local interface
-  and watching the consumer check fail while the framework's own stayed green.
-
-- **Two build gates were green over code they never read.** The framework's own TypeScript is
-  type-checked from a list of files, guarded against going stale by an enumeration that used
-  `SearchOption.TopDirectoryOnly` — so a file in a SUBDIRECTORY was in neither the list nor the guard,
-  and went unchecked with the gate still passing. The gate now derives its inputs by enumerating the
-  runtime directories recursively, which makes the omission unrepresentable rather than merely
-  noticed. Verified by introducing a type error in a new subdirectory and watching the gate name it.
-
-  The esbuild bundle inputs had the same shape: `Resources\*.ts` is not recursive, so an edit to a
-  module in a subdirectory would not invalidate the target and the shipped bundle would silently be
-  the previous one. Both host projects and the node-fixture target now glob `**\*.ts`.
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
@@ -7812,6 +7924,69 @@ them until tagged releases begin.
   **Azure Blob has no equivalent**, so there it filters the results and the listing still costs the same.
   The behaviour is identical either way, and the difference is documented on the interface rather than
   left for someone to discover from a bill.
+
+- **A hosted Blazor component's `[Inject]` never ran, so every injected service was silently null
+  ([#956](https://github.com/pal-tamas/rask/issues/956)).** `BlazorComponent` constructed the hosted
+  component with `new()` and handed the finished instance to `AssignRootComponentId`, which skips
+  `ComponentFactory` — the only place Blazor performs property injection. Constructor injection was
+  never available either (the `new()` constraint rules it out), so a hosted component had no way to
+  reach a service at all. It surfaced as an `ArgumentNullException` or an NRE from inside the
+  component, naming nothing that pointed at the cause.
+
+  The whole service story was inert as a result, including what this package deliberately registers:
+  `NavigationManager` is registered precisely because MudBlazor and Radzen inject it, and it could
+  never be delivered. So could nothing else — `IJSRuntime`, or any of Rask's typed browser APIs.
+
+  Built through the renderer's own `InstantiateComponent` now, which runs injection and honours a
+  registered `IComponentActivator`. The `Create()` hook is gone with it: a hook there would have had
+  to re-implement injection to be useful, and Blazor's activator is the seam that already exists.
+
+  `BlazorComponent<TComponent>`'s annotation widens from `PublicProperties` to `All`, and not by
+  preference — `InstantiateComponent` declares `LinkerFlags.Component`, which IS `All`, so anything
+  narrower is IL2087 in every consuming WASM app. Injection also reflects over NON-public `[Inject]`
+  properties, so a narrower annotation would reproduce #945 with a second face: an island that
+  renders perfectly with every injected service null. Gated the way #945 was — the trimmed WASM
+  showcase publishes clean, and `TrimmingContractTests` fails in milliseconds if the annotation moves.
+
+- **A `--push` client lost its push code on a fresh clone ([#957](https://github.com/pal-tamas/rask/issues/957)).**
+  `rask new --push` wrote `push.ts` into the client's `src/rask/` — the directory the same scaffolder
+  adds to `.gitignore`, because everything else in it is regenerated from the package on every build.
+  `push.ts` was not: it was written once, by the CLI, and by nothing afterwards. So it was never
+  committed, a fresh clone did not have it, and the client failed to build on an unresolved import in a
+  project whose `--push` flag was the entire reason the file existed.
+
+  Split rather than moved, because the file was doing two jobs. The browser ceremony — the base64url
+  VAPID key, and flattening a `PushSubscription` into the shape the host binds — is
+  `rask/browser/webPush`, copied from the package like the rest of the layer. What is left is the app's
+  own wiring (which endpoints, and when to ask for permission), scaffolded to `src/push.ts` as an
+  ordinary committed file the developer owns and edits.
+
+  The test is the general form rather than this instance: no scaffolded file may land under any
+  directory the scaffold itself gitignores. Verified by putting the path back and watching it fail,
+  naming the file.
+
+- **The shipped browser modules did not compile in a consumer's project.** Eight of them leaned on
+  ambient declarations from `rask-window.d.ts` — `BatteryManagerLike`, `EyeDropper`,
+  `SpeechRecognitionLike`, `navigator.getBattery`, `window.showOpenFilePicker`, the vendor-prefixed
+  `connection` spellings, iOS's `requestPermission` statics — and that file never leaves the framework.
+  They compiled here, the packaging test passed, and the failure surfaced only when a scaffolded React
+  and Angular client ran `npm run build`, as an MSBuild error carrying an npm exit code.
+
+  Each module declares the vendor shape it needs now, so it is droppable into any TypeScript project.
+  And the missing gate exists: the shipped modules are type-checked against `lib.dom` and nothing else,
+  with the framework's declarations deliberately withheld — verified by deleting one local interface
+  and watching the consumer check fail while the framework's own stayed green.
+
+- **Two build gates were green over code they never read.** The framework's own TypeScript is
+  type-checked from a list of files, guarded against going stale by an enumeration that used
+  `SearchOption.TopDirectoryOnly` — so a file in a SUBDIRECTORY was in neither the list nor the guard,
+  and went unchecked with the gate still passing. The gate now derives its inputs by enumerating the
+  runtime directories recursively, which makes the omission unrepresentable rather than merely
+  noticed. Verified by introducing a type error in a new subdirectory and watching the gate name it.
+
+  The esbuild bundle inputs had the same shape: `Resources\*.ts` is not recursive, so an edit to a
+  module in a subdirectory would not invalidate the target and the shipped bundle would silently be
+  the previous one. Both host projects and the node-fixture target now glob `**\*.ts`.
 
 ## [0.20.0] - 2026-08-06
 
