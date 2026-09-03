@@ -101,10 +101,12 @@ the local check is a convenience, never a control, and a caller that skips it ga
 
 ## What is not covered yet
 
-MVC controllers and minimal API endpoints are **not** covered. Rask hosts them but has no concept of
-them, so validating them is tracked separately; the intended shape is the platform's own synchronous
-pass (`AddValidation()` for minimal APIs, ModelState for controllers) plus a Rask asynchronous filter
-merging into the same 400 shown above, so `MustAsync` rules work there too.
+MVC controllers and minimal API endpoints are **not** covered — tracked in
+[#988](https://github.com/pal-tamas/rask/issues/988). Rask hosts them but has no concept of them, and
+ASP.NET already validates DataAnnotations on both (`[ApiController]`'s `ModelState`, and .NET 10's
+`AddValidation()` for minimal APIs), so the gap there is FluentValidation and async rules rather than
+attributes. The intended shape is the platform's own synchronous pass plus a Rask asynchronous filter
+merging into the same 400 shown above.
 
 ## See also
 

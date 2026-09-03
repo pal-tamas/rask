@@ -197,7 +197,7 @@ them until tagged releases begin.
   [RASKVAL002](docs/diagnostics.md#raskval002) (no single public constructor). New guide:
   [docs/validation.md](docs/validation.md).
 
-  MVC controllers and minimal API endpoints are **not** covered yet and are tracked separately.
+  MVC controllers and minimal API endpoints are **not** covered yet — tracked in [#988](https://github.com/pal-tamas/rask/issues/988).
 
 - **The chain generator carries a type parameter's `[DynamicallyAccessedMembers]` into what it
   emits.** `Form<TModel>` needs the annotation so a published WebAssembly build keeps the model's
