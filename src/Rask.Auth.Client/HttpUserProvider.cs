@@ -67,7 +67,9 @@ public sealed class HttpUserProvider(HttpClient http, AuthClientOptions options)
             // than a failure — see the remarks on the endpoint itself.
             var user = response.StatusCode is HttpStatusCode.NoContent || !response.IsSuccessStatusCode
                 ? null
-                : await response.Content.ReadFromJsonAsync<CurrentUser>().ConfigureAwait(false);
+                : await response.Content
+                    .ReadFromJsonAsync(AuthJsonContext.Default.CurrentUser)
+                    .ConfigureAwait(false);
 
             Set(user is null ? Anonymous : Principal(user));
         }

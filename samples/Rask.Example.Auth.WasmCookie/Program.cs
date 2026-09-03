@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Authentication;
+using Rask.Auth.Client;
 using Rask.Cqrs.Client;
 using Rask.Example.Auth.WasmCookie;
 using Rask.Wasm;
@@ -8,9 +8,11 @@ var host = WasmHostBuilder.CreateDefault();
 
 // Same-origin HttpClient (served by the host) — the HttpOnly auth cookie rides every request automatically.
 host.Services.AddSingleton(_ => new HttpClient { BaseAddress = new Uri(WasmHostBuilder.BaseAddress) });
-host.Services.AddSingleton<ApiUserProvider>();
-host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<ApiUserProvider>());
-host.Services.AddSingleton<WasmLoginService>();
+// The browser half of Rask.Auth. One call replaces the IUserProvider this sample used to hand-write
+// and the login service beside it: IAuth posts to the host's /api/auth endpoints, IUserProvider reads
+// /api/auth/me, and the current user is loaded before the first render so no page paints anonymous and
+// then flips.
+host.Services.AddRaskAuthClient();
 
 // Remote dispatch. One line, and every message this bundle has a contract for travels to the host over
 // the HttpClient above — same origin, so the HttpOnly auth cookie rides each request and the endpoint

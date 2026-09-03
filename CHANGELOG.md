@@ -76,6 +76,17 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The browser half did not survive the trimmer.** `Rask.Auth.Client` serialised with
+  `ReadFromJsonAsync<T>` and `JsonContent.Create` — reflection-based JSON, which a trimmed WebAssembly
+  publish cannot keep. Three `IL2026` and a **failed publish** for any app that used it, while its unit
+  tests passed and the library built clean.
+
+  The cause is worth naming: the samples used to carry their own `[JsonSerializable]` context for these
+  exact shapes. Moving the DTOs into `Rask.Core.Authentication` took the shapes and left the serializers
+  behind. The framework owns both now, and the fix is pinned by publishing rather than by a unit test —
+  `Rask.Example.Auth.WasmCookie` and `Rask.Example.Wasm` both publish with zero IL warnings.
+
+
 - **Concurrent registrations could collide on the roles table.** Two people registering at the same
   moment could get a 500 — `UNIQUE constraint failed: AspNetRoles.NormalizedName` — on the path
   "the first account is the administrator" depends on.

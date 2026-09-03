@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json.Serialization.Metadata;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
 
@@ -22,12 +23,20 @@ public sealed class BrowserAuth(
     /// <inheritdoc />
     public Task<AuthResult> RegisterAsync(
         string email, string password, string? returnUrl = null, string? firstRunToken = null) =>
-        PostAsync(AuthApi.Register, new RegisterRequest(email, password, firstRunToken), returnUrl);
+        PostAsync(
+            AuthApi.Register,
+            new RegisterRequest(email, password, firstRunToken),
+            AuthJsonContext.Default.RegisterRequest,
+            returnUrl);
 
     /// <inheritdoc />
     public Task<AuthResult> SignInAsync(
         string email, string password, bool remember = false, string? returnUrl = null) =>
-        PostAsync(AuthApi.Login, new LoginRequest(email, password, remember), returnUrl);
+        PostAsync(
+            AuthApi.Login,
+            new LoginRequest(email, password, remember),
+            AuthJsonContext.Default.LoginRequest,
+            returnUrl);
 
     /// <inheritdoc />
     public async Task SignOutAsync(string? returnUrl = null)
@@ -39,10 +48,11 @@ public sealed class BrowserAuth(
         navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
     }
 
-    private async Task<AuthResult> PostAsync<TBody>(string route, TBody body, string? returnUrl)
+    private async Task<AuthResult> PostAsync<TBody>(
+        string route, TBody body, JsonTypeInfo<TBody> bodyType, string? returnUrl)
     {
         using var request = Request(route);
-        request.Content = JsonContent.Create(body);
+        request.Content = JsonContent.Create(body, bodyType);
 
         HttpResponseMessage response;
 
@@ -75,7 +85,9 @@ public sealed class BrowserAuth(
     {
         try
         {
-            return await response.Content.ReadFromJsonAsync<AuthFailure>().ConfigureAwait(false);
+            return await response.Content
+                .ReadFromJsonAsync(AuthJsonContext.Default.AuthFailure)
+                .ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
