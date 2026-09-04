@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 
 namespace Rask.Ui;
 
@@ -60,6 +61,54 @@ public static class UiStylesheet
     /// Read once into a static: the same bytes on every render, on every request, for the process's life.
     /// </remarks>
     public static string Css { get; } = Read();
+
+    /// <summary>
+    /// Where the build writes the sheet, relative to the app root: <c>/css/rask-ui.css</c>.
+    /// </summary>
+    /// <remarks>
+    /// Matches <c>RaskUiStylesheetOutput</c> in the package's build targets. An app that moves the
+    /// output moves this too, by passing its own href.
+    /// </remarks>
+    public const string Path = "/css/rask-ui.css";
+
+    /// <summary>
+    /// A cache-busting token for <see cref="Path" />: the sheet's own content hash.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The file is meant to be cached hard, which makes staleness the failure to design against — an
+    /// app that upgrades the kit and keeps serving the old bytes looks broken in a way nothing reports.
+    /// A hash of the content changes exactly when the content does.
+    /// </para>
+    /// <para>
+    /// Empty when the sheet did not ship, so the href stays a plain path rather than gaining a
+    /// <c>?v=</c> with nothing after it.
+    /// </para>
+    /// </remarks>
+    public static string Version { get; } = Hash(Css);
+
+    /// <summary>
+    /// <see cref="Path" /> with the cache-busting token, ready for a <c>&lt;link&gt;</c>.
+    /// </summary>
+    /// <param name="pathBase">The app's path base, for a deployment under a sub-path.</param>
+    public static string Href(string? pathBase = null) =>
+        Version.Length == 0
+            ? (pathBase ?? string.Empty) + Path
+            : (pathBase ?? string.Empty) + Path + "?v=" + Version;
+
+    private static string Hash(string css)
+    {
+        if (css.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var bytes = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(css));
+
+        // Eight hex characters. This is a cache key, not a signature: it only has to change when the
+        // bytes do, and a long one in every URL is noise in the markup.
+        return Convert.ToHexStringLower(bytes)[..8];
+    }
 
     private static string Read()
     {

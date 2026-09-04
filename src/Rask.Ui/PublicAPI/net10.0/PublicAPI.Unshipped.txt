@@ -1323,8 +1323,11 @@ const Rask.Ui.UiStyles.Label = "text-xs font-medium tracking-wide opacity-60" ->
 const Rask.Ui.UiStyles.Mono = "font-mono text-xs" -> string!
 const Rask.Ui.UiStyles.Quiet = "inline-flex min-h-11 items-center rounded-lg px-2 text-xs opacity-60 hover:bg-base-200 hover:text-base-content sm:min-h-0 sm:py-1" -> string!
 const Rask.Ui.UiStyles.Value = "mt-2 text-2xl font-semibold tabular-nums tracking-tight text-base-content sm:text-3xl" -> string!
+const Rask.Ui.UiStylesheet.Path = "/css/rask-ui.css" -> string!
 const Rask.Ui.UiStylesheet.ThemeScopeAttribute = "data-rask-ui" -> string!
 static Rask.Ui.UiStylesheet.Css.get -> string!
+static Rask.Ui.UiStylesheet.Href(string? pathBase = null) -> string!
+static Rask.Ui.UiStylesheet.Version.get -> string!
 static Rask.Ui.UiTheme.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>!
 static Rask.Ui.UiTheme.Value(Rask.Ui.UiThemeName theme) -> string!
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSearch!>

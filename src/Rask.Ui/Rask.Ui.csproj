@@ -114,7 +114,19 @@
            Text="Rask.Ui: $(RaskTailwindOutput) was not produced. The kit's stylesheet is compiled by _RaskTailwindBuild from $(RaskTailwindInput) and embedded here; shipping without it renders every component unstyled."/>
     <ItemGroup>
       <EmbeddedResource Include="$(RaskTailwindOutput)" LogicalName="Rask.Ui.ui.css"/>
+
+      <!--
+        Packed beside the targets as well, so a consumer's build can COPY it into wwwroot without
+        running code to pull it out of the assembly. Embedding alone is not enough for that: an
+        EmbeddedResource is only reachable at run time, and the copy has to happen at build time.
+      -->
+      <None Include="$(RaskTailwindOutput)" Pack="true" PackagePath="build/ui.css" Visible="false"/>
     </ItemGroup>
   </Target>
+
+  <!-- The build hooks a consumer gets from the package: see build/Rask.Ui.targets. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
 
 </Project>

@@ -86,6 +86,10 @@ public sealed partial class DashboardLayout(
         // the classes these pages write are compiled here — neither build can see the other's markup.
         // Order is the contract: the console's @theme redefines the --color-ui-* tokens the kit declares,
         // and an override only wins while it is the copy the cascade reads last.
+        // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody
+        // else's host at /_rask: that host references Rask.Dashboard, not Rask.Ui, so it never gets
+        // the build target that writes the sheet into wwwroot, and a <link> would point at a file
+        // nothing produced. An app that references the kit directly links the cached copy instead.
         Style[Raw.Value(UiStylesheet.Css)],
         Style[Raw.Value(Css)],
     ];

@@ -1,0 +1,102 @@
+<Project>
+
+  <!--
+    Writes the kit's stylesheet into the consuming app's wwwroot, so a browser can cache it.
+
+    The kit used to be inlined into every document with `Style[Raw.Value(UiStylesheet.Css)]`, and the
+    reasoning for that is recorded in UiStylesheet: a <style> is smaller than the machinery a static
+    web asset needs (the Razor SDK, a _content/ path a host has to map), and it let this package ship
+    as a plain assembly with no assets at all.
+
+    What changed is the number. The sheet is 36.8 KB gzipped, and it was being paid on EVERY document
+    of a site read page to page — see #1018. A file the browser caches costs that once. The machinery
+    is avoided anyway: this copies a plain file, so there is still no Razor SDK and no _content/ path.
+
+    UiStylesheet.Css stays. Rask.Dashboard still inlines, deliberately — it is mounted into somebody
+    else's host, which references the dashboard rather than the kit and so never imports this file.
+  -->
+
+  <PropertyGroup>
+    <!-- Where the sheet lands, relative to the consuming project. -->
+    <RaskUiStylesheetOutput Condition="'$(RaskUiStylesheetOutput)' == ''">wwwroot/css/rask-ui.css</RaskUiStylesheetOutput>
+
+    <!--
+      OPT IN, not opt out. Referencing the kit is not the same as wanting a file in your wwwroot: a
+      library that renders kit components into someone else's host wants no such file, and neither
+      does the meta-package that merely re-exports it. Defaulting this on wrote the sheet into six
+      projects, two of them libraries.
+
+      An app that wants the cached sheet says so:
+          <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+      and links it with UiStylesheet.Href(). Everything else keeps UiStylesheet.Css and inlines.
+    -->
+    <RaskUiWriteStylesheet Condition="'$(RaskUiWriteStylesheet)' == ''">false</RaskUiWriteStylesheet>
+  </PropertyGroup>
+
+  <Target Name="_RaskUiResolveStylesheet">
+
+    <!--
+      Only for a project that actually draws with the kit, and decided HERE rather than in a property
+      condition because an item list cannot be read twice at evaluation time (MSB4099).
+
+      In-repo these targets are imported for EVERY project by Directory.Build.targets, since a
+      ProjectReference does not carry a package's build hooks. Without this the sheet is written into
+      the wwwroot of Rask.Core, Rask.Html, Rask.Generators and the rest — it was, on the first run:
+      eleven copies of a 241 KB file, staged for commit. A package consumer reaches this only by
+      referencing Rask.Ui, so the check costs them nothing.
+    -->
+    <ItemGroup>
+      <_RaskUiKitReference Include="@(ProjectReference)"
+                           Condition="$([System.String]::Copy('%(Identity)').Contains('Rask.Ui.csproj'))"/>
+      <_RaskUiKitReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Rask.Ui'"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_RaskUiReferenced>false</_RaskUiReferenced>
+      <_RaskUiReferenced Condition="'@(_RaskUiKitReference)' != ''">true</_RaskUiReferenced>
+      <!-- The kit itself compiles the sheet; it does not consume it. -->
+      <_RaskUiReferenced Condition="'$(MSBuildProjectName)' == 'Rask.Ui'">false</_RaskUiReferenced>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true'">
+      <!-- From the package: the compiled sheet packed beside these targets. -->
+      <_RaskUiStylesheetSource Include="$(MSBuildThisFileDirectory)ui.css"
+                               Condition="Exists('$(MSBuildThisFileDirectory)ui.css')"/>
+    </ItemGroup>
+
+    <!--
+      In-repo there is no package, so the file above does not exist: a sample references the PROJECT,
+      and the sheet is still in Rask.Ui's own obj/. Conditioned on the packed item being empty so a
+      consumer never evaluates this path — the same shape as Rask.Meta.Hosting's in-repo fallback, and
+      for the same reason: without it the in-repo build silently writes nothing and every page links a
+      stylesheet that was never produced.
+    -->
+    <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiStylesheetSource)' == ''">
+      <_RaskUiStylesheetSource Include="$(MSBuildThisFileDirectory)../obj/net10.0/ui.generated.css"
+                               Condition="Exists('$(MSBuildThisFileDirectory)../obj/net10.0/ui.generated.css')"/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RaskUiWriteStylesheet"
+          Condition="'$(RaskUiWriteStylesheet)' == 'true'"
+          DependsOnTargets="_RaskUiResolveStylesheet"
+          BeforeTargets="BeforeBuild">
+
+    <!--
+      Warns rather than fails. A missing sheet renders the app unstyled, which is bad; failing the
+      build of an app for it would be worse, and this cannot tell a kit consumer that lost its
+      stylesheet from one that never had a wwwroot.
+    -->
+    <Warning Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiStylesheetSource)' == ''"
+             Text="Rask.Ui: the kit's stylesheet could not be found, so $(RaskUiStylesheetOutput) was not written and every kit component will render unstyled."/>
+
+    <MakeDir Condition="'@(_RaskUiStylesheetSource)' != ''"
+             Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)'))"/>
+
+    <Copy Condition="'@(_RaskUiStylesheetSource)' != ''"
+          SourceFiles="@(_RaskUiStylesheetSource)"
+          DestinationFiles="$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+</Project>

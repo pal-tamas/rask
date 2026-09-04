@@ -103,4 +103,14 @@
     <Using Include="Rask.Ui"/>
   </ItemGroup>
 
+
+  <PropertyGroup>
+    <!--
+      Take the kit's stylesheet as a cached FILE rather than inlining it. Opt-in, because referencing
+      the kit is not the same as wanting a file in wwwroot — see Rask.Ui's build targets. Linked in
+      App.HeadAssets with UiStylesheet.Href().
+    -->
+    <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+  </PropertyGroup>
+
 </Project>

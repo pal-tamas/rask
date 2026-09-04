@@ -233,6 +233,26 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The kit's stylesheet is served and cached instead of inlined into every document**
+  ([#1018](https://github.com/pal-tamas/rask/issues/1018)). It was 36.8 KB gzipped in the `<head>` of
+  every page, paid again on each one, which is the cost that issue was filed about.
+
+  The kit's build now writes the compiled sheet to `wwwroot/css/rask-ui.css` and apps link it, with the
+  sheet's own content hash as the cache-buster — so it is cached hard and busts exactly when the bytes
+  change. `UiStylesheet.Href(pathBase)` builds the URL; `Path` and `Version` are there for a surface
+  that wants to place it itself.
+
+  Measured on the landing page's publish: the document went from **268,143 to 63,702 bytes** (−76%),
+  and the sheet is published pre-compressed at **28.9 KB brotli**. It is fetched once.
+
+  The earlier reasoning against this is recorded in `UiStylesheet` and still holds where it applied: a
+  static web asset would need the Razor SDK and a `_content/` path a host has to map. This copies a
+  plain file, so none of that machinery arrives — and `UiStylesheet.Css` stays, because
+  **`Rask.Dashboard` still inlines**, deliberately: the console is mounted into somebody else's host,
+  which references the dashboard rather than the kit and so never gets the build hook. A `<link>` there
+  would point at a file nothing produced.
+
+
 - **`.gitignore` no longer lets a sample's SQLite database be committed.** The runtime-artifact block
   carried a comment claiming it was "no longer a per-sample list" and was exactly that: it named only
   `app.db` and `logs.db`, so a sample whose database has any other filename was never ignored and got
