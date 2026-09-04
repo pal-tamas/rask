@@ -23,12 +23,10 @@ public sealed class MetaNuxtExampleTests(MetaNuxtAppFixture app, PlaywrightFixtu
         // Fetched, not driven: no browser, no JavaScript. If the text is in this response it was
         // produced by Nuxt inside the supervised Node process, from a dispatch that went back to
         // Kestrel and into the C# handler — the one claim this lane makes that the SPA lane cannot.
-        using var http = new HttpClient { BaseAddress = new Uri(app.BaseUrl) };
+        // Waits out the documented startup window: Kestrel binds before the node child is
+        // listening, and forwards are answered 503 with a Retry-After until it is.
+        var html = await MetaFrontEnd.WaitForPageAsync(app.BaseUrl);
 
-        var response = await http.GetAsync("/");
-        var html = await response.Content.ReadAsStringAsync();
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Hello, meta!", html, StringComparison.Ordinal);
     }
 
@@ -51,6 +49,8 @@ public sealed class MetaNuxtExampleTests(MetaNuxtAppFixture app, PlaywrightFixtu
     [Fact]
     public async Task The_page_hydrates_and_a_command_round_trips_from_the_browser()
     {
+        await MetaFrontEnd.WaitForPageAsync(app.BaseUrl);
+
         await using var context = await playwright.Browser.NewContextAsync();
         var page = await context.NewPageAsync();
 

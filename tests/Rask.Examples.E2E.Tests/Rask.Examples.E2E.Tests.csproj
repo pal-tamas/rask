@@ -48,6 +48,10 @@
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Meta.Nuxt\Rask.Example.Meta.Nuxt.csproj"
                       ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Meta.TanStack\Rask.Example.Meta.TanStack.csproj"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Meta.SolidStart\Rask.Example.Meta.SolidStart.csproj"
+                      ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Meta.SvelteKit\Rask.Example.Meta.SvelteKit.csproj"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Meta.Next\Rask.Example.Meta.Next.csproj"

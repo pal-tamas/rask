@@ -19,17 +19,17 @@ export default async function Home() {
   const greeting = await rask.dispatch(getGreeting({ name: 'meta' }))
 
   return (
-    <main style={{ maxWidth: '40rem', margin: '0 auto', padding: '2rem', fontFamily: 'system-ui' }}>
-      <h1>Rask + Next.js</h1>
+    <main className="mx-auto max-w-xl p-8 font-sans">
+      <h1 className="text-2xl font-semibold">Rask + Next.js</h1>
 
-      <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+      <p className="mt-2 text-sm text-slate-500">
         Next owns this page. Kestrel owns the port, answers <code>/_rask</code> itself, and forwards
         everything else to Next&apos;s standalone server on loopback.
       </p>
 
       {/* Server-rendered: present in the first response, before hydration. */}
-      <article data-testid="greeting" style={{ border: '1px solid #e2e8f0', padding: '1rem', marginTop: '1.5rem' }}>
-        <h2>From C#, during the server render</h2>
+      <article data-testid="greeting" className="mt-6 rounded border border-slate-200 p-4">
+        <h2 className="font-medium">From C#, during the server render</h2>
         <p data-testid="greeting-message">{greeting.message}</p>
       </article>
 

@@ -5,17 +5,17 @@ using Rask.Examples.E2E.Tests.Infrastructure;
 namespace Rask.Examples.E2E.Tests;
 
 /// <summary>
-///     The meta lane on SvelteKit, and the one journey that would have caught the alias bug.
+///     The meta lane on SolidStart — the framework whose bundler resolves <c>@rask/*</c> through a
+///     Vite alias rather than through a tsconfig.
 /// </summary>
 /// <remarks>
-///     SvelteKit generates the tsconfig its app is checked against, from <c>kit.alias</c>. Rask's
-///     first attempt wrote <c>@rask/*</c> into the app's own <c>paths</c> instead, which silently
-///     DISPLACED the generated <c>$lib</c> mapping — imports the developer never touched stopped
-///     resolving, and every artifact test still passed. The page here imports both, so that cannot
-///     come back quietly.
+///     A tsconfig <c>paths</c> entry is a type-checking concept; Vite does not read one. SolidStart's
+///     config declares no <c>resolve</c> of its own, so Rask adds the alias — and without it the
+///     imports type-check and then fail the BUILD with "Failed to resolve import". That is the order
+///     this journey exists to keep honest: the build passing is not the same as the page working.
 /// </remarks>
-[Collection(MetaSvelteKitExampleCollection.Name)]
-public sealed class MetaSvelteKitExampleTests(MetaSvelteKitAppFixture app, PlaywrightFixture playwright)
+[Collection(MetaSolidStartExampleCollection.Name)]
+public sealed class MetaSolidStartExampleTests(MetaSolidStartAppFixture app, PlaywrightFixture playwright)
 {
     [Fact]
     public async Task The_greeting_is_rendered_by_node_before_any_script_runs()
@@ -25,10 +25,6 @@ public sealed class MetaSvelteKitExampleTests(MetaSvelteKitAppFixture app, Playw
         var html = await MetaFrontEnd.WaitForPageAsync(app.BaseUrl);
 
         Assert.Contains("Hello, meta!", html, StringComparison.Ordinal);
-
-        // From $lib, which Rask's alias must not have displaced. In the first response, so this is
-        // the server render's copy rather than anything hydration put back.
-        Assert.Contains("From C#, during the server render", html, StringComparison.Ordinal);
     }
 
     [Fact]

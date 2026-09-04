@@ -29,6 +29,20 @@ public sealed class MetaSvelteKitExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class MetaSolidStartExampleCollection
+    : ICollectionFixture<MetaSolidStartAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaSolidStartExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class MetaTanStackExampleCollection
+    : ICollectionFixture<MetaTanStackAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaTanStackExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class EfCoreExampleCollection
     : ICollectionFixture<EfCoreExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {

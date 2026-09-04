@@ -5,17 +5,17 @@ using Rask.Examples.E2E.Tests.Infrastructure;
 namespace Rask.Examples.E2E.Tests;
 
 /// <summary>
-///     The meta lane on SvelteKit, and the one journey that would have caught the alias bug.
+///     The meta lane on TanStack Start — the framework that resolves <c>@rask/*</c> from the tsconfig
+///     itself, and the one whose creator is deprecated in favour of another.
 /// </summary>
 /// <remarks>
-///     SvelteKit generates the tsconfig its app is checked against, from <c>kit.alias</c>. Rask's
-///     first attempt wrote <c>@rask/*</c> into the app's own <c>paths</c> instead, which silently
-///     DISPLACED the generated <c>$lib</c> mapping — imports the developer never touched stopped
-///     resolving, and every artifact test still passed. The page here imports both, so that cannot
-///     come back quietly.
+///     Its Vite config already sets <c>resolve: { tsconfigPaths: true }</c>, so unlike SolidStart it
+///     needs no alias from Rask — and Rask must not add one, because a second <c>resolve</c> key is a
+///     duplicate rather than a merge. The scaffold is built by <c>@tanstack/cli</c>: <c>create-start-app</c>
+///     is deprecated and prints so on every run.
 /// </remarks>
-[Collection(MetaSvelteKitExampleCollection.Name)]
-public sealed class MetaSvelteKitExampleTests(MetaSvelteKitAppFixture app, PlaywrightFixture playwright)
+[Collection(MetaTanStackExampleCollection.Name)]
+public sealed class MetaTanStackExampleTests(MetaTanStackAppFixture app, PlaywrightFixture playwright)
 {
     [Fact]
     public async Task The_greeting_is_rendered_by_node_before_any_script_runs()
@@ -25,10 +25,6 @@ public sealed class MetaSvelteKitExampleTests(MetaSvelteKitAppFixture app, Playw
         var html = await MetaFrontEnd.WaitForPageAsync(app.BaseUrl);
 
         Assert.Contains("Hello, meta!", html, StringComparison.Ordinal);
-
-        // From $lib, which Rask's alias must not have displaced. In the first response, so this is
-        // the server render's copy rather than anything hydration put back.
-        Assert.Contains("From C#, during the server render", html, StringComparison.Ordinal);
     }
 
     [Fact]

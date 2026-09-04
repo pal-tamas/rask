@@ -26,23 +26,23 @@
   }
 </script>
 
-<main style="max-width: 40rem; margin: 0 auto; padding: 2rem; font-family: system-ui">
-  <h1>Rask + SvelteKit</h1>
+<main class="mx-auto max-w-xl p-8 font-sans">
+  <h1 class="text-2xl font-semibold">Rask + SvelteKit</h1>
 
-  <p style="color: #64748b; font-size: 0.875rem">
+  <p class="mt-2 text-sm text-slate-500">
     SvelteKit owns this page. Kestrel owns the port, answers <code>/_rask</code> itself, and forwards
     everything else to SvelteKit's adapter-node server on loopback.
   </p>
 
-  <article data-testid="greeting" style="border: 1px solid #e2e8f0; padding: 1rem; margin-top: 1.5rem">
-    <h2>{greetingLabel}</h2>
+  <article data-testid="greeting" class="mt-6 rounded border border-slate-200 p-4">
+    <h2 class="font-medium">{greetingLabel}</h2>
     <p data-testid="greeting-message">{data.greeting.message}</p>
   </article>
 
-  <section style="border: 1px solid #e2e8f0; padding: 1rem; margin-top: 1.5rem">
-    <h2>A command, from the browser</h2>
-    <button data-testid="visit" onclick={visit}>Record a visit</button>
-    <p data-testid="visits">{visits === null ? 'not yet' : `visits: ${visits}`}</p>
-    <p data-testid="prefers-dark">{dark === null ? 'asking…' : `prefers dark: ${dark}`}</p>
+  <section class="mt-6 rounded border border-slate-200 p-4">
+    <h2 class="font-medium">A command, from the browser</h2>
+    <button class="rounded border border-slate-300 px-3 py-1 hover:bg-slate-50" data-testid="visit" onclick={visit}>Record a visit</button>
+    <p class="mt-2 text-sm" data-testid="visits">{visits === null ? 'not yet' : `visits: ${visits}`}</p>
+    <p class="text-sm" data-testid="prefers-dark">{dark === null ? 'asking…' : `prefers dark: ${dark}`}</p>
   </section>
 </main>

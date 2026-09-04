@@ -23,11 +23,11 @@ export function VisitButton() {
   }
 
   return (
-    <section style={{ border: '1px solid #e2e8f0', padding: '1rem', marginTop: '1.5rem' }}>
-      <h2>A command, from the browser</h2>
-      <button data-testid="visit" onClick={visit}>Record a visit</button>
-      <p data-testid="visits">{visits === null ? 'not yet' : `visits: ${visits}`}</p>
-      <p data-testid="prefers-dark">{dark === null ? 'asking…' : `prefers dark: ${dark}`}</p>
+    <section className="mt-6 rounded border border-slate-200 p-4">
+      <h2 className="font-medium">A command, from the browser</h2>
+      <button className="rounded border border-slate-300 px-3 py-1 hover:bg-slate-50" data-testid="visit" onClick={visit}>Record a visit</button>
+      <p className="mt-2 text-sm" data-testid="visits">{visits === null ? 'not yet' : `visits: ${visits}`}</p>
+      <p className="text-sm" data-testid="prefers-dark">{dark === null ? 'asking…' : `prefers dark: ${dark}`}</p>
     </section>
   )
 }
