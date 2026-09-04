@@ -143,6 +143,7 @@ public static partial class DemoRegistry
             ["form-controls-input"] = () => CodeSample.Files(["FormControlsInputDemo.cs"]).Result(FormControlsInputDemo),
             ["form-controls-textarea"] = () => CodeSample.Files(["FormControlsTextareaDemo.cs"]).Result(FormControlsTextareaDemo),
             ["form-controls-select"] = () => CodeSample.Files(["FormControlsSelectDemo.cs"]).Result(FormControlsSelectDemo),
+            ["form-submit-state"] = () => CodeSample.Files(["FormSubmitStateDemo.cs"]).Result(FormSubmitStateDemo),
             ["floating-labels"] = () => CodeSample.Files(["FloatingLabelsDemo.cs"]).Result(FloatingLabelsDemo),
 
             // --- Forms guide: the remaining validation demos (their standalone /validation page folded in). ---

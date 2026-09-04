@@ -270,6 +270,8 @@ The flag is true from the moment the submit handler starts until it returns — 
 throws — and the form re-renders on both edges. Only an `async` handler can be observed in that
 state: a synchronous one returns before there is a frame to paint.
 
+<!-- demo:form-submit-state -->
+
 The fixed-list forms are untouched and still bind exactly as before:
 
 ```csharp
