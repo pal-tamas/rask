@@ -228,6 +228,22 @@
     <Copy SourceFiles="@(_RaskSpaBrowserSource)"
           DestinationFolder="$(_RaskSpaGenerated)/browser"
           SkipUnchangedFiles="true"/>
+
+    <!--
+      The same `@rask/*` alias the meta lane writes, so both TypeScript lanes are imported the same
+      way. It matters less here — this lane's generated directory is always src/rask, so a relative
+      path would at least be stable — but two conventions for one thing is worse than either, and a
+      developer moving between a Rask SPA and a Rask meta app should not have to relearn the import.
+
+      WriteOnlyWhenDifferent for the same reason the copy above skips unchanged files: this lands in
+      the bundler's watched tree, and rewriting it every build would retrigger the client build.
+    -->
+    <WriteLinesToFile
+      File="$(_RaskSpaGenerated)/tsconfig.rask.json"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"
+      Lines="{&quot;compilerOptions&quot;:{&quot;paths&quot;:{&quot;@rask/*&quot;:[&quot;./*&quot;]}}}"
+      Condition="'@(_RaskSpaBrowserSource)' != ''"/>
   </Target>
 
   <!--

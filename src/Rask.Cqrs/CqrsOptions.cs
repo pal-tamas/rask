@@ -26,6 +26,18 @@ public sealed class CqrsOptions
     /// </summary>
     public bool StopOnFirstNotificationException { get; set; } = true;
 
+    /// <summary>
+    ///     Whether every dispatched request is validated before its handler runs — its
+    ///     <c>System.ComponentModel.DataAnnotations</c> attributes, any <c>AbstractValidator&lt;T&gt;</c>
+    ///     written for it, and any <see cref="IRequestValidator{TRequest}" /> registered for it.
+    ///     <see langword="true" /> by default.
+    ///     <para>
+    ///         An app hosted by the <c>Rask</c> package says this as
+    ///         <c>app.Configure(c =&gt; c.Validation.Off())</c>, which sets this.
+    ///     </para>
+    /// </summary>
+    public bool ValidateRequests { get; set; } = true;
+
     internal List<BehaviorRegistration> Behaviors { get; } = [];
 
     /// <summary>

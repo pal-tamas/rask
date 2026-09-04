@@ -23,7 +23,6 @@ public sealed partial class AsyncValidationDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("flex flex-col gap-3")[
-            DataAnnotationsValidator,
             Div[
                 Label.For("v3-username").Class($"{Ui.Label} text-sm mb-1")["Username"],
                 Input.Bind(() => _model.Username).Id("v3-username").Class(Ui.Input),

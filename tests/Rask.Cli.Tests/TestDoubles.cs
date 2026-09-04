@@ -236,10 +236,15 @@ internal sealed class FakeProcessRunner : IProcessRunner
         return RunHandler?.Invoke(args) ?? RunExitCode;
     }
 
-    public Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
+    public Task<ProcessResult> CaptureAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
         var args = arguments.ToArray();
-        _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: true));
+        _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: true, environment, workingDirectory));
 
         if (CaptureByExecutable is not null)
         {

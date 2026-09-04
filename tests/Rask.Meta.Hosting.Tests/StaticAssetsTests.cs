@@ -16,6 +16,7 @@ namespace Rask.Meta.Hosting.Tests;
 ///     API route ending in <c>.json</c> — and any rule based on "looks like a file" would 404 exactly
 ///     those. It is the same mistake as the <c>{*path:nonfile}</c> fallback, one layer up.
 /// </remarks>
+[Collection(MetaHostCollection.Name)]
 public class StaticAssetsTests : IDisposable
 {
     private readonly string _root = Path.Combine(

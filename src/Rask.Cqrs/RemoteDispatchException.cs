@@ -65,4 +65,15 @@ public sealed class RemoteDispatchException : Exception
     ///     send handler exception text in production, so expect this to be null there.
     /// </summary>
     public string? Detail { get; init; }
+
+    /// <summary>
+    ///     The field errors, when the request was rejected by validation — keyed by request property,
+    ///     with the empty key holding rules about the request as a whole. Null for every other failure.
+    ///     <para>
+    ///         Unlike <see cref="Detail" />, these are safe to show: a validation message is written for
+    ///         whoever sent the request, which is why it crosses the wire when handler exception text
+    ///         does not.
+    ///     </para>
+    /// </summary>
+    public IReadOnlyDictionary<string, string[]>? Errors { get; init; }
 }

@@ -13,7 +13,6 @@ public sealed partial class ValidationFieldsDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
-            DataAnnotationsValidator,
             Div[
                 Label.For("v1-name").Class($"{Ui.Label} text-sm mb-1")["Name"],
                 Input.Bind(() => _model.Name).Id("v1-name").Class(Ui.Input),

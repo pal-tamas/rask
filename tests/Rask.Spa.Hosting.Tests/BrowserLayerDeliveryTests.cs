@@ -49,6 +49,13 @@ public class BrowserLayerDeliveryTests
 
         Assert.Contains("../client/browser/*.ts", targets, StringComparison.Ordinal);
         Assert.Contains(@"DestinationFolder=""$(_RaskSpaGenerated)/browser""", targets, StringComparison.Ordinal);
+
+        // The `@rask/*` alias, which is what makes the import specifier identical on this lane and the
+        // meta one. Written only when it differs: it lands in the bundler's watched tree, and
+        // rewriting it on every build would retrigger the client build.
+        Assert.Contains("tsconfig.rask.json", targets, StringComparison.Ordinal);
+        Assert.Contains("@rask/*", targets, StringComparison.Ordinal);
+        Assert.Contains(@"WriteOnlyWhenDifferent=""true""", targets, StringComparison.Ordinal);
     }
 
     [Fact]

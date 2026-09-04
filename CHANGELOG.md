@@ -7,6 +7,52 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`rask new` ran a production front-end build during scaffolding.** With the batteries on, `rask new`
+  creates the first migration, and `dotnet-ef` builds the project to load the `DbContext`. That build
+  took `RaskSpaBuild` / `RaskMetaBuild` at their default of `true`, so scaffolding a front-end template
+  ran the bundler — or, on the meta lane, a full Nuxt/Next/SvelteKit **production** build — behind a
+  line that says "Creating the first migration…" and nothing else
+  ([#991](https://github.com/pal-tamas/rask/issues/991)).
+
+  Minutes of silence for output nobody reads: the next thing anyone does is `rask dev`, which turns
+  both properties off again and lets the framework's own dev server own the front end. Worse, a
+  machine without node failed the migration step for a reason that has nothing to do with the
+  database.
+
+  The first migration now runs with both properties off. MSBuild reads properties from the
+  environment, which is how they reach a build whose command line belongs to `dotnet-ef` — the same
+  channel `rask dev` already uses for `HotReloadAutoRestart` — so `rask db`'s argument surface is
+  untouched and every other invocation of it is unchanged.
+
+- **A repaint requested while a dispatch was emitting its frame was discarded, not deferred.** Every
+  WASM render path holds `InHandlerScope` across the coalescing loop *and* the noop publish guard
+  *and* the frame emit. A `StateHasChanged` arriving after the loop settled parked in
+  `_pendingRenderInScope`, and the next dispatch's loop opened by clearing that flag — so the request
+  was thrown away rather than postponed. It is now drained at every scope exit
+  ([#986](https://github.com/pal-tamas/rask/issues/986)).
+
+  `InitialRenderAsync` had a second instance of the same hole: it held the scope but built its
+  payload directly instead of through the coalescing loop, so nothing drained the flag at all. Every
+  other render path already coalesced; that one was the exception.
+
+  This is most of what kept a spinner on screen after a hard load onto a page whose `OnMountAsync`
+  fetches. The request settles in a couple of milliseconds, well inside the initial render's emit, so
+  the state was set and no frame ever carried it. A Playwright trace of a failing run shows the fetch
+  returning `200 OK` in ~3 ms while the DOM still holds the "Loading…" markup and no `<article>` at
+  all — the data arrives and the paint is lost.
+
+  The drain issues a **publish** render. A plain one bypasses the noop guard and pushes the frame even
+  when the HTML is byte-identical, making the client morph identical markup and stripping the DOM
+  state JS applied since the last frame — highlight.js classes, and the rendered demo output on the
+  guide pages. That variant made the WASM journeys fail *more* often: the bug is a lost repaint, but
+  the cure is not "repaint harder".
+
+  Both windows are pinned by tests that drive the scope directly, because neither is reachable from a
+  component: by the time the loop settles, every user lifecycle hook has already run, which is
+  precisely why the drop was invisible.
+
 ### Added
 
 - **Email confirmation and password reset, over the mail battery.** Registering now sends a
@@ -366,6 +412,152 @@ them until tagged releases begin.
   status codes, the header — only exist over the wire. That needed a cookie container of its own:
   `TestServer`'s client keeps none, so a session issued by one request never reaches the next.
 
+- **`rask new --template nuxt` — and nextjs, sveltekit, solidstart, tanstack-start, analog.** The meta
+  framework lane could be hosted but not started: you hand-wrote the csproj, the `Program.cs`, the
+  adapter or preset that emits a node server, and the dev proxy that makes a `rask dev` session
+  dispatch anywhere. All six are now templates, each reaching its framework through that framework's
+  **own** creator, because the argument of this lane is that the framework's conventions win.
+
+  What Rask adds is only what the creator cannot know: the build must emit a node server, and the dev
+  server must proxy `/_rask` back to the host. Two of the configs are **patched, never overwritten** —
+  SvelteKit's `vite.config.ts` carries its node adapter (modern SvelteKit configures kit through the
+  Vite plugin and writes no `svelte.config.js` at all) and TanStack's carries the Start plugin and
+  Nitro, so writing our own file over either would delete the thing that makes the build produce a
+  server at all.
+
+  Every invocation was established by running it, not by reading docs, and none of them was uniform:
+  `nuxi` refuses without `--template` and `--gitInit`; `create-start-app` is deprecated in favour of
+  `@tanstack/cli`, whose `--deployment nitro` is what produces the node entry; `create-solid` needs
+  both `--v2` and a named template; and `create-analog` answers even `--help` with a prompt and needs
+  an undocumented `--skipTailwind`. A prompt inside `rask new` is a hang rather than an error, which is
+  why each of those is pinned by a test.
+
+  **The front end lives in `client/`, lower case** — where the SPA lane uses `Client/`. Half of these
+  creators derive an npm package name from the target directory and reject capitals: `create-next-app`
+  and `@tanstack/cli` exit, and `create-analog` stops to ask. So all six are run from inside the
+  project directory with a target of `client`, and the scaffold sets `RaskMetaAppDir` to match.
+
+  Tailwind comes from each creator where one can be asked — Next's `--tailwind`, SvelteKit's add-on,
+  SolidStart's `with-tailwindcss` template, and TanStack's standard scaffold. Nuxt has no such option
+  and Analog will not take an answer, so Rask installs it for those two, by the same rule the SPA lane
+  uses: the Vite plugin where Rask writes the Vite config, `@tailwindcss/postcss` where it does not.
+
+  `--docker` means something specific here: the image keeps a **node runtime**, because the front end
+  has a server of its own that the host supervises for the life of the container. That is the honest
+  cost of this lane, and [docs/meta.md](docs/meta.md) says so.
+
+- **`rask dev` knows the meta framework lane (#983).** It classified a meta host as a plain server
+  app, which failed in the quiet direction: nothing broke, and every save ran a full **production**
+  build of Nuxt, Next or SvelteKit through the framework's own toolchain, whose output the session
+  then never read.
+
+  It is now its own template kind, with the same two-process shape the SPA lane has: `dotnet watch`
+  for the host, the framework's own dev server for the front end, `-p:RaskMetaBuild=false` to skip
+  that production build, and `--open` pointed at the dev server rather than at ASP.NET. The port comes
+  from the framework (3000 for Nuxt, Next, TanStack Start and SolidStart; 5173 for SvelteKit and
+  Analog), and `RaskMetaAppDir` is honoured, so an app that was moved still gets a dev server instead
+  of silently getting none. The banner names the framework, because on this lane six of them share one
+  kind.
+
+  **The host had to be told too.** Skipping the build leaves no server entry, and the supervisor
+  refuses to start rather than forward into nothing — so the session would have died before its first
+  page. `rask dev` now hands the host the dev server's address in `RASK_META_DEV`, which is the
+  documented `SuperviseNode = false` case with the port filled in: the host stops supervising and
+  forwards to the process the CLI started beside it. Both addresses work for the session — `:3000` is
+  where HMR is native, and the host's own port still renders rather than being a dead end.
+  [docs/meta.md](docs/meta.md#development).
+
+- **A meta framework front end gets the typed wire — generated contracts and the dispatcher.** It had
+  neither, and the reason was one line's absence: `RaskEmitTypeScript` was defaulted and made visible
+  to the compiler only by `Rask.Spa.Hosting`. The CQRS generator reads that flag through Roslyn's
+  analyzer config, so for a meta host it was not false — it was absent, and the generator emitted
+  nothing. No error, no warning, and a front end left hand-writing `fetch` against a wire it could not
+  see.
+
+  `Rask.Meta.Hosting` now declares the property, runs the same `WriteGeneratedTypeScriptTask` the SPA
+  lane runs, and ships the same `client.ts`. Not a second copy of either: the task is packed from
+  `Rask.Spa.Tasks` and the dispatcher from `Rask.Spa.Hosting/client/`, because what they do — project
+  C# records into TypeScript, and dispatch over the CQRS endpoint — is neither lane's private
+  business, and two implementations of one file format are two things waiting to disagree.
+
+  **The server-render half is documented rather than invented.** `client.ts` already carried the three
+  seams a Node render needs — an explicit `baseUrl`, an injectable `fetch`, and an `onRequest` hook —
+  so forwarding the visitor's cookie from a loader is a composition of options that existed, and
+  `RASK_BASE_URL` (injected since #960, read by nothing) is finally what it is for.
+  [docs/meta.md](docs/meta.md#calling-your-c) shows both.
+
+- **A meta framework front end gets Rask's browser layer, imported as `@rask/browser/…`.** The lane
+  had no C#-to-TypeScript delivery of any kind — `Rask.Meta.Hosting` packed `build/**` and nothing
+  else — so a Nuxt or Next app hosted by Rask could reach none of the browser APIs the Server, WASM
+  and SPA front ends share. It now packs the same modules from `Rask.Core` and copies them into the
+  app on every build.
+
+  Into the source directory that framework actually uses: `app/rask/browser/` for Nuxt 4 and Next's
+  App Router, `src/rask/browser/` for SvelteKit, SolidStart, TanStack Start and Analog. That is the
+  lane's own argument — the framework's conventions win — and the framework table in the targets was
+  already the place where six frameworks differ by data rather than by code. `RaskMetaGeneratedDir`
+  overrides it.
+
+  **The import specifier does not vary with that.** A `tsconfig.rask.json` is written beside the
+  modules mapping `@rask/*`, so every app writes `@rask/browser/geolocation` whatever its layout.
+  `rask new` wires that alias through whichever mechanism the framework actually honours, and it is
+  not the same one twice: a `paths` entry merged into the app's own `tsconfig.json` for Next,
+  TanStack, SolidStart and Analog; `alias` in the `sveltekit()` plugin options for SvelteKit, which
+  is what generates its tsconfig; `alias` in `nuxt.config.ts` for Nuxt; and a Vite `resolve.alias`
+  for SolidStart, since Vite does not read tsconfig paths on its own.
+
+  Two of those are not preferences but corrections, each found by building a scaffolded app rather
+  than by reading the file. TypeScript does **not** merge `paths` across an `extends` — the
+  inheriting file replaces the inherited mapping wholesale — so extending the generated config was
+  silently overridden by the `paths` that Next, TanStack and Solid write into that same file, and
+  `@rask/client` resolved to nothing. And on SvelteKit a hand-written `paths` displaces the
+  generated `$lib`: `svelte-check` reports it as an error in code the developer never touched.
+
+  **The SPA lane writes the same alias**, so the two TypeScript lanes are imported identically — its
+  generated directory never moves, so a relative path would have worked there, but two conventions
+  for one thing is worse than either. Relative imports keep working on both.
+
+  Two properties of this lane made the plumbing more than a copy. The destination is inside
+  `_RaskMetaInput`'s own glob, so the copy and the alias file are both written only when they differ —
+  otherwise every build leaves the next one looking dirty and re-runs a full production build of the
+  front end. And `_RaskMetaCopyBrowserModules` and `_RaskMetaBuildApp` both hang off `CoreCompile`, so
+  the ordering is an explicit `DependsOnTargets`: without it the first build of a fresh checkout
+  compiles an app whose imports are not there yet.
+
+  `globals.ts` is excluded, as on the SPA lane. It publishes the `window.__rask*` namespaces .NET
+  resolves dotted identifiers against, and it is the one module with an import-time side effect —
+  which on this lane is not academic, since every route module is loaded by Node before any browser
+  sees it.
+
+
+### Added
+- **RASK071 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
+  route attribute and ASP.NET's share the short name `Route` and differ only by namespace, so a server
+  file that already imports `Microsoft.AspNetCore.Mvc` — or one written by someone arriving from Blazor,
+  where the attribute is `Microsoft.AspNetCore.Components.RouteAttribute` — can bind the wrong one from a
+  completion list. Nothing downstream noticed: MVC reads its attribute only while scanning controllers
+  and a component is never scanned, Blazor's is read by a renderer Rask does not run, and
+  `RoutesGenerator` matches on the full name. The build stayed green and the page was simply absent from
+  the route table, so the first sign of it was a 404 in a browser. It is an Error for that reason.
+
+  The lightbulb rewrites only the attribute's **name**, so the template and any sibling attributes
+  survive, and it writes the name qualified wherever a bare `Route` would bind back to ASP.NET's
+  attribute or be ambiguous — never trading RASK071 for CS0104, which is asserted by compiling the
+  fixed file with a genuine MVC controller still in it. Where the arguments themselves would not fit
+  Rask's `RouteAttribute(string template)` the fix is **withheld** rather than offered: MVC's
+  attribute also has settable `Name` and `Order`, and an alias may bake its template in and take no
+  arguments at all, so rewriting those would answer RASK071 with a CS0117 or CS7036.
+
+  A page that already registers is left alone, both ways it can: Rask's own `[Route]`, and
+  `[NotFound]`, which registers the catch-all with no `[Route]` at all. The second one matters more
+  than a spurious error would suggest — the obvious fix for it puts a `[Route]` beside the
+  `[NotFound]`, which is RASK013 and drops the catch-all from the registry entirely. An alias
+  deriving from MVC's (unsealed) attribute is matched through the base chain, and the message names
+  the alias the developer actually wrote rather than only the base it derives from.
+
+  Note that this is deliberately silent on the API controllers `Rask.Api` introduces: those are real
+  MVC controllers, not components, and `[Route]` on one of them is correct.
+
 - **`Rask.Api.Client` — a typed client generated from your own controllers, so a call site carries no
   URL.** The server declaration is the source of truth: an ordinary `[ApiController]` is read for its
   routes, verbs, parameters and response types, and one client class per controller is generated from
@@ -479,6 +671,62 @@ them until tagged releases begin.
 
   `ApiOptions` carries `Prefix` (default `/api`), `NotFound` and `Controllers`. `MapRaskApi()` returns
   the endpoint group, so rate limiting, CORS or output caching attach to the whole API in one line.
+
+- **Validation is built in and on.** Put `[Required]` on a model, or write an
+  `AbstractValidator<T>` for it, and the rules run — in a `Form<T>` as the user types, and again on
+  the server before a dispatched request reaches its handler. Nothing is declared and, for
+  DataAnnotations, nothing is referenced.
+
+  Validation was the one obvious battery that never got the batteries treatment: it needed a package
+  **and** a component inside the form, and `rask new` scaffolded neither, so a user who put
+  `[Required]` on a model and wired a `Form<T>` saw nothing happen — no message, no diagnostic, and a
+  tutorial that had to stop and apologise for it.
+
+  **DataAnnotations moved into `Rask.Core`**, which every host already bundles, and
+  `Rask.Validation.DataAnnotations` is deleted. The `Form` registers the pass itself; `AddValidator`'s
+  type dedup is what makes doing that on every render free. Behaviour is carried over unchanged,
+  including `IValidatableObject` running alongside the attributes (ASP.NET Core MVC parity) and the
+  render-scoped `IServiceProvider` reaching a custom `ValidationAttribute`.
+
+  **Declaring an `AbstractValidator<T>` is now its whole registration.** A generator finds each one at
+  compile time and emits a `[ModuleInitializer]` — there is no assembly scan anywhere in it, which is
+  what lets a WebAssembly app use FluentValidation and still publish trimmed. A validator with
+  constructor parameters is resolved from the render scope, so the uniqueness-check validator, the
+  usual reason to reach for FluentValidation at all, needs no extra wiring. `Rask.Validation.FluentValidation`
+  stays a package and joins **both** halves of the `Rask` meta-package; its component is deleted too.
+
+  Both passes run with **attributes first**, which needed no reordering: DataAnnotations is the
+  synchronous `IFieldValidator` stage and a discovered validator the asynchronous one, so
+  `EditContext`'s existing order and its per-field first-error-wins gating already produce that.
+
+  **Requests are validated too.** `AddRaskCqrs` registers a `ValidationBehavior` outermost, so an
+  invalid request never reaches a transaction, a log line saying it was handled, or the handler.
+  Custom rules go in an `IRequestValidator<TRequest>`, asynchronous by construction. `Rask.Cqrs`
+  itself gains only the abstraction — it stays standalone and trim-clean, and the two
+  implementations live in the `Rask` package.
+
+  A rejected request becomes **400 `application/problem+json` with an `errors` object** and its own
+  stable `type`. That is the one failure whose text crosses the wire: a handler exception stays opaque
+  because it is written for an operator and names tables and credentials, while a validation message
+  was authored to be shown to whoever sent the request. On a WebAssembly client the request is checked
+  **before** it is sent, so an invalid command costs a message rather than a round trip — the server
+  runs the same rules again and remains the authority.
+
+  Off switches: `app.Configure(c => c.Validation.Off())`, `RaskValidation.AutoValidate = false` on any
+  host, or `Form.Model(m).AutoValidate(false)` for a single form. The global off wins.
+
+  New diagnostics [RASKVAL001](docs/diagnostics.md#raskval001) (two validators for one model) and
+  [RASKVAL002](docs/diagnostics.md#raskval002) (no single public constructor). New guide:
+  [docs/validation.md](docs/validation.md).
+
+  MVC controllers and minimal API endpoints are **not** covered yet — tracked in [#988](https://github.com/pal-tamas/rask/issues/988).
+
+- **The chain generator carries a type parameter's `[DynamicallyAccessedMembers]` into what it
+  emits.** `Form<TModel>` needs the annotation so a published WebAssembly build keeps the model's
+  properties — without it the trimmer removes them and the form validates nothing, silently, with a
+  green build and no IL warning. The chain is the only way to build a component, so an annotation the
+  generated seed, stage and `Of` declarations did not repeat was one no call site could satisfy
+  (IL2091 on every one). Any component whose type parameter is annotated now gets the same treatment.
 
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the

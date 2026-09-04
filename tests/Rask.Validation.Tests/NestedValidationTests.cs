@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 
 
-namespace Rask.Validation.DataAnnotations.Tests;
+namespace Rask.Validation.Tests;
 
 // Coverage for nested model validation through a single top-of-form DataAnnotationsValidator.
 // The reference-based FieldIdentifier scheme means messages for a sub-object property land on
@@ -243,7 +243,6 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         EditContext? captured = null;
 
         var page = RaskTest.Render(() => Form.Model(p)[
-            DataAnnotationsValidator,
             Input.Bind(() => p.Address!.Street),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -268,7 +267,6 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
         var page = RaskTest.Render(() => Form.Model(p)[
-            DataAnnotationsValidator,
             Input.Bind(() => p.Address!.Street),
             ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
                 .For(() => p.Address!.Street)

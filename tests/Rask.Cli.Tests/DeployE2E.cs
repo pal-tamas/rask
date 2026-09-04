@@ -118,7 +118,12 @@ internal sealed class EnvScopedProcessRunner(
         return exit;
     }
 
-    public async Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
+    public async Task<ProcessResult> CaptureAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
         var (exit, output) = await CaptureCoreAsync(fileName, arguments, workingDirectory, cancellationToken).ConfigureAwait(false);
         return new ProcessResult(exit, output.StandardOutput, output.StandardError);

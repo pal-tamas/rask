@@ -75,6 +75,11 @@
     <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj"/>
     <ProjectReference Include="..\Rask.WebPush\Rask.WebPush.csproj"/>
 
+    <!-- DataAnnotations needs no reference at all — it is in Rask.Core, which every host bundles. This
+         is the other half: an AbstractValidator<T> in the app is discovered and wired by the generator
+         that ships in the host's analyzer payload. -->
+    <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
+
     <!-- The browser rung: `c.Wasm = true` publishes a bundle from this same project and serves it. -->
     <ProjectReference Include="..\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
 
@@ -92,6 +97,12 @@
     all. A local-first app references those three itself and accepts the untrimmed build knowingly.
 
     What is here is source-generated and reflection-free, so the bundle stays trimmed.
+
+    Validation is the one deliberate exception, and it is a measured one rather than an assumption: the
+    WASM showcase has published FluentValidation at TrimMode=full with zero IL warnings since long
+    before it was a battery. A form is the same component on both hosts, so leaving it out here would
+    mean a shared component library whose rules run on the server and silently do not in the browser —
+    the failure this repo treats as its worst.
   -->
   <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
@@ -105,6 +116,7 @@
       arrives as a baked file, not from a package.
     -->
     <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj"/>
+    <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
   </ItemGroup>
 
   <!-- RaskApp needs WebApplicationBuilder, so the server files compile into the server half only. -->

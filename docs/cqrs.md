@@ -91,9 +91,11 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
 
 ## Pipeline behaviors (decorators)
 
-Behaviors are the extension point for cross-cutting concerns — logging, validation, transactions,
-caching. `Rask.Cqrs` ships **none**: you implement `IPipelineBehavior<TRequest, TResult>` and register
-it. Behaviors run as an onion in **registration order** (first-registered is outermost); call `next`
+Behaviors are the extension point for cross-cutting concerns — logging, transactions, caching. You
+implement `IPipelineBehavior<TRequest, TResult>` and register it.
+
+`Rask.Cqrs` ships **one**: a `ValidationBehavior` registered outermost, which rejects an invalid
+request before its handler runs. See [validation.md](validation.md#requests). Behaviors run as an onion in **registration order** (first-registered is outermost); call `next`
 to continue or return without it to short-circuit. A void `ICommand` flows through as `TResult = Unit`,
 so one behavior shape covers everything.
 

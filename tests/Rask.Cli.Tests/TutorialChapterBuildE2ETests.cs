@@ -96,11 +96,12 @@ public sealed partial class TutorialChapterBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            // The one package the chapter tells the reader to add by hand.
+            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on a model
+            // and expects it to be enforced; validation ships inside Rask.Core, so a project straight out
+            // of `rask new` already has it. If it ever stops being built in, this build still succeeds and
+            // the chapter still compiles — so the guarantee is pinned by the unit suite
+            // (Rask.Validation.Tests), and this gate only has to prove no `dotnet add package` is needed.
             var csproj = Path.Combine(projectDir, "Shop.csproj");
-            var (added, addOutput) = await CliBuildE2E.RunDotnet(
-                $"add \"{csproj}\" package Rask.Validation.DataAnnotations --version {version}");
-            Assert.True(added == 0, $"Adding the validation package failed.{CliBuildE2E.Diagnostics(addOutput)}");
 
             await Build(csproj, "chapter 2");
 

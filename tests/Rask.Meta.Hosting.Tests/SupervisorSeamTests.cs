@@ -14,6 +14,7 @@ namespace Rask.Meta.Hosting.Tests;
 ///     established that registering the hosted service causes any of it to happen. That is the gap
 ///     where a package ships doing nothing at all, with a green suite.
 /// </remarks>
+[Collection(MetaHostCollection.Name)]
 public class SupervisorSeamTests
 {
     private static WebApplication BuildHost(Action<MetaHostingOptions> configure)

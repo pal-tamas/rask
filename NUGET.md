@@ -106,7 +106,7 @@ dotnet add package Rask.SQLite.Browser                # a persistent SQLite data
 **UI and testing:**
 
 ```bash
-dotnet add package Rask.Validation.DataAnnotations    # or Rask.Validation.FluentValidation
+dotnet add package Rask.Validation.FluentValidation   # AbstractValidator<T>; DataAnnotations is built in
 dotnet add package Rask.Testing                       # render + drive components in unit tests
 ```
 

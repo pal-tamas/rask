@@ -40,7 +40,8 @@ public sealed class RaskAppOptions
     public Battery Cqrs { get; } = new();
 
     /// <summary>
-    /// Accounts, and the three flows every app needs: register, sign in, sign out.
+    /// Accounts, and the flows every app needs: register, sign in, sign out, confirm an address
+    /// and reset a password.
     /// </summary>
     /// <remarks>
     /// On by default, which is the point — a scaffolded app can sign somebody in without a line of auth
@@ -49,11 +50,27 @@ public sealed class RaskAppOptions
     /// <c>IAuth</c> and <c>IUserProvider</c> mean the same thing on the Server host, in WebAssembly, and
     /// inside an island. The first account to register becomes the administrator.
     /// <para>
+    /// Confirmation and reset links go out through the <see cref="Mail" /> battery. Requiring a
+    /// confirmed address before sign-in is off by default — see <c>AuthOptions.RequireConfirmedEmail</c>
+    /// for why a freshly scaffolded app must not start with that gate closed.
+    /// </para>
+    /// <para>
     /// Turning it off leaves the account tables mapped, like every other database-backed battery, so
     /// flipping this line back on does not produce a destructive migration.
     /// </para>
     /// </remarks>
     public Battery<AuthOptions> Auth { get; } = new();
+
+    /// <summary>
+    ///     Validation, in forms and on dispatched requests: a model's
+    ///     <c>System.ComponentModel.DataAnnotations</c> attributes and any
+    ///     <c>AbstractValidator&lt;T&gt;</c> you wrote, both applied with nothing declared.
+    ///     <para>
+    ///         Turning it off stops both. A single form opts out on its own with
+    ///         <c>Form.Model(m).AutoValidate(false)</c>.
+    ///     </para>
+    /// </summary>
+    public Battery Validation { get; } = new();
 
     /// <summary>Durable background jobs on the app's own database.</summary>
     public Battery<JobOptions> Jobs { get; } = new();
