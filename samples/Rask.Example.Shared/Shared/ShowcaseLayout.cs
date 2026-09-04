@@ -151,7 +151,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Placeholder("Filter guides & examples…")
                 .Class($"side-nav-filter {Tw.Input}")
         ],
-        Div.Class("side-nav-scroll")[BuildSections()]
+        Div.Class("side-nav-scroll")[
+            Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]
+        ]
     ];
 
     // Guides-first: the narrative guides are the primary spine (top of the sidebar, groups expanded by
@@ -204,13 +206,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Div.Class("side-nav-section")[section]);
+            children.Add(Li.Class("side-nav-section menu-title")[section]);
             children.AddRange(groups);
         }
 
         if (children.Count == 0)
         {
-            children.Add(Div.Class("side-nav-empty text-sm text-ui-muted")["Nothing matches that filter."]);
+            children.Add(Li.Class("side-nav-empty menu-title")["Nothing matches that filter."]);
         }
 
         return children;
@@ -219,17 +221,26 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     private Component GroupBlock(
         string key, string group, bool open,
         IReadOnlyList<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> items) =>
-        Div.Class("nav-group").Key(key)[
+        // daisyUI's menu, and a real <ul>/<li> tree rather than a stack of divs: that shape is what the
+        // component styles, and it is also what tells a screen reader how many entries a group has and
+        // which one it is on.
+        //
+        // The nav-group-* and side-nav-link class names stay on the elements. They carry no styling any
+        // more — daisyUI does that — but 55 assertions across the unit and browser suites name them, and
+        // those assertions are still about the right things: that a group reads as open, that the active
+        // link is the one for this page. Renaming them would have turned a restyle into a rewrite of the
+        // tests that prove the restyle works, which is how a conversion loses its own safety net.
+        Li.Class("nav-group").Key(key)[
             Button
                 .Type("button")
-                .Class(open ? "nav-group-toggle open" : "nav-group-toggle")
+                .Class(open ? "nav-group-toggle open menu-dropdown-toggle menu-dropdown-show" : "nav-group-toggle menu-dropdown-toggle")
                 .OnClick(() => ToggleGroup(key))[
                 UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight).Class("nav-group-chevron size-3.5"),
                 Span.Class("nav-group-label")[group]
             ],
             !open
                 ? null
-                : Div.Class("nav-group-items flex flex-col")[
+                : Ul.Class("nav-group-items menu-dropdown")[
                     // No cast: the chain ends at the children indexer, so it is already a Component
                     // and Select infers the sequence — which is what the indexer wants.
                     items.Select(i =>
@@ -243,14 +254,20 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                             match = mp;
                         }
 
-                        return NavLink
-                            .Key(i.Path)
-                            .Href(i.Path)
-                            .Match(match)
-                            .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
-                            .Class("side-nav-link")[
-                            UiIcon.Name(i.Icon).Class("me-2"),
-                            Span[i.Label]
+                        return Li.Key(i.Path)[
+                            NavLink
+                                .Href(i.Path)
+                                .Match(match)
+                                .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
+                                // Both names, on purpose. menu-active is what daisyUI styles; active is
+                                // NavLink's own default and what seventeen assertions across the unit and
+                                // browser suites look for. Dropping either would cost the styling or the
+                                // tests that prove the link is the one for this page.
+                                .ActiveClass("active menu-active")
+                                .Class("side-nav-link")[
+                                UiIcon.Name(i.Icon).Class("me-2"),
+                                Span[i.Label]
+                            ]
                         ];
                     })
                 ]

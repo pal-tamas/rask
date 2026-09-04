@@ -200,7 +200,7 @@ public sealed class ShowcaseLayoutTests
     ///     </para>
     /// </summary>
     private static Regex GroupExpanded(string group) =>
-        new("<button class=\"nav-group-toggle open\"(?:(?!</button>)[\\s\\S])*?"
+        new("<button class=\"[^\"]*nav-group-toggle open\\b[^\"]*\"(?:(?!</button>)[\\s\\S])*?"
             + $"<span class=\"nav-group-label\">{Regex.Escape(group)}</span>");
 
     private static string CollapseWhitespace(string s) =>
