@@ -40,5 +40,22 @@ public partial class App : Component
         Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
     ];
 
+    /// <summary>
+    ///     Turns the kit's theme on for the whole document.
+    /// </summary>
+    /// <remarks>
+    ///     Load-bearing, not decorative — and its absence is what shipped this page to rask.sh with no
+    ///     colour at all. The kit scopes daisyUI's theme to this attribute so that referencing the
+    ///     package cannot repaint an app that only wanted a button, which means every <c>--color-ui-*</c>
+    ///     token resolves to nothing until something in the ancestry carries it. The failure is silent:
+    ///     structure and layout survive, colour does not, and nothing that only reads class names
+    ///     notices. The showcase carries the same override for the same reason.
+    /// </remarks>
+    protected override Component Shell(Component head, Component body) =>
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+            head,
+            Body.Class(BodyClass)[body]
+        ];
+
     protected override Component? Render() => Router;
 }

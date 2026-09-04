@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The landing site shipped to rask.sh with no colour at all.** `Rask.Example.Site` drew with the kit
+  but was wired for neither half of it, and both failures are silent in the same way: the build stays
+  green, the class names in the markup stay correct, and the page arrives unstyled.
+
+  **The theme scope was never turned on.** The kit confines daisyUI's theme to `data-rask-ui` so that
+  referencing the package cannot repaint an app that only wanted a button, and every `--color-ui-*`
+  token is an alias onto `--color-base-*`, which exists only inside that scope. The site's root
+  component had no `Shell` override, so the attribute reached no element and every colour resolved to
+  nothing. The served page carried `data-rask-ui` only inside CSS selectors, never as an attribute.
+
+  **The palette was never copied.** Tailwind emits a utility only where it can see its token, and a
+  `@theme` reached through an `@import` after the Tailwind entry points is not read as theme. The site
+  declared 2 of the kit's 13 tokens, so its stylesheet contained none of `bg-ui-bg`, `text-ui-ink` or
+  `border-ui-line` while its markup used all three — 17,012 bytes of sheet with the layout utilities
+  present and the palette absent.
+
+  Both are fixed, and `UiKitWiringTests` now holds **every** app that references `Rask.Ui` to both rules
+  rather than only the showcase, which is why the second consumer of the kit reproduced a bug the first
+  had already solved. Checked by putting each half of the bug back and watching the guard name the site.
+
+
 - **The SQLite journey's database assertions reported machine load as a product failure.** The bulk
   imports and the concurrent-writer bursts waited on Playwright's default 5s budget for work that
   takes 1–3s idle, so roughly two seconds of headroom stood between a green suite and a red one
