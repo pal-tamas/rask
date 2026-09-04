@@ -46,6 +46,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\samples\Rask.Example.Server\Rask.Example.Server.csproj"
                       ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Meta.Nuxt\Rask.Example.Meta.Nuxt.csproj"
+                      ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.EfCore\Rask.Example.EfCore.csproj"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Shop\Rask.Example.Shop.csproj"

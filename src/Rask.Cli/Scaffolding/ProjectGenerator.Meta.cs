@@ -574,14 +574,27 @@ internal static partial class ProjectGenerator
     private static string MetaProgram(ServerBatteries batteries)
     {
         var sb = new StringBuilder();
+
+        // Sorted, because `dotnet format` sorts them and a scaffolded project should not fail the first
+        // formatting check its owner runs. The battery usings arrive as a block of their own, so the
+        // whole set is collected and ordered here rather than appended in the order it was thought of.
+        var usings = new List<string> { "Rask.Cqrs.Server", "Rask.Meta.Hosting" };
+
         if (batteries.Data)
         {
-            sb.Append($"using {NameToken}.Features.Shared;\n");
+            usings.Add($"{NameToken}.Features.Shared");
         }
 
-        sb.Append("using Rask.Cqrs.Server;\n");
-        sb.Append("using Rask.Meta.Hosting;\n");
-        sb.Append(DatabaseAndBatteryUsings(batteries));
+        usings.AddRange(DatabaseAndBatteryUsings(batteries)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("using ", StringComparison.Ordinal))
+            .Select(line => line["using ".Length..].TrimEnd(';')));
+
+        foreach (var name in usings.Distinct(StringComparer.Ordinal).OrderBy(u => u, StringComparer.Ordinal))
+        {
+            sb.Append($"using {name};\n");
+        }
 
         sb.Append("""
 

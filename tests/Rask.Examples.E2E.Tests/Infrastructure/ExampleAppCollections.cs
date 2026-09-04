@@ -8,6 +8,13 @@ public sealed class ServerExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class MetaNuxtExampleCollection
+    : ICollectionFixture<MetaNuxtAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaNuxtExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class EfCoreExampleCollection
     : ICollectionFixture<EfCoreExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {
