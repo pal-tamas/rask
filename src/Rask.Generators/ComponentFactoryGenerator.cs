@@ -23,6 +23,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
     private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
+    private const string SubmitAwareFullName = "Rask.Core.Forms.ISubmitAware";
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
 
     // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
@@ -314,7 +315,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // second is written over an OPEN TMode, so `Input.Bind(…).Class("x")` keeps the mode it was
                 // in and the next step still knows it. A form control that could not say `.Class(…)` would
                 // be no trade at all.
-                foreach (var mode in new string?[] { null, OpenMode })
+                foreach (var mode in new string?[] { null, OpenMode, FormChainMode })
                 {
                     EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
                         fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
@@ -371,7 +372,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     // A form control's chain carries its mode, so its steps are written over it: the
                     // controlled-mode props (Checked, OnInput, OnChange) only on Controlled, everything
                     // else — the display and constraint props — over an open TMode.
-                    c.FormControl is null ? null : ModeOf(p.Name));
+                    c.SubmitAware ? FormChainMode
+                    : c.FormControl is null ? null : ModeOf(p.Name));
             }
 
             EmitBoundSetters(sb, c, visibility);
@@ -1069,7 +1071,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append("    ").Append(visibility).Append(" static ")
                 .Append(self).Append(" Key").Append(WithMode("<T>", mode)).Append("(this ").Append(self)
                 .Append(" __b, ")
-                .Append(typeFqn).Append(" value) where T : ").Append(receiver);
+                .Append(typeFqn).Append(" value) where T : ").Append(ConstraintFor(receiver, mode));
             sb.Append(" { var __c = global::Rask.Core.BuilderRuntime.ClaimKey(__b.Value, value); ");
             if (pendingBit >= 0)
             {
@@ -1134,7 +1136,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(self).Append(' ').Append(EscapeIdentifier(setterName))
                 .Append(WithMode("<T>", mode)).Append("(this ")
                 .Append(self).Append(" __b, ").Append(paramType)
-                .Append(" value) where T : ").Append(receiver);
+                .Append(" value) where T : ").Append(ConstraintFor(receiver, mode));
             sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
                 .Append(" = ").Append(assigned).AppendLine("; return __b; }");
             EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
@@ -1212,7 +1214,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // …and with them their CONSTRAINTS, or a constrained generic component with a bag prop emits
         // `Foo<TValue>(this Build<Widget<TValue>, TMode> …)` with no `where TValue : …` and fails to
         // compile (CS0314). Carrying the parameters without the constraints was half a fix.
-        var where = generic ? " where T : " + receiver : constraints;
+        var where = generic ? " where T : " + ConstraintFor(receiver, mode) : constraints;
 
         // The body is assigned here rather than forwarded to the dictionary overload. Every component's
         // setters are extension methods on Build<…> in one static class, so a forwarding `Data(__b, …)`
@@ -1276,9 +1278,27 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // `Rask.Core.Build<TComponent, TMode>` for a form control, whose chain carries the mode its entry
     // step opened in. See Rask.Core.Build{T,TMode}.
     private static string BuildOf(string componentFqn, string? mode = null) =>
-        mode is null
-            ? "global::Rask.Core.Build<" + componentFqn + ">"
-            : "global::Rask.Core.Build<" + componentFqn + ", " + mode + ">";
+        mode is null ? "global::Rask.Core.Build<" + componentFqn + ">"
+        : string.Equals(mode, FormChainMode, StringComparison.Ordinal)
+            ? "global::Rask.Core.FormBuild<" + componentFqn + ">"
+        : "global::Rask.Core.Build<" + componentFqn + ", " + mode + ">";
+
+    // Not a mode in the Bound/Controlled sense — it names the third chain SHAPE rather than a mode that
+    // shape carries, and FormBuild<T> takes no mode argument. It rides the same parameter because every
+    // site that has to know which shape it is emitting over already threads it. See Rask.Core.FormBuild{T}.
+    private const string FormChainMode = "__formchain";
+
+    // The shape a candidate's FINISHED chain hands back. A submit-aware component is on the form
+    // shape whatever else it is; everything else keeps the mode (or none) it already had.
+    private static string? ChainModeOf(Candidate c, string? mode) =>
+        c.SubmitAware ? FormChainMode : mode;
+
+    // FormBuild<T> constrains T to ISubmitAware, so a step written over that shape has to repeat the
+    // constraint or the receiver does not satisfy its own type parameter (CS0314).
+    private static string ConstraintFor(string receiver, string? mode) =>
+        string.Equals(mode, FormChainMode, StringComparison.Ordinal)
+            ? receiver + ", global::Rask.Core.Forms.ISubmitAware"
+            : receiver;
 
     private const string BoundMode = "global::Rask.Core.Forms.Bound";
     private const string ControlledMode = "global::Rask.Core.Forms.Controlled";
@@ -1513,7 +1533,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // property from swallowing its own setter (see Rask.Core.Build{T}).
             EmitEntryDoc(sb, c);
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-                .Append(BuildOf(c.FullyQualifiedName)).Append(' ')
+                .Append(BuildOf(c.FullyQualifiedName, ChainModeOf(c, null))).Append(' ')
                 .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
@@ -1521,7 +1541,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             EmitEntryDoc(shared, c);
             shared.Append(c.IsPublic ? "    public static " : "    internal static ")
-                .Append(BuildOf(c.FullyQualifiedName)).Append(' ')
+                .Append(BuildOf(c.FullyQualifiedName, ChainModeOf(c, null))).Append(' ')
                 .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(shared, c, host.AssemblyName);
@@ -1632,6 +1652,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // opening step fixed it, everything between passes it along, and the chain it finally hands back
         // is in the mode the chain opened in. Anything else is `null` here and nothing changes for it.
         var carriedMode = c.FormControl is null ? null : OpenMode;
+
+        // The shape the FINISHED chain hands back, which is not always what the intermediate states
+        // carry: a mode is a type parameter the states pass along, whereas the form shape is a different
+        // struct with no extra type argument at all. Kept apart so appending one never appends the other.
+        var chainMode = c.SubmitAware ? FormChainMode : carriedMode;
 
         sb.Append(pad).Append("/// <summary>Where a ").Append(c.TypeName)
             .AppendLine(" chain starts. Take one of its steps to begin.</summary>");
@@ -1774,7 +1799,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitDocComment(sb, step.Summary, pad + "    ");
                 sb.Append(pad).Append("    public ")
                     .Append(done
-                        ? BuildOf(c.FullyQualifiedName, carriedMode)
+                        ? BuildOf(c.FullyQualifiedName, chainMode)
                         : StateFqn(c, next) + Append(c.TypeParameters, carriedMode))
                     .Append(' ').Append(EscapeIdentifier(step.ParamName)).Append('(')
                     .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName))
@@ -1821,7 +1846,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // A control opened this way was given no value at all, so the parent still owns whatever it ends
         // up with: that is the controlled mode, and `Of` is the way into it for a control that wants only
         // the element half — `Input.Of<string>().Type(Search).Placeholder("…")`.
-        var result = BuildOf(c.FullyQualifiedName, c.FormControl is null ? null : ControlledMode);
+        var result = BuildOf(c.FullyQualifiedName, ChainModeOf(c, c.FormControl is null ? null : ControlledMode));
 
         sb.Append(pad).Append("/// <summary>Opens a ").Append(c.TypeName)
             .AppendLine(" whose type argument is stated rather than inferred.</summary>");
@@ -1885,7 +1910,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var unified = RenameTypeParameter(c.FullyQualifiedName, item, value);
-        sb.Append(pad).Append("public ").Append(BuildOf(unified, mode)).Append(' ')
+        sb.Append(pad).Append("public ").Append(BuildOf(unified, ChainModeOf(c, mode))).Append(' ')
             .Append(EscapeIdentifier(opening[1].ParamName)).Append('(')
             .Append(RenameTypeParameter(StepParamType(opening[1]), item, value)).Append(' ')
             .Append(EscapeIdentifier(opening[1].ParamName)).AppendLine(")");
@@ -1935,7 +1960,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var required = RequiredSteps(c);
         var done = satisfied.Count == required.Count;
         var result = done
-            ? BuildOf(c.FullyQualifiedName, mode)
+            ? BuildOf(c.FullyQualifiedName, ChainModeOf(c, mode))
             : StateFqn(c, satisfied) + Append(c.TypeParameters, mode);
         // A step on a STAGE declares only the type parameters the stage has not already fixed: the stage
         // is generic over what the first step pinned, and re-declaring those would shadow them (CS0693),
@@ -3119,7 +3144,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // the steps that follow are extension methods on the chain, which is what keeps a
             // delegate-typed property from swallowing its own setter (see Rask.Core.Build{T}).
             EmitEntryDoc(sb, c);
-            sb.Append("    ").Append(visibility).Append(" static ").Append(BuildOf(c.FullyQualifiedName))
+            sb.Append("    ").Append(visibility).Append(" static ").Append(BuildOf(c.FullyQualifiedName, ChainModeOf(c, null)))
                 .Append(' ').Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime)
                 .Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
@@ -3218,7 +3243,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             refs.Add(new EntryRef(
                 hostFqn,
                 c.TypeName,
-                NeedsSeed(c) ? SeedFqn(c) : BuildOf(c.FullyQualifiedName),
+                NeedsSeed(c) ? SeedFqn(c) : BuildOf(c.FullyQualifiedName, ChainModeOf(c, null)),
                 string.Empty,
                 string.Empty,
                 string.Empty,
@@ -3877,6 +3902,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             isPublic,
             genericFactory,
             formControl,
+            IsSubmitAware(symbol),
             new EquatableArray<PropInfo>(properties),
             new EquatableArray<ForwarderInfo>(forwarders),
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
@@ -3890,6 +3916,22 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ReachableMemberNames(symbol),
             EnclosingTypeHeaders(symbol),
             AllEnclosingPartial(symbol));
+    }
+
+    // Whether the component declares ISubmitAware, which is what puts its chain on the FormBuild<T>
+    // shape. Interfaces rather than an attribute, so it reads exactly like the form-control check
+    // below and a component cannot claim the chain without implementing what the chain calls.
+    private static bool IsSubmitAware(INamedTypeSymbol symbol)
+    {
+        foreach (var i in symbol.AllInterfaces)
+        {
+            if (i.ToDisplayString() == SubmitAwareFullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Detects IFormControl<T> among the component's implemented interfaces and returns the bound value
@@ -4859,6 +4901,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsPublic,
         GenericFactoryConfig? GenericFactory,
         FormControlInfo? FormControl,
+        // Whether the component's chain is the FORM shape — Rask.Core.FormBuild<T>, which adds the
+        // children indexer that takes the submit state. A capability, like FormControl above, and
+        // read the same way: off the implemented interfaces.
+        bool SubmitAware,
         EquatableArray<PropInfo> Properties,
         EquatableArray<ForwarderInfo> Forwarders,
         bool IsPartial,

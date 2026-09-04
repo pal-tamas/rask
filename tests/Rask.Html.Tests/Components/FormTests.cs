@@ -81,6 +81,98 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         Assert.Equal(1, invalidCalled);
     }
 
+    [Fact]
+    public void Render_SubmitStateChildren_BuildsThemNotSubmitting() =>
+        Assert.Equal(
+            "<form>idle</form>",
+            Form.Model(Empty)[submitting => [submitting ? "busy" : "idle"]].ToHtml());
+
+    // The old syntax is the point of the overload, not a side effect of it: a fixed list still binds to
+    // the typed indexer, and a bare string still reaches the loose one as ONE text child rather than one
+    // child per character. A lambda whose parameter is untyped and whose body is a collection expression
+    // has no natural type, which is what keeps it out of the `params object?[]` overload's way.
+    [Fact]
+    public void Render_FixedChildren_StillBindToTheListIndexers()
+    {
+        Assert.Equal("<form><span></span></form>", Form.Model(Empty)[Span].ToHtml());
+        Assert.Equal("<form>&lt;x&gt;</form>", Form.Model(Empty)["<x>"].ToHtml());
+        Assert.Equal(
+            "<form><span></span><span></span></form>",
+            Form.Model(Empty)[new List<Component?> { Span, Span }].ToHtml());
+    }
+
+    // The factory has to run INSIDE the form's children scope, or a bound control built by it resolves
+    // to an empty auto-created EditContext and its validators never fire — the exact failure the
+    // IEnumerable indexer materialises eagerly to avoid.
+    [Fact]
+    public void SubmitStateChildren_ResolveTheFormsEditContext()
+    {
+        var p = new Person { Name = "Ada", Age = 30 };
+        EditContext? seen = null;
+
+        var view = new StubComponent(() => Form.Model(p)[_ => [new ContextCapture(c => seen = c)]]);
+        view.RenderAsLiveRoot();
+
+        Assert.NotNull(seen);
+        Assert.Same(p, seen!.Model);
+    }
+
+    [Fact]
+    public async Task SubmitStateChildren_SeeSubmitting_WhileAnAsyncHandlerIsInFlight()
+    {
+        var p = new Person { Name = "Ada", Age = 30 };
+        var release = new TaskCompletionSource();
+        var seen = new List<bool>();
+
+        var view = new StubComponent(() => Form.Model(p)
+            .OnValidSubmitAsync(async _ => await release.Task)[submitting =>
+        {
+            seen.Add(submitting);
+            return [];
+        }
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
+
+        var pending = view.TryInvokeHandlerAsync(submitId!, doc.RootElement).AsTask();
+        view.RenderAsLiveRoot();
+        release.SetResult();
+        await pending;
+        view.RenderAsLiveRoot();
+
+        Assert.False(seen[0]);
+        Assert.Contains(true, seen);
+        Assert.False(seen[^1]);
+    }
+
+    // A handler that throws must not strand the form showing a submit that is no longer running.
+    [Fact]
+    public async Task SubmitStateChildren_StopSubmitting_WhenTheHandlerThrows()
+    {
+        var p = new Person { Name = "Ada", Age = 30 };
+        var seen = new List<bool>();
+
+        var view = new StubComponent(() => Form.Model(p)
+            .OnValidSubmitAsync(_ => throw new InvalidOperationException("boom"))[submitting =>
+        {
+            seen.Add(submitting);
+            return [];
+        }
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => view.TryInvokeHandlerAsync(submitId!, doc.RootElement).AsTask());
+
+        view.RenderAsLiveRoot();
+        Assert.False(seen[^1]);
+    }
+
     private sealed class Person
     {
         [Required] public string Name { get; set; } = "";

@@ -2623,6 +2623,33 @@ textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline
 p .mb-0 .text-sm .text-ui-muted
 strong
 
+=== form-submit-state ===
+div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+svg .me-1 .shrink-0 .size-5
+path
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-4 .grid .grid-cols-12
+div .md:col-span-7
+form
+label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
+input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-white .transition
+div .md:col-span-5
+p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
+strong
+
 === js-interop-elementref ===
 div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
 div .sample-code-col

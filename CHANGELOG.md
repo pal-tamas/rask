@@ -850,6 +850,33 @@ them until tagged releases begin.
   CSS and never runs Tailwind. The kit's `--color-ui-*` tokens are, for now, aliases onto daisyUI's
   semantic variables so both vocabularies resolve to the same colour while call sites migrate.
 
+- **A form's children can be a function of whether a submit is in flight.** Children are normally a
+  fixed list; hand `Form.Model(…)` a function instead and it is called on every render with the
+  submit state, so the markup owns the busy affordance rather than the page tracking a bool beside
+  the model:
+
+  ```csharp
+  Form.Model(_model).OnValidSubmitAsync(SaveAsync)[submitting => [
+      Input.Bind(() => _model.Username).Disabled(submitting),
+      Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
+  ]]
+  ```
+
+  The flag is true from the moment the handler starts until it returns — a throwing handler clears it
+  too — and the form re-renders on both edges. The factory runs INSIDE the render walk, so a bound
+  control it builds resolves the form's own `EditContext` and keeps its identity across the two
+  renders a submit causes.
+
+  **Only a form offers it.** An indexer cannot be constrained, so the chain `Form.Model(…)` returns is
+  now `FormBuild<T>` — a third shape beside `Build<T>` and `Build<T, TMode>`, carrying the shared
+  surface and the form's own steps. `Div[submitting => …]` does not compile, and neither does the form
+  control equivalent: there is no submit state behind either to report. A component opts in by
+  implementing `Rask.Core.Forms.ISubmitAware`, which the generator reads the way it reads
+  `IFormControl<T>`. The fixed-list indexers are untouched — a lambda with an untyped parameter and a
+  collection-expression body has no natural type, so it cannot be captured by `params object?[]`.
+
+  Source-compatible for markup, which never names the chain type. Code that spells
+  `Build<Form<TModel>>` explicitly has to say `FormBuild<Form<TModel>>` instead.
 
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the

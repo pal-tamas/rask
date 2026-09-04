@@ -1060,7 +1060,7 @@ public abstract partial class SharedSmokeTests
         // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
         // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(13, "forms");
+        await AssertGuideDemosAsync(14, "forms");
         // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
         // floating-label form, the last marker on the page) before driving any interaction so clicks
         // never race hydration.
@@ -1129,6 +1129,19 @@ public abstract partial class SharedSmokeTests
         // Input — bound streams per keystroke into a readout outside the Form.
         await Page.Locator("#fc-input-bound").FillAsync("neo");
         await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Submit-state children — the form's children are a function of whether a submit is in flight,
+        // so the button's own label is the assertion: "Saving…" while the (deliberately slow) handler
+        // runs, back to "Sign up" once it returns, with the readout outside the form showing what was
+        // saved. This is the browser half of the feature; the flag itself is unit-tested in FormTests.
+        await Page.Locator("#fss-input").FillAsync("ada");
+        await Page.Locator("#fss-submit").ClickAsync();
+        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Saving",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#fss-out")).ToContainTextAsync("ada",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // The BsRadioGroup / BsCheckboxGroup / BsMultiSelect walks that followed are gone with the

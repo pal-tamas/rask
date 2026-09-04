@@ -108,6 +108,24 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
 
 
 
+    // ---- Submit-state children ----
+
+    // The demo's children are a FUNCTION of the submit state. This pins the not-submitting half — the
+    // shape the page is in whenever a submit is not running, which is what a reader of the guide sees.
+    // The flag flipping mid-submit is unit-tested at the source in Rask.Html.Tests' FormTests; this
+    // harness cannot drive a form's async submit bridge (the stock fixed-children form does not route
+    // through it here either), so the round trip is covered by the browser journey instead.
+    [Fact]
+    public void SubmitStateChildren_RenderTheIdleShape_WhenNoSubmitIsRunning()
+    {
+        var page = RaskTest.Render(() => FormSubmitStateDemo, TestServices.Default());
+        var html = page.Render();
+
+        Assert.Contains(">Sign up</button>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Saving…", html, StringComparison.Ordinal);
+        Assert.Contains("Saved: <strong>(nothing yet)</strong>", html, StringComparison.Ordinal);
+    }
+
     // ---- helpers ----
 
     private static string Value(string v) => $"{{\"value\":\"{v}\"}}";

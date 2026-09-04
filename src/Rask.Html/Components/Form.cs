@@ -29,9 +29,12 @@ namespace Rask.Html.Components;
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form">MDN</see>
 /// </summary>
 public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
-    : Element
+    : Element, ISubmitAware
 {
     private EditContext? _context;
+
+    private Func<bool, IEnumerable<Component?>>? _childrenFactory;
+    private bool _isSubmitting;
 
     private TModel _model = default!;
     protected override string TagName => "form";
@@ -174,6 +177,26 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
         }
     }
 
+    // Stored rather than invoked: the factory has to run inside the render walk, where child-reuse
+    // bookkeeping is live, for the same reason the IEnumerable indexer materialises a lazy sequence
+    // there. Calling it here would build the children once, at the state the chain was written in —
+    // always "not submitting" — and then rebuild them from scratch every render, dropping their state.
+    void ISubmitAware.SetChildrenFactory(Func<bool, IEnumerable<Component?>> factory) =>
+        _childrenFactory = factory;
+
+    // The factory IS the children when one was given. Materialised the same way the IEnumerable indexer
+    // does it, so a `yield`/LINQ body runs here rather than later during serialization.
+    protected override IEnumerable<Component?> RenderChildren()
+    {
+        if (_childrenFactory is not { } factory)
+        {
+            return base.RenderChildren();
+        }
+
+        var built = factory(_isSubmitting);
+        return built is IReadOnlyCollection<Component?> ? built : built.ToArray();
+    }
+
     protected override IDisposable? EnterChildrenScope()
     {
         if (Model is null && Context is null)
@@ -281,37 +304,54 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     private Func<FormData, Task> BuildSubmitBridge(EditContext ctx) =>
         async formData =>
         {
-            await ctx.ValidateAsync().ConfigureAwait(false);
-            ctx.TouchAllRegisteredFields();
-            var isValid = !ctx.HasValidationMessages();
-            var onModel = isValid ? OnValidSubmit : OnInvalidSubmit;
-            var onModelAsync = isValid ? OnValidSubmitAsync : OnInvalidSubmitAsync;
-            if (onModel is null && onModelAsync is null)
+            // In flight from here until the handler returns. Both edges repaint, so children built from
+            // the flag can disable a button and say "Saving…" for exactly as long as the await lasts.
+            // StateHasChanged rather than a props change: the flag is the form's own state, and nothing
+            // above it passed it down. A synchronous handler completes before a frame exists, so this
+            // pair is only observable for the async ones — which is exactly when it is wanted.
+            _isSubmitting = true;
+            StateHasChanged();
+            try
             {
-                // No model-shaped handler: fall back to the raw FormData pair, which is what a form that
-                // only wants the posted values uses.
-                if (OnSubmit is { } sync)
+                await ctx.ValidateAsync().ConfigureAwait(false);
+                ctx.TouchAllRegisteredFields();
+                var isValid = !ctx.HasValidationMessages();
+                var onModel = isValid ? OnValidSubmit : OnInvalidSubmit;
+                var onModelAsync = isValid ? OnValidSubmitAsync : OnInvalidSubmitAsync;
+                if (onModel is null && onModelAsync is null)
                 {
-                    sync(formData);
-                }
-                else if (OnSubmitAsync is { } asyn)
-                {
-                    await asyn(formData).ConfigureAwait(false);
+                    // No model-shaped handler: fall back to the raw FormData pair, which is what a form that
+                    // only wants the posted values uses.
+                    if (OnSubmit is { } sync)
+                    {
+                        sync(formData);
+                    }
+                    else if (OnSubmitAsync is { } asyn)
+                    {
+                        await asyn(formData).ConfigureAwait(false);
+                    }
+
+                    return;
                 }
 
-                return;
+                // Typed, so the model goes straight to the handler — the non-generic Form had to
+                // DynamicInvoke here, because all it held was a Delegate.
+                var model = (TModel)ctx.Model;
+                if (onModel is { } handler)
+                {
+                    handler(model);
+                }
+                else if (onModelAsync is { } handlerAsync)
+                {
+                    await handlerAsync(model).ConfigureAwait(false);
+                }
             }
-
-            // Typed, so the model goes straight to the handler — the non-generic Form had to
-            // DynamicInvoke here, because all it held was a Delegate.
-            var model = (TModel)ctx.Model;
-            if (onModel is { } handler)
+            finally
             {
-                handler(model);
-            }
-            else if (onModelAsync is { } handlerAsync)
-            {
-                await handlerAsync(model).ConfigureAwait(false);
+                // Cleared however the handler left — a throwing handler must not strand the form
+                // showing a submit that is no longer running.
+                _isSubmitting = false;
+                StateHasChanged();
             }
         };
 
