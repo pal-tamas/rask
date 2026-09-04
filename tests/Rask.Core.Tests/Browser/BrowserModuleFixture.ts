@@ -21,6 +21,7 @@
 //
 // The C# test (BrowserModuleTests) runs this in a node subprocess and asserts the JSON on stdout.
 
+import * as auth from "../../../src/Rask.Core/Resources/browser/auth.js";
 import * as cookies from "../../../src/Rask.Core/Resources/browser/cookies.js";
 import * as geolocation from "../../../src/Rask.Core/Resources/browser/geolocation.js";
 import * as mediaQuery from "../../../src/Rask.Core/Resources/browser/mediaQuery.js";
@@ -121,7 +122,86 @@ async function run(): Promise<Any> {
 
     const estimate = await storageManager.estimate();
 
+    // ---- auth.ts ---------------------------------------------------------------------------------
+    // fetch is a global rather than a DOM member, so replacing it drives this module with no server.
+    // Each capture records what the module ASKED for.
+    const realFetch = globalThis.fetch;
+    let lastRequest: Any = {};
+
+    function captureFetch(status: number, body: unknown): void {
+        define("fetch", (url: string, init: Any) => {
+            lastRequest = {url, method: init.method, headers: init.headers, body: init.body};
+            return Promise.resolve({
+                ok: status >= 200 && status < 300,
+                status,
+                json: () => Promise.resolve(body)
+            });
+        });
+    }
+
+    captureFetch(200, {id: "u1", email: "ada@example.com", roles: ["admin"]});
+    await auth.login({email: "ada@example.com", password: "pw"});
+    const authLoginRequest = lastRequest;
+
+    // A SERVER render: an absolute base URL, and the visitor's cookie forwarded by hand because node
+    // has no cookie jar. GET /me carries no CSRF header — it changes nothing.
+    captureFetch(204, null);
+    await auth.me({baseUrl: "http://127.0.0.1:8080/", headers: {cookie: "rask.auth=abc"}});
+    const authMeRequest = lastRequest;
+
+    // A transport that never reaches a server: sign-out still resolves, and "who is signed in" reads
+    // as nobody rather than throwing.
+    define("fetch", () => Promise.reject(new Error("offline")));
+    await auth.logout();
+    const authLogoutOnFailureResolves = true;
+    const authMeOnFailureIsNull = (await auth.me()) === null;
+
+    // A refusal carries the server's error NAME through unchanged.
+    captureFetch(401, {error: "LockedOut", message: "Too many attempts."});
+    const refused = await auth.login({email: "ada@example.com", password: "wrong"});
+    const authFailureFromProblemDocument = refused.ok ? null : refused.failure;
+
+    // Recovery. The endpoints answer 202/204 with NO body, so what is checked is the route asked for
+    // and that an empty success is still read as a success — parsing a body that is not there would
+    // turn every one of these into a spurious failure.
+    captureFetch(202, null);
+    const authForgotOk = (await auth.sendPasswordReset("ada@example.com")).ok;
+    const authForgotRequest = lastRequest;
+
+    captureFetch(204, null);
+    const authResetOk = (await auth.resetPassword("u1", "tok", "Password2longer")).ok;
+    const authResetRequest = lastRequest;
+
+    captureFetch(204, null);
+    const authConfirmOk = (await auth.confirmEmail("u1", "tok")).ok;
+    const authConfirmRequest = lastRequest;
+
+    // A stale link reports the server's reason rather than a generic failure: "ask for a new one" is
+    // a different instruction from "pick a longer password".
+    captureFetch(400, {error: "InvalidToken", message: null});
+    const staleReset = await auth.resetPassword("u1", "stale", "Password2longer");
+    const authResetFailure = staleReset.ok ? null : staleReset.failure;
+
+    define("fetch", realFetch);
+
     return {
+        // Auth: the request built, not a round trip — the URL, the CSRF header on a POST and its
+        // absence on a GET, and the cookie a server render forwards itself.
+        authLoginRequest,
+        authMeRequest,
+        authLogoutOnFailureResolves,
+        authMeOnFailureIsNull,
+        authFailureFromProblemDocument,
+
+        // Recovery: the routes, and that a body-less 202/204 reads as success.
+        authForgotOk,
+        authForgotRequest,
+        authResetOk,
+        authResetRequest,
+        authConfirmOk,
+        authConfirmRequest,
+        authResetFailure,
+
         importedWithoutADom,
 
         // Geolocation flattens GeolocationPosition and carries the timestamp across.

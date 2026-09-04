@@ -5,6 +5,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Shop.Features.Auth;
 
+// The sign-in page itself is the framework's, routed at /login — this sample keeps only what is its own.
 // [Authorize] blocks anonymous deep-links (full GET → 302 to /login). The Authorize component gates the
 // content and re-renders when the post-sign-in reconnect re-seeds the principal; the signed-in view lives
 // in its own component that injects IUserProvider, so it reads the freshly-authenticated principal — no
@@ -16,7 +17,7 @@ public sealed partial class MembersPage : Component
     protected override Component? Render() =>
         Div.Class("welcome-card")[
             Authorize
-                .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
+                .NotAuthorized(P["Please ", NavLink.Href(Rask.Auth.Pages.Routes.LoginPage())["sign in"], "."])[MemberContent]
         ];
 }
 

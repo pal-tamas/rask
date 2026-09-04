@@ -16,7 +16,7 @@ public sealed partial class IdleDetectorPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Idle detection"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "Be notified when the user goes idle (no input for a threshold) or the screen locks, via ",
             "IIdleDetector (the Idle Detection API) — e.g. to auto-lock a session, pause a sync, or update ",
             "presence in a collaborative app. WASM-only: the idle-detection permission needs a live gesture ",

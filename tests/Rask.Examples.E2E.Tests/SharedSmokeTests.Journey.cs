@@ -63,21 +63,17 @@ public abstract partial class SharedSmokeTests
         // reload happened and the SPA context survived).
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
-        // Theme toggle: the navbar toggle flips BOTH data-theme and data-bs-theme on <html> together (the
-        // raw-token layer + the Bootstrap bridge stay in lockstep). Toggle, assert the flip, then toggle
-        // back so the rest of the journey runs at the original theme.
-        var themeToggle = Page.Locator("nav button[aria-label='Toggle light / dark theme']").First;
-        var themeBefore = await Page.EvaluateAsync<string>(
-            "() => document.documentElement.getAttribute('data-bs-theme') || ''");
-        await themeToggle.ClickAsync();
-        await Page.WaitForFunctionAsync(
-            "p => { const t = document.documentElement.getAttribute('data-bs-theme');"
-            + " return t && t !== p && document.documentElement.getAttribute('data-theme') === t; }",
-            themeBefore, new PageWaitForFunctionOptions { Timeout = 15_000 });
-        await themeToggle.ClickAsync();
-        await Page.WaitForFunctionAsync(
-            "p => document.documentElement.getAttribute('data-bs-theme') === p",
-            themeBefore, new PageWaitForFunctionOptions { Timeout = 15_000 });
+        // There is no theme toggle any more. The showcase is light, on the palette Rask.Ui declares, so
+        // that the operator console, the landing site and these pages are one visual language rather
+        // than three — and with the second theme went the only reason ShowcaseLayout injected
+        // IJSRuntime, and its scoped module, whose sole export flipped the attribute this used to
+        // assert on.
+        //
+        // Asserted rather than deleted: a toggle reappearing is a change worth noticing, and so is the
+        // chrome quietly going dark again. The navigation is the kit's now, so it carries the kit's ink
+        // token — a hardcoded slate-* would mean the layout drifted back off the shared palette.
+        await Expect(Page.Locator("nav button[aria-label='Toggle light / dark theme']")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
 
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();
@@ -1064,7 +1060,7 @@ public abstract partial class SharedSmokeTests
         // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
         // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(13, "forms");
+        await AssertGuideDemosAsync(14, "forms");
         // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
         // floating-label form, the last marker on the page) before driving any interaction so clicks
         // never race hydration.
@@ -1135,6 +1131,19 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Submit-state children — the form's children are a function of whether a submit is in flight,
+        // so the button's own label is the assertion: "Saving…" while the (deliberately slow) handler
+        // runs, back to "Sign up" once it returns, with the readout outside the form showing what was
+        // saved. This is the browser half of the feature; the flag itself is unit-tested in FormTests.
+        await Page.Locator("#fss-input").FillAsync("ada");
+        await Page.Locator("#fss-submit").ClickAsync();
+        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Saving",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#fss-out")).ToContainTextAsync("ada",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
         // The BsRadioGroup / BsCheckboxGroup / BsMultiSelect walks that followed are gone with the
         // controls themselves; docs/building-form-controls.md is the path for building one back.
         // ---- validation subpage (docs/forms-validation.md) ----
@@ -1167,14 +1176,22 @@ public abstract partial class SharedSmokeTests
         // read — poll for each rather than asserting once.
         await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette is applied: --accent is the violet the showcase publishes, and its exact
-        // shade tracks the active theme — dark #8b5cf6 / light #7c3aed. Assert it is one of the two
-        // rather than a single hard-coded value, and normalise whitespace and case so the browser's
-        // own spelling of the colour does not matter.
+        // The brand palette is applied, and it is the SHARED one. --accent used to be a violet the
+        // showcase published on its own, asserted as one of two hard-coded hexes that tracked the theme
+        // toggle. Both are gone: the showcase draws from Rask.Ui's palette now, so --accent is an alias
+        // for --color-ui-brand and the useful claim is that the alias resolves to it — a hex would only
+        // pin whichever colour the kit happens to ship today, and would go red on a re-skin that is
+        // working perfectly.
+        //
+        // Both are read and compared in the browser so the comparison is of COMPUTED values, whatever
+        // spelling it uses for the colour. Non-empty is asserted too: two undefined custom properties
+        // both read as "" and would otherwise compare equal, which is exactly the "silently gone
+        // palette" this step exists to catch.
         await Page.WaitForFunctionAsync(
-            "() => { const a = getComputedStyle(document.documentElement)"
-            + ".getPropertyValue('--accent').replace(/\\s+/g, '').toLowerCase();"
-            + " return a === '#8b5cf6' || a === '#7c3aed'; }",
+            "() => { const s = getComputedStyle(document.documentElement);"
+            + " const norm = n => s.getPropertyValue(n).replace(/\\s+/g, '').toLowerCase();"
+            + " const accent = norm('--accent'), brand = norm('--color-ui-brand');"
+            + " return accent.length > 0 && accent === brand; }",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 

@@ -14,7 +14,7 @@ public sealed partial class BindingManualDemo : Component
         Input
             .Value(_typed)
             .Type(InputType.Text)
-            .Class($"{Ui.Input} mb-2")
+            .Class($"{Tw.Input} mb-2")
             .Placeholder("Type something")
             .OnInput(v => _typed = v),
         P.Class("text-sm mb-0")[

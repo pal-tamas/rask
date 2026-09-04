@@ -21,8 +21,8 @@ public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
 
     protected override Component? Render() =>
         Div.Class("flex gap-2 items-center flex-wrap items-center")[
-            Span.Class($"{Ui.BadgeInfo} dispose-async-pill")[$"#{InstanceId} alive"],
-            Span.Class("text-slate-500 dark:text-slate-400 text-sm")[
+            Span.Class($"{Tw.BadgeInfo} dispose-async-pill")[$"#{InstanceId} alive"],
+            Span.Class("text-ui-muted text-sm")[
                 $"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire DisposeAsync()."]
         ];
 }

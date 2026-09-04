@@ -8,6 +8,6 @@ public sealed partial class TagsTextDemo : Component
             "You can ", Strong["emphasize"], " or ", Em["italicize"],
             " by composing them."
         ],
-        Blockquote.Class($"{Ui.Blockquote} text-base")["A small DSL, an honest day's HTML."]
+        Blockquote.Class($"{Tw.Blockquote} text-base")["A small DSL, an honest day's HTML."]
     ];
 }

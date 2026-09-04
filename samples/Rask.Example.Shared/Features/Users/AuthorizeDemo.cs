@@ -15,21 +15,21 @@ public sealed partial class AuthorizeDemo : Component
     protected override Component? Render() =>
         Div.Id("authorize-demo")[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Button.Type("button").Class(Ui.BtnPrimary).OnClick(() => _auth.SignIn("alice", "user"))[
+                Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => _auth.SignIn("alice", "user"))[
                     "Sign in as user"],
-                Button.Type("button").Class(Ui.BtnWarning).OnClick(() => _auth.SignIn("rootadmin", "admin"))[
+                Button.Type("button").Class(Tw.BtnWarning).OnClick(() => _auth.SignIn("rootadmin", "admin"))[
                     "Sign in as admin"],
-                Button.Type("button").Class(Ui.BtnOutlineSecondary).OnClick(_auth.SignOut)["Sign out"]
+                Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(_auth.SignOut)["Sign out"]
             ],
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             // The Authorized delegates greet the signed-in user by name straight off the principal.
             Authorize
                 .Roles(["admin"])
-                .Authorized(user => Div.Class($"{Ui.AlertWarning} py-2 mb-0")[
+                .Authorized(user => Div.Class($"{Tw.AlertWarning} py-2 mb-0")[
                     $"🔑 Admin-only content — welcome, {user.Identity!.Name}."])
                 .NotAuthorized(Authorize
-                    .Authorized(user => Div.Class($"{Ui.AlertSuccess} py-2 mb-0")[
+                    .Authorized(user => Div.Class($"{Tw.AlertSuccess} py-2 mb-0")[
                         $"✅ Signed in as {user.Identity!.Name} — standard access."])
-                    .NotAuthorized(Div.Class($"{Ui.AlertSecondary} py-2 mb-0")["🔒 Sign in to see member content."]))
+                    .NotAuthorized(Div.Class($"{Tw.AlertSecondary} py-2 mb-0")["🔒 Sign in to see member content."]))
         ];
 }

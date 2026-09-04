@@ -13,7 +13,7 @@ public sealed partial class LazyMount : Component
 
     protected override Component? Render() =>
         Div[
-            Button.Class($"{Ui.BtnOutlineSecondary} mb-3").Type("button").OnClick(() => _shown = !_shown)[
+            Button.Class($"{Tw.BtnOutlineSecondary} mb-3").Type("button").OnClick(() => _shown = !_shown)[
                 _shown ? "Hide LazyChild" : "Show LazyChild"
             ],
             _shown ? LazyChild : Empty

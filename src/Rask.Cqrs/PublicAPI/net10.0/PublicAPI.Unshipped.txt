@@ -9,6 +9,8 @@ Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.get -> Rask.Cqrs.NotificationP
 Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.set -> void
 Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.get -> bool
 Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.set -> void
+Rask.Cqrs.CqrsOptions.ValidateRequests.get -> bool
+Rask.Cqrs.CqrsOptions.ValidateRequests.set -> void
 Rask.Cqrs.CqrsRegistry
 Rask.Cqrs.CqrsRegistry.NotificationInvoker
 Rask.Cqrs.CqrsRegistry.RequestInvoker
@@ -36,6 +38,10 @@ Rask.Cqrs.IRemoteDispatch
 Rask.Cqrs.IRemoteDispatch.PublishAsync(Rask.Cqrs.RemoteContract! contract, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IRemoteDispatch.SendAsync(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IRemoteDispatch.SendAsync<TResult>(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IRemoteRequestValidator
+Rask.Cqrs.IRemoteRequestValidator.ValidateAsync(object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
+Rask.Cqrs.IRequestValidator<TRequest>
+Rask.Cqrs.IRequestValidator<TRequest>.ValidateAsync(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.LocalOnlyAttribute
 Rask.Cqrs.LocalOnlyAttribute.LocalOnlyAttribute() -> void
 Rask.Cqrs.NotificationDispatch
@@ -44,6 +50,9 @@ Rask.Cqrs.NotificationPublishStrategy.Sequential = 0 -> Rask.Cqrs.NotificationPu
 Rask.Cqrs.NotificationPublishStrategy.WhenAll = 1 -> Rask.Cqrs.NotificationPublishStrategy
 Rask.Cqrs.RaskCqrsTransportAttribute
 Rask.Cqrs.RaskCqrsTransportAttribute.RaskCqrsTransportAttribute() -> void
+Rask.Cqrs.RaskValidationException
+Rask.Cqrs.RaskValidationException.Errors.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>!
+Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>! errors) -> void
 Rask.Cqrs.RemoteContract
 Rask.Cqrs.RemoteContract.AllowAnonymous.get -> bool
 Rask.Cqrs.RemoteContract.AllowAnonymous.init -> void
@@ -80,6 +89,8 @@ Rask.Cqrs.RemoteContractRegistry
 Rask.Cqrs.RemoteDispatchException
 Rask.Cqrs.RemoteDispatchException.Detail.get -> string?
 Rask.Cqrs.RemoteDispatchException.Detail.init -> void
+Rask.Cqrs.RemoteDispatchException.Errors.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>?
+Rask.Cqrs.RemoteDispatchException.Errors.init -> void
 Rask.Cqrs.RemoteDispatchException.MessageName.get -> string?
 Rask.Cqrs.RemoteDispatchException.MessageName.init -> void
 Rask.Cqrs.RemoteDispatchException.ProblemType.get -> string?
@@ -101,9 +112,21 @@ Rask.Cqrs.RemoteMessageWriter
 Rask.Cqrs.RemoteResultReader
 Rask.Cqrs.RemoteResultWriter
 Rask.Cqrs.RequestHandlerDelegate<TResult>
+Rask.Cqrs.RequestValidationError
+Rask.Cqrs.RequestValidationError.Deconstruct(out string! Field, out string! Message) -> void
+Rask.Cqrs.RequestValidationError.Equals(Rask.Cqrs.RequestValidationError other) -> bool
+Rask.Cqrs.RequestValidationError.Field.get -> string!
+Rask.Cqrs.RequestValidationError.Field.init -> void
+Rask.Cqrs.RequestValidationError.Message.get -> string!
+Rask.Cqrs.RequestValidationError.Message.init -> void
+Rask.Cqrs.RequestValidationError.RequestValidationError() -> void
+Rask.Cqrs.RequestValidationError.RequestValidationError(string! Field, string! Message) -> void
 Rask.Cqrs.Unit
 Rask.Cqrs.Unit.Equals(Rask.Cqrs.Unit other) -> bool
 Rask.Cqrs.Unit.Unit() -> void
+Rask.Cqrs.ValidationBehavior<TRequest, TResult>
+Rask.Cqrs.ValidationBehavior<TRequest, TResult>.HandleAsync(TRequest request, Rask.Cqrs.RequestHandlerDelegate<TResult>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.ValidationBehavior<TRequest, TResult>.ValidationBehavior(System.Collections.Generic.IEnumerable<Rask.Cqrs.IRequestValidator<TRequest>!>! validators) -> void
 const Rask.Cqrs.RemoteEndpointDefaults.ChunkedUploadThreshold = 4194304 -> long
 const Rask.Cqrs.RemoteEndpointDefaults.MaxQueryUrlLength = 2000 -> int
 const Rask.Cqrs.RemoteEndpointDefaults.MessageQueryParameter = "m" -> string!
@@ -117,6 +140,7 @@ const Rask.Cqrs.RemoteEndpointDefaults.UploadNameHeader = "X-Rask-Upload-Name" -
 const Rask.Cqrs.RemoteEndpointDefaults.UploadOffsetHeader = "X-Rask-Upload-Offset" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.UploadSegment = "upload" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.UploadTypeHeader = "X-Rask-Upload-Type" -> string!
+override Rask.Cqrs.RequestValidationError.GetHashCode() -> int
 override Rask.Cqrs.Unit.Equals(object? obj) -> bool
 override Rask.Cqrs.Unit.GetHashCode() -> int
 override Rask.Cqrs.Unit.ToString() -> string!
@@ -132,6 +156,8 @@ static Rask.Cqrs.RemoteContractRegistry.All.get -> System.Collections.Generic.IR
 static Rask.Cqrs.RemoteContractRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Cqrs.RemoteContract!>! contracts) -> void
 static Rask.Cqrs.RemoteContractRegistry.TryGet(System.Type! messageType, out Rask.Cqrs.RemoteContract? contract) -> bool
 static Rask.Cqrs.RemoteContractRegistry.TryGet(string! name, out Rask.Cqrs.RemoteContract? contract) -> bool
+static Rask.Cqrs.RequestValidationError.operator !=(Rask.Cqrs.RequestValidationError left, Rask.Cqrs.RequestValidationError right) -> bool
+static Rask.Cqrs.RequestValidationError.operator ==(Rask.Cqrs.RequestValidationError left, Rask.Cqrs.RequestValidationError right) -> bool
 static Rask.Cqrs.Unit.Task.get -> System.Threading.Tasks.Task<Rask.Cqrs.Unit>!
 static Rask.Cqrs.Unit.operator !=(Rask.Cqrs.Unit left, Rask.Cqrs.Unit right) -> bool
 static Rask.Cqrs.Unit.operator ==(Rask.Cqrs.Unit left, Rask.Cqrs.Unit right) -> bool
@@ -144,3 +170,5 @@ virtual Rask.Cqrs.RemoteMessageWriter.Invoke(System.Text.Json.Utf8JsonWriter! wr
 virtual Rask.Cqrs.RemoteResultReader.Invoke(ref System.Text.Json.Utf8JsonReader reader) -> object?
 virtual Rask.Cqrs.RemoteResultWriter.Invoke(System.Text.Json.Utf8JsonWriter! writer, object? result) -> void
 virtual Rask.Cqrs.RequestHandlerDelegate<TResult>.Invoke() -> System.Threading.Tasks.Task<TResult>!
+~override Rask.Cqrs.RequestValidationError.Equals(object obj) -> bool
+~override Rask.Cqrs.RequestValidationError.ToString() -> string

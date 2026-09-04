@@ -43,6 +43,13 @@ public sealed class MetaTanStackExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class MetaAnalogExampleCollection
+    : ICollectionFixture<MetaAnalogAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaAnalogExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class EfCoreExampleCollection
     : ICollectionFixture<EfCoreExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {

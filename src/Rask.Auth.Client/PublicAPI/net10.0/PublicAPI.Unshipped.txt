@@ -1,0 +1,22 @@
+#nullable enable
+Rask.Auth.Client.AuthClientOptions
+Rask.Auth.Client.AuthClientOptions.AuthClientOptions() -> void
+Rask.Auth.Client.AuthClientOptions.Prefix.get -> string!
+Rask.Auth.Client.AuthClientOptions.Prefix.set -> void
+Rask.Auth.Client.BrowserAuth
+Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Routing.Navigator! navigator, Rask.Auth.Client.AuthClientOptions! options) -> void
+Rask.Auth.Client.BrowserAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.ResetPasswordAsync(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.SendPasswordResetAsync(string! email) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Auth.Client.HttpUserProvider
+Rask.Auth.Client.HttpUserProvider.Changed -> System.Action?
+Rask.Auth.Client.HttpUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
+Rask.Auth.Client.HttpUserProvider.EnsureLoadedAsync() -> System.Threading.Tasks.Task!
+Rask.Auth.Client.HttpUserProvider.HttpUserProvider(System.Net.Http.HttpClient! http, Rask.Auth.Client.AuthClientOptions! options) -> void
+Rask.Auth.Client.HttpUserProvider.IsLoading.get -> bool
+Rask.Auth.Client.HttpUserProvider.RefreshAsync() -> System.Threading.Tasks.Task!
+Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions
+static Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions.AddRaskAuthClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.Client.AuthClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

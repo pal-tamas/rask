@@ -24,7 +24,7 @@ service to operate.
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **The door out of one box** | ❌ | Not shipped — Rask wires SQLite only. Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — cookie & JWT sessions, claims, authorization, and hardening guidance. |
-| **Auth — user store** | ❌ | Not shipped. `rask new --auth` scaffolds a **demo** `ICredentialStore` with hardcoded logins, clearly marked as such; you supply the real one. See [below](#not-shipped). |
+| **Auth — user store** | ✅ | Accounts on ASP.NET Core Identity, on by default. Register, sign in and sign out work in a fresh app with no auth code; the first account to register is the administrator. Email verification, password reset and MFA are [not shipped](#not-shipped) yet. |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
 | **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — bare-VPS setup (Docker, deploy login, firewall, SSH hardening), build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host, GitHub Actions. |
 | **Dead letters & queue health** | ✅ | [`dashboard.md`](dashboard.md) — `Rask.Dashboard` mounts `/_rask` over the outbox, jobs, mail and cache: queue depth, **what has given up**, the error behind it, and one click to retry. Plus the log (a live tail, and searchable history with [`Rask.Logging`](logging.md)) and the live SQLite pragmas. Fail-closed behind an authorization policy. |
@@ -51,12 +51,15 @@ to every subscriber. Unlocks realtime UI without new infrastructure.
 Listed because a roadmap that only says what exists isn't much use when you're deciding whether Rask fits.
 None of these has an implementation today — if your product needs one, you'll be writing or renting it.
 
-### A user store and account lifecycle
-The [sign-in machinery](authentication.md) is real: cookie and JWT sessions, claims, authorization,
-hardening guidance. What `rask new --auth` scaffolds behind it is a **demo** credential store with
-hardcoded logins — honestly labelled in the generated code, but it is not a user system. There is no
-registration, password hashing, reset flow, email verification, lockout, or MFA. Bring ASP.NET Core
-Identity or a users table of your own.
+### The rest of the account lifecycle
+Accounts themselves [shipped](authentication.md): registration, sign-in, sign-out, password hashing and
+lockout, on by default and backed by ASP.NET Core Identity. What is **not** here yet is the rest of the
+lifecycle — email verification, password reset, MFA, and external providers (Google, GitHub, an
+enterprise OIDC). The token providers those flows are built from are already registered, so each is an
+addition rather than a redesign; none of them exists today.
+
+Passkeys are closer than they look: `IWebAuthn` is a complete typed wrapper over the browser API, and
+what it lacks is credential storage and server-side challenge verification.
 
 ### Another database
 Rask wires **SQLite and nothing else**. There is no provider package for PostgreSQL or SQL Server, and

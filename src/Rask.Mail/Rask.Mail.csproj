@@ -31,6 +31,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Mail.Tests"/>
+    <!-- Rask.Auth sends the confirmation and reset links through IMail, and its tests assert on what was
+         queued: the recipient, the subject, and the link the body carries. Email is write-only in public
+         (it is a builder), so reading a captured message back needs its internals. -->
+    <InternalsVisibleTo Include="Rask.Auth.Tests"/>
   </ItemGroup>
 
   <!-- Rask.Core supplies Component.ToHtml() (email bodies are components rendered to HTML). PrivateAssets="all"

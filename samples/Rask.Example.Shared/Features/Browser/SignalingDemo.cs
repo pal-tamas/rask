@@ -28,28 +28,28 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
     private int _sent;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 mb-2")[
-                    Button.Type("button").Class(Ui.BtnPrimary)
+                    Button.Type("button").Class(Tw.BtnPrimary)
                         .Id("signal-join")
                         .Disabled(_joining)
                         .OnClickAsync(JoinAsync)["Join the room twice"],
-                    Button.Type("button").Class(Ui.BtnSecondary)
+                    Button.Type("button").Class(Tw.BtnSecondary)
                         .Id("signal-send")
                         .Disabled(_secondId is null)
                         .OnClickAsync(SendAsync)["Relay a payload"]
                 ],
                 _unavailable
-                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("signal-status")[
+                    ? Div.Class("text-sm text-ui-muted italic").Id("signal-status")[
                         "This host isn't running the relay — it needs AddRaskSignaling() + "
                         + "MapRaskSignaling() on the server."]
-                    : Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
+                    : Div.Class("text-sm text-ui-muted mb-1")[
                     "Peers: ",
                     Span.Id("signal-peers")[_firstId is null ? "none" : $"{Short(_firstId)} + {Short(_secondId)}"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["What the relay reported:"],
+                Div.Class("text-sm text-ui-muted mb-1")["What the relay reported:"],
                 _log.Count == 0
-                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("signal-log")["(nothing yet)"]
+                    ? Div.Class("text-sm text-ui-muted italic").Id("signal-log")["(nothing yet)"]
                     : Ul.Class("text-sm mb-0").Id("signal-log")[
                         _log.Select(m => Li.Key(m)[m])
                     ]

@@ -19,7 +19,7 @@ public sealed partial class InlineValidateDemo : Component
             return null;
         }
 
-        return Div.Class($"{Ui.AlertDanger} text-sm mb-0")[
+        return Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
             Ul.Class("mb-0 ps-3")[
                 formOnly.Select((e, i) => Li.Key(i)[e.Message])
             ]
@@ -34,11 +34,11 @@ public sealed partial class InlineValidateDemo : Component
             .Validate(m =>
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
             Div[
-                Label.For("v4-email").Class($"{Ui.Label} text-sm mb-1")["Email"],
+                Label.For("v4-email").Class($"{Tw.Label} text-sm mb-1")["Email"],
                 Input.Bind(() => _model.Email)
                     .Id("v4-email")
                     .Type(InputType.Email)
-                    .Class(Ui.Input)
+                    .Class(Tw.Input)
                     .Validate(v =>
                         v.Contains('@')
                             ? Array.Empty<string>()
@@ -46,21 +46,21 @@ public sealed partial class InlineValidateDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Div[
-                Label.For("v4-password").Class($"{Ui.Label} text-sm mb-1")["Password"],
-                Input.Bind(() => _model.Password).Id("v4-password").Type(InputType.Password).Class(Ui.Input)
+                Label.For("v4-password").Class($"{Tw.Label} text-sm mb-1")["Password"],
+                Input.Bind(() => _model.Password).Id("v4-password").Type(InputType.Password).Class(Tw.Input)
             ],
             Div[
-                Label.For("v4-confirm").Class($"{Ui.Label} text-sm mb-1")["Confirm"],
-                Input.Bind(() => _model.Confirm).Id("v4-confirm").Type(InputType.Password).Class(Ui.Input)
+                Label.For("v4-confirm").Class($"{Tw.Label} text-sm mb-1")["Confirm"],
+                Input.Bind(() => _model.Confirm).Id("v4-confirm").Type(InputType.Password).Class(Tw.Input)
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Check2Circle).Class("me-1"), "Sign in"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Sign in"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

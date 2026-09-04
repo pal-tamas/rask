@@ -22,8 +22,8 @@ public sealed partial class PriceTickerIsland : BlazorComponent<PriceTicker>;
 public sealed partial class BlazorIslandDemo : Component
 {
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 PriceTickerIsland.Symbol("RASK").Price(12.50m)
             ]
         ];

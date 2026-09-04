@@ -26,7 +26,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK071](diagnostics.md#rask071)) |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
 | `<EditForm>` + `InputText`/`InputNumber` | `Form.Model(model).OnValidSubmit(…)` + `Input.Bind(() => model.X)` |
-| `<DataAnnotationsValidator>` | drop `DataAnnotationsValidator` inside the `Form` |
+| `<DataAnnotationsValidator>` | nothing — a `Form` validates its model itself |
 | `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize` — its `.Authorized(user => …)` slot receives the `ClaimsPrincipal`, like `@context.User` |
 | `AuthenticationStateProvider` | inject `IUserProvider` and read `.Current` |
 | `[Inject] T Svc { get; set; }` | constructor injection — `partial class Page(T svc) : Component` |
@@ -149,7 +149,7 @@ NavLink.Href(Routes.UserPage(42))["View user"]
 ```csharp
 // Rask
 Form.Model(_model).OnValidSubmit(m => Save(m))[
-    DataAnnotationsValidator,                  // from Rask.Validation.DataAnnotations
+    // no validator declared -- the attributes on _model are enforced by the Form itself
     Input.Bind(() => _model.Name),              // input type inferred from the CLR type
     ValidationMessage.For(() => _model.Name).Template(errs => Div.Class("field-error")[errs[0]]),
     Button.Type("submit")["Sign up"]

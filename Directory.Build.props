@@ -106,6 +106,20 @@
     classes they define.
   -->
   <PropertyGroup>
+    <!--
+      Every condition below is keyed off THIS rather than $(MSBuildProjectName), so that a project's
+      prerender companion is treated as the project it compiles.
+
+      <RaskPrerender> generates `obj/rask-prerender/{App}.Prerender.csproj` out of the app's own sources
+      and builds it under this same Directory.Build.props. Its name starts with `Rask.Example.`, so it
+      picked up the in-repo consumer usings — but the by-name EXCLUSIONS below spared `Rask.Example.Site`
+      and not `Rask.Example.Site.Prerender`, so the companion was handed `global using
+      Rask.Validation.*;` for packages the app deliberately does not reference, and failed to compile
+      with CS0234 before rendering a single page. The companion must see exactly what the app sees.
+    -->
+    <_RaskUsingsName>$(MSBuildProjectName)</_RaskUsingsName>
+    <_RaskUsingsName Condition=" $(MSBuildProjectName.EndsWith('.Prerender')) ">$(MSBuildProjectName.Substring(0, $([MSBuild]::Subtract($(MSBuildProjectName.Length), 10))))</_RaskUsingsName>
+
     <_RaskInRepoImplicitUsings>false</_RaskInRepoImplicitUsings>
     <!-- Rask.Example.Playground.Tests and Rask.Example.Site.Tests opt OUT of the consumer implicit-usings:
          unlike the other example test projects they reference neither the Wasm/Server hosts nor
@@ -122,11 +136,13 @@
          Rask.Cqrs and Rask.Meta.Hosting and nothing else, so the injected Rask.Core / Rask.Html /
          validation usings name assemblies it does not have — the front end is TypeScript, which is
          the entire point of the lane. -->
-    <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.Meta.')) AND '$(MSBuildProjectName)' != 'Rask.Example.Playground.Tests' AND '$(MSBuildProjectName)' != 'Rask.Example.Site.Tests' AND '$(MSBuildProjectName)' != 'Rask.Example.Razor' ">true</_RaskInRepoImplicitUsings>
+    <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Example.')) AND !$(_RaskUsingsName.StartsWith('Rask.Example.Meta.')) AND '$(_RaskUsingsName)' != 'Rask.Example.Playground.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Site.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Razor' ">true</_RaskInRepoImplicitUsings>
     <!--
-      The validation packages inject their own global usings (Rask.Validation.* below). Downstream
-      consumers only get them by referencing the validation NuGet package; in-repo we'd otherwise force
-      every Rask.Example.* project to reference the validation libs just to satisfy the generated usings.
+      FluentValidation injects its own global using (Rask.Validation.FluentValidation below). Downstream
+      consumers only get it by referencing that NuGet package; in-repo we'd otherwise force every
+      Rask.Example.* project to reference the validation lib just to satisfy the generated using.
+      DataAnnotations is NOT in here any more — it moved into Rask.Core, which every host already
+      carries, so there is no package to reference and no using to inject.
       The auth samples (Rask.Example.Auth*) don't use validation, and the EF Core sample
       (Rask.Example.EfCore) uses Rask.Core's inline Validate: lambdas only — so skip those usings for them.
       The marketing landing site (Rask.Example.Site) is a standalone WASM app (its own hand-styled design,
@@ -135,18 +151,18 @@
       next to (Rask.Example.Wasm) does want these usings.
     -->
     <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
-    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' OR '$(MSBuildProjectName)' == 'Rask.Example.Wasm.Jobs' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
+    <_RaskExampleValidationUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Example.Auth')) OR $(_RaskUsingsName.StartsWith('Rask.Example.EfCore')) OR $(_RaskUsingsName.StartsWith('Rask.Example.Sqlite')) OR '$(_RaskUsingsName)' == 'Rask.Example.Playground' OR '$(_RaskUsingsName)' == 'Rask.Example.Site' OR '$(_RaskUsingsName)' == 'Rask.Example.Wasm.Jobs' OR $(_RaskUsingsName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
 <!-- The CQRS demo slice lives in the showcase Shared library; the Shop sample (the committed output
          of `rask new`, whose every generated feature handler dispatches through the mediator) is the
          other in-repo example that references Rask.Cqrs. Scope the global `using Rask.Cqrs;` to those. -->
     <_RaskExampleCqrsUsings>false</_RaskExampleCqrsUsings>
-    <_RaskExampleCqrsUsings Condition=" '$(MSBuildProjectName)' == 'Rask.Example.Shared' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleCqrsUsings>
+    <_RaskExampleCqrsUsings Condition=" '$(_RaskUsingsName)' == 'Rask.Example.Shared' OR $(_RaskUsingsName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleCqrsUsings>
     <!--
       The Shop sample is the only in-repo example that references the DB-backed pillars. A NuGet consumer
       gets each package's global usings from its build/*.props automatically; an in-repo ProjectReference
       does not, so import them explicitly for that project (and its test project).
     -->
-    <_RaskExampleOpfUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleOpfUsings>
+    <_RaskExampleOpfUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleOpfUsings>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props"
@@ -168,8 +184,6 @@
        package.json, so this is inert in every project that has no front-end file. -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props') "/>
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props"
-          Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props"

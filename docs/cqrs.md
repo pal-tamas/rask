@@ -91,9 +91,11 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
 
 ## Pipeline behaviors (decorators)
 
-Behaviors are the extension point for cross-cutting concerns — logging, validation, transactions,
-caching. `Rask.Cqrs` ships **none**: you implement `IPipelineBehavior<TRequest, TResult>` and register
-it. Behaviors run as an onion in **registration order** (first-registered is outermost); call `next`
+Behaviors are the extension point for cross-cutting concerns — logging, transactions, caching. You
+implement `IPipelineBehavior<TRequest, TResult>` and register it.
+
+`Rask.Cqrs` ships **one**: a `ValidationBehavior` registered outermost, which rejects an invalid
+request before its handler runs. See [validation.md](validation.md#requests). Behaviors run as an onion in **registration order** (first-registered is outermost); call `next`
 to continue or return without it to short-circuit. A void `ICommand` flows through as `TResult = Unit`,
 so one behavior shape covers everything.
 
@@ -162,10 +164,10 @@ absent from the server by design, so a file using it has to be somewhere the ser
 Keep your handlers under `Server/`, which the browser half does not compile. That is what keeps a
 connection string, a table name or a pricing rule out of a download anybody can read.
 
-> **Without `--auth`, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default is
-> on, and that is right for an app that has a sign-in — but an app with no authentication to require
-> would answer 401 to every message, and the failure reads as broken transport rather than as the secure
-> default working. Add a cookie or JWT scheme and delete the argument.
+> **Without a database, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default
+> is on, and that is right for an app with accounts — but an app with no database has none to require,
+> so it would answer 401 to every message, and the failure reads as broken transport rather than as the
+> secure default working. Add `--data` and delete the argument.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a

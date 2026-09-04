@@ -186,19 +186,40 @@
   -->
   <Target Name="_RaskRewriteBaseHref"
           AfterTargets="Publish"
-          Condition=" '$(RaskWasm)' == 'true' AND '$(RaskPathBase)' != '' AND '$(RaskPathBase)' != '/' AND Exists('$(PublishDir)wwwroot\index.html') ">
+          Condition=" '$(RaskWasm)' == 'true' AND '$(RaskPathBase)' != '' AND '$(RaskPathBase)' != '/' ">
     <PropertyGroup>
       <_RaskNormalizedBase>$(RaskPathBase.TrimEnd('/'))</_RaskNormalizedBase>
       <_RaskNormalizedBase Condition=" !$(_RaskNormalizedBase.StartsWith('/')) ">/$(_RaskNormalizedBase)</_RaskNormalizedBase>
-      <_RaskIndexHtml>$([System.IO.File]::ReadAllText('$(PublishDir)wwwroot\index.html'))</_RaskIndexHtml>
-      <_RaskIndexHtml>$(_RaskIndexHtml.Replace('&lt;base href=&quot;/&quot;/&gt;', '&lt;base href=&quot;$(_RaskNormalizedBase)/&quot;/&gt;'))</_RaskIndexHtml>
     </PropertyGroup>
-    <WriteLinesToFile File="$(PublishDir)wwwroot\index.html"
-                      Lines="$(_RaskIndexHtml)"
+
+    <!--
+      EVERY published page, not just the root one. Prerendering writes a directory per route
+      (about/index.html, docs/intro/index.html), and each is a whole document carrying its own
+      <base href="/"> from the shell it was spliced into. Rewriting only the root left every
+      prerendered sub-page resolving main.js against its own directory — /about/main.js — which is
+      the exact failure the <base href> exists to prevent, on the pages a crawler is most likely to
+      land on first. The item is globbed inside the target because prerendering runs earlier in this
+      same AfterTargets="Publish" chain, so these files do not exist at evaluation time.
+
+      The base is ABSOLUTE, so one value is correct at every depth.
+    -->
+    <ItemGroup>
+      <_RaskPublishedPage Include="$(PublishDir)wwwroot\**\index.html"/>
+    </ItemGroup>
+
+    <!--
+      WriteLinesToFile, not File::WriteAllText: MSBuild's property-function whitelist has no writer.
+      The read is escaped by MSBuild on the way into the property, so a document's semicolons do not
+      split it into separate lines and its percent-escapes (a data: URI's %3C, say) survive verbatim.
+    -->
+    <WriteLinesToFile File="%(_RaskPublishedPage.FullPath)"
+                      Lines="$([System.IO.File]::ReadAllText('%(_RaskPublishedPage.FullPath)').Replace('&lt;base href=&quot;/&quot;/&gt;', '&lt;base href=&quot;$(_RaskNormalizedBase)/&quot;/&gt;'))"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true"/>
+
     <Message Importance="High"
-             Text="Rask: rewrote &lt;base href&gt; to &quot;$(_RaskNormalizedBase)/&quot; in $(PublishDir)wwwroot/index.html"/>
+             Condition=" '@(_RaskPublishedPage)' != '' "
+             Text="Rask: rewrote &lt;base href&gt; to &quot;$(_RaskNormalizedBase)/&quot; in @(_RaskPublishedPage->Count()) published page(s)"/>
   </Target>
 
   <!--

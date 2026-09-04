@@ -23,22 +23,22 @@ public sealed partial class NestedListIndexerDemo : Component
         {
             var i = idx; // Per-iteration capture — without this every lambda closes over Skus.Count.
             rows.Add(Tr.Key(_model.Skus[i].Id)[
-                Td.Class("text-slate-500 dark:text-slate-400 text-sm")[$"#{i + 1}"],
+                Td.Class("text-ui-muted text-sm")[$"#{i + 1}"],
                 Td[
-                    Input.Bind(() => _model.Skus[i].Code).Class(Ui.Input),
+                    Input.Bind(() => _model.Skus[i].Code).Class(Tw.Input),
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Code)
                 ],
                 Td.Style("width: 7rem;")[
-                    Input.Bind(() => _model.Skus[i].Price).Class(Ui.Input),
+                    Input.Bind(() => _model.Skus[i].Price).Class(Tw.Input),
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
-                    Button.Class($"{Ui.BtnOutlineSecondary} me-1").Type("button")
+                    Button.Class($"{Tw.BtnOutlineSecondary} me-1").Type("button")
                         .Disabled(i == 0)
                         .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
-                        Icon.Name(IconName.ArrowUp)],
-                    Button.Type("button").Class(Ui.BtnOutlineDanger)
-                        .OnClick(() => _model.Skus.RemoveAt(i))[Icon.Name(IconName.XLg)]
+                        UiIcon.Name(UiIconName.ArrowUp)],
+                    Button.Type("button").Class(Tw.BtnOutlineDanger)
+                        .OnClick(() => _model.Skus.RemoveAt(i))[UiIcon.Name(UiIconName.Close)]
                 ]
             ]);
         }
@@ -47,23 +47,22 @@ public sealed partial class NestedListIndexerDemo : Component
         [
             Form.Model(_model).OnValidSubmit(m => _submission =
                     $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}").Class("flex flex-col gap-3")[
-                DataAnnotationsValidator,
-                Table.Class($"{Ui.Table} text-sm align-middle mb-0")[
+                Table.Class($"{Tw.Table} text-sm align-middle mb-0")[
                     Thead[Tr[Th.Style("width: 3rem;")["#"], Th["SKU"], Th["Price"], Th]],
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("nf-idx-add")
                         .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
-                        Icon.Name(IconName.PlusLg).Class("me-1"), "Add row"],
-                    Button.Class(Ui.BtnPrimary).Type("submit").Id("nf-idx-submit")[
-                        Icon.Name(IconName.Check2Circle).Class("me-1"), "Submit"]
+                        UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add row"],
+                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-idx-submit")[
+                        UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
+                : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
         ];
     }
 }

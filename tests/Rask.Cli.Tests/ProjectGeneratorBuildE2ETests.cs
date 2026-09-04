@@ -14,23 +14,25 @@ namespace Rask.Cli.Tests;
 /// </summary>
 public sealed class ProjectGeneratorBuildE2ETests
 {
-    // docker doesn't affect the build (just adds Dockerfile/.dockerignore), so the 3 build-relevant flags
-    // give 2³ = 8 combinations — every scenario, per the "test every scenario" directive.
+    // docker doesn't affect the build (just adds Dockerfile/.dockerignore), so the 2 build-relevant flags
+    // give 2² = 4 combinations — every scenario, per the "test every scenario" directive. Auth used to be
+    // a third: it is not a flag any more, and a parameter that no longer changes the output is worse than
+    // no parameter, because it doubles the runs while pretending to cover something.
     public static IEnumerable<object[]> BuildAffectingCombinations()
     {
-        for (var mask = 0; mask < 8; mask++)
+        for (var mask = 0; mask < 4; mask++)
         {
-            yield return [(mask & 1) != 0, (mask & 2) != 0, (mask & 4) != 0];
+            yield return [(mask & 1) != 0, (mask & 2) != 0];
         }
     }
 
     [SkippableTheory]
     [MemberData(nameof(BuildAffectingCombinations))]
-    public async Task Generated_server_project_builds(bool auth, bool pwa, bool cqrs)
+    public async Task Generated_server_project_builds(bool pwa, bool cqrs)
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
-        var name = $"E2E{(auth ? "A" : "")}{(pwa ? "P" : "")}{(cqrs ? "Q" : "")}";
+        var name = $"E2E{(pwa ? "P" : "")}{(cqrs ? "Q" : "")}";
         if (name == "E2E")
         {
             name = "E2ENone";
@@ -43,7 +45,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateServer(
-                projectDir, name, new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs }, version);
+                projectDir, name, new ServerBatteries { Pwa = pwa, Cqrs = cqrs }, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -55,7 +57,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"[auth={auth},pwa={pwa},cqrs={cqrs}] generated project failed to build.{CliBuildE2E.Diagnostics(output)}");
+            Assert.True(exit == 0, $"[pwa={pwa},cqrs={cqrs}] generated project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {
@@ -70,14 +72,12 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// package that supplies <c>BsCard</c> and <c>BootstrapStyles</c>, on both the welcome page and the
     /// error page, and the reference has to actually be gone rather than merely unused.
     /// </summary>
-    [SkippableTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Generated_project_without_bootstrap_builds(bool auth)
+    [SkippableFact]
+    public async Task Generated_project_without_bootstrap_builds()
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
-        var name = auth ? "E2ENoBsAuth" : "E2ENoBs";
+        const string name = "E2ENoBs";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
         var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
@@ -85,7 +85,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateServer(
-                projectDir, name, new ServerBatteries { Auth = auth }, version);
+                projectDir, name, new ServerBatteries(), version);
 
             Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
 
@@ -101,7 +101,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"[auth={auth}] --no-bootstrap project failed to build.{CliBuildE2E.Diagnostics(output)}");
+            Assert.True(exit == 0, $"--no-bootstrap project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {
@@ -113,16 +113,14 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// <c>--data</c> pre-wires the AppDbContext + AddRaskData + a UseRaskSqlite DbContext factory, and pulls
     /// Rask.Data / Rask.SQLite.EntityFrameworkCore into the csproj. Only a real compile proves the generated
     /// Program.cs (the config-driven connection string, the ISaveChangesInterceptor injection) and the
-    /// AppDbContext resolve — both alone and composed with <c>--auth</c> (which shares the same Program.cs).
+    /// AppDbContext resolve — including the account tables the auth battery maps onto it.
     /// </summary>
-    [SkippableTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Generated_data_server_project_builds(bool auth)
+    [SkippableFact]
+    public async Task Generated_data_server_project_builds()
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
-        var name = $"DE2E{(auth ? "A" : "")}SQ";
+        const string name = "DE2ESQ";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
         var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
@@ -130,7 +128,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateServer(
-                projectDir, name, new ServerBatteries { Auth = auth, Data = true }, version);
+                projectDir, name, new ServerBatteries { Data = true }, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -142,7 +140,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"[data,auth={auth}] generated project failed to build.{CliBuildE2E.Diagnostics(output)}");
+            Assert.True(exit == 0, $"[data] generated project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {
@@ -190,7 +188,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             Assert.True(batteries.Localization, "the localized wasm shape was not constructed");
 
             var result = ProjectGenerator.GenerateWasm(
-                projectDir, name, batteries.Auth, batteries.Pwa, batteries.Docker, version, batteries);
+                projectDir, name, batteries.Pwa, batteries.Docker, version, batteries);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -214,26 +212,17 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    // wasm build-affecting flags are auth/pwa (docker only adds files) → 2² = 4 combinations.
-    public static IEnumerable<object[]> WasmBuildAffectingCombinations()
-    {
-        for (var mask = 0; mask < 4; mask++)
-        {
-            yield return [(mask & 1) != 0, (mask & 2) != 0];
-        }
-    }
-
+    // pwa is the only build-affecting flag left for wasm (docker only adds files). Auth used to be the
+    // other one; a standalone browser app has no endpoints of its own to authenticate against, so it
+    // pairs with a Rask server and calls AddRaskAuthClient() rather than scaffolding a token store.
     [SkippableTheory]
-    [MemberData(nameof(WasmBuildAffectingCombinations))]
-    public async Task Generated_wasm_project_builds(bool auth, bool pwa)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Generated_wasm_project_builds(bool pwa)
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
-        var name = $"WE2E{(auth ? "A" : "")}{(pwa ? "P" : "")}";
-        if (name == "WE2E")
-        {
-            name = "WE2ENone";
-        }
+        var name = pwa ? "WE2EP" : "WE2ENone";
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -241,7 +230,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var result = ProjectGenerator.GenerateWasm(projectDir, name, auth, pwa, docker: false, version);
+            var result = ProjectGenerator.GenerateWasm(projectDir, name, pwa, docker: false, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -253,7 +242,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"[auth={auth},pwa={pwa}] generated wasm project failed to build.{CliBuildE2E.Diagnostics(output)}");
+            Assert.True(exit == 0, $"[pwa={pwa}] generated wasm project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {
@@ -444,7 +433,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         {
             var result = ProjectGenerator.GenerateServer(
                 projectDir, name,
-                NewCommand.ToBatteries(TemplateCatalog.Default, [], auth: true), version);
+                NewCommand.ToBatteries(TemplateCatalog.Default, []), version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -520,7 +509,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = wasm
-                ? ProjectGenerator.GenerateWasm(projectDir, name, auth: false, pwa: false, docker: false, version)
+                ? ProjectGenerator.GenerateWasm(projectDir, name, pwa: false, docker: false, version)
                 : ProjectGenerator.GenerateServer(projectDir, name, new ServerBatteries(), version);
 
             var fs = new SystemFileSystem();
@@ -613,7 +602,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = wasm
-                ? ProjectGenerator.GenerateWasm(projectDir, name, auth: false, pwa: false, docker: false, version)
+                ? ProjectGenerator.GenerateWasm(projectDir, name, pwa: false, docker: false, version)
                 : ProjectGenerator.GenerateServer(projectDir, name, new ServerBatteries(), version);
 
             var fs = new SystemFileSystem();
@@ -703,7 +692,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             var batteries = new ServerBatteries();
             var result = wasm
                 ? ProjectGenerator.GenerateWasm(
-                    projectDir, name, auth: false, pwa: false, docker: false, version, batteries)
+                    projectDir, name, pwa: false, docker: false, version, batteries)
                 : ProjectGenerator.GenerateServer(projectDir, name, batteries, version);
 
             var fs = new SystemFileSystem();

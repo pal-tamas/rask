@@ -32,10 +32,27 @@ public sealed class SiteExampleTests
         {
             await page.GotoAsync("/index.html");
 
-            // The hero is rendered by the WASM app and morphs onto the shell — wait for it to boot.
-            await Expect(page.Locator("h1")).ToContainTextAsync("C#",
-                new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+            // PHASE ONE — the prerendered document, before the bundle has booted.
+            //
+            // The headline is in the HTML the server sent. It is asserted with no timeout extension
+            // because waiting would defeat the point: if this needs to wait, it was not prerendered.
             await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
+            await Expect(page.Locator("h1")).ToContainTextAsync("C#");
+
+            // PHASE TWO — the bundle takes the page over.
+            //
+            // This wait is load-bearing, and it is new. It used to be enough to wait for the <h1>,
+            // because the <h1> did not exist until the app had rendered it; prerendering made that
+            // signal fire immediately and the clicks below started racing the runtime — the first one
+            // landed on markup whose handler was not attached yet and was silently lost, so a test that
+            // clicked three times saw two.
+            //
+            // That is a real property of a prerendered page, not a test artifact: it looks interactive
+            // before it is. The shell ships <body data-rask-root> with no value and the runtime stamps
+            // the session id onto it when it mounts, so this is the framework's own "I have taken over"
+            // signal rather than a sleep.
+            await Expect(page.Locator("body[data-rask-root='wasm']"))
+                .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
 
             // The live counter is a real stateful Rask component: each click ships a diff and re-renders.
             var count = page.Locator(".count");
@@ -65,13 +82,23 @@ public sealed class SiteExampleTests
             await Expect(page.Locator(".install-foot").First)
                 .ToContainTextAsync("irm https://rask.sh/rask.ps1 | iex");
 
-            // The page opens on the chain animation, before it says anything about the framework. The
-            // adjacent-sibling selector is the assertion: it only matches if the animation's box comes
-            // immediately before the grid that holds the headline, so a future edit cannot quietly demote
-            // it below the fold. Rendered inline (not through <img>) so it inherits the theme tokens —
-            // which is also why the <svg> element itself is reachable from the DOM at all.
-            await Expect(page.Locator(".hero-anim svg")).ToHaveCountAsync(1);
-            await Expect(page.Locator(".hero-anim + .hero-grid h1")).ToHaveCountAsync(1);
+            // The hero leads with the headline and the component's own source, where a 500-line generated
+            // SVG animation used to be. One <h1>, inside the hero grid.
+            await Expect(page.Locator(".hero-grid h1")).ToHaveCountAsync(1);
+
+            // Every feature card is the way into the guide about it. Asserted as a shape rather than by
+            // name — the exact set of cards is the page's editorial business — but a page that lost the
+            // links entirely, or grew one pointing somewhere other than the docs app, fails here.
+            // GuideLinkTests separately asserts each slug resolves to a doc that exists.
+            var guideLinks = page.Locator("a.guide-link");
+            Assert.True(await guideLinks.CountAsync() >= 20, "the feature cards no longer link into the docs");
+            await Expect(guideLinks.First).ToHaveAttributeAsync("target", "_blank");
+
+            foreach (var href in await guideLinks.EvaluateAllAsync<string[]>(
+                         "els => els.map(e => e.getAttribute('href'))"))
+            {
+                Assert.StartsWith("docs/guides/", href, StringComparison.Ordinal);
+            }
 
             // The front door links into the nested docs + playground sub-apps, and names them for what
             // they are — the site is three apps, and calling /docs/ "the live demo" left the docs unnamed.

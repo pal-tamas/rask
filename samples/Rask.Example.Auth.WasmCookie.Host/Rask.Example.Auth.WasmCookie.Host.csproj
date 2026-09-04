@@ -23,6 +23,8 @@
     <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
     <!-- The endpoint half. Its counterpart, Rask.Cqrs.Client, is referenced by the browser project
          only — the process that answers the endpoints has no business calling them. -->
+    <ProjectReference Include="..\..\src\Rask.Auth\Rask.Auth.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Server\Rask.Cqrs.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"

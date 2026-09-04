@@ -19,24 +19,24 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
     private bool Listening => _session is not null;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Ui.BtnPrimary)
+                    Button.Type("button").Class(Tw.BtnPrimary)
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
                         .OnClickAsync(Start)["Start listening"],
-                    Button.Type("button").Class(Ui.BtnOutlineDanger)
+                    Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
                         .OnClickAsync(Stop)["Stop"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")[
+                Div.Class("text-sm text-ui-muted mb-1")[
                     "Transcript: ",
                     Code.Id("speech-recognize-transcript")[_transcript.Length == 0 ? "(none)" : _transcript],
-                    _interim.Length == 0 ? (Component?)null : Span.Class("text-slate-500 dark:text-slate-400 italic")[" ", _interim]
+                    _interim.Length == 0 ? (Component?)null : Span.Class("text-ui-muted italic")[" ", _interim]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("speech-recognize-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-recognize-status")[_status]]
             ]
         ];
 

@@ -74,7 +74,6 @@ public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup
         services.AddSingleton(TestRoute.NavigatorFor(route));
         services.AddSingleton<IAuthSignIn, StubAuth>();
         services.AddSingleton<IUserProvider>(new StubUser("ada", "admin"));
-        services.AddSingleton<Rask.Example.Shop.Features.Auth.ICredentialStore, StubCredentials>();
 
         _provider = services.BuildServiceProvider();
 
@@ -115,7 +114,6 @@ public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup
         Append(actual, "ErrorPage", Render(() => ErrorPage));
         Append(actual, "OrderConfirmation",
             Render(() => OrderConfirmation.Total(19.99m).Customer("Ada Lovelace")));
-        Append(actual, "LoginPage", Render(() => LoginPage));
         Append(actual, "MembersPage", Render(() => MembersPage));
         Append(actual, "CreateProduct", Render(() => CreateProduct));
         Append(actual, "CreateOrder", Render(() => CreateOrder));
@@ -240,10 +238,5 @@ public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup
             add { }
             remove { }
         }
-    }
-
-    private sealed class StubCredentials : Rask.Example.Shop.Features.Auth.ICredentialStore
-    {
-        public IReadOnlyList<Claim>? Validate(string username, string password) => null;
     }
 }

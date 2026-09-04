@@ -103,9 +103,8 @@ public sealed class PackagePinFamilyTests
     /// <remarks>
     ///     These are exactly the packages <c>.github/dependabot.yml</c> puts in its
     ///     <c>microsoft-extensions</c> group, and grouping them is a statement that they move together. The
-    ///     group makes Dependabot open ONE PR; it does not make a hand-edit keep them aligned, and
-    ///     <c>ProjectGenerator.Wasm.AspNetCoreFrameworkVersion</c> copies one of these versions into
-    ///     scaffolded projects.
+    ///     group makes Dependabot open ONE PR; it does not make a hand-edit keep them aligned, and a
+    ///     scaffolded project restores against whatever these resolve to.
     /// </remarks>
     [Fact]
     public void The_dotnet_platform_stack_is_on_one_version()

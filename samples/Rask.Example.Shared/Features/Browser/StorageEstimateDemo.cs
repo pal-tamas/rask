@@ -9,14 +9,14 @@ public sealed partial class StorageEstimateDemo(IStorageEstimator storage) : Com
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
-                Button.Class($"{Ui.BtnOutlinePrimary} mb-2").Type("button")
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
+                Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("storage-est-read")
                     .OnClickAsync(Read)[
                     "Estimate storage"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]
             ]
         ];
 

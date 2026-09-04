@@ -15,10 +15,11 @@
         <Project Path="samples/Rask.Example.Playground/Rask.Example.Playground.csproj"/>
         <Project Path="samples/Rask.Example.Razor/Rask.Example.Razor.csproj"/>
         <Project Path="samples/Rask.Example.Meta.Nuxt/Rask.Example.Meta.Nuxt.csproj"/>
-    <Project Path="samples/Rask.Example.Meta.TanStack/Rask.Example.Meta.TanStack.csproj"/>
-    <Project Path="samples/Rask.Example.Meta.SolidStart/Rask.Example.Meta.SolidStart.csproj"/>
-    <Project Path="samples/Rask.Example.Meta.SvelteKit/Rask.Example.Meta.SvelteKit.csproj"/>
-    <Project Path="samples/Rask.Example.Meta.Next/Rask.Example.Meta.Next.csproj"/>
+        <Project Path="samples/Rask.Example.Meta.Analog/Rask.Example.Meta.Analog.csproj"/>
+        <Project Path="samples/Rask.Example.Meta.TanStack/Rask.Example.Meta.TanStack.csproj"/>
+        <Project Path="samples/Rask.Example.Meta.SolidStart/Rask.Example.Meta.SolidStart.csproj"/>
+        <Project Path="samples/Rask.Example.Meta.SvelteKit/Rask.Example.Meta.SvelteKit.csproj"/>
+        <Project Path="samples/Rask.Example.Meta.Next/Rask.Example.Meta.Next.csproj"/>
     <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj"/>
         <Project Path="samples/Rask.Example.Shop/Rask.Example.Shop.csproj"/>
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
@@ -29,6 +30,8 @@
         <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj"/>
     </Folder>
     <Folder Name="/src/">
+        <Project Path="src/Rask.Auth.Client/Rask.Auth.Client.csproj"/>
+        <Project Path="src/Rask.Auth/Rask.Auth.csproj"/>
         <Project Path="src/Rask.Cache/Rask.Cache.csproj"/>
         <Project Path="src/Rask.Cli/Rask.Cli.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
@@ -39,6 +42,7 @@
         <Project Path="src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj"/>
         <Project Path="src/Rask.Cqrs.Server/Rask.Cqrs.Server.csproj"/>
         <Project Path="src/Rask.Dashboard/Rask.Dashboard.csproj"/>
+        <Project Path="src/Rask.Ui/Rask.Ui.csproj"/>
         <Project Path="src/Rask.Data/Rask.Data.csproj"/>
         <Project Path="src/Rask.Jobs/Rask.Jobs.csproj"/>
         <Project Path="src/Rask.Logging/Rask.Logging.csproj"/>
@@ -65,7 +69,6 @@
         <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
         <Project Path="src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj"/>
         <Project Path="src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj"/>
-        <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj"/>
         <Project Path="src/Rask.Testing/Rask.Testing.csproj"/>
         <Project Path="src/Rask.WebPush/Rask.WebPush.csproj"/>
@@ -75,6 +78,8 @@
         <Project Path="src/Rask.Wire/Rask.Wire.csproj"/>
     </Folder>
     <Folder Name="/tests/">
+        <Project Path="tests/Rask.Auth.Client.Tests/Rask.Auth.Client.Tests.csproj"/>
+        <Project Path="tests/Rask.Auth.Tests/Rask.Auth.Tests.csproj"/>
         <Project Path="tests/Rask.Api.Client.Tests/Rask.Api.Client.Tests.csproj"/>
         <Project Path="tests/Rask.Api.Generators.Tests/Rask.Api.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Api.Tests/Rask.Api.Tests.csproj"/>
@@ -88,6 +93,7 @@
         <Project Path="tests/Rask.Cqrs.Server.Tests/Rask.Cqrs.Server.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Transport.Tests/Rask.Cqrs.Transport.Tests.csproj"/>
         <Project Path="tests/Rask.Dashboard.Tests/Rask.Dashboard.Tests.csproj"/>
+        <Project Path="tests/Rask.Ui.Tests/Rask.Ui.Tests.csproj"/>
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj"/>
         <Project Path="tests/Rask.Html.Tests/Rask.Html.Tests.csproj"/>
         <Project Path="tests/Rask.Blazor.Library.Fixture/Rask.Blazor.Library.Fixture.csproj"/>
@@ -125,7 +131,7 @@
         <Project Path="tests/Rask.SQLite.Snapshots.Tests/Rask.SQLite.Snapshots.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Browser.Tests/Rask.SQLite.Browser.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
-        <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
+        <Project Path="tests/Rask.Validation.Tests/Rask.Validation.Tests.csproj"/>
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj"/>
         <Project Path="tests/Rask.Testing.Tests/Rask.Testing.Tests.csproj"/>
         <Project Path="tests/Rask.WebPush.Tests/Rask.WebPush.Tests.csproj"/>

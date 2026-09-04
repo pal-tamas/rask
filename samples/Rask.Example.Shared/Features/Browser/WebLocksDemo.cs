@@ -16,23 +16,23 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
     private IReadOnlyList<LockInfo> _snapshot = [];
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Ui.BtnPrimary).Id("locks-hold").OnClickAsync(Hold)[
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("locks-hold").OnClickAsync(Hold)[
                         "Hold exclusive for 2s"],
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("locks-try")
                         .OnClickAsync(TryHold)[
                         "Try (no wait)"],
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("locks-query")
                         .OnClickAsync(Query)[
                         "Query held locks"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Status: ", Code.Id("locks-status")[_status]],
+                Div.Class("text-sm text-ui-muted mb-1")["Status: ", Code.Id("locks-status")[_status]],
                 _snapshot.Count == 0
-                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("locks-snapshot")["(query to see held locks)"]
+                    ? Div.Class("text-sm text-ui-muted italic").Id("locks-snapshot")["(query to see held locks)"]
                     : Ul.Class("text-sm mb-0").Id("locks-snapshot")[
                         _snapshot.Select(l => Li.Key($"{l.Name}:{l.ClientId}:{l.Held}")[
                             $"{l.Name} — {l.Mode} — {(l.Held ? "held" : "pending")}"])

@@ -9,6 +9,24 @@ namespace Rask.Examples.E2E.Tests;
 [Collection(SqliteExampleCollection.Name)]
 public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFixture pw) : IAsyncLifetime
 {
+    /// <summary>
+    ///     Budget for the assertions that wait on real database work — the bulk imports and the writer
+    ///     bursts — rather than on a render.
+    /// </summary>
+    /// <remarks>
+    ///     Playwright's default is 5s, and on an idle machine these finish in 1–3s. Two seconds of
+    ///     headroom is not enough here: the machine-wide E2E lane serialises browser journeys but the
+    ///     unit suites and the CLI build gate are not in it, so a journey routinely runs while several
+    ///     other builds saturate the box. A 5s budget for work that takes two reports load as a product
+    ///     failure — and a suite that cries wolf under load is how a real regression gets waved through
+    ///     (#962).
+    ///     <para>
+    ///         Applied to these assertions only, deliberately. Raising the global default would slow
+    ///         every genuine failure in the suite to the pace of its slowest load-dependent one.
+    ///     </para>
+    /// </remarks>
+    private const float DatabaseWorkTimeout = 30_000;
+
     private IBrowserContext _ctx = default!;
     private IPage _page = default!;
 
@@ -45,8 +63,10 @@ public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFi
 
         // With WAL + busy_timeout every writer commits — the success alert reports 25 of 25.
         var result = _page.Locator("[role='status']");
-        await Assertions.Expect(result).ToBeVisibleAsync();
-        await Assertions.Expect(result).ToContainTextAsync("25 of 25 writers committed");
+        await Assertions.Expect(result).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = DatabaseWorkTimeout });
+        await Assertions.Expect(result).ToContainTextAsync("25 of 25 writers committed",
+            new LocatorAssertionsToContainTextOptions { Timeout = DatabaseWorkTimeout });
     }
 
     [Fact]
@@ -58,8 +78,10 @@ public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFi
 
         // The BEGIN IMMEDIATE + non-blocking fair-interval retry commits every writer — 25 of 25.
         var result = _page.Locator("[role='status']:has-text('IMMEDIATE')");
-        await Assertions.Expect(result).ToBeVisibleAsync();
-        await Assertions.Expect(result).ToContainTextAsync("25 of 25 IMMEDIATE writers committed");
+        await Assertions.Expect(result).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = DatabaseWorkTimeout });
+        await Assertions.Expect(result).ToContainTextAsync("25 of 25 IMMEDIATE writers committed",
+            new LocatorAssertionsToContainTextOptions { Timeout = DatabaseWorkTimeout });
     }
 
     [Fact]
@@ -70,14 +92,18 @@ public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFi
         var result = _page.Locator("#import-result");
 
         await _page.ClickAsync("#import-tracked");
-        await Assertions.Expect(result).ToContainTextAsync("Change tracker:");
-        await Assertions.Expect(result).ToContainTextAsync("Rows imported so far: 10,000.");
+        await Assertions.Expect(result).ToContainTextAsync("Change tracker:",
+            new LocatorAssertionsToContainTextOptions { Timeout = DatabaseWorkTimeout });
+        await Assertions.Expect(result).ToContainTextAsync("Rows imported so far: 10,000.",
+            new LocatorAssertionsToContainTextOptions { Timeout = DatabaseWorkTimeout });
 
         // The raw writer has to land the same rows: 10,000 more on top of the tracked import's 10,000.
         // Asserting the running total (rather than each import in isolation) is what would catch a fast
         // path that wrote nothing, or wrote a partial batch, while still reporting a time.
         await _page.ClickAsync("#import-raw");
-        await Assertions.Expect(result).ToContainTextAsync("SkipChangeTracking:");
-        await Assertions.Expect(result).ToContainTextAsync("Rows imported so far: 20,000.");
+        await Assertions.Expect(result).ToContainTextAsync("SkipChangeTracking:",
+            new LocatorAssertionsToContainTextOptions { Timeout = DatabaseWorkTimeout });
+        await Assertions.Expect(result).ToContainTextAsync("Rows imported so far: 20,000.",
+            new LocatorAssertionsToContainTextOptions { Timeout = DatabaseWorkTimeout });
     }
 }

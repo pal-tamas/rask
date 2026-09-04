@@ -139,12 +139,13 @@ public sealed class WasmRemoteDispatchTests
     }
 
     [Fact]
-    public void With_a_sign_in_the_secure_default_stands()
+    public void With_a_database_the_secure_default_stands()
     {
-        var program = Generate("wasm", "cqrs", "auth")["Program.cs"];
+        var program = Generate("wasm", "cqrs", "data")["Program.cs"];
 
-        // There is something to authenticate now, so the scaffold must not hand the app a loosening it
-        // never asked for — a message reachable by anyone is a decision worth making per app.
+        // A database means accounts, so there is something to authenticate — and the scaffold must not
+        // hand the app a loosening it never asked for. A message reachable by anyone is a decision worth
+        // making per app.
         Assert.Contains("builder.Services.AddRaskCqrsServer();", program, StringComparison.Ordinal);
         Assert.DoesNotContain("RequireAuthenticatedUser", program, StringComparison.Ordinal);
     }

@@ -27,6 +27,38 @@ public sealed class SpaTemplateTests
     private static bool Has(ScaffoldResult result, string endsWith) =>
         result.Files.Any(f => f.Path.Replace('\\', '/').EndsWith(endsWith, StringComparison.Ordinal));
 
+    /// <summary>
+    ///     The next-steps text names directories the scaffold actually produced.
+    /// </summary>
+    /// <remarks>
+    ///     Nothing else asserts on this string, which is how it went on pointing at
+    ///     <c>Shop.Client/src/rask/</c> after the layout moved to <c>Shop/Client/</c> — user-facing
+    ///     output naming a directory that does not exist, straight through a rename sweep and a full
+    ///     gate. It is the last thing `rask new` prints, so it is the first thing anyone follows.
+    /// </remarks>
+    [Fact]
+    public void Next_steps_name_directories_the_scaffold_produced()
+    {
+        var result = Generate();
+        var notes = result.Notes ?? string.Empty;
+
+        Assert.DoesNotContain("Shop.Client", notes, StringComparison.Ordinal);
+        Assert.DoesNotContain("Shop.Server", notes, StringComparison.Ordinal);
+
+        // And the directory it does name is one the scaffold writes into.
+        //
+        // The notes are written for someone standing OUTSIDE the new project, so they carry the project
+        // name; the scaffold's own paths are relative to the directory it creates and so do not. Those
+        // two stopped matching literally when the target directory became the project directory (it used
+        // to be nested, and `rask new Shop` wrote Shop/Shop) — so the check is that the notes name the
+        // project plus a directory the scaffold really writes, rather than that one string contains the
+        // other.
+        Assert.Contains("Shop/Client/src/rask/", notes, StringComparison.Ordinal);
+        Assert.True(
+            result.Files.Any(f => f.Path.Replace('\\', '/').Contains("/Client/", StringComparison.Ordinal)),
+            "the scaffold produced no Client/ files for the next steps to point at");
+    }
+
     /// <summary>Runs the package.json patch over a minimal stand-in for what the scaffolder writes.</summary>
     /// <remarks>
     ///     package.json is not ours — create-vite (or ng new) writes it and the generator patches it — so

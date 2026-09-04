@@ -71,8 +71,8 @@ public static partial class DemoRegistry
                 .Result(InlineValidateDemo),
             ["validation-fluent"] = () => CodeSample
                 .Files(["FluentValidationDemo.cs"])
-                .Notes("An AbstractValidator<TModel> wired to the form via the Rask.Validation.FluentValidation "
-                + "package — the RuleFor chains drive the same ValidationMessage/ValidationSummary UI.")
+                .Notes("An AbstractValidator<TModel>, discovered at compile time and run by the form with nothing "
+                + "declared — the RuleFor chains drive the same ValidationMessage/ValidationSummary UI.")
                 .Result(FluentValidationDemo),
 
             // --- Browser APIs guide: the typed wrappers over the platform, one live demo each (their
@@ -143,6 +143,7 @@ public static partial class DemoRegistry
             ["form-controls-input"] = () => CodeSample.Files(["FormControlsInputDemo.cs"]).Result(FormControlsInputDemo),
             ["form-controls-textarea"] = () => CodeSample.Files(["FormControlsTextareaDemo.cs"]).Result(FormControlsTextareaDemo),
             ["form-controls-select"] = () => CodeSample.Files(["FormControlsSelectDemo.cs"]).Result(FormControlsSelectDemo),
+            ["form-submit-state"] = () => CodeSample.Files(["FormSubmitStateDemo.cs"]).Result(FormSubmitStateDemo),
             ["floating-labels"] = () => CodeSample.Files(["FloatingLabelsDemo.cs"]).Result(FloatingLabelsDemo),
 
             // --- Forms guide: the remaining validation demos (their standalone /validation page folded in). ---

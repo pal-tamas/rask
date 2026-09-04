@@ -307,10 +307,16 @@ internal static partial class ProjectGenerator
         // not read one, so without this an import type-checks and then fails the build with "Failed to
         // resolve import" — the worst order in which to find out.
         //
-        // Skipped where the config already declares `resolve`: a second key is a duplicate rather than a
-        // merge, and those are exactly the two that already handle it — TanStack sets
-        // `resolve: { tsconfigPaths: true }` and Analog's platform plugin brings vite-tsconfig-paths.
-        // The trailing slash keeps the prefix match from also claiming `@raskfoo`.
+        // A config that already declares `resolve` is MERGED into rather than skipped. Skipping it was
+        // the bug: Analog's config declares `resolve: { mainFields: ['module'] }`, which matched, so the
+        // alias was dropped on the assumption that its platform plugin brought vite-tsconfig-paths. It
+        // does not — the bundle shipped a bare `@rask/client` and the page died on
+        // "Failed to resolve module specifier", with the build green and the tsconfig `paths` present
+        // and correct, because `paths` is a type-checking concept the bundler never reads.
+        //
+        // Still skipped where something genuinely handles it: an existing `alias`, or TanStack's
+        // `resolve: { tsconfigPaths: true }`. The trailing slash keeps the prefix match from also
+        // claiming `@raskfoo`.
         //
         // fileURLToPath rather than `import.meta.dirname`: the latter is untyped under a config whose
         // `types` are vite/client only, and svelte-check reports it as an error in a file the developer
@@ -346,9 +352,27 @@ internal static partial class ProjectGenerator
                 .Insert(brace + 1, Proxy);
         }
 
-        if (Regex.IsMatch(viteConfig, @"(^|[\s{,])resolve\s*:"))
+        // Already handled: an alias of its own, or TanStack's tsconfigPaths.
+        if (Regex.IsMatch(viteConfig, @"(^|[\s{,])alias\s*:")
+            || Regex.IsMatch(viteConfig, @"tsconfigPaths\s*:\s*true"))
         {
             return viteConfig.Insert(brace + 1, Proxy);
+        }
+
+        // A `resolve` block with no alias in it: merged into, because a second `resolve` key is a
+        // duplicate rather than a merge and TypeScript rejects it outright.
+        var resolve = Regex.Match(viteConfig, @"(^|[\s{,])resolve\s*:\s*\{");
+        if (resolve.Success)
+        {
+            const string MergedAlias = """
+
+            alias: { '@rask/': fileURLToPath(new URL('./src/rask/', import.meta.url)) },
+        """;
+
+            return viteConfig
+                .Insert(resolve.Index + resolve.Length, MergedAlias)
+                .Insert(brace + 1, Proxy)
+                .Insert(0, "import { fileURLToPath } from 'node:url'\n");
         }
 
         return viteConfig

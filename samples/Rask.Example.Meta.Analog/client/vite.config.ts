@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vite';
 import analog from '@analogjs/platform';
@@ -19,6 +20,11 @@ export default defineConfig(({ mode }) => ({
   },
   resolve: {
     mainFields: ['module'],
+    // `@rask/*` for the BUNDLER. The tsconfig `paths` entry beside this covers the type-checker
+    // only - Vite never reads it - so without this the build stays green and the page dies on
+    // "Failed to resolve module specifier '@rask/client'". Analog's platform plugin does not
+    // supply it, which is what the browser journey found.
+    alias: { '@rask/': fileURLToPath(new URL('./src/rask/', import.meta.url)) },
   },
   plugins: [
     analog(),

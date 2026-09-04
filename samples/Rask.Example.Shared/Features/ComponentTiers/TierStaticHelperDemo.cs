@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 internal static partial class TierStaticHelper
 {
     public static Component Badge(string label) =>
-        Span.Class(Ui.BadgeSecondary)[label];
+        Span.Class(Tw.BadgeSecondary)[label];
 }
 
 // Call site: invoke it like any method — no generated factory, no reconciliation identity.

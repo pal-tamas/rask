@@ -81,12 +81,15 @@ dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (quer
 dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
 dotnet add package Rask.Query             # cache, dedup and invalidate dispatched queries per session
 dotnet add package Rask.Cqrs.Server       # host the endpoint those clients dispatch to
+dotnet add package Rask.Auth             # accounts: register, sign in, sign out, confirm, reset
+dotnet add package Rask.Auth.Client      # the same flows from a WebAssembly client
 dotnet add package Rask.Jobs              # durable background jobs
 dotnet add package Rask.Mail              # transactional email queue
 dotnet add package Rask.Cache             # read-through cache
 dotnet add package Rask.Outbox            # transactional outbox for domain events
 dotnet add package Rask.Logging           # durable log store (its own SQLite file)
 dotnet add package Rask.Dashboard         # the /_rask operator dashboard over every pillar
+dotnet add package Rask.Ui                # the component kit those surfaces are drawn with
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 ```
@@ -104,7 +107,7 @@ dotnet add package Rask.SQLite.Browser                # a persistent SQLite data
 **UI and testing:**
 
 ```bash
-dotnet add package Rask.Validation.DataAnnotations    # or Rask.Validation.FluentValidation
+dotnet add package Rask.Validation.FluentValidation   # AbstractValidator<T>; DataAnnotations is built in
 dotnet add package Rask.Testing                       # render + drive components in unit tests
 ```
 

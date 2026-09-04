@@ -7,7 +7,521 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A scaffolded Analog front end shipped a bare `@rask/client` and died in the browser.** The alias is
+  written into the app's own `tsconfig.json`, which is a *type-checking* concept — Vite never reads it
+  when bundling. `AddRaskViteConfig` was supposed to add the bundler half, but skipped it whenever the
+  config already declared a `resolve` block, on the stated grounds that the only two such frameworks
+  handled it themselves. Analog declares `resolve: { mainFields: ['module'] }` and its platform plugin
+  does **not** bring `vite-tsconfig-paths`, so the alias was dropped.
+
+  Every gate stayed green: the type-check passes because the tsconfig mapping is real, the build
+  succeeds, and the guard that pins `@rask/*` as mapped exactly once is looking at the tsconfig. What
+  failed was the page — `TypeError: Failed to resolve module specifier "@rask/client"`, a console error
+  behind a 200 with the markup intact and only the component missing.
+
+  An existing `resolve` block is now merged into rather than skipped, and the alias is still left alone
+  where something genuinely supplies it (an existing `alias`, or TanStack's `resolve: { tsconfigPaths:
+  true }`). The `Rask.Example.Meta.Analog` sample carries the same alias, since a vendored client is
+  never re-scaffolded. Its browser journey — the first one this sample has ever had — asserts the page
+  reports no console errors, because that is the only place this failure was visible.
+
+
+- **The landing page was still grey after the theme scope was added to its root component.** Setting
+  `data-rask-ui` in `App.Shell` is not enough for a prerendered WebAssembly app: the publish splices the
+  render into the SDK's boot shell — that is what carries the import map and the boot script — and the
+  shell's own `<html>` is what survives. An attribute that exists only in managed code never reaches the
+  published page.
+
+  The site's boot shell carries it now, which is where a boot-time attribute belongs. `PrerenderShell`
+  also merges the rendered document's `<html>` attributes onto the shell's rather than discarding them,
+  so a `Shell` override stops being silently lossy for every prerendered app; the shell wins wherever
+  both name the same attribute, because its `lang` and any sub-path rewrite were computed for that
+  publish.
+
+
+- **The landing site shipped to rask.sh with no colour at all.** `Rask.Example.Site` drew with the kit
+  but was wired for neither half of it, and both failures are silent in the same way: the build stays
+  green, the class names in the markup stay correct, and the page arrives unstyled.
+
+  **The theme scope was never turned on.** The kit confines daisyUI's theme to `data-rask-ui` so that
+  referencing the package cannot repaint an app that only wanted a button, and every `--color-ui-*`
+  token is an alias onto `--color-base-*`, which exists only inside that scope. The site's root
+  component had no `Shell` override, so the attribute reached no element and every colour resolved to
+  nothing. The served page carried `data-rask-ui` only inside CSS selectors, never as an attribute.
+
+  **The palette was never copied.** Tailwind emits a utility only where it can see its token, and a
+  `@theme` reached through an `@import` after the Tailwind entry points is not read as theme. The site
+  declared 2 of the kit's 13 tokens, so its stylesheet contained none of `bg-ui-bg`, `text-ui-ink` or
+  `border-ui-line` while its markup used all three — 17,012 bytes of sheet with the layout utilities
+  present and the palette absent.
+
+  Both are fixed, and `UiKitWiringTests` now holds **every** app that references `Rask.Ui` to both rules
+  rather than only the showcase, which is why the second consumer of the kit reproduced a bug the first
+  had already solved. Checked by putting each half of the bug back and watching the guard name the site.
+
+
+- **The SQLite journey's database assertions reported machine load as a product failure.** The bulk
+  imports and the concurrent-writer bursts waited on Playwright's default 5s budget for work that
+  takes 1–3s idle, so roughly two seconds of headroom stood between a green suite and a red one
+  ([#962](https://github.com/pal-tamas/rask/issues/962)).
+
+  That is not enough on this machine. The E2E lane serialises browser journeys, but the unit suites
+  and the CLI build gate are not in it, so a journey routinely runs while several other builds
+  saturate the box — and the failure it produced (`Rows imported so far: 0.` after 14 polls) reads
+  exactly like a product bug.
+
+  The eight assertions that wait on real database work now get their own 30s budget; the ones that wait
+  on a render keep the default, because raising it globally would slow every genuine failure to the
+  pace of the slowest load-dependent one.
+
+  The cost of leaving this was never the red run — it is that a suite crying wolf under load is how a
+  real regression gets waved through. This repository's own casebook records seven "flakes" that were
+  all real bugs.
+
+- **`rask new` ran a production front-end build during scaffolding.** With the batteries on, `rask new`
+  creates the first migration, and `dotnet-ef` builds the project to load the `DbContext`. That build
+  took `RaskSpaBuild` / `RaskMetaBuild` at their default of `true`, so scaffolding a front-end template
+  ran the bundler — or, on the meta lane, a full Nuxt/Next/SvelteKit **production** build — behind a
+  line that says "Creating the first migration…" and nothing else
+  ([#991](https://github.com/pal-tamas/rask/issues/991)).
+
+  Minutes of silence for output nobody reads: the next thing anyone does is `rask dev`, which turns
+  both properties off again and lets the framework's own dev server own the front end. Worse, a
+  machine without node failed the migration step for a reason that has nothing to do with the
+  database.
+
+  The first migration now runs with both properties off. MSBuild reads properties from the
+  environment, which is how they reach a build whose command line belongs to `dotnet-ef` — the same
+  channel `rask dev` already uses for `HotReloadAutoRestart` — so `rask db`'s argument surface is
+  untouched and every other invocation of it is unchanged.
+
+- **A repaint requested while a dispatch was emitting its frame was discarded, not deferred.** Every
+  WASM render path holds `InHandlerScope` across the coalescing loop *and* the noop publish guard
+  *and* the frame emit. A `StateHasChanged` arriving after the loop settled parked in
+  `_pendingRenderInScope`, and the next dispatch's loop opened by clearing that flag — so the request
+  was thrown away rather than postponed. It is now drained at every scope exit
+  ([#986](https://github.com/pal-tamas/rask/issues/986)).
+
+  `InitialRenderAsync` had a second instance of the same hole: it held the scope but built its
+  payload directly instead of through the coalescing loop, so nothing drained the flag at all. Every
+  other render path already coalesced; that one was the exception.
+
+  This is most of what kept a spinner on screen after a hard load onto a page whose `OnMountAsync`
+  fetches. The request settles in a couple of milliseconds, well inside the initial render's emit, so
+  the state was set and no frame ever carried it. A Playwright trace of a failing run shows the fetch
+  returning `200 OK` in ~3 ms while the DOM still holds the "Loading…" markup and no `<article>` at
+  all — the data arrives and the paint is lost.
+
+  The drain issues a **publish** render. A plain one bypasses the noop guard and pushes the frame even
+  when the HTML is byte-identical, making the client morph identical markup and stripping the DOM
+  state JS applied since the last frame — highlight.js classes, and the rendered demo output on the
+  guide pages. That variant made the WASM journeys fail *more* often: the bug is a lost repaint, but
+  the cure is not "repaint harder".
+
+  Both windows are pinned by tests that drive the scope directly, because neither is reachable from a
+  component: by the time the loop settles, every user lifecycle hook has already run, which is
+  precisely why the drop was invisible.
+- **The meta lane killed its front end while Kestrel was still draining, and had no health check at
+  all.** Both were shipped in [#946](https://github.com/pal-tamas/rask/issues/946)'s first landing —
+  one as a bug, the other as a claim the PR body made and the code did not keep.
+
+  **Shutdown ordering.** Hosted services stop in *reverse* registration order, and Kestrel's
+  `GenericWebHostService` is registered before anything an app adds — so `AddRaskMeta`'s supervisor
+  stopped **first**, signalling the Node process while Kestrel was still finishing in-flight requests.
+  Every page render in flight at that moment became a 502, on every deploy. The drain is now armed from
+  the synchronous `ApplicationStopping` callback, exactly as `RaskDrainCoordinator` already does and for
+  exactly the reason it records: it holds regardless of where in the stop order this service sits.
+  Requests arriving after that get `503` + `Retry-After` instead of being forwarded into a process on
+  its way out, which is also what lets the wait terminate — otherwise new arrivals keep topping the
+  in-flight count up. A forward that never finishes is abandoned at `ShutdownTimeout` and logged with a
+  count, because a deploy that hangs on one stuck stream is worse than a dropped response.
+
+  **`AddRaskMetaFrontEnd()`** registers a health check reporting whether the front end is listening.
+  Kestrel answers as soon as it binds — seconds before the framework has booted — so without this an
+  orchestrator routes traffic at an instance that can only return 503 and calls the deploy healthy. It
+  reports *starting* and *draining* as distinct reasons: the same answer to a probe, and very different
+  answers to whoever is reading the log. Tagged `ready`, so
+  `MapHealthChecks("/health/ready", …Tags.Contains("ready"))` is the whole wiring.
+
+  The check is registered through an explicit `HealthCheckRegistration` factory rather than
+  `AddCheck<T>`, because the health-check infrastructure activates through `ActivatorUtilities`, which
+  considers only *public* constructors — `AddCheck<T>` would compile and throw on the first probe.
+  `Rask.Server` hit that once and wrote it down; the note is what saved doing it twice.
+
+  **The first version of the shutdown test was a false green.** It asserted against a running
+  `WebApplication`, and passed with the fix removed — because `StopAsync` also stops Kestrel, and
+  Kestrel drains in-flight requests by itself, so the test measured ASP.NET rather than this package.
+  The replacement drives the supervisor directly and has been checked to fail without the wait.
+- **`rask new --template react` pointed its closing instructions at a directory that no longer
+  exists.** The next-steps text still said the generated contracts land in `{name}.Client/src/rask/`
+  after [#970](https://github.com/pal-tamas/rask/pull/970) moved the client to `{name}/Client/`. It is
+  the last thing the command prints and the first thing anyone follows.
+
+  It survived the rename sweep, 1071 CLI unit tests, the CLI build gate and CI for one reason: nothing
+  asserted on that string. A grep finds `Shop.Client` as a literal; this one lived inside an
+  interpolated string in output no test read. There is now a guard that the next-steps text names only
+  directories the scaffold actually produced, and it was checked by putting the bug back.
+
 ### Added
+
+- **Email confirmation and password reset, over the mail battery.** Registering now sends a
+  confirmation link, `/forgot-password` emails a reset link, and `/reset-password` and `/confirm-email`
+  are where those links land — three more built-in pages, overridable the same way `/login` is, and
+  three more methods on `IAuth` (`SendPasswordResetAsync`, `ResetPasswordAsync`, `ConfirmEmailAsync`)
+  that a component, a WebAssembly client and a TypeScript front end all reach the same way. Nothing to
+  register: `Rask.Auth` asks for `IMail` when it needs to send, so the app's existing queue carries it.
+
+  **`RequireConfirmedEmail` is off by default**, and that is a deliberate default rather than an
+  oversight. A freshly scaffolded app has no SMTP configured; with the gate on, the first registration
+  would succeed and then be unable to sign in — including yours — and the email that would fix it is the
+  one that cannot be sent. The confirmation is still sent either way, so an app that turns the gate on
+  later finds its existing accounts already confirmed instead of locking all of them out at once. In
+  development the mail battery writes each message to `./mail-pickup` as an `.eml`, so the link is there
+  to open with no mail server anywhere.
+
+  **A failed send never fails the operation that triggered it.** The confirmation goes out from inside
+  registration, *after* the account row is committed, so an exception there reported the registration
+  as failed while the account existed — the person retries, is told the address is taken, and no page
+  offers a way forward. Losing an email is bad; stranding an account is worse. The send now catches,
+  logs what to fix, and lets the account stand. The browser journey found this: an app whose
+  `DbContext` maps the account tables but not the mail tables has a perfectly good `IMail` registered
+  and dies on the first `SendAsync`, because the mail battery's own worker tolerates a table that is
+  not there yet — it must, since a fresh app boots before its first migration.
+
+  Three security decisions worth stating, because each is a place this is easy to get wrong:
+
+  - **`/forgot-password` answers identically for an address that has an account and one that does not.**
+    Anything else is a membership oracle anybody can walk a list through. The one refusal it reports is
+    that the app has no mail battery at all — an operator's problem, and a silence there would leave
+    somebody waiting for a message that never got queued.
+  - **A reset ends every other session for that account.** Identity rolls the security stamp and Rask
+    revalidates it on every socket reconnect and before every handler dispatch, so if the reason for the
+    reset was that somebody else had the password, their open page stops working rather than staying
+    signed in until its cookie expires.
+  - **An emailed link is never built from a forwarded host header.** The origin comes from
+    `AuthOptions.PublicOrigin`, then the current request's own origin, then the address the server is
+    listening on. A forwarded host is attacker-controlled on a request that reaches the app directly,
+    and a reset link built from one would send a working token to a domain of the attacker's choosing —
+    so an app behind a proxy sets `PublicOrigin` rather than having it guessed.
+
+  New on `AuthOptions`: `ConfirmEmailPath`, `ForgotPasswordPath`, `ResetPasswordPath`,
+  `RequireConfirmedEmail`, `TokenLifetime` (two hours, and it drives both what the email promises and
+  what the token provider honours, so the two cannot drift), `ConfirmEmailSubject`,
+  `ResetPasswordSubject` and `PublicOrigin`.
+
+### Changed
+
+- **`.gitignore` no longer lets a sample's SQLite database be committed.** The runtime-artifact block
+  carried a comment claiming it was "no longer a per-sample list" and was exactly that: it named only
+  `app.db` and `logs.db`, so a sample whose database has any other filename was never ignored and got
+  picked up by the next `git add -A`.
+
+  That is worth more than tidiness, because a committed database is a **frozen schema**: these samples
+  build theirs with `EnsureCreated`, which does nothing to a database that already exists, so any table
+  added afterwards is silently absent at runtime while `git status` stays clean and every build passes.
+  It costs a browser journey dying on `Cannot create a DbSet for 'QueuedMail'` with nothing else to go
+  on. (Caught during this branch's own development, on files this branch had committed — none of them
+  reached a release.) The block is a glob now, verified against `git ls-files` to swallow nothing else
+  tracked.
+
+  Relatedly, `samples/Rask.Example.Auth` mapped `AddRaskAuth()` without `AddRaskMail()` while every
+  battery was on. A battery that is on needs its tables mapped.
+
+- **Six places still told you to type `--auth`, which now errors.** Removing the flag swept the guides
+  and the tutorial but missed `README.md`, `docs/api-endpoints.md` and four separate claims inside
+  `llms.txt` — including two that were self-contradictory in the same sentence ("scaffolds with a plain
+  `rask new Shop --auth` (every battery is on by default)"). Two more were simply false about behaviour
+  the same release changed: that `/_rask`'s policy is emitted "when `--auth` is on" (it now always
+  requires the `admin` role) and that a SPA host's `RequireAuthenticatedUser` follows the flag (it
+  follows the database). Two comments in `TemplateCatalog.cs` named the flag too.
+
+  Found while documenting the recovery flows, by asking what an AI reading these files would be told —
+  which is the only check these artifacts get. `llms.txt` also had **no `docs/authentication.md` entry
+  at all** and omitted auth from both of its battery lists, so the largest feature of the previous
+  release was invisible to the file whose job is to describe the framework. It has one now.
+ It walked the CLI's output and checked each file
+  was in the sample, which cannot see an **orphan** — a file the sample still carries and the generator
+  no longer emits. That blind spot is not hypothetical: removing `--auth` left a demo credential store
+  and a login page committed in the sample, and the suite stayed green. The new check fails with the
+  path and what to do about it, and was verified by planting an orphan and watching it name it.
+
+- **The Shop sample seeds a demo administrator, so it still runs the moment you clone it.** Moving
+  `/login` into the framework left the sample with no way in: its demo store was gone, and the built-in
+  registration wants the one-time first-run token from the startup log — right for a deployment, wrong
+  for a showcase. `DbInitializer` now seeds `ada@example.com` / `Password1` with the admin role, and the
+  README says so; a real app still seeds nobody.
+
+  The seven Shop E2E journeys that broke did so as **30-second timeouts** waiting for `#username`, never
+  as "the page changed" — the field is `#email` on the built-in page. Selectors are a test contract that
+  a unit suite and a golden render cannot see.
+
+- **The Shop sample is `rask new` output again, on the accounts battery.** Removing `--auth` made its
+  provenance claim false in a way `ShopProvenanceTests` could not see — the test walks the CLI's output
+  and checks each file is in the sample, so files the sample carries and the CLI no longer writes are
+  invisible to it. Shop kept a demo credential store comparing passwords as plaintext, a login page
+  built on it, and a README documenting a command that now errors on both its flags.
+
+  Shop now calls `AddRaskAuth<AppDbContext>()` and lets `/login` be the framework's. `MembersPage`
+  stays as the sample's own — a protected page with `[Authorize]` and `Authorize.Roles` is worth
+  showing — and is listed as hand-written in the provenance exemptions.
+
+  It also carried the `RequireAuthenticatedUser` gap on `/_rask` that this release already fixed in the
+  templates; it requires the `admin` role now.
+
+  `NewCommand.ToBatteries` had kept a `bool auth = false` parameter that nothing read.
+
+- **`--auth` is gone.** It scaffolded a second auth system beside the battery: a demo credential store
+  comparing passwords as **plaintext**, its own login and members pages, and a hand-written cookie
+  scheme. The flag is removed and refused by name — a flag the CLI accepts and then disregards is the
+  most expensive kind to discover — and the error names what replaced it.
+
+  Gone with it: the server template's demo store and pages, 246 lines of the standalone WASM template's
+  hand-rolled JWT/`localStorage` demo (a browser app calls `AddRaskAuthClient()` now, so no token
+  reaches JavaScript), the wizard's authentication question, and `ServerBatteries.Auth`.
+
+  Two defaults that keyed off the flag now follow the **database**, because that is what brings
+  accounts: the CQRS endpoint's `RequireAuthenticatedUser`, and `UseAuthentication`/`UseAuthorization`.
+
+  The docs follow: `docs/roadmap.md` no longer says the user store is not shipped,
+  `docs/one-person-framework.md` no longer disclaims it twice, the cookie and JWT guides are reframed
+  as the bring-your-own-store paths they now are, and the tutorial — whose text is compile-gated — no
+  longer types a flag that errors.
+
+- **The operator console is gated on the `admin` role, not on being signed in.** `/_rask` shows job
+  payloads, stored email bodies, log lines and the database configuration. `RequireAuthenticatedUser`
+  was defensible while the scaffolded credential store had two hardcoded logins and no roles; it
+  stopped being so the moment every app got accounts with open registration, because "signed in" now
+  means "registered" and anyone can register. The policy requires the role the **first** account holds
+  and no later account gets.
+
+  The no-database arm went with it: `ServerBatteries.Normalized()` sets `Data` whenever `Ops` is on,
+  so it was unreachable.
+
+  Nothing asserted this policy before, so the regression it guards would have been silent. It is
+  pinned now — including the absence of `RequireAuthenticatedUser`, which is the line that would
+  come back.
+
+  **Breaking:** an app relying on any signed-in user reaching `/_rask` must grant that account the
+  `admin` role, or define its own `RaskDashboardPolicies.Access` policy.
+
+### Fixed
+
+- **`AuthOptions.Bearer` did nothing, so it is gone.** The option was added for the bearer-token
+  deviation and never wired — `/api/auth/login` never issued a token. A setting that is accepted and
+  disregarded is the most expensive kind to discover, so it is removed rather than left to be found.
+
+  Issuance is deferred, not abandoned: it needs a signing-key decision (config-supplied, because a
+  generated key breaks across restarts and instances), a failure mode when that key is absent outside
+  Development, and a token lifetime — a second hardening story beside the cookie one. Until then the
+  cookie is the shipped default on every host, `docs/authentication-jwt.md` documents the hand-rolled
+  bearer path, and the two JWT samples demonstrate it.
+
+
+- **The browser half did not survive the trimmer.** `Rask.Auth.Client` serialised with
+  `ReadFromJsonAsync<T>` and `JsonContent.Create` — reflection-based JSON, which a trimmed WebAssembly
+  publish cannot keep. Three `IL2026` and a **failed publish** for any app that used it, while its unit
+  tests passed and the library built clean.
+
+  The cause is worth naming: the samples used to carry their own `[JsonSerializable]` context for these
+  exact shapes. Moving the DTOs into `Rask.Core.Authentication` took the shapes and left the serializers
+  behind. The framework owns both now, and the fix is pinned by publishing rather than by a unit test —
+  `Rask.Example.Auth.WasmCookie` and `Rask.Example.Wasm` both publish with zero IL warnings.
+
+
+- **Concurrent registrations could collide on the roles table.** Two people registering at the same
+  moment could get a 500 — `UNIQUE constraint failed: AspNetRoles.NormalizedName` — on the path
+  "the first account is the administrator" depends on.
+
+  The exception did not point at the cause. `RoleManager` resolves the same scoped `DbContext` the
+  `UserManager` uses, so a racer that lost the role race left its rejected `AspNetRoles` row in the
+  change tracker as `Added`, and the **next** `SaveChanges` on that context — the user insert — retried
+  it and threw there. The stack blamed `UserManager.CreateAsync` for a constraint on a table it never
+  touches.
+
+  Roles are now seeded through a context of their own, so a lost race is a non-event and the context
+  carrying the rejected entry never reaches the caller. Verified by running the concurrency tests
+  twelve times: 12 failures before, 0 after.
+
+- **A scaffolded app had accounts mapped but never registered.** The battery slot alone reached no
+  `rask new` project: a generated `Program.cs` is `WebApplication.CreateBuilder` + `AddRask()` with
+  individual package references, not `RaskApp.Create`, so `RaskBatteryWiring` never runs there. The
+  scaffold now registers `AddRaskAuth<AppDbContext>()` itself, and both that and
+  `UseAuthentication`/`UseAuthorization` follow the **database** rather than the old `--auth` flag —
+  emitted once for either reason, since `--auth` adds its own scheme on top.
+
+  Turning auth on by default had to touch four separate seams in the scaffold, and a compiler would
+  have flagged only one: the model mapping, the package reference, the entry in the CLI gate's packed
+  feed, and the registration plus middleware. Missing any one of them produced an app that looked
+  fine and was not.
+
+- **`rask new --auth` produced an app that would not start.** Registering an authentication scheme
+  twice is not a no-op — `AuthenticationOptions.AddScheme` throws "Scheme already exists" — and with
+  auth on by default the battery's cookie scheme collided with the hand-written
+  `AddAuthentication().AddCookie()` the `--auth` template scaffolds. The same collision hit any app
+  bringing its own OIDC or JWT scheme, which is the pattern `docs/authentication-providers.md`
+  recommends.
+
+  The battery now registers a scheme only when the app has not, keyed on the
+  `IAuthenticationSchemeProvider` that `AddAuthentication` leaves behind — the same marker `RaskApp`
+  already reads to decide whether to call `UseAuthentication`. Deferring is complete rather than
+  partial: an app's own `LoginPath` and cookie settings are left alone, because half-applying the
+  battery's options over somebody else's scheme would be worse than either alone.
+
+  Verified by removing the guard and watching two of the three new tests fail, rather than by assuming
+  a passing test would have caught it.
+
+- **A scaffolded app could not register anybody.** Landing the auth battery broke `rask new` in a way
+  nothing said out loud: `AddRaskAuth` registers Identity's EF stores against the application context,
+  but the scaffolded `OnModelCreating` did not map the account tables. The app booted with auth wired
+  and then failed at the *first* registration, on a missing `AspNetUsers`.
+
+  Mapped unconditionally rather than behind a flag, because the battery is on by default. It stays
+  mapped when an app writes `c.Auth.Off()`, which is the documented behaviour for every
+  database-backed battery — turning one off must not produce a destructive migration.
+
+  All 1071 CLI tests passed before the fix, which is the point: nothing covered the mapping. The new
+  test asserts on the generated context and is not conditional on any battery, because the failure it
+  guards is not conditional either.
+
+### Added
+
+- **Signing people in is documented for the hosts that have no C# API.** "Auth in every host" was true
+  in the code and absent from `docs/spa.md`, `docs/meta.md` and `docs/islands.md` — the three places a
+  reader of those lanes would look.
+
+  The meta section is the one worth reading: the visitor's cookie reaches the Node process on every
+  proxied request and **Node cannot read it**, because it is Data-Protection sealed and Node holds no
+  key ring. So server-side rendering calls back into the C# app over loopback carrying the visitor's
+  own cookie, and the side that can decrypt it answers. `RASK_BASE_URL` is configuration rather than a
+  request header on purpose: a destination an attacker could influence, plus a request carrying
+  somebody's session, is a confused deputy.
+
+  The islands section says there is nothing to wire, and why — a callback re-enters through the host's
+  existing channel, so it lands in the session every other handler runs in. It also says the two things
+  people get backwards: do not send the principal into an island as a prop (props are serialized into
+  the page), and gating the host component gates the island.
+
+
+- **`Rask.Auth.Client` — the browser half, so a WebAssembly app writes the same three calls.** Until
+  now a WASM app had `IAuth` and `IUserProvider` but no implementation of either; the documented answer
+  was to copy an `ApiUserProvider` out of a sample. `AddRaskAuthClient()` now supplies both, over the
+  app's own `/api/auth` endpoints, so a component cannot tell which host it is running on.
+
+  Identity travels as a same-origin cookie — no token is ever held in JavaScript.
+
+  It is a separate package because `Rask.Auth` carries ASP.NET Core Identity and Entity Framework, and
+  neither belongs in a trimmed browser publish. The two halves therefore cannot reference each other,
+  so the wire contract moved into `Rask.Core.Authentication` as **`AuthApi`** — written once rather
+  than duplicated and left to drift.
+
+- **Built-in sign-in, registration and sign-out pages.** A default app has the three flows with no
+  files of its own. They ship inside `Rask.Auth` and register through the same generated routes
+  registry that puts the operator console at `/_rask`, so nothing has to be mapped. `/login` is
+  already `RouteAuthorizationGuard.ChallengePath`, so the challenge redirect lands on a real page for
+  the first time.
+
+  **An app replaces any of them by declaring its own component at the same route**, and that is a
+  tested fact rather than a claim: the registry does not dedupe a template, so order decides, and the
+  earlier registration wins. The ordering is structural — an app's generated registry initialises as
+  `Program.cs` starts, necessarily before the `AddRaskAuth` call inside it first touches this package.
+
+  Styling is a `<style>` block, not a scoped stylesheet or a Tailwind build: these pages ship in a
+  package and have to render on an app with no CSS of its own. `/logout` asks rather than acting, so a
+  cross-site `<img src="/logout">` cannot end a session.
+
+  `AuthOptions.Pages` is removed — it could never have worked, because the pages register from a
+  `[Route]` attribute at module-initialisation time, long before any options object exists.
+
+- **`Rask.Auth` — accounts, and the first two thirds of "auth is on by default".** Rask shipped the
+  sign-in *plumbing* (`IUserProvider`, `IAuthSignIn`, the `Authorize` component, route guards) but no
+  account store: `rask new --auth` scaffolded a demo credential store whose passwords were compared as
+  plaintext, and there was no registration at all. This adds the store, backed by **ASP.NET Core
+  Identity** rather than a hand-rolled one — versioned password hashing, lockout, security stamps and
+  token providers are exactly the things that are dangerous to write twice, and the repo's own rule is
+  to prefer the standard .NET API.
+
+  The surface an app writes against is new but small: **`IAuth`** in `Rask.Core.Authentication`, with
+  `RegisterAsync` / `SignInAsync` / `SignOutAsync`. It lives in Core, beside `IUserProvider`, precisely
+  so the *same* injected type means the same thing on every host — the server implementation validates
+  against the store and then hands the principal to the existing `IAuthSignIn` ticket relay, adding no
+  second handshake.
+
+  **The first account to register becomes the administrator**, every one after it an ordinary user.
+  That removes the worst step in self-hosting — "it is deployed, now how do I make an admin?" — without
+  a seeding migration or a create-admin command.
+
+  Two things about it are load-bearing, and both are the reason it is not simply a count of the users
+  table:
+
+  1. **It is a single-winner guarantee, not a race.** Counting and then inserting is two statements,
+     and whether a concurrent pair can interleave depends on the provider's isolation level and, on
+     SQLite, on whether the transaction took its write lock early — a contended `COMMIT` can roll
+     itself back. Instead one row in `RaskAuthInstanceClaim` has a **constant primary key**, so the
+     second insert fails at the database. That means the same thing on every provider.
+  2. **The test for it had to be built twice.** Racing several `RegisterAsync` calls passes even
+     against a deliberately broken read-then-write store — creating an account is slow enough that the
+     first racer commits before the second reads. That was verified by breaking the store and watching
+     the test stay green. The test with teeth calls the claim store directly, straight after a barrier,
+     and does fail against the broken one.
+
+  A deployed app with an empty user table and an open registration page is a land-grab, so the **first**
+  registration — and only the first — needs a one-time token, generated while the instance is unclaimed
+  and written to the log. Missing and wrong are one answer carrying no detail, and the comparison is
+  fixed-time. Sign-in hashes even for an unknown address, so it cannot be used as an
+  account-existence oracle.
+
+  `SecureToken` moved from `Rask.Server` to `Rask.Core`: the auth battery needs the same CSPRNG
+  guarantee, and no battery may reference `Rask.Server` — that is what keeps the meta-package free of
+  reference cycles.
+
+  Not yet wired: the built-in pages, the browser half, and the `--auth` flag removal.
+
+- **Auth is battery #12, and it is on.** `RaskAppOptions.Auth` joins the other eleven, so an app that
+  writes no `Configure` block gets register, sign in and sign out along with everything else, and
+  `app.Configure(c => c.Auth.Off())` is how one does without them. Wired in `WireFor<TContext>` beside
+  the other database-backed batteries, because Identity's stores live on the application context.
+
+  Turning it off leaves the account tables mapped, like every other database-backed battery, so
+  flipping the line back on does not produce a destructive migration.
+
+  Ordering comes out right on its own: `AddRaskAuth` registers the cookie scheme, and `RaskApp` already
+  calls `UseAuthentication`/`UseAuthorization` before `UseRask` whenever a scheme provider is present.
+  An app never orders that middleware itself — which matters, because getting it wrong is exactly what
+  RASK024 exists to catch, and turning auth on by default would otherwise have reintroduced the bug for
+  everybody at once.
+
+- **`/api/auth/register|login|logout|me` — the contract every host that is not C# speaks.**
+  `MapRaskAuth()` maps four routes under `AuthOptions.ApiPrefix` (`/api/auth`). A TypeScript front
+  end, a meta framework's Node process and a WebAssembly client all reach the three flows through
+  these, which is what makes "the same API in every host" one contract rather than one per host.
+
+  `me` answers `204` rather than `401` when nobody is signed in — "nobody" is a good answer to that
+  question, and a `401` would make every anonymous page load look like a failure in a client's logs.
+  It is also the endpoint a meta framework needs most: Node forwards the visitor's cookie opaquely and
+  cannot decrypt it, so server-side rendering calls back here over loopback and lets C# resolve the
+  identity.
+
+  Every state-changing request must carry `X-Rask-Auth`. Cross-site markup — a form, an `<img>`, a
+  `<script>` — cannot set a custom header, so only a same-origin `fetch` reaches these routes; it is a
+  CSRF defence with no token round-trip, layered over the `SameSite=Lax` cookie that already withholds
+  itself from a cross-site POST. A request without it is refused as `MissingRequestHeader` and says
+  which header, rather than being folded into a credentials failure that would send a caller with a
+  correct password hunting in the wrong place.
+
+  Two bugs the gates caught rather than the tests:
+
+  - `ASP0016`. `LogoutAsync(HttpContext)` is exactly `RequestDelegate`'s shape, so ASP.NET bound it as
+    one and **discarded the returned result** — the sign-out happened and the response never said so.
+    Fixed with an explicit `(Delegate)` cast.
+  - Describing the signed-in user from `context.User` after `SignInAsync` answers `204` to the caller
+    that just succeeded: the cookie is written for the *next* request, and this request's `User` is
+    untouched. The response is built from the principal instead.
+
+  Tested over real HTTP through `TestServer`, because the parts worth pinning here — the cookie, the
+  status codes, the header — only exist over the wire. That needed a cookie container of its own:
+  `TestServer`'s client keeps none, so a session issued by one request never reaches the next.
 
 - **`rask new --template nuxt` — and nextjs, sveltekit, solidstart, tanstack-start, analog.** The meta
   framework lane could be hosted but not started: you hand-wrote the csproj, the `Program.cs`, the
@@ -269,6 +783,154 @@ them until tagged releases begin.
   `ApiOptions` carries `Prefix` (default `/api`), `NotFound` and `Controllers`. `MapRaskApi()` returns
   the endpoint group, so rate limiting, CORS or output caching attach to the whole API in one line.
 
+- **Validation is built in and on.** Put `[Required]` on a model, or write an
+  `AbstractValidator<T>` for it, and the rules run — in a `Form<T>` as the user types, and again on
+  the server before a dispatched request reaches its handler. Nothing is declared and, for
+  DataAnnotations, nothing is referenced.
+
+  Validation was the one obvious battery that never got the batteries treatment: it needed a package
+  **and** a component inside the form, and `rask new` scaffolded neither, so a user who put
+  `[Required]` on a model and wired a `Form<T>` saw nothing happen — no message, no diagnostic, and a
+  tutorial that had to stop and apologise for it.
+
+  **DataAnnotations moved into `Rask.Core`**, which every host already bundles, and
+  `Rask.Validation.DataAnnotations` is deleted. The `Form` registers the pass itself; `AddValidator`'s
+  type dedup is what makes doing that on every render free. Behaviour is carried over unchanged,
+  including `IValidatableObject` running alongside the attributes (ASP.NET Core MVC parity) and the
+  render-scoped `IServiceProvider` reaching a custom `ValidationAttribute`.
+
+  **Declaring an `AbstractValidator<T>` is now its whole registration.** A generator finds each one at
+  compile time and emits a `[ModuleInitializer]` — there is no assembly scan anywhere in it, which is
+  what lets a WebAssembly app use FluentValidation and still publish trimmed. A validator with
+  constructor parameters is resolved from the render scope, so the uniqueness-check validator, the
+  usual reason to reach for FluentValidation at all, needs no extra wiring. `Rask.Validation.FluentValidation`
+  stays a package and joins **both** halves of the `Rask` meta-package; its component is deleted too.
+
+  Both passes run with **attributes first**, which needed no reordering: DataAnnotations is the
+  synchronous `IFieldValidator` stage and a discovered validator the asynchronous one, so
+  `EditContext`'s existing order and its per-field first-error-wins gating already produce that.
+
+  **Requests are validated too.** `AddRaskCqrs` registers a `ValidationBehavior` outermost, so an
+  invalid request never reaches a transaction, a log line saying it was handled, or the handler.
+  Custom rules go in an `IRequestValidator<TRequest>`, asynchronous by construction. `Rask.Cqrs`
+  itself gains only the abstraction — it stays standalone and trim-clean, and the two
+  implementations live in the `Rask` package.
+
+  A rejected request becomes **400 `application/problem+json` with an `errors` object** and its own
+  stable `type`. That is the one failure whose text crosses the wire: a handler exception stays opaque
+  because it is written for an operator and names tables and credentials, while a validation message
+  was authored to be shown to whoever sent the request. On a WebAssembly client the request is checked
+  **before** it is sent, so an invalid command costs a message rather than a round trip — the server
+  runs the same rules again and remains the authority.
+
+  Off switches: `app.Configure(c => c.Validation.Off())`, `RaskValidation.AutoValidate = false` on any
+  host, or `Form.Model(m).AutoValidate(false)` for a single form. The global off wins.
+
+  New diagnostics [RASKVAL001](docs/diagnostics.md#raskval001) (two validators for one model) and
+  [RASKVAL002](docs/diagnostics.md#raskval002) (no single public constructor). New guide:
+  [docs/validation.md](docs/validation.md).
+
+  MVC controllers and minimal API endpoints are **not** covered yet — tracked in [#988](https://github.com/pal-tamas/rask/issues/988).
+
+- **The chain generator carries a type parameter's `[DynamicallyAccessedMembers]` into what it
+  emits.** `Form<TModel>` needs the annotation so a published WebAssembly build keeps the model's
+  properties — without it the trimmer removes them and the form validates nothing, silently, with a
+  green build and no IL warning. The chain is the only way to build a component, so an annotation the
+  generated seed, stage and `Of` declarations did not repeat was one no call site could satisfy
+  (IL2091 on every one). Any component whose type parameter is annotated now gets the same treatment.
+- **The kit now covers daisyUI's component set — 80 components, none needing a line of JavaScript.**
+  The last of them: select, mask, chat bubble, diff, list, countdown and the four mockup frames.
+
+  Two are deliberately absent. daisyUI's **calendar** is styling for a third-party date-picker web
+  component rather than a calendar of its own, so wrapping it would mean shipping a JavaScript library;
+  `UiInput` with `InputType.Date` gives the browser's native picker instead. **filter** needs a `<form>`
+  to hold its radio reset, and Rask's `Form` is generic over a model that a filter does not have —
+  `UiRadio` covers the same ground without inventing one.
+
+  Auditing the set against daisyUI's own list found `UiSelect` missing, which is worth recording because
+  of how it hid: its class tables were already in `UiClassNames`, so `select-primary` and friends were
+  being compiled into the shipped stylesheet with no component anywhere that could write them. The
+  stylesheet looked complete precisely because the gap was in the C#.
+
+
+- **The kit covers daisyUI's component set: 69 components, none of them needing a line of JavaScript.**
+  Forms (input, textarea, file input, checkbox, radio, toggle, range, fieldset, validator), navigation
+  (link, breadcrumbs, menu, navbar, steps, dock, pagination), feedback (alert, loading, progress, radial
+  progress, skeleton, tooltip) and layout (divider, drawer, footer, hero, indicator, join, stack, avatar,
+  kbd, timeline, carousel, rating).
+
+  The interactive ones use browser mechanisms rather than script: `<details>` for dropdowns and
+  collapses, the native `popover` attribute for modals, a hidden checkbox for the drawer and the swap,
+  radio inputs for tabs and ratings, and CSS scroll-snap for the carousel. All of it works on a
+  prerendered page before any runtime has booted.
+
+  Accessibility is decided in the component rather than left to the call site. `UiAlert` takes
+  `role="alert"` only for error and warning and `status` otherwise, because `alert` interrupts a screen
+  reader — right for a failure, rude for an explanation. `UiLoading` and `UiSkeleton` are `aria-hidden`
+  with the announcement carried by real text, since a spinner announces nothing and a reader working
+  through a row of empty placeholder boxes is worse than silence. `UiRating` renders a hidden first radio
+  for "no rating", without which a rating can be raised and lowered but never cleared. `UiAvatar` demands
+  alt text, `UiRadio` demands the group name that makes the options mutually exclusive, and every control
+  that has no visible label demands an accessible one.
+
+
+- **The kit is built on daisyUI, and its theme cannot escape onto a page that did not ask for it.**
+  `Rask.Ui` now compiles daisyUI into its embedded stylesheet, so the components stop carrying
+  hand-rolled component CSS and the kit supplies what daisyUI does not have: a typed C# API over it.
+  Themes are daisyUI's own — light by default, dark following `prefers-color-scheme` — and switch with
+  **no JavaScript**, because daisyUI matches `input.theme-controller[value=dark]:checked` and an explicit
+  `data-theme` in CSS alone.
+
+  **The theme is scoped to a new opt-in attribute, `UiStylesheet.ThemeScopeAttribute`
+  (`data-rask-ui`).** daisyUI defines its palette at the document root, which would have meant that
+  merely referencing this package repaints the background and text colour of an application that only
+  wanted a button — the same blast radius this kit already refuses a preflight over. Put the attribute on
+  `<html>` to theme a page or on any container to theme a subtree. Nothing in the kit has a colour
+  without it, so a surface that forgets it renders correct structure with every colour resolving to
+  nothing; `tests/Rask.Ui.Tests` pins both halves — that the sheet defines no base colour outside the
+  scope, and that it still carries no preflight and no `html`/`body` rules.
+
+  **daisyUI 5 emits a component only where Tailwind can SEE its class name**, which makes one rule
+  load-bearing for everything built on this: a class must appear as a COMPLETE literal in C#, never
+  composed (`"btn-" + tone`). A composed name is invisible to the scan, and the component then renders
+  with no styling at all while the build stays green. Measured: naming one extra component grew the
+  sheet by ~4 KB, and the full set is ~150 KB raw, ~23 KB gzipped.
+
+  Two consequences for the build. The kit is pinned to the **npm** Tailwind engine, because plugins
+  resolve the way Node does and the standalone binary carries no package tree (`Can't resolve 'daisyui'`);
+  a committed `package.json` names the versions. This costs a Node install at the kit's own build and
+  nothing at a consumer's — the compiled sheet is embedded, so an app referencing the kit receives plain
+  CSS and never runs Tailwind. The kit's `--color-ui-*` tokens are, for now, aliases onto daisyUI's
+  semantic variables so both vocabularies resolve to the same colour while call sites migrate.
+
+- **A form's children can be a function of whether a submit is in flight.** Children are normally a
+  fixed list; hand `Form.Model(…)` a function instead and it is called on every render with the
+  submit state, so the markup owns the busy affordance rather than the page tracking a bool beside
+  the model:
+
+  ```csharp
+  Form.Model(_model).OnValidSubmitAsync(SaveAsync)[submitting => [
+      Input.Bind(() => _model.Username).Disabled(submitting),
+      Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
+  ]]
+  ```
+
+  The flag is true from the moment the handler starts until it returns — a throwing handler clears it
+  too — and the form re-renders on both edges. The factory runs INSIDE the render walk, so a bound
+  control it builds resolves the form's own `EditContext` and keeps its identity across the two
+  renders a submit causes.
+
+  **Only a form offers it.** An indexer cannot be constrained, so the chain `Form.Model(…)` returns is
+  now `FormBuild<T>` — a third shape beside `Build<T>` and `Build<T, TMode>`, carrying the shared
+  surface and the form's own steps. `Div[submitting => …]` does not compile, and neither does the form
+  control equivalent: there is no submit state behind either to report. A component opts in by
+  implementing `Rask.Core.Forms.ISubmitAware`, which the generator reads the way it reads
+  `IFormControl<T>`. The fixed-list indexers are untouched — a lambda with an untyped parameter and a
+  collection-expression body has no natural type, so it cannot be captured by `params object?[]`.
+
+  Source-compatible for markup, which never names the chain type. Code that spells
+  `Build<Form<TModel>>` explicitly has to say `FormBuild<Form<TModel>>` instead.
+
 - **Preact, Solid and Angular join the island runtimes, and islands hot-reload under `rask dev`.** The
   SPA lane has scaffolded seven front ends since #841 while islands supported four; both now cover the
   same seven — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`,
@@ -330,6 +992,53 @@ them until tagged releases begin.
   nothing built, formatted or tested). The `check-nuget-updates` skill is now
   **`check-dependency-updates`**, widened to every axis and carrying an explicit do-not-bump list.
 
+- **`Rask.Ui` — the component kit, out of the console and into a package of its own.** The operator
+  console was rebuilt on an internal kit, and it stayed internal: the landing site and the docs showcase
+  could look at it and not use it. It is now a package, so the three surfaces the framework ships are
+  drawn with one vocabulary instead of three sets of utility strings that drift.
+
+  Nineteen components — chrome (`UiShell`, `UiTopBar`, `UiBrand`, `UiNav`, `UiNavTab`,
+  `UiCrumbSwitcher`, `UiCrumbSeparator`, `UiTopLink`, `UiMain`), controls (`UiButton`, `UiSearch`,
+  `UiStatusDot`), data (`UiMetricRow`, `UiMetric`, `UiDetailList`, `UiDetailRow`, `UiCode`) and overlays
+  (`UiModal`, `UiToast`) — plus `UiIcon`/`UiIconName` and `UiStylesheet`. It **moved** rather than being
+  copied, so there is one source and nothing to keep in step. Multi-targets `net10.0;net10.0-browser`,
+  unlike `Rask.Dashboard`, which stays server-only because its panels read a `DbContext`; this is markup
+  and nothing else, and the surfaces that need it most run in the browser.
+
+  Two changes came with going public. `Tone` is a **`UiTone` enum** rather than a string: a string tone
+  has no discoverable set of values and no wrong value, so every misspelling silently selected the
+  neutral branch and read on screen as the component ignoring you. And `UiBrand` no longer names the
+  console's own route and prints "Ops" — the wordmark and the destination are required properties, which
+  is the coupling that kept the kit inside one application.
+
+  **The stylesheet ships with the package.** Tailwind scans the project it runs in, so a compiled
+  library's class names are invisible to a consuming app's build and it would emit none of them —
+  leaving every component unstyled with nothing reporting it. The kit compiles its own sheet and exposes
+  it as `UiStylesheet.Css` to inline. Unlike the console's, it carries **no preflight and no
+  `html`/`body` rules**: the console may ship a global reset because it is a mounted application owning
+  its own document, and it learned that the hard way when the reset landed on host applications' pages.
+  A library has no such licence. Inline it *before* the app's own sheet — the `--color-ui-*` palette is
+  how a surface re-skins the kit, and an override only wins while it is read last.
+
+  The `Ui` prefix is load-bearing rather than stylistic: in a markup host a bare `X` is the chain's
+  `Build<X>` entry, so `Shell` would collide with `Component.Shell` and `Nav`/`Button`/`Select`/`Search`
+  with the Rask.Html tags — and RASK040 then gives *neither* type an entry across the whole compilation.
+  The namespace carries the same hazard from the other side: `Rask.Ui` is an enclosing namespace of
+  every `Rask.*` compilation, so C# resolves a bare `Ui` to it before looking at imports. The samples'
+  Tailwind class-constants holder was called `Ui` and is now **`Tw`**, which is what it always was.
+
+  Adding it also found a hole in the CLI build gate's own coverage guard. That guard asks which packages
+  a *template* references and checks the local feed packs them — but NuGet restores a package's
+  **dependencies** too, and a scaffolded project never names those. So the moment `Rask.Dashboard`
+  depended on `Rask.Ui`, every existing assertion stayed green and the gate died on `NU1101` for a
+  package no template mentions. The feed is now asserted to be closed over its own packages'
+  dependencies, read off the project files rather than a second hand-written list.
+
+  The kit's icon set grew with the landing site, from thirteen to thirty. The originals were an
+  operations vocabulary — queues, retries, dead letters — which is right for a console and covers
+  almost nothing a page describing the framework needs to say. Same source and same style as the rest:
+  Heroicons v2 outline, MIT, vendored as path data.
+
 ### Changed
 
 - **BREAKING: `WireJson`, `RemoteFile` and `FileDownload` moved from `Rask.Cqrs` to a new `Rask.Wire`
@@ -371,6 +1080,30 @@ them until tagged releases begin.
   `Rask.Api.Client` named a `NUGET.md` it did not have, which is `NU5019` at pack time and silence
   everywhere else. `Every_file_a_project_packs_by_name_exists` checks every literal `Pack="true"`
   include against disk, and reports *"Rask.Api.Client packs 'NUGET.md', which does not exist"* in 81ms.
+- **The kit's colour vocabulary is daisyUI's, and it is three axes rather than one.** `UiTone` was a
+  private set of words that had to be mapped back onto daisyUI's every time anyone read its
+  documentation, so it is now daisyUI's own: `Neutral, Primary, Secondary, Accent, Info, Success,
+  Warning, Error`. Two new enums carry what was tangled into it — `UiVariant` (solid, outline, soft,
+  dash, ghost, link) for how a component is filled, and `UiSize` for how big. They compose, so an
+  outlined error button needs no member of its own. `Quiet` turned out never to have been a colour and
+  is `UiVariant.Ghost`; `Danger`/`Warn`/`Ok`/`Busy` are `Error`/`Warning`/`Success`/`Info`.
+
+  `UiButton`, `UiSearch` and `UiStatusDot` are rebuilt on `btn`, `input` and `status`, which deletes the
+  hand-rolled base strings and palette switches they carried — including the touch target, focus ring
+  and disabled treatment daisyUI already has. `UiSearch.Label` is now `AccessibleLabel`: a property of
+  the old name shadowed the chain entry for the `<label>` element the component renders, so it could not
+  reference its own tag.
+
+  **`UiShell` now carries the theme scope itself.** Without it the operator console's kit components
+  wrote daisyUI colour classes whose variables are confined to `data-rask-ui`, and every one of them
+  would have rendered structurally perfect and completely colourless — visible in a browser and in
+  nothing else. A surface that does not use the shell still opts in on `<html>`, as the showcase does.
+
+  Every class name the kit can write is now a literal in `UiClassNames`, checked against the compiled
+  sheet by `UiClassNamesTests`. That guard found six fabricated names on its first run: `tab-xs`
+  through `tab-xl` (daisyUI sizes tabs on the CONTAINER, `tabs-*`) and `tooltip-neutral`, which daisyUI
+  does not define. Five components would have rendered unsized and one uncoloured, silently.
+
 
 - **The gates now share this machine by a slot budget instead of one all-or-nothing lane, so several
   worktrees can test at once without lying to each other.** Eight worktrees run on one box here, and
@@ -521,6 +1254,135 @@ them until tagged releases begin.
   one whose route was deleted, renders the app with a 200 where the caller expected JSON, and the failure
   surfaces later as a parse error far from its cause. That is a genuine defect, it is not what the old
   comments described, and this entry does not fix it.
+- **The docs showcase is prerendered, light, and finally says how to install Rask.** `rask.sh/docs/`
+  opened straight into guide cards, so a visitor who landed there was never told how to get a project —
+  the marketing site had the commands and the documentation site did not. The guides index now opens
+  with the installer, `rask new MyApp` and `rask dev`, plus the Windows one-liner and the
+  `--template wasm` / `--auth` switches.
+
+  The two copies cannot share a constant — the landing site deliberately references none of the
+  showcase, being a size-tuned marketing bundle — so `scripts/tests/install-script.test.sh` pins this
+  one alongside the other seven, and additionally asserts that **both sites scaffold with the same
+  command**. Carrying a URL each is not the same as agreeing with each other.
+
+  The showcase is **not** prerendered yet, and the attempt is what found the two prerender defects
+  below. Only 5 of its 20 routes can be: the browser-API demos have nothing to bind to off a browser
+  and are skipped by design. That leaves a mixture, and the mixture is the problem — a static host
+  answers an un-prerendered deep link with its SPA fallback, which is the root `index.html`, and once
+  the root is prerendered that fallback stops being a neutral boot shell and becomes a fully rendered
+  guides index. The landing site does not hit this because it is a single route: everything it serves
+  is prerendered, so there is no fallback to get wrong.
+
+  The chrome is the kit's now, so the console, the landing site and the docs share one top bar instead
+  of three near-identical ones, and it is **light** on the `--color-ui-*` palette. The light/dark
+  toggle went with that decision, which removed the only reason this layout injected `IJSRuntime` — and
+  orphaned its scoped `ShowcaseLayout.ts`, whose sole export was `toggleTheme`. Both are deleted.
+
+  The sidebar stayed local rather than being forced into `UiNav`: the kit's nav is a five-tab console
+  bar and this app has eighty guides in a filterable, grouped rail. Sharing chrome that does not fit
+  would have been worse than sharing none.
+
+  Nine generic primitives moved out of `Rask.Dashboard` into the kit with this — `UiCard`, `UiStat`,
+  `UiHeader`, `UiTabs`, `UiTab`, `UiNotice`, `UiBadge`, `UiTable`, `UiGrid` — along with the
+  class-name constants they share, now `UiStyles`. The console's 88 tests pass unchanged, which is what
+  says the move was behaviour-preserving.
+
+- **The landing site is prerendered, light, and ships no JavaScript.** `rask.sh` served a spinner. It
+  is a WebAssembly app, so the first thing every visitor and every crawler received was the boot
+  shell — the real markup did not exist until megabytes of runtime had downloaded, on the page whose
+  whole job is to explain the framework. It now sets `<RaskPrerender>true</RaskPrerender>` and is
+  served as real HTML that the bundle then takes over.
+
+  Prerendering is why several other things had to change, rather than a coincidence that they did:
+
+  - **The page needed a route.** The plan is built from the registered route table, and this app had
+    no `[Route]` anywhere — its root component rendered the sections itself. The page moved to
+    `HomePage` behind `[Route("/")]` and `App` renders the `Router`. Without that the pass writes
+    nothing at all.
+  - **The scroll reveals had to go.** `.reveal` was `opacity: 0` until an `IntersectionObserver` said
+    otherwise. On a prerendered page that ships every section invisible to anyone who never runs the
+    script — including the crawler the prerender is for.
+  - **So did the hero animation.** `ChainAnimation` was 499 lines of generated SVG, and
+    `assets/rask-chain.svg` was baked from it and pinned byte-for-byte by a test. Nothing embedded that
+    asset any anymore. Both are deleted; the hero now leads with the component's own source beside the
+    running component.
+
+  The whole `App.ts` module went with them — the hero canvas, the growing benchmark bars and the theme
+  toggle — and with it the hand-written `@layer components` block that existed only to serve it. The
+  bars in particular were drawn by script from a `data-` attribute, so with no script they were all
+  zero: a chart of nothing, under the page's central claim. They are a table now.
+
+  It is **light**, on the palette `Rask.Ui` declares, so the console, the site and the docs are one
+  visual language rather than three. It draws with the kit where the kit fits — `UiMetricRow`,
+  `UiStatusDot`, `UiIcon` — and keeps its own marketing sections, because a landing page has no tab bar
+  to put in a `UiNav`. **Every feature card is now a link into the guide about it**, and each slug is
+  asserted against the repo's own `docs/` directory, since a front door full of 404s is exactly the rot
+  nothing else would report.
+
+  Content caught up too: 60+ diagnostics rather than "30+", the benchmark host named correctly (Apple
+  M4 **Pro**, .NET 10.0.5), the footer CTA that still said "Open the live demo" after the hero's was
+  renamed, and cards for the operator console, islands, prerendering and render modes, durable logs,
+  WebRTC signaling and object storage — all shipped, none previously mentioned. The bundle also drops
+  ~2.6 MB of ICU data it never needed: the opt-in arrived with a comment describing the *docs* app
+  ("this app hosts the guides"), copied along with the csproj, and nothing contradicted it.
+
+### Fixed
+
+- **The kit's stylesheet outranked the cascade of every application that inlined it.** Its rules were
+  UNLAYERED, and unlayered CSS beats layered CSS in every browser whatever the source order. Tailwind
+  puts an application's own utilities in `@layer utilities`, so the kit's `.hidden` silently beat the
+  showcase's `.md:flex` and pinned its sidebar to `display:none` at every width — with the rest of the
+  page looking entirely normal. `layer(theme)` and `layer(utilities)` on the kit's imports put it back
+  inside the cascade instead of above it.
+
+  The symptom is the notable part: not a wrong colour or a shifted margin, but **a layout that quietly
+  stops responding**. Thirteen browser tests caught it and nothing cheaper could have, so
+  `UiStylesheetTests` now walks the shipped sheet and fails on any rule at the top level that is not an
+  at-rule.
+
+  It was latent rather than new. The operator console has always inlined this sheet and never showed it,
+  because a mounted application owns its whole document and so has nothing of its own to be outranked;
+  the showcase is the first consumer where it could matter.
+
+
+- **The kit's stylesheet shipped the whole of daisyUI, because the plugin was being read as source.**
+  `vendor/daisyui.mjs` is 348 KB of daisyUI's own code and it sits inside the project Tailwind scans, so
+  the scanner found every class name daisyUI defines and treated the bundle as a safelist for the entire
+  library. The compiled sheet therefore carried every component whether or not anything used one.
+  `@source not "./vendor"` takes it back to what the kit actually writes: **192 KB from 384 KB raw, and
+  27.9 KB from 48.4 KB gzipped**. The sheet is inlined into every document, so that is 20.5 KB off every
+  page.
+
+  It also restores `UiClassNamesTests`, which checks that every class the kit can write is one daisyUI
+  really defines. With the bundle scanned, every daisyUI name was present in the sheet for reasons
+  unrelated to the kit, so the check was passing on evidence it had not earned.
+
+  This one is worth remembering for its shape rather than its size: **a stylesheet containing too much
+  looks exactly like a stylesheet containing enough.** Nothing renders wrong, no test goes red, and the
+  only symptom is a number with nothing to compare it against. It surfaced only from asking why
+  `mockup-browser` was in the output when no component mentions it.
+
+
+- **`UiIcon` sized itself only until a caller asked for anything, and then rendered nothing at all.**
+  `Class` REPLACED the icon's own `size-5 shrink-0` rather than adding to it, so every call site that
+  passed a margin — `me-1`, `me-2`, a colour, a scoped class — shipped an inline SVG with no width and
+  no height. An SVG, unlike the text glyph the showcase used to draw, has no intrinsic size, so those
+  icons did not render small or unstyled: they rendered as nothing.
+
+  It is now additive, and the default steps aside only when the caller names a size (`size-*`, `w-*`,
+  `h-*`) — dropped rather than merged, because two competing Tailwind size utilities on one element are
+  resolved by stylesheet order, not by the order they appear in the attribute.
+
+  **Nothing downstream could have caught it**, which is the reason this entry exists. Markup assertions
+  and the demo golden file see exactly the class list the call site asked for and pass; a browser
+  reports only "element is not visible", which reads as a layout or timing bug and points at the page
+  rather than at the icon. `tests/Rask.Ui.Tests` is new — the kit shipped with no test project of its
+  own — and pins the composition directly.
+
+  Two sizing leftovers from the glyph era went with it: `text-xl`/`text-2xl` on an icon (a font size,
+  which does nothing to an SVG) and `.nav-group-chevron { font-size: 0.7rem }`, which had been the
+  showcase sidebar chevron's only size.
+
 
 - **A version pinned in two places was held together by a comment, and one of the comments was
   describing a test that did not exist.** `ProjectGenerator.Wasm.AspNetCoreFrameworkVersion` must match
@@ -595,6 +1457,51 @@ them until tagged releases begin.
   each worktree's suite is its own process. The path now carries a hash of the checkout's absolute
   path as well, since the lock cannot be made to reach and the path can.
 
+- **A prerendered page under a sub-path asked the origin root for its own assets.** A browser boot
+  reads the URL prefix off the document's `<base href>`; a prerender pass has no document, so every
+  `LiveOptions.PathBase`-prefixed URL was baked against an empty prefix — `/_rask/a/x.css` rather than
+  `/docs/_rask/a/x.css`. A `<base href>` cannot rescue those: it applies to *relative* URLs only, and a
+  leading slash means the origin root. The build now passes `RASK_PRERENDER_PATH_BASE` to the pass, and
+  an explicit `PathBase` set in `Program.cs` still wins over it, matching the browser boot's precedence.
+
+- **A prerendered WebAssembly page could never boot, and every guard around it said the publish had
+  worked.** `<RaskPrerender>true</RaskPrerender>` writes a document per route into the published
+  `wwwroot` — where `index.html` is already the shell the WebAssembly SDK has just filled with the
+  fingerprinted import map, the integrity-pinned preload, the `<base href>` and
+  `<script src="main.js">`. The pass wrote over it. What shipped was a static page carrying real
+  markup and no way to become interactive, on every prerendered route.
+
+  The framework could not simply re-emit those tags. The boot script comes from an
+  `IRaskRuntimeScript` registration and the WASM host deliberately registers none — the runtime boots
+  from the page shell — while the import map's fingerprints and integrity hashes are minted by the SDK
+  per publish, so managed code has nothing to reproduce them from. **The shell is now kept and the
+  render spliced into it**: the shell keeps `<base>`, `<meta charset>`, the import map, the preload
+  and every body `<script>`; the page supplies its `<title>`, the rest of its head, and the whole
+  body. The singletons are resolved rather than concatenated, because a browser takes the *first*
+  `<title>` and appending would have left every page titled whatever the shell said — the search
+  result the feature exists to fix. With no shell present the whole document is still written, and the
+  pass says so.
+
+  Three things kept this invisible. Every test rendered into an empty temporary directory, which is
+  the one arrangement with no shell to destroy. No sample, template or CI job had ever set the
+  property, so it had not run end to end. And the "wrote no pages" warning globbed the output for an
+  `index.html` — which the boot shell *is*, so it was non-empty whether the pass wrote every page, one
+  page, or none, and could never fire. The pass now prints `result written=N skipped=N` and the build
+  reads that back; a run that reports no summary at all is warned about separately.
+
+- **`<base href>` was rewritten only on the root page of a sub-path publish.** Prerendering writes a
+  directory per route, and each page carries its own `<base href="/">`. Rewriting just
+  `wwwroot/index.html` left `/docs/about/` resolving `main.js` against its own directory — the exact
+  failure the tag exists to prevent, on the pages a search result links to first. Every published page
+  is rewritten now.
+
+- **Prerendering failed outright for any app referencing the `Rask` metapackage.** The companion
+  project compiles the app's sources for `net10.0`, so a multi-targeted dependency resolves its
+  non-browser face — and the metapackage's `net10.0` face carries the server-only pieces a browser app
+  never saw. Two components that never met in the app met in the companion, and RASK040 (a warning)
+  became an error under warnings-as-errors and failed the publish. The companion now builds with
+  warnings-as-errors off, alongside the analyzers it already disabled: it renders, and the real build
+  is what judges the app's code.
 
 - **A Blazor island rendered EMPTY in a trimmed WebAssembly app, and nothing said so.** The package
   claimed WebAssembly support and the claim was pinned by a test that read the `.csproj` — no build,
@@ -679,6 +1586,23 @@ them until tagged releases begin.
   `44 × locator resolved to <span data-testid="probe-scheme">light</span>`.
 
 ### Removed
+
+- **The showcase's 132-member icon set is gone; one Heroicons vocabulary now covers every surface.**
+  `samples/Rask.Example.Shared/Shared/Icon.cs` declared 132 Bootstrap-Icons-shaped members
+  (`XLg`, `PlayFill`, `Speedometer2`) and rendered each as a **unicode text glyph in a `<span>`** —
+  `◐`, `⌁`, `▤` — so the docs site's iconography depended on whichever font the visitor happened to
+  have. Every call site now draws a real Heroicons v2 outline path through `Rask.Ui`'s `UiIcon`, which
+  the operator console and the landing site already use.
+
+  **The set did not grow to 132 to absorb it.** `UiIconName` went from 39 members to 77, because the
+  67 bespoke per-guide glyphs collapsed to **one icon per guide group**: `GuideEntry` no longer stores
+  an icon at all, it derives one from `Group`. That removed 135 hand-picked arguments from
+  `GuideCatalog` and makes forgetting to pick an icon for a new guide impossible rather than merely
+  unlikely. Several near-duplicates merged on the same reasoning — `ArrowClockwise`/`ArrowRepeat` both
+  meant "retry", `UsbDrive`/`UsbPlug`/`Controller` all meant "a device". Three names have no Heroicons
+  equivalent and take the nearest honest match rather than vendoring a second icon style:
+  `Bluetooth`/`Broadcast` → `Signal`, and `Github` → `CodeBracket`, since Heroicons ships no brand marks.
+
 
 - **An island takes no children, in either island family — and saying so is now a compile error
   ([RASK062](docs/diagnostics.md#rask062)).** Both kinds offered a way in and neither could keep its
@@ -2269,58 +3193,6 @@ them until tagged releases begin.
   naming the type. The typed version is not expressible — C# forbids generic indexers, and a C# 14
   extension block cannot declare an indexer at all (`CS9282`).
 
-- **`Rask` — a new batteries-included package, and `RaskApp`, the host wired the way a Rask app nearly
-  always is.**
-
-  ```csharp
-  var app = RaskApp.Create(args);
-
-  app.Configure(c =>
-  {
-      c.Jobs.Off();                                            // this app has no background work
-      c.Mail.Configure(o => o.From = "no-reply@example.com");
-  });
-
-  app.MapEndpoints(e => e.MapPushSubscriptions());
-  app.Run<App>();
-  ```
-
-  **Every battery is on.** Referencing `Rask` is what turns them on — the database, mediator, jobs, mail,
-  cache, outbox, dashboard, durable logs, Web Push, snapshots and continuous backup — and `Program.cs` is
-  where an app says which it does *without*. There is nothing to opt into, and no `AddRaskX` to remember:
-  a `Program.cs` with no `Configure` block is an app with all of them running.
-
-  The database-backed batteries find your `DbContext` themselves, off the `AddDbContextFactory<T>()` call
-  you already wrote — nothing names it twice. To configure a battery, either use the block above or call
-  its own `AddRaskX` directly; the automatic wiring runs last and every `AddRaskX` is idempotent, so a
-  direct call wins and nothing has to be turned off first.
-
-  `RaskApp` also owns the middleware order that was duplicated across four scaffolder emitters and every
-  sample, which makes two silent failures unrepresentable rather than merely documented: endpoints mapped
-  after the catch-all never run (`MapEndpoints` replays them at the only position that works), and
-  `UseAuthentication` after `UseRask` leaves `HttpContext.User` empty on the initial GET and the WebSocket
-  upgrade so every authorized page challenges (RASK024) — now placed correctly, and only when a scheme is
-  actually registered.
-
-  **`Rask.Server` is unchanged and still lean.** An app with no database references it directly and
-  carries no EF Core and no SQLite native bundles; that door is why this is a separate package.
-
-  **One package, server and browser.** `Rask` multi-targets, so the same single `PackageReference`
-  resolves to the ASP.NET host plus every server battery on `net10.0`, and to the WebAssembly host plus
-  the trim-safe ones on `net10.0-browser`. The browser group deliberately carries no EF Core, no SQLite
-  and no Jobs: those need `PublishTrimmed=false` in a browser build, and including them would force every
-  WASM app untrimmed. Measured on the showcase, the browser batteries cost **+8.8 KB brotli (+0.20%)**.
-
-  The install instructions throughout the docs now name only `Rask`; each battery's page shows its
-  off-switch instead of a `dotnet add package` line.
-
-  One consequence worth knowing: because the batteries are on, an app that runs now creates its
-  database, its log store (`logs.db`), its `mail-pickup/` directory and its `snapshots/` directory
-  beside itself. `rask new` gitignores them; turn a battery off if you would rather it did not.
-- **The `spa` template now calls `AddRaskSpaHost()`.** It was scaffolding `app.UseRaskSpa()` with no
-  matching `Add`, so the host shipped without response compression — the largest file in the app, served
-  as `text/javascript`, went out uncompressed — and, once the host defaults moved into the framework,
-  without those either. `Add` and `Use` are now scaffolded as the pair they are.
 - **RASK056 reports a second `AddRask` on the same service collection.** A second call does not add to
   the first: its options go in with `TryAddSingleton`, which keeps the registration already there, so
   everything the later call configures is discarded while the call compiles and reads as though it worked.

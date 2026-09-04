@@ -27,9 +27,9 @@ public sealed partial class MembersPage : Component
         ];
 }
 
-// The member actions, rendered only once the gate opens. The greeting now comes from the Authorized
-// delegate above, so this no longer needs IUserProvider — it injects IAuthSignIn purely for sign-out.
-public sealed partial class MemberContent(IAuthSignIn auth) : Component
+// The member actions, rendered only once the gate opens. The greeting comes from the Authorized
+// delegate above, so this needs no IUserProvider — it injects IAuth purely for sign-out.
+public sealed partial class MemberContent(IAuth auth) : Component
 {
     protected override Component? Render() =>
         [
@@ -40,7 +40,7 @@ public sealed partial class MemberContent(IAuthSignIn auth) : Component
                 Div.Id("admin-note").Class("rounded-lg px-4 py-3 text-sm bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200 py-2")["🔑 You have admin access."]],
             Button
                 .Id("logout")
-                .OnClickAsync(() => auth.SignOutAsync("/login"))
+                .OnClickAsync(() => auth.SignOutAsync(returnUrl: "/login"))
                 .Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-violet-700 ring-violet-300 hover:bg-violet-50 dark:text-violet-300 dark:ring-violet-700 dark:hover:bg-violet-950")["Sign out"]
         ];
 }

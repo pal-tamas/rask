@@ -36,12 +36,12 @@ public sealed partial class BroadcastChannelDemo(IBroadcastChannel bus) : Compon
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
-                Button.Class($"{Ui.BtnPrimary} mb-2").Type("button").Id("bc-send").OnClickAsync(Send)["Broadcast a message"],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-1")["Received (from other connections/tabs):"],
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
+                Button.Class($"{Tw.BtnPrimary} mb-2").Type("button").Id("bc-send").OnClickAsync(Send)["Broadcast a message"],
+                Div.Class("text-sm text-ui-muted mb-1")["Received (from other connections/tabs):"],
                 _received.Count == 0
-                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400 italic").Id("bc-log")["(none yet)"]
+                    ? Div.Class("text-sm text-ui-muted italic").Id("bc-log")["(none yet)"]
                     : Ul.Class("text-sm mb-0").Id("bc-log")[
                         _received.Select(m => Li.Key(m)[m])
                     ]

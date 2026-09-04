@@ -129,7 +129,7 @@ public class FactoryNotImportedAnalyzerTests
             {
                 public static class Parts
                 {
-                    public static object Build() => Demo.Ui.Generated.Card();
+                    public static object Build() => Demo.Tw.Generated.Card();
                 }
             }
             """));

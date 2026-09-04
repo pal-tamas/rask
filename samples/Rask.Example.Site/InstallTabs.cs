@@ -32,17 +32,17 @@ public sealed partial class InstallTabs : Component
             // .term and .install-foot are TEST contracts: SiteExampleTests reads the rendered command and
             // the Windows one-liner out of them, and a locator that resolves to nothing fails by timing
             // out rather than by naming what moved.
-            Div.Class("term overflow-x-auto rounded-2xl border border-line bg-panel-2 p-5 text-left")[
+            Div.Class("term overflow-x-auto rounded-2xl border border-ui-line bg-ui-well p-5 text-left")[
                 Terminal()
             ],
-            P.Class("install-foot mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
+            P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
                 "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
                 ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
             ],
-            P.Class("install-foot mt-4 text-center text-xs text-slate-500 dark:text-slate-400")[
+            P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
                 "Add ", Code["--auth"], " for a cookie/JWT starter · full path in the ",
                 A
-                    .Class("text-accent-ink no-underline hover:underline")
+                    .Class("text-ui-brand-ink no-underline hover:underline")
                     .Href("https://github.com/pal-tamas/rask/blob/main/docs/getting-started.md")
                     .Target("_blank")
                     .Rel("noopener")["getting-started guide"], "."
@@ -50,14 +50,15 @@ public sealed partial class InstallTabs : Component
         ];
 
     private static Component Line(string prompt, string rest) =>
-        [Span.Class("select-none text-accent-ink")[prompt], rest + "\n"];
+        [Span.Class("select-none text-ui-brand-ink")[prompt], rest + "\n"];
 
     private Component Tab(int i) =>
         Button
             .Key(i)
-            .Class(i == _active
-                ? "rounded-lg border border-line bg-panel px-4 py-1.5 text-sm font-medium text-ink"
-                : "rounded-lg border border-transparent px-4 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-ink")
+            // min-h-11 below sm: 44px is the smallest reliable touch target, and these are text-sm.
+            .Class("inline-flex min-h-11 items-center rounded-lg px-4 text-sm sm:min-h-0 sm:py-1.5 " + (i == _active
+                ? "border border-ui-line bg-ui-bg font-medium text-ui-ink"
+                : "border border-transparent text-ui-muted hover:bg-ui-well hover:text-ui-ink"))
             .Type("button")
             .Role("tab")
             .Aria(new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" })
@@ -65,17 +66,17 @@ public sealed partial class InstallTabs : Component
 
     private Component Terminal() => _active switch
     {
-        1 => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
-            Span.Class("text-slate-500 dark:text-slate-400")["# standalone browser-WASM SPA, installable and offline\n"],
+        1 => Pre.Class("font-mono text-xs leading-relaxed text-ui-ink")[Code[
+            Span.Class("text-ui-muted")["# standalone browser-WASM SPA, installable and offline\n"],
             Line("$", " " + InstallCommand),
             Line("$", " rask new MyApp --template wasm"),
-            Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"
+            Span.Class("select-none text-ui-brand-ink")["$"], " cd MyApp && rask dev"
         ]],
-        _ => Pre.Class("font-mono text-xs leading-relaxed text-ink-soft")[Code[
-            Span.Class("text-slate-500 dark:text-slate-400")["# ASP.NET live-server app, batteries included\n"],
+        _ => Pre.Class("font-mono text-xs leading-relaxed text-ui-ink")[Code[
+            Span.Class("text-ui-muted")["# ASP.NET live-server app, batteries included\n"],
             Line("$", " " + InstallCommand),
             Line("$", " rask new MyApp"),
-            Span.Class("select-none text-accent-ink")["$"], " cd MyApp && rask dev"
+            Span.Class("select-none text-ui-brand-ink")["$"], " cd MyApp && rask dev"
         ]]
     };
 }

@@ -18,7 +18,7 @@ public sealed partial class ServerPwaPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Server PWA — notifications & push"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "A live demo of PWA APIs running on the ", Strong["Server"],
             " host (server-rendered, driven over the WebSocket). This site is an installable PWA — install ",
             "it from your browser's address bar, then try the buttons below. Note it is installable and ",

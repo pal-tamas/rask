@@ -57,6 +57,8 @@
          that component out of the render cache in the same call. See LiveRenderContext.ObserveAmbientState. -->
     <InternalsVisibleTo Include="Rask.Query"/>
     <InternalsVisibleTo Include="Rask.Query.Tests"/>
+    <InternalsVisibleTo Include="Rask.Auth"/>
+    <InternalsVisibleTo Include="Rask.Auth.Tests"/>
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
     <InternalsVisibleTo Include="Rask.Benchmarks.VsBlazor"/>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>

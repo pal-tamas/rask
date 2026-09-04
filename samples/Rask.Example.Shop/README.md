@@ -7,7 +7,7 @@ one server.
 The project itself came from the CLI:
 
 ```bash
-rask new Rask.Example.Shop --auth --bootstrap
+rask new Rask.Example.Shop
 ```
 
 Everything inside it — the `Product` and `Order` slices, the job, the email, the cache and the ops page —
@@ -50,7 +50,10 @@ through the outbox; the cleanup is *scheduled*, so it goes to jobs.
 dotnet run --project samples/Rask.Example.Shop
 ```
 
-Then sign in at `/login` (`alice` / `password`), and visit `/products`, `/orders` and `/ops`.
+Then sign in at `/login` as `ada@example.com` / `Password1` — a demo administrator this sample seeds
+so it runs the moment you clone it — and visit `/products`, `/orders` and `/ops` (the operator console
+is admin-only). A real app seeds nobody: the first person to register becomes the administrator, and
+while no account exists that registration wants the one-time token from the startup log.
 
 Configuration (all optional — the defaults keep it self-contained):
 

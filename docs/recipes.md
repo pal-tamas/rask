@@ -66,7 +66,8 @@ Authorize[ NewProductButton() ]              // rendered only for signed-in user
 Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
 ```
 
-Scaffold the login itself with `rask new MyApp --auth`.
+The login page itself is already there: `/login`, `/register` and `/logout` are built in, and you
+replace any of them by declaring your own page at the same route.
 
 → Reference: [authentication](authentication.md) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
 

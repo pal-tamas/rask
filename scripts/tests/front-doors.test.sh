@@ -4,7 +4,7 @@
 # It is written in three places, and each of them is somebody's front door:
 #   README.md                          the repository landing page
 #   NUGET.md                           packed into every published package, so the nuget.org page
-#   samples/Rask.Example.Site/App.cs   the hero on the published site
+#   samples/Rask.Example.Site/Pages/HomePage.cs   the hero on the published site
 #
 # Nothing pinned them to each other, and they drifted exactly as you would expect. #924 cut the
 # sample to one button and left the other two on the old three-line version; worse, the hero had
@@ -18,12 +18,13 @@
 # an API that no longer exists, because the README's copy is compiled for real by
 # tests/Rask.Example.Playground.Tests/ChainSnippetTests.cs.
 #
-# NOT included, deliberately, so a future reader does not "fix" them into this list:
-#   samples/Rask.Example.Site/ChainAnimation.cs (and assets/rask-chain.svg baked from it) is a timed
-#     typing animation whose subject is the completion list opening after `Button.` — it needs the
-#     multi-line form to read, and its per-line timings are choreography, not a copy of the sample.
+# NOT included, deliberately, so a future reader does not "fix" it into this list:
 #   docs/getting-started.md teaches state with a heading and a paragraph, which is what the prose
 #     around it is explaining.
+#
+# (There used to be a third front door here: ChainAnimation.cs, a generated SVG that typed this same
+# sample out character by character, and assets/rask-chain.svg baked from it. Both are gone — nothing
+# embedded the baked asset any more, and the landing page leads with the source in a code window.)
 #
 # Usage:  scripts/tests/front-doors.test.sh   (run by scripts/run-unit-local.sh)
 set -euo pipefail
@@ -60,7 +61,7 @@ hero_counter() {
         inconst && /^        """$/               { body = 1; next }
         inconst && body && /^        """;$/      { exit }
         inconst && body                          { print }
-    ' samples/Rask.Example.Site/App.cs \
+    ' samples/Rask.Example.Site/Pages/HomePage.cs \
     | sed -e 's/<[^>]*>//g' \
           -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&quot;/"/g' -e 's/&amp;/\&/g' \
           -e 's/^        //'
@@ -115,7 +116,7 @@ check "a NUGET.md-only commit runs this guard" yes "$(matches_front_doors NUGET.
 # The hero needs no entry of its own: it lives under samples/, which the ordinary filter already
 # matches, so its commits run the full gate — and that runs this file via run-unit-local.sh.
 check "the site hero is under samples/" yes \
-    "$([ -f samples/Rask.Example.Site/App.cs ] && printf yes || printf no)"
+    "$([ -f samples/Rask.Example.Site/Pages/HomePage.cs ] && printf yes || printf no)"
 
 echo
 if [ "$failures" -gt 0 ]; then

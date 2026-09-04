@@ -7,7 +7,7 @@ public sealed partial class BindingTypedDemo : Component
     protected override Component? Render() =>
     [
         Input.Bind(() => _model.Name)
-            .Class($"{Ui.Input} mb-2")
+            .Class($"{Tw.Input} mb-2")
             .Placeholder("Your name"),
         P.Class("text-sm mb-0")[
             "Hello, ",

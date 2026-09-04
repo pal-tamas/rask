@@ -55,12 +55,8 @@ jobs:
       - name: Pack Rask.External
         run: dotnet pack src/Rask.External/Rask.External.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.Validation.DataAnnotations
-        run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
-
       - name: Pack Rask.Validation.FluentValidation
         run: dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release --no-build -o ./artifacts
-
 
       - name: Pack Rask.Wire
         run: dotnet pack src/Rask.Wire/Rask.Wire.csproj -c Release --no-build -o ./artifacts
@@ -110,6 +106,12 @@ jobs:
       - name: Pack Rask.Jobs
         run: dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Auth
+        run: dotnet pack src/Rask.Auth/Rask.Auth.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Auth.Client
+        run: dotnet pack src/Rask.Auth.Client/Rask.Auth.Client.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Mail
         run: dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release --no-build -o ./artifacts
 
@@ -121,6 +123,9 @@ jobs:
 
       - name: Pack Rask.Dashboard
         run: dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Ui
+        run: dotnet pack src/Rask.Ui/Rask.Ui.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Testing
         run: dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release --no-build -o ./artifacts

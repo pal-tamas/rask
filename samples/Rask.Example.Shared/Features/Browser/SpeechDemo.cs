@@ -9,20 +9,20 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Input
                     .Value(_text)
                     .Id("speech-text")
-                    .Class($"{Ui.Input} mb-2")
+                    .Class($"{Tw.Input} mb-2")
                     .OnInput(v => _text = v),
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Ui.BtnPrimary).Id("speech-speak").OnClickAsync(Speak)["Speak"],
-                    Button.Type("button").Class(Ui.BtnOutlineDanger)
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("speech-speak").OnClickAsync(Speak)["Speak"],
+                    Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("speech-cancel")
                         .OnClickAsync(Cancel)["Stop"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
             ]
         ];
 

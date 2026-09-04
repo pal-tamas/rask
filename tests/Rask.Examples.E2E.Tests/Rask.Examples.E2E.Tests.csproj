@@ -56,6 +56,8 @@
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Meta.Next\Rask.Example.Meta.Next.csproj"
                       ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Meta.Analog\Rask.Example.Meta.Analog.csproj"
+                      ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.EfCore\Rask.Example.EfCore.csproj"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Shop\Rask.Example.Shop.csproj"

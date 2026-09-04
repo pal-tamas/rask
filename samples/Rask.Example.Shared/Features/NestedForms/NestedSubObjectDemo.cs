@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Rask.Example.Shared.Features;
 
 // Sub-object binding — sub-class instance owns its own validation state under a single
-// top-of-form DataAnnotationsValidator.
+// the form's built-in validation, with nothing declared.
 public sealed partial class NestedSubObjectDemo : Component
 {
     private readonly CheckoutModel _model = new();
@@ -16,56 +16,55 @@ public sealed partial class NestedSubObjectDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission =
                 $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("flex flex-col gap-3")[
-            DataAnnotationsValidator,
             Div[
-                Label.For("nf-name").Class($"{Ui.Label} text-sm mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("nf-name").Class(Ui.Input),
+                Label.For("nf-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
+                Input.Bind(() => _model.Name).Id("nf-name").Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Label.For("nf-email").Class($"{Ui.Label} text-sm mb-1")["Email"],
+                Label.For("nf-email").Class($"{Tw.Label} text-sm mb-1")["Email"],
                 Input.Bind(() => _model.Email)
                     .Id("nf-email")
                     .Type(InputType.Email)
-                    .Class(Ui.Input),
+                    .Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Fieldset.Class("border rounded p-3 mt-2")[
                 Legend.Class("text-base font-semibold")["Shipping address"],
                 Div.Class("flex flex-col gap-3")[
                     Div[
-                        Label.For("nf-street").Class($"{Ui.Label} text-sm mb-1")["Street"],
+                        Label.For("nf-street").Class($"{Tw.Label} text-sm mb-1")["Street"],
                         Input.Bind(() => _model.Address.Street)
                             .Id("nf-street")
-                            .Class(Ui.Input),
+                            .Class(Tw.Input),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                     ],
                     Div[
-                        Label.For("nf-city").Class($"{Ui.Label} text-sm mb-1")["City"],
+                        Label.For("nf-city").Class($"{Tw.Label} text-sm mb-1")["City"],
                         Input.Bind(() => _model.Address.City)
                             .Id("nf-city")
-                            .Class(Ui.Input),
+                            .Class(Tw.Input),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                     ],
                     Div[
-                        Label.For("nf-country").Class($"{Ui.Label} text-sm mb-1")["Country (ISO)"],
+                        Label.For("nf-country").Class($"{Tw.Label} text-sm mb-1")["Country (ISO)"],
                         Input.Bind(() => _model.Address.Country)
                             .Id("nf-country")
-                            .Class(Ui.Input)
+                            .Class(Tw.Input)
                             .MaxLength(2),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.Country)
                     ]
                 ]
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit").Id("nf-submit")[
-                    Icon.Name(IconName.Check2Circle).Class("me-1"), "Place order"]
+                Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-submit")[
+                    UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Place order"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0").Id("nf-result")[
-                Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-result")[
+                UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

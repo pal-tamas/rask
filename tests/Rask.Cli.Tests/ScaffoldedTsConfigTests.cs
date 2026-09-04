@@ -86,7 +86,7 @@ public class ScaffoldedTsConfigTests
     {
         var root = Path.Combine(Path.GetTempPath(), "rask-tsconfig", Guid.NewGuid().ToString("N"));
         var result = wasm
-            ? ProjectGenerator.GenerateWasm(root, "App", auth: false, pwa: false, docker: false, "1.0.0")
+            ? ProjectGenerator.GenerateWasm(root, "App", pwa: false, docker: false, "1.0.0")
             : ProjectGenerator.GenerateServer(root, "App", new ServerBatteries(), "1.0.0");
 
         return result.Files.ToDictionary(

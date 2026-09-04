@@ -47,7 +47,7 @@ public sealed class FeedCoverageTests
         var result = template switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
-                Root, "App", auth: false, pwa: false, docker: false, Version, batteries),
+                Root, "App", pwa: false, docker: false, Version, batteries),
             _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
         };
 
@@ -63,7 +63,6 @@ public sealed class FeedCoverageTests
     {
         var batteries = new ServerBatteries
         {
-            Auth = true,
             Pwa = true,
             Cqrs = true,
             Data = true,
@@ -143,6 +142,87 @@ public sealed class FeedCoverageTests
             "Rask.Cqrs.Client is declared as a browser-only reference by `rask new --wasm --cqrs`, but "
             + "CliBuildE2E.FeedPackages does not pack it — so the browser companion could not restore "
             + "and no build gate covering it can exist.");
+    }
+
+    [Fact]
+    public void The_feed_is_closed_over_the_packages_its_own_packages_depend_on()
+    {
+        // The guards above ask what a TEMPLATE references. NuGet asks for more than that: restoring a
+        // package also restores its dependencies, and a scaffolded project never names those. So a feed
+        // that covers every direct reference can still fail to restore — which is exactly what happened
+        // when Rask.Dashboard grew a dependency on Rask.Ui. Every template still referenced only
+        // packages the feed packed, every assertion above stayed green, and the gate died on NU1101 for
+        // a package no template mentions.
+        //
+        // Read off the project files rather than a second hand-written list, because a hand-written
+        // list of everything is the thing this file exists to catch going stale.
+        var root = CliBuildE2E.FindRepoRoot();
+        var feed = new HashSet<string>(CliBuildE2E.FeedPackages, StringComparer.Ordinal);
+        var missing = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (var package in CliBuildE2E.FeedPackages)
+        {
+            var csproj = Path.Combine(root, "src", package, package + ".csproj");
+            if (!File.Exists(csproj))
+            {
+                continue;
+            }
+
+            foreach (var dependency in PackableProjectDependencies(root, csproj))
+            {
+                if (!feed.Contains(dependency))
+                {
+                    missing.Add($"{dependency} (a dependency of {package})");
+                }
+            }
+        }
+
+        Assert.True(
+            missing.Count == 0,
+            $"The local feed does not pack {string.Join(", ", missing)}. NuGet restores a package's "
+            + "dependencies as well as the package, so a scaffolded project that never names these still "
+            + "cannot restore without them — it fails with NU1101, and no build gate can run. Add them to "
+            + "CliBuildE2E.FeedPackages.");
+    }
+
+    /// <summary>
+    ///     The packable projects a project reference-depends on, i.e. the ones that become real nuspec
+    ///     dependencies. <c>PrivateAssets="all"</c> references are excluded because they deliberately do
+    ///     not: that is how the framework keeps un-packable projects like Rask.Core out of a nuspec.
+    /// </summary>
+    private static IEnumerable<string> PackableProjectDependencies(string root, string csproj)
+    {
+        foreach (var line in File.ReadLines(csproj))
+        {
+            if (!line.Contains("<ProjectReference", StringComparison.Ordinal)
+                || line.Contains("PrivateAssets=\"all\"", StringComparison.Ordinal)
+                || line.Contains("OutputItemType=\"Analyzer\"", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var start = line.IndexOf("Include=\"", StringComparison.Ordinal);
+            if (start < 0)
+            {
+                continue;
+            }
+
+            start += "Include=\"".Length;
+            var end = line.IndexOf('"', start);
+            if (end < 0)
+            {
+                continue;
+            }
+
+            var name = Path.GetFileNameWithoutExtension(line[start..end].Replace('\\', Path.DirectorySeparatorChar));
+            var referenced = Path.Combine(root, "src", name, name + ".csproj");
+
+            if (File.Exists(referenced)
+                && File.ReadAllText(referenced).Contains("<IsPackable>true</IsPackable>", StringComparison.Ordinal))
+            {
+                yield return name;
+            }
+        }
     }
 
     private static void AssertFeedCovers(ScaffoldResult result, string what)

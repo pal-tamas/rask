@@ -12,28 +12,28 @@ public sealed partial class FormControlsTextareaDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("md:col-span-6")[
-                Label.Class($"{Ui.Label} font-semibold")["Controlled (Value + OnChange)"],
+                Label.Class($"{Tw.Label} font-semibold")["Controlled (Value + OnChange)"],
                 Textarea
                     .Value(_controlled)
                     .OnChange(v => _controlled = v)
-                    .Class($"{Ui.Input} mb-2")
+                    .Class($"{Tw.Input} mb-2")
                     .Rows(3)
                     .Placeholder("Type, then blur…")
                     .Id("fc-textarea-controlled"),
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-textarea-controlled-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
                     "Length: ", Strong[_controlled.Length.ToString()]
                 ]
             ],
             Div.Class("md:col-span-6")[
-                Label.Class($"{Ui.Label} font-semibold")["Bound (two-way)"],
+                Label.Class($"{Tw.Label} font-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
                     Textarea.Bind(() => _model.Bio)
-                        .Class($"{Ui.Input} mb-2")
+                        .Class($"{Tw.Input} mb-2")
                         .Rows(3)
                         .Placeholder("Type…")
                         .Id("fc-textarea-bound")
                 ],
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-0").Id("fc-textarea-bound-out")[
+                P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-bound-out")[
                     "Length: ", Strong[_model.Bio.Length.ToString()]
                 ]
             ]

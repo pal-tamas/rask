@@ -32,13 +32,13 @@ public sealed partial class BlazorIslandDemo : Component
 {
     protected override Component? Render() =>
         Div.Class("flex flex-col gap-4")[
-            Div.Class($"{Ui.Card} shadow-sm border-0")[
-                Div.Class(Ui.CardBody)[
+            Div.Class($"{Tw.Card} shadow-sm border-0")[
+                Div.Class(Tw.CardBody)[
                     ServerPriceTickerIsland.Symbol("RASK").Price(12.50m)
                 ]
             ],
-            Div.Class($"{Ui.Card} shadow-sm border-0")[
-                Div.Class(Ui.CardBody)[
+            Div.Class($"{Tw.Card} shadow-sm border-0")[
+                Div.Class(Tw.CardBody)[
                     ViewportProbeIsland
                 ]
             ]

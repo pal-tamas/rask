@@ -19,25 +19,25 @@ public sealed partial class OriginPrivateFileSystemDemo(
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex flex-wrap gap-2 mb-2")[
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("opfs-write")
                         .OnClickAsync(Write)[
                         "Write at 4096"],
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("opfs-read")
                         .OnClickAsync(Read)[
                         "Read back"],
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("opfs-persist")
                         .OnClickAsync(Persist)[
                         "Request persistence"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
+                Div.Class("text-sm text-ui-muted")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
             ]
         ];
 

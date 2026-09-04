@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK071)
+# Rask diagnostics (RASK001–RASK071, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -105,6 +105,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK069](#rask069) | Error | Two endpoints claim one client method |
 | [RASK070](#rask070) | Warning | Endpoint's response type is not statically known |
 | [RASK071](#rask071) | Error | ASP.NET route attribute on a Rask component |
+| [RASKVAL001](#raskval001) | Error | Two validators for the same model |
+| [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
 ---
 
@@ -1567,3 +1569,54 @@ table would be the worse outcome.
 
 This does not fire on ordinary classes. A Rask server project is an ASP.NET project and may hold
 genuine controllers; `[Route]` on one of those is correct and is never reported.
+
+---
+
+## RASKVAL001
+
+**Two validators for the same model** · Error
+
+A form asks for the validator of its model type and gets exactly one, so two
+`AbstractValidator<T>` for the same `T` in one compilation is ambiguous. Which one ran would depend
+on compilation order, and the rules in the other would silently never run — which reads as a
+validator that does not work rather than one that was never reached.
+
+```csharp
+public sealed class OrderValidator     : AbstractValidator<Order> { }   // ✗ RASKVAL001
+public sealed class OrderRulesValidator : AbstractValidator<Order> { }
+```
+
+**Fix:** combine the rules into one `AbstractValidator<Order>`. To switch between sets of rules, use
+FluentValidation's own rule sets inside that single validator rather than two validator classes.
+
+A `private` or `protected` validator is never discovered in the first place, so it does not collide —
+declaring it that way is itself the statement that nothing outside constructs it, and it has to be
+registered by hand with `RaskValidators.Register`.
+
+---
+
+## RASKVAL002
+
+**Validator cannot be constructed automatically** · Warning
+
+Registration builds the validator for you: a parameterless constructor is called directly, and one
+taking parameters has each resolved from the render scope. Several public constructors leave no way
+to choose, so nothing is generated.
+
+```csharp
+public sealed class OrderValidator : AbstractValidator<Order>   // ⚠ RASKVAL002
+{
+    public OrderValidator() { }
+    public OrderValidator(IProductRepo repo) { }
+}
+```
+
+**Fix:** leave one public constructor, or register it yourself:
+
+```csharp
+RaskValidators.Register(typeof(Order), sp => new OrderValidator(Pick(sp)));
+```
+
+This is a warning rather than an error because the validator is still usable by hand — but until it
+is registered its rules never run, and a validator that silently does nothing is the failure worth
+naming.

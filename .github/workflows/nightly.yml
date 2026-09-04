@@ -40,7 +40,6 @@ jobs:
           dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Meta.Hosting/Rask.Meta.Hosting.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Blazor/Rask.Blazor.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.External/Rask.External.csproj -c Release -o ./artifacts
@@ -60,11 +59,14 @@ jobs:
           dotnet pack src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Data/Rask.Data.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Outbox/Rask.Outbox.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Auth/Rask.Auth.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Auth.Client/Rask.Auth.Client.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cache/Rask.Cache.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Logging/Rask.Logging.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Ui/Rask.Ui.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cli/Rask.Cli.csproj -c Release -o ./artifacts
 
