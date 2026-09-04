@@ -52,6 +52,14 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Tailwind\build\Rask.Tailwind.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Tailwind\build\Rask.Tailwind.targets') "/>
 
+  <!--
+    The kit's build hook, which writes its compiled stylesheet into the app's wwwroot so a browser can
+    cache it instead of re-reading 36.8 KB inlined in every document. A package consumer gets this
+    automatically; in-repo a ProjectReference does not carry it, so it is imported here like the rest.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Ui\build\Rask.Ui.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Ui\build\Rask.Ui.targets') "/>
+
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets') "/>
 

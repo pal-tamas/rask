@@ -166,6 +166,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **The landing site and the showcase carry a theme picker.** `UiThemeDropdown` puts the kit's whole
+  theme set behind one trigger, so a bar with no room for thirty-five radios can still offer them.
+
+  It works on the landing page *because* that page ships no JavaScript: daisyUI matches the checked
+  radio in CSS, so nothing has to swap a class. The showcase's light/dark toggle had been removed when
+  the showcase went light on the kit's palette — there was no second theme to flip to — and it returns
+  as the whole set, still with no `IJSRuntime` injected into the layout.
+
+  Built as a `<details>` rather than on `UiDropdown`, and structurally so: that component supplies its
+  own `<ul class="menu">` for children and the picker is already a `<ul>`, so composing them would nest
+  one list directly inside another. The list scrolls, because thirty-five rows is taller than most
+  viewports.
+
+
 - **The kit ships every daisyUI theme, and a picker for them.** It carried two — `light` and `dark` —
   while the vendored bundle already contained all 35, so 33 palettes were being compiled away.
 
@@ -232,6 +246,26 @@ them until tagged releases begin.
   `ResetPasswordSubject` and `PublicOrigin`.
 
 ### Changed
+
+- **The kit's stylesheet is served and cached instead of inlined into every document**
+  ([#1018](https://github.com/pal-tamas/rask/issues/1018)). It was 36.8 KB gzipped in the `<head>` of
+  every page, paid again on each one, which is the cost that issue was filed about.
+
+  The kit's build now writes the compiled sheet to `wwwroot/css/rask-ui.css` and apps link it, with the
+  sheet's own content hash as the cache-buster — so it is cached hard and busts exactly when the bytes
+  change. `UiStylesheet.Href(pathBase)` builds the URL; `Path` and `Version` are there for a surface
+  that wants to place it itself.
+
+  Measured on the landing page's publish: the document went from **268,143 to 63,702 bytes** (−76%),
+  and the sheet is published pre-compressed at **28.9 KB brotli**. It is fetched once.
+
+  The earlier reasoning against this is recorded in `UiStylesheet` and still holds where it applied: a
+  static web asset would need the Razor SDK and a `_content/` path a host has to map. This copies a
+  plain file, so none of that machinery arrives — and `UiStylesheet.Css` stays, because
+  **`Rask.Dashboard` still inlines**, deliberately: the console is mounted into somebody else's host,
+  which references the dashboard rather than the kit and so never gets the build hook. A `<link>` there
+  would point at a file nothing produced.
+
 
 - **`.gitignore` no longer lets a sample's SQLite database be committed.** The runtime-artifact block
   carried a comment claiming it was "no longer a per-sample list" and was exactly that: it named only

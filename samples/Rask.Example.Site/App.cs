@@ -34,9 +34,12 @@ public partial class App : Component
 
         // The kit's sheet FIRST, this page's second. The kit declares the --color-ui-* palette and the
         // page redefines the accent in its own @theme; an override only wins while it is the copy the
-        // cascade reads last. Inlined rather than served because the kit ships no static assets — see
-        // UiStylesheet.
-        Style[Raw.Value(UiStylesheet.Css)],
+        // cascade reads last.
+        //
+        // Linked rather than inlined: the sheet is 36.8 KB gzipped and was being paid on every
+        // document. The build writes it into wwwroot and the href carries its content hash, so it is
+        // cached hard and busts exactly when the bytes change.
+        Link.Rel("stylesheet").Href(UiStylesheet.Href(LiveOptions.PathBase)),
         Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
     ];
 

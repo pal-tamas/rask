@@ -113,9 +113,12 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     .Class(TopAction + " border border-ui-line bg-ui-bg text-ui-ink hover:bg-ui-well")[
                     UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"), "GitHub"
                 ]
-                // The light/dark toggle is gone. The showcase is light now, on the palette Rask.Ui
-                // declares, so there is no second theme to flip to — and with it went the only reason
-                // this layout injected IJSRuntime at all.
+                ,
+                // The light/dark toggle that used to sit here went when the showcase became light on
+                // the kit's palette: there was no second theme to flip to. There are thirty-five now,
+                // so it comes back as the whole set — and still with no IJSRuntime, because daisyUI
+                // matches the checked radio in CSS rather than asking a script to swap a class.
+                UiThemeDropdown.Placement("dropdown-end")
             ]
         ],
         Div.Class("flex app-shell")[

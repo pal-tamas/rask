@@ -60,7 +60,16 @@ public partial class App : Component
         //
         // First, because the tokens below are meant to override the kit's, and an override only wins
         // while it is the copy the cascade reads last.
-        Style[Raw.Value(UiStylesheet.Css)],
+        // Linked rather than inlined: 36.8 KB gzipped on every document of a site read page to
+        // page is the cost #1018 was filed about. The build writes it into wwwroot; the href carries
+        // the sheet's content hash so it caches hard and busts only when it changes.
+        // Served from the SHARED project, so it lives under _content/{assembly}/ like app.css below —
+        // NOT under /css/, which is this host's own wwwroot. UiStylesheet.Path is the app-root default
+        // and is wrong here for exactly the reason the next comment gives: a 404 stylesheet is
+        // invisible, and the page renders unstyled with nothing failing.
+        Link
+            .Rel("stylesheet")
+            .Href(UiStylesheet.Href(LiveOptions.PathBase + "/_content/Rask.Example.Shared")),
         // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
         // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
         // ORDER was what decided the outcome and a comment was the only thing keeping it right.
