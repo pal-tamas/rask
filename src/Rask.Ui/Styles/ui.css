@@ -87,7 +87,7 @@
 @source not "./vendor";
 
 @plugin "./vendor/daisyui.mjs" {
-  themes: light --default, dark --prefersdark;
+  themes: all;
   root: "[data-rask-ui]";
   exclude: rootscrollgutter;
 }
