@@ -101,4 +101,18 @@ public sealed class UiPaletteTests
         Assert.Matches(new Regex(@"<html[^>]*\sdata-rask-ui\b"), html);
     }
 
+
+    [Fact]
+    public void The_document_inlines_the_kits_stylesheet()
+    {
+        // The tokens above are expressed in daisyUI's variables, and those are defined ONLY in the kit's
+        // compiled sheet — Tailwind scans the project it runs in, so this app's own build cannot emit
+        // them. Without the sheet on the page every colour resolves to nothing: not wrong, absent.
+        // Structure and layout survive it, which is exactly why it went unnoticed until a browser test
+        // compared --accent with --color-ui-brand and found both empty.
+        var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
+
+        Assert.Contains("--color-primary", html, StringComparison.Ordinal);
+    }
+
 }

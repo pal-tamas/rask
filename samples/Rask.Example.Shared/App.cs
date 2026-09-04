@@ -49,6 +49,18 @@ public partial class App : Component
             .Rel("stylesheet")
             .Href("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700"
                 + "&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"),
+        // The KIT's sheet, inlined, and FIRST.
+        //
+        // Tailwind scans the project it runs in, so the classes Rask.Ui's components write are compiled
+        // into its sheet and cannot appear in this one — and since the kit took daisyUI, that sheet is
+        // also the only place --color-primary and the rest of the palette are defined. This app's own
+        // @theme expresses --color-ui-* in terms of them, so without this every colour on every page
+        // resolves to nothing: not wrong, absent. Layout and structure survive it, which is why it
+        // looked fine until a browser test compared two custom properties and found both empty.
+        //
+        // First, because the tokens below are meant to override the kit's, and an override only wins
+        // while it is the copy the cascade reads last.
+        Style[Raw.Value(UiStylesheet.Css)],
         // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
         // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
         // ORDER was what decided the outcome and a comment was the only thing keeping it right.
