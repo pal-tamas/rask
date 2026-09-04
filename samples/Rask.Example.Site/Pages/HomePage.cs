@@ -87,7 +87,11 @@ public sealed partial class HomePage : Component
                     // stacking over two lines push the hero below the fold on a phone.
                     NavItem("Docs", "docs/", hideOnPhone: true),
                     NavItem("Playground", "playground/", hideOnPhone: true),
-                    NavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false)
+                    NavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false),
+
+                    // Every theme the kit ships, switched in CSS. It works on this page precisely
+                    // because the page ships no JavaScript — daisyUI matches the checked radio itself.
+                    UiThemeDropdown.Placement("dropdown-end")
                 ]
             ]
         ];

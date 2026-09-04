@@ -166,6 +166,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **The landing site and the showcase carry a theme picker.** `UiThemeDropdown` puts the kit's whole
+  theme set behind one trigger, so a bar with no room for thirty-five radios can still offer them.
+
+  It works on the landing page *because* that page ships no JavaScript: daisyUI matches the checked
+  radio in CSS, so nothing has to swap a class. The showcase's light/dark toggle had been removed when
+  the showcase went light on the kit's palette — there was no second theme to flip to — and it returns
+  as the whole set, still with no `IJSRuntime` injected into the layout.
+
+  Built as a `<details>` rather than on `UiDropdown`, and structurally so: that component supplies its
+  own `<ul class="menu">` for children and the picker is already a `<ul>`, so composing them would nest
+  one list directly inside another. The list scrolls, because thirty-five rows is taller than most
+  viewports.
+
+
 - **The kit ships every daisyUI theme, and a picker for them.** It carried two — `light` and `dark` —
   while the vendored bundle already contained all 35, so 33 palettes were being compiled away.
 

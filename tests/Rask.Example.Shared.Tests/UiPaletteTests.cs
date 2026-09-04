@@ -1,3 +1,4 @@
+using Rask.Ui;
 using System.Text.RegularExpressions;
 using Rask.Example.Shared.Tests.Infrastructure;
 
@@ -103,16 +104,24 @@ public sealed class UiPaletteTests
 
 
     [Fact]
-    public void The_document_inlines_the_kits_stylesheet()
+    public void The_document_links_the_kits_stylesheet()
     {
         // The tokens above are expressed in daisyUI's variables, and those are defined ONLY in the kit's
         // compiled sheet — Tailwind scans the project it runs in, so this app's own build cannot emit
         // them. Without the sheet on the page every colour resolves to nothing: not wrong, absent.
         // Structure and layout survive it, which is exactly why it went unnoticed until a browser test
         // compared --accent with --color-ui-brand and found both empty.
+        //
+        // The sheet used to be inlined and this asserted on its bytes. It is served as a cached file
+        // now (#1018), so what has to be true is that the document REACHES it — a page that links
+        // nothing fails exactly as the unstyled one did.
         var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
-        Assert.Contains("--color-primary", html, StringComparison.Ordinal);
+        Assert.Contains(UiStylesheet.Path, html, StringComparison.Ordinal);
+
+        // With the cache-buster, so an upgrade cannot be served from a stale cache.
+        Assert.Contains(UiStylesheet.Href(), html, StringComparison.Ordinal);
+        Assert.NotEmpty(UiStylesheet.Version);
     }
 
 }
