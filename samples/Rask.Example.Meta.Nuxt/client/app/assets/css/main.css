@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* Tailwind's preflight removes the browser's default look on purpose, so a page carrying no
+   utilities renders as unstyled text. These rules give the starter a deliberate one. They are
+   ordinary utilities applied by element: move any of them into a class attribute in your own
+   markup and delete the rule — the page does not change. */
+@layer base {
+  body {
+    @apply bg-white text-slate-700 antialiased dark:bg-slate-950 dark:text-slate-300;
+  }
+
+  main {
+    @apply mx-auto flex max-w-lg flex-col items-start gap-4 px-6 py-16;
+  }
+
+  h1 {
+    @apply text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+
+  label {
+    @apply flex items-center gap-2 text-sm font-medium;
+  }
+
+  input {
+    @apply rounded-md border border-slate-300 px-3 py-1.5 text-base text-inherit
+           focus:border-slate-500 focus:outline-none
+           dark:border-slate-700 dark:bg-slate-900;
+  }
+
+  button {
+    @apply rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white
+           hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50
+           dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300;
+  }
+
+  [role="alert"] {
+    @apply text-red-600 dark:text-red-400;
+  }
+}

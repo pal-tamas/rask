@@ -46,10 +46,17 @@ public sealed class SpaTemplateTests
         Assert.DoesNotContain("Shop.Server", notes, StringComparison.Ordinal);
 
         // And the directory it does name is one the scaffold writes into.
+        //
+        // The notes are written for someone standing OUTSIDE the new project, so they carry the project
+        // name; the scaffold's own paths are relative to the directory it creates and so do not. Those
+        // two stopped matching literally when the target directory became the project directory (it used
+        // to be nested, and `rask new Shop` wrote Shop/Shop) — so the check is that the notes name the
+        // project plus a directory the scaffold really writes, rather than that one string contains the
+        // other.
         Assert.Contains("Shop/Client/src/rask/", notes, StringComparison.Ordinal);
         Assert.True(
-            result.Files.Any(f => f.Path.Replace('\\', '/').Contains("/Shop/Client/", StringComparison.Ordinal)),
-            "the scaffold produced no Shop/Client/ files for the next steps to point at");
+            result.Files.Any(f => f.Path.Replace('\\', '/').Contains("/Client/", StringComparison.Ordinal)),
+            "the scaffold produced no Client/ files for the next steps to point at");
     }
 
     /// <summary>Runs the package.json patch over a minimal stand-in for what the scaffolder writes.</summary>
@@ -70,7 +77,7 @@ public sealed class SpaTemplateTests
         var external = Assert.Single(Generate().ExternalScaffolds);
 
         Assert.Equal("npx", external.Command);
-        Assert.Equal(["--yes", "create-vite@latest", "Shop/Client", "--template", "react-ts"], external.Arguments);
+        Assert.Equal(["--yes", "create-vite@latest", "Client", "--template", "react-ts"], external.Arguments);
     }
 
     /// <summary>
@@ -132,8 +139,8 @@ public sealed class SpaTemplateTests
         // needs to compile at all, and neither is a hand-maintained copy of a framework's own skeleton.
         var ours = result.Files
             .Select(f => f.Path.Replace('\\', '/'))
-            .Where(p => p.Contains("/Shop/Client/", StringComparison.Ordinal))
-            .Select(p => p[(p.IndexOf("/Shop/Client/", StringComparison.Ordinal) + 13)..])
+            .Where(p => p.Contains("/Client/", StringComparison.Ordinal))
+            .Select(p => p[(p.IndexOf("/Client/", StringComparison.Ordinal) + 8)..])
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToArray();
 
@@ -146,7 +153,7 @@ public sealed class SpaTemplateTests
     [Fact]
     public void The_dev_server_proxies_the_wire_to_the_host()
     {
-        var config = Content(Generate(), "/Shop/Client/vite.config.ts");
+        var config = Content(Generate(), "/Client/vite.config.ts");
 
         // The browser talks to Vite and Vite forwards /_rask, so HMR stays native and the browser only ever
         // sees one origin — which is what means there is no CORS to configure in development.
@@ -168,7 +175,7 @@ public sealed class SpaTemplateTests
     [Fact]
     public void The_api_is_mapped_before_the_spa_fallback()
     {
-        var program = Content(Generate(), "/Shop/Program.cs");
+        var program = Content(Generate(), "/Program.cs");
 
         // UseRaskSpa ends the pipeline with a fallback to index.html. An endpoint mapped after it is
         // shadowed by that fallback rather than reached — and the symptom is an API call answered with
@@ -199,7 +206,7 @@ public sealed class SpaTemplateTests
         // The wire IS this template — a client that cannot dispatch has nothing to be.
         Assert.Contains(
             "AddRaskCqrsServer",
-            Content(Generate(), "/Shop/Program.cs"),
+            Content(Generate(), "/Program.cs"),
             StringComparison.Ordinal);
     }
 
@@ -225,13 +232,13 @@ public sealed class SpaTemplateTests
     {
         var result = Generate(new ServerBatteries { Data = true });
 
-        Assert.True(Has(result, "/Shop/Features/Shared/AppDbContext.cs"));
+        Assert.True(Has(result, "/Features/Shared/AppDbContext.cs"));
 
         // The context is declared in the .Server namespace, so Program.cs has to import it — and the
         // failure when it does not is a compile error nothing but a real build catches.
         Assert.Contains(
             "using Shop.Features.Shared;",
-            Content(result, "/Shop/Program.cs"),
+            Content(result, "/Program.cs"),
             StringComparison.Ordinal);
     }
 
@@ -332,7 +339,7 @@ public sealed class SpaTemplateTests
         var client = string.Join(
             "\n",
             result.Files
-                .Where(f => f.Path.Replace('\\', '/').Contains("/Shop/Client/", StringComparison.Ordinal))
+                .Where(f => f.Path.Replace('\\', '/').Contains("/Client/", StringComparison.Ordinal))
                 .Select(f => f.Content));
 
         Assert.Contains("rask/messages", client, StringComparison.Ordinal);
@@ -465,7 +472,7 @@ public sealed class SpaTemplateTests
         // the dev proxy and Tailwind, and a dangling `import  from` would not parse.
         var config = Content(
             ProjectGenerator.GenerateSpa(Root, "Shop", Framework("lit"), new ServerBatteries(), "1.2.3"),
-            "/Shop/Client/vite.config.ts");
+            "/Client/vite.config.ts");
 
         Assert.DoesNotContain("import  from", config, StringComparison.Ordinal);
 
@@ -499,9 +506,9 @@ public sealed class SpaTemplateTests
             {
                 Assert.Contains("\"@tailwindcss/vite\"", packageJson, StringComparison.Ordinal);
                 Assert.DoesNotContain("@tailwindcss/postcss", packageJson, StringComparison.Ordinal);
-                Assert.False(Has(result, "/Shop/Client/.postcssrc.json"));
+                Assert.False(Has(result, "/Client/.postcssrc.json"));
 
-                var config = Content(result, "/Shop/Client/vite.config.ts");
+                var config = Content(result, "/Client/vite.config.ts");
                 Assert.Contains("import tailwindcss from '@tailwindcss/vite'", config, StringComparison.Ordinal);
                 Assert.Contains("tailwindcss()", config, StringComparison.Ordinal);
             }
@@ -512,7 +519,7 @@ public sealed class SpaTemplateTests
                 Assert.Contains("\"@tailwindcss/postcss\"", packageJson, StringComparison.Ordinal);
                 Assert.DoesNotContain("@tailwindcss/vite", packageJson, StringComparison.Ordinal);
                 Assert.Contains(
-                    "@tailwindcss/postcss", Content(result, "/Shop/Client/.postcssrc.json"), StringComparison.Ordinal);
+                    "@tailwindcss/postcss", Content(result, "/Client/.postcssrc.json"), StringComparison.Ordinal);
             }
         }
     }
@@ -533,12 +540,12 @@ public sealed class SpaTemplateTests
             var result = ProjectGenerator.GenerateSpa(
                 Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
-            var sheet = Content(result, $"/Shop/Client/{framework.GlobalStylesheet}");
+            var sheet = Content(result, $"/Client/{framework.GlobalStylesheet}");
             Assert.Contains("@import \"tailwindcss\";", sheet, StringComparison.Ordinal);
 
             // v4 needs no config file and no content array: it detects the sources itself.
             Assert.DoesNotContain("content:", sheet, StringComparison.Ordinal);
-            Assert.False(Has(result, "/Shop/Client/tailwind.config.js"));
+            Assert.False(Has(result, "/Client/tailwind.config.js"));
         }
     }
 
@@ -572,7 +579,7 @@ public sealed class SpaTemplateTests
             var result = ProjectGenerator.GenerateSpa(
                 Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
-            var sheet = Content(result, $"/Shop/Client/{framework.GlobalStylesheet}");
+            var sheet = Content(result, $"/Client/{framework.GlobalStylesheet}");
             var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
 
             // Matched on the trimmed line rather than on indentation, so re-indenting the stylesheet is
@@ -613,7 +620,7 @@ public sealed class SpaTemplateTests
             // stylesheet: the app builds, and every utility class is silently missing.
             Assert.Equal(
                 !framework.WritesViteConfig,
-                Has(result, "/Shop/Client/.postcssrc.json"));
+                Has(result, "/Client/.postcssrc.json"));
         }
     }
 
@@ -725,11 +732,11 @@ public sealed class SpaTemplateTests
 
             // public/ because every bundler copies it verbatim to the bundle root — so these are reachable
             // at / in a build AND under the dev server, where only /_rask is proxied to the host.
-            Assert.True(Has(result, "/Shop/Client/public/manifest.webmanifest"));
-            Assert.True(Has(result, "/Shop/Client/public/icon.svg"));
-            Assert.True(Has(result, "/Shop/Client/public/rask-sw.js"));
+            Assert.True(Has(result, "/Client/public/manifest.webmanifest"));
+            Assert.True(Has(result, "/Client/public/icon.svg"));
+            Assert.True(Has(result, "/Client/public/rask-sw.js"));
 
-            var worker = Content(result, "/Shop/Client/public/rask-sw.js");
+            var worker = Content(result, "/Client/public/rask-sw.js");
             Assert.Contains("addEventListener(\"push\"", worker, StringComparison.Ordinal);
             Assert.Contains("notificationclick", worker, StringComparison.Ordinal);
 
@@ -752,7 +759,7 @@ public sealed class SpaTemplateTests
         // permission — is the developer's, so it is a committed source file they can edit. src/rask/ is
         // build output that .gitignore excludes, which is where this used to be scaffolded: hand-owned,
         // regenerated by nothing, and gone after a fresh clone.
-        var client = Content(result, "/Shop/Client/src/push.ts");
+        var client = Content(result, "/Client/src/push.ts");
         Assert.Contains("/_push/key", client, StringComparison.Ordinal);
         Assert.Contains("/_push/subscribe", client, StringComparison.Ordinal);
         Assert.Contains("/_push/unsubscribe", client, StringComparison.Ordinal);
@@ -764,14 +771,14 @@ public sealed class SpaTemplateTests
         // encrypt for a subscription that looked like it registered.
         Assert.Contains("from './rask/browser/webPush'", client, StringComparison.Ordinal);
 
-        var store = Content(result, "/Shop/Features/Push/PushSubscriptions.cs");
+        var store = Content(result, "/Features/Push/PushSubscriptions.cs");
         // Re-namespaced into the .Server project, which is the half with the endpoints on it.
         Assert.Contains("namespace Shop.Features.Push;", store, StringComparison.Ordinal);
         Assert.Contains("MapPushSubscriptions", store, StringComparison.Ordinal);
 
         // Mapped before UseRaskSpa, which ends the pipeline with a fallback to index.html — an endpoint
         // added after it would answer HTML instead of JSON.
-        var program = Content(result, "/Shop/Program.cs");
+        var program = Content(result, "/Program.cs");
         Assert.InRange(
             program.IndexOf("app.MapPushSubscriptions();", StringComparison.Ordinal),
             0,
@@ -822,9 +829,9 @@ public sealed class SpaTemplateTests
     {
         var result = ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, new ServerBatteries(), "1.2.3");
 
-        Assert.False(Has(result, "/Shop/Client/public/rask-sw.js"));
-        Assert.False(Has(result, "/Shop/Client/public/manifest.webmanifest"));
-        Assert.False(Has(result, "/Shop/Client/src/push.ts"));
+        Assert.False(Has(result, "/Client/public/rask-sw.js"));
+        Assert.False(Has(result, "/Client/public/manifest.webmanifest"));
+        Assert.False(Has(result, "/Client/src/push.ts"));
         Assert.DoesNotContain(result.Patches, patch => patch.Path.EndsWith("index.html", StringComparison.Ordinal));
     }
 
@@ -836,12 +843,12 @@ public sealed class SpaTemplateTests
                 .ExternalScaffolds);
 
         // ng new, not create-vite: Angular has no create-vite template, and its own CLI is where its
-        // conventions come from. The project name has to be kebab-case — Angular rejects "Shop/Client"
-        // outright — so the CLI is given shop-client with --directory Shop/Client.
+        // conventions come from. The project name has to be kebab-case — Angular rejects "Client"
+        // outright — so the CLI is given shop-client with --directory Client.
         Assert.Contains("@angular/cli@latest", external.Arguments);
         Assert.Contains("shop-client", external.Arguments);
         Assert.Contains("--directory", external.Arguments);
-        Assert.Contains("Shop/Client", external.Arguments);
+        Assert.Contains("Client", external.Arguments);
 
         // The install is the build's job, and rask new initialises one repository at the solution root.
         Assert.Contains("--skip-install", external.Arguments);
@@ -853,7 +860,7 @@ public sealed class SpaTemplateTests
     {
         var csproj = Content(
             ProjectGenerator.GenerateSpa(Root, "Shop", Framework("angular"), new ServerBatteries(), "1.2.3"),
-            "/Shop/Shop.csproj");
+            "/Shop.csproj");
 
         // Angular's default output is dist/<project>/browser. A host left pointing at dist/ serves the
         // "nothing built yet" page after a build that succeeded — which reads as a broken scaffold.
@@ -870,7 +877,7 @@ public sealed class SpaTemplateTests
         {
             var csproj = Content(
                 ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries(), "1.2.3"),
-                "/Shop/Shop.csproj");
+                "/Shop.csproj");
 
             Assert.DoesNotContain("<RaskSpaDistDir>", csproj, StringComparison.Ordinal);
         }

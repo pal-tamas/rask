@@ -8,6 +8,48 @@ public sealed class ServerExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class MetaNuxtExampleCollection
+    : ICollectionFixture<MetaNuxtAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaNuxtExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class MetaNextExampleCollection
+    : ICollectionFixture<MetaNextAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaNextExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class MetaSvelteKitExampleCollection
+    : ICollectionFixture<MetaSvelteKitAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaSvelteKitExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class MetaSolidStartExampleCollection
+    : ICollectionFixture<MetaSolidStartAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaSolidStartExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class MetaTanStackExampleCollection
+    : ICollectionFixture<MetaTanStackAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaTanStackExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class MetaAnalogExampleCollection
+    : ICollectionFixture<MetaAnalogAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "MetaAnalogExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class EfCoreExampleCollection
     : ICollectionFixture<EfCoreExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {

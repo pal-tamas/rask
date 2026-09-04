@@ -56,9 +56,20 @@
     <CompilerVisibleProperty Include="RootNamespace"/>
   </ItemGroup>
 
+  <!--
+    The excludes below name the front end's directories at ANY depth, not just the project root.
+    `node_modules\**` alone is anchored, and that was enough only because the ISLANDS lane puts its
+    package.json in the project root. The SPA and meta lanes put the whole front end in a subdirectory,
+    so theirs is `client/node_modules` — and a scoped-CSS auto-include then walks into a Nuxt app's
+    dependencies and reports RASK015 for every stylesheet Vue, the devtools and the build output
+    happen to contain. 154 of them, on a sample whose own C# has no stylesheet at all.
+
+    A .css inside a front-end directory can never be scoped CSS: scoped CSS is paired with a Component
+    class in the same folder, and there are no C# classes down there.
+  -->
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
     <AdditionalFiles Include="**\*.css"
-                     Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**"/>
+                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**"/>
   </ItemGroup>
 
   <!--
@@ -80,7 +91,7 @@
 
   <ItemGroup Condition=" '$(RaskTranslationsAutoInclude)' != 'false' ">
     <AdditionalFiles Include="Resources\**\*.json"
-                     Exclude="@(AdditionalFiles);bin\**;obj\**;node_modules\**;wwwroot\**"/>
+                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**"/>
   </ItemGroup>
 
   <PropertyGroup>
@@ -154,7 +165,7 @@
   -->
   <ItemGroup Condition=" '$(RaskScopedTsAutoInclude)' != 'false' ">
     <_RaskScopedTs Include="**\*.ts"
-                   Exclude="bin\**;obj\**;node_modules\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts"/>
+                   Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts"/>
 
     <!--
       Ambient declarations — the way to describe a third-party library with no node_modules to take
@@ -164,7 +175,7 @@
       to type-check. They emit nothing, so they never become an AdditionalFile.
     -->
     <_RaskScopedTsTypes Include="**\*.d.ts"
-                        Exclude="bin\**;obj\**;node_modules\**;wwwroot\**;Browser\**"/>
+                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Browser\**"/>
 
     <!--
       Watched HERE rather than beside the other <Watch> at the end of this group, and that placement
@@ -187,7 +198,7 @@
 
     <!-- Never becomes <AdditionalFiles>. It exists only to feed RASK054. -->
     <_RaskStrayScopedJs Include="**\*.js"
-                        Exclude="bin\**;obj\**;node_modules\**;wwwroot\**;Resources\**;Browser\**"/>
+                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**"/>
 
     <!--
       `dotnet watch` collects @(Compile), @(EmbeddedResource), the project file and Razor content —
@@ -199,7 +210,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
-    <Watch Include="**\*.css" Exclude="bin\**;obj\**;node_modules\**;wwwroot\**"/>
+    <Watch Include="**\*.css" Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**"/>
   </ItemGroup>
 
   <!--

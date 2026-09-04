@@ -51,6 +51,19 @@ async function directory(path: string): Promise<FileSystemDirectoryHandle> {
     return dir;
 }
 
+/**
+ * The async-iterable half of a directory handle.
+ *
+ * Declared here rather than taken from `lib.dom`, like every other vendor shape in this directory:
+ * `keys()` is recent enough that a consumer on an older TypeScript does not have it, and the failure
+ * lands as a type error inside Rask's own code during THEIR build. Measured on a scaffolded Next app,
+ * whose TypeScript is its own rather than ours.
+ */
+interface DirectoryHandleWithKeys {
+    keys(): AsyncIterableIterator<string>;
+}
+
+
 export function isSupported(): boolean {
     return typeof navigator !== "undefined"
         && !!(navigator.storage && navigator.storage.getDirectory);
@@ -183,7 +196,8 @@ export async function remove(path: string, recursive?: boolean): Promise<void> {
 export async function list(path: string): Promise<string[]> {
     try {
         const names: string[] = [];
-        for await (const name of (await directory(path)).keys()) {
+        const handle = await directory(path) as unknown as DirectoryHandleWithKeys;
+        for await (const name of handle.keys()) {
             names.push(name);
         }
         return names;

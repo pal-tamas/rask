@@ -312,6 +312,26 @@ internal sealed class FakeFileSystem : IFileSystem
         _directories.Add(Normalize(Path.GetDirectoryName(path)!));
     }
 
+    public bool DirectoryExists(string path)
+    {
+        var dir = Normalize(path);
+        return _directories.Contains(dir)
+            || _files.Keys.Any(f => f.StartsWith(dir + Path.DirectorySeparatorChar, StringComparison.Ordinal));
+    }
+
+    public void TryDeleteDirectory(string path)
+    {
+        var dir = Normalize(path);
+        var prefix = dir + Path.DirectorySeparatorChar;
+
+        foreach (var key in _files.Keys.Where(f => f.StartsWith(prefix, StringComparison.Ordinal)).ToList())
+        {
+            _files.Remove(key);
+        }
+
+        _directories.RemoveWhere(d => d == dir || d.StartsWith(prefix, StringComparison.Ordinal));
+    }
+
     public void TryDelete(string path) => _files.Remove(Normalize(path));
 
     private static string Normalize(string path) => Path.GetFullPath(path);

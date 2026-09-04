@@ -219,6 +219,25 @@
       <_RaskMetaBrowserSource Include="$(MSBuildThisFileDirectory)../client/browser/*.ts"/>
     </ItemGroup>
 
+    <!--
+      In-repo, neither of those directories exists: they are assembled at PACK time out of
+      Rask.Spa.Hosting/client and Rask.Core/Resources/browser, which is what keeps one dispatcher and
+      one browser layer serving both TypeScript lanes. A sample in this repository references the
+      project rather than the package, so without this fallback it would generate its contracts and
+      then import a dispatcher that was never delivered — a build that succeeds and a front end that
+      does not compile.
+
+      Conditioned on the packed items being empty, so a consumer never evaluates these paths.
+    -->
+    <ItemGroup Condition="'@(_RaskMetaClientSource)' == ''">
+      <_RaskMetaClientSource Include="$(MSBuildThisFileDirectory)../../Rask.Spa.Hosting/client/*.ts"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'@(_RaskMetaBrowserSource)' == ''">
+      <_RaskMetaBrowserSource Include="$(MSBuildThisFileDirectory)../../Rask.Core/Resources/browser/*.ts"
+                              Exclude="$(MSBuildThisFileDirectory)../../Rask.Core/Resources/browser/globals.ts"/>
+    </ItemGroup>
+
     <Copy SourceFiles="@(_RaskMetaClientSource)"
           DestinationFolder="$(_RaskMetaGenerated)"
           SkipUnchangedFiles="true"/>

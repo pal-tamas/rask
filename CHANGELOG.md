@@ -9,6 +9,25 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A scaffolded Analog front end shipped a bare `@rask/client` and died in the browser.** The alias is
+  written into the app's own `tsconfig.json`, which is a *type-checking* concept — Vite never reads it
+  when bundling. `AddRaskViteConfig` was supposed to add the bundler half, but skipped it whenever the
+  config already declared a `resolve` block, on the stated grounds that the only two such frameworks
+  handled it themselves. Analog declares `resolve: { mainFields: ['module'] }` and its platform plugin
+  does **not** bring `vite-tsconfig-paths`, so the alias was dropped.
+
+  Every gate stayed green: the type-check passes because the tsconfig mapping is real, the build
+  succeeds, and the guard that pins `@rask/*` as mapped exactly once is looking at the tsconfig. What
+  failed was the page — `TypeError: Failed to resolve module specifier "@rask/client"`, a console error
+  behind a 200 with the markup intact and only the component missing.
+
+  An existing `resolve` block is now merged into rather than skipped, and the alias is still left alone
+  where something genuinely supplies it (an existing `alias`, or TanStack's `resolve: { tsconfigPaths:
+  true }`). The `Rask.Example.Meta.Analog` sample carries the same alias, since a vendored client is
+  never re-scaffolded. Its browser journey — the first one this sample has ever had — asserts the page
+  reports no console errors, because that is the only place this failure was visible.
+
+
 - **The landing page was still grey after the theme scope was added to its root component.** Setting
   `data-rask-ui` in `App.Shell` is not enough for a prerendered WebAssembly app: the publish splices the
   render into the SDK's boot shell — that is what carries the import map and the boot script — and the

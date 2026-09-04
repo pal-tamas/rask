@@ -700,6 +700,31 @@ public sealed class NewCommandTests
         }
     }
 
+    [Fact]
+    public async Task A_repository_the_creator_initialised_inside_the_app_is_removed()
+    {
+        // create-analog runs `git init` and has no flag to stop it. Left in place, the outer
+        // repository treats the front end as an EMBEDDED repository and records a gitlink for it — so
+        // none of its files are committed. The commit succeeds, prints a hint, and the app is missing
+        // from it. Found by committing a scaffolded sample into this repository.
+        var (console, fs, runner, command) = Build();
+
+        // The creator's work, as the scaffold will find it on disk afterwards.
+        fs.Seed("/proj/Shop/client/package.json", "{}");
+        fs.Seed("/proj/Shop/client/.git/HEAD", "ref: refs/heads/main");
+
+        var exit = await command.ExecuteAsync(
+            ["Shop", "--template", "analog", "--no-restore", "--no-git"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("npx", string.Join(" ", runner.Invocations.Select(i => i.FileName)), StringComparison.Ordinal);
+        Assert.False(fs.DirectoryExists("/proj/Shop/client/.git"), console.OutText + console.ErrorText);
+
+        // The app itself is untouched — only the repository nested inside it went.
+        Assert.True(fs.FileExists("/proj/Shop/client/package.json"));
+        Assert.Contains("own repository owns those files", console.OutText, StringComparison.Ordinal);
+    }
+
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()
     {
         var console = new StringConsole();

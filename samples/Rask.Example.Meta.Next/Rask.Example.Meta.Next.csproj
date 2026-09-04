@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!--
+      The one property that turns this lane on. It is named here rather than passed to
+      AddRaskMeta() because the BUILD needs it anyway — to install, build and publish the right
+      front end — and baking it into the assembly is what lets AddRaskMeta() take no argument and
+      still be certain it is fronting the framework that was actually built.
+    -->
+    <RaskMetaFramework>nextjs</RaskMetaFramework>
+    <!-- These creators reject a capital letter in the directory name. -->
+    <RaskMetaAppDir>client</RaskMetaAppDir>
+
+    <!--
+      A meta host renders no Rask components, so there is no scoped CSS or scoped TypeScript to pair
+      with one. In-repo these auto-includes are imported for every project by Directory.Build.targets,
+      and without turning them off here they walk the front end's OWN sources. A package consumer never
+      sees this: their meta host does not reference Rask.Core.
+    -->
+    <RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      In-repo samples reference the projects, not the packages. The build/ props and targets a
+      consumer gets automatically from the package are imported for the whole repo by
+      Directory.Build.props / .targets, because a ProjectReference does not carry them.
+    -->
+    <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Server\Rask.Cqrs.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Meta.Hosting\Rask.Meta.Hosting.csproj"/>
+
+    <!--
+      The generator that projects the message records into TypeScript. A PackageReference carries a
+      package's analyzers and a ProjectReference does not, so in-repo it has to be asked for by name —
+      without it the build succeeds, writes no contracts, and the front end imports a directory that
+      was never created.
+    -->
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <!--
+      Runs the front end's own toolchain during `dotnet build` (npm ci, npm run build), copies its
+      output on publish, and supervises `node` beside Kestrel at runtime. Your C# message records
+      are projected into TypeScript on every build, into app/rask/.
+      -p:RaskMetaBuild=false skips node entirely — the app still compiles and its API still works.
+    -->
+  </ItemGroup>
+
+</Project>

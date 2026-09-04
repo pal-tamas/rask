@@ -115,7 +115,14 @@ public sealed class MetaTemplateTests
         var result = ProjectGenerator.GenerateMeta(
             "/out", "Shop", framework, new ServerBatteries(), "1.0.0");
 
-        Assert.Equal("Shop", result.ExternalScaffolds.Single().WorkingSubdirectory);
+        // No working subdirectory: the target directory already IS the project directory. It used to be
+        // the project name, which doubled it — `rask new Shop` wrote Shop/Shop and told the creator
+        // Shop/client, so the host and the front end landed in different places.
+        Assert.Equal(string.Empty, result.ExternalScaffolds.Single().WorkingSubdirectory);
+
+        // Named rather than guessed from the arguments, so the scaffold can delete the repository
+        // create-analog initialises inside it.
+        Assert.Equal(framework.AppDir, result.ExternalScaffolds.Single().CreatedDirectory);
 
         // create-start-app prints a deprecation notice on every run and points at @tanstack/cli.
         Assert.DoesNotContain(args, arg => arg.Contains("create-start-app", StringComparison.Ordinal));

@@ -43,9 +43,17 @@
       and it carries more weight now than it did: the old rule looked only at projects named
       `*.Server`, and this one considers every project. A directory called `Client` is not rare; a
       directory called `Client` holding a package.json, inside a project that also references this
-      package, is. In this repo nothing matches, which is the property to preserve when editing here.
+      package, is.
+
+      RaskMetaFramework is the one thing that makes it rare enough. A meta framework host puts its
+      front end in exactly this shape — one project, a folder inside it, a package.json — so on a
+      case-insensitive filesystem the meta lane's `client` IS this convention's `Client`, and this
+      lane would claim a project it has no business in. The two are mutually exclusive by
+      construction: a project either serves a static bundle or fronts a framework's own node server.
+      In this repo the six Rask.Example.Meta.* samples are exactly that case, and they are why this
+      condition exists rather than being a hypothetical.
     -->
-    <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == ''"
+    <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == '' AND '$(RaskMetaFramework)' == ''"
     >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/Client'))</_RaskSpaConventionDir>
 
     <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND Exists('$(_RaskSpaConventionDir)/package.json')"
@@ -195,7 +203,7 @@
   <Target Name="_RaskSpaEmitTypeScript"
           AfterTargets="CoreCompile"
           DependsOnTargets="ResolveProjectReferences"
-          Condition="'$(RaskEmitTypeScript)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
+          Condition="'$(RaskEmitTypeScript)' == 'true' AND '$(_RaskSpaGenerated)' != '' AND '$(DesignTimeBuild)' != 'true'">
     <WriteGeneratedTypeScriptTask AssemblyPath="@(IntermediateAssembly)" OutputDirectory="$(_RaskSpaGenerated)"/>
 
     <!--

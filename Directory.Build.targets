@@ -23,6 +23,15 @@
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.targets') "/>
 
   <!--
+    Rask.Meta.Hosting does nothing without RaskMetaFramework, so this import costs every other project
+    in the repo one property check. In-repo the samples reference the project rather than the package,
+    and a ProjectReference does not carry a package's build/ folder — so without this the six meta
+    samples would compile their C# and never install, build or publish a front end at all.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Meta.Hosting\build\Rask.Meta.Hosting.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Meta.Hosting\build\Rask.Meta.Hosting.targets') "/>
+
+  <!--
     Rask.External gates itself on the project having a package.json — an island cannot be bundled
     without one, and that single file probe is what keeps this import free for the ~100 projects in
     this repo that have no front end. Without it, every project would walk its own source tree looking

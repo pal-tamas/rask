@@ -129,8 +129,14 @@
          them). Rask.Example.Razor opts out for the same reason from the other side: it is a Razor
          Class Library holding a plain .razor, references no Rask package at all — that is the point of
          it, since a hosted Blazor component knows nothing about Rask — and the injected usings would
-         name assemblies it does not have. -->
-    <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Example.')) AND '$(_RaskUsingsName)' != 'Rask.Example.Playground.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Site.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Razor' ">true</_RaskInRepoImplicitUsings>
+         name assemblies it does not have.
+
+         Rask.Example.Meta.* opts out from the same side, and by prefix rather than one name at a
+         time because there are six of them: a meta host renders no C# components. It references
+         Rask.Cqrs and Rask.Meta.Hosting and nothing else, so the injected Rask.Core / Rask.Html /
+         validation usings name assemblies it does not have — the front end is TypeScript, which is
+         the entire point of the lane. -->
+    <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Example.')) AND !$(_RaskUsingsName.StartsWith('Rask.Example.Meta.')) AND '$(_RaskUsingsName)' != 'Rask.Example.Playground.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Site.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Razor' ">true</_RaskInRepoImplicitUsings>
     <!--
       FluentValidation injects its own global using (Rask.Validation.FluentValidation below). Downstream
       consumers only get it by referencing that NuGet package; in-repo we'd otherwise force every
@@ -168,6 +174,12 @@
        automatically from the package's build/ folder. -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.props"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.props') "/>
+  <!-- Knobs only again, and the quietest of the three: the meta targets do nothing at all unless a
+       project sets RaskMetaFramework, so this is inert in every project in the repo but the meta
+       samples. It also declares RaskEmitTypeScript compiler-visible, which is what makes the CQRS
+       generator project a meta host's message records into TypeScript. -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Meta.Hosting\build\Rask.Meta.Hosting.props"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Meta.Hosting\build\Rask.Meta.Hosting.props') "/>
   <!-- Same reasoning: knobs only. The island targets gate their own work on the project having a
        package.json, so this is inert in every project that has no front-end file. -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props"
