@@ -176,7 +176,8 @@ hold — because an `[Authorize]` that silently stopped being enforced would sti
 in the source.
 
 Your app still calls `AddAuthentication`/`AddAuthorization` and `UseAuthentication`/`UseAuthorization`;
-`rask new --auth` scaffolds them. Their absence fails loudly at startup rather than quietly per request.
+the [accounts battery](authentication.md) registers them, so a scaffolded app already has them. Their
+absence fails loudly at startup rather than quietly per request.
 
 On the client side, attach the token with `ApiClientOptions.ConfigureRequestAsync` — it receives the
 request rather than the `HttpClient`, so a token is scoped to the call instead of becoming ambient state

@@ -68,10 +68,10 @@ app registers none, because a language there means shipping ICU: roughly a megab
 that an app formatting nothing culture-sensitive should not pay by default. See
 [localization](localization.md).
 
-Two things are left to you: `--auth` scaffolds a working login flow (see
-[authentication](authentication.md)). Styling is not a flag: every project is Tailwind.
-To leave a battery out, name it: `rask new MyApp --no-push --no-ops`. The full flag list is in
-[the CLI reference](cli.md).
+Almost nothing is left to you. Sign-in comes with the app — register, sign in and sign out work out of
+the box, and the first account you create is the administrator (see [authentication](authentication.md)).
+Styling is not a flag either: every project is Tailwind. To leave a battery out, name it:
+`rask new MyApp --no-push --no-ops`. The full flag list is in [the CLI reference](cli.md).
 
 ## 2. Run it
 

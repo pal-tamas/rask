@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Claims;
+using Rask.Core;
 using Rask.Core.Authentication;
 
 namespace Rask.Server.Authentication;

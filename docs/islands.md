@@ -326,6 +326,38 @@ A callback that is not wired omits its key entirely, so the front end sees `unde
 key that still looks callable. A **data** prop set to null stays a JSON `null`, because "never set"
 and "set to nothing" are different facts.
 
+### An island is already inside your session
+
+There is nothing to wire for [authentication](authentication.md), and that follows from the sentence
+above rather than from anything auth-specific. A callback re-enters C# through the host's existing
+channel, so it arrives in the same live session every other handler runs in — the one whose principal
+was seeded from the cookie at connect and re-seeded on every reconnect. A handler invoked from a
+React island sees exactly what the same handler would see if a `Button` had called it:
+
+```csharp
+public sealed partial class Dashboard(IUserProvider users) : Component
+{
+    // Handed to the island as an ordinary callback prop. It runs here, in C#, under this
+    // visitor's identity — the island never learns who they are, and never needs to.
+    private Task SaveAsync(string note) =>
+        notes.SaveAsync(users.Current.Identity!.Name!, note);
+}
+```
+
+Two consequences worth stating, because both are easy to assume the other way:
+
+- **Do not send the principal into an island as a prop.** Props are serialized into the page, so a
+  role or a user id put there is a value the browser can read and edit. Keep the decision in C# and
+  send the island the *outcome* — the rows it may show, the buttons it may render.
+- **Gating the island's host component gates the island.** `[Authorize]` on the page and the
+  `Authorize` component around the subtree both work normally; an island whose parent does not render
+  is never mounted.
+
+> **What backs this.** The mechanism is the handler channel, and that channel's behaviour under
+> authentication is what `Rask.Server.Tests`'s dispatch suite pins — including that a handler is not
+> invoked at all once access is revoked mid-session. There is no island-specific auth path to test
+> separately, because there is no island-specific channel: that is the design, stated above.
+
 ## Hydration
 
 ```csharp

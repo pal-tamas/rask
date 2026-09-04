@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Api;
+using Rask.Auth;
 using Rask.Cache;
 using Rask.Core.Browser;
 using Rask.Core.Forms;
@@ -209,6 +210,16 @@ internal static class RaskBatteryWiring
         if (options.Jobs.Enabled)
         {
             services.AddRaskJobs<TContext>(o => options.Jobs.Apply(o));
+        }
+
+        // Accounts. Wired here rather than beside the host because it needs the application context —
+        // Identity's stores live on it — and because AddRaskAuth registers the cookie scheme, which
+        // RaskApp then picks up: it calls UseAuthentication/UseAuthorization before UseRask whenever a
+        // scheme provider is present, so an app never has to order that middleware itself. That is the
+        // mistake RASK024 exists to catch, and "auth is on by default" would otherwise reintroduce it.
+        if (options.Auth.Enabled)
+        {
+            services.AddRaskAuth<TContext>(o => options.Auth.Apply(o));
         }
 
         if (options.Mail.Enabled)

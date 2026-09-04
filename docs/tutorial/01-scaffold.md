@@ -1,7 +1,7 @@
 # Chapter 1 — Scaffold the app
 
 > **Goal:** create the Shop project, run it, and understand what the template gave you.
-> **You'll run:** `rask new Shop --auth`
+> **You'll run:** `rask new Shop`
 
 ## Create the project
 
@@ -9,7 +9,7 @@ The `rask` CLI scaffolds projects. We'll use the default **server** template (on
 components render on the server, live updates ship over a WebSocket):
 
 ```bash
-rask new Shop --auth
+rask new Shop
 cd Shop
 ```
 
@@ -19,11 +19,11 @@ durable outbox, scheduled snapshots, continuous backup, a durable log store, the
 installable PWA with Web Push, and a production `Dockerfile`. Each chapter from here on teaches you what
 one of them is *for*; none of them needs a wiring detour first.
 
-The two flags are the two things `rask new` doesn't decide for you, because they change what the app
-*is* rather than what it can do:
+Two things you might expect to choose are not choices:
 
-- **`--auth`** adds a working cookie-authentication flow — a `/login` page, a sign-out action, a protected
-  members area, and the services in `Program.cs` to back them. ([authentication](../authentication.md).)
+- **Accounts come with the app.** Register, sign in and sign out work already, `/login`, `/register` and
+  `/logout` are routed, and the first account you create is the administrator.
+  ([authentication](../authentication.md).)
 - The pages are styled with **Tailwind**, which every project gets — the compiler ships inside the host
   package, so there is no flag, no package to add, and nothing to turn on or off.
 
@@ -54,7 +54,7 @@ change applies to the running app and re-renders the open page — no manual reb
 
 Open the URL printed in the console. You'll see a single **"Hello, Rask! 👋"** welcome card — a
 card that lists the CLI commands you'll use next. That's the whole
-starter app: no example pages to delete, just a clean shell to build on. Because you passed `--auth`, you
+starter app: no example pages to delete, just a clean shell to build on. Because every app has accounts, you
 also have a working **`/login`** page and a protected **`/members`** page.
 
 > **The first build is slower and your IDE may look broken — that's expected.** The first build is when
@@ -68,14 +68,15 @@ The `server` template is deliberately small — a handful of files, no example p
 
 - **`Program.cs`** — host setup. `builder.Services.AddRask()` registers the framework and
   `app.UseRask<App>()` mounts your root component. This is where every pillar you add in later chapters gets
-  one line of registration. `--auth` already added the cookie-authentication services here.
+  one line of registration. `AddRaskAuth<AppDbContext>()` is already here — that is the accounts battery.
 - **`Features/Shared/App.cs`** — the **root component**: it renders into `<body>` (Rask builds the
   document around it, filling `<head>` from every component's `Head` override) and drops a `Router()`
   where the current page appears. It lives in `Features/Shared/` — the bucket for cross-cutting code the
   whole app shares.
 - **`Features/Home/HomePage.cs`** — the `/` welcome page, its own feature slice. Edit or replace it.
-- **`Features/Auth/`** — from `--auth`: `LoginPage` (`/login`), the protected `MembersPage` (`/members`),
-  and a `DemoCredentialStore` you'll swap for a real user store later.
+- **No `Features/Auth/` folder** — and nothing missing. The sign-in, registration and sign-out pages ship
+  inside `Rask.Auth`, already routed. You replace any of them by declaring your own page at the same
+  route, which wins over the built-in one.
 
 Everything the CLI generates lands under `Features/`: a screen is its own `Features/<Name>/` slice, and
 cross-cutting code (the app root, components, jobs, emails, the `DbContext`) sits in `Features/Shared/`. You'll
@@ -87,7 +88,7 @@ For the component model itself — state, event handlers, the chain, routing —
 ## Verify
 
 - `rask dev` prints a URL and the app loads with the "Hello, Rask! 👋" welcome card.
-- Browsing to `/login` shows a login form and `/members` redirects there when signed out (proof `--auth`
+- Browsing to `/login` shows a sign-in form and `/register` offers to claim the app (proof the accounts battery
   wired in).
 - Editing `HomePage` in `Features/Home/HomePage.cs` and saving updates the page without a manual refresh.
 

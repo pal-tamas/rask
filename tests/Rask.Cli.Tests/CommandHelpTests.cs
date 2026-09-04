@@ -19,8 +19,7 @@ public sealed class CommandHelpTests
         Assert.Contains("Options:", text, StringComparison.Ordinal);
         Assert.Contains("-t, --template <name>", text, StringComparison.Ordinal);
         Assert.Contains("Template to scaffold", text, StringComparison.Ordinal);
-        Assert.Contains("--auth", text, StringComparison.Ordinal);
-        Assert.Contains("Add cookie authentication", text, StringComparison.Ordinal);
+        Assert.Contains("--wasm", text, StringComparison.Ordinal);
     }
 
     [Fact]

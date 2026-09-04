@@ -2,13 +2,41 @@
 
 > **In practice:** [Tutorial Ch 3](tutorial/03-orders-and-auth.md) · recipe [require login on a page](recipes.md#require-login-on-a-page) · [cheat sheet](cheatsheet.md).
 
-Rask ships the *plumbing* for authentication — a scoped current-user, a sign-in/out handshake, route
-guards, and a declarative gate — and lets you bring any backing store (a cookie, a JWT, ASP.NET Identity,
-Keycloak/OIDC, …). This guide shows the complete, copy-pasteable flow for each combination.
+**Authentication is on by default.** A fresh app can register somebody, sign them in and sign them out
+without a line of auth code: accounts are backed by ASP.NET Core Identity, the flows are routed at
+`/login`, `/register` and `/logout`, and the first account to register becomes the administrator.
+
+The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and
+signed-in, and `IUserProvider` to read who that is — identical on the Server host, in WebAssembly, and
+inside an island. A TypeScript front end and a meta framework's Node process reach the same flows
+through `/api/auth`.
+
+```csharp
+public sealed partial class SignIn(IAuth auth) : Component
+{
+    private async Task SubmitAsync(Credentials c) =>
+        await auth.SignInAsync(c.Email, c.Password, returnUrl: "/");
+}
+
+public sealed partial class Header(IUserProvider users) : Component
+{
+    protected override Component? Render() =>
+        Authorize
+            .NotAuthorized(NavLink.Href(Routes.LoginPage())["Sign in"])
+            .Authorized(user => Span[$"Hi, {user.Identity?.Name}"]);
+}
+```
+
+To do without it, drop the `AddRaskAuth` line from `Program.cs` — or, in an app built on the `Rask`
+package, write `app.Configure(c => c.Auth.Off())`. Bringing your own store or an external provider
+(a JWT, Keycloak/OIDC, an existing users table) is still supported: the pages, the guards and the
+`Authorize` component are written against `ClaimsPrincipal`, so they do not care where it came from.
 
 ## On this page
 
 - [Concepts](#concepts)
+- [The first account is the administrator](#the-first-account-is-the-administrator)
+- [Confirming an address, and resetting a password](#confirming-an-address-and-resetting-a-password)
 - [Configuration](#configuration)
 - [Declarative gating — the `Authorize` component](#declarative-gating)
 - [Cookie authentication](authentication-cookie.md) — cookie login/session on Server and WASM.
@@ -26,11 +54,34 @@ Keycloak/OIDC, …). This guide shows the complete, copy-pasteable flow for each
 
 | Piece | What it is |
 |---|---|
-| `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, optional `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: you supply one (or the anonymous default). |
+| `IAuth` | The flows: `RegisterAsync` / `SignInAsync` / `SignOutAsync`, plus `SendPasswordResetAsync` / `ResetPasswordAsync` / `ConfirmEmailAsync`. The same injected type on every host — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
+| `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
 | `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
 | `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
+
+## The first account is the administrator
+
+The first account to register gets the `admin` role; every one after it gets `user`. That removes the
+worst step in self-hosting — "it is deployed, now how do I make an admin?" — with no seeding migration
+and no create-admin command. `/_rask`, the operator console, is gated on that role.
+
+It is a single-winner guarantee rather than a race: one row with a constant primary key records the
+claim, so two registrations arriving together cannot both take it, on any database provider.
+
+Because an app with an empty user table and an open registration page is a land-grab, the **first**
+registration — and only the first — needs a one-time token. It is generated while the instance is
+unclaimed and written to the startup log:
+
+```text
+warn: Rask.Auth[1]
+      This Rask app has no accounts yet. The first registration claims it and becomes the
+      administrator, and needs this one-time token: 8f2c…  Claim it at /register.
+```
+
+Every registration after that is an ordinary open one. Both behaviours are options:
+`c.Auth.Configure(o => o.FirstUserIsAdmin = false)` and `o.RequireFirstRunToken = false`.
 
 **The Server cookie handshake.** A WebSocket can't write a `Set-Cookie`, so sign-in is a four-step relay:
 `IAuthSignIn.SignInAsync(principal)` (in an event handler) → the framework issues a single-use,
@@ -40,12 +91,85 @@ now-authenticated `HttpContext.User`. You never touch this directly — just cal
 
 ---
 
+## Confirming an address, and resetting a password
+
+Both flows ship on, and both go out through [the mail battery](mail.md) — the same queue the rest of
+the app's email uses, so a confirmation survives a restart between "the account exists" and "the email
+went out". There is nothing to register: `Rask.Auth` asks for `IMail` when it needs to send.
+
+**Registering sends a confirmation link.** Every time, whether or not confirmation is required, so an
+app that starts requiring it later finds its existing accounts already confirmed instead of locking all
+of them out at once.
+
+**Confirmation does not block sign-in by default.** Turn it on in one line:
+
+```csharp
+app.Configure(c => c.Auth.Configure(o => o.RequireConfirmedEmail = true));
+```
+
+It is off by default because a freshly scaffolded app has no SMTP configured. With the gate on, the
+first registration would succeed and then be unable to sign in — including yours — and the email needed
+to fix it is the one that cannot be sent. In development the mail battery writes each message to
+`./mail-pickup` as an `.eml`, so the link is there to open even with no mail server anywhere.
+
+Three built-in pages, overridable exactly like `/login` by declaring your own route:
+
+| Route | What it does |
+|---|---|
+| `/forgot-password` | Takes an address and emails a link. Answers the same way whether or not that address has an account, so it cannot be used to find out which addresses are registered. |
+| `/reset-password` | Where the emailed link lands, carrying `?userId=&token=`. Sets the new password, and signs out every other session for that account. |
+| `/confirm-email` | Where a confirmation link lands. Confirms on arrival — the click in the inbox was the deliberate act. |
+
+A completed reset also confirms the address: holding that token proves the same thing the confirmation
+link proves. Without it, an account created before `RequireConfirmedEmail` was switched on could reset
+its password and still not get in.
+
+The reset **ends every other session for the account**, not just the one that asked. Identity rolls the
+security stamp, and Rask revalidates it on every socket reconnect and before every handler dispatch — so
+if the reason for the reset was that somebody else had the password, their open page stops working
+rather than staying signed in until its cookie expires.
+
+**Set `PublicOrigin` behind a proxy.** An emailed link has to be absolute. Rask uses `PublicOrigin`
+first, then the current request's own origin — never a forwarded host header, because that is
+attacker-controlled on a request that reaches the app directly, and a reset link built from it would
+send a working token to a domain of the attacker's choosing.
+
+```csharp
+app.Configure(c => c.Auth.Configure(o =>
+{
+    o.PublicOrigin = "https://app.example.com";   // required behind a proxy
+    o.RequireConfirmedEmail = true;
+    o.TokenLifetime = TimeSpan.FromHours(2);      // what the email promises AND what the token honours
+}));
+```
+
+From TypeScript, the same three flows are three functions on the shared browser layer:
+
+```ts
+import {auth} from './rask/browser'
+
+await auth.sendPasswordReset(email)
+await auth.resetPassword(userId, token, password)
+await auth.confirmEmail(userId, token)
+```
+
+---
+
 ## Configuration
 
-**Rask has no auth options object of its own** — authentication is configured entirely through ASP.NET's
-own primitives. You set the cookie name/flags/expiry and login path on `AddCookie(...)`, the JWT signing key
-and token lifetimes on `AddJwtBearer(...)`, and roles/policies on `AddAuthorization(...)`. `AddRask()` takes
-no auth configuration.
+Session and account policy live on `AuthOptions`, reached through the battery. Everything ASP.NET owns
+— the cookie itself, an additional JWT or OIDC scheme, roles and policies — is still configured through
+ASP.NET's own primitives, and an app that registers its own scheme keeps it: the battery notices and
+does not register a second one.
+
+```csharp
+app.Configure(c => c.Auth.Configure(o =>
+{
+    o.MinimumPasswordLength = 12;
+    o.MaxFailedAccessAttempts = 5;
+    o.ExpireTimeSpan = TimeSpan.FromDays(14);
+}));
+```
 
 A few framework defaults are fixed (not configurable knobs):
 

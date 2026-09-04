@@ -164,10 +164,10 @@ absent from the server by design, so a file using it has to be somewhere the ser
 Keep your handlers under `Server/`, which the browser half does not compile. That is what keeps a
 connection string, a table name or a pricing rule out of a download anybody can read.
 
-> **Without `--auth`, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default is
-> on, and that is right for an app that has a sign-in — but an app with no authentication to require
-> would answer 401 to every message, and the failure reads as broken transport rather than as the secure
-> default working. Add a cookie or JWT scheme and delete the argument.
+> **Without a database, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default
+> is on, and that is right for an app with accounts — but an app with no database has none to require,
+> so it would answer 401 to every message, and the failure reads as broken transport rather than as the
+> secure default working. Add `--data` and delete the argument.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a

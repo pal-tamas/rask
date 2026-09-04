@@ -47,7 +47,7 @@ public sealed class FeedCoverageTests
         var result = template switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
-                Root, "App", auth: false, pwa: false, docker: false, Version, batteries),
+                Root, "App", pwa: false, docker: false, Version, batteries),
             _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
         };
 
@@ -63,7 +63,6 @@ public sealed class FeedCoverageTests
     {
         var batteries = new ServerBatteries
         {
-            Auth = true,
             Pwa = true,
             Cqrs = true,
             Data = true,

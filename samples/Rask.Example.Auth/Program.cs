@@ -1,22 +1,21 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 using Rask;
 using Rask.Example.Auth;
 
 var app = RaskApp.Create(args);
 
-// Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem. Registering
-// a scheme is all it takes: RaskApp puts UseAuthentication/UseAuthorization ahead of UseRask on its own,
-// which is the order the principal has to be populated in (RASK024), and leaves them out entirely for an
-// app that has no scheme.
-app.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(o =>
-    {
-        o.Cookie.Name = "rask.auth";
-        o.LoginPath = "/login";
-        o.AccessDeniedPath = "/forbidden";
-        o.ExpireTimeSpan = TimeSpan.FromHours(8);
-        o.SlidingExpiration = true;
-    });
-app.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
+// THERE IS NO AUTH CODE HERE, AND THAT IS THE POINT. Naming a database is what tells Rask which one the
+// batteries belong to; accounts are one of them, so this app can already register somebody, sign them in
+// and sign them out. /login, /register and /logout are routed by the framework, the cookie scheme is
+// registered for you, and RaskApp puts UseAuthentication/UseAuthorization ahead of UseRask on its own —
+// the order the principal has to be populated in, and the mistake RASK024 exists to catch.
+//
+// To do without any of it: app.Configure(c => c.Auth.Off()).
+app.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=auth-sample.db"));
 
-app.Run<App>();
+var built = app.Build<App>();
+
+// Two demo accounts, so the sample runs the moment it is cloned. A real app seeds nobody — see AuthSeed.
+await AuthSeed.EnsureDemoUsersAsync(built.Services);
+
+await built.RunAsync();

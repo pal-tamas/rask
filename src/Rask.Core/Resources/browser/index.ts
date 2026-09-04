@@ -14,6 +14,7 @@
 // side effect — ./globals.ts, which publishes the `window.__rask*` namespaces Rask's own C# wrappers
 // resolve against — is deliberately not re-exported here: a front end never needs it.
 
+export * as auth from "./auth.js";
 export * as badge from "./badge.js";
 export * as battery from "./battery.js";
 export * as broadcastChannel from "./broadcastChannel.js";

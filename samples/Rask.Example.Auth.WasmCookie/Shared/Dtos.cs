@@ -1,25 +1,11 @@
-using System.Text.Json.Serialization;
-
 namespace Rask.Example.Auth.WasmCookie;
 
-public sealed record LoginRequest(
-    [property: JsonPropertyName("username")]
-    string Username,
-    [property: JsonPropertyName("password")]
-    string Password);
-
-public sealed record MeDto(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("roles")] string[] Roles);
-
-// Form-bound model (settable props for two-way binding).
+// Form-bound model (settable props for two-way binding). The auth request and response shapes are the
+// framework's now — Rask.Core.Authentication.AuthApi carries them, so both halves agree on one
+// definition rather than each keeping a copy.
 public sealed class LoginModel
 {
-    public string Username { get; set; } = "";
+    public string Email { get; set; } = "";
+
     public string Password { get; set; } = "";
 }
-
-// Source-generated JSON so the WASM publish stays trim-clean (zero IL warnings).
-[JsonSerializable(typeof(LoginRequest))]
-[JsonSerializable(typeof(MeDto))]
-public partial class AuthJson : JsonSerializerContext;

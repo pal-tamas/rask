@@ -33,14 +33,13 @@ public sealed class NewCommandTests
     {
         var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--auth"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "server"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
         // Files are written directly under ./MyApp.
         Assert.True(fs.FileExists("/proj/MyApp/MyApp.csproj"));
         Assert.True(fs.FileExists("/proj/MyApp/Program.cs"));
-        Assert.True(fs.FileExists("/proj/MyApp/Features/Auth/CredentialStore.cs")); // --auth
         // It restores, and never shells to `dotnet new` / installs Rask.Templates.
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
@@ -277,7 +276,7 @@ public sealed class NewCommandTests
         Assert.Contains("nothing to change for: --no-cqrs", console.ErrorText, StringComparison.Ordinal);
         // localization is no longer listed, because it is no longer a flag (#854). Listing it here would
         // name something the user cannot then pass.
-        Assert.Contains("It supports: auth, docker, pwa.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("It supports: docker, pwa.", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -359,12 +358,12 @@ public sealed class NewCommandTests
         var (console, fs, runner, command) = Build();
 
         // Typing/pressing flips the console to interactive. The flow, in order:
-        //   name → project type (down = wasm) → auth? no
+        //   name → project type (down = wasm)
         //   → batteries, offered PRE-TICKED as [pwa, docker]: down to docker, space to UNTICK it, enter.
-        // One keypress shorter than it was: the styling question is gone, because Tailwind is built in.
+        // Two keypresses shorter than it was: the styling question is gone because Tailwind is built
+        // in, and the auth question because an app with a database has accounts.
         console.Type("Spa")
             .Press(ConsoleKey.DownArrow, ConsoleKey.Enter)
-            .Type("n")
             .Press(ConsoleKey.DownArrow, ConsoleKey.Spacebar, ConsoleKey.Enter);
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
@@ -373,7 +372,6 @@ public sealed class NewCommandTests
         Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // the PWA was left ticked
-        Assert.False(fs.FileExists("/proj/Spa/Features/Auth/Auth.cs")); // auth answered no
         Assert.False(fs.FileExists("/proj/Spa/Dockerfile"));            // docker unticked
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
     }
@@ -387,7 +385,7 @@ public sealed class NewCommandTests
     {
         var (console, fs, _, command) = Build();
 
-        // name → project type (enter = server) → styling (enter = plain) → auth? no → batteries (enter).
+        // name → project type (enter = server) → styling (enter = plain) → batteries (enter).
         console.Type("Shop")
             .Press(ConsoleKey.Enter)
             .Press(ConsoleKey.Enter)
@@ -413,7 +411,7 @@ public sealed class NewCommandTests
     {
         var (console, fs, _, command) = Build();
 
-        // name → project type (enter = server) → styling (enter = plain) → auth? no. No battery question.
+        // name → project type (enter = server) → styling (enter = plain). No battery question.
         console.Type("Shop")
             .Press(ConsoleKey.Enter)
             .Press(ConsoleKey.Enter)
@@ -458,7 +456,7 @@ public sealed class NewCommandTests
     {
         var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--auth", "--dry-run"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--dry-run"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Contains("would write", console.OutText, StringComparison.Ordinal);
@@ -518,7 +516,7 @@ public sealed class NewCommandTests
         Assert.True(fs.FileExists("/proj/MyApp/Dockerfile"));
         Assert.True(fs.FileExists("/proj/MyApp/wwwroot/icon.svg"));
 
-        // …and auth is the one thing it does not decide for you.
+        // …and the browser rung is the one thing it does not decide for you.
         Assert.False(fs.FileExists("/proj/MyApp/Features/Auth/CredentialStore.cs"));
     }
 
@@ -590,6 +588,29 @@ public sealed class NewCommandTests
         Assert.Equal(0, exit);
         Assert.Contains("rask db add Init", console.OutText, StringComparison.Ordinal);
         Assert.Contains("rask db update", console.OutText, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     <c>--auth</c> is gone, and refused by name rather than quietly ignored.
+    /// </summary>
+    /// <remarks>
+    ///     A flag the CLI accepts and then disregards is the most expensive kind to discover: the project
+    ///     is scaffolded, looks right, and is missing the thing that was asked for. So this errors, and the
+    ///     message names the line in Program.cs that replaces it.
+    /// </remarks>
+    [Fact]
+    public async Task Auth_says_it_is_gone_and_points_at_what_replaced_it()
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--auth"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.False(fs.FileExists("/proj/MyApp/MyApp.csproj"));
+
+        Assert.Contains("--auth is gone", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("AddRaskAuth", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]

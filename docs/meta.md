@@ -360,6 +360,71 @@ logged with a count, because a deploy that hangs on one stuck stream is worse th
 
 Set `SuperviseNode = false` to forward to a front end you are running yourself.
 
+## Signing people in
+
+The visitor's cookie reaches your Node process on every proxied request — and **Node cannot read it**.
+It is an ASP.NET Data-Protection cookie: encrypted, signed, and openable only by a process holding the
+key ring. Node is not a .NET process and has no key ring, so to the front end the cookie is an opaque
+string it forwards and nothing more.
+
+That is not a gap to work around. It is what keeps the session's authority on the side that can
+enforce it.
+
+### From the browser
+
+Client-side code talks to the [accounts endpoints](authentication.md) directly, exactly as it would in
+any other front end:
+
+```
+POST /api/auth/register   POST /api/auth/login   POST /api/auth/logout   GET /api/auth/me
+POST /api/auth/forgot-password   POST /api/auth/reset-password   POST /api/auth/confirm-email
+```
+
+Same origin, so the `HttpOnly` cookie rides on its own; `X-Rask-Auth` is required on every
+state-changing call. See [the SPA guide](spa.md#signing-people-in) — the contract is identical,
+because it is the same contract.
+
+> **Map them before `UseRaskMeta()`.** That call ends the pipeline with a fallback that forwards
+> *everything* unmatched to Node, so an endpoint mapped after it never runs. Your own API has the same
+> rule for the same reason.
+
+### From server-side rendering
+
+This is the part worth reading twice. When a page renders on the Node side and needs to know who is
+looking at it, the front end **calls back into your C# app** — over loopback, carrying the visitor's
+own cookie — and lets the side that can decrypt it answer:
+
+```ts
+// A server-side load function, in whichever framework's spelling.
+import { auth } from './rask/browser'
+
+const user = await auth.me({
+  baseUrl: process.env.RASK_BASE_URL,
+  headers: { cookie: request.headers.get('cookie') ?? '' },
+})
+// CurrentUser, or null when nobody is signed in.
+```
+
+The module runs here for the same reason it runs in the browser: nothing in Rask's browser layer
+touches `window` at import time, so a server render can import it. `baseUrl` and `headers` exist for
+exactly this call — node has no page origin and no cookie jar, so both are yours to supply.
+
+`RASK_BASE_URL` is injected by the host (`MetaHostingOptions.BaseUrl`) and points at Kestrel on
+loopback. Two properties of it are deliberate:
+
+- **It is never derived from a request header.** A destination an attacker can influence, combined
+  with a request that carries the visitor's cookie, is a confused deputy: you would be handing
+  somebody else's session to a server of their choosing. It comes from configuration, so it cannot be
+  moved by a request.
+- **Node listens on `127.0.0.1` only.** Publishing the container's ports cannot expose the renderer,
+  so nothing reaches it except through Kestrel — which is where authentication happens.
+
+### What this buys
+
+No token is ever held in JavaScript, on either side. The browser cannot read the cookie, the Node
+process cannot open it, and the only code that resolves an identity is the code that also enforces
+`[Authorize]`. A front end compromise leaks what the front end could already see, and no more.
+
 ## The honest cost
 
 [The SPA lane](spa.md) can say that in production there is one process, one port and no Node at all.

@@ -80,8 +80,8 @@ public sealed class ErrorPageScaffoldTests
     public void The_page_is_reachable_without_signing_in()
     {
         // An error page that redirects to /login is worse than the error. The attribute is emitted whether
-        // or not --auth is on, so adding a fallback authorization policy later can't lock it away.
-        Assert.Contains("[AllowAnonymous]", Generate("auth")["Features/Shared/ErrorPage.cs"], StringComparison.Ordinal);
+        // or not the app has accounts, so adding a fallback authorization policy later can't lock it away.
+        Assert.Contains("[AllowAnonymous]", Generate("data")["Features/Shared/ErrorPage.cs"], StringComparison.Ordinal);
         Assert.Contains("[AllowAnonymous]", Generate()["Features/Shared/ErrorPage.cs"], StringComparison.Ordinal);
     }
 }

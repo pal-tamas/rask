@@ -12,6 +12,8 @@
     <!-- The batteries-included package: the host plus every battery, all of them on. This sample uses
          none of them, which is the point — an app says what it does WITHOUT, and this one says nothing. -->
     <ProjectReference Include="..\..\src\Rask\Rask.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Auth\Rask.Auth.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

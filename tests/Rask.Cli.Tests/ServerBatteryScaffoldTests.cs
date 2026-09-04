@@ -48,6 +48,53 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Theory]
+    [InlineData("data")]
+    [InlineData("jobs")]
+    [InlineData("cache")]
+    public void Every_app_with_a_database_maps_the_account_tables(string flag)
+    {
+        // Not conditional on any flag, unlike the pillars above. The auth battery is ON by default in
+        // the Rask package, and AddRaskAuth registers Identity's EF stores against this context — so an
+        // app whose context does not map them boots happily and then fails at the FIRST registration on
+        // a missing AspNetUsers. Nothing else in the scaffold would say so.
+        var files = Generate(flag);
+
+        Assert.Contains(
+            "modelBuilder.AddRaskAuth();",
+            files["Features/Shared/AppDbContext.cs"],
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "using Rask.Auth;",
+            files["Features/Shared/AppDbContext.cs"],
+            StringComparison.Ordinal);
+
+        // And the reference that makes that using compile. Asserting the mapping alone was not enough:
+        // a scaffold test reads generated TEXT, so it cannot see that the text does not build. The
+        // missing package reference got through this test and was caught by the build E2E instead.
+        Assert.Contains(
+            $"""<PackageReference Include="Rask.Auth" Version="{Version}"/>""",
+            files["App.csproj"],
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_operator_console_is_gated_on_the_admin_role()
+    {
+        // /_rask shows job payloads, stored email bodies and log lines. Requiring merely a signed-in
+        // user would open all of that to anyone who registered — which, on an app with open
+        // registration, is everyone. The admin role is the one the FIRST account holds.
+        var program = Generate("ops", "data")["Program.cs"];
+
+        Assert.Contains(
+            "o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin))",
+            program,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain("RequireAuthenticatedUser()", program, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("outbox")]
     [InlineData("data")]
     public void AddRaskData_is_scaffolded_bare_whether_or_not_the_outbox_is_on(string flag)
@@ -139,7 +186,7 @@ public sealed class ServerBatteryScaffoldTests
     {
         var files = Generate(
             "data", "cqrs", "jobs", "mail", "cache", "outbox", "push", "pwa", "snapshots", "logs", "ops",
-            "auth", "docker");
+            "docker");
         var program = files["Program.cs"];
 
         foreach (var registration in new[]
@@ -147,8 +194,7 @@ public sealed class ServerBatteryScaffoldTests
             "AddRaskCqrs()", "AddRaskData(", "AddRaskOutbox<AppDbContext>()", "AddDbContextFactory<AppDbContext>",
             "AddRaskJobs<AppDbContext>()", "AddRaskMail<AppDbContext>(", "AddRaskCache<AppDbContext>()",
             "AddRaskSqliteSnapshots(", "AddRaskSqliteLitestream(", "AddRaskWebPush(", "AddRaskPwa(",
-            "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()",
-            "AddAuthentication(",
+            "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()", "AddRaskAuth<AppDbContext>()",
         })
         {
             Assert.Contains(registration, program, StringComparison.Ordinal);

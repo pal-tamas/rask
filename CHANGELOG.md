@@ -113,6 +113,363 @@ them until tagged releases begin.
 
 ### Added
 
+- **Email confirmation and password reset, over the mail battery.** Registering now sends a
+  confirmation link, `/forgot-password` emails a reset link, and `/reset-password` and `/confirm-email`
+  are where those links land — three more built-in pages, overridable the same way `/login` is, and
+  three more methods on `IAuth` (`SendPasswordResetAsync`, `ResetPasswordAsync`, `ConfirmEmailAsync`)
+  that a component, a WebAssembly client and a TypeScript front end all reach the same way. Nothing to
+  register: `Rask.Auth` asks for `IMail` when it needs to send, so the app's existing queue carries it.
+
+  **`RequireConfirmedEmail` is off by default**, and that is a deliberate default rather than an
+  oversight. A freshly scaffolded app has no SMTP configured; with the gate on, the first registration
+  would succeed and then be unable to sign in — including yours — and the email that would fix it is the
+  one that cannot be sent. The confirmation is still sent either way, so an app that turns the gate on
+  later finds its existing accounts already confirmed instead of locking all of them out at once. In
+  development the mail battery writes each message to `./mail-pickup` as an `.eml`, so the link is there
+  to open with no mail server anywhere.
+
+  **A failed send never fails the operation that triggered it.** The confirmation goes out from inside
+  registration, *after* the account row is committed, so an exception there reported the registration
+  as failed while the account existed — the person retries, is told the address is taken, and no page
+  offers a way forward. Losing an email is bad; stranding an account is worse. The send now catches,
+  logs what to fix, and lets the account stand. The browser journey found this: an app whose
+  `DbContext` maps the account tables but not the mail tables has a perfectly good `IMail` registered
+  and dies on the first `SendAsync`, because the mail battery's own worker tolerates a table that is
+  not there yet — it must, since a fresh app boots before its first migration.
+
+  Three security decisions worth stating, because each is a place this is easy to get wrong:
+
+  - **`/forgot-password` answers identically for an address that has an account and one that does not.**
+    Anything else is a membership oracle anybody can walk a list through. The one refusal it reports is
+    that the app has no mail battery at all — an operator's problem, and a silence there would leave
+    somebody waiting for a message that never got queued.
+  - **A reset ends every other session for that account.** Identity rolls the security stamp and Rask
+    revalidates it on every socket reconnect and before every handler dispatch, so if the reason for the
+    reset was that somebody else had the password, their open page stops working rather than staying
+    signed in until its cookie expires.
+  - **An emailed link is never built from a forwarded host header.** The origin comes from
+    `AuthOptions.PublicOrigin`, then the current request's own origin, then the address the server is
+    listening on. A forwarded host is attacker-controlled on a request that reaches the app directly,
+    and a reset link built from one would send a working token to a domain of the attacker's choosing —
+    so an app behind a proxy sets `PublicOrigin` rather than having it guessed.
+
+  New on `AuthOptions`: `ConfirmEmailPath`, `ForgotPasswordPath`, `ResetPasswordPath`,
+  `RequireConfirmedEmail`, `TokenLifetime` (two hours, and it drives both what the email promises and
+  what the token provider honours, so the two cannot drift), `ConfirmEmailSubject`,
+  `ResetPasswordSubject` and `PublicOrigin`.
+
+### Changed
+
+- **`.gitignore` no longer lets a sample's SQLite database be committed.** The runtime-artifact block
+  carried a comment claiming it was "no longer a per-sample list" and was exactly that: it named only
+  `app.db` and `logs.db`, so a sample whose database has any other filename was never ignored and got
+  picked up by the next `git add -A`.
+
+  That is worth more than tidiness, because a committed database is a **frozen schema**: these samples
+  build theirs with `EnsureCreated`, which does nothing to a database that already exists, so any table
+  added afterwards is silently absent at runtime while `git status` stays clean and every build passes.
+  It costs a browser journey dying on `Cannot create a DbSet for 'QueuedMail'` with nothing else to go
+  on. (Caught during this branch's own development, on files this branch had committed — none of them
+  reached a release.) The block is a glob now, verified against `git ls-files` to swallow nothing else
+  tracked.
+
+  Relatedly, `samples/Rask.Example.Auth` mapped `AddRaskAuth()` without `AddRaskMail()` while every
+  battery was on. A battery that is on needs its tables mapped.
+
+- **Six places still told you to type `--auth`, which now errors.** Removing the flag swept the guides
+  and the tutorial but missed `README.md`, `docs/api-endpoints.md` and four separate claims inside
+  `llms.txt` — including two that were self-contradictory in the same sentence ("scaffolds with a plain
+  `rask new Shop --auth` (every battery is on by default)"). Two more were simply false about behaviour
+  the same release changed: that `/_rask`'s policy is emitted "when `--auth` is on" (it now always
+  requires the `admin` role) and that a SPA host's `RequireAuthenticatedUser` follows the flag (it
+  follows the database). Two comments in `TemplateCatalog.cs` named the flag too.
+
+  Found while documenting the recovery flows, by asking what an AI reading these files would be told —
+  which is the only check these artifacts get. `llms.txt` also had **no `docs/authentication.md` entry
+  at all** and omitted auth from both of its battery lists, so the largest feature of the previous
+  release was invisible to the file whose job is to describe the framework. It has one now.
+ It walked the CLI's output and checked each file
+  was in the sample, which cannot see an **orphan** — a file the sample still carries and the generator
+  no longer emits. That blind spot is not hypothetical: removing `--auth` left a demo credential store
+  and a login page committed in the sample, and the suite stayed green. The new check fails with the
+  path and what to do about it, and was verified by planting an orphan and watching it name it.
+
+- **The Shop sample seeds a demo administrator, so it still runs the moment you clone it.** Moving
+  `/login` into the framework left the sample with no way in: its demo store was gone, and the built-in
+  registration wants the one-time first-run token from the startup log — right for a deployment, wrong
+  for a showcase. `DbInitializer` now seeds `ada@example.com` / `Password1` with the admin role, and the
+  README says so; a real app still seeds nobody.
+
+  The seven Shop E2E journeys that broke did so as **30-second timeouts** waiting for `#username`, never
+  as "the page changed" — the field is `#email` on the built-in page. Selectors are a test contract that
+  a unit suite and a golden render cannot see.
+
+- **The Shop sample is `rask new` output again, on the accounts battery.** Removing `--auth` made its
+  provenance claim false in a way `ShopProvenanceTests` could not see — the test walks the CLI's output
+  and checks each file is in the sample, so files the sample carries and the CLI no longer writes are
+  invisible to it. Shop kept a demo credential store comparing passwords as plaintext, a login page
+  built on it, and a README documenting a command that now errors on both its flags.
+
+  Shop now calls `AddRaskAuth<AppDbContext>()` and lets `/login` be the framework's. `MembersPage`
+  stays as the sample's own — a protected page with `[Authorize]` and `Authorize.Roles` is worth
+  showing — and is listed as hand-written in the provenance exemptions.
+
+  It also carried the `RequireAuthenticatedUser` gap on `/_rask` that this release already fixed in the
+  templates; it requires the `admin` role now.
+
+  `NewCommand.ToBatteries` had kept a `bool auth = false` parameter that nothing read.
+
+- **`--auth` is gone.** It scaffolded a second auth system beside the battery: a demo credential store
+  comparing passwords as **plaintext**, its own login and members pages, and a hand-written cookie
+  scheme. The flag is removed and refused by name — a flag the CLI accepts and then disregards is the
+  most expensive kind to discover — and the error names what replaced it.
+
+  Gone with it: the server template's demo store and pages, 246 lines of the standalone WASM template's
+  hand-rolled JWT/`localStorage` demo (a browser app calls `AddRaskAuthClient()` now, so no token
+  reaches JavaScript), the wizard's authentication question, and `ServerBatteries.Auth`.
+
+  Two defaults that keyed off the flag now follow the **database**, because that is what brings
+  accounts: the CQRS endpoint's `RequireAuthenticatedUser`, and `UseAuthentication`/`UseAuthorization`.
+
+  The docs follow: `docs/roadmap.md` no longer says the user store is not shipped,
+  `docs/one-person-framework.md` no longer disclaims it twice, the cookie and JWT guides are reframed
+  as the bring-your-own-store paths they now are, and the tutorial — whose text is compile-gated — no
+  longer types a flag that errors.
+
+- **The operator console is gated on the `admin` role, not on being signed in.** `/_rask` shows job
+  payloads, stored email bodies, log lines and the database configuration. `RequireAuthenticatedUser`
+  was defensible while the scaffolded credential store had two hardcoded logins and no roles; it
+  stopped being so the moment every app got accounts with open registration, because "signed in" now
+  means "registered" and anyone can register. The policy requires the role the **first** account holds
+  and no later account gets.
+
+  The no-database arm went with it: `ServerBatteries.Normalized()` sets `Data` whenever `Ops` is on,
+  so it was unreachable.
+
+  Nothing asserted this policy before, so the regression it guards would have been silent. It is
+  pinned now — including the absence of `RequireAuthenticatedUser`, which is the line that would
+  come back.
+
+  **Breaking:** an app relying on any signed-in user reaching `/_rask` must grant that account the
+  `admin` role, or define its own `RaskDashboardPolicies.Access` policy.
+
+### Fixed
+
+- **`AuthOptions.Bearer` did nothing, so it is gone.** The option was added for the bearer-token
+  deviation and never wired — `/api/auth/login` never issued a token. A setting that is accepted and
+  disregarded is the most expensive kind to discover, so it is removed rather than left to be found.
+
+  Issuance is deferred, not abandoned: it needs a signing-key decision (config-supplied, because a
+  generated key breaks across restarts and instances), a failure mode when that key is absent outside
+  Development, and a token lifetime — a second hardening story beside the cookie one. Until then the
+  cookie is the shipped default on every host, `docs/authentication-jwt.md` documents the hand-rolled
+  bearer path, and the two JWT samples demonstrate it.
+
+
+- **The browser half did not survive the trimmer.** `Rask.Auth.Client` serialised with
+  `ReadFromJsonAsync<T>` and `JsonContent.Create` — reflection-based JSON, which a trimmed WebAssembly
+  publish cannot keep. Three `IL2026` and a **failed publish** for any app that used it, while its unit
+  tests passed and the library built clean.
+
+  The cause is worth naming: the samples used to carry their own `[JsonSerializable]` context for these
+  exact shapes. Moving the DTOs into `Rask.Core.Authentication` took the shapes and left the serializers
+  behind. The framework owns both now, and the fix is pinned by publishing rather than by a unit test —
+  `Rask.Example.Auth.WasmCookie` and `Rask.Example.Wasm` both publish with zero IL warnings.
+
+
+- **Concurrent registrations could collide on the roles table.** Two people registering at the same
+  moment could get a 500 — `UNIQUE constraint failed: AspNetRoles.NormalizedName` — on the path
+  "the first account is the administrator" depends on.
+
+  The exception did not point at the cause. `RoleManager` resolves the same scoped `DbContext` the
+  `UserManager` uses, so a racer that lost the role race left its rejected `AspNetRoles` row in the
+  change tracker as `Added`, and the **next** `SaveChanges` on that context — the user insert — retried
+  it and threw there. The stack blamed `UserManager.CreateAsync` for a constraint on a table it never
+  touches.
+
+  Roles are now seeded through a context of their own, so a lost race is a non-event and the context
+  carrying the rejected entry never reaches the caller. Verified by running the concurrency tests
+  twelve times: 12 failures before, 0 after.
+
+- **A scaffolded app had accounts mapped but never registered.** The battery slot alone reached no
+  `rask new` project: a generated `Program.cs` is `WebApplication.CreateBuilder` + `AddRask()` with
+  individual package references, not `RaskApp.Create`, so `RaskBatteryWiring` never runs there. The
+  scaffold now registers `AddRaskAuth<AppDbContext>()` itself, and both that and
+  `UseAuthentication`/`UseAuthorization` follow the **database** rather than the old `--auth` flag —
+  emitted once for either reason, since `--auth` adds its own scheme on top.
+
+  Turning auth on by default had to touch four separate seams in the scaffold, and a compiler would
+  have flagged only one: the model mapping, the package reference, the entry in the CLI gate's packed
+  feed, and the registration plus middleware. Missing any one of them produced an app that looked
+  fine and was not.
+
+- **`rask new --auth` produced an app that would not start.** Registering an authentication scheme
+  twice is not a no-op — `AuthenticationOptions.AddScheme` throws "Scheme already exists" — and with
+  auth on by default the battery's cookie scheme collided with the hand-written
+  `AddAuthentication().AddCookie()` the `--auth` template scaffolds. The same collision hit any app
+  bringing its own OIDC or JWT scheme, which is the pattern `docs/authentication-providers.md`
+  recommends.
+
+  The battery now registers a scheme only when the app has not, keyed on the
+  `IAuthenticationSchemeProvider` that `AddAuthentication` leaves behind — the same marker `RaskApp`
+  already reads to decide whether to call `UseAuthentication`. Deferring is complete rather than
+  partial: an app's own `LoginPath` and cookie settings are left alone, because half-applying the
+  battery's options over somebody else's scheme would be worse than either alone.
+
+  Verified by removing the guard and watching two of the three new tests fail, rather than by assuming
+  a passing test would have caught it.
+
+- **A scaffolded app could not register anybody.** Landing the auth battery broke `rask new` in a way
+  nothing said out loud: `AddRaskAuth` registers Identity's EF stores against the application context,
+  but the scaffolded `OnModelCreating` did not map the account tables. The app booted with auth wired
+  and then failed at the *first* registration, on a missing `AspNetUsers`.
+
+  Mapped unconditionally rather than behind a flag, because the battery is on by default. It stays
+  mapped when an app writes `c.Auth.Off()`, which is the documented behaviour for every
+  database-backed battery — turning one off must not produce a destructive migration.
+
+  All 1071 CLI tests passed before the fix, which is the point: nothing covered the mapping. The new
+  test asserts on the generated context and is not conditional on any battery, because the failure it
+  guards is not conditional either.
+
+### Added
+
+- **Signing people in is documented for the hosts that have no C# API.** "Auth in every host" was true
+  in the code and absent from `docs/spa.md`, `docs/meta.md` and `docs/islands.md` — the three places a
+  reader of those lanes would look.
+
+  The meta section is the one worth reading: the visitor's cookie reaches the Node process on every
+  proxied request and **Node cannot read it**, because it is Data-Protection sealed and Node holds no
+  key ring. So server-side rendering calls back into the C# app over loopback carrying the visitor's
+  own cookie, and the side that can decrypt it answers. `RASK_BASE_URL` is configuration rather than a
+  request header on purpose: a destination an attacker could influence, plus a request carrying
+  somebody's session, is a confused deputy.
+
+  The islands section says there is nothing to wire, and why — a callback re-enters through the host's
+  existing channel, so it lands in the session every other handler runs in. It also says the two things
+  people get backwards: do not send the principal into an island as a prop (props are serialized into
+  the page), and gating the host component gates the island.
+
+
+- **`Rask.Auth.Client` — the browser half, so a WebAssembly app writes the same three calls.** Until
+  now a WASM app had `IAuth` and `IUserProvider` but no implementation of either; the documented answer
+  was to copy an `ApiUserProvider` out of a sample. `AddRaskAuthClient()` now supplies both, over the
+  app's own `/api/auth` endpoints, so a component cannot tell which host it is running on.
+
+  Identity travels as a same-origin cookie — no token is ever held in JavaScript.
+
+  It is a separate package because `Rask.Auth` carries ASP.NET Core Identity and Entity Framework, and
+  neither belongs in a trimmed browser publish. The two halves therefore cannot reference each other,
+  so the wire contract moved into `Rask.Core.Authentication` as **`AuthApi`** — written once rather
+  than duplicated and left to drift.
+
+- **Built-in sign-in, registration and sign-out pages.** A default app has the three flows with no
+  files of its own. They ship inside `Rask.Auth` and register through the same generated routes
+  registry that puts the operator console at `/_rask`, so nothing has to be mapped. `/login` is
+  already `RouteAuthorizationGuard.ChallengePath`, so the challenge redirect lands on a real page for
+  the first time.
+
+  **An app replaces any of them by declaring its own component at the same route**, and that is a
+  tested fact rather than a claim: the registry does not dedupe a template, so order decides, and the
+  earlier registration wins. The ordering is structural — an app's generated registry initialises as
+  `Program.cs` starts, necessarily before the `AddRaskAuth` call inside it first touches this package.
+
+  Styling is a `<style>` block, not a scoped stylesheet or a Tailwind build: these pages ship in a
+  package and have to render on an app with no CSS of its own. `/logout` asks rather than acting, so a
+  cross-site `<img src="/logout">` cannot end a session.
+
+  `AuthOptions.Pages` is removed — it could never have worked, because the pages register from a
+  `[Route]` attribute at module-initialisation time, long before any options object exists.
+
+- **`Rask.Auth` — accounts, and the first two thirds of "auth is on by default".** Rask shipped the
+  sign-in *plumbing* (`IUserProvider`, `IAuthSignIn`, the `Authorize` component, route guards) but no
+  account store: `rask new --auth` scaffolded a demo credential store whose passwords were compared as
+  plaintext, and there was no registration at all. This adds the store, backed by **ASP.NET Core
+  Identity** rather than a hand-rolled one — versioned password hashing, lockout, security stamps and
+  token providers are exactly the things that are dangerous to write twice, and the repo's own rule is
+  to prefer the standard .NET API.
+
+  The surface an app writes against is new but small: **`IAuth`** in `Rask.Core.Authentication`, with
+  `RegisterAsync` / `SignInAsync` / `SignOutAsync`. It lives in Core, beside `IUserProvider`, precisely
+  so the *same* injected type means the same thing on every host — the server implementation validates
+  against the store and then hands the principal to the existing `IAuthSignIn` ticket relay, adding no
+  second handshake.
+
+  **The first account to register becomes the administrator**, every one after it an ordinary user.
+  That removes the worst step in self-hosting — "it is deployed, now how do I make an admin?" — without
+  a seeding migration or a create-admin command.
+
+  Two things about it are load-bearing, and both are the reason it is not simply a count of the users
+  table:
+
+  1. **It is a single-winner guarantee, not a race.** Counting and then inserting is two statements,
+     and whether a concurrent pair can interleave depends on the provider's isolation level and, on
+     SQLite, on whether the transaction took its write lock early — a contended `COMMIT` can roll
+     itself back. Instead one row in `RaskAuthInstanceClaim` has a **constant primary key**, so the
+     second insert fails at the database. That means the same thing on every provider.
+  2. **The test for it had to be built twice.** Racing several `RegisterAsync` calls passes even
+     against a deliberately broken read-then-write store — creating an account is slow enough that the
+     first racer commits before the second reads. That was verified by breaking the store and watching
+     the test stay green. The test with teeth calls the claim store directly, straight after a barrier,
+     and does fail against the broken one.
+
+  A deployed app with an empty user table and an open registration page is a land-grab, so the **first**
+  registration — and only the first — needs a one-time token, generated while the instance is unclaimed
+  and written to the log. Missing and wrong are one answer carrying no detail, and the comparison is
+  fixed-time. Sign-in hashes even for an unknown address, so it cannot be used as an
+  account-existence oracle.
+
+  `SecureToken` moved from `Rask.Server` to `Rask.Core`: the auth battery needs the same CSPRNG
+  guarantee, and no battery may reference `Rask.Server` — that is what keeps the meta-package free of
+  reference cycles.
+
+  Not yet wired: the built-in pages, the browser half, and the `--auth` flag removal.
+
+- **Auth is battery #12, and it is on.** `RaskAppOptions.Auth` joins the other eleven, so an app that
+  writes no `Configure` block gets register, sign in and sign out along with everything else, and
+  `app.Configure(c => c.Auth.Off())` is how one does without them. Wired in `WireFor<TContext>` beside
+  the other database-backed batteries, because Identity's stores live on the application context.
+
+  Turning it off leaves the account tables mapped, like every other database-backed battery, so
+  flipping the line back on does not produce a destructive migration.
+
+  Ordering comes out right on its own: `AddRaskAuth` registers the cookie scheme, and `RaskApp` already
+  calls `UseAuthentication`/`UseAuthorization` before `UseRask` whenever a scheme provider is present.
+  An app never orders that middleware itself — which matters, because getting it wrong is exactly what
+  RASK024 exists to catch, and turning auth on by default would otherwise have reintroduced the bug for
+  everybody at once.
+
+- **`/api/auth/register|login|logout|me` — the contract every host that is not C# speaks.**
+  `MapRaskAuth()` maps four routes under `AuthOptions.ApiPrefix` (`/api/auth`). A TypeScript front
+  end, a meta framework's Node process and a WebAssembly client all reach the three flows through
+  these, which is what makes "the same API in every host" one contract rather than one per host.
+
+  `me` answers `204` rather than `401` when nobody is signed in — "nobody" is a good answer to that
+  question, and a `401` would make every anonymous page load look like a failure in a client's logs.
+  It is also the endpoint a meta framework needs most: Node forwards the visitor's cookie opaquely and
+  cannot decrypt it, so server-side rendering calls back here over loopback and lets C# resolve the
+  identity.
+
+  Every state-changing request must carry `X-Rask-Auth`. Cross-site markup — a form, an `<img>`, a
+  `<script>` — cannot set a custom header, so only a same-origin `fetch` reaches these routes; it is a
+  CSRF defence with no token round-trip, layered over the `SameSite=Lax` cookie that already withholds
+  itself from a cross-site POST. A request without it is refused as `MissingRequestHeader` and says
+  which header, rather than being folded into a credentials failure that would send a caller with a
+  correct password hunting in the wrong place.
+
+  Two bugs the gates caught rather than the tests:
+
+  - `ASP0016`. `LogoutAsync(HttpContext)` is exactly `RequestDelegate`'s shape, so ASP.NET bound it as
+    one and **discarded the returned result** — the sign-out happened and the response never said so.
+    Fixed with an explicit `(Delegate)` cast.
+  - Describing the signed-in user from `context.User` after `SignInAsync` answers `204` to the caller
+    that just succeeded: the cookie is written for the *next* request, and this request's `User` is
+    untouched. The response is built from the principal instead.
+
+  Tested over real HTTP through `TestServer`, because the parts worth pinning here — the cookie, the
+  status codes, the header — only exist over the wire. That needed a cookie container of its own:
+  `TestServer`'s client keeps none, so a session issued by one request never reaches the next.
+
 - **`rask new --template nuxt` — and nextjs, sveltekit, solidstart, tanstack-start, analog.** The meta
   framework lane could be hosted but not started: you hand-wrote the csproj, the `Program.cs`, the
   adapter or preset that emits a node server, and the dev proxy that makes a `rask dev` session

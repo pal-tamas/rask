@@ -16,6 +16,28 @@ Rask.Core.Authentication.AnonymousUserProvider.Current.get -> System.Security.Cl
 Rask.Core.Authentication.AuthAction
 Rask.Core.Authentication.AuthAction.SignIn = 0 -> Rask.Core.Authentication.AuthAction
 Rask.Core.Authentication.AuthAction.SignOut = 1 -> Rask.Core.Authentication.AuthAction
+Rask.Core.Authentication.AuthApi
+Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.DuplicateAccount = 3 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.EmailNotConfirmed = 9 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.FirstRunTokenRequired = 5 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.InvalidCredentials = 1 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.InvalidEmail = 7 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.InvalidToken = 8 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.LockedOut = 2 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.MailNotConfigured = 10 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.None = 0 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.NotAllowed = 6 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.WeakPassword = 4 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthFailure
+Rask.Core.Authentication.AuthFailure.<Clone>$() -> Rask.Core.Authentication.AuthFailure!
+Rask.Core.Authentication.AuthFailure.AuthFailure(string! Error, string? Message) -> void
+Rask.Core.Authentication.AuthFailure.Deconstruct(out string! Error, out string? Message) -> void
+Rask.Core.Authentication.AuthFailure.Equals(Rask.Core.Authentication.AuthFailure? other) -> bool
+Rask.Core.Authentication.AuthFailure.Error.get -> string!
+Rask.Core.Authentication.AuthFailure.Error.init -> void
+Rask.Core.Authentication.AuthFailure.Message.get -> string?
+Rask.Core.Authentication.AuthFailure.Message.init -> void
 Rask.Core.Authentication.AuthInstruction
 Rask.Core.Authentication.AuthInstruction.<Clone>$() -> Rask.Core.Authentication.AuthInstruction!
 Rask.Core.Authentication.AuthInstruction.AuthInstruction(string! Ticket, string? ReturnUrl) -> void
@@ -25,10 +47,55 @@ Rask.Core.Authentication.AuthInstruction.ReturnUrl.get -> string?
 Rask.Core.Authentication.AuthInstruction.ReturnUrl.init -> void
 Rask.Core.Authentication.AuthInstruction.Ticket.get -> string!
 Rask.Core.Authentication.AuthInstruction.Ticket.init -> void
+Rask.Core.Authentication.AuthResult
+Rask.Core.Authentication.AuthResult.<Clone>$() -> Rask.Core.Authentication.AuthResult!
+Rask.Core.Authentication.AuthResult.AuthResult(bool Succeeded, Rask.Core.Authentication.AuthError Error = Rask.Core.Authentication.AuthError.None, string? Message = null) -> void
+Rask.Core.Authentication.AuthResult.Deconstruct(out bool Succeeded, out Rask.Core.Authentication.AuthError Error, out string? Message) -> void
+Rask.Core.Authentication.AuthResult.Equals(Rask.Core.Authentication.AuthResult? other) -> bool
+Rask.Core.Authentication.AuthResult.Error.get -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthResult.Error.init -> void
+Rask.Core.Authentication.AuthResult.Message.get -> string?
+Rask.Core.Authentication.AuthResult.Message.init -> void
+Rask.Core.Authentication.AuthResult.Succeeded.get -> bool
+Rask.Core.Authentication.AuthResult.Succeeded.init -> void
 Rask.Core.Authentication.AuthSignIn
 Rask.Core.Authentication.AuthSignIn.AuthSignIn() -> void
 Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.ConfirmEmailRequest
+Rask.Core.Authentication.ConfirmEmailRequest.<Clone>$() -> Rask.Core.Authentication.ConfirmEmailRequest!
+Rask.Core.Authentication.ConfirmEmailRequest.ConfirmEmailRequest(string! UserId, string! Token) -> void
+Rask.Core.Authentication.ConfirmEmailRequest.Deconstruct(out string! UserId, out string! Token) -> void
+Rask.Core.Authentication.ConfirmEmailRequest.Equals(Rask.Core.Authentication.ConfirmEmailRequest? other) -> bool
+Rask.Core.Authentication.ConfirmEmailRequest.Token.get -> string!
+Rask.Core.Authentication.ConfirmEmailRequest.Token.init -> void
+Rask.Core.Authentication.ConfirmEmailRequest.UserId.get -> string!
+Rask.Core.Authentication.ConfirmEmailRequest.UserId.init -> void
+Rask.Core.Authentication.CurrentUser
+Rask.Core.Authentication.CurrentUser.<Clone>$() -> Rask.Core.Authentication.CurrentUser!
+Rask.Core.Authentication.CurrentUser.CurrentUser(string? Id, string? Email, System.Collections.Generic.IReadOnlyList<string!>! Roles) -> void
+Rask.Core.Authentication.CurrentUser.Deconstruct(out string? Id, out string? Email, out System.Collections.Generic.IReadOnlyList<string!>! Roles) -> void
+Rask.Core.Authentication.CurrentUser.Email.get -> string?
+Rask.Core.Authentication.CurrentUser.Email.init -> void
+Rask.Core.Authentication.CurrentUser.Equals(Rask.Core.Authentication.CurrentUser? other) -> bool
+Rask.Core.Authentication.CurrentUser.Id.get -> string?
+Rask.Core.Authentication.CurrentUser.Id.init -> void
+Rask.Core.Authentication.CurrentUser.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Core.Authentication.CurrentUser.Roles.init -> void
+Rask.Core.Authentication.ForgotPasswordRequest
+Rask.Core.Authentication.ForgotPasswordRequest.<Clone>$() -> Rask.Core.Authentication.ForgotPasswordRequest!
+Rask.Core.Authentication.ForgotPasswordRequest.Deconstruct(out string! Email) -> void
+Rask.Core.Authentication.ForgotPasswordRequest.Email.get -> string!
+Rask.Core.Authentication.ForgotPasswordRequest.Email.init -> void
+Rask.Core.Authentication.ForgotPasswordRequest.Equals(Rask.Core.Authentication.ForgotPasswordRequest? other) -> bool
+Rask.Core.Authentication.ForgotPasswordRequest.ForgotPasswordRequest(string! Email) -> void
+Rask.Core.Authentication.IAuth
+Rask.Core.Authentication.IAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Core.Authentication.IAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Core.Authentication.IAuth.ResetPasswordAsync(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Core.Authentication.IAuth.SendPasswordResetAsync(string! email) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn
 Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
@@ -42,6 +109,17 @@ Rask.Core.Authentication.IUserProvider.Current.get -> System.Security.Claims.Cla
 Rask.Core.Authentication.IUserProvider.EnsureLoadedAsync() -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IUserProvider.IsLoading.get -> bool
 Rask.Core.Authentication.IUserProvider.RefreshAsync() -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.LoginRequest
+Rask.Core.Authentication.LoginRequest.<Clone>$() -> Rask.Core.Authentication.LoginRequest!
+Rask.Core.Authentication.LoginRequest.Deconstruct(out string! Email, out string! Password, out bool Remember) -> void
+Rask.Core.Authentication.LoginRequest.Email.get -> string!
+Rask.Core.Authentication.LoginRequest.Email.init -> void
+Rask.Core.Authentication.LoginRequest.Equals(Rask.Core.Authentication.LoginRequest? other) -> bool
+Rask.Core.Authentication.LoginRequest.LoginRequest(string! Email, string! Password, bool Remember = false) -> void
+Rask.Core.Authentication.LoginRequest.Password.get -> string!
+Rask.Core.Authentication.LoginRequest.Password.init -> void
+Rask.Core.Authentication.LoginRequest.Remember.get -> bool
+Rask.Core.Authentication.LoginRequest.Remember.init -> void
 Rask.Core.Authentication.PendingAuth
 Rask.Core.Authentication.PendingAuth.<Clone>$() -> Rask.Core.Authentication.PendingAuth!
 Rask.Core.Authentication.PendingAuth.Action.get -> Rask.Core.Authentication.AuthAction
@@ -55,6 +133,28 @@ Rask.Core.Authentication.PendingAuth.ReturnUrl.get -> string?
 Rask.Core.Authentication.PendingAuth.ReturnUrl.init -> void
 Rask.Core.Authentication.PendingAuth.Scheme.get -> string?
 Rask.Core.Authentication.PendingAuth.Scheme.init -> void
+Rask.Core.Authentication.RegisterRequest
+Rask.Core.Authentication.RegisterRequest.<Clone>$() -> Rask.Core.Authentication.RegisterRequest!
+Rask.Core.Authentication.RegisterRequest.Deconstruct(out string! Email, out string! Password, out string? FirstRunToken) -> void
+Rask.Core.Authentication.RegisterRequest.Email.get -> string!
+Rask.Core.Authentication.RegisterRequest.Email.init -> void
+Rask.Core.Authentication.RegisterRequest.Equals(Rask.Core.Authentication.RegisterRequest? other) -> bool
+Rask.Core.Authentication.RegisterRequest.FirstRunToken.get -> string?
+Rask.Core.Authentication.RegisterRequest.FirstRunToken.init -> void
+Rask.Core.Authentication.RegisterRequest.Password.get -> string!
+Rask.Core.Authentication.RegisterRequest.Password.init -> void
+Rask.Core.Authentication.RegisterRequest.RegisterRequest(string! Email, string! Password, string? FirstRunToken = null) -> void
+Rask.Core.Authentication.ResetPasswordRequest
+Rask.Core.Authentication.ResetPasswordRequest.<Clone>$() -> Rask.Core.Authentication.ResetPasswordRequest!
+Rask.Core.Authentication.ResetPasswordRequest.Deconstruct(out string! UserId, out string! Token, out string! Password) -> void
+Rask.Core.Authentication.ResetPasswordRequest.Equals(Rask.Core.Authentication.ResetPasswordRequest? other) -> bool
+Rask.Core.Authentication.ResetPasswordRequest.Password.get -> string!
+Rask.Core.Authentication.ResetPasswordRequest.Password.init -> void
+Rask.Core.Authentication.ResetPasswordRequest.ResetPasswordRequest(string! UserId, string! Token, string! Password) -> void
+Rask.Core.Authentication.ResetPasswordRequest.Token.get -> string!
+Rask.Core.Authentication.ResetPasswordRequest.Token.init -> void
+Rask.Core.Authentication.ResetPasswordRequest.UserId.get -> string!
+Rask.Core.Authentication.ResetPasswordRequest.UserId.init -> void
 Rask.Core.Authorization.RouteAuthorizationGuard
 Rask.Core.Authorization.RouteAuthorizationOutcome
 Rask.Core.Authorization.RouteAuthorizationOutcome.Allow = 0 -> Rask.Core.Authorization.RouteAuthorizationOutcome
@@ -2709,6 +2809,15 @@ abstract Rask.Core.Forms.RaskFile.LastModified.get -> System.DateTimeOffset
 abstract Rask.Core.Forms.RaskFile.Name.get -> string!
 abstract Rask.Core.Forms.RaskFile.OpenReadStream(long maxAllowedSize = 524288, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
 abstract Rask.Core.Forms.RaskFile.Size.get -> long
+const Rask.Core.Authentication.AuthApi.ConfirmEmail = "/confirm-email" -> string!
+const Rask.Core.Authentication.AuthApi.DefaultPrefix = "/api/auth" -> string!
+const Rask.Core.Authentication.AuthApi.ForgotPassword = "/forgot-password" -> string!
+const Rask.Core.Authentication.AuthApi.Login = "/login" -> string!
+const Rask.Core.Authentication.AuthApi.Logout = "/logout" -> string!
+const Rask.Core.Authentication.AuthApi.Me = "/me" -> string!
+const Rask.Core.Authentication.AuthApi.Register = "/register" -> string!
+const Rask.Core.Authentication.AuthApi.RequestHeader = "X-Rask-Auth" -> string!
+const Rask.Core.Authentication.AuthApi.ResetPassword = "/reset-password" -> string!
 const Rask.Core.Authorization.RouteAuthorizationGuard.ChallengePath = "/login" -> string!
 const Rask.Core.Authorization.RouteAuthorizationGuard.ForbidPath = "/forbidden" -> string!
 const Rask.Core.BuilderRuntime.OwnPendingBit = 32 -> int
@@ -2717,12 +2826,36 @@ const Rask.Core.BuilderRuntime.SharedElementPending = 524287 -> ulong
 const Rask.Core.Forms.EditContext.DefaultValidatingStickyMs = 200 -> int
 const Rask.Core.Live.QuiescentRender.DefaultMaxWaves = 16 -> int
 const Rask.Core.ScopedAssets.ScopedAssetRegistry.HashHexLength = 12 -> int
+override Rask.Core.Authentication.AuthFailure.Equals(object? obj) -> bool
+override Rask.Core.Authentication.AuthFailure.GetHashCode() -> int
+override Rask.Core.Authentication.AuthFailure.ToString() -> string!
 override Rask.Core.Authentication.AuthInstruction.Equals(object? obj) -> bool
 override Rask.Core.Authentication.AuthInstruction.GetHashCode() -> int
 override Rask.Core.Authentication.AuthInstruction.ToString() -> string!
+override Rask.Core.Authentication.AuthResult.Equals(object? obj) -> bool
+override Rask.Core.Authentication.AuthResult.GetHashCode() -> int
+override Rask.Core.Authentication.AuthResult.ToString() -> string!
+override Rask.Core.Authentication.ConfirmEmailRequest.Equals(object? obj) -> bool
+override Rask.Core.Authentication.ConfirmEmailRequest.GetHashCode() -> int
+override Rask.Core.Authentication.ConfirmEmailRequest.ToString() -> string!
+override Rask.Core.Authentication.CurrentUser.Equals(object? obj) -> bool
+override Rask.Core.Authentication.CurrentUser.GetHashCode() -> int
+override Rask.Core.Authentication.CurrentUser.ToString() -> string!
+override Rask.Core.Authentication.ForgotPasswordRequest.Equals(object? obj) -> bool
+override Rask.Core.Authentication.ForgotPasswordRequest.GetHashCode() -> int
+override Rask.Core.Authentication.ForgotPasswordRequest.ToString() -> string!
+override Rask.Core.Authentication.LoginRequest.Equals(object? obj) -> bool
+override Rask.Core.Authentication.LoginRequest.GetHashCode() -> int
+override Rask.Core.Authentication.LoginRequest.ToString() -> string!
 override Rask.Core.Authentication.PendingAuth.Equals(object? obj) -> bool
 override Rask.Core.Authentication.PendingAuth.GetHashCode() -> int
 override Rask.Core.Authentication.PendingAuth.ToString() -> string!
+override Rask.Core.Authentication.RegisterRequest.Equals(object? obj) -> bool
+override Rask.Core.Authentication.RegisterRequest.GetHashCode() -> int
+override Rask.Core.Authentication.RegisterRequest.ToString() -> string!
+override Rask.Core.Authentication.ResetPasswordRequest.Equals(object? obj) -> bool
+override Rask.Core.Authentication.ResetPasswordRequest.GetHashCode() -> int
+override Rask.Core.Authentication.ResetPasswordRequest.ToString() -> string!
 override Rask.Core.Browser.AnimationId.GetHashCode() -> int
 override Rask.Core.Browser.AnimationOptions.Equals(object? obj) -> bool
 override Rask.Core.Browser.AnimationOptions.GetHashCode() -> int
@@ -2963,10 +3096,28 @@ override Rask.Core.Virtualization.ItemsProviderResult<T>.ToString() -> string!
 override Rask.Core.Virtualization.VirtualItem<T>.Equals(object? obj) -> bool
 override Rask.Core.Virtualization.VirtualItem<T>.GetHashCode() -> int
 override Rask.Core.Virtualization.VirtualItem<T>.ToString() -> string!
+static Rask.Core.Authentication.AuthFailure.operator !=(Rask.Core.Authentication.AuthFailure? left, Rask.Core.Authentication.AuthFailure? right) -> bool
+static Rask.Core.Authentication.AuthFailure.operator ==(Rask.Core.Authentication.AuthFailure? left, Rask.Core.Authentication.AuthFailure? right) -> bool
 static Rask.Core.Authentication.AuthInstruction.operator !=(Rask.Core.Authentication.AuthInstruction? left, Rask.Core.Authentication.AuthInstruction? right) -> bool
 static Rask.Core.Authentication.AuthInstruction.operator ==(Rask.Core.Authentication.AuthInstruction? left, Rask.Core.Authentication.AuthInstruction? right) -> bool
+static Rask.Core.Authentication.AuthResult.Fail(Rask.Core.Authentication.AuthError error, string? message = null) -> Rask.Core.Authentication.AuthResult!
+static Rask.Core.Authentication.AuthResult.Success.get -> Rask.Core.Authentication.AuthResult!
+static Rask.Core.Authentication.AuthResult.operator !=(Rask.Core.Authentication.AuthResult? left, Rask.Core.Authentication.AuthResult? right) -> bool
+static Rask.Core.Authentication.AuthResult.operator ==(Rask.Core.Authentication.AuthResult? left, Rask.Core.Authentication.AuthResult? right) -> bool
+static Rask.Core.Authentication.ConfirmEmailRequest.operator !=(Rask.Core.Authentication.ConfirmEmailRequest? left, Rask.Core.Authentication.ConfirmEmailRequest? right) -> bool
+static Rask.Core.Authentication.ConfirmEmailRequest.operator ==(Rask.Core.Authentication.ConfirmEmailRequest? left, Rask.Core.Authentication.ConfirmEmailRequest? right) -> bool
+static Rask.Core.Authentication.CurrentUser.operator !=(Rask.Core.Authentication.CurrentUser? left, Rask.Core.Authentication.CurrentUser? right) -> bool
+static Rask.Core.Authentication.CurrentUser.operator ==(Rask.Core.Authentication.CurrentUser? left, Rask.Core.Authentication.CurrentUser? right) -> bool
+static Rask.Core.Authentication.ForgotPasswordRequest.operator !=(Rask.Core.Authentication.ForgotPasswordRequest? left, Rask.Core.Authentication.ForgotPasswordRequest? right) -> bool
+static Rask.Core.Authentication.ForgotPasswordRequest.operator ==(Rask.Core.Authentication.ForgotPasswordRequest? left, Rask.Core.Authentication.ForgotPasswordRequest? right) -> bool
+static Rask.Core.Authentication.LoginRequest.operator !=(Rask.Core.Authentication.LoginRequest? left, Rask.Core.Authentication.LoginRequest? right) -> bool
+static Rask.Core.Authentication.LoginRequest.operator ==(Rask.Core.Authentication.LoginRequest? left, Rask.Core.Authentication.LoginRequest? right) -> bool
 static Rask.Core.Authentication.PendingAuth.operator !=(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
 static Rask.Core.Authentication.PendingAuth.operator ==(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
+static Rask.Core.Authentication.RegisterRequest.operator !=(Rask.Core.Authentication.RegisterRequest? left, Rask.Core.Authentication.RegisterRequest? right) -> bool
+static Rask.Core.Authentication.RegisterRequest.operator ==(Rask.Core.Authentication.RegisterRequest? left, Rask.Core.Authentication.RegisterRequest? right) -> bool
+static Rask.Core.Authentication.ResetPasswordRequest.operator !=(Rask.Core.Authentication.ResetPasswordRequest? left, Rask.Core.Authentication.ResetPasswordRequest? right) -> bool
+static Rask.Core.Authentication.ResetPasswordRequest.operator ==(Rask.Core.Authentication.ResetPasswordRequest? left, Rask.Core.Authentication.ResetPasswordRequest? right) -> bool
 static Rask.Core.Authorization.RouteAuthorizationGuard.EvaluateAsync(System.IServiceProvider! services, System.Collections.Generic.IReadOnlyList<System.Type!>! chain, System.Security.Claims.ClaimsPrincipal! user) -> System.Threading.Tasks.Task<Rask.Core.Authorization.RouteAuthorizationResult!>!
 static Rask.Core.Authorization.RouteAuthorizationResult.Allow() -> Rask.Core.Authorization.RouteAuthorizationResult!
 static Rask.Core.Authorization.RouteAuthorizationResult.Challenge(string? scheme, System.Type? page) -> Rask.Core.Authorization.RouteAuthorizationResult!

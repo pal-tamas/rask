@@ -1,4 +1,5 @@
 using Rask.Api;
+using Rask.Auth;
 using Rask.Cache;
 using Rask.Core.Browser;
 using Rask.Core.Live;
@@ -37,6 +38,28 @@ public sealed class RaskAppOptions
 
     /// <summary>The source-generated CQRS mediator, and the query cache that rides with it.</summary>
     public Battery Cqrs { get; } = new();
+
+    /// <summary>
+    /// Accounts, and the flows every app needs: register, sign in, sign out, confirm an address
+    /// and reset a password.
+    /// </summary>
+    /// <remarks>
+    /// On by default, which is the point — a scaffolded app can sign somebody in without a line of auth
+    /// code. Accounts are ASP.NET Core Identity's, so the password hashing, lockout and security stamps
+    /// are the standard ones; what Rask adds is the host-neutral surface over them, so the same
+    /// <c>IAuth</c> and <c>IUserProvider</c> mean the same thing on the Server host, in WebAssembly, and
+    /// inside an island. The first account to register becomes the administrator.
+    /// <para>
+    /// Confirmation and reset links go out through the <see cref="Mail" /> battery. Requiring a
+    /// confirmed address before sign-in is off by default — see <c>AuthOptions.RequireConfirmedEmail</c>
+    /// for why a freshly scaffolded app must not start with that gate closed.
+    /// </para>
+    /// <para>
+    /// Turning it off leaves the account tables mapped, like every other database-backed battery, so
+    /// flipping this line back on does not produce a destructive migration.
+    /// </para>
+    /// </remarks>
+    public Battery<AuthOptions> Auth { get; } = new();
 
     /// <summary>
     ///     Validation, in forms and on dispatched requests: a model's

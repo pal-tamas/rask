@@ -6,7 +6,7 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>wasm</c> template (a standalone browser-WASM SPA) into <paramref name="targetDirectory"/>.</summary>
-    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa,
+    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool pwa,
         bool docker, string version, ServerBatteries? batteries = null)
     {
         // Both read off the batteries rather than taken as parameters beside them. Styling is one axis
@@ -18,8 +18,8 @@ internal static partial class ProjectGenerator
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", WasmCsproj(auth, version, cultures.Length > 0)),
-            ("Program.cs", WasmProgram(auth, pwa, cultures)),
+            ($"{NameToken}.csproj", WasmCsproj(version, cultures.Length > 0)),
+            ("Program.cs", WasmProgram(pwa, cultures)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
             ("Features/Shared/App.cs", AppShellCs()),
             ("Features/Home/HomePage.cs", HomePageTailwindCs),
@@ -27,13 +27,6 @@ internal static partial class ProjectGenerator
             ("runtimeconfig.template.json", WasmRuntimeConfig),
             ("tsconfig.json", TsConfigJson),
         };
-
-        if (auth)
-        {
-            files.Add(("Features/Auth/Auth.cs", WasmAuth));
-            files.Add(("Features/Auth/LoginPage.cs", WasmLoginPage));
-            files.Add(("Features/Auth/MembersPage.cs", WasmMembersPage));
-        }
 
         if (pwa)
         {
@@ -62,16 +55,6 @@ internal static partial class ProjectGenerator
             Packages = ["Rask.Wasm"],
         };
     }
-
-    // The JWT auth scaffold uses IJSRuntime (localStorage) + [AllowAnonymous]. On a browser-wasm app there's
-    // no Microsoft.AspNetCore.App framework reference to supply them and the transitive compile assets from
-    // Rask.Core don't flow through the published package chain, so the --auth scaffold references them directly.
-    //
-    // This MUST match what Directory.Packages.props pins, because Rask.Wasm references the same two packages
-    // and its nuspec therefore demands `>= <that pin>`. Scaffolding a lower version puts the generated project
-    // *below* its own dependency and NuGet reports a downgrade (NU1605) — an error under -warnaserror.
-    // ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin holds the two in sync.
-    internal const string AspNetCoreFrameworkVersion = "10.0.11";
 
     /// <summary>
     /// The WebAssembly SDK <c>&lt;PropertyGroup&gt;</c> for the standalone <c>wasm</c> template, with the
@@ -144,22 +127,15 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
         """;
 
-    private static string WasmCsproj(bool auth, string version, bool localization)
+    private static string WasmCsproj(string version, bool localization)
     {
-        var authRefs = auth
-            ? $"""
-
-                    <PackageReference Include="Microsoft.JSInterop" Version="{AspNetCoreFrameworkVersion}"/>
-                    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="{AspNetCoreFrameworkVersion}"/>
-                """.TrimEnd()
-            : "";
         return $"""
         <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
         {WasmSdkPropertyGroup(localization)}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>{authRefs}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>
           </ItemGroup>
 
         </Project>
@@ -167,22 +143,11 @@ internal static partial class ProjectGenerator
         """;
     }
 
-    private static string WasmProgram(bool auth, bool pwa, IReadOnlyList<string> cultures)
+    private static string WasmProgram(bool pwa, IReadOnlyList<string> cultures)
     {
         var sb = new StringBuilder();
         sb.Append("using Company.RaskServer.Features.Shared;\n"); // App lives in the Features/Shared bucket.
-        if (auth)
-        {
-            // Only the --auth block registers services, so these would otherwise be unused usings.
-            sb.Append("using Company.RaskServer.Features.Auth;\n");
-            sb.Append("using Microsoft.Extensions.DependencyInjection;\n");
-        }
-
         sb.Append("using Rask.Wasm;\n");
-        if (auth)
-        {
-            sb.Append("using Rask.Core.Authentication;\n");
-        }
 
         if (pwa)
         {
@@ -221,25 +186,6 @@ internal static partial class ProjectGenerator
         }
 
         sb.Append(WasmUseCulture(cultures));
-
-        if (auth)
-        {
-            sb.Append("""
-
-                // A standalone SPA has no host of its own — point this at YOUR auth API (CORS-enabled).
-                const string authApiBaseAddress = "https://api.example.com/"; // TODO: your auth API
-                host.Services.AddSingleton<TokenStore>();
-                host.Services.AddSingleton(sp =>
-                    new HttpClient(new BearerTokenHandler(sp.GetRequiredService<TokenStore>()) { InnerHandler = new HttpClientHandler() })
-                    {
-                        BaseAddress = new Uri(authApiBaseAddress)
-                    });
-                host.Services.AddSingleton<JwtUserProvider>();
-                host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<JwtUserProvider>());
-                host.Services.AddSingleton<JwtLoginService>();
-
-                """.TrimStart('\n'));
-        }
 
         sb.Append("\nawait host.RunAsync<App>();\n");
         return sb.ToString();
@@ -484,253 +430,6 @@ internal static partial class ProjectGenerator
         COPY --from=build /app/wwwroot /usr/share/nginx/html
         COPY nginx.conf /etc/nginx/conf.d/default.conf
         EXPOSE 8080
-
-        """;
-
-    private const string WasmAuth =
-        """
-        using System.Net.Http.Headers;
-        using System.Net.Http.Json;
-        using System.Security.Claims;
-        using System.Text.Json.Serialization;
-        using Microsoft.JSInterop;
-        using Rask.Core.Authentication;
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer.Features.Auth;
-
-        public sealed record LoginRequest(
-            [property: JsonPropertyName("username")] string Username,
-            [property: JsonPropertyName("password")] string Password);
-
-        public sealed record TokenResponse([property: JsonPropertyName("token")] string Token);
-
-        public sealed record MeDto(
-            [property: JsonPropertyName("name")] string Name,
-            [property: JsonPropertyName("roles")] string[] Roles);
-
-        public sealed class LoginModel
-        {
-            public string Username { get; set; } = "";
-            public string Password { get; set; } = "";
-        }
-
-        [JsonSerializable(typeof(LoginRequest))]
-        [JsonSerializable(typeof(TokenResponse))]
-        [JsonSerializable(typeof(MeDto))]
-        public partial class AuthJson : JsonSerializerContext;
-
-        // Bearer JWT in localStorage (survives refresh) + an in-memory copy the handler reads synchronously.
-        // SECURITY: a token in localStorage is plaintext and readable by ANY script on the page (XSS), so this
-        // scaffolded store is a development-grade floor. Before production, prefer an HttpOnly cookie (the token
-        // never reaches JS) or encrypt at rest with ProtectedTokenStore — see docs/authentication.md. The
-        // WarnOnce below logs a one-time reminder to the browser console while this plaintext store is in use.
-        public sealed class TokenStore(IJSRuntime js)
-        {
-            private bool _warned;
-
-            public string? Token { get; private set; }
-
-            public async Task InitAsync()
-            {
-                Token = await js.InvokeAsync<string?>("localStorage.getItem", "rask.jwt");
-                if (Token is not null)
-                {
-                    await WarnOnceAsync();
-                }
-            }
-
-            public async Task SetAsync(string token)
-            {
-                Token = token;
-                await js.InvokeVoidAsync("localStorage.setItem", "rask.jwt", token);
-                await WarnOnceAsync();
-            }
-
-            public async Task ClearAsync()
-            {
-                Token = null;
-                await js.InvokeVoidAsync("localStorage.removeItem", "rask.jwt");
-            }
-
-            // One-time console warning so a scaffold shipped to production unchanged surfaces the risk.
-            // Delete this (and harden the store) once you've moved to an HttpOnly cookie or ProtectedTokenStore.
-            private async Task WarnOnceAsync()
-            {
-                if (_warned)
-                {
-                    return;
-                }
-
-                _warned = true;
-                await js.InvokeVoidAsync("console.warn",
-                    "Rask: the bearer token is stored in plaintext localStorage and is readable by any script "
-                    + "(XSS risk). This is a development floor — for production use an HttpOnly cookie or encrypt "
-                    + "the token at rest (ProtectedTokenStore). See docs/authentication.md.");
-            }
-        }
-
-        public sealed class BearerTokenHandler(TokenStore tokens) : DelegatingHandler
-        {
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-            {
-                if (tokens.Token is { } token)
-                {
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                }
-
-                return base.SendAsync(request, ct);
-            }
-        }
-
-        public sealed class JwtUserProvider(HttpClient http, TokenStore tokens) : IUserProvider
-        {
-            private ClaimsPrincipal _current = new(new ClaimsIdentity());
-            public ClaimsPrincipal Current => _current;
-            public bool IsLoading { get; private set; }
-            public event Action? Changed;
-
-            public async Task EnsureLoadedAsync()
-            {
-                IsLoading = true; // bridge the anonymous→authed flash (LoadAsync's finally clears it)
-                await tokens.InitAsync();
-                await LoadAsync();
-            }
-
-            public async Task RefreshAsync()
-            {
-                IsLoading = true;
-                Changed?.Invoke();
-                await LoadAsync();
-            }
-
-            private async Task LoadAsync()
-            {
-                try
-                {
-                    if (tokens.Token is null)
-                    {
-                        _current = new ClaimsPrincipal(new ClaimsIdentity());
-                        return;
-                    }
-
-                    // GetAsync (not GetFromJsonAsync): a 204 No Content would make GetFromJsonAsync throw a
-                    // JsonException on the empty body; treat anything but a 200-with-body as anonymous.
-                    using var resp = await http.GetAsync("api/me");
-                    var me = resp.StatusCode == System.Net.HttpStatusCode.OK
-                        ? await resp.Content.ReadFromJsonAsync(AuthJson.Default.MeDto)
-                        : null;
-                    _current = me is { Name: { } name }
-                        ? new ClaimsPrincipal(new ClaimsIdentity(
-                            [new Claim(ClaimTypes.Name, name), .. me.Roles.Select(r => new Claim(ClaimTypes.Role, r))], "jwt"))
-                        : new ClaimsPrincipal(new ClaimsIdentity());
-                }
-                catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
-                {
-                    _current = new ClaimsPrincipal(new ClaimsIdentity());
-                }
-                finally
-                {
-                    IsLoading = false;
-                    Changed?.Invoke();
-                }
-            }
-        }
-
-        public sealed class JwtLoginService(HttpClient http, TokenStore tokens, IUserProvider users, Navigator nav)
-        {
-            public async Task<bool> LoginAsync(string username, string password, string? returnUrl)
-            {
-                var resp = await http.PostAsJsonAsync("api/login", new LoginRequest(username, password), AuthJson.Default.LoginRequest);
-                if (!resp.IsSuccessStatusCode) return false;
-                var dto = await resp.Content.ReadFromJsonAsync(AuthJson.Default.TokenResponse);
-                if (dto is null) return false;
-                await tokens.SetAsync(dto.Token);
-                await users.RefreshAsync();
-                // Open-redirect guard: an attacker-supplied returnUrl must never navigate off-origin.
-                nav.NavigateTo(LocalUrl.Sanitize(returnUrl ?? "/members"));
-                return true;
-            }
-
-            public async Task LogoutAsync()
-            {
-                nav.NavigateTo(Routes.LoginPage());
-                await tokens.ClearAsync();
-                await users.RefreshAsync();
-            }
-        }
-
-        """;
-
-    private const string WasmLoginPage =
-        """
-        using Microsoft.AspNetCore.Authorization;
-        using Rask.Core.Components;
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer.Features.Auth;
-
-        [AllowAnonymous]
-        [Route("login")]
-        public sealed partial class LoginPage(JwtLoginService login) : Component
-        {
-            private readonly LoginModel _model = new();
-            private string? _error;
-
-            [QueryParam] public string? ReturnUrl { get; set; }
-
-            protected override Component? Render() =>
-                Div.Style("max-width:22rem;margin:3rem auto;font-family:system-ui")[
-                    H1["Sign in"],
-                    _error is null ? null : Div.Style("color:#b00020")[_error],
-                    Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
-                        Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
-                        Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
-                        Button.Type("submit").Id("login-submit")["Sign in"]
-                    ]
-                ];
-
-            private async Task SubmitAsync(LoginModel m)
-            {
-                if (!await login.LoginAsync(m.Username, m.Password, ReturnUrl))
-                {
-                    _error = "Invalid username or password.";
-                }
-            }
-        }
-
-        """;
-
-    private const string WasmMembersPage =
-        """
-        using Microsoft.AspNetCore.Authorization;
-        using Rask.Core.Authentication;
-        using Rask.Core.Components;
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer.Features.Auth;
-
-        [AllowAnonymous]
-        [Route("members")]
-        public sealed partial class MembersPage : Component
-        {
-            protected override Component? Render() =>
-                Div.Style("max-width:32rem;margin:3rem auto;font-family:system-ui")[
-                    Authorize
-                        .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
-                ];
-        }
-
-        public sealed partial class MemberContent(JwtLoginService login, IUserProvider userProvider) : Component
-        {
-            protected override Component? Render() =>
-                [
-                    H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
-                    Authorize.Roles(["admin"])[
-                        Div.Style("color:#7a5c00")["🔑 You have admin access."]],
-                    Button.Id("logout").OnClickAsync(login.LogoutAsync)["Sign out"]
-                ];
-        }
 
         """;
 }

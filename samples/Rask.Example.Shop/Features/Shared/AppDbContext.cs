@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Auth;
 using Rask.Cache;
 using Rask.Data;
 using Rask.Example.Shop.Features.Orders;
@@ -19,6 +20,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         // the concurrency token to whatever is already in it — so it has to follow the configurations,
         // not precede them, or entities registered afterwards silently miss out.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        modelBuilder.AddRaskAuth();
         modelBuilder.ApplyRaskConventions();
         modelBuilder.AddRaskOutbox();
         modelBuilder.AddRaskJobs();
