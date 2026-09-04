@@ -240,7 +240,12 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             ],
             !open
                 ? null
-                : Ul.Class("nav-group-items menu-dropdown")[
+                  // menu-dropdown-show belongs on the SUBMENU, not only on the toggle. daisyUI hides
+                  // the list with `.menu :where(li > .menu-dropdown:not(.menu-dropdown-show))
+                  // { display: none }`, and carries the class on the toggle purely to rotate its
+                  // chevron — so with it on the button alone every group renders and nothing in it is
+                  // ever visible.
+                : Ul.Class("nav-group-items menu-dropdown menu-dropdown-show")[
                     // No cast: the chain ends at the children indexer, so it is already a Component
                     // and Select infers the sequence — which is what the indexer wants.
                     items.Select(i =>

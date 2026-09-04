@@ -25,7 +25,6 @@ public sealed partial class ValidationSummaryDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
-            DataAnnotationsValidator,
             ValidationSummary.Template(SummaryAlert),
             Div[
                 Label.For("v2-name").Class($"{Tw.Label} text-sm mb-1")["Name"],

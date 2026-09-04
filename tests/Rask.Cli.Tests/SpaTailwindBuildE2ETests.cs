@@ -108,7 +108,7 @@ public sealed class SpaTailwindBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var client = Path.Combine(projectDir, name + ".Client");
+            var client = Path.Combine(projectDir, name, "Client");
             InjectProbe(client, frameworkKey);
 
             // ONE command, and deliberately the .NET one. Rask.Spa.Hosting's targets own the whole chain
@@ -116,7 +116,7 @@ public sealed class SpaTailwindBuildE2ETests
             // from the server's message records, then run the bundler. Driving npm directly would skip the
             // emit and test a client that cannot type-check, which is exactly what it did on the first run
             // of this test: `Property 'visits' does not exist on type '{}'`.
-            var csproj = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
+            var csproj = Path.Combine(projectDir, name, name + ".csproj");
             var (buildExit, buildOutput) = await CliBuildE2E.RunDotnet($"build \"{csproj}\" -m:1");
             Assert.True(buildExit == 0, $"[{frameworkKey}] the solution failed to build.{CliBuildE2E.Diagnostics(buildOutput)}");
 

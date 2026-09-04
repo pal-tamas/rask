@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
+using Rask.Wire;
 
 namespace Rask.Cqrs.Server;
 
@@ -296,6 +297,19 @@ public static class RaskCqrsEndpointExtensions
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
             // The client went away. Nothing to write to, and nothing went wrong.
+            return;
+        }
+        catch (RaskValidationException ex)
+        {
+            // Before the blanket catch below, or a rejected request would read as a server fault: a 500
+            // saying "Handler failed" for a request the handler was deliberately never given.
+            await ProblemAsync(
+                context,
+                StatusCodes.Status400BadRequest,
+                "Validation failed",
+                detail: null,
+                ValidationProblemType,
+                ex.Errors).ConfigureAwait(false);
             return;
         }
         catch (Exception ex)
@@ -599,7 +613,24 @@ public static class RaskCqrsEndpointExtensions
         return string.IsNullOrEmpty(leaf) || leaf is "." or ".." ? "download" : leaf;
     }
 
-    private static async Task ProblemAsync(HttpContext context, int status, string title, string? detail)
+    private static Task ProblemAsync(HttpContext context, int status, string title, string? detail) =>
+        ProblemAsync(context, status, title, detail, ProblemType, errors: null);
+
+    // Validation is the one failure whose text is written FOR the caller.
+    //
+    // Everything else here is opaque on purpose — an exception message names tables, paths and
+    // credentials, and is meant for an operator reading a log. A validation message is the opposite: it
+    // was authored to be shown to whoever sent the request, and withholding it would leave a client
+    // able to say only "something was wrong". So it gets its own problem type and carries an `errors`
+    // object, the same shape ASP.NET's ValidationProblemDetails uses and every HTTP client already
+    // understands.
+    private static async Task ProblemAsync(
+        HttpContext context,
+        int status,
+        string title,
+        string? detail,
+        string type,
+        IReadOnlyDictionary<string, string[]>? errors)
     {
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
@@ -608,7 +639,7 @@ public static class RaskCqrsEndpointExtensions
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();
-            writer.WriteString("type", $"https://github.com/pal-tamas/rask/blob/main/docs/cqrs.md#remote-errors");
+            writer.WriteString("type", type);
             writer.WriteString("title", title);
             writer.WriteNumber("status", status);
             if (detail is not null)
@@ -616,11 +647,38 @@ public static class RaskCqrsEndpointExtensions
                 writer.WriteString("detail", detail);
             }
 
+            if (errors is not null)
+            {
+                writer.WriteStartObject("errors");
+                foreach (var (field, messages) in errors)
+                {
+                    writer.WriteStartArray(field);
+                    foreach (var message in messages)
+                    {
+                        writer.WriteStringValue(message);
+                    }
+
+                    writer.WriteEndArray();
+                }
+
+                writer.WriteEndObject();
+            }
+
             writer.WriteEndObject();
         }
 
         await context.Response.Body.WriteAsync(buffer.WrittenMemory, context.RequestAborted).ConfigureAwait(false);
     }
+
+    private const string ProblemType =
+        "https://github.com/pal-tamas/rask/blob/main/docs/cqrs.md#remote-errors";
+
+    /// <summary>
+    ///     The <c>type</c> a validation failure carries. Stable across releases, so it is the right
+    ///     thing for a client to branch on.
+    /// </summary>
+    internal const string ValidationProblemType =
+        "https://github.com/pal-tamas/rask/blob/main/docs/validation.md#rejected";
 
 }
 

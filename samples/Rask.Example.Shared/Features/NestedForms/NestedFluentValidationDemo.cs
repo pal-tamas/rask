@@ -7,7 +7,6 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class NestedFluentValidationDemo : Component
 {
     private readonly NestedOrderModel _model = new();
-    private readonly NestedOrderValidator _validator = new();
     private int _seq = 2;
     private string? _submission;
 
@@ -41,7 +40,6 @@ public sealed partial class NestedFluentValidationDemo : Component
         return
         [
             Form.Model(_model).OnValidSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
-                FluentValidationValidator.Validator(_validator),
                 Div[
                     Label.For("nf-fv-name").Class($"{Tw.Label} text-sm mb-1")["Customer"],
                     Input.Bind(() => _model.CustomerName).Id("nf-fv-name").Class(Tw.Input),

@@ -111,9 +111,13 @@ started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–060 are documented in `docs/diagnostics.md`
-  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK067). **Grep `src/`
-  for the id before you claim it, AND again before you merge** — three assemblies allocate in this space and
-  RS1019 only checks one compilation, so this line goes stale silently. This has now bitten four times on one
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–071 are documented in `docs/diagnostics.md`
+  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK072). **Grep `src/`
+  for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
+  (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
+  source-linked `RegistryGeneratorBase`) and
+  RS1019 only checks one compilation, so this line goes stale silently. This has now bitten five times on one
   branch: #865 took RASK054, #871 took RASK055, and #864 took RASK056–059 out from under #880's own RASK056,
-  caught only at merge. Treat a merge from main as invalidating every id you hold.
+  caught only at merge; the API client generator then wrote RASK061–064 against a checkout whose base already
+  had them. #984 then took RASK067–070 out from under #985's own RASK067, again caught
+  only at merge. Treat a merge from main as invalidating every id you hold.

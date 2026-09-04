@@ -32,6 +32,7 @@ internal sealed partial class NodeForwarder : IDisposable
     private readonly HttpMessageInvoker _invoker;
     private readonly ILogger<NodeForwarder> _logger;
     private readonly MetaHostingOptions _options;
+    private readonly MetaDrain _drain;
     private readonly NodeReadiness _readiness;
     private readonly StaticAssets _static;
     private readonly ForwarderRequestConfig _requestConfig;
@@ -43,11 +44,13 @@ internal sealed partial class NodeForwarder : IDisposable
         MetaHostingOptions options,
         MetaPaths paths,
         NodeReadiness readiness,
+        MetaDrain drain,
         IHttpForwarder forwarder,
         ILogger<NodeForwarder> logger)
     {
         _options = options;
         _readiness = readiness;
+        _drain = drain;
         _static = new StaticAssets(options.Framework, paths.AppDirectory);
         _forwarder = forwarder;
         _logger = logger;
@@ -97,17 +100,37 @@ internal sealed partial class NodeForwarder : IDisposable
             return;
         }
 
+        // Refused rather than forwarded once shutdown has begun: the Node process is on its way out,
+        // and handing a visitor a page rendered by something about to be killed is worse than telling
+        // them to come back. Same 503 the starting case uses, for the same reason — this is temporary
+        // and the client already knows what Retry-After means.
+        if (_drain.IsDraining)
+        {
+            await WriteUnavailableAsync(context, "The front end is shutting down.").ConfigureAwait(false);
+            return;
+        }
+
         if (!_readiness.IsReady)
         {
-            await WriteStartingAsync(context).ConfigureAwait(false);
+            await WriteUnavailableAsync(context, "The front end is still starting.").ConfigureAwait(false);
             return;
         }
 
         var config = context.WebSockets.IsWebSocketRequest ? _upgradeConfig : _requestConfig;
 
-        var error = await _forwarder
-            .SendAsync(context, _destination, _invoker, config)
-            .ConfigureAwait(false);
+        // Counted around the forward itself, so shutdown can wait for real work rather than guessing.
+        _drain.Enter();
+        ForwarderError error;
+        try
+        {
+            error = await _forwarder
+                .SendAsync(context, _destination, _invoker, config)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            _drain.Exit();
+        }
 
         // No HasStarted guard on the LOGGING. A failure part-way through a streamed response — the
         // Node process dying mid-render — is the one the visitor actually sees, as a page that stops
@@ -129,12 +152,12 @@ internal sealed partial class NodeForwarder : IDisposable
     ///     is genuinely temporary, so it should say so in the one way clients and orchestrators
     ///     already understand.
     /// </remarks>
-    private static async Task WriteStartingAsync(HttpContext context)
+    private static async Task WriteUnavailableAsync(HttpContext context, string reason)
     {
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         context.Response.Headers.RetryAfter = "1";
         context.Response.ContentType = "text/plain; charset=utf-8";
-        await context.Response.WriteAsync("The front end is still starting.").ConfigureAwait(false);
+        await context.Response.WriteAsync(reason).ConfigureAwait(false);
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Error,

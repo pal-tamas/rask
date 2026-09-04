@@ -74,6 +74,9 @@ a `modelBuilder.AddRaskX()` schema line:
 
 ```bash
 dotnet add package Rask.Data              # base entity + EF interceptors (soft delete, concurrency, events)
+dotnet add package Rask.Api               # host API controllers and minimal APIs, with a real 404 under /api
+dotnet add package Rask.Api.Client        # typed clients generated from those endpoints — no URL at the call site
+dotnet add package Rask.Wire              # reflection-free JSON primitives the generated codecs call
 dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
 dotnet add package Rask.Cqrs.Client       # dispatch a message to the server from a WASM client
 dotnet add package Rask.Query             # cache, dedup and invalidate dispatched queries per session
@@ -102,7 +105,7 @@ dotnet add package Rask.SQLite.Browser                # a persistent SQLite data
 **UI and testing:**
 
 ```bash
-dotnet add package Rask.Validation.DataAnnotations    # or Rask.Validation.FluentValidation
+dotnet add package Rask.Validation.FluentValidation   # AbstractValidator<T>; DataAnnotations is built in
 dotnet add package Rask.Testing                       # render + drive components in unit tests
 ```
 

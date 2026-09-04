@@ -40,7 +40,6 @@ public sealed partial class NestedListForeachDemo : Component
         return
         [
             Form.Model(_model).OnValidSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("flex flex-col gap-3")[
-                DataAnnotationsValidator,
                 Table.Class($"{Tw.Table} text-sm align-middle mb-0")[
                     Thead[Tr[Th["Description"], Th["Quantity"], Th]],
                     Tbody[rows]

@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK066)
+# Rask diagnostics (RASK001–RASK071, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -16,6 +16,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
+| **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 | **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
@@ -99,6 +100,13 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK062](#rask062) | Error | An island takes no children |
 | [RASK064](#rask064) | Error | Blazor island name collision |
 | [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
+| [RASK067](#rask067) | Error | Endpoint shape has no wire encoding |
+| [RASK068](#rask068) | Warning | Endpoint has no generated client method |
+| [RASK069](#rask069) | Error | Two endpoints claim one client method |
+| [RASK070](#rask070) | Warning | Endpoint's response type is not statically known |
+| [RASK071](#rask071) | Error | ASP.NET route attribute on a Rask component |
+| [RASKVAL001](#raskval001) | Error | Two validators for the same model |
+| [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
 ---
 
@@ -1402,3 +1410,213 @@ public sealed partial class WidgetIsland : BlazorComponent<Widget> { }
 **Fix:** move the `.razor` into a Razor Class Library and reference it. That is also where a Blazor
 component belongs if anything else will ever use it — and it is why hosting MudBlazor or Radzen,
 which are referenced packages, is fully checked with no warning at all.
+
+---
+
+## RASK067
+
+**Endpoint shape has no wire encoding** · Error
+
+A parameter or response type of an API endpoint cannot be encoded on the wire, so no typed client
+method can call it. The message names the shape and says what is wrong with it — the same walk, and
+the same vocabulary, as [RASK053](#rask053) for a CQRS message.
+
+```csharp
+[HttpPost("")]
+public ActionResult<Post> Create([FromBody] Stream body) => ...;   // ✗ RASK067
+```
+
+**Fix:** take a record, a class or a collection of them. A type Rask can encode is one whose public
+properties are themselves encodable — the shapes a JSON body can carry. If the parameter is really a
+service rather than something the caller sends, mark it `[FromServices]`, and it leaves the client's
+signature instead of being reported.
+
+---
+
+## RASK068
+
+**Endpoint has no generated client method** · Warning
+
+The endpoint works over plain HTTP; it just gets no typed caller, because something about it cannot be
+expressed as a method signature. The message says which:
+
+- its route has a **catch-all** segment (`{*rest}`), which no single parameter can fill;
+- its route names a token **no parameter supplies**, so the client would build a URL with a hole in it;
+- it would take a **second request body**, and a request has one.
+
+```csharp
+[HttpGet("files/{*path}")]                    // ⚠ RASK068 — catch-all
+public ActionResult<string> Read(string path) => ...;
+
+[HttpGet("{id:int}")]                         // ⚠ RASK068 — nothing supplies {id}
+public ActionResult<Post> Get() => ...;
+```
+
+A warning rather than an error, because one unusual endpoint should not break a build. It is reported
+rather than skipped in silence for the opposite reason: a method simply missing from the client reads
+as a broken generator, and the author has no way to find out why.
+
+**Fix:** give the route a normal parameter segment, add the parameter it names, or accept that this
+endpoint is called by hand.
+
+---
+
+## RASK069
+
+**Two endpoints claim one client method** · Error
+
+Two actions on the same controller generate the same client method name — an overload the generator
+cannot distinguish, and a CS0111 inside generated code if it were emitted.
+
+```csharp
+[HttpGet("{id:int}")] public ActionResult<Post> Get(int id) => ...;
+[HttpGet("by-slug/{slug}")] public ActionResult<Post> Get(string slug) => ...;   // ✗ RASK069
+```
+
+**Fix:** rename one of the actions. The client method takes the action's own name, so naming them for
+what they do — `Get` and `GetBySlug` — fixes the client and reads better on the server too.
+
+---
+
+## RASK070
+
+**Endpoint's response type is not statically known** · Warning
+
+The action returns `IActionResult`, `ActionResult` or `IResult`, so what it answers with is decided at
+run time and there is no type for a client method to return.
+
+```csharp
+[HttpGet("{id:int}")]
+public IActionResult Get(int id) => Ok(new Post(id));   // ⚠ RASK070
+```
+
+**Fix:** return the type, and let ASP.NET wrap it — `ActionResult<Post>` still lets you
+`return NotFound()`. Where the return type genuinely has to stay open, declare what the success case
+sends and the client is generated from that:
+
+```csharp
+[HttpGet("{id:int}")]
+[ProducesResponseType(typeof(Post), 200)]
+public IActionResult Get(int id) => ...;               // typed client method
+```
+
+An action that answers **nothing** does not need either: return `Task` or `void` and the client method
+returns a bare `Task`.
+
+---
+## RASK071
+
+**ASP.NET route attribute on a Rask component** · Error
+
+Rask's route attribute and ASP.NET's share the short name `Route` and differ only by namespace. In a
+server project that already has `using Microsoft.AspNetCore.Mvc;` — or in a file written by someone
+arriving from Blazor, where the attribute is `Microsoft.AspNetCore.Components.RouteAttribute` — the
+wrong one is one completion away, and nothing downstream notices:
+
+- MVC reads its attribute only while building the controller application model, and a `Component` is
+  never scanned.
+- Blazor's is read by a renderer this framework does not run.
+- Rask's `RoutesGenerator` matches on the full name, so it sees nothing to register.
+
+The build is green and the page is simply absent from the route table. The first sign of it is a 404
+in a browser, which is why this is an Error rather than a warning you could scroll past.
+
+```csharp
+using Rask.Core;
+using Microsoft.AspNetCore.Mvc;
+
+// ✗ RASK071 — binds to MVC's attribute; this page is never registered
+[Route("/orders")]
+public sealed partial class Orders : Component
+{
+    protected override Component? Render() => Div["orders"];
+}
+```
+
+**Fix:** apply `Rask.Core.Routing.RouteAttribute` instead (**quick-fix available** — "Use Rask's
+`[Route]`").
+
+The quick-fix rewrites only the attribute's **name**. It adds no `using` and removes none, and it
+writes the name qualified wherever the short form would bind back to ASP.NET's attribute or be
+ambiguous — so on the file above, with `using Microsoft.AspNetCore.Mvc;` still present, the lightbulb
+produces:
+
+```csharp
+[Rask.Core.Routing.Route("/orders")]       // qualified: a bare `Route` would still be MVC's
+```
+
+Tidying the imports by hand gives the shorter spelling:
+
+```csharp
+using Rask.Core;
+using Rask.Core.Routing;                   // MVC's import dropped
+
+[Route("/orders")]                         // Rask's — the page registers
+public sealed partial class Orders : Component
+{
+    protected override Component? Render() => Div["orders"];
+}
+```
+
+The lightbulb is **withheld** where carrying the arguments over would not compile: MVC's attribute
+also has settable `Name` and `Order`, which Rask's does not, and an alias may bake its template in
+and take no arguments at all. Rewriting those would answer RASK071 with a CS0117 or CS7036, so the
+attribute is left for you to move over deliberately.
+
+A page carrying **both** attributes is left alone. It registers correctly through Rask's, so the
+ASP.NET one is inert rather than harmful, and failing a build that is producing the right route
+table would be the worse outcome.
+
+This does not fire on ordinary classes. A Rask server project is an ASP.NET project and may hold
+genuine controllers; `[Route]` on one of those is correct and is never reported.
+
+---
+
+## RASKVAL001
+
+**Two validators for the same model** · Error
+
+A form asks for the validator of its model type and gets exactly one, so two
+`AbstractValidator<T>` for the same `T` in one compilation is ambiguous. Which one ran would depend
+on compilation order, and the rules in the other would silently never run — which reads as a
+validator that does not work rather than one that was never reached.
+
+```csharp
+public sealed class OrderValidator     : AbstractValidator<Order> { }   // ✗ RASKVAL001
+public sealed class OrderRulesValidator : AbstractValidator<Order> { }
+```
+
+**Fix:** combine the rules into one `AbstractValidator<Order>`. To switch between sets of rules, use
+FluentValidation's own rule sets inside that single validator rather than two validator classes.
+
+A `private` or `protected` validator is never discovered in the first place, so it does not collide —
+declaring it that way is itself the statement that nothing outside constructs it, and it has to be
+registered by hand with `RaskValidators.Register`.
+
+---
+
+## RASKVAL002
+
+**Validator cannot be constructed automatically** · Warning
+
+Registration builds the validator for you: a parameterless constructor is called directly, and one
+taking parameters has each resolved from the render scope. Several public constructors leave no way
+to choose, so nothing is generated.
+
+```csharp
+public sealed class OrderValidator : AbstractValidator<Order>   // ⚠ RASKVAL002
+{
+    public OrderValidator() { }
+    public OrderValidator(IProductRepo repo) { }
+}
+```
+
+**Fix:** leave one public constructor, or register it yourself:
+
+```csharp
+RaskValidators.Register(typeof(Order), sp => new OrderValidator(Pick(sp)));
+```
+
+This is a warning rather than an error because the validator is still usable by hand — but until it
+is registered its rules never run, and a validator that silently does nothing is the failure worth
+naming.

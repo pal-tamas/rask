@@ -70,6 +70,7 @@ public static class GuideCatalog
             "One Person Framework"),
         new("data", "Rask.Data", "Base entity + EF Core interceptors: audit, soft-delete, domain events.", "One Person Framework"),
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework"),
+        new("api-endpoints", "HTTP APIs", "Controllers and minimal APIs, called through a generated typed client.", "One Person Framework"),
         new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.", "One Person Framework"),
         new("meta", "Meta framework front ends",
             "Nuxt, Next, SvelteKit and three more owning the whole front end — one container.", "One Person Framework"),
@@ -102,6 +103,7 @@ public static class GuideCatalog
         new("forms", "Forms & validation", "Two-way binding, Form<T>, inline/DataAnnotations/Fluent.", "Core"),
         new("forms-validation", "Forms — validation", "Inline, DataAnnotations, FluentValidation, and async validators.", "Core"),
         new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.", "Core"),
+        new("validation", "Validation", "Built in and on: attributes and AbstractValidator<T>, in forms and on requests.", "Core"),
         new("js-interop", "JavaScript interop", "Scoped CSS/TypeScript, element refs, IJSRuntime, typed APIs.", "Core"),
         new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.", "Core"),
 

@@ -132,9 +132,11 @@
          name assemblies it does not have. -->
     <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Example.')) AND '$(_RaskUsingsName)' != 'Rask.Example.Playground.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Site.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Razor' ">true</_RaskInRepoImplicitUsings>
     <!--
-      The validation packages inject their own global usings (Rask.Validation.* below). Downstream
-      consumers only get them by referencing the validation NuGet package; in-repo we'd otherwise force
-      every Rask.Example.* project to reference the validation libs just to satisfy the generated usings.
+      FluentValidation injects its own global using (Rask.Validation.FluentValidation below). Downstream
+      consumers only get it by referencing that NuGet package; in-repo we'd otherwise force every
+      Rask.Example.* project to reference the validation lib just to satisfy the generated using.
+      DataAnnotations is NOT in here any more — it moved into Rask.Core, which every host already
+      carries, so there is no package to reference and no using to inject.
       The auth samples (Rask.Example.Auth*) don't use validation, and the EF Core sample
       (Rask.Example.EfCore) uses Rask.Core's inline Validate: lambdas only — so skip those usings for them.
       The marketing landing site (Rask.Example.Site) is a standalone WASM app (its own hand-styled design,
@@ -170,8 +172,6 @@
        package.json, so this is inert in every project that has no front-end file. -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props') "/>
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props"
-          Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props"

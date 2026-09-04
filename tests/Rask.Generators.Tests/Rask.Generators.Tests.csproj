@@ -33,10 +33,15 @@
     <!-- The other analyzer assembly, referenced as a plain library (not as an analyzer) so
          DiagnosticDescriptorTests can enumerate the WHOLE RASK family by reflection. RASK028/029 and
          RASK053 live here, as does RASK035 via the shared RegistryGeneratorBase; a family-wide
-         invariant that skipped them would be checking part of a rule. Two assemblies now cover the
-         whole family — the jobs and outbox generators used to be two more, each compiling its own
-         copy of RASK035's descriptor. -->
+         invariant that skipped them would be checking part of a rule. The jobs and outbox generators
+         used to be two more, each compiling its own copy of RASK035's descriptor. -->
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"/>
+    <!-- The FIFTH assembly to allocate in this space, and the reason this list must be checked rather
+         than trusted: RASK067-070 landed here while another branch held RASK067, and nothing went red
+         — RS1019 only sees one compilation, and the reflection sweep below only sees the assemblies
+         named here. An id collision is invisible until someone reads two docs sections with the same
+         number. -->
+    <ProjectReference Include="..\..\src\Rask.Api.Generators\Rask.Api.Generators.csproj"/>
     <!-- The island base classes, so ExternalGenerator's own diagnostics can be tested. The generator
          resolves ReactComponent/LitComponent/VueComponent/SvelteComponent by metadata name and does
          nothing at all when none of them is present, so without this reference every test of it would

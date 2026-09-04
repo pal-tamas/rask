@@ -1,3 +1,4 @@
+using Rask.Api;
 using Rask.Cache;
 using Rask.Core.Browser;
 using Rask.Core.Live;
@@ -37,6 +38,17 @@ public sealed class RaskAppOptions
     /// <summary>The source-generated CQRS mediator, and the query cache that rides with it.</summary>
     public Battery Cqrs { get; } = new();
 
+    /// <summary>
+    ///     Validation, in forms and on dispatched requests: a model's
+    ///     <c>System.ComponentModel.DataAnnotations</c> attributes and any
+    ///     <c>AbstractValidator&lt;T&gt;</c> you wrote, both applied with nothing declared.
+    ///     <para>
+    ///         Turning it off stops both. A single form opts out on its own with
+    ///         <c>Form.Model(m).AutoValidate(false)</c>.
+    ///     </para>
+    /// </summary>
+    public Battery Validation { get; } = new();
+
     /// <summary>Durable background jobs on the app's own database.</summary>
     public Battery<JobOptions> Jobs { get; } = new();
 
@@ -48,6 +60,17 @@ public sealed class RaskAppOptions
 
     /// <summary>The transactional outbox for durable domain-event delivery.</summary>
     public Battery<OutboxOptions> Outbox { get; } = new();
+
+    /// <summary>
+    /// HTTP endpoints: API controllers and minimal APIs, with a typed client generated from them.
+    /// </summary>
+    /// <remarks>
+    /// On like every other battery, and it costs an app with no endpoints nothing but MVC's registration.
+    /// What it buys the app that does have one is the part that is easy to get wrong by hand: an
+    /// unmatched request under the API prefix answers 404 with a problem document, rather than reaching
+    /// the catch-all and rendering the app with a 200 where the caller expected JSON.
+    /// </remarks>
+    public Battery<ApiOptions> Api { get; } = new();
 
     /// <summary>Server-sent Web Push (VAPID + RFC 8291).</summary>
     /// <remarks>

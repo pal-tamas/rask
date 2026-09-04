@@ -27,6 +27,10 @@
     <!-- The islands showcase. This is the sample carrying a package.json, so it is the one that can
          build React, Vue, Svelte and Lit components. -->
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
+    <!-- The Blazor island showcase, on the host where a hosted component's browser call has to come
+         back over a WebSocket. The WASM showcase gates trimming; this one gates the live path. -->
+    <ProjectReference Include="..\..\src\Rask.Blazor\Rask.Blazor.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Razor\Rask.Example.Razor.csproj"/>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"

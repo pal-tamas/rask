@@ -162,6 +162,131 @@ public sealed class BrowserRungPublishE2ETests
         }
     }
 
+    [SkippableFact]
+    public async Task The_bundle_can_call_an_API_controller_that_only_the_server_compiles()
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        const string name = "RBrowserApi";
+        var temp = Path.Combine(Path.GetTempPath(), "rask-browser-api", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+
+        try
+        {
+            var result = ProjectGenerator.GenerateServer(
+                projectDir, name, new ServerBatteries { Wasm = true }, version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            // The controller lives under Server/, which the companion does not compile. That is the
+            // whole point: the browser half cannot see this file, so the only way it can end up with a
+            // client for it is the baked one the server's generator wrote.
+            // The shape that crosses the wire is SHARED — outside Server/ — exactly as a CQRS message
+            // record is. Only the handler is server-only. Put it under Server/ and the generated client
+            // returns a type the bundle cannot see, which is a compile error inside generated code.
+            fs.WriteAllText(
+                Path.Combine(projectDir, "Pong.cs"),
+                $$"""
+                namespace {{name}};
+
+                public sealed record Pong(string Message);
+                """);
+
+            fs.CreateDirectory(Path.Combine(projectDir, "Server"));
+            fs.WriteAllText(
+                Path.Combine(projectDir, "Server", "PingController.cs"),
+                $$"""
+                using Microsoft.AspNetCore.Mvc;
+
+                namespace {{name}}.Server;
+
+                [ApiController]
+                [Route("api/ping")]
+                public sealed class PingController : ControllerBase
+                {
+                    [HttpGet("{id:int}")]
+                    public ActionResult<Pong> Get(int id) => new Pong($"pong-{id}");
+                }
+                """);
+
+            // A file compiled by BOTH halves that calls the generated client. If the bake did not
+            // happen, the companion has no PingClient and this does not compile — which is the
+            // assertion. A publish that succeeds is the proof.
+            fs.WriteAllText(
+                Path.Combine(projectDir, "ApiCaller.cs"),
+                $$"""
+                using {{name}}.Server;
+
+                namespace {{name}};
+
+                public static class ApiCaller
+                {
+                    public static System.Threading.Tasks.Task<Pong?> Call(PingClient client) =>
+                        client.Get(1);
+                }
+                """);
+
+            // Both halves need the client runtime the generated code calls. The server half gets it
+            // from the PackageReference below; the companion's copy is added by the browser targets
+            // when the baked file exists, which is the behaviour under test.
+
+            var csproj = Path.Combine(projectDir, name + ".csproj");
+            var text = await File.ReadAllTextAsync(csproj);
+
+            // Rask.Api hosts and carries the generator (server half); Rask.Api.Client is the runtime the
+            // generated client calls, and the server half needs it too because a component that calls
+            // its own API renders on both. The companion's copy is added by the browser targets when the
+            // baked file exists — deliberately NOT written here, because that is the behaviour under test.
+            text = text.Replace(
+                "</Project>",
+                $"""
+                   <ItemGroup>
+                     <PackageReference Include="Rask.Api" Version="{version}" />
+                     <PackageReference Include="Rask.Api.Client" Version="{version}" />
+                   </ItemGroup>
+                 </Project>
+                 """);
+            await File.WriteAllTextAsync(csproj, text);
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            var publishDir = Path.Combine(temp, "published");
+            var (exit, output) = await CliBuildE2E.RunDotnet(
+                $"publish \"{csproj}\" -c Release -o \"{publishDir}\" -m:1 -nodeReuse:false");
+
+            Assert.True(
+                exit == 0,
+                "the publish failed, so the browser half could not compile against the baked API client."
+                + CliBuildE2E.Diagnostics(output));
+
+            // The client runtime reached the bundle. Without it the generated client's calls into
+            // ApiCall would have nothing to bind to.
+            var framework = Path.Combine(publishDir, "wwwroot", "_framework");
+            Assert.True(
+                Directory.EnumerateFiles(framework, "Rask.Api.Client.*").Any(),
+                $"the API client runtime is not in the bundle: {framework}");
+
+            // The hosting half is the server's. It carries MVC and the generator, and the browser has
+            // no use for either — shipping it would put the endpoint-answering side in the bundle.
+            Assert.False(
+                Directory.EnumerateFiles(framework, "Rask.Api.dll").Any(),
+                "the server-side API hosting package reached the browser bundle.");
+        }
+        finally
+        {
+            try { Directory.Delete(temp, recursive: true); }
+            catch (IOException) { /* best effort */ }
+            catch (UnauthorizedAccessException) { /* best effort */ }
+        }
+    }
+
     /// <summary>
     ///     The published boot module must carry <c>System.Net.Http.WasmEnableStreamingResponse: true</c>.
     /// </summary>

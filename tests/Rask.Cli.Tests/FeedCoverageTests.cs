@@ -114,6 +114,18 @@ public sealed class FeedCoverageTests
         }
     }
 
+    /// <summary>Every meta framework template, which swaps one host package for another.</summary>
+    [Fact]
+    public void Every_package_a_meta_template_references_can_be_restored_from_the_local_feed()
+    {
+        foreach (var framework in MetaTemplate.All)
+        {
+            AssertFeedCovers(
+                ProjectGenerator.GenerateMeta(Root, "App", framework, new ServerBatteries(), Version),
+                $"the {framework.Key} template");
+        }
+    }
+
     [Fact]
     public void Browser_only_packages_are_in_the_local_feed_too()
     {

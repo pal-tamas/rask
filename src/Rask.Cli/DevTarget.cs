@@ -19,6 +19,13 @@ internal enum DevTemplateKind
     /// </summary>
     SpaHosted,
 
+    /// <summary>
+    ///     A meta framework — Nuxt, Next, SvelteKit and the rest — on an ASP.NET host. Two processes, like
+    ///     <see cref="SpaHosted" />, and the same division of labour: the framework's own dev server owns
+    ///     the front end for the session and the browser talks to it.
+    /// </summary>
+    MetaHosted,
+
     /// <summary>A standalone WebAssembly app: no ASP.NET host, and no launch profile scaffolded.</summary>
     WasmStandalone,
 
@@ -39,13 +46,24 @@ internal sealed record DevTarget(
     bool ProfileLaunchesBrowser)
 {
     /// <summary>
-    ///     The client's directory, for a <see cref="DevTemplateKind.SpaHosted" /> app whose client was
-    ///     found. Null everywhere else, and null for a SPA host whose client is somewhere non-conventional.
+    ///     The client's directory, for a <see cref="DevTemplateKind.SpaHosted" /> or
+    ///     <see cref="DevTemplateKind.MetaHosted" /> app whose client was found. Null everywhere else, and
+    ///     null for a host whose client is somewhere non-conventional.
     /// </summary>
     public string? ClientDirectory { get; init; }
 
-    /// <summary>Where the client's own dev server listens — Vite's 5173, Angular's 4200, or whatever the
-    ///     host's csproj says. Null when there is no client.</summary>
+    /// <summary>
+    ///     Which meta framework the host was built against, for a <see cref="DevTemplateKind.MetaHosted" />
+    ///     app. Null everywhere else.
+    /// </summary>
+    /// <remarks>
+    ///     The name from <c>RaskMetaFramework</c>, verbatim — it is what the banner prints and what decides
+    ///     the dev server's port, and both are better wrong-and-obvious than silently generic.
+    /// </remarks>
+    public string? MetaFramework { get; init; }
+
+    /// <summary>Where the client's own dev server listens — Vite's 5173, Angular's 4200, Nuxt's 3000, or
+    ///     whatever the host's csproj says. Null when there is no front end.</summary>
     public string? ClientDevServerUrl { get; init; }
 
     /// <summary>The npm script that starts it: <c>dev</c> for Vite, <c>start</c> for the Angular CLI.</summary>
@@ -99,7 +117,18 @@ internal sealed record DevTarget(
         var directory = Path.GetDirectoryName(resolved) ?? workingDirectory;
         var (url, launchesBrowser) = ReadLaunchProfile(fileSystem, directory);
         var kind = Classify(fileSystem, csproj);
-        var client = kind == DevTemplateKind.SpaHosted ? SpaClientDirectory(fileSystem, resolved) : null;
+        var meta = kind == DevTemplateKind.MetaHosted ? ReadMetaFramework(fileSystem, csproj) : null;
+
+        // Both front-end lanes put the app in a `Client` folder inside the host, which is what makes one
+        // resolver right for both. The meta lane can move it with RaskMetaAppDir, and that is read here
+        // because the app directory is also where its publish output lands — a host that moved it would
+        // otherwise get no dev server at all, with nothing said.
+        var client = kind switch
+        {
+            DevTemplateKind.SpaHosted => FrontEndDirectory(fileSystem, resolved, "Client"),
+            DevTemplateKind.MetaHosted => FrontEndDirectory(fileSystem, resolved, ReadMetaAppDir(fileSystem, csproj)),
+            _ => null,
+        };
 
         // Once. It walks the project tree, and the tree it walks contains node_modules — which for a
         // project with islands is tens of thousands of files. Calling it from two initialisers walked
@@ -109,7 +138,15 @@ internal sealed record DevTarget(
         return new DevTarget(kind, resolved, directory, url, launchesBrowser)
         {
             ClientDirectory = client,
-            ClientDevServerUrl = client is null ? null : ReadDevServerUrl(fileSystem, csproj),
+            MetaFramework = meta,
+            // The meta lane's answer comes from the framework, so it holds even when the app directory was
+            // not found — and pointing `--open` at Vite's port because a Nuxt app was moved would be a
+            // worse wrong answer than the one it replaces.
+            ClientDevServerUrl = meta is not null
+                ? MetaDevServerUrl(meta)
+                : client is null
+                    ? null
+                    : ReadDevServerUrl(fileSystem, csproj),
             ClientDevScript = client is null ? null : ReadDevScript(fileSystem, client),
             HasIslands = islands,
             IslandDevServerUrl = islands ? ReadIslandDevServerUrl(fileSystem, csproj) : null,
@@ -229,6 +266,49 @@ internal sealed record DevTarget(
         return match.Success ? match.Groups[1].Value : "http://localhost:5173";
     }
 
+    /// <summary>The meta framework the host names in its csproj, or null when it names none.</summary>
+    private static string? ReadMetaFramework(IFileSystem fileSystem, string csproj)
+    {
+        var match = Regex.Match(
+            ReadOrEmpty(fileSystem, csproj),
+            @"<RaskMetaFramework>\s*([^<\s]+)\s*</RaskMetaFramework>");
+
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    /// <summary>Where the front end lives, as <c>RaskMetaAppDir</c> set it or <c>Client</c> by default.</summary>
+    private static string ReadMetaAppDir(IFileSystem fileSystem, string csproj)
+    {
+        var match = Regex.Match(
+            ReadOrEmpty(fileSystem, csproj),
+            @"<RaskMetaAppDir>\s*([^<\s]+)\s*</RaskMetaAppDir>");
+
+        return match.Success ? match.Groups[1].Value : "Client";
+    }
+
+    /// <summary>Where the meta framework's own dev server listens.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         Asked of the same table <c>rask new</c> scaffolds from, rather than restated here. The
+    ///         scaffold's own next-steps text and the generated README print that value, so a second
+    ///         copy would let <c>--open</c> point at one port while the project's instructions name
+    ///         another — and nothing would fail.
+    ///     </para>
+    ///     <para>
+    ///         Derived from the framework rather than read from a property, because unlike the SPA lane
+    ///         there is no scaffold baking an answer into the csproj: the app is created by the
+    ///         framework's own tool, which has a default and is the authority on it.
+    ///     </para>
+    ///     <para>
+    ///         This only decides where <c>--open</c> points; a front end told to listen elsewhere still
+    ///         runs, and <c>--urls</c> still wins outright. A framework name this does not recognise —
+    ///         a typo in the csproj, which the build itself rejects — gets no answer rather than a
+    ///         plausible-looking wrong one.
+    ///     </para>
+    /// </remarks>
+    private static string? MetaDevServerUrl(string framework) =>
+        MetaTemplate.TryGet(framework, out var template) ? template.DevServerUrl : null;
+
     /// <summary>
     ///     The npm script that starts the client's dev server: <c>dev</c> where there is one, otherwise
     ///     <c>start</c>.
@@ -267,31 +347,24 @@ internal sealed record DevTarget(
     }
 
     /// <summary>
-    ///     The TypeScript client beside a SPA host, by the same convention the build uses: a project named
-    ///     <c>MyApp.Server</c> looks for a sibling <c>MyApp.Client</c> holding a <c>package.json</c>.
+    ///     The front end inside a host, by the same convention both builds use: a folder in the project
+    ///     directory — <c>Client</c> unless the meta lane moved it — holding a <c>package.json</c>.
     /// </summary>
     /// <remarks>
-    ///     The <c>package.json</c> check is what makes this safe, not decoration. In this repo alone
-    ///     <c>Rask.Cqrs.Server</c> has a sibling <c>Rask.Cqrs.Client</c> — a C# project — and without it
-    ///     <c>rask dev</c> would try to start a bundler in it.
+    ///     The <c>package.json</c> check is what makes this safe, not decoration — and it carries more
+    ///     weight than it did when the rule looked at siblings named <c>*.Client</c>, because a folder
+    ///     called <c>Client</c> is a far more ordinary thing for a project to contain than a sibling
+    ///     project was. A folder called <c>Client</c> that also holds a <c>package.json</c> is not.
     /// </remarks>
-    private static string? SpaClientDirectory(IFileSystem fileSystem, string csproj)
+    private static string? FrontEndDirectory(IFileSystem fileSystem, string csproj, string appDirectory)
     {
-        var name = Path.GetFileNameWithoutExtension(csproj);
-        if (!name.EndsWith(".Server", StringComparison.Ordinal))
+        var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(csproj));
+        if (projectDirectory is null)
         {
             return null;
         }
 
-        var solutionRoot = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(csproj)));
-        if (solutionRoot is null)
-        {
-            return null;
-        }
-
-        var client = Path.Combine(
-            solutionRoot,
-            name[..^".Server".Length] + ".Client");
+        var client = Path.Combine(projectDirectory, appDirectory);
 
         return fileSystem.FileExists(Path.Combine(client, "package.json")) ? client : null;
     }
@@ -389,6 +462,15 @@ internal sealed record DevTarget(
             if (text.Contains("Rask.Spa.Hosting", StringComparison.Ordinal))
             {
                 return DevTemplateKind.SpaHosted;
+            }
+
+            // The other front-end lane, and keyed on the package for the same reason. Without this a meta
+            // host was read as a plain Server: no dev server was started beside it, and — the expensive
+            // half — RaskMetaBuild stayed true, so every save ran a full Nuxt or Next PRODUCTION build
+            // whose output nothing in the session then read.
+            if (text.Contains("Rask.Meta.Hosting", StringComparison.Ordinal))
+            {
+                return DevTemplateKind.MetaHosted;
             }
 
             // A Server host that references a sibling .Client project is the wasm-hosted shape. The

@@ -42,6 +42,16 @@ public static class CqrsServiceCollectionExtensions
         // Apply the generated handler registrations (populated by [ModuleInitializer]s at module load).
         CqrsRegistry.ApplyRegistrations(services, options.HandlerLifetime);
 
+        // Validation goes on FIRST, so it is the outermost wrapper: a request that is not valid should
+        // not reach a transaction, a log line saying it was handled, or the handler. An app that has
+        // configured its own behaviors still gets them inside this one, which is the order they would
+        // have chosen anyway.
+        if (options.ValidateRequests)
+        {
+            services.Add(new ServiceDescriptor(
+                typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>), options.HandlerLifetime));
+        }
+
         // Apply user-configured behaviors in registration order (first-registered runs outermost).
         // BehaviorRegistration keeps the [DynamicallyAccessedMembers] annotation on the implementation
         // type, so this stays trim-safe (no IL2077 on the WASM publish).

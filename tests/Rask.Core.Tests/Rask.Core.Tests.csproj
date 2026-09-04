@@ -69,7 +69,7 @@
     the build with the compiler's message instead of failing a test with node's.
   -->
   <ItemGroup>
-    <_RaskNodeFixture Include="Live\*Fixture.ts"/>
+    <_RaskNodeFixture Include="Live\*Fixture.ts;Browser\*Fixture.ts"/>
   </ItemGroup>
 
   <!-- DependsOnTargets: see PackagingContractTests.Every_generated_task_call_site_waits_for_the_reference_that_produces_it.
@@ -100,8 +100,8 @@
     a target's Inputs does not expand wildcards.
   -->
   <ItemGroup>
-    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\*.ts"
-                                Exclude="..\..\src\Rask.Core\Resources\*.d.ts"/>
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts"
+                                Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts"/>
   </ItemGroup>
 
 </Project>

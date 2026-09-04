@@ -78,8 +78,8 @@
   -->
   <ItemGroup>
     <_RaskBrowserFixture Include="BrowserFixtures\*.ts"/>
-    <_RaskBrowserFixtureDependency Include="..\..\src\Rask.Core\Resources\*.ts"
-                                   Exclude="..\..\src\Rask.Core\Resources\*.d.ts"/>
+    <_RaskBrowserFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts"
+                                   Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts"/>
   </ItemGroup>
 
   <!-- DependsOnTargets: inert at AfterTargets="Build", stated so the generated-task ordering

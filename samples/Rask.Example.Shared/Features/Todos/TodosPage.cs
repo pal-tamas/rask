@@ -194,7 +194,6 @@ public sealed partial class TodoFormDialog : Component
                 })[
                 H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],
                 Form.Model(Model).OnValidSubmit(OnSave).Class("flex flex-col gap-3")[
-                    DataAnnotationsValidator,
                     Label.For("todo-title").Class("text-sm font-medium")["Title"],
                     // autofocus fires when the browser PARSES the element -- a deep link to /todos/new
                     // lands in the field. Opening the dialog through the live diff inserts it after

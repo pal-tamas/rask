@@ -91,9 +91,12 @@ custom type on the interpreter.
 - **Mono WASM only.** This is browser-WASM AOT (`RunAOTCompilation`), not Server NativeAOT.
 - **Build cost.** AOT publishes are slow and produce larger bundles; keep it for release/perf builds,
   not the inner loop.
-- **Reflection-heavy opt-ins.** `Rask.Validation.DataAnnotations` reflects over model metadata
-  (trim-annotated, interpreter-friendly); prefer FluentValidation or inline validators when chasing a
-  maximally lean AOT bundle.
+- **Reflection in the DataAnnotations pass.** It reflects over model metadata, which is why
+  `Form<TModel>`'s type parameter is `[DynamicallyAccessedMembers]`-annotated and the generated chain
+  repeats that annotation — without it the trimmer removes the model's properties and the form
+  validates nothing, silently. Prefer FluentValidation (source-generated registration, no scan) or
+  inline validators when chasing a maximally lean AOT bundle, or turn the pass off with
+  `app.Configure(c => c.Validation.Off())`.
 
 See also: [Forms & validation](forms.md), [JS interop](js-interop.md), [Routing](routing.md), and the
 [Mobile & PWA guide](pwa.md) for the broader WASM publish story.

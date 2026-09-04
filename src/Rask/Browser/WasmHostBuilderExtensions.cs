@@ -64,6 +64,17 @@ public static class WasmHostBuilderExtensions
 
         services.AddRaskCqrs();
 
+        // Validation runs in the BROWSER too, and the server still runs it again.
+        //
+        // Two reasons it belongs here rather than only on the server. An invalid command should not cost
+        // a round trip before the user is told which field is wrong; and a form and the command it
+        // submits are validated by the same AbstractValidator<T>, so leaving this out would mean rules
+        // that fire while typing and then appear to stop applying at submit.
+        //
+        // The server is still the authority. Nothing here can be trusted, and nothing here is trusted:
+        // the same behavior runs again in RaskBatteryWiring before any handler is reached.
+        services.AddRaskRequestValidation();
+
         // Rides with the dispatcher rather than being a decision of its own: a dispatcher without a cache
         // means every render refetches, which is the first thing anyone building over IDispatcher needs
         // solved. Turning the mediator off takes it too — there is nothing left to cache.

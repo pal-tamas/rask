@@ -15,6 +15,14 @@ if (args.Length >= 1 && args[0] == "payload-bytes")
     return PayloadBytesReport.Run(args);
 }
 
+// `client-bundle-size` measures the two Release client runtimes — rask.js and rask.wasm.js — against a
+// committed baseline. Nothing gated their size before: `bundle-size` above prints a table and has no
+// baseline at all, so the file every visitor downloads could double with every check still green.
+if (args.Length >= 1 && args[0] == "client-bundle-size")
+{
+    return ClientBundleSizeReport.Run(args);
+}
+
 // `session-footprint` answers "how many live sessions fit in 1 GB" across a page-size sweep;
 // `session-churn` soaks and churns sessions to prove that number holds under sustained load.
 if (args.Length >= 1 && args[0] == "session-footprint")

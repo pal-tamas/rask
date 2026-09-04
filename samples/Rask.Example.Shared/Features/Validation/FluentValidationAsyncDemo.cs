@@ -22,7 +22,6 @@ public sealed partial class FluentValidationAsyncDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
-            FluentValidationValidator.Validator(new TicketValidator()),
             Div[
                 Label.For("v9-code").Class($"{Tw.Label} text-sm mb-1")["Ticket code"],
                 Input.Bind(() => _model.Code).Id("v9-code").Class(Tw.Input),

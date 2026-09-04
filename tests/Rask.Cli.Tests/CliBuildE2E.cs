@@ -32,10 +32,14 @@ internal static class CliBuildE2E
         "Rask.Wasm",                        // the wasm template, and the --wasm companion project
         "Rask.Wasm.Hosting",                // the --wasm one-project build
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
+        "Rask.Wire",                        // Rask.Cqrs depends on it: the wire primitives its codecs call
+        "Rask.Api",                         // API hosting + the client generator (server half)
+        "Rask.Api.Client",                  // the runtime the generated client calls, on both halves
         "Rask.Query",                       // wired by default wherever --cqrs is
         "Rask.Cqrs.Client",                 // --wasm --cqrs: the browser half of remote dispatch
         "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
         "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
+        "Rask.Meta.Hosting",                // the meta templates: the node supervisor, and the same emit
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
         "Rask.SQLite.EntityFrameworkCore",  // server template --data and generated features that own a context (UseRaskSqlite)
@@ -49,7 +53,6 @@ internal static class CliBuildE2E
         "Rask.Logging",                     // --logs — AddRaskLogging, and the dashboard's History mode
         "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_rask pages
         "Rask.Ui",                          // the component kit Rask.Dashboard is drawn with, and depends on
-        "Rask.Validation.DataAnnotations",  // tutorial ch.2's form validation
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
     ];
 

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Rask.Example.Shared.Features;
 
 // Sub-object binding — sub-class instance owns its own validation state under a single
-// top-of-form DataAnnotationsValidator.
+// the form's built-in validation, with nothing declared.
 public sealed partial class NestedSubObjectDemo : Component
 {
     private readonly CheckoutModel _model = new();
@@ -16,7 +16,6 @@ public sealed partial class NestedSubObjectDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission =
                 $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("flex flex-col gap-3")[
-            DataAnnotationsValidator,
             Div[
                 Label.For("nf-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
                 Input.Bind(() => _model.Name).Id("nf-name").Class(Tw.Input),
