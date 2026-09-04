@@ -42,6 +42,17 @@ internal sealed record ExternalScaffold(
     ///     act on. Run from inside <c>Shop</c> with a target of <c>Client</c>, it completes.
     /// </remarks>
     public string WorkingSubdirectory { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     The directory the creator writes its app into, relative to where it runs.
+    /// </summary>
+    /// <remarks>
+    ///     Named rather than inferred from the arguments. Inferring it means guessing which bare token
+    ///     is the target, and the guess is wrong the moment a flag takes a value — <c>--template
+    ///     angular-v20</c> looks exactly like a directory. Empty means the scaffold has nothing to tidy
+    ///     inside.
+    /// </remarks>
+    public string CreatedDirectory { get; init; } = string.Empty;
 }
 
 /// <summary>

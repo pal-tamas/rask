@@ -31,13 +31,13 @@ internal static partial class ProjectGenerator
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}/{NameToken}.csproj", SpaServerCsproj(batteries, framework, name, version)),
-            ($"{NameToken}/Program.cs", SpaServerProgram(batteries)),
-            ($"{NameToken}/Features/Hello/Messages.cs", SpaMessages),
-            ($"{NameToken}/Features/Hello/HelloHandlers.cs", SpaHandlers),
-            ($"{NameToken}/Properties/launchSettings.json", SpaLaunchSettings),
-            ($"{NameToken}/appsettings.json", AppSettings),
-            ($"{NameToken}/appsettings.Production.json", AppSettingsProduction),
+            ($"{NameToken}.csproj", SpaServerCsproj(batteries, framework, name, version)),
+            ($"Program.cs", SpaServerProgram(batteries)),
+            ($"Features/Hello/Messages.cs", SpaMessages),
+            ($"Features/Hello/HelloHandlers.cs", SpaHandlers),
+            ($"Properties/launchSettings.json", SpaLaunchSettings),
+            ($"appsettings.json", AppSettings),
+            ($"appsettings.Production.json", AppSettingsProduction),
 
             ("README.md", SpaReadme(framework)),
         };
@@ -47,12 +47,12 @@ internal static partial class ProjectGenerator
         // nothing reads.
         if (framework.WritesViteConfig)
         {
-            files.Add(($"{NameToken}/Client/vite.config.ts", SpaViteConfig(framework, tailwind: true)));
+            files.Add(($"Client/vite.config.ts", SpaViteConfig(framework, tailwind: true)));
         }
 
         foreach (var (path, content) in framework.ClientFiles)
         {
-            files.Add(($"{NameToken}/Client/{path}", content));
+            files.Add(($"Client/{path}", content));
         }
 
         // Replaces the scaffolder's demo stylesheet rather than sitting beside it: leaving it in
@@ -61,7 +61,7 @@ internal static partial class ProjectGenerator
         // exactly what the starter still renders. So the replacement has to put that styling back
         // (SpaTailwindCss does, in its base layer) or --tailwind ships a worse-looking page than
         // no flag at all.
-        files.Add(($"{NameToken}/Client/{framework.GlobalStylesheet}", SpaTailwindCss));
+        files.Add(($"Client/{framework.GlobalStylesheet}", SpaTailwindCss));
 
         // Angular has no vite.config.ts to register a plugin in — its Vite config belongs to
         // @angular/build, not to you — so it takes Tailwind through PostCSS, which the Angular
@@ -69,7 +69,7 @@ internal static partial class ProjectGenerator
         // the stylesheet: the app builds, and every utility class is missing.
         if (!framework.WritesViteConfig)
         {
-            files.Add(($"{NameToken}/Client/.postcssrc.json", SpaTailwindPostcssRc));
+            files.Add(($"Client/.postcssrc.json", SpaTailwindPostcssRc));
         }
         if (batteries.Pwa)
         {
@@ -77,16 +77,16 @@ internal static partial class ProjectGenerator
             // verbatim, so these are reachable at / in a production build AND under the dev server. A
             // host-served service worker would 404 during `rask dev`, where the browser talks to Vite and
             // only /_rask is proxied — and a service worker that 404s once is not retried.
-            files.Add(($"{NameToken}/Client/public/manifest.webmanifest", SpaManifest));
-            files.Add(($"{NameToken}/Client/public/icon.svg", IconSvg));
-            files.Add(($"{NameToken}/Client/public/rask-sw.js", SpaServiceWorker));
+            files.Add(($"Client/public/manifest.webmanifest", SpaManifest));
+            files.Add(($"Client/public/icon.svg", IconSvg));
+            files.Add(($"Client/public/rask-sw.js", SpaServiceWorker));
         }
 
         if (batteries.Push)
         {
             // Both halves of the merge: #970's nested Client folder, and OUT of src/rask/, which the
             // scaffolder gitignores and the build owns (#957).
-            files.Add(($"{NameToken}/Client/src/push.ts", SpaPushClient));
+            files.Add(($"Client/src/push.ts", SpaPushClient));
 
             // The same store and endpoints the server template scaffolds, verbatim. Shared rather than
             // copied: /_push/subscribe binding a flat PushSubscription is the contract push.ts is
@@ -95,12 +95,12 @@ internal static partial class ProjectGenerator
             // It used to be re-namespaced on the way in, because the SPA host was a separate `.Server`
             // project whose namespace differed. With one project owning both halves the namespaces are
             // the same, so the rewrite is gone rather than left in as a no-op.
-            files.Add(($"{NameToken}/Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
+            files.Add(($"Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
         }
 
         if (batteries.Data)
         {
-            files.Add(($"{NameToken}/Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
+            files.Add(($"Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
         }
 
         if (batteries.Docker)
@@ -109,10 +109,10 @@ internal static partial class ProjectGenerator
             files.Add((".dockerignore", DockerIgnore));
         }
 
-        files.AddRange(ProjectHygiene($"{NameToken}/{NameToken}.csproj"));
+        files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
 
         var scaffoldFiles = Materialize(targetDirectory, name, files);
-        var client = System.IO.Path.Combine(targetDirectory, name, "Client");
+        var client = System.IO.Path.Combine(targetDirectory, "Client");
 
         return new ScaffoldResult(scaffoldFiles, SpaNextSteps(name, framework, batteries.Docker))
         {
@@ -1153,7 +1153,7 @@ internal sealed record SpaFramework(
 
     /// <summary>The default: ask create-vite for a framework's TypeScript template.</summary>
     private static Func<string, IReadOnlyList<string>> Vite(string template) =>
-        name => ["--yes", "create-vite@latest", $"{name}/Client", "--template", template];
+        _ => ["--yes", "create-vite@latest", "Client", "--template", template];
 
     public static readonly SpaFramework React = new(
         "react", "React", "react-ts",
@@ -1271,7 +1271,7 @@ internal sealed record SpaFramework(
         Scaffolder = name =>
         [
             "--yes", "@angular/cli@latest", "new", ClientPackageName(name),
-            "--directory", $"{name}/Client",
+            "--directory", "Client",
             "--style", "css", "--ssr", "false",
             "--skip-git", "--skip-install", "--defaults",
         ],

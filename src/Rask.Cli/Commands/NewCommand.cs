@@ -880,7 +880,48 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
+        RemoveNestedRepository(workingDirectory, external);
+
         return null;
+    }
+
+    /// <summary>
+    ///     Deletes the repository a creator initialised inside the app it just wrote.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>create-analog</c> initialises one and offers no flag to stop it, so a scaffolded
+    ///         project arrives with a second repository nested inside the one <c>rask new</c> is about
+    ///         to create — or inside the repository the user already had. The outer one then treats
+    ///         that directory as an EMBEDDED repository and records a gitlink for it, so none of the
+    ///         front end's files are added at all: a hint is printed, the commit succeeds, and the app
+    ///         is simply missing from it.
+    ///     </para>
+    ///     <para>
+    ///         Found by committing a scaffolded sample into this repository and watching every file
+    ///         under client/ fail to appear. The outer repository is the one that should own these
+    ///         files, and <c>rask new</c> creates it moments later unless <c>--no-git</c> says
+    ///         otherwise.
+    ///     </para>
+    /// </remarks>
+    private void RemoveNestedRepository(string workingDirectory, ExternalScaffold external)
+    {
+        if (external.CreatedDirectory.Length == 0)
+        {
+            return;
+        }
+
+        var nested = Path.Combine(workingDirectory, external.CreatedDirectory, ".git");
+        if (!_fileSystem.DirectoryExists(nested))
+        {
+            return;
+        }
+
+        _fileSystem.TryDeleteDirectory(nested);
+        Console.WriteLine(
+            $"Removed the repository {external.Command} initialised inside {external.CreatedDirectory}/ — this project's "
+            + "own repository owns those files.",
+            ConsoleStyle.Dim);
     }
 
     /// <summary>

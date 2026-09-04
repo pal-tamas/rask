@@ -26,12 +26,39 @@ internal interface IFileSystem
     /// operation that already succeeded.
     /// </summary>
     void TryDelete(string path);
+
+    /// <summary>Whether <paramref name="path"/> is an existing directory.</summary>
+    bool DirectoryExists(string path);
+
+    /// <summary>
+    /// Delete <paramref name="path"/> and everything under it, swallowing an I/O or permission
+    /// failure. Same reasoning as <see cref="TryDelete"/>: this is tidying, and failing to tidy must
+    /// not fail an operation that already succeeded.
+    /// </summary>
+    void TryDeleteDirectory(string path);
 }
 
 /// <summary>The real filesystem, backed by <see cref="File"/> / <see cref="Directory"/>.</summary>
 internal sealed class SystemFileSystem : IFileSystem
 {
     public bool FileExists(string path) => File.Exists(path);
+
+    public bool DirectoryExists(string path) => Directory.Exists(path);
+
+    public void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Tidying, not correctness.
+        }
+    }
 
     public IReadOnlyList<string> ListFiles(string directory, string searchPattern) =>
         Directory.Exists(directory)
