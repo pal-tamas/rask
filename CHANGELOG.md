@@ -338,6 +338,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The kit's stylesheet outranked the cascade of every application that inlined it.** Its rules were
+  UNLAYERED, and unlayered CSS beats layered CSS in every browser whatever the source order. Tailwind
+  puts an application's own utilities in `@layer utilities`, so the kit's `.hidden` silently beat the
+  showcase's `.md:flex` and pinned its sidebar to `display:none` at every width — with the rest of the
+  page looking entirely normal. `layer(theme)` and `layer(utilities)` on the kit's imports put it back
+  inside the cascade instead of above it.
+
+  The symptom is the notable part: not a wrong colour or a shifted margin, but **a layout that quietly
+  stops responding**. Thirteen browser tests caught it and nothing cheaper could have, so
+  `UiStylesheetTests` now walks the shipped sheet and fails on any rule at the top level that is not an
+  at-rule.
+
+  It was latent rather than new. The operator console has always inlined this sheet and never showed it,
+  because a mounted application owns its whole document and so has nothing of its own to be outranked;
+  the showcase is the first consumer where it could matter.
+
+
 - **The kit's stylesheet shipped the whole of daisyUI, because the plugin was being read as source.**
   `vendor/daisyui.mjs` is 348 KB of daisyUI's own code and it sits inside the project Tailwind scans, so
   the scanner found every class name daisyUI defines and treated the bundle as a safelist for the entire

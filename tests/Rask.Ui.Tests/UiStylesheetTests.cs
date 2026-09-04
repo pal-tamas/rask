@@ -71,4 +71,53 @@ public sealed class UiStylesheetTests
             yield return (m.Groups[1].Value.Trim(), m.Groups[2].Value);
         }
     }
+
+    [Fact]
+    public void Every_rule_is_inside_a_layer()
+    {
+        // Unlayered CSS beats layered CSS in every browser, whatever the source order. Tailwind puts an
+        // application's own utilities in `@layer utilities`, so an unlayered rule shipped by a library
+        // silently outranks every utility that application wrote — and the symptom is not a colour or a
+        // margin, it is a layout that quietly stops responding. This sheet shipped unlayered once: the
+        // kit's `.hidden` beat the showcase's `.md:flex`, pinning its sidebar to display:none at every
+        // width while the rest of the page looked entirely normal. Thirteen browser tests found it, and
+        // nothing cheaper could have.
+        // Comments first: the sheet opens with Tailwind's banner, and a comment sitting before an
+        // at-rule would otherwise be read as part of its selector.
+        var css = Regex.Replace(UiStylesheet.Css, @"/\*.*?\*/", "", RegexOptions.Singleline);
+        var depth = 0;
+
+        for (var i = 0; i < css.Length; i++)
+        {
+            if (css[i] == '}')
+            {
+                depth--;
+                continue;
+            }
+
+            if (css[i] != '{')
+            {
+                continue;
+            }
+
+            if (depth++ != 0)
+            {
+                continue;
+            }
+
+            // The selector this block belongs to: everything back to the previous block boundary. At the
+            // top level it has to be an at-rule — @layer, @property, @media, @supports — and never a
+            // bare selector, which is what an unlayered rule looks like.
+            var start = css.LastIndexOfAny(['}', ';'], i) + 1;
+            var selector = css[start..i].Trim();
+
+            Assert.True(
+                selector.StartsWith('@'),
+                $"Unlayered rule at the top level of the kit's stylesheet: '{Head(selector)}'. It would "
+                + "outrank every layered utility in any application that inlines this sheet.");
+        }
+    }
+
+    private static string Head(string s) => s.Length <= 80 ? s : s[..80] + "…";
+
 }

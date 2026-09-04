@@ -27,8 +27,19 @@
   emits a utility only where it can see the token. Copy the block into your own stylesheet; see
   docs/ui-kit.md. The showcase does exactly that, and UiPaletteTests asserts its copy matches this one.
 */
-@import "tailwindcss/theme.css";
-@import "tailwindcss/utilities.css";
+/*
+  LAYERED, and this is not cosmetic — it decides whether a consuming app keeps its own cascade.
+
+  Unlayered CSS beats layered CSS in every browser, whatever the source order. Tailwind puts an app's
+  utilities in `@layer utilities`, so a sheet from a library that imports these WITHOUT layer() lands
+  unlayered and silently outranks every utility the app wrote. It broke the showcase exactly that way:
+  the kit's `.hidden` beat the app's `.md\:flex`, and the sidebar stayed display:none at every width
+  while the page around it looked perfectly normal.
+
+  daisyUI's own rules are already layered (`@layer daisyui...`), so only these two needed saying.
+*/
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 /*
   daisyUI supplies the component vocabulary; this kit supplies the typed C# API over it.
