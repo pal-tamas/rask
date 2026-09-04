@@ -22,27 +22,27 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
     private MediaStreamId? _camera;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 items-center flex-wrap mb-3")[
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
                     FullscreenTrigger
                         .Template(g =>
-                        Button.Type("button").Class(Ui.BtnPrimary).Id("fullscreen-btn").Data(g)[
+                        Button.Type("button").Class(Tw.BtnPrimary).Id("fullscreen-btn").Data(g)[
                             "Enter fullscreen"]),
                     ScreenOrientationTrigger
                         .Orientation("landscape")
                         .Template(g =>
                             Button
                                 .Type("button")
-                                .Class(Ui.BtnOutlinePrimary)
+                                .Class(Tw.BtnOutlinePrimary)
                                 .Id("orientation-btn")
                                 .Data(g)["Lock landscape"]),
                     InstallTrigger
                         .Template(g =>
                             Button
                                 .Type("button")
-                                .Class(Ui.BtnOutlineSuccess)
+                                .Class(Tw.BtnOutlineSuccess)
                                 .Id("install-btn")
                                 .Data(g)["Install app"])
                         .OnOutcome(outcome =>
@@ -53,7 +53,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             return Task.CompletedTask;
                         }),
                     _install is null
-                        ? Span.Class("text-sm text-slate-500 dark:text-slate-400")["not prompted"]
+                        ? Span.Class("text-sm text-ui-muted")["not prompted"]
                         : Span.Class("text-sm")["install: ", Code.Id("install-outcome")[_install]]
                 ],
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
@@ -61,7 +61,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Template(g =>
                             Button
                                 .Type("button")
-                                .Class(Ui.BtnOutlineSecondary)
+                                .Class(Tw.BtnOutlineSecondary)
                                 .Id("eyedropper-btn")
                                 .Data(g)["Pick a colour"])
                         .OnColor(hex =>
@@ -70,7 +70,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             return Task.CompletedTask;
                         }),
                     _color is null
-                        ? Span.Class("text-sm text-slate-500 dark:text-slate-400")["no colour picked"]
+                        ? Span.Class("text-sm text-ui-muted")["no colour picked"]
                         : Span.Class("inline-flex items-center gap-2 text-sm")[
                             Span
                                 .Id("eyedropper-swatch")
@@ -88,7 +88,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Template(g =>
                             Button
                                 .Type("button")
-                                .Class(Ui.BtnOutlineSecondary)
+                                .Class(Tw.BtnOutlineSecondary)
                                 .Id("camera-btn")
                                 .Data(g)["Start camera"])
                         .Video(true)
@@ -104,7 +104,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         }),
                     Button
                         .Type("button")
-                        .Class(Ui.BtnOutlineSecondary)
+                        .Class(Tw.BtnOutlineSecondary)
                         .Id("camera-stop-btn")
                         .Disabled(_camera is null)
                         .OnClickAsync(StopCameraAsync)["Stop camera"],
@@ -113,7 +113,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Template(g =>
                             Button
                                 .Type("button")
-                                .Class(Ui.BtnOutlineSecondary)
+                                .Class(Tw.BtnOutlineSecondary)
                                 .Id("pip-btn")
                                 .Data(g)["Pop out video"]),
                     Video
@@ -122,7 +122,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Muted(true)
                         .Style("width:12rem;max-width:100%;border-radius:.25rem;background:#000")
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mt-3")[
+                Div.Class("text-sm text-ui-muted mt-3")[
                     "Every button runs inside its own click gesture, so they all work on the Server too. ",
                     "Camera + picture-in-picture need HTTPS and a real device; install needs an installable PWA ",
                     "(", Code["AddRaskPwa"], "); orientation lock only takes effect while fullscreen (pair it ",

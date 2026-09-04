@@ -16,7 +16,7 @@ public sealed partial class PictureInPicturePage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Picture-in-Picture"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "Float a video into an always-on-top miniplayer the user keeps visible while they scroll or ",
             "switch tabs, via IPictureInPicture (the Picture-in-Picture API). WASM-only: ",
             "requestPictureInPicture needs a live user gesture. This demo synthesizes its video from an ",

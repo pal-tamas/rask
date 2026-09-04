@@ -14,8 +14,8 @@ public sealed partial class NotFoundPage(Navigator nav, RouteState route) : Comp
             .Title("Page not found")
             .Lead($"No route is registered for {route.Path}. Pick a section from the sidebar — every showcase page is reachable from there."),
         Div.Class("flex gap-2 flex-wrap items-center mt-3")[
-            Button.Type("button").Class(Ui.BtnPrimary).OnClick(() => nav.NavigateTo(Routes.GuidesIndexPage()))[
-                Icon.Name(IconName.House).Class("me-2"), "Back to guides"]
+            Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => nav.NavigateTo(Routes.GuidesIndexPage()))[
+                UiIcon.Name(UiIconName.Home).Class("me-2"), "Back to guides"]
         ]
     ];
 }

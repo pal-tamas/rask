@@ -47,6 +47,10 @@ jobs:
       # the SRI-pinned import map stays document-relative, so the corrected base resolves them all
       # under the sub-path. (Microsoft.NET.Sdk.WebAssembly fingerprints the framework assets and fills
       # the import map with integrity at publish, keeping static-host redeploys SRI-safe.)
+      # The landing app sets <RaskPrerender>true</RaskPrerender> in its csproj, so this publish also
+      # renders its route to real HTML and splices it into the boot shell — no flag needed here. Look
+      # for the "[Rask.Prerender] result written=N" line in this step's log: it is the only thing that
+      # says whether the pass produced anything, since the file it writes is the one the shell occupies.
       - name: Publish the landing site (Rask.Example.Site → /)
         run: dotnet publish samples/Rask.Example.Site -c Release
 

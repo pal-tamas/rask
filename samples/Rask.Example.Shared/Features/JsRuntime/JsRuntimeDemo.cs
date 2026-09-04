@@ -33,34 +33,34 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("mb-3")[
-                    Label.Class(Ui.Label).For("demo-input")["sessionStorage value"],
+                    Label.Class(Tw.Label).For("demo-input")["sessionStorage value"],
                     Input
                         .Value(_input)
                         .Id("demo-input")
-                        .Class(Ui.Input)
+                        .Class(Tw.Input)
                         .OnInput(v => _input = v)
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Button.Type("button").Class(Ui.BtnPrimary).Id("demo-set").OnClickAsync(SetAsync)[
-                        Icon.Name(IconName.Save).Class("me-1"), "Set"],
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("demo-set").OnClickAsync(SetAsync)[
+                        UiIcon.Name(UiIconName.Save).Class("me-1"), "Set"],
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("demo-read")
                         .OnClickAsync(ReadAsync)[
-                        Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Read"],
-                    Button.Type("button").Class(Ui.BtnOutlineDanger)
+                        UiIcon.Name(UiIconName.Retry).Class("me-1"), "Read"],
+                    Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("demo-remove")
                         .OnClickAsync(RemoveAsync)[
-                        Icon.Name(IconName.Trash).Class("me-1"), "Remove"]
+                        UiIcon.Name(UiIconName.Trash).Class("me-1"), "Remove"]
                 ],
                 Div.Class("mb-2")[
-                    Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Last read"],
+                    Span.Class("text-ui-muted text-sm uppercase")["Last read"],
                     Div[Code.Class("text-base").Id("demo-last-read")[_lastRead ?? "(null)"]]
                 ],
                 Div[
-                    Span.Class("text-slate-500 dark:text-slate-400 text-sm uppercase")["Status"],
+                    Span.Class("text-ui-muted text-sm uppercase")["Status"],
                     Div[Code.Class("text-base").Id("demo-status")[_status ?? "(idle)"]]
                 ]
             ]

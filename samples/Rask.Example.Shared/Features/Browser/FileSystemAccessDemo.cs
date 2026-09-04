@@ -14,28 +14,28 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Class(Ui.BtnPrimary).Id("fs-open").OnClickAsync(Open)[
-                        Icon.Name(IconName.Folder2Open).Class("me-1"), "Open file"],
+                    Button.Class(Tw.BtnPrimary).Id("fs-open").OnClickAsync(Open)[
+                        UiIcon.Name(UiIconName.Folder).Class("me-1"), "Open file"],
                     Button
-                        .Class(Ui.BtnOutlinePrimary)
+                        .Class(Tw.BtnOutlinePrimary)
                         .Id("fs-save")
                         .Disabled(_handle is null)
-                        .OnClickAsync(Save)[Icon.Name(IconName.Save).Class("me-1"), "Save"],
-                    Button.Class(Ui.BtnOutlinePrimary).Id("fs-saveas").OnClickAsync(SaveAs)[
+                        .OnClickAsync(Save)[UiIcon.Name(UiIconName.Save).Class("me-1"), "Save"],
+                    Button.Class(Tw.BtnOutlinePrimary).Id("fs-saveas").OnClickAsync(SaveAs)[
                         "Save as…"]
                 ],
-                Div.Class("mb-2 text-sm text-slate-500 dark:text-slate-400")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
+                Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
                 Textarea
                     .Value(_text)
                     .Id("fs-text")
-                    .Class($"{Ui.Input} mb-2")
+                    .Class($"{Tw.Input} mb-2")
                     .Rows(8)
                     .Placeholder("Open a text file, or type here and Save as…")
                     .OnInput(v => _text = v),
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("fs-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fs-status")[_status]]
             ]
         ];
 

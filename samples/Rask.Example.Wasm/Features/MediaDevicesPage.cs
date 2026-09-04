@@ -16,7 +16,7 @@ public sealed partial class MediaDevicesPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Camera & microphone"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "Capture the camera, microphone, or screen and show it in a <video> via IMediaDevices ",
             "(getUserMedia / getDisplayMedia) — for photo capture, video calls, or screen recording. ",
             "WASM-only: capture needs a live user gesture and a secure context. Dispose the stream handle ",

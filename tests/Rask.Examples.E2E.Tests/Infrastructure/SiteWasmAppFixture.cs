@@ -16,20 +16,48 @@ public sealed class SiteWasmAppFixture : StaticWwwrootHostFixture
         "`dotnet publish samples/Rask.Example.Site -c Release -p:WasmBuildNative=false` first, or use the script.";
 
     /// <summary>
-    ///     Fail fast if the baked scoped-JS bundle is missing — the hero canvas animation lives in the
-    ///     sibling <c>App.js</c>, baked by <c>BakeScopedAssetsTask</c> into <c>wwwroot/_rask/a/{hash}.js</c>.
+    ///     Fail fast if the published page was not prerendered, or was prerendered over its boot shell.
     /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This used to require a baked scoped-JS bundle, because the hero was a canvas animation
+    ///         driven by a sibling <c>App.ts</c>. The page ships no JavaScript of its own now, so there is
+    ///         no bundle to look for — and the property worth guarding in its place is the one the whole
+    ///         publish now turns on.
+    ///     </para>
+    ///     <para>
+    ///         Both halves matter and they fail in opposite directions. Markup with no boot script is a
+    ///         page that can never become interactive; a boot script with no markup is a spinner, which is
+    ///         what prerendering exists to stop serving. Either one still renders something in a browser,
+    ///         so the journey below would go green on the first and merely look slow on the second.
+    ///     </para>
+    /// </remarks>
     protected override void OnBundleLocated(string wwwroot)
     {
-        var scopedDir = Path.Combine(wwwroot, "_rask", "a");
-        var jsFile = Directory.Exists(scopedDir)
-            ? Directory.EnumerateFiles(scopedDir, "*.js").FirstOrDefault()
-            : null;
-        if (jsFile is null)
+        var index = Path.Combine(wwwroot, "index.html");
+        if (!File.Exists(index))
+        {
+            throw new InvalidOperationException($"Published {ProjectRelativePath} has no index.html at '{wwwroot}'.");
+        }
+
+        var html = File.ReadAllText(index);
+
+        if (!html.Contains("Ship a whole product.", StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Published {ProjectRelativePath} is missing its baked scoped-JS bundle under '{scopedDir}'. " +
-                "BakeScopedAssetsTask did not emit /_rask/a/*.js — the hero canvas would 404 on window.Rask.App.");
+                $"Published {ProjectRelativePath} was not prerendered: index.html carries the boot shell "
+                + "rather than the page. <RaskPrerender> is set, so the pass either wrote nothing (no "
+                + "literal route in the table) or skipped this route — check the [Rask.Prerender] lines in "
+                + "the publish log, which report the count and every skip.");
+        }
+
+        if (!html.Contains("main.js", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Published {ProjectRelativePath} lost its boot script: index.html has the prerendered "
+                + "markup but no <script src=\"main.js\">, so the bundle can never take the page over and "
+                + "nothing on it is interactive. The prerender pass is meant to splice into the shell, not "
+                + "replace it.");
         }
     }
 }

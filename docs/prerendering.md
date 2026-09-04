@@ -80,9 +80,57 @@ The common cause is a page that injects a browser-only API — a media-device or
 nothing to bind to off a browser. Guard such work behind a lifecycle hook that only runs in the
 browser if you want the route prerendered.
 
-If the pass writes **no** pages at all, the build raises a warning — asked of the output rather
-than of the exit code, because the pass reports what it skipped and carries on, so "it ran" and "it
-produced something" are different questions.
+If the pass writes **no** pages at all, the build raises a warning — because the pass reports what it
+skipped and carries on, so "it ran" and "it produced something" are different questions.
+
+The warning asks the **pass** how many pages it wrote, not the filesystem. Asking the filesystem
+cannot work here: the root route's own output is `wwwroot/index.html`, which is exactly where the boot
+shell already is. That file is present whether the pass wrote every page, one page, or none — so a
+publish that prerendered nothing looked identical to one that worked, which is the single thing this
+guard exists to tell apart. The pass therefore prints a line the build reads back:
+
+```
+[Rask.Prerender] result written=19 skipped=3
+```
+
+A run that reports no such line at all is warned about separately: that is a different failure from
+reporting zero, and saying nothing would restore the silence the guard is for.
+
+**A route table with no literal routes writes nothing.** The plan is built from the registered routes,
+so an app whose root component carries no `[Route]` — one that simply does
+`host.RunAsync<App>()` — has nothing to enumerate and produces no pages. Give the page a
+`[Route("/")]` and let `App` render the `Router`.
+
+## Each page is spliced into the boot shell, not written over it
+
+The pass writes into the published `wwwroot`, where `index.html` is already the shell the WebAssembly
+SDK has just filled in: the fingerprinted import map, the integrity-pinned preload, the
+`<base href>`, and `<script src="main.js">`. **The shell is kept and the render is spliced into it.**
+
+That is not a detail. On the Server the boot script comes from an `IRaskRuntimeScript` registration,
+but the WASM host deliberately registers none — the runtime boots from the page shell — and the
+import map's fingerprints and integrity hashes are minted by the SDK per publish, so managed code has
+nothing to reproduce them from. Writing the rendered document over the shell would publish a page
+with real markup and no way to become interactive, on **every** prerendered route.
+
+What is taken from each side:
+
+| From the shell | From the rendered page |
+| --- | --- |
+| `<base href>`, `<meta charset>` | `<title>`, and every other `<head>` contribution |
+| the import map, the preload, every `<script>` in the body | the whole `<body>` |
+
+The singleton tags are resolved rather than concatenated: a browser takes the **first** `<title>`, so
+appending the page's head to the shell's would leave every page titled whatever the shell says. The
+page's title wins; the shell's `<base>` wins.
+
+The runtime then does what it always did — morphs its first real render onto the document, exactly as
+it morphed over the boot spinner. The prerendered body is the placeholder that morph replaces; it is
+simply a useful one.
+
+If there is no shell in the output directory, the whole document is written instead and the pass says
+so. That page will not boot, which is the right outcome for a caller driving
+[the engine directly](#using-the-engine-directly) with no bundle to boot.
 
 ## How it runs
 
@@ -99,6 +147,13 @@ keep registrations in sync.
 
 Generated files under `obj/` are rewritten on every publish; edit the app, never the companion.
 
+The companion builds with **warnings-as-errors off**, for the same reason its analyzers are off and
+one stronger one: *its reference closure is not the app's*. Targeting `net10.0` makes a multi-targeted
+dependency resolve its non-browser face — the `Rask` metapackage's `net10.0` face carries the
+server-only pieces a browser app never saw — so two components that never met in the app can meet
+here. That is a fact about the companion, not about your code, and the real build is what judges your
+code.
+
 ## Using the engine directly
 
 Both halves are public on `RaskPrerender` in `Rask.Core.Live`, for a caller that wants to drive its
@@ -113,6 +168,12 @@ var result = await RaskPrerender.RenderDocumentAsync(app, services, TimeSpan.Fro
 `RenderDocumentAsync` deliberately takes no route: which page it renders is the caller's decision,
 because the caller is what holds the route table. **Check `result.Faulted` and `result.TimedOut`
 before writing anything to disk** — for the reason above, both return ordinary-looking HTML.
+
+## In this repo
+
+`samples/Rask.Example.Site` — the landing page at [rask.sh](https://rask.sh) — is the in-repo
+consumer, and `SiteWasmAppFixture` asserts on its published output that the page carries both the
+rendered markup and the boot script before the browser journeys run.
 
 ## Limits
 

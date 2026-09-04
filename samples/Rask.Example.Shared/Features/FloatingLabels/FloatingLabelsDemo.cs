@@ -27,12 +27,12 @@ public sealed partial class FloatingLabelsDemo : Component
             ],
             FloatingTextarea.Bind(() => _model.Bio),
             Div.Class("mt-1")[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.PersonPlus).Class("me-1"), "Create account"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.UserPlus).Class("me-1"), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

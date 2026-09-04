@@ -22,7 +22,7 @@ public sealed partial class VirtualizeProviderDemo : Component
                 .Data(new Dictionary<string, string?> { ["testid"] = "virtualize-async-scroller" })
                 .OnScroll(ctx.OnScroll)[
                 Table
-                    .Class($"{Ui.Table} text-sm mb-0")
+                    .Class($"{Tw.Table} text-sm mb-0")
                     .Style("table-layout:fixed; width:100%; border-collapse:separate; border-spacing:0;")[
                     Thead[
                         Tr[

@@ -23,30 +23,30 @@ public sealed partial class KeyedListsReorderDemo : Component
         Div[
             Div.Class("flex gap-2 items-center flex-wrap mb-3")[
                 Button
-                    .Class(_useKeys ? $"{Ui.BtnSuccess}" : $"{Ui.BtnOutlineSecondary}")
+                    .Class(_useKeys ? $"{Tw.BtnSuccess}" : $"{Tw.BtnOutlineSecondary}")
                     .Id("kl-toggle-keys")
                     .OnClick(() => _useKeys = !_useKeys)[
-                    Icon.Name(_useKeys ? IconName.KeyFill : IconName.Key).Class("me-1"),
+                    UiIcon.Name(_useKeys ? UiIconName.Key : UiIconName.Key).Class("me-1"),
                     _useKeys ? "Keys: ON" : "Keys: OFF"
                 ],
                 Span.Class("vr mx-1"),
-                Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("kl-rotate").OnClick(Rotate)[
-                    Icon.Name(IconName.ArrowDownUp).Class("me-1"), "Rotate"
+                Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-rotate").OnClick(Rotate)[
+                    UiIcon.Name(UiIconName.ArrowsUpDown).Class("me-1"), "Rotate"
                 ],
-                Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("kl-reverse").OnClick(Reverse)[
-                    Icon.Name(IconName.ArrowRepeat).Class("me-1"), "Reverse"
+                Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-reverse").OnClick(Reverse)[
+                    UiIcon.Name(UiIconName.Retry).Class("me-1"), "Reverse"
                 ],
-                Button.Type("button").Class(Ui.BtnOutlinePrimary).Id("kl-add").OnClick(AddTop)[
-                    Icon.Name(IconName.PlusLg).Class("me-1"), "Add to top"
+                Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-add").OnClick(AddTop)[
+                    UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add to top"
                 ],
-                Button.Type("button").Class(Ui.BtnOutlineDanger)
+                Button.Type("button").Class(Tw.BtnOutlineDanger)
                     .Id("kl-remove")
                     .Disabled(_items.Count == 0)
                     .OnClick(RemoveTop)[
-                    Icon.Name(IconName.DashLg).Class("me-1"), "Remove top"
+                    UiIcon.Name(UiIconName.Minus).Class("me-1"), "Remove top"
                 ]
             ],
-            Ul.Class(Ui.ListGroup).Id("kl-list")[BuildRows()]
+            Ul.Class(Tw.ListGroup).Id("kl-list")[BuildRows()]
         ];
 
     private List<Component> BuildRows()
@@ -59,8 +59,8 @@ public sealed partial class KeyedListsReorderDemo : Component
             // reconciliation; RASK022 would otherwise flag it.
 #pragma warning disable RASK022
             rows.Add(_useKeys
-                ? Li.Key(f.Id).Class($"{Ui.ListGroupItem} flex items-center gap-3")[Row(f, i)]
-                : Li.Class($"{Ui.ListGroupItem} flex items-center gap-3")[Row(f, i)]);
+                ? Li.Key(f.Id).Class($"{Tw.ListGroupItem} flex items-center gap-3")[Row(f, i)]
+                : Li.Class($"{Tw.ListGroupItem} flex items-center gap-3")[Row(f, i)]);
 #pragma warning restore RASK022
         }
 
@@ -69,11 +69,11 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        Span.Class(Ui.BadgeSecondary)[index + 1],
+        Span.Class(Tw.BadgeSecondary)[index + 1],
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
         Input.Value<string>(null)
             .Type(InputType.Text)
-            .Class($"{Ui.Input} kl-note")
+            .Class($"{Tw.Input} kl-note")
             .Placeholder("type here, then reorder…")
     ];
 

@@ -16,7 +16,7 @@ public sealed partial class HidPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["WebHID"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "Talk to a human-interface device that no higher-level API covers — a gamepad with custom reports, ",
             "a keyboard with extra keys, simulation controls, point-of-sale hardware — via IHid (the WebHID ",
             "API): open it, send output / feature reports, and subscribe to its live input-report stream. ",

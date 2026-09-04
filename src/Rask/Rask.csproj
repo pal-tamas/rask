@@ -72,6 +72,10 @@
     <ProjectReference Include="..\Rask.Outbox\Rask.Outbox.csproj"/>
 
     <ProjectReference Include="..\Rask.Dashboard\Rask.Dashboard.csproj"/>
+    <!-- Named explicitly even though Rask.Dashboard already brings it: the kit is the framework's own
+         component vocabulary and an app is meant to build with it, not merely inherit it from the
+         console it happens to mount. -->
+    <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj"/>
     <ProjectReference Include="..\Rask.WebPush\Rask.WebPush.csproj"/>
 
@@ -117,6 +121,10 @@
     -->
     <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj"/>
     <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
+    <!-- The kit is on BOTH faces, unlike the console it was extracted from. Rask.Dashboard is
+         server-only because its panels read a DbContext; this is markup, and the browser is where the
+         surfaces that need it most run. -->
+    <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj"/>
   </ItemGroup>
 
   <!-- RaskApp needs WebApplicationBuilder, so the server files compile into the server half only. -->

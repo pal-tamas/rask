@@ -1,16 +1,20 @@
 <!--
   Rask.Example.Site — the marketing landing page, built as a Rask WASM app and served at the
-  GitHub Pages root. This shell is intentionally minimal: the App component is the source of
-  truth for the real <head> and <body>; the runtime imports main.js, boots dotnet, and morphs
-  the App's rendered HTML onto document.documentElement on first paint.
+  GitHub Pages root.
+
+  This shell is the boot document, and since <RaskPrerender>true</RaskPrerender> it is also the
+  TEMPLATE the prerendered page is spliced into: at publish the pass keeps this <head> — the
+  fingerprinted import map, the preload, the <base href> — replaces the body below with the rendered
+  page, and carries the script at the end over. So what a visitor is served has the real markup AND
+  still boots. Keep it minimal; the App component is the source of truth for the page's real <head>.
 -->
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <!-- <base href> is rewritten to /<repo>/ by the framework's _RaskRewriteBaseHref target when
-         published with -p:RaskPathBase=/<repo>; keeps main.js and _framework/* resolving under the
-         Pages sub-path. -->
+    <!-- <base href> is rewritten to /<prefix>/ by the framework's _RaskRewriteBaseHref target when
+         published with -p:RaskPathBase=/<prefix>. This app is served from the origin root, so it is
+         published without one and this default is already correct. -->
     <base href="/"/>
     <meta content="width=device-width, initial-scale=1" name="viewport"/>
     <title>Rask</title>
@@ -20,31 +24,17 @@
     <script type="importmap"></script>
     <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%237c3aed'/%3E%3Cpath d='M74 24 L38 66 L58 66 L53 104 L92 58 L70 58 Z' fill='%23fff'/%3E%3C/svg%3E"
           rel="icon" type="image/svg+xml"/>
-    <!-- Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
-         across the site/docs/playground on this origin) or the OS preference before paint; re-apply the
-         saved choice after the WASM full-document morph strips the attributes off <html> on boot, so a
-         theme chosen in the docs/playground carries over here. -->
-    <script>
-        (function () {
-            var d = document.documentElement;
-            function apply(t) {
-                d.setAttribute('data-theme', t);
-                d.setAttribute('data-bs-theme', t);
-            }
-            var saved = localStorage.getItem('rask-theme');
-            apply(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-            var prev = window.raskAfterMorph;
-            window.raskAfterMorph = function () {
-                var s = localStorage.getItem('rask-theme');
-                if (s) apply(s);
-                if (typeof prev === 'function') prev();
-            };
-        })();
-    </script>
     <style id="rask-scoped"></style>
     <style>
-        /* Dark-first boot screen so there's no white flash before the app paints; the light override
-           matches an explicit light theme carried over from the saved choice. */
+        /*
+          The boot screen, on the light ground the page itself uses so there is no flash between the
+          two. There is no theme-init script any more: this page has one palette, and the script that
+          stamped data-theme existed to serve a dark default and a toggle that are both gone.
+
+          On a published build almost nobody sees this — prerendering replaces the body below with the
+          real page — so it is what `dotnet run` shows locally, and the fallback if the pass ever skips
+          this route.
+        */
         .rask-boot {
             position: fixed;
             inset: 0;
@@ -54,27 +44,16 @@
             justify-content: center;
             gap: 1.25rem;
             font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-            color: #c4b5fd;
-            background: #0b0b12;
-        }
-
-        :root[data-theme="light"] .rask-boot {
             color: #6d28d9;
-            background: #fbfbfe;
-        }
-
-        .rask-boot svg {
-            width: 60px;
-            height: 60px;
-            animation: rask-pulse 1.4s ease-in-out infinite;
+            background: #fafafa;
         }
 
         .rask-boot .rask-spin {
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            border: 3px solid rgba(139, 92, 246, 0.25);
-            border-top-color: #8b5cf6;
+            border: 3px solid rgba(124, 58, 237, 0.25);
+            border-top-color: #7c3aed;
             animation: rask-spin 0.8s linear infinite;
         }
 
@@ -88,25 +67,10 @@
         @keyframes rask-spin {
             to { transform: rotate(360deg); }
         }
-
-        @keyframes rask-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
     </style>
 </head>
 <body data-rask-root>
 <div class="rask-boot">
-    <svg aria-label="Rask" role="img" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <linearGradient id="rask-boot-bolt" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0" stop-color="#8b5cf6"/>
-                <stop offset="1" stop-color="#7c3aed"/>
-            </linearGradient>
-        </defs>
-        <rect width="128" height="128" rx="28" fill="url(#rask-boot-bolt)"/>
-        <path d="M74 24 L38 66 L58 66 L53 104 L92 58 L70 58 Z" fill="#fff"/>
-    </svg>
     <div class="rask-spin"></div>
     <div class="rask-boot__label">Loading Rask…</div>
 </div>

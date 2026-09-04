@@ -23,16 +23,16 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Input.Bind(() => captured.Sku).Class(Ui.Input),
+                    Input.Bind(() => captured.Sku).Class(Tw.Input),
                     ValidationMessage.Template(FieldError).For(() => captured.Sku)
                 ],
                 Td.Style("width: 6rem;")[
-                    Input.Bind(() => captured.Quantity).Class(Ui.Input),
+                    Input.Bind(() => captured.Quantity).Class(Tw.Input),
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
-                    Button.Type("button").Class(Ui.BtnOutlineDanger)
-                        .OnClick(() => _model.Lines.Remove(captured))[Icon.Name(IconName.XLg)]
+                    Button.Type("button").Class(Tw.BtnOutlineDanger)
+                        .OnClick(() => _model.Lines.Remove(captured))[UiIcon.Name(UiIconName.Close)]
                 ]
             ]);
         }
@@ -41,39 +41,39 @@ public sealed partial class NestedFluentValidationDemo : Component
         [
             Form.Model(_model).OnValidSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
                 Div[
-                    Label.For("nf-fv-name").Class($"{Ui.Label} text-sm mb-1")["Customer"],
-                    Input.Bind(() => _model.CustomerName).Id("nf-fv-name").Class(Ui.Input),
+                    Label.For("nf-fv-name").Class($"{Tw.Label} text-sm mb-1")["Customer"],
+                    Input.Bind(() => _model.CustomerName).Id("nf-fv-name").Class(Tw.Input),
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Fieldset.Class("border rounded p-3")[
                     Legend.Class("text-base font-semibold")["Address"],
                     Div.Class("flex flex-col gap-2")[
                         Div[
-                            Input.Bind(() => _model.Address.Street).Class(Ui.Input),
+                            Input.Bind(() => _model.Address.Street).Class(Tw.Input),
                             ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                         ],
                         Div[
-                            Input.Bind(() => _model.Address.City).Class(Ui.Input),
+                            Input.Bind(() => _model.Address.City).Class(Tw.Input),
                             ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                         ]
                     ]
                 ],
-                Table.Class($"{Ui.Table} text-sm align-middle mb-0 mt-2")[
+                Table.Class($"{Tw.Table} text-sm align-middle mb-0 mt-2")[
                     Thead[Tr[Th["SKU"], Th["Qty"], Th]],
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("nf-fv-add")
                         .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
-                        Icon.Name(IconName.PlusLg).Class("me-1"), "Add line"],
-                    Button.Class(Ui.BtnPrimary).Type("submit").Id("nf-fv-submit")[
-                        Icon.Name(IconName.Check2Circle).Class("me-1"), "Place"]
+                        UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add line"],
+                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-fv-submit")[
+                        UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Place"]
                 ]
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
+                : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
         ];
     }
 }

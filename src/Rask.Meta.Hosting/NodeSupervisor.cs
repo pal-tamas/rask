@@ -28,6 +28,7 @@ internal sealed partial class NodeSupervisor : BackgroundService
 {
     private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<NodeSupervisor> _logger;
+    private readonly MetaDrain _drain;
     private readonly MetaHostingOptions _options;
     private readonly MetaPaths _paths;
     private readonly NodeReadiness _readiness;
@@ -38,14 +39,23 @@ internal sealed partial class NodeSupervisor : BackgroundService
         MetaHostingOptions options,
         MetaPaths paths,
         NodeReadiness readiness,
+        MetaDrain drain,
         IHostApplicationLifetime lifetime,
         ILogger<NodeSupervisor> logger)
     {
         _options = options;
         _paths = paths;
         _readiness = readiness;
+        _drain = drain;
         _lifetime = lifetime;
         _logger = logger;
+
+        // Armed from the SYNCHRONOUS ApplicationStopping callback rather than from StopAsync, and that
+        // is the whole point. Hosted services stop in reverse registration order, so this one — added
+        // by AddRaskMeta, long after the web host — stops BEFORE Kestrel. Waiting only in StopAsync
+        // would still be waiting at the right moment, but nothing would have told the forwarder to stop
+        // accepting, so the count it waits on would keep being topped up. This closes the door first.
+        lifetime.ApplicationStopping.Register(drain.BeginDrain);
     }
 
     /// <summary>The absolute path of the server entry this supervisor runs.</summary>
@@ -73,6 +83,33 @@ internal sealed partial class NodeSupervisor : BackgroundService
         }
 
         await base.StartAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Lets in-flight forwards finish before the Node process is signalled.
+    /// </summary>
+    /// <remarks>
+    ///     Without this the process dies while Kestrel is still draining, and every page render in
+    ///     flight at that moment becomes a 502 — on every single deploy. The budget is
+    ///     <see cref="MetaHostingOptions.ShutdownTimeout" />, the same one the process itself gets,
+    ///     because both are answering "how long is this allowed to take".
+    /// </remarks>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _drain.BeginDrain();
+
+        var inFlight = _drain.InFlight;
+        if (inFlight > 0)
+        {
+            LogDraining(_options.Framework.Name, inFlight);
+        }
+
+        if (!await _drain.WaitForIdleAsync(_options.ShutdownTimeout, cancellationToken).ConfigureAwait(false))
+        {
+            LogDrainTimedOut(_options.Framework.Name, _drain.InFlight, _options.ShutdownTimeout.TotalSeconds);
+        }
+
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -425,4 +462,12 @@ internal sealed partial class NodeSupervisor : BackgroundService
     [LoggerMessage(EventId = 10, Level = LogLevel.Warning,
         Message = "{Framework} did not exit within {Seconds}s of SIGTERM; killing its process tree.")]
     private partial void LogGraceExpired(string framework, double seconds);
+
+    [LoggerMessage(EventId = 11, Level = LogLevel.Information,
+        Message = "Stopping {Framework}: draining {InFlight} request(s) first.")]
+    private partial void LogDraining(string framework, int inFlight);
+
+    [LoggerMessage(EventId = 12, Level = LogLevel.Warning,
+        Message = "{Framework}: {InFlight} request(s) still in flight after {Seconds}s; stopping anyway.")]
+    private partial void LogDrainTimedOut(string framework, int inFlight, double seconds);
 }

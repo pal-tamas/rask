@@ -22,7 +22,7 @@ public sealed partial class IslandsPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Islands — six runtimes, one tree"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "An island is an ordinary Rask component whose markup is produced by a front-end framework. ",
             "It goes anywhere the chain goes — a leaf inside a card, a subtree, or the whole of a page's ",
             Code["Render()"], ". C# owns the props, the generated types cross back into the ", Code[".tsx"],

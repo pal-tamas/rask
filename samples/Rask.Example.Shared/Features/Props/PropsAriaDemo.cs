@@ -6,10 +6,10 @@ public sealed partial class PropsAriaDemo : Component
     // expands to data-* — so the whole ARIA vocabulary is reachable without a property per attribute.
     protected override Component? Render() =>
         Button
-            .Class(Ui.BtnOutlinePrimary)
+            .Class(Tw.BtnOutlinePrimary)
             .Role("switch")
             .TabIndex(0)
             .Aria(new Dictionary<string, string?> { ["label"] = "Toggle dark mode", ["pressed"] = "false" })[
-            Icon.Name(IconName.MoonStars).Class("me-1"),
+            UiIcon.Name(UiIconName.Moon).Class("me-1"),
             "Theme"];
 }

@@ -17,10 +17,15 @@ public sealed class ShowcaseLayoutTests
         var routeState = new RouteState { Path = "/" };
         var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
-        // app-navbar and app-brand are hooks the scoped stylesheet and the E2E both select on;
-        // bg-slate-900 is what makes it the dark bar now that no framework decides that for us.
+        // app-navbar and app-brand are hooks the scoped stylesheet and the E2E both select on.
+        //
+        // The colour assertion is on the kit's token, not a Tailwind hue. It used to pin bg-slate-900 —
+        // "what makes it the dark bar now that no framework decides that for us" — and the bar is drawn
+        // from Rask.Ui's palette now, light, so a hue would only ever pin whichever one happened to be
+        // chosen. bg-ui-bg says the thing that must stay true: this chrome takes its surface from the
+        // shared palette rather than inventing one.
         Assert.Contains("app-navbar", html);
-        Assert.Contains("bg-slate-900", html);
+        Assert.Contains("bg-ui-bg", html);
         Assert.Contains("app-brand", html);
         Assert.Contains("hamburger-btn", html);
 
@@ -87,7 +92,7 @@ public sealed class ShowcaseLayoutTests
     public void IsActive_RootHref_TrueOnlyForRootPaths(string path, bool expected)
     {
         var routeState = new RouteState { Path = path };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         Assert.Equal(expected, InvokePrivateIsActive(layout, "/"));
     }
 
@@ -99,7 +104,7 @@ public sealed class ShowcaseLayoutTests
     public void IsActive_NonRootHref_MatchesPathIgnoringCaseAndTrailingSlash(string path, string href, bool expected)
     {
         var routeState = new RouteState { Path = path };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         Assert.Equal(expected, InvokePrivateIsActive(layout, href));
     }
 
@@ -122,7 +127,7 @@ public sealed class ShowcaseLayoutTests
         string path, string href, string? matchPrefix, bool expected)
     {
         var routeState = new RouteState { Path = path };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         Assert.Equal(expected, InvokePrivateIsActive(layout, href, matchPrefix));
     }
 
@@ -137,7 +142,7 @@ public sealed class ShowcaseLayoutTests
         // RouteState.Changed instead, so it only re-renders when the route changes
         // (not on every keystroke in a child form).
         var routeState = new RouteState { Path = "/" };
-        var layout = new ShowcaseLayout(routeState, [], new FakeJsRuntime());
+        var layout = new ShowcaseLayout(routeState, []);
         var prop = typeof(Component).GetProperty("BypassRenderCache",
             BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(prop);
@@ -160,7 +165,7 @@ public sealed class ShowcaseLayoutTests
 
         // The "Apps" accordion (Examples section, holding Todos) is collapsed at "/" — only the guide
         // groups auto-open (OpenGuideGroups). Its toggle carries the "open" class only when expanded.
-        var appsExpanded = new Regex("nav-group-toggle open\"[\\s\\S]{0,200}nav-group-label\">Apps<");
+        var appsExpanded = GroupExpanded("Apps");
         Assert.DoesNotMatch(appsExpanded, CollapseWhitespace(page.Html));
 
         // Open the mobile drawer via the hamburger (it toggles _drawerOpen); the backdrop marks it open.
@@ -178,6 +183,25 @@ public sealed class ShowcaseLayoutTests
         Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
         Assert.DoesNotContain("nav-backdrop", atTodos);         // drawer closed
     }
+
+    /// <summary>
+    ///     Matches the group toggle for <paramref name="group" /> only while it carries the "open" class.
+    ///     The label has to sit INSIDE that toggle button: the tempered token cannot cross the button's own
+    ///     closing tag, so a match means real containment.
+    ///     <para>
+    ///         The tempering is the point, and the reason this is not a distance window. A plain
+    ///         "[\s\S]{0,N}" — and equally a lazy "svg ... /svg" — backtracks FORWARD across element
+    ///         boundaries, so it cheerfully pairs one group's open toggle with a different group's label
+    ///         further down the rail, and whether it does depends on how big the chevron's markup happens
+    ///         to be. That made the old assertion silently size-dependent: it passed while the chevron was
+    ///         a one-character glyph and broke the moment the showcase moved to real SVG icons. Widening
+    ///         the window would have hidden that rather than fixed it, and would have weakened the negative
+    ///         assertion, which must mean "this group is not open" and not "no open group is nearby".
+    ///     </para>
+    /// </summary>
+    private static Regex GroupExpanded(string group) =>
+        new("<button class=\"[^\"]*nav-group-toggle open\\b[^\"]*\"(?:(?!</button>)[\\s\\S])*?"
+            + $"<span class=\"nav-group-label\">{Regex.Escape(group)}</span>");
 
     private static string CollapseWhitespace(string s) =>
         Regex.Replace(s, @"\s+", " ");

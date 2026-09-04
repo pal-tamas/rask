@@ -7,14 +7,14 @@ public sealed partial class TagsFormDemo : Component
 
     protected override Component? Render() => Form.Model(_fields)[
         Div.Class("mb-2")[
-            Label.For("n").Class($"{Ui.Label} text-sm mb-1")["Name"],
+            Label.For("n").Class($"{Tw.Label} text-sm mb-1")["Name"],
             Input.Value<string>(null)
                 .Type(InputType.Text)
                 .Id("n")
-                .Class(Ui.Input)
+                .Class(Tw.Input)
                 .Placeholder("Jane Doe")
         ],
-        Button.Class(Ui.BtnPrimary).Type("submit")["Submit"]
+        Button.Class(Tw.BtnPrimary).Type("submit")["Submit"]
     ];
 
     private sealed class Fields

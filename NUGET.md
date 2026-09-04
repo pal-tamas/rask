@@ -89,6 +89,7 @@ dotnet add package Rask.Cache             # read-through cache
 dotnet add package Rask.Outbox            # transactional outbox for domain events
 dotnet add package Rask.Logging           # durable log store (its own SQLite file)
 dotnet add package Rask.Dashboard         # the /_rask operator dashboard over every pillar
+dotnet add package Rask.Ui                # the component kit those surfaces are drawn with
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 ```

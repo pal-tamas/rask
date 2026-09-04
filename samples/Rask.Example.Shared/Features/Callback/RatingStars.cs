@@ -12,7 +12,7 @@ public sealed partial class RatingStars : Component
 
     protected override Component? Render() =>
         Div.Class("inline-flex gap-1")[
-            Enumerable.Range(1, 5).Select(i => (Component)Button.Class($"{Ui.BtnLink} text-2xl leading-none").Type("button")
+            Enumerable.Range(1, 5).Select(i => (Component)Button.Class($"{Tw.BtnLink} text-2xl leading-none").Type("button")
                 .Key(i)
                 .Style(i <= Value ? "color:#ffc107" : "color:#ced4da")
                 .OnClick(() => OnRate?.Invoke(i))[

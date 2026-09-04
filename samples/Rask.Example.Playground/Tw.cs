@@ -10,7 +10,7 @@ namespace Rask.Example.Playground;
 /// select on them — those are behaviour, and mixing them into a styling constant would make a restyle
 /// able to break a test in a way that reads as a styling change.
 /// </remarks>
-internal static class Ui
+internal static class Tw
 {
     /// <summary>A secondary control: the outline button language the toolbar is built from.</summary>
     public const string Button =

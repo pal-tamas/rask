@@ -28,7 +28,7 @@ public sealed partial class GuideCards : Component
             }
 
             yield return H2
-                .Class("font-bold uppercase text-slate-500 mt-4 mb-3 text-base font-semibold feature-section")[group];
+                .Class("font-bold uppercase text-ui-muted mt-4 mb-3 text-base font-semibold feature-section")[group];
             yield return Div.Class("grid grid-cols-12 gap-4")[cards.Select(c => (Component)Card(c))];
         }
     }
@@ -36,11 +36,11 @@ public sealed partial class GuideCards : Component
     private static Component Card(GuideEntry g) =>
         Div.Class("md:col-span-6 lg:col-span-4").Key(g.Slug)[
             NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("no-underline")[
-                Div.Class($"{Ui.Card} h-full border-0 shadow-sm feature-card")[
-                    Div.Class($"{Ui.CardBody} p-4")[
-                        Div.Class("feature-icon mb-3")[Icon.Name(g.Icon).Class("text-2xl")],
-                        H3.Class("font-semibold mb-2 text-base text-slate-900 dark:text-slate-100")[g.Title],
-                        P.Class("text-slate-500 mb-0 text-sm")[g.Blurb]
+                Div.Class($"{Tw.Card} h-full border-0 shadow-sm feature-card")[
+                    Div.Class($"{Tw.CardBody} p-4")[
+                        Div.Class("feature-icon mb-3")[UiIcon.Name(g.Icon).Class("size-7")],
+                        H3.Class("font-semibold mb-2 text-base text-ui-ink")[g.Title],
+                        P.Class("text-ui-muted mb-0 text-sm")[g.Blurb]
                     ]
                 ]
             ]
