@@ -19,7 +19,7 @@ them until tagged releases begin.
   saturate the box — and the failure it produced (`Rows imported so far: 0.` after 14 polls) reads
   exactly like a product bug.
 
-  The six assertions that wait on real database work now get their own 30s budget; the ones that wait
+  The eight assertions that wait on real database work now get their own 30s budget; the ones that wait
   on a render keep the default, because raising it globally would slow every genuine failure to the
   pace of the slowest load-dependent one.
 
