@@ -41,6 +41,9 @@ Rask.Meta.Hosting.MetaHostingOptions.StartupTimeout.set -> void
 Rask.Meta.Hosting.MetaHostingOptions.SuperviseNode.get -> bool
 Rask.Meta.Hosting.MetaHostingOptions.SuperviseNode.set -> void
 Rask.Meta.Hosting.RaskMetaEndpointExtensions
+Rask.Meta.Hosting.RaskMetaHealthCheck
+Rask.Meta.Hosting.RaskMetaHealthCheck.CheckHealthAsync(Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult>!
+Rask.Meta.Hosting.RaskMetaHealthCheckExtensions
 Rask.Meta.Hosting.RaskMetaServiceCollectionExtensions
 Rask.Meta.Hosting.StaticRoot
 Rask.Meta.Hosting.StaticRoot.<Clone>$() -> Rask.Meta.Hosting.StaticRoot!
@@ -66,6 +69,7 @@ static Rask.Meta.Hosting.MetaFramework.TanStackStart.get -> Rask.Meta.Hosting.Me
 static Rask.Meta.Hosting.MetaFramework.operator !=(Rask.Meta.Hosting.MetaFramework? left, Rask.Meta.Hosting.MetaFramework? right) -> bool
 static Rask.Meta.Hosting.MetaFramework.operator ==(Rask.Meta.Hosting.MetaFramework? left, Rask.Meta.Hosting.MetaFramework? right) -> bool
 static Rask.Meta.Hosting.RaskMetaEndpointExtensions.UseRaskMeta(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Meta.Hosting.RaskMetaHealthCheckExtensions.AddRaskMetaFrontEnd(this Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder! builder, string! name = "rask_meta_front_end", Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? failureStatus = null, System.Collections.Generic.IEnumerable<string!>? tags = null) -> Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder!
 static Rask.Meta.Hosting.RaskMetaServiceCollectionExtensions.AddRaskMeta(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Meta.Hosting.MetaHostingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Meta.Hosting.StaticRoot.operator !=(Rask.Meta.Hosting.StaticRoot? left, Rask.Meta.Hosting.StaticRoot? right) -> bool
 static Rask.Meta.Hosting.StaticRoot.operator ==(Rask.Meta.Hosting.StaticRoot? left, Rask.Meta.Hosting.StaticRoot? right) -> bool
