@@ -1031,7 +1031,7 @@ internal static partial class ProjectGenerator
         steps.AppendLine("  rask dev            # the host, and the client's dev server, together");
         steps.AppendLine();
         steps.AppendLine("The first build installs the client's dependencies and writes its generated");
-        steps.AppendLine($"contracts into {name}.Client/src/rask/ — that directory is gitignored, because it is");
+        steps.AppendLine($"contracts into {name}/Client/src/rask/ — that directory is gitignored, because it is");
         steps.AppendLine("rewritten from the server's message records every time they change.");
 
         if (docker)
