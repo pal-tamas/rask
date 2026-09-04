@@ -402,3 +402,85 @@ public sealed partial class UiValidator : Component
     protected override Component? Render() =>
         P.Class(UiClass.Compose("validator-hint", Class))[Message];
 }
+
+/// <summary>
+/// A field with a fixed set of answers.
+/// </summary>
+/// <remarks>
+/// A real &lt;select&gt; rather than a styled list, which is what makes it work with a keyboard, a screen
+/// reader and a phone's native picker without a line of script.
+/// </remarks>
+public sealed partial class UiSelect : Component
+{
+    /// <summary>The accessible name.</summary>
+    public required string Label { get; set; }
+
+    /// <summary>The options: the value stored, and the words shown.</summary>
+    public required IReadOnlyList<(string Value, string Text)> Options { get; set; }
+
+    public string? Value { get; set; }
+
+    /// <summary>Shown first and unselectable — the prompt, not an answer.</summary>
+    public string? Placeholder { get; set; }
+
+    public UiTone? Tone { get; set; }
+
+    public UiSize? Size { get; set; }
+
+    public UiVariant? Variant { get; set; }
+
+    public bool? Disabled { get; set; }
+
+    public Action<string>? OnChange { get; set; }
+
+    public string? Class { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var select = Select
+            .Value(Value ?? string.Empty)
+            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            .Disabled(Disabled == true)
+            .Class(UiClass.Compose(
+                "select",
+                Tone is { } tone ? UiClassNames.SelectTone(tone) : "",
+                Size is { } size ? UiClassNames.SelectSize(size) : "",
+                Variant is { } variant ? UiClassNames.SelectVariant(variant) : "",
+                Class));
+
+        if (OnChange is { } change)
+        {
+            select = select.OnChange(change);
+        }
+
+        return select[
+            // `disabled` as well as empty: a placeholder that can be chosen is an answer, and one chosen
+            // by accident is a bug report about a form that saved nothing.
+            Placeholder is { } placeholder
+                ? Option.Value(string.Empty).Disabled(true).Selected(Value is null)[placeholder]
+                : null,
+            Options.Select(o => Option.Key(o.Value).Value(o.Value).Selected(o.Value == Value)[o.Text])
+        ];
+    }
+}
+
+/// <summary>
+/// An image cropped to a shape.
+/// </summary>
+/// <remarks>
+/// The shape is daisyUI's own class — <c>mask-squircle</c>, <c>mask-hexagon</c>, <c>mask-star</c> — passed
+/// through rather than enumerated, because the set is long, purely decorative, and grows without the kit
+/// having anything to say about it.
+/// </remarks>
+public sealed partial class UiMask : Component
+{
+    /// <summary>daisyUI's shape class, for example <c>mask-squircle</c>.</summary>
+    public required string Shape { get; set; }
+
+    public string? Class { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Div.Class(UiClass.Compose("mask", Shape, Class))[Children ?? []];
+}

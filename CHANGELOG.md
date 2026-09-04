@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **The kit now covers daisyUI's component set — 80 components, none needing a line of JavaScript.**
+  The last of them: select, mask, chat bubble, diff, list, countdown and the four mockup frames.
+
+  Two are deliberately absent. daisyUI's **calendar** is styling for a third-party date-picker web
+  component rather than a calendar of its own, so wrapping it would mean shipping a JavaScript library;
+  `UiInput` with `InputType.Date` gives the browser's native picker instead. **filter** needs a `<form>`
+  to hold its radio reset, and Rask's `Form` is generic over a model that a filter does not have —
+  `UiRadio` covers the same ground without inventing one.
+
+  Auditing the set against daisyUI's own list found `UiSelect` missing, which is worth recording because
+  of how it hid: its class tables were already in `UiClassNames`, so `select-primary` and friends were
+  being compiled into the shipped stylesheet with no component anywhere that could write them. The
+  stylesheet looked complete precisely because the gap was in the C#.
+
+
 - **The kit covers daisyUI's component set: 69 components, none of them needing a line of JavaScript.**
   Forms (input, textarea, file input, checkbox, radio, toggle, range, fieldset, validator), navigation
   (link, breadcrumbs, menu, navbar, steps, dock, pagination), feedback (alert, loading, progress, radial
