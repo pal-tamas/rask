@@ -44,6 +44,55 @@ public sealed class AuthOptions
     /// <summary>Where an authenticated but unauthorized visitor is sent.</summary>
     public string AccessDeniedPath { get; set; } = "/forbidden";
 
+    /// <summary>Where a confirmation link lands.</summary>
+    public string ConfirmEmailPath { get; set; } = "/confirm-email";
+
+    /// <summary>Where a visitor asks for a password-reset link.</summary>
+    public string ForgotPasswordPath { get; set; } = "/forgot-password";
+
+    /// <summary>Where a reset link lands.</summary>
+    public string ResetPasswordPath { get; set; } = "/reset-password";
+
+    /// <summary>
+    /// Whether an account must confirm its email address before it can sign in. <b>Off by default.</b>
+    /// </summary>
+    /// <remarks>
+    /// Turn it on for production, in one line. It is off by default because a freshly scaffolded app has
+    /// no SMTP configured — with the gate on, the first registration would succeed and then be unable to
+    /// sign in, including yours, and the confirmation email needed to fix it is the one that cannot be
+    /// sent. Off, the confirmation is still sent; it simply does not block the door.
+    /// <example>
+    /// <code>
+    /// app.Configure(c => c.Auth.Configure(o => o.RequireConfirmedEmail = true));
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public bool RequireConfirmedEmail { get; set; }
+
+    /// <summary>How long a confirmation or reset link stays valid. Defaults to two hours.</summary>
+    /// <remarks>
+    /// This is what the email tells the reader, and what Identity's token provider enforces. Both are
+    /// set from here so they cannot drift into a message that promises longer than the token allows.
+    /// </remarks>
+    public TimeSpan TokenLifetime { get; set; } = TimeSpan.FromHours(2);
+
+    /// <summary>The subject line of the confirmation email.</summary>
+    public string ConfirmEmailSubject { get; set; } = "Confirm your email address";
+
+    /// <summary>The subject line of the password-reset email.</summary>
+    public string ResetPasswordSubject { get; set; } = "Reset your password";
+
+    /// <summary>
+    /// The absolute origin to build email links against, when the app cannot know it from a request.
+    /// </summary>
+    /// <remarks>
+    /// A link in an email has to be absolute, and the request that triggers it is a WebSocket frame or
+    /// a POST rather than the navigation the visitor will make. Left unset, the origin of the request
+    /// that started the flow is used, which is right for a single-origin app. Set it when the app sits
+    /// behind a proxy whose public address it cannot otherwise see.
+    /// </remarks>
+    public string? PublicOrigin { get; set; }
+
     /// <summary>How long a session stays valid.</summary>
     public TimeSpan ExpireTimeSpan { get; set; } = TimeSpan.FromDays(14);
 
@@ -137,11 +186,20 @@ public sealed class AuthOptions
         ArgumentException.ThrowIfNullOrWhiteSpace(LoginPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(RegisterPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(LogoutPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ConfirmEmailPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ForgotPasswordPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ResetPasswordPath);
 
         if (ExpireTimeSpan <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(ExpireTimeSpan), ExpireTimeSpan, "The session lifetime must be positive.");
+        }
+
+        if (TokenLifetime <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(TokenLifetime), TokenLifetime, "The token lifetime must be positive.");
         }
     }
 }

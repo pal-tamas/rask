@@ -1,6 +1,7 @@
 # Rask.Auth
 
-Accounts and the three flows — **register, sign in, sign out** — for a [Rask](https://rask.sh) app.
+Accounts for a [Rask](https://rask.sh) app: **register, sign in, sign out**, plus **email confirmation
+and password reset**.
 
 Accounts are backed by **ASP.NET Core Identity** (versioned password hashing, lockout, security
 stamps, token providers), wrapped behind Rask's own host-neutral surface. The code you write to read
@@ -23,6 +24,32 @@ public sealed class Header(IUserProvider users) : Component
             .Authorized(user => Span[$"Hi, {user.Identity?.Name}"]);
 }
 ```
+
+## Confirming an address, and resetting a password
+
+Registering emails a confirmation link; `/forgot-password` emails a reset link. Both go out through
+the app's own mail queue, and `/reset-password` and `/confirm-email` are where those links land —
+built-in pages, overridable exactly like `/login`.
+
+**Confirmation does not block sign-in by default.** A freshly scaffolded app has no SMTP configured,
+so requiring it out of the box would let the first registration succeed and then be unable to sign in,
+with the email that would fix it being the one that cannot be sent. Turn it on in one line:
+
+```csharp
+app.Configure(c => c.Auth.Configure(o =>
+{
+    o.RequireConfirmedEmail = true;
+    o.PublicOrigin = "https://app.example.com";   // required behind a proxy
+}));
+```
+
+`PublicOrigin` matters: an emailed link has to be absolute, and Rask never builds one from a forwarded
+host header — that value is attacker-controlled on a request that reaches the app directly, and a
+reset link built from it would send a working token to a domain of the attacker's choosing.
+
+`/forgot-password` answers the same way whether or not the address has an account, so it cannot be
+used to find out which addresses are registered. A completed reset ends every other session for that
+account.
 
 ## The first account is the administrator
 

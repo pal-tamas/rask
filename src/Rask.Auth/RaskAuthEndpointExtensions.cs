@@ -59,6 +59,9 @@ public static class RaskAuthEndpointExtensions
         // returned IResult away — the sign-out would happen and the response would not say so.
         group.MapPost(AuthApi.Logout, (Delegate)LogoutAsync);
         group.MapGet(AuthApi.Me, Me);
+        group.MapPost(AuthApi.ForgotPassword, ForgotPasswordAsync);
+        group.MapPost(AuthApi.ResetPassword, ResetPasswordAsync);
+        group.MapPost(AuthApi.ConfirmEmail, ConfirmEmailAsync);
 
         return endpoints;
     }
@@ -101,6 +104,63 @@ public static class RaskAuthEndpointExtensions
         return Results.NoContent();
     }
 
+    /// <summary>Emails a reset link. Answers the same way whether or not the address has an account.</summary>
+    private static async Task<IResult> ForgotPasswordAsync(
+        HttpContext context,
+        ForgotPasswordRequest request,
+        IAccounts accounts,
+        CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        var result = await accounts
+            .SendPasswordResetAsync(request.Email, cancellationToken)
+            .ConfigureAwait(false);
+
+        // 503, not 401. The one way this refuses is that the app has no mail battery, which is a
+        // misconfiguration of the server rather than anything the caller did wrong — and answering 401
+        // would have a client show "check your email" over a message that never left.
+        return result.Succeeded
+            ? Results.Accepted()
+            : Refuse(result, StatusCodes.Status503ServiceUnavailable);
+    }
+
+    /// <summary>Sets a new password from an emailed token.</summary>
+    private static async Task<IResult> ResetPasswordAsync(
+        HttpContext context, ResetPasswordRequest request, IAccounts accounts)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        var result = await accounts
+            .ResetPasswordAsync(request.UserId, request.Token, request.Password)
+            .ConfigureAwait(false);
+
+        // No session is issued here, deliberately. A reset link lives in an inbox and gets forwarded;
+        // handing back a live cookie would make reading the email enough to be signed in, on top of the
+        // password change. Signing in afterwards costs one form and proves the password was received.
+        return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status400BadRequest);
+    }
+
+    /// <summary>Marks an address confirmed from an emailed token.</summary>
+    private static async Task<IResult> ConfirmEmailAsync(
+        HttpContext context, ConfirmEmailRequest request, IAccounts accounts)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        var result = await accounts.ConfirmEmailAsync(request.UserId, request.Token).ConfigureAwait(false);
+
+        return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status400BadRequest);
+    }
+
     /// <summary>Who the caller is, or <c>204</c> when nobody.</summary>
     /// <remarks>
     /// This is the one endpoint every non-C# host needs: a TypeScript front end reads it on load, and a
@@ -130,9 +190,7 @@ public static class RaskAuthEndpointExtensions
         if (outcome is not { Result.Succeeded: true, Principal: { } principal })
         {
             // 401 for every refusal, carrying the code but never a hint about which account exists.
-            return Results.Json(
-                new AuthFailure(outcome.Result.Error.ToString(), outcome.Result.Message),
-                statusCode: StatusCodes.Status401Unauthorized);
+            return Refuse(outcome.Result, StatusCodes.Status401Unauthorized);
         }
 
         await context
@@ -147,6 +205,10 @@ public static class RaskAuthEndpointExtensions
         // answer 204 to the caller that just succeeded.
         return Describe(principal);
     }
+
+    /// <summary>A refusal, in the one shape every client already parses.</summary>
+    private static IResult Refuse(AuthResult result, int statusCode) =>
+        Results.Json(new AuthFailure(result.Error.ToString(), result.Message), statusCode: statusCode);
 
     private static bool HasRequestHeader(HttpContext context) =>
         context.Request.Headers.ContainsKey(RaskAuthDefaults.RequestHeader);

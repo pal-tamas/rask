@@ -48,8 +48,52 @@ public sealed class BrowserAuth(
         navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
     }
 
+    /// <inheritdoc />
+    public Task<AuthResult> SendPasswordResetAsync(string email) =>
+        ExchangeAsync(
+            AuthApi.ForgotPassword,
+            new ForgotPasswordRequest(email),
+            AuthJsonContext.Default.ForgotPasswordRequest);
+
+    /// <inheritdoc />
+    public Task<AuthResult> ResetPasswordAsync(string userId, string token, string password) =>
+        ExchangeAsync(
+            AuthApi.ResetPassword,
+            new ResetPasswordRequest(userId, token, password),
+            AuthJsonContext.Default.ResetPasswordRequest);
+
+    /// <inheritdoc />
+    public Task<AuthResult> ConfirmEmailAsync(string userId, string token) =>
+        ExchangeAsync(
+            AuthApi.ConfirmEmail,
+            new ConfirmEmailRequest(userId, token),
+            AuthJsonContext.Default.ConfirmEmailRequest);
+
     private async Task<AuthResult> PostAsync<TBody>(
         string route, TBody body, JsonTypeInfo<TBody> bodyType, string? returnUrl)
+    {
+        var result = await ExchangeAsync(route, body, bodyType).ConfigureAwait(false);
+
+        if (!result.Succeeded)
+        {
+            return result;
+        }
+
+        await users.RefreshAsync().ConfigureAwait(false);
+        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
+        return AuthResult.Success;
+    }
+
+    /// <summary>
+    /// One POST and its answer, with no refresh and no navigation.
+    /// </summary>
+    /// <remarks>
+    /// The three recovery calls stop here. None of them changes who is signed in — a reset link is used
+    /// while signed out, and refreshing <see cref="IUserProvider" /> for it would re-render every
+    /// component that reads the current user to arrive at the same anonymous answer.
+    /// </remarks>
+    private async Task<AuthResult> ExchangeAsync<TBody>(
+        string route, TBody body, JsonTypeInfo<TBody> bodyType)
     {
         using var request = Request(route);
         request.Content = JsonContent.Create(body, bodyType);
@@ -76,8 +120,6 @@ public sealed class BrowserAuth(
             }
         }
 
-        await users.RefreshAsync().ConfigureAwait(false);
-        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
         return AuthResult.Success;
     }
 

@@ -48,4 +48,13 @@ internal sealed class ServerAuth<TUser>(
 
     public Task SignOutAsync(string? returnUrl = null) =>
         signIn.SignOutAsync(returnUrl ?? options.LoginPath);
+
+    public Task<AuthResult> SendPasswordResetAsync(string email) =>
+        accounts.SendPasswordResetAsync(email);
+
+    public Task<AuthResult> ResetPasswordAsync(string userId, string token, string password) =>
+        accounts.ResetPasswordAsync(userId, token, password);
+
+    public Task<AuthResult> ConfirmEmailAsync(string userId, string token) =>
+        accounts.ConfirmEmailAsync(userId, token);
 }

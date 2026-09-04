@@ -519,14 +519,17 @@ there. A TypeScript front end talks to them directly — there is no Rask client
 there is nothing to install: they are ordinary JSON over ordinary `fetch`.
 
 ```
-POST /api/auth/register   { email, password, firstRunToken? }
-POST /api/auth/login      { email, password, remember? }
+POST /api/auth/register          { email, password, firstRunToken? }
+POST /api/auth/login             { email, password, remember? }
 POST /api/auth/logout
-GET  /api/auth/me         -> { id, email, roles }  |  204
+GET  /api/auth/me                -> { id, email, roles }  |  204
+POST /api/auth/forgot-password   { email }
+POST /api/auth/reset-password    { userId, token, password }
+POST /api/auth/confirm-email     { userId, token }
 ```
 
 You can call them with `fetch`, but you do not have to: the [browser layer](#browser-apis) ships
-a module for them, so the three flows are three functions.
+a module for them, so each flow is a function.
 
 ```ts
 import { auth } from './rask/browser'
@@ -541,11 +544,20 @@ if (result.ok) {
 
 const me = await auth.me()             // CurrentUser, or null when nobody is signed in
 await auth.logout()
+
+// Recovery. None of these signs anybody in, so they answer {ok} rather than a user.
+await auth.sendPasswordReset(email)
+await auth.resetPassword(userId, token, password)   // both read out of the emailed link's query
+await auth.confirmEmail(userId, token)
 ```
 
 It adds the required header, keeps the paths in one place, and gives you the response shapes typed —
 the same `AuthApi` contract the C# clients speak, so a front end and a component are talking to one
 API rather than to two that happen to agree today.
+
+The emailed links point at the **host's** built-in `/reset-password` and `/confirm-email` pages unless
+you change `AuthOptions.ResetPasswordPath` / `ConfirmEmailPath` to routes your front end owns. Point
+them at your own, read `userId` and `token` off the query string, and call the two functions above.
 
 Three things to know, and only three:
 

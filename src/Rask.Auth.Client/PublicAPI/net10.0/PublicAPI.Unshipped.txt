@@ -5,7 +5,10 @@ Rask.Auth.Client.AuthClientOptions.Prefix.get -> string!
 Rask.Auth.Client.AuthClientOptions.Prefix.set -> void
 Rask.Auth.Client.BrowserAuth
 Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Routing.Navigator! navigator, Rask.Auth.Client.AuthClientOptions! options) -> void
+Rask.Auth.Client.BrowserAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.ResetPasswordAsync(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.SendPasswordResetAsync(string! email) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Core.Authentication.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Auth.Client.HttpUserProvider

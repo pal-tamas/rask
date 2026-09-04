@@ -3,8 +3,56 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Mail;
 
 namespace Rask.Auth.Tests;
+
+/// <summary>One captured message, in the terms a test asks questions in.</summary>
+/// <param name="To">The recipient.</param>
+/// <param name="Subject">The subject line.</param>
+/// <param name="Html">The rendered body.</param>
+public sealed record SentMail(string To, string Subject, string Html)
+{
+    /// <summary>The first <c>href</c> in the body — the link the message exists to deliver.</summary>
+    /// <remarks>
+    ///     Read out of the rendered HTML rather than taken from the code that built it. A test that asked
+    ///     the builder would still pass if the link never reached the markup, which is the failure that
+    ///     actually matters: an email that arrives with no way to act on it.
+    /// </remarks>
+    public string? Link =>
+        System.Text.RegularExpressions.Regex.Match(Html, "href=\"([^\"]+)\"") is { Success: true } match
+            ? System.Net.WebUtility.HtmlDecode(match.Groups[1].Value)
+            : null;
+}
+
+/// <summary>A mail battery that keeps every message instead of sending it.</summary>
+public sealed class MailSpy : IMail
+{
+    private readonly List<SentMail> _sent = [];
+
+    public IReadOnlyList<SentMail> Sent => _sent;
+
+    /// <summary>The last message sent to an address, or null when there is none.</summary>
+    public SentMail? LastTo(string address) => _sent.FindLast(m => m.To == address);
+
+    public Task SendAsync(Email email, CancellationToken cancellationToken = default)
+    {
+        // Email.Body(Component) has already rendered to HTML by the time it is queued, so this is the
+        // same string a real send would hand to the SMTP transport.
+        _sent.Add(new SentMail(
+            email.ToRecipients[0].Address,
+            email.SubjectText ?? "",
+            email.HtmlBody ?? ""));
+
+        return Task.CompletedTask;
+    }
+
+    public Task ScheduleAsync(Email email, TimeSpan delay, CancellationToken cancellationToken = default) =>
+        SendAsync(email, cancellationToken);
+
+    public Task ScheduleAsync(Email email, DateTimeOffset runAt, CancellationToken cancellationToken = default) =>
+        SendAsync(email, cancellationToken);
+}
 
 /// <summary>The application context an app would write, with the auth tables mapped onto it.</summary>
 public sealed class AuthDbContext(DbContextOptions<AuthDbContext> options) : DbContext(options)
@@ -30,7 +78,12 @@ public sealed class AuthHarness : IAsyncDisposable
     ///     An existing database to reopen. Passing the <see cref="DbPath" /> of another harness is how a
     ///     test restarts the same app: the file is the only thing a restart actually keeps.
     /// </param>
-    public AuthHarness(Action<AuthOptions>? configure = null, string? dbPath = null)
+    /// <param name="mail">
+    ///     Whether to register a mail battery. <b>Off by default, deliberately</b> — it is the state of a
+    ///     scaffolded app that has not configured one, and the flows have to behave sanely there too.
+    ///     Passing <c>true</c> registers <see cref="MailSpy" />, which captures what would have been sent.
+    /// </param>
+    public AuthHarness(Action<AuthOptions>? configure = null, string? dbPath = null, bool mail = false)
     {
         _ownsFile = dbPath is null;
         DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"rask-auth-test-{Guid.NewGuid():N}.db");
@@ -42,8 +95,20 @@ public sealed class AuthHarness : IAsyncDisposable
         {
             // A fixed token keeps the tests from having to read it back out of the log.
             o.FirstRunToken = FirstRunTokenValue;
+
+            // There is no request and no listening server here, so an emailed link would have nothing
+            // absolute to build on. A configured origin is also what a real deployment behind a proxy
+            // sets, so this is the shape under test rather than a convenience for it.
+            o.PublicOrigin = Origin;
+
             configure?.Invoke(o);
         });
+
+        if (mail)
+        {
+            Mail = new MailSpy();
+            services.AddSingleton<IMail>(Mail);
+        }
 
         _provider = services.BuildServiceProvider();
 
@@ -54,7 +119,13 @@ public sealed class AuthHarness : IAsyncDisposable
     /// <summary>The token the harness configures, so a test can present the right one.</summary>
     public const string FirstRunTokenValue = "test-first-run-token";
 
+    /// <summary>The origin emailed links are built against.</summary>
+    public const string Origin = "https://rask.test";
+
     public string DbPath { get; }
+
+    /// <summary>What the app would have sent, when the harness was built with a mail battery.</summary>
+    public MailSpy? Mail { get; }
 
     public IServiceProvider Services => _provider;
 

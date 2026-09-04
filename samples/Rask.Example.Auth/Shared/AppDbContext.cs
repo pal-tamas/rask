@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Auth;
+using Rask.Mail;
 
 namespace Rask.Example.Auth;
 
@@ -9,6 +10,13 @@ namespace Rask.Example.Auth;
 /// The application context. It has no tables of its own — accounts are all this sample stores — but
 /// naming one is what tells Rask which database the batteries belong to.
 /// </summary>
+/// <remarks>
+/// <b>A battery that is on needs its tables mapped here.</b> Both calls below are load-bearing: the
+/// confirmation and reset emails are queued on the mail table, and mapping accounts without mapping
+/// mail leaves an app that registers people and then cannot email any of them. It reads as a working
+/// app until somebody asks for a reset, because the mail battery's own worker tolerates a table that
+/// is not there yet — it has to, since a fresh app boots before its first migration runs.
+/// </remarks>
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     /// <inheritdoc />
@@ -16,6 +24,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
         modelBuilder.AddRaskAuth();
+        modelBuilder.AddRaskMail();
     }
 }
 

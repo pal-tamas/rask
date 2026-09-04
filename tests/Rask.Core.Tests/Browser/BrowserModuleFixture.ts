@@ -161,6 +161,27 @@ async function run(): Promise<Any> {
     const refused = await auth.login({email: "ada@example.com", password: "wrong"});
     const authFailureFromProblemDocument = refused.ok ? null : refused.failure;
 
+    // Recovery. The endpoints answer 202/204 with NO body, so what is checked is the route asked for
+    // and that an empty success is still read as a success — parsing a body that is not there would
+    // turn every one of these into a spurious failure.
+    captureFetch(202, null);
+    const authForgotOk = (await auth.sendPasswordReset("ada@example.com")).ok;
+    const authForgotRequest = lastRequest;
+
+    captureFetch(204, null);
+    const authResetOk = (await auth.resetPassword("u1", "tok", "Password2longer")).ok;
+    const authResetRequest = lastRequest;
+
+    captureFetch(204, null);
+    const authConfirmOk = (await auth.confirmEmail("u1", "tok")).ok;
+    const authConfirmRequest = lastRequest;
+
+    // A stale link reports the server's reason rather than a generic failure: "ask for a new one" is
+    // a different instruction from "pick a longer password".
+    captureFetch(400, {error: "InvalidToken", message: null});
+    const staleReset = await auth.resetPassword("u1", "stale", "Password2longer");
+    const authResetFailure = staleReset.ok ? null : staleReset.failure;
+
     define("fetch", realFetch);
 
     return {
@@ -171,6 +192,15 @@ async function run(): Promise<Any> {
         authLogoutOnFailureResolves,
         authMeOnFailureIsNull,
         authFailureFromProblemDocument,
+
+        // Recovery: the routes, and that a body-less 202/204 reads as success.
+        authForgotOk,
+        authForgotRequest,
+        authResetOk,
+        authResetRequest,
+        authConfirmOk,
+        authConfirmRequest,
+        authResetFailure,
 
         importedWithoutADom,
 

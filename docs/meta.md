@@ -171,10 +171,11 @@ any other front end:
 
 ```
 POST /api/auth/register   POST /api/auth/login   POST /api/auth/logout   GET /api/auth/me
+POST /api/auth/forgot-password   POST /api/auth/reset-password   POST /api/auth/confirm-email
 ```
 
-Same origin, so the `HttpOnly` cookie rides on its own; `X-Rask-Auth` is required on the three
-state-changing calls. See [the SPA guide](spa.md#signing-people-in) — the contract is identical,
+Same origin, so the `HttpOnly` cookie rides on its own; `X-Rask-Auth` is required on every
+state-changing call. See [the SPA guide](spa.md#signing-people-in) — the contract is identical,
 because it is the same contract.
 
 > **Map them before `UseRaskMeta()`.** That call ends the pipeline with a fallback that forwards

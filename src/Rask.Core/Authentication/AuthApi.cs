@@ -42,6 +42,15 @@ public static class AuthApi
 
     /// <summary>The <c>me</c> route, relative to the prefix.</summary>
     public const string Me = "/me";
+
+    /// <summary>The <c>confirm-email</c> route, relative to the prefix.</summary>
+    public const string ConfirmEmail = "/confirm-email";
+
+    /// <summary>The <c>forgot-password</c> route, relative to the prefix.</summary>
+    public const string ForgotPassword = "/forgot-password";
+
+    /// <summary>The <c>reset-password</c> route, relative to the prefix.</summary>
+    public const string ResetPassword = "/reset-password";
 }
 
 /// <summary>Credentials for a new account.</summary>
@@ -55,6 +64,21 @@ public sealed record RegisterRequest(string Email, string Password, string? Firs
 /// <param name="Password">The password.</param>
 /// <param name="Remember">Whether the session should outlive the browser session.</param>
 public sealed record LoginRequest(string Email, string Password, bool Remember = false);
+
+/// <summary>An address to send a password-reset link to.</summary>
+/// <param name="Email">The email address.</param>
+public sealed record ForgotPasswordRequest(string Email);
+
+/// <summary>A new password, and the emailed token that authorizes setting it.</summary>
+/// <param name="UserId">The account the link named.</param>
+/// <param name="Token">The token the link carried.</param>
+/// <param name="Password">The new password.</param>
+public sealed record ResetPasswordRequest(string UserId, string Token, string Password);
+
+/// <summary>An address to mark confirmed, and the emailed token that proves it.</summary>
+/// <param name="UserId">The account the link named.</param>
+/// <param name="Token">The token the link carried.</param>
+public sealed record ConfirmEmailRequest(string UserId, string Token);
 
 /// <summary>Who is signed in.</summary>
 /// <param name="Id">The account's stable id.</param>

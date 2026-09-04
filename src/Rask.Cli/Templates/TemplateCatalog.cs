@@ -85,9 +85,12 @@ internal static class TemplateCatalog
         // it over generated TypeScript. CQRS is listed but never optional here — the wire IS the template,
         // so the generator forces it on and --no-cqrs is refused rather than silently ignored.
         //
-        // --auth and --pwa are left out rather than half-scaffolded: both need work on the CLIENT side
-        // (a login flow, a service worker through vite-plugin-pwa) that these templates do not write yet.
-        // --push needs both.
+        // --pwa is left out rather than half-scaffolded: it needs work on the CLIENT side (a service
+        // worker through vite-plugin-pwa) that these templates do not write yet, and --push needs it.
+        //
+        // Accounts are NOT a flag here or anywhere — the battery is on in the host, and the client reaches
+        // its /api/auth endpoints through auth.ts in the shared browser layer. What these templates do not
+        // scaffold is a sign-in PAGE in each framework's own idiom.
         //
         // The set matches the frameworks TanStack Query ships an adapter for, because the adapter is what
         // makes the generated contracts worth having — everything below the call site is the same wire.
@@ -105,9 +108,9 @@ internal static class TemplateCatalog
         Scaffolding.SpaFramework.All.Select(framework => new TemplateInfo(
             framework.Key,
             $"Rask {framework.DisplayName} front end + ASP.NET host",
-            // "pwa" and "push" but not "auth": the PWA half is the client's own manifest, service worker
-            // and subscription call, none of which need a login. Auth would need a sign-in flow written in
-            // the framework's own idiom, which the template does not scaffold yet.
+            // "pwa" and "push": the PWA half is the client's own manifest, service worker and
+            // subscription call, none of which need a login. Accounts have no flag — the battery is on
+            // regardless; only a sign-in page in the framework's own idiom is left unscaffolded.
             new HashSet<string>([.. DatabaseFlags, "docker", "pwa", "push"], StringComparer.Ordinal)));
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>

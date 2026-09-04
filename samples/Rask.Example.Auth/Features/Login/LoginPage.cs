@@ -41,7 +41,20 @@ public sealed partial class LoginPage(IAuth auth) : Component
                     Button.Type("submit").Id("login-submit").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500 w-full")["Sign in"]
                 ],
                 P.Class("text-slate-500 dark:text-slate-400 text-sm mt-3 mb-0")[
-                    "Try ada@example.com (admin) or bob@example.com (user) — both with Password1."]
+                    "Try ada@example.com (admin) or bob@example.com (user) — both with Password1."],
+                // Straight to the FRAMEWORK's page. Replacing /login replaces one page, not the flow:
+                // /forgot-password, /reset-password and /confirm-email are still there, and the reset
+                // email goes out through the mail battery — which, with no SMTP configured, writes it
+                // to ./mail-pickup as an .eml you can open.
+                //
+                // Fully qualified because this file's own namespace generates a Routes of its own, and
+                // importing both would make the bare name ambiguous.
+                P.Class("text-slate-500 dark:text-slate-400 text-sm mt-2 mb-0")[
+                    NavLink
+                        .Href(Rask.Auth.Pages.Routes.ForgotPasswordPage())
+                        .Id("go-forgot")
+                        .Class("text-violet-600 hover:text-violet-500 dark:text-violet-400")[
+                            "Forgotten your password?"]]
             ]
         ];
 

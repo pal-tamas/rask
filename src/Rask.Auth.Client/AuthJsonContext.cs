@@ -21,6 +21,9 @@ namespace Rask.Auth.Client;
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(RegisterRequest))]
 [JsonSerializable(typeof(LoginRequest))]
+[JsonSerializable(typeof(ForgotPasswordRequest))]
+[JsonSerializable(typeof(ResetPasswordRequest))]
+[JsonSerializable(typeof(ConfirmEmailRequest))]
 [JsonSerializable(typeof(CurrentUser))]
 [JsonSerializable(typeof(AuthFailure))]
 internal sealed partial class AuthJsonContext : JsonSerializerContext;

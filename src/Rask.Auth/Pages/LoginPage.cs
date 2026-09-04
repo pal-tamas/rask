@@ -54,7 +54,9 @@ public sealed partial class LoginPage(IAuth auth) : AuthPage
                 Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)),
                 Button.Type("submit").Id("login-submit")["Sign in"]
             ],
-            P.Class("rask-auth-note")["No account yet? ", NavLink.Href(Routes.RegisterPage())["Create one"], "."]
+            P.Class("rask-auth-note")["No account yet? ", NavLink.Href(Routes.RegisterPage())["Create one"], "."],
+            P.Class("rask-auth-note")[
+                NavLink.Href(Routes.ForgotPasswordPage())["Forgotten your password?"]]
         ];
 
     private async Task SubmitAsync(SignInModel model)

@@ -84,10 +84,15 @@ public static class RaskAuthServiceCollectionExtensions
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<TContext>()
             .AddSignInManager()
-            // Registered now although verification and reset are not shipped yet: the providers are
-            // what those flows are built from, and adding them later would change the token format for
-            // apps that had already stored one.
+            // What the confirmation and reset links are minted from.
             .AddDefaultTokenProviders();
+
+        // One lifetime, set in one place. The email tells the reader how long the link lasts and the
+        // provider decides when it stops working; read from separate settings they drift, and the
+        // symptom is a message promising two hours about a token that expired in one.
+        services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = options.TokenLifetime);
+
+        services.TryAddScoped<AuthMail>();
 
         services.TryAddSingleton<IRoleSeedContexts, RoleSeedContexts<TContext>>();
         services.AddScoped<AccountService<TUser>>();

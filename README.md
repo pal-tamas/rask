@@ -104,9 +104,9 @@ rask db add AddProducts && rask db update                 # after you change the
 rask deploy --host root@box --domain shop.example.com     # bare box → Docker + auto-HTTPS, zero-downtime
 ```
 
-Jobs, mail, cache and events are on by default, and every one of them rides the app's own SQLite
-database. Auth is the one you ask for: `rask new Shop --auth` scaffolds a cookie login. Run `rask` with
-no arguments for a wizard.
+Auth, jobs, mail, cache and events are on by default, and every one of them rides the app's own
+SQLite database — a fresh app can register somebody, sign them in, confirm their address and reset
+their password with no auth code written. Run `rask` with no arguments for a wizard.
 
 ## Documentation
 

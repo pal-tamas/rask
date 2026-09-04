@@ -94,6 +94,48 @@ public class BrowserModuleTests
     }
 
     [Fact]
+    public void The_recovery_calls_post_to_their_own_routes_with_the_csrf_header()
+    {
+        if (Result is not { } r) return;
+
+        Assert.Equal(
+            "/api/auth/forgot-password", r.GetProperty("authForgotRequest").GetProperty("url").GetString());
+        Assert.Equal(
+            "/api/auth/reset-password", r.GetProperty("authResetRequest").GetProperty("url").GetString());
+        Assert.Equal(
+            "/api/auth/confirm-email", r.GetProperty("authConfirmRequest").GetProperty("url").GetString());
+
+        // State-changing, so all three carry the header — the same defence as register and login.
+        foreach (var name in new[] { "authForgotRequest", "authResetRequest", "authConfirmRequest" })
+        {
+            Assert.Equal(
+                "1", r.GetProperty(name).GetProperty("headers").GetProperty("X-Rask-Auth").GetString());
+        }
+    }
+
+    [Fact]
+    public void A_body_less_success_is_read_as_a_success()
+    {
+        if (Result is not { } r) return;
+
+        // 202 and 204 with nothing in them. Reading these the way login is read — parse the body into
+        // a user — would turn every successful recovery call into a failure the caller cannot explain.
+        Assert.True(r.GetProperty("authForgotOk").GetBoolean());
+        Assert.True(r.GetProperty("authResetOk").GetBoolean());
+        Assert.True(r.GetProperty("authConfirmOk").GetBoolean());
+    }
+
+    [Fact]
+    public void A_stale_reset_link_reports_the_token_rather_than_the_password()
+    {
+        if (Result is not { } r) return;
+
+        // "Ask for a new link" and "pick a longer password" are different instructions, and the server
+        // has already told them apart. Flattening them here would undo that.
+        Assert.Equal("InvalidToken", r.GetProperty("authResetFailure").GetProperty("error").GetString());
+    }
+
+    [Fact]
     public void A_position_is_flattened_out_of_the_live_GeolocationPosition()
     {
         if (Result is not { } r) return;

@@ -88,16 +88,21 @@ raskExampleCatalog.db
 raskExampleCatalog.db-shm
 raskExampleCatalog.db-wal
 
-# What a Rask app leaves beside itself when it runs. Every battery is on by default now, so this is
-# no longer a per-sample list: ANY app that starts — a sample, a scaffolded project under test —
-# creates its database, its log store, its mail pickup directory and its snapshot directory.
-# Verified against `git ls-files` that these swallow nothing tracked.
-app.db
-app.db-shm
-app.db-wal
-logs.db
-logs.db-shm
-logs.db-wal
+# What a Rask app leaves beside itself when it runs. Every battery is on by default now, so ANY app
+# that starts — a sample, a scaffolded project under test — creates its database, its log store, its
+# mail pickup directory and its snapshot directory.
+#
+# A GLOB, because the per-name list this replaces claimed not to be one and was: it named app.db and
+# logs.db, so samples/Rask.Example.Auth/auth-sample.db and the WasmCookie host's own database were
+# never ignored and got COMMITTED. That is worse than clutter — those samples build their schema with
+# EnsureCreated, which does nothing to a database that already exists, so the committed file froze the
+# schema and every battery table added afterwards was silently missing. It surfaced as a browser
+# journey dying on "Cannot create a DbSet for 'QueuedMail'" long after the table was added.
+#
+# Verified against `git ls-files` that this swallows nothing else tracked.
+*.db
+*.db-shm
+*.db-wal
 mail-pickup/
 snapshots/
 

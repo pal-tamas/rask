@@ -7,9 +7,81 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Email confirmation and password reset, over the mail battery.** Registering now sends a
+  confirmation link, `/forgot-password` emails a reset link, and `/reset-password` and `/confirm-email`
+  are where those links land — three more built-in pages, overridable the same way `/login` is, and
+  three more methods on `IAuth` (`SendPasswordResetAsync`, `ResetPasswordAsync`, `ConfirmEmailAsync`)
+  that a component, a WebAssembly client and a TypeScript front end all reach the same way. Nothing to
+  register: `Rask.Auth` asks for `IMail` when it needs to send, so the app's existing queue carries it.
+
+  **`RequireConfirmedEmail` is off by default**, and that is a deliberate default rather than an
+  oversight. A freshly scaffolded app has no SMTP configured; with the gate on, the first registration
+  would succeed and then be unable to sign in — including yours — and the email that would fix it is the
+  one that cannot be sent. The confirmation is still sent either way, so an app that turns the gate on
+  later finds its existing accounts already confirmed instead of locking all of them out at once. In
+  development the mail battery writes each message to `./mail-pickup` as an `.eml`, so the link is there
+  to open with no mail server anywhere.
+
+  **A failed send never fails the operation that triggered it.** The confirmation goes out from inside
+  registration, *after* the account row is committed, so an exception there reported the registration
+  as failed while the account existed — the person retries, is told the address is taken, and no page
+  offers a way forward. Losing an email is bad; stranding an account is worse. The send now catches,
+  logs what to fix, and lets the account stand. The browser journey found this: an app whose
+  `DbContext` maps the account tables but not the mail tables has a perfectly good `IMail` registered
+  and dies on the first `SendAsync`, because the mail battery's own worker tolerates a table that is
+  not there yet — it must, since a fresh app boots before its first migration.
+
+  Three security decisions worth stating, because each is a place this is easy to get wrong:
+
+  - **`/forgot-password` answers identically for an address that has an account and one that does not.**
+    Anything else is a membership oracle anybody can walk a list through. The one refusal it reports is
+    that the app has no mail battery at all — an operator's problem, and a silence there would leave
+    somebody waiting for a message that never got queued.
+  - **A reset ends every other session for that account.** Identity rolls the security stamp and Rask
+    revalidates it on every socket reconnect and before every handler dispatch, so if the reason for the
+    reset was that somebody else had the password, their open page stops working rather than staying
+    signed in until its cookie expires.
+  - **An emailed link is never built from a forwarded host header.** The origin comes from
+    `AuthOptions.PublicOrigin`, then the current request's own origin, then the address the server is
+    listening on. A forwarded host is attacker-controlled on a request that reaches the app directly,
+    and a reset link built from one would send a working token to a domain of the attacker's choosing —
+    so an app behind a proxy sets `PublicOrigin` rather than having it guessed.
+
+  New on `AuthOptions`: `ConfirmEmailPath`, `ForgotPasswordPath`, `ResetPasswordPath`,
+  `RequireConfirmedEmail`, `TokenLifetime` (two hours, and it drives both what the email promises and
+  what the token provider honours, so the two cannot drift), `ConfirmEmailSubject`,
+  `ResetPasswordSubject` and `PublicOrigin`.
+
 ### Changed
 
-- **The Shop provenance suite now looks both ways.** It walked the CLI's output and checked each file
+- **Two sample databases were committed, which froze their schemas.** `samples/Rask.Example.Auth`'s
+  `auth-sample.db` and the WasmCookie host's own database were tracked in git, and both samples build
+  their schema with `EnsureCreated` — which does nothing to a database that already exists. So every
+  battery table added after those files were committed was silently missing at runtime, with `git
+  status` clean and every build green. It surfaced as a browser journey dying on `Cannot create a
+  DbSet for 'QueuedMail'` long after the mail tables were a thing.
+
+  The `.gitignore` block above them claimed it was "no longer a per-sample list" and was exactly that,
+  naming only `app.db` and `logs.db`. It is a glob now, verified against `git ls-files` to swallow
+  nothing else tracked, and the six files are untracked. `samples/Rask.Example.Auth` also mapped
+  `AddRaskAuth()` without `AddRaskMail()` while every battery was on; a battery that is on needs its
+  tables mapped.
+
+- **Six places still told you to type `--auth`, which now errors.** Removing the flag swept the guides
+  and the tutorial but missed `README.md`, `docs/api-endpoints.md` and four separate claims inside
+  `llms.txt` — including two that were self-contradictory in the same sentence ("scaffolds with a plain
+  `rask new Shop --auth` (every battery is on by default)"). Two more were simply false about behaviour
+  the same release changed: that `/_rask`'s policy is emitted "when `--auth` is on" (it now always
+  requires the `admin` role) and that a SPA host's `RequireAuthenticatedUser` follows the flag (it
+  follows the database). Two comments in `TemplateCatalog.cs` named the flag too.
+
+  Found while documenting the recovery flows, by asking what an AI reading these files would be told —
+  which is the only check these artifacts get. `llms.txt` also had **no `docs/authentication.md` entry
+  at all** and omitted auth from both of its battery lists, so the largest feature of the previous
+  release was invisible to the file whose job is to describe the framework. It has one now.
+ It walked the CLI's output and checked each file
   was in the sample, which cannot see an **orphan** — a file the sample still carries and the generator
   no longer emits. That blind spot is not hypothetical: removing `--auth` left a demo credential store
   and a login page committed in the sample, and the suite stayed green. The new check fails with the

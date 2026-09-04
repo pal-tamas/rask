@@ -7,8 +7,8 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Auth</PackageId>
-    <Title>Rask.Auth — accounts, sign-in, and the three flows</Title>
-    <Description>Register, sign in and sign out for a Rask app, on by default. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed through Rask's own host-neutral surface — the same IUserProvider, Authorize component and [Authorize] routes work unchanged on the Server, WebAssembly, island, SPA and meta-framework hosts. Ships built-in overridable /login, /register and /logout pages plus the matching /api/auth endpoints, so a TypeScript front end gets the same three flows. The first account to register becomes the admin.</Description>
+    <Title>Rask.Auth — accounts, sign-in, and the account lifecycle</Title>
+    <Description>Register, sign in and sign out for a Rask app, on by default. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed through Rask's own host-neutral surface — the same IUserProvider, Authorize component and [Authorize] routes work unchanged on the Server, WebAssembly, island, SPA and meta-framework hosts. Ships built-in overridable /login, /register and /logout pages plus the matching /api/auth endpoints, so a TypeScript front end gets the same flows. Email confirmation and password reset go out through the app's own mail queue, with /confirm-email, /forgot-password and /reset-password pages to match. The first account to register becomes the admin.</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is the accounts/sign-in half. -->
     <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims dotnet net10</PackageTags>
   </PropertyGroup>
@@ -42,6 +42,15 @@
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
     <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
+
+    <!-- The confirmation and reset links go out through the app's own mail queue. A REAL package
+         dependency, not PrivateAssets: Rask.Mail is its own package rather than something a host
+         re-packs, so the assembly has to travel with this one.
+
+         The dependency is on the TYPE only. IMail is resolved from the container at send time, so an
+         app that never calls AddRaskMail still registers, signs in and signs out — it is told it
+         cannot send a reset link rather than silently queueing one nowhere. -->
+    <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
 
     <!-- Emits this assembly's own Generated.* chain entries and the __RaskRoutesRegistry module
          initializer that registers the built-in [Route] pages into the host's RouteRegistry — the

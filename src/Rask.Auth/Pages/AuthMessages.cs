@@ -29,6 +29,16 @@ internal static class AuthMessages
             + "It is written to the startup log.",
         AuthError.WeakPassword => "That password does not meet this app's policy.",
         AuthError.InvalidEmail => "That does not look like an email address this app accepts.",
+        AuthError.EmailNotConfirmed =>
+            "Confirm your email address before signing in. The link was sent when you registered.",
+        AuthError.InvalidToken =>
+            "That link has expired or has already been used. Ask for a new one.",
+        // Named for what an operator has to fix, because nobody else can. This is the one message here
+        // that is about the app rather than about the visitor, and a vague "something went wrong" would
+        // send them to support for a missing configuration line.
+        AuthError.MailNotConfigured =>
+            "This app cannot send email yet, so a reset link cannot be sent. "
+            + "Configure the mail battery with a From address and an SMTP host.",
         _ => "Wrong email or password.",
     };
 }

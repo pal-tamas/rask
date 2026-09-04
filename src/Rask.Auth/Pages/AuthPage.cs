@@ -40,6 +40,8 @@ public abstract partial class AuthPage : Component
         .rask-auth button:hover{filter:brightness(1.08)}
         .rask-auth .rask-auth-error{margin:0 0 1rem;padding:.55rem .75rem;font-size:.875rem;
         border-radius:.375rem;border:1px solid rgba(180,40,40,.45);background:rgba(180,40,40,.12)}
+        .rask-auth .rask-auth-ok{margin:0 0 1rem;padding:.55rem .75rem;font-size:.875rem;
+        border-radius:.375rem;border:1px solid rgba(40,140,70,.45);background:rgba(40,140,70,.12)}
         .rask-auth .rask-auth-note{margin:1rem 0 0;font-size:.8125rem;opacity:.75}
         .rask-auth a{color:inherit}
         """;

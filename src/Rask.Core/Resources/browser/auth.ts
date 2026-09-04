@@ -63,8 +63,10 @@ export interface CurrentUser {
  *
  * `error` is the name of the server's `AuthError` — `"InvalidCredentials"`, `"LockedOut"`,
  * `"DuplicateAccount"`, `"WeakPassword"`, `"FirstRunTokenRequired"`, `"NotAllowed"`,
- * `"InvalidEmail"`, `"MissingRequestHeader"` — carried as a name rather than a number so a value
- * added later cannot silently become a different one.
+ * `"InvalidEmail"`, `"InvalidToken"`, `"EmailNotConfirmed"`, `"MailNotConfigured"`,
+ * `"MissingRequestHeader"` — carried as a name rather than a number so a value added later cannot
+ * silently become a different one. `"NetworkError"` is this module's own, for a call that never
+ * reached a server.
  */
 export interface AuthFailure {
     error: string;
@@ -74,6 +76,14 @@ export interface AuthFailure {
 export type AuthResult =
     | {ok: true; user: CurrentUser}
     | {ok: false; failure: AuthFailure};
+
+/**
+ * The answer from a call that changes something without changing who is signed in.
+ *
+ * There is no `user` on the success side because none of these three sign anybody in — a reset link
+ * and a confirmation link are both used while signed out.
+ */
+export type AuthCommandResult = {ok: true} | {ok: false; failure: AuthFailure};
 
 const DEFAULT_PREFIX = "/api/auth";
 
@@ -136,6 +146,44 @@ export async function me(request?: AuthRequest): Promise<CurrentUser | null> {
     return (await response.json()) as CurrentUser;
 }
 
+/**
+ * Emails a link for choosing a new password.
+ *
+ * Answers the same way whether or not that address has an account here, so it cannot be used to find
+ * out which addresses are registered. The one refusal it can report is `"MailNotConfigured"` — the
+ * app has no mail battery, so no link was sent and nobody should be told to check their inbox.
+ */
+export function sendPasswordReset(
+    email: string,
+    request?: AuthRequest,
+): Promise<AuthCommandResult> {
+    return command("/forgot-password", {email}, request);
+}
+
+/**
+ * Sets a new password from a `userId` and `token` that arrived by email.
+ *
+ * Read both out of the link's query string. Success does NOT sign the visitor in — call
+ * {@link login} afterwards, or send them to your sign-in page.
+ */
+export function resetPassword(
+    userId: string,
+    token: string,
+    password: string,
+    request?: AuthRequest,
+): Promise<AuthCommandResult> {
+    return command("/reset-password", {userId, token, password}, request);
+}
+
+/** Marks an address confirmed, from a `userId` and `token` that arrived by email. */
+export function confirmEmail(
+    userId: string,
+    token: string,
+    request?: AuthRequest,
+): Promise<AuthCommandResult> {
+    return command("/confirm-email", {userId, token}, request);
+}
+
 async function post(route: string, body: unknown, request?: AuthRequest): Promise<AuthResult> {
     let response: Response;
 
@@ -152,6 +200,35 @@ async function post(route: string, body: unknown, request?: AuthRequest): Promis
     }
 
     let failure: AuthFailure = {error: "InvalidCredentials", message: null};
+
+    try {
+        failure = (await response.json()) as AuthFailure;
+    } catch {
+        // A proxy can answer with something that is not this app's problem document.
+    }
+
+    return {ok: false, failure};
+}
+
+async function command(
+    route: string,
+    body: unknown,
+    request?: AuthRequest,
+): Promise<AuthCommandResult> {
+    let response: Response;
+
+    try {
+        response = await send(route, "POST", body, request);
+    } catch {
+        // Never reached a server. A refusal rather than a throw, for the same reason as post().
+        return {ok: false, failure: {error: "NetworkError", message: null}};
+    }
+
+    if (response.ok) {
+        return {ok: true};
+    }
+
+    let failure: AuthFailure = {error: "InvalidToken", message: null};
 
     try {
         failure = (await response.json()) as AuthFailure;

@@ -23,6 +23,12 @@ internal interface IAccounts
         string email, string password, string? firstRunToken, CancellationToken cancellationToken = default);
 
     Task<AccountOutcome> ValidateAsync(string email, string password);
+
+    Task<AuthResult> SendPasswordResetAsync(string email, CancellationToken cancellationToken = default);
+
+    Task<AuthResult> ResetPasswordAsync(string userId, string token, string password);
+
+    Task<AuthResult> ConfirmEmailAsync(string userId, string token);
 }
 
 /// <summary>
@@ -43,6 +49,7 @@ internal sealed class AccountService<TUser>(
     IRoleSeedContexts contexts,
     IInstanceClaimStore claims,
     FirstRunToken firstRun,
+    AuthMail mail,
     AuthOptions options,
     TimeProvider clock) : IAccounts
     where TUser : RaskUser, new()
@@ -101,6 +108,14 @@ internal sealed class AccountService<TUser>(
             firstRun.Clear();
         }
 
+        // Sent whether or not RequireConfirmedEmail is on. With the gate off it is an invitation rather
+        // than a barrier — and an app that turns the gate on later then finds its existing accounts
+        // already confirmed, instead of locking all of them out at once.
+        var confirmation = await users.GenerateEmailConfirmationTokenAsync(user).ConfigureAwait(false);
+        await mail
+            .SendConfirmationAsync(email, user.Id, confirmation, cancellationToken)
+            .ConfigureAwait(false);
+
         // Built after the role is assigned, so the principal carries it.
         var principal = await signIn.CreateUserPrincipalAsync(user).ConfigureAwait(false);
         return new AccountOutcome(AuthResult.Success, principal);
@@ -137,8 +152,110 @@ internal sealed class AccountService<TUser>(
             return new AccountOutcome(AuthResult.Fail(AuthError.InvalidCredentials), null);
         }
 
+        // Checked AFTER the password, deliberately. Answering "confirm your email address" to a wrong
+        // password would tell anybody who asked that the address has an account here.
+        if (options.RequireConfirmedEmail && !await users.IsEmailConfirmedAsync(user).ConfigureAwait(false))
+        {
+            return new AccountOutcome(AuthResult.Fail(AuthError.EmailNotConfirmed), null);
+        }
+
         var principal = await signIn.CreateUserPrincipalAsync(user).ConfigureAwait(false);
         return new AccountOutcome(AuthResult.Success, principal);
+    }
+
+    /// <summary>Emails a reset link, if that address has an account.</summary>
+    /// <remarks>
+    /// Reports success either way. An endpoint that answered differently for an address registered here
+    /// than for one that is not would be a membership oracle anybody could walk a list through.
+    /// </remarks>
+    public async Task<AuthResult> SendPasswordResetAsync(
+        string email, CancellationToken cancellationToken = default)
+    {
+        // Said out loud rather than swallowed. A reset that queues nothing looks exactly like one that
+        // worked, and the person waiting for the email cannot tell the difference — so an app with no
+        // mail battery gets an error it can act on instead of a silence it cannot.
+        if (!mail.IsConfigured)
+        {
+            return AuthResult.Fail(AuthError.MailNotConfigured);
+        }
+
+        if (await users.FindByEmailAsync(email).ConfigureAwait(false) is { } user)
+        {
+            var token = await users.GeneratePasswordResetTokenAsync(user).ConfigureAwait(false);
+            var sent = await mail
+                .SendPasswordResetAsync(email, user.Id, token, cancellationToken)
+                .ConfigureAwait(false);
+
+            // The queue refused it — a mail battery whose tables are not in the model, most likely.
+            //
+            // This is the ONE answer here that differs between a registered address and an unknown
+            // one, so it is a membership oracle, and it is a deliberate trade rather than an
+            // oversight. It can only fire in an app that is already misconfigured: with the queue
+            // working, every address takes the success path. Weighed against reporting "check your
+            // email" for every reset an app will never send — which nobody can diagnose from any page,
+            // and which the person waiting reads as the app being broken about THEM — surfacing the
+            // misconfiguration on the first attempt is worth more than hiding it. Fixing the
+            // configuration closes the oracle with it.
+            if (!sent)
+            {
+                return AuthResult.Fail(AuthError.MailNotConfigured);
+            }
+        }
+
+        return AuthResult.Success;
+    }
+
+    /// <summary>Sets a new password from a token that arrived by email.</summary>
+    /// <remarks>
+    /// Every other session for this account ends here. <c>ResetPasswordAsync</c> rolls the security
+    /// stamp, and Rask revalidates it on every socket reconnect and before every handler dispatch — so
+    /// if the reason for the reset was that somebody else had the password, their live page stops
+    /// working, rather than staying signed in until its cookie happens to expire.
+    /// </remarks>
+    public async Task<AuthResult> ResetPasswordAsync(string userId, string token, string password)
+    {
+        if (await users.FindByIdAsync(userId).ConfigureAwait(false) is not { } user)
+        {
+            return AuthResult.Fail(AuthError.InvalidToken);
+        }
+
+        var result = await users.ResetPasswordAsync(user, token, password).ConfigureAwait(false);
+
+        if (!result.Succeeded)
+        {
+            // Identity reports a bad token and a weak password through the same failed result, and the
+            // two need different words: one means "ask for a new link", the other "pick a longer
+            // password". Telling them apart is the difference between a dead end and a fixable one.
+            return Array.Exists(
+                result.Errors.ToArray(), e => e.Code.Contains("Token", StringComparison.Ordinal))
+                ? AuthResult.Fail(AuthError.InvalidToken)
+                : Translate(result);
+        }
+
+        // A completed reset is also a confirmation: holding this token proves exactly what the
+        // confirmation link proves, that somebody read mail sent to that address. Without this, an
+        // account created before RequireConfirmedEmail was turned on can reset its password and still
+        // not get in — a dead end with no way out of it from the UI.
+        if (!await users.IsEmailConfirmedAsync(user).ConfigureAwait(false))
+        {
+            user.EmailConfirmed = true;
+            await users.UpdateAsync(user).ConfigureAwait(false);
+        }
+
+        return AuthResult.Success;
+    }
+
+    /// <summary>Marks an address confirmed from a token that arrived by email.</summary>
+    public async Task<AuthResult> ConfirmEmailAsync(string userId, string token)
+    {
+        if (await users.FindByIdAsync(userId).ConfigureAwait(false) is not { } user)
+        {
+            return AuthResult.Fail(AuthError.InvalidToken);
+        }
+
+        var result = await users.ConfirmEmailAsync(user, token).ConfigureAwait(false);
+
+        return result.Succeeded ? AuthResult.Success : AuthResult.Fail(AuthError.InvalidToken);
     }
 
     /// <summary>Creates the built-in roles if they are not there yet, tolerating a lost race.</summary>
