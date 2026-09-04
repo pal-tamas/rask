@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **The kit covers daisyUI's component set: 69 components, none of them needing a line of JavaScript.**
+  Forms (input, textarea, file input, checkbox, radio, toggle, range, fieldset, validator), navigation
+  (link, breadcrumbs, menu, navbar, steps, dock, pagination), feedback (alert, loading, progress, radial
+  progress, skeleton, tooltip) and layout (divider, drawer, footer, hero, indicator, join, stack, avatar,
+  kbd, timeline, carousel, rating).
+
+  The interactive ones use browser mechanisms rather than script: `<details>` for dropdowns and
+  collapses, the native `popover` attribute for modals, a hidden checkbox for the drawer and the swap,
+  radio inputs for tabs and ratings, and CSS scroll-snap for the carousel. All of it works on a
+  prerendered page before any runtime has booted.
+
+  Accessibility is decided in the component rather than left to the call site. `UiAlert` takes
+  `role="alert"` only for error and warning and `status` otherwise, because `alert` interrupts a screen
+  reader — right for a failure, rude for an explanation. `UiLoading` and `UiSkeleton` are `aria-hidden`
+  with the announcement carried by real text, since a spinner announces nothing and a reader working
+  through a row of empty placeholder boxes is worse than silence. `UiRating` renders a hidden first radio
+  for "no rating", without which a rating can be raised and lowered but never cleared. `UiAvatar` demands
+  alt text, `UiRadio` demands the group name that makes the options mutually exclusive, and every control
+  that has no visible label demands an accessible one.
+
+
 - **The kit is built on daisyUI, and its theme cannot escape onto a page that did not ask for it.**
   `Rask.Ui` now compiles daisyUI into its embedded stylesheet, so the components stop carrying
   hand-rolled component CSS and the kit supplies what daisyUI does not have: a typed C# API over it.
