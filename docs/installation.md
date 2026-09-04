@@ -26,7 +26,7 @@ whole story — the script exists for the case where you don't.
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
 | **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | left alone |
 | **Always** | **`wasm-tools` workload** | every `net10.0-browser` build — the WASM templates, and `--wasm` on a server app | left alone |
-| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | `rask new --template react\|vue\|svelte\|solid\|lit\|preact\|angular`, and `rask dev`'s client dev server | left alone if `node --version` is ≥ 24.15 (the Active LTS line the scaffolders track) |
+| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | `rask new --template react\|vue\|svelte\|solid\|lit\|preact\|angular` and the meta framework templates (`nuxt\|nextjs\|sveltekit\|solidstart\|tanstack-start\|analog`), and `rask dev`'s dev server. The meta lane also needs node **at runtime**, not just at build time. | left alone if `node --version` is ≥ 24.15 (the Active LTS line the scaffolders track) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 
 Docker is deliberately not installed. Putting a container runtime on someone's workstation is a big,

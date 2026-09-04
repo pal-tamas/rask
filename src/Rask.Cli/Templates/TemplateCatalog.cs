@@ -92,6 +92,17 @@ internal static class TemplateCatalog
         // The set matches the frameworks TanStack Query ships an adapter for, because the adapter is what
         // makes the generated contracts worth having — everything below the call site is the same wire.
         .. SpaFrameworks(),
+
+        // The meta framework templates, one per framework: the framework's own Node server, with Rask
+        // in front of it. Derived from the same table the generator dispatches on, for the reason
+        // above.
+        //
+        // No "pwa" or "push": both need work in the framework's own idiom (a service worker through its
+        // plugin, a subscription call from its client) that these templates do not write yet, and a flag
+        // accepted and then ignored is this repository's most expensive bug class. "docker" IS here, and
+        // means something specific on this lane — the image carries a node runtime, because the front
+        // end has a server of its own.
+        .. MetaFrameworks(),
     ];
 
     /// <summary>One template per front-end framework, all sharing the same flag set.</summary>
@@ -109,6 +120,18 @@ internal static class TemplateCatalog
             // and subscription call, none of which need a login. Auth would need a sign-in flow written in
             // the framework's own idiom, which the template does not scaffold yet.
             new HashSet<string>([.. DatabaseFlags, "docker", "pwa", "push"], StringComparer.Ordinal)));
+
+    /// <summary>One template per meta framework, all sharing the same flag set.</summary>
+    /// <remarks>
+    ///     Derived from <see cref="Scaffolding.MetaTemplate.All" />, and the keys are the values that go
+    ///     into <c>&lt;RaskMetaFramework&gt;</c> verbatim — so the template name, the csproj property and
+    ///     the framework the host was built against are one string, not three that can disagree.
+    /// </remarks>
+    private static IEnumerable<TemplateInfo> MetaFrameworks() =>
+        Scaffolding.MetaTemplate.All.Select(framework => new TemplateInfo(
+            framework.Key,
+            $"Rask {framework.DisplayName} front end + ASP.NET host (node at runtime)",
+            new HashSet<string>([.. DatabaseFlags, "docker"], StringComparer.Ordinal)));
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>
     public static TemplateInfo Default => All[0];

@@ -45,6 +45,15 @@ public sealed class TrimmingContractTests
             annotation.MemberTypes.HasFlag(DynamicallyAccessedMemberTypes.PublicProperties),
             "BlazorComponent<TComponent> must keep PublicProperties on its type parameter, or a trimmed "
             + "WASM app renders every hosted component with its parameters unset — silently.");
+
+        // All, and for a second reason on top of parameters (#956). The component is built through the
+        // renderer's InstantiateComponent — the only path that runs [Inject] property injection — and
+        // that method declares LinkerFlags.Component, which IS All. Narrower here is IL2087 at the call
+        // site: a build error in every consuming WASM app, since those publish trimmed under
+        // warnings-as-errors. And injection reflects over NON-PUBLIC [Inject] properties too, so a
+        // narrower annotation would let the trimmer remove exactly what the activator is about to
+        // assign — an island that renders perfectly with every injected service null.
+        Assert.Equal(DynamicallyAccessedMemberTypes.All, annotation.MemberTypes);
     }
 
     /// <summary>

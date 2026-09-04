@@ -50,7 +50,7 @@ git tag vX.Y.Z
 git push origin vX.Y.Z                          # push ONLY the tag — main is already up to date
 ```
 `release.yml` (on `push: tags: v*`) builds, then packs the
-NuGets (`Rask.Server`, `Rask.Wasm`, `Rask.Wasm.Hosting`, `Rask.Validation.DataAnnotations`,
+NuGets (`Rask.Server`, `Rask.Wasm`, `Rask.Wasm.Hosting`,
 `Rask.Validation.FluentValidation`, `Rask.Bootstrap`, `Rask.WebPush`, `Rask.Cli`, …), pushes them
 to nuget.org, and creates the
 GitHub release. Watch it (`run watch` on the bare run id, not a job, exits on the run's conclusion):

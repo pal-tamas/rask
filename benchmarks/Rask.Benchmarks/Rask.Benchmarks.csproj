@@ -20,6 +20,7 @@
     <!-- Copied to the output dir so the payload-bytes regression check can read the committed baseline
          at runtime regardless of the working directory (resolved from AppContext.BaseDirectory in CI). -->
     <None Include="Baselines\payload-bytes.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Baselines\client-bundle-size.csv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -261,7 +261,8 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit, "
+            + "nuxt, nextjs, sveltekit, solidstart, tanstack-start, analog.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -649,6 +650,33 @@ public sealed class NewCommandTests
         Assert.Contains("wasm", console.ErrorText, StringComparison.Ordinal);
         // Nothing was written: the bug wrote a whole Server project before signing off.
         Assert.False(fs.FileExists("/proj/Field/Field.csproj"));
+    }
+
+    // The first migration builds the project to load the DbContext, and with the batteries on that
+    // build defaulted to RaskSpaBuild/RaskMetaBuild=true — so scaffolding a front-end template ran the
+    // bundler, or on the meta lane a full Nuxt/Next PRODUCTION build, behind a line that reads
+    // "Creating the first migration…". MSBuild reads properties from the environment, so the overlay on
+    // the dotnet-ef child is what turns it off without touching `rask db`'s argument surface.
+    [Fact]
+    public async Task The_first_migration_does_not_build_the_front_end()
+    {
+        var (_, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Blog"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+
+        var ef = runner.Invocations
+            .Where(i => i.Arguments.Contains("ef") && i.Arguments.Contains("migrations"))
+            .ToList();
+        Assert.NotEmpty(ef);
+
+        foreach (var invocation in ef)
+        {
+            Assert.NotNull(invocation.Environment);
+            Assert.Equal("false", invocation.Environment!["RaskSpaBuild"]);
+            Assert.Equal("false", invocation.Environment!["RaskMetaBuild"]);
+        }
     }
 
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()

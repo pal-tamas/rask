@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Wire;
 
 namespace Rask.Cqrs.Client;
 

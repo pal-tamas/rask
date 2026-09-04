@@ -57,6 +57,49 @@
     <RaskBrowserRootComponent Condition=" '$(RaskBrowserRootComponent)' == '' ">$(RootNamespace).App</RaskBrowserRootComponent>
   </PropertyGroup>
 
+  <!--
+    The typed API client crosses into the bundle as a FILE, not as a second generator run.
+
+    An API controller lives under Server/, which the companion does not compile — so the generator
+    cannot see it there and the browser half would have no client at all. What it can compile is the
+    one the SERVER's generator already produced, and EmitCompilerGeneratedFiles is what puts that on
+    disk instead of only in the server's compilation.
+
+    Deliberately not the shape Rask.Cqrs uses for its TypeScript. There the generated text has to
+    travel as a string constant inside the assembly, because a .ts file cannot be compiled into one
+    and an MSBuild task has to lift it back out of the PE metadata. C# has no such problem: the
+    compiler will write the file itself, so the client needs no task assembly, no escaping, and — the
+    part that matters at run time — no copy of itself embedded in every server assembly forever.
+
+    Rewritten by every CoreCompile, so it tracks the controllers — but NOT deleted by one. When the
+    last controller goes, the generator simply emits nothing and the previous build's file stays on
+    disk, where the glob below would still find it and bake a client for endpoints that no longer
+    exist. RaskCleanApiClient removes it before the compile that decides whether to write it again.
+  -->
+  <PropertyGroup Condition=" '$(RaskBrowserRung)' == 'true' ">
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath Condition=" '$(CompilerGeneratedFilesOutputPath)' == '' ">$(IntermediateOutputPath)rask-generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <!--
+    Delete the previous build's client before the compiler decides whether to write a new one. Without
+    this, removing the last controller leaves the file behind and the companion keeps compiling a client
+    for endpoints that no longer exist — which fails as an error inside generated code the author never
+    wrote, if the DTOs left with the controller.
+
+    BeforeTargets="CoreCompile" rather than a Clean target: it has to run on every build, because the
+    stale file is only wrong relative to the compile that is about to happen.
+  -->
+  <Target Name="RaskCleanApiClient"
+          Condition=" '$(RaskBrowserRung)' == 'true' "
+          BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_RaskStaleApiClient Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
+    </ItemGroup>
+
+    <Delete Files="@(_RaskStaleApiClient)"/>
+  </Target>
+
   <Target Name="RaskGenerateBrowserCompanion" Condition=" '$(RaskBrowserRung)' == 'true' ">
 
     <Error Condition=" '$(RootNamespace)' == '' And '$(RaskBrowserRootComponent)' == '' "
@@ -74,6 +117,13 @@
 
     <ItemGroup>
       <_RaskServerPackage Include="@(PackageReference)" Condition=" '%(Identity)' == 'Rask.Server' "/>
+
+      <!--
+        Globbed rather than named: the compiler nests its output under the generator's assembly and
+        full type name, and pinning that path would make renaming the generator a silent loss of the
+        client rather than a build error. Absent is the ordinary state of an app with no API.
+      -->
+      <_RaskApiClientFile Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
     </ItemGroup>
 
     <PropertyGroup>
@@ -114,7 +164,18 @@
       -->
       <_RaskCompanionLine Include="    &lt;WasmFingerprintAssets&gt;false&lt;/WasmFingerprintAssets&gt;"/>
       <_RaskCompanionLine Include="    &lt;EnableDefaultCompileItems&gt;false&lt;/EnableDefaultCompileItems&gt;"/>
+      <!--
+        Belt and braces against CS0101. The companion compiles the client the server generated, so a
+        generator running HERE too would declare every client type a second time. It normally cannot:
+        the generator ships with Rask.Api, a server-side package the bundle never references. This
+        makes that a property rather than a coincidence, for the app that adds Rask.Api to
+        RaskBrowserPackageReference by mistake.
+      -->
+      <_RaskCompanionLine Include="    &lt;RaskApiClientBaked&gt;true&lt;/RaskApiClientBaked&gt;"/>
       <_RaskCompanionLine Include="  &lt;/PropertyGroup&gt;"/>
+      <_RaskCompanionLine Include="  &lt;ItemGroup&gt;"/>
+      <_RaskCompanionLine Include="    &lt;CompilerVisibleProperty Include=&quot;RaskApiClientBaked&quot; /&gt;"/>
+      <_RaskCompanionLine Include="  &lt;/ItemGroup&gt;"/>
 
       <!--
         Remove rather than Exclude: an Exclude attribute takes a semicolon-separated list, and every
@@ -127,6 +188,13 @@
       <_RaskCompanionLine Include="    &lt;Compile Remove=&quot;$(MSBuildProjectDirectory)\Program.cs&quot; /&gt;"/>
       <_RaskCompanionLine Include="    &lt;Compile Remove=&quot;$(MSBuildProjectDirectory)\Server\%2A%2A&quot; /&gt;"/>
       <_RaskCompanionLine Include="    &lt;Compile Include=&quot;Program.g.cs&quot; /&gt;"/>
+      <!--
+        The typed API client the server's own generator wrote. An Include AFTER the obj\** Remove, so
+        it survives it: the file lives under obj by construction, and the blanket removal above is
+        what stops the companion compiling the server's other generated output.
+      -->
+      <_RaskCompanionLine Condition=" '@(_RaskApiClientFile)' != '' "
+                          Include="@(_RaskApiClientFile->'    &lt;Compile Include=&quot;%(FullPath)&quot; /&gt;')"/>
       <_RaskCompanionLine Include="  &lt;/ItemGroup&gt;"/>
 
       <!--
@@ -145,6 +213,23 @@
       <_RaskCompanionLine Include="@(RaskBrowserPackageReference->'    &lt;PackageReference Include=&quot;%(Identity)&quot; /&gt;')"
                           Condition=" '%(RaskBrowserPackageReference.Version)' == '' "/>
       <_RaskCompanionLine Include="@(RaskBrowserProjectReference->'    &lt;ProjectReference Include=&quot;%(FullPath)&quot; /&gt;')"/>
+      <!--
+        The client runtime the baked file compiles against, added because the file is there rather
+        than because the app asked. The companion's reference list is closed — RaskBrowserPackageReference
+        plus Rask.Wasm — so without this the bake produces a file the companion cannot compile, and the
+        author meets it as a missing-type error inside generated code they never wrote.
+
+        Note this is NOT the Rask.Cqrs.Client arrangement, and the difference is deliberate: that split
+        exists because AddRaskCqrsClient() rewrites a process-wide registry, so having it in the server
+        would make the server bounce its own messages back out. A typed API client has no such property
+        — it dials routes that are public anyway — so both halves may hold it, and the server half must,
+        since a component that calls its API renders on both.
+      -->
+      <_RaskCompanionLine Condition=" '@(_RaskApiClientFile)' != '' And '$(_RaskBrowserBySource)' != 'true' "
+                          Include="    &lt;PackageReference Include=&quot;Rask.Api.Client&quot; Version=&quot;$(_RaskBrowserVersion)&quot; /&gt;"/>
+      <_RaskCompanionLine Condition=" '@(_RaskApiClientFile)' != '' And '$(_RaskBrowserBySource)' == 'true' "
+                          Include="    &lt;ProjectReference Include=&quot;$(RaskBrowserCompanionSrc)\Rask.Api.Client\Rask.Api.Client.csproj&quot; /&gt;"/>
+
       <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' != 'true' "
                           Include="    &lt;PackageReference Include=&quot;Rask.Wasm&quot; Version=&quot;$(_RaskBrowserVersion)&quot; /&gt;"/>
       <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' == 'true' "

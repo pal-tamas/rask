@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Rask.Blazor;
 using Rask.Core.Browser;
 using Rask.Core.Live;
 using Rask.Example.Server;
@@ -53,6 +54,13 @@ builder.Services.AddSingleton(new ShowcaseNavEntry("/server-pwa", "Server PWA", 
 // The islands showcase lives on this host because it is the sample carrying a package.json — a Vue or
 // Svelte component is an npm package, and needing one is inherent to asking for it.
 builder.Services.AddSingleton(new ShowcaseNavEntry("/islands", "Islands", IconName.UiChecksGrid, "Islands"));
+// The Blazor island showcase. AddRaskBlazor registers what a hosted component demands — most of all a
+// NavigationManager, which component libraries inject and throw without. Everything else a hosted
+// component asks for through [Inject] resolves out of THIS container, which is what makes the browser
+// APIs registered by AddRask reachable from inside a .razor.
+builder.Services.AddRaskBlazor();
+builder.Services.AddSingleton(
+    new ShowcaseNavEntry("/blazor-island", "Blazor island", IconName.UiChecksGrid, "Islands"));
 // Live-session capacity health check (Healthy / Degraded ≥80% / Unhealthy at cap), surfaced at
 // /health below. Pairs with the OpenTelemetry-ready "Rask.Server" meter + activity source — see
 // docs/observability.md.

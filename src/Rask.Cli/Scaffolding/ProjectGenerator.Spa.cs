@@ -84,7 +84,9 @@ internal static partial class ProjectGenerator
 
         if (batteries.Push)
         {
-            files.Add(($"{NameToken}/Client/src/rask/push.ts", SpaPushClient));
+            // Both halves of the merge: #970's nested Client folder, and OUT of src/rask/, which the
+            // scaffolder gitignores and the build owns (#957).
+            files.Add(($"{NameToken}/Client/src/push.ts", SpaPushClient));
 
             // The same store and endpoints the server template scaffolds, verbatim. Shared rather than
             // copied: /_push/subscribe binding a flat PushSubscription is the contract push.ts is
@@ -241,44 +243,42 @@ internal static partial class ProjectGenerator
     ///         later send fails to encrypt for a subscription that looked like it registered.
     ///     </para>
     /// </remarks>
+    /// <summary>
+    ///     The client half of Web Push: which host endpoints to call, and when.
+    /// </summary>
+    /// <remarks>
+    ///     Scaffolded OUTSIDE <c>src/rask/</c>, which the build owns and .gitignore excludes. This file is
+    ///     the developer's — they will change which endpoints it calls, or when it asks for permission —
+    ///     so it has to be an ordinary committed source file. It lived in <c>src/rask/</c> once: hand-owned,
+    ///     in a directory nothing regenerates, so a fresh clone of a <c>--push</c> project simply lost it.
+    ///
+    ///     The browser ceremony it used to carry — decoding the VAPID key, flattening a PushSubscription
+    ///     into the shape the host binds — is now <c>rask/browser/webPush</c>, refreshed from the package
+    ///     on every build and shared with Rask's own Server and WASM clients.
+    /// </remarks>
     private const string SpaPushClient =
         """
         // Web Push against this app's ASP.NET host. The host owns the VAPID key pair; the browser only
         // ever sees the public half.
+        //
+        // The browser half lives in Rask's shared browser layer — the same modules Rask's own clients
+        // run — so the base64url VAPID key and the nested-vs-flat subscription shape are handled there.
+        // What is left here is yours: which endpoints, and when.
 
-        /** What the host's /_push endpoints bind — flat, not the browser's nested shape. */
-        export interface RaskPushSubscription {
-          endpoint: string
-          p256dh: string
-          auth: string
-        }
+        import {
+          getSubscription,
+          isSupported,
+          requestPermission,
+          subscribe,
+          unsubscribe,
+        } from './rask/browser/webPush'
+        import type { PushSubscriptionInfo } from './rask/browser/webPush'
+
+        export type { PushSubscriptionInfo }
 
         /** Whether this browser can subscribe at all. False on http:// and in older browsers. */
         export function pushSupported(): boolean {
-          return 'serviceWorker' in navigator && 'PushManager' in window
-        }
-
-        function urlBase64ToUint8Array(base64: string): Uint8Array {
-          // VAPID keys travel base64url; atob wants standard base64 with padding.
-          const padded = (base64 + '='.repeat((4 - (base64.length % 4)) % 4))
-            .replace(/-/g, '+')
-            .replace(/_/g, '/')
-          const raw = atob(padded)
-          const bytes = new Uint8Array(raw.length)
-          for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i)
-          return bytes
-        }
-
-        function toWire(subscription: PushSubscription): RaskPushSubscription {
-          // toJSON() nests the keys; the server binds them flat. Sending the nested shape "works" —
-          // 204, with both keys null — and every later push then fails to encrypt.
-          const json = subscription.toJSON()
-          const keys = json.keys ?? {}
-          return {
-            endpoint: subscription.endpoint,
-            p256dh: keys['p256dh'] ?? '',
-            auth: keys['auth'] ?? '',
-          }
+          return isSupported()
         }
 
         /**
@@ -287,8 +287,8 @@ internal static partial class ProjectGenerator
          * Returns null when push is unsupported, when the host has no VAPID key configured yet, or when
          * the user denies permission — three ordinary outcomes, none of them an error to throw over.
          */
-        export async function subscribeToPush(): Promise<RaskPushSubscription | null> {
-          if (!pushSupported()) return null
+        export async function subscribeToPush(): Promise<PushSubscriptionInfo | null> {
+          if (!isSupported()) return null
 
           const response = await fetch('/_push/key')
           if (!response.ok) return null
@@ -298,41 +298,34 @@ internal static partial class ProjectGenerator
           // applicationServerKey throws, so this stops here instead.
           if (!publicKey) return null
 
-          if ((await Notification.requestPermission()) !== 'granted') return null
+          if ((await requestPermission()) !== 'granted') return null
 
-          const registration = await navigator.serviceWorker.ready
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey),
-          })
-
-          const wire = toWire(subscription)
+          const info = await subscribe(publicKey)
           await fetch('/_push/subscribe', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(wire),
+            body: JSON.stringify(info),
           })
 
-          return wire
+          return info
         }
 
         /** Unsubscribes this browser and tells the host to forget it. Safe to call when not subscribed. */
         export async function unsubscribeFromPush(): Promise<void> {
-          if (!pushSupported()) return
+          if (!isSupported()) return
 
-          const registration = await navigator.serviceWorker.ready
-          const subscription = await registration.pushManager.getSubscription()
-          if (!subscription) return
+          const info = await getSubscription()
+          if (!info) return
 
           // The host is told BEFORE the browser drops it: unsubscribe() invalidates the endpoint, and a
           // failure after that point would leave the host sending to a subscription that can never work.
           await fetch('/_push/unsubscribe', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(toWire(subscription)),
+            body: JSON.stringify(info),
           })
 
-          await subscription.unsubscribe()
+          await unsubscribe()
         }
 
         """;
@@ -647,18 +640,29 @@ internal static partial class ProjectGenerator
     ///     committing them would produce a diff on every contract change and invite a hand-edit that the
     ///     next build silently discards. Appended rather than replaced, and idempotent.
     /// </remarks>
-    internal static string IgnoreGeneratedContracts(string gitIgnore)
+    internal static string IgnoreGeneratedContracts(string gitIgnore) =>
+        IgnoreGeneratedDirectory(gitIgnore, "src/rask/", "Rask.Spa.Hosting");
+
+    /// <summary>
+    ///     Adds the generated directory to a client's <c>.gitignore</c>, once.
+    /// </summary>
+    /// <remarks>
+    ///     Parameterised because the meta lane does not put it in the same place: Nuxt and Next keep
+    ///     source in <c>app/</c>, so their generated code lands in <c>app/rask/</c> and an ignore line
+    ///     naming <c>src/rask/</c> would match nothing — committing a directory the build rewrites on
+    ///     every run.
+    /// </remarks>
+    internal static string IgnoreGeneratedDirectory(string gitIgnore, string entry, string package)
     {
-        const string Entry = "src/rask/";
-        if (gitIgnore.Split('\n').Any(line => line.Trim() == Entry))
+        if (gitIgnore.Split('\n').Any(line => line.Trim() == entry))
         {
             return gitIgnore;
         }
 
         var separator = gitIgnore.EndsWith('\n') ? string.Empty : "\n";
         return gitIgnore + separator
-               + "\n# Generated from the server's CQRS contracts on every build (Rask.Spa.Hosting).\n"
-               + Entry + "\n";
+               + $"\n# Generated from the server's CQRS contracts on every build ({package}).\n"
+               + entry + "\n";
     }
 
     private static string SpaServerCsproj(ServerBatteries batteries, SpaFramework framework, string name, string version)
@@ -808,7 +812,7 @@ internal static partial class ProjectGenerator
         {
             Block(sb, """
                 // GET /_push/key hands the browser the PUBLIC VAPID key; the two POSTs register and forget a
-                // subscription. src/rask/push.ts in the client calls exactly these three.
+                // subscription. src/push.ts in the client calls exactly these three.
                 //
                 // Before UseRaskSpa for the same reason MapRaskCqrs is: that call ends the pipeline with a
                 // fallback to index.html, so an endpoint added after it answers HTML instead of JSON.
