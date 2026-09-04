@@ -117,10 +117,12 @@ public sealed class UiPaletteTests
         // nothing fails exactly as the unstyled one did.
         var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
-        Assert.Contains(UiStylesheet.Path, html, StringComparison.Ordinal);
-
-        // With the cache-buster, so an upgrade cannot be served from a stale cache.
-        Assert.Contains(UiStylesheet.Href(), html, StringComparison.Ordinal);
+        // Under _content/, not the app root: this project ships its wwwroot as static web assets, so
+        // /css/rask-ui.css would 404 here — and a 404 stylesheet is invisible, exactly as the app.css
+        // comment beside it warns. The file name and the cache-buster are what must be present; the
+        // prefix is the host's business.
+        Assert.Contains("_content/Rask.Example.Shared/css/rask-ui.css", html, StringComparison.Ordinal);
+        Assert.Contains("?v=" + UiStylesheet.Version, html, StringComparison.Ordinal);
         Assert.NotEmpty(UiStylesheet.Version);
     }
 
