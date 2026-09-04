@@ -1,6 +1,6 @@
-using Rask.Ui;
 using System.Text.RegularExpressions;
 using Rask.Example.Shared.Tests.Infrastructure;
+using Rask.Ui;
 
 namespace Rask.Example.Shared.Tests;
 
