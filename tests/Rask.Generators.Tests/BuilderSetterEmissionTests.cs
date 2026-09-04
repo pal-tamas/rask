@@ -172,8 +172,13 @@ public class BuilderSetterEmissionTests
             output,
             StringComparison.Ordinal);
 
-        var click = output.Split('\n').Single(l => l.Contains(" OnClick<T>(this ", StringComparison.Ordinal));
-        Assert.DoesNotContain("BuilderRuntime.Track", click, StringComparison.Ordinal);
+        // Two chain shapes declare a bare <T> and so match here: Build<T> and the form's FormBuild<T>.
+        // (Build<T, TMode> declares <T, TMode>.) An event folds into propsChanged on none of them.
+        var clicks = output.Split('\n')
+            .Where(l => l.Contains(" OnClick<T>(this ", StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(2, clicks.Count);
+        Assert.All(clicks, c => Assert.DoesNotContain("BuilderRuntime.Track", c, StringComparison.Ordinal));
     }
 
     // An event property keeps its own name, which is what makes Element's surface read `.OnClick(…)`

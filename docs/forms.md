@@ -254,6 +254,32 @@ then routes:
 `OnValidSubmit` / `OnInvalidSubmit` accept `Action<TModel>` or `Func<TModel, Task>` — the generic
 overload narrows the delegate so you pass a bare lambda with no cast.
 
+### Children that follow the submit
+
+Children are normally a fixed list. Give the form a **function** instead and it is called on every
+render with whether a submit is in flight, so the markup can say so without the page tracking it:
+
+```csharp
+Form.Model(_model).OnValidSubmitAsync(SaveAsync)[submitting => [
+    Input.Bind(() => _model.Username).Disabled(submitting),
+    Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
+]]
+```
+
+The flag is true from the moment the submit handler starts until it returns — including when it
+throws — and the form re-renders on both edges. Only an `async` handler can be observed in that
+state: a synchronous one returns before there is a frame to paint.
+
+The fixed-list forms are untouched and still bind exactly as before:
+
+```csharp
+Form.Model(_model)[Input.Bind(() => _model.Username), Button.Type("submit")["Sign up"]]
+```
+
+Only a form offers the function form. It lives on `FormBuild<T>`, the chain `Form.Model(…)` hands
+back, so `Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to
+report. See [`ISubmitAware`](../src/Rask.Core/Forms/ISubmitAware.cs).
+
 ### Auto-created vs explicit `Context`
 
 By default the form creates (and caches per model reference) its own `EditContext` — it persists

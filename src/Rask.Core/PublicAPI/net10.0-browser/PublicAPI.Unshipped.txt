@@ -1877,6 +1877,15 @@ Rask.Core.FactoryGenericAttribute.TypedDelegateProperties.get -> string![]!
 Rask.Core.FactoryGenericAttribute.TypedDelegateProperties.init -> void
 Rask.Core.FactoryGenericAttribute.TypedValidatorProperties.get -> string![]!
 Rask.Core.FactoryGenericAttribute.TypedValidatorProperties.init -> void
+Rask.Core.FormBuild<T>
+Rask.Core.FormBuild<T>.FormBuild() -> void
+Rask.Core.FormBuild<T>.FormBuild(T! component) -> void
+Rask.Core.FormBuild<T>.ToHtml() -> string!
+Rask.Core.FormBuild<T>.Value.get -> T!
+Rask.Core.FormBuild<T>.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.Core.Component!
+Rask.Core.FormBuild<T>.this[System.Func<bool, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! children].get -> Rask.Core.Component!
+Rask.Core.FormBuild<T>.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
+Rask.Core.FormBuild<T>.this[params object?[]! children].get -> Rask.Core.Component!
 Rask.Core.Forms.BindingHelpers
 Rask.Core.Forms.Bound
 Rask.Core.Forms.Controlled
@@ -1970,6 +1979,8 @@ Rask.Core.Forms.IFormControl<T>.ValidateAsync.set -> void
 Rask.Core.Forms.IFormControl<T>.Validator.get -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.Value.get -> T?
 Rask.Core.Forms.IFormControl<T>.Value.set -> void
+Rask.Core.Forms.ISubmitAware
+Rask.Core.Forms.ISubmitAware.SetChildrenFactory(System.Func<bool, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! factory) -> void
 Rask.Core.Forms.ModelGraphWalker
 Rask.Core.Forms.RaskBinding
 Rask.Core.Forms.RaskFile
@@ -3160,6 +3171,7 @@ static Rask.Core.ElementRef.New() -> Rask.Core.ElementRef!
 static Rask.Core.ElementRefInterop.BlurAsync(this Rask.Core.ElementRef! element, Microsoft.JSInterop.IJSRuntime! js) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefInterop.FocusAsync(this Rask.Core.ElementRef! element, Microsoft.JSInterop.IJSRuntime! js) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefInterop.ScrollIntoViewAsync(this Rask.Core.ElementRef! element, Microsoft.JSInterop.IJSRuntime! js) -> System.Threading.Tasks.ValueTask
+static Rask.Core.FormBuild<T>.implicit operator T!(Rask.Core.FormBuild<T!> chain) -> T!
 static Rask.Core.Forms.BindingHelpers.BoolSetHandler(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<string!, System.Threading.Tasks.Task!>!
 static Rask.Core.Forms.BindingHelpers.BuildAfterBind<TProp>(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, System.Action<TProp>? sync, System.Func<TProp, System.Threading.Tasks.Task!>? asyncFn) -> System.Func<System.Threading.Tasks.Task!>?
 static Rask.Core.Forms.BindingHelpers.DefaultInputType(System.Type! propType) -> string!
@@ -3374,6 +3386,10 @@ static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.Build<T!> __b, System.
 static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.Build<T!> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.Build<T!> __b, string! name) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.Build<T!> __b, string! name, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.FormBuild<T!> __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.FormBuild<T!> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.FormBuild<T!> __b, string! name) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Aria<T>(this Rask.Core.FormBuild<T!> __b, string! name, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Attributes<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Attributes<T, TMode>(this Rask.Core.Build<T!, TMode> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Attributes<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string! name) -> Rask.Core.Build<T!, TMode>
@@ -3382,6 +3398,10 @@ static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.Build<T!> __b, S
 static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.Build<T!> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.Build<T!> __b, string! name) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.Build<T!> __b, string! name, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.FormBuild<T!> __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.FormBuild<T!> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.FormBuild<T!> __b, string! name) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.FormBuild<T!> __b, string! name, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Audio(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, bool value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.Authorized(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, System.Func<System.Security.Claims.ClaimsPrincipal!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
 static RaskBuilderSettersRask_Core.Authorizing(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
@@ -3393,11 +3413,13 @@ static RaskBuilderSettersRask_Core.Charset(this Rask.Core.Build<Rask.Core.Compon
 static RaskBuilderSettersRask_Core.Child(this Rask.Core.Build<Rask.Core.Components.Mount!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Core.Components.Mount!>
 static RaskBuilderSettersRask_Core.Class<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Class<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Class<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Command(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.CommandFor(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.Content(this Rask.Core.Build<Rask.Core.Components.Meta!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Meta!>
 static RaskBuilderSettersRask_Core.ContentEditable<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.ContentEditable<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.ContentEditable<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Data<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Data<T, TMode>(this Rask.Core.Build<T!, TMode> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Data<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string! name) -> Rask.Core.Build<T!, TMode>
@@ -3406,12 +3428,18 @@ static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.Build<T!> __b, System.
 static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.Build<T!> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.Build<T!> __b, string! name) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.Build<T!> __b, string! name, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.FormBuild<T!> __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.FormBuild<T!> __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.FormBuild<T!> __b, string! name) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.Data<T>(this Rask.Core.FormBuild<T!> __b, string! name, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Dir<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Dir<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Dir<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Disabled(this Rask.Core.Build<Rask.Core.Components.Button!> __b, bool? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.Download(this Rask.Core.Build<Rask.Core.Components.A!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.A!>
 static RaskBuilderSettersRask_Core.Draggable<T, TMode>(this Rask.Core.Build<T!, TMode> __b, bool? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Draggable<T>(this Rask.Core.Build<T!> __b, bool? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Draggable<T>(this Rask.Core.FormBuild<T!> __b, bool? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.FacingMode(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.Fallback(this Rask.Core.Build<Rask.Core.Components.ErrorBoundary!> __b, System.Func<System.Exception!, System.Action!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.ErrorBoundary!>
 static RaskBuilderSettersRask_Core.For(this Rask.Core.Build<Rask.Core.Components.FullscreenTrigger!> __b, Rask.Core.ElementRef? value) -> Rask.Core.Build<Rask.Core.Components.FullscreenTrigger!>
@@ -3425,207 +3453,300 @@ static RaskBuilderSettersRask_Core.FormNovalidate(this Rask.Core.Build<Rask.Core
 static RaskBuilderSettersRask_Core.FormTarget(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.Hidden<T, TMode>(this Rask.Core.Build<T!, TMode> __b, bool? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Hidden<T>(this Rask.Core.Build<T!> __b, bool? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Hidden<T>(this Rask.Core.FormBuild<T!> __b, bool? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Href(this Rask.Core.Build<Rask.Core.Components.A!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.A!>
 static RaskBuilderSettersRask_Core.Hreflang(this Rask.Core.Build<Rask.Core.Components.A!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.A!>
 static RaskBuilderSettersRask_Core.HttpEquiv(this Rask.Core.Build<Rask.Core.Components.Meta!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Meta!>
 static RaskBuilderSettersRask_Core.Id<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Id<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Id<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Inert<T, TMode>(this Rask.Core.Build<T!, TMode> __b, bool? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Inert<T>(this Rask.Core.Build<T!> __b, bool? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Inert<T>(this Rask.Core.FormBuild<T!> __b, bool? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.InitialClientHeight(this Rask.Core.Build<Rask.Core.Components.VirtualizeModel!> __b, int? value) -> Rask.Core.Build<Rask.Core.Components.VirtualizeModel!>
 static RaskBuilderSettersRask_Core.ItemSize(this Rask.Core.Build<Rask.Core.Components.VirtualizeModel!> __b, int value) -> Rask.Core.Build<Rask.Core.Components.VirtualizeModel!>
 static RaskBuilderSettersRask_Core.Items(this Rask.Core.Build<Rask.Core.Components.VirtualizeModel!> __b, System.Collections.IEnumerable? value) -> Rask.Core.Build<Rask.Core.Components.VirtualizeModel!>
 static RaskBuilderSettersRask_Core.ItemsProvider(this Rask.Core.Build<Rask.Core.Components.VirtualizeModel!> __b, System.Delegate? value) -> Rask.Core.Build<Rask.Core.Components.VirtualizeModel!>
 static RaskBuilderSettersRask_Core.Key<T, TMode>(this Rask.Core.Build<T!, TMode> __b, object? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Key<T>(this Rask.Core.Build<T!> __b, object? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Key<T>(this Rask.Core.FormBuild<T!> __b, object? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Lang<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Lang<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Lang<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Name(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.Name(this Rask.Core.Build<Rask.Core.Components.Meta!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Meta!>
 static RaskBuilderSettersRask_Core.NotAuthorized(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
 static RaskBuilderSettersRask_Core.OnBeforeInput<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<string!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnBeforeInput<T>(this Rask.Core.Build<T!> __b, System.Action<string!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnBeforeInput<T>(this Rask.Core.FormBuild<T!> __b, System.Action<string!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnBeforeInputAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnBeforeInputAsync<T>(this Rask.Core.Build<T!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnBeforeInputAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnBlur<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnBlur<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnBlur<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnBlurAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnBlurAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnBlurAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnClick<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnClick<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnClick<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnClickAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnClickAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnClickAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnColor(this Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!>
 static RaskBuilderSettersRask_Core.OnContextMenu<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnContextMenu<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnContextMenu<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnContextMenuAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnContextMenuAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnContextMenuAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnCopy<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnCopy<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnCopy<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnCopyAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnCopyAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnCopyAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnCut<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnCut<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnCut<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnCutAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnCutAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnCutAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDoubleClick<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDoubleClick<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDoubleClick<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDoubleClickAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDoubleClickAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDoubleClickAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDrag<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDrag<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDrag<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragEnd<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragEnd<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragEnd<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragEndAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragEndAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragEndAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragEnter<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragEnter<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragEnter<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragEnterAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragEnterAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragEnterAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragLeave<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragLeave<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragLeave<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragLeaveAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragLeaveAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragLeaveAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragOver<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragOver<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragOver<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragOverAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragOverAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragOverAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragStart<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragStart<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragStart<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDragStartAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDragStartAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDragStartAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDrop(this Rask.Core.Build<Rask.Core.Components.DragDrop!> __b, System.Action<Rask.Core.DragAndDrop.DragDropMove!>? value) -> Rask.Core.Build<Rask.Core.Components.DragDrop!>
 static RaskBuilderSettersRask_Core.OnDrop<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDrop<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDrop<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnDropAsync(this Rask.Core.Build<Rask.Core.Components.DragDrop!> __b, System.Func<Rask.Core.DragAndDrop.DragDropMove!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.DragDrop!>
 static RaskBuilderSettersRask_Core.OnDropAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnDropAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnDropAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnFocus<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnFocus<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnFocus<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnFocusAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnFocusAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnFocusAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnFocusIn<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnFocusIn<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnFocusIn<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnFocusInAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnFocusInAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnFocusInAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnFocusOut<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnFocusOut<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnFocusOut<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnFocusOutAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnFocusOutAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnFocusOutAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnInvalid<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnInvalid<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnInvalid<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnInvalidAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnInvalidAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnInvalidAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnKeyDown<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.KeyboardEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnKeyDown<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.KeyboardEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnKeyDown<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.KeyboardEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnKeyDownAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.KeyboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnKeyDownAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.KeyboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnKeyDownAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.KeyboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnKeyUp<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.KeyboardEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnKeyUp<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.KeyboardEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnKeyUp<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.KeyboardEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnKeyUpAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.KeyboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnKeyUpAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.KeyboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnKeyUpAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.KeyboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseDown<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseDown<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseDown<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseDownAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseDownAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseDownAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseEnter<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseEnter<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseEnter<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseEnterAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseEnterAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseEnterAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseLeave<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseLeave<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseLeave<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseLeaveAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseLeaveAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseLeaveAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseMove<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseMove<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseMove<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseMoveAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseMoveAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseMoveAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseOut<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseOut<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseOut<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseOutAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseOutAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseOutAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseOver<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseOver<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseOver<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseOverAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseOverAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseOverAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseUp<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseUp<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseUp<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseUpAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnMouseUpAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnMouseUpAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnOutcome(this Rask.Core.Build<Rask.Core.Components.InstallTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.InstallTrigger!>
 static RaskBuilderSettersRask_Core.OnPaste<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPaste<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPaste<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPasteAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPasteAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPasteAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.ClipboardEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerCancel<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerCancel<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerCancel<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerCancelAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerCancelAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerCancelAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerDown<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerDown<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerDown<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerDownAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerDownAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerDownAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerEnter<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerEnter<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerEnter<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerEnterAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerEnterAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerEnterAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerLeave<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerLeave<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerLeave<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerLeaveAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerLeaveAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerLeaveAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerMove<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerMove<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerMove<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerMoveAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerMoveAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerMoveAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerOut<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerOut<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerOut<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerOutAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerOutAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerOutAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerOver<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerOver<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerOver<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerOverAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerOverAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerOverAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerUp<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerUp<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerUp<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.PointerEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnPointerUpAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPointerUpAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnPointerUpAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.PointerEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnReset<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnReset<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnReset<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnResetAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnResetAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnResetAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.GestureTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.GestureTrigger!>
 static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.OnScroll<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.ScrollEvent!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnScroll<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.ScrollEvent!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnScroll<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.ScrollEvent!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnScrollAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.ScrollEvent!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnScrollAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.ScrollEvent!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnScrollAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.ScrollEvent!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnSelect<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnSelectAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnSelectAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnSelectAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.OnTouchCancel<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchCancel<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchCancel<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnTouchCancelAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchCancelAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchCancelAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnTouchEnd<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchEnd<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchEnd<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnTouchEndAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchEndAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchEndAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnTouchMove<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchMove<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchMove<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnTouchMoveAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchMoveAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchMoveAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnTouchStart<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchStart<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchStart<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnTouchStartAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnTouchStartAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnTouchStartAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnWheel<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.WheelEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnWheel<T>(this Rask.Core.Build<T!> __b, System.Action<Rask.Core.Live.WheelEventArgs!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnWheel<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.WheelEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnWheelAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<Rask.Core.Live.WheelEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnWheelAsync<T>(this Rask.Core.Build<T!> __b, System.Func<Rask.Core.Live.WheelEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.OnWheelAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.WheelEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Open(this Rask.Core.Build<Rask.Core.Components.Details!> __b, bool? value) -> Rask.Core.Build<Rask.Core.Components.Details!>
 static RaskBuilderSettersRask_Core.Orientation(this Rask.Core.Build<Rask.Core.Components.ScreenOrientationTrigger!> __b, string! value) -> Rask.Core.Build<Rask.Core.Components.ScreenOrientationTrigger!>
 static RaskBuilderSettersRask_Core.OverscanCount(this Rask.Core.Build<Rask.Core.Components.VirtualizeModel!> __b, int? value) -> Rask.Core.Build<Rask.Core.Components.VirtualizeModel!>
@@ -3633,22 +3754,28 @@ static RaskBuilderSettersRask_Core.Ping(this Rask.Core.Build<Rask.Core.Component
 static RaskBuilderSettersRask_Core.Policy(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
 static RaskBuilderSettersRask_Core.Popover<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Popover<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Popover<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.PopoverTarget(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.PopoverTargetAction(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.Ref<T, TMode>(this Rask.Core.Build<T!, TMode> __b, Rask.Core.ElementRef? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Ref<T>(this Rask.Core.Build<T!> __b, Rask.Core.ElementRef? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Ref<T>(this Rask.Core.FormBuild<T!> __b, Rask.Core.ElementRef? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.Build<Rask.Core.Components.A!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.A!>
 static RaskBuilderSettersRask_Core.Rel(this Rask.Core.Build<Rask.Core.Components.A!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.A!>
 static RaskBuilderSettersRask_Core.Role<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Role<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Role<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Roles(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, string![]? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
 static RaskBuilderSettersRask_Core.Routes(this Rask.Core.Build<Rask.Core.Routing.Router!> __b, System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>? value) -> Rask.Core.Build<Rask.Core.Routing.Router!>
 static RaskBuilderSettersRask_Core.Spellcheck<T, TMode>(this Rask.Core.Build<T!, TMode> __b, bool? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Spellcheck<T>(this Rask.Core.Build<T!> __b, bool? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Spellcheck<T>(this Rask.Core.FormBuild<T!> __b, bool? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Style<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Style<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Style<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.TabIndex<T, TMode>(this Rask.Core.Build<T!, TMode> __b, int? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.TabIndex<T>(this Rask.Core.Build<T!> __b, int? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.TabIndex<T>(this Rask.Core.FormBuild<T!> __b, int? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Target(this Rask.Core.Build<Rask.Core.Components.A!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.A!>
 static RaskBuilderSettersRask_Core.Template(this Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!> __b, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>! value) -> Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!>
 static RaskBuilderSettersRask_Core.Template(this Rask.Core.Build<Rask.Core.Components.FullscreenTrigger!> __b, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>! value) -> Rask.Core.Build<Rask.Core.Components.FullscreenTrigger!>
@@ -3659,8 +3786,10 @@ static RaskBuilderSettersRask_Core.Template(this Rask.Core.Build<Rask.Core.Compo
 static RaskBuilderSettersRask_Core.Template(this Rask.Core.Build<Rask.Core.Components.ScreenOrientationTrigger!> __b, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>! value) -> Rask.Core.Build<Rask.Core.Components.ScreenOrientationTrigger!>
 static RaskBuilderSettersRask_Core.Title<T, TMode>(this Rask.Core.Build<T!, TMode> __b, string? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Title<T>(this Rask.Core.Build<T!> __b, string? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Title<T>(this Rask.Core.FormBuild<T!> __b, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Translate<T, TMode>(this Rask.Core.Build<T!, TMode> __b, bool? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Translate<T>(this Rask.Core.Build<T!> __b, bool? value) -> Rask.Core.Build<T!>
+static RaskBuilderSettersRask_Core.Translate<T>(this Rask.Core.FormBuild<T!> __b, bool? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.Build<Rask.Core.Components.A!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.A!>
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
 static RaskBuilderSettersRask_Core.Value(this Rask.Core.Build<Rask.Core.Components.Button!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
