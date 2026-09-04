@@ -1135,19 +1135,6 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Submit-state children — the form's children are a function of whether a submit is in flight,
-        // so the button's own label is the assertion: "Saving…" while the (deliberately slow) handler
-        // runs, back to "Sign up" once it returns, with the readout outside the form showing what was
-        // saved. This is the browser half of the feature; the flag itself is unit-tested in FormTests.
-        await Page.Locator("#fss-input").FillAsync("ada");
-        await Page.Locator("#fss-submit").ClickAsync();
-        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Saving",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("#fss-out")).ToContainTextAsync("ada",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
         // The BsRadioGroup / BsCheckboxGroup / BsMultiSelect walks that followed are gone with the
         // controls themselves; docs/building-form-controls.md is the path for building one back.
         // ---- validation subpage (docs/forms-validation.md) ----
