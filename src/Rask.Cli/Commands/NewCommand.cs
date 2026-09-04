@@ -793,6 +793,17 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// <c>--project</c> is passed explicitly for the reason given on <see cref="PickEfProject"/>.
     /// </para>
     /// </remarks>
+    /// <summary>
+    ///     MSBuild reads properties from the environment, which is how these reach a build whose command
+    ///     line belongs to <c>dotnet-ef</c>. Same channel <c>rask dev</c> uses for
+    ///     <c>HotReloadAutoRestart</c>, and it leaves <c>rask db</c>'s argument surface alone.
+    /// </summary>
+    private static readonly Dictionary<string, string> SkipFrontEndBuild = new(StringComparer.Ordinal)
+    {
+        ["RaskSpaBuild"] = "false",
+        ["RaskMetaBuild"] = "false",
+    };
+
     private async Task<bool> CreateFirstMigrationAsync(
         string targetDirectory, string? efProject, CancellationToken cancellationToken)
     {
@@ -801,7 +812,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return false;
         }
 
-        var db = new DbCommand(Console, _fileSystem, _process, targetDirectory);
+        // Skip the front-end build for this one build. `dotnet-ef` builds the project to load the
+        // DbContext, and with the batteries on that build defaults to RaskSpaBuild/RaskMetaBuild=true —
+        // so scaffolding a front-end template ran the bundler, or on the meta lane a full Nuxt/Next
+        // production build, behind a line that says "Creating the first migration…". Minutes of silence
+        // for output nobody reads: the next thing anyone does is `rask dev`, which turns both off again
+        // and lets the framework's own dev server own the front end. A missing node then failed the
+        // migration step for a reason that has nothing to do with the database.
+        var db = new DbCommand(Console, _fileSystem, _process, targetDirectory, SkipFrontEndBuild);
 
         Console.WriteLine("Creating the first migration…", ConsoleStyle.Dim);
         if (await db.ExecuteAsync(["add", "Init", "--project", efProject], cancellationToken).ConfigureAwait(false) != 0)
