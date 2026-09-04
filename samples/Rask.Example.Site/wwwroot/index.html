@@ -9,7 +9,12 @@
   still boots. Keep it minimal; the App component is the source of truth for the page's real <head>.
 -->
 <!doctype html>
-<html lang="en">
+<!-- data-rask-ui turns the component kit's theme on for the whole document. It lives HERE, in the
+     boot shell, rather than only in App.Shell: prerendering splices the render into this shell and
+     this shell's opening tag is what survives, so an attribute set only in managed code never
+     reaches the published page. Without it every --color-ui-* token resolves to nothing and the
+     site ships structurally perfect and entirely grey. -->
+<html lang="en" data-rask-ui>
 <head>
     <meta charset="utf-8"/>
     <!-- <base href> is rewritten to /<prefix>/ by the framework's _RaskRewriteBaseHref target when

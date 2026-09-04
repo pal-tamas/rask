@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The landing page was still grey after the theme scope was added to its root component.** Setting
+  `data-rask-ui` in `App.Shell` is not enough for a prerendered WebAssembly app: the publish splices the
+  render into the SDK's boot shell — that is what carries the import map and the boot script — and the
+  shell's own `<html>` is what survives. An attribute that exists only in managed code never reaches the
+  published page.
+
+  The site's boot shell carries it now, which is where a boot-time attribute belongs. `PrerenderShell`
+  also merges the rendered document's `<html>` attributes onto the shell's rather than discarding them,
+  so a `Shell` override stops being silently lossy for every prerendered app; the shell wins wherever
+  both name the same attribute, because its `lang` and any sub-path rewrite were computed for that
+  publish.
+
+
 - **The landing site shipped to rask.sh with no colour at all.** `Rask.Example.Site` drew with the kit
   but was wired for neither half of it, and both failures are silent in the same way: the build stays
   green, the class names in the markup stay correct, and the page arrives unstyled.

@@ -41,6 +41,52 @@ public class PrerenderShellTests
         <body><h1>Ship a whole product.</h1><p>Just you, and C#.</p></body></html>
         """;
 
+    // Regression: the landing site set data-rask-ui on <html> through its Shell override to turn the
+    // component kit's theme on, and shipped to production with every colour computing to nothing —
+    // structurally perfect, entirely grey — because the merge kept the SDK's opening tag and dropped
+    // the render's attributes. Layout survives that, which is what made it so quiet.
+    [Fact]
+    public void TheDocumentsHtmlAttributesSurviveTheMerge()
+    {
+        const string themed =
+            """
+            <!doctype html><html lang="en" data-rask-ui dir="rtl"><head><title>T</title></head>
+            <body><h1>Hi</h1></body></html>
+            """;
+
+        var merged = PrerenderShell.Merge(Shell, themed);
+
+        // On the opening <html> tag, not merely somewhere in the document.
+        var open = merged.IndexOf("<html", StringComparison.Ordinal);
+        var gt = merged.IndexOf('>', open);
+        var tag = merged[open..gt];
+
+        Assert.Contains("data-rask-ui", tag, StringComparison.Ordinal);
+        Assert.Contains("dir=\"rtl\"", tag, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheShellWinsWhereBothNameTheSameHtmlAttribute()
+    {
+        // The shell's lang is the one computed for THIS publish; a render that disagrees did not know
+        // about it. Only attributes the shell lacks are added.
+        const string other =
+            """
+            <!doctype html><html lang="de" data-rask-ui><head><title>T</title></head>
+            <body><h1>Hi</h1></body></html>
+            """;
+
+        var merged = PrerenderShell.Merge(Shell, other);
+
+        var open = merged.IndexOf("<html", StringComparison.Ordinal);
+        var gt = merged.IndexOf('>', open);
+        var tag = merged[open..gt];
+
+        Assert.Contains("lang=\"en\"", tag, StringComparison.Ordinal);
+        Assert.DoesNotContain("lang=\"de\"", tag, StringComparison.Ordinal);
+        Assert.Contains("data-rask-ui", tag, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheBundleCanStillBoot()
     {
