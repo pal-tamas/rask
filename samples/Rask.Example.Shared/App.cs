@@ -11,21 +11,25 @@ public partial class App : Component
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
     // the scoped-css link, so a page's own stylesheet still wins over them.
-    // Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
-    // across the site/docs/playground on the same origin) or the OS preference, BEFORE any stylesheet
-    // matches — so there's no flash of the wrong theme. Also re-applies the SAVED choice from
-    // window.raskAfterMorph, because a full-document morph strips these attributes off <html> (the
-    // framework renders <html lang> and nothing else); a no-choice visitor stays attribute-less and
-    // auto-follows the OS theme.
-    // On Server this runs in the SSR'd <head>; on WASM the same snippet lives in index.html for pre-boot
-    // (the morphed-in copy here doesn't re-execute, but re-registers the same idempotent hook).
+    // Theme init: stamp data-theme + data-bs-theme = "light" on <html> before any stylesheet matches.
+    //
+    // It used to read a saved choice or the OS preference and default to DARK. Both are gone with the
+    // navbar's toggle: the chrome is drawn from Rask.Ui now, whose palette is light, and a dark page
+    // inside a light shell is worse than either on its own. This app's own stylesheet is still
+    // dark-first at :root, so the attribute is what selects its light block — the pages have not been
+    // ported yet, and this is what keeps them agreeing with the chrome in the meantime.
+    //
+    // Still a script rather than a literal attribute on <html>: a full-document morph strips attributes
+    // off <html> (the framework renders <html lang> and nothing else), so the hook below re-applies it
+    // after every one. On Server this runs in the SSR'd <head>; on WASM the same snippet lives in
+    // index.html for pre-boot (the morphed-in copy does not re-execute, but re-registers the same
+    // idempotent hook).
     private const string ThemeInitJs =
         "(function(){var d=document.documentElement;" +
-        "function apply(t){d.setAttribute('data-theme',t);d.setAttribute('data-bs-theme',t);}" +
-        "var saved=localStorage.getItem('rask-theme');" +
-        "apply(saved||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));" +
+        "function apply(){d.setAttribute('data-theme','light');d.setAttribute('data-bs-theme','light');}" +
+        "apply();" +
         "var prev=window.raskAfterMorph;" +
-        "window.raskAfterMorph=function(){var s=localStorage.getItem('rask-theme');if(s)apply(s);" +
+        "window.raskAfterMorph=function(){apply();" +
         "if(typeof prev==='function')prev();};})();";
 
     protected override Component? HeadAssets =>
@@ -45,6 +49,18 @@ public partial class App : Component
             .Rel("stylesheet")
             .Href("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700"
                 + "&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"),
+        // The KIT's sheet, inlined, and FIRST.
+        //
+        // Tailwind scans the project it runs in, so the classes Rask.Ui's components write are compiled
+        // into its sheet and cannot appear in this one — and since the kit took daisyUI, that sheet is
+        // also the only place --color-primary and the rest of the palette are defined. This app's own
+        // @theme expresses --color-ui-* in terms of them, so without this every colour on every page
+        // resolves to nothing: not wrong, absent. Layout and structure survive it, which is why it
+        // looked fine until a browser test compared two custom properties and found both empty.
+        //
+        // First, because the tokens below are meant to override the kit's, and an override only wins
+        // while it is the copy the cascade reads last.
+        Style[Raw.Value(UiStylesheet.Css)],
         // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
         // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
         // ORDER was what decided the outcome and a comment was the only thing keeping it right.
@@ -62,7 +78,23 @@ public partial class App : Component
             .Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override string? BodyClass => "bg-slate-50 dark:bg-slate-900";
+    protected override string? BodyClass => "bg-ui-well";
+
+    /// <summary>
+    ///     Turns the kit's theme on for the whole document.
+    /// </summary>
+    /// <remarks>
+    ///     Load-bearing, not decorative. The kit scopes daisyUI's theme to this attribute so that
+    ///     referencing the package cannot repaint an application that only wanted a button — which means
+    ///     every colour in this app, including the ones its own stylesheet defines in terms of
+    ///     <c>--color-base-*</c>, resolves to nothing without it. The failure is silent: structure and
+    ///     layout survive, colour does not, and no build or test that only reads class names notices.
+    /// </remarks>
+    protected override Component Shell(Component head, Component body) =>
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+            head,
+            Body.Class(BodyClass)[body]
+        ];
 
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
     protected override Component? Render() => Router;

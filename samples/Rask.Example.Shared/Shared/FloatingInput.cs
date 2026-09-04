@@ -24,10 +24,10 @@ public sealed partial class FloatingInput<TProp> : Component
     protected override Component? Render()
     {
         var (id, label) = FloatingField.Resolve(Bind);
-        return Div.Class($"{Ui.FormFloating} mb-3")[
-            Input.Bind(Bind).Id(id).Placeholder(label).Class(Ui.Input),
+        return Div.Class($"{Tw.FormFloating} mb-3")[
+            Input.Bind(Bind).Id(id).Placeholder(label).Class(Tw.Input),
             Label.For(id)[label],
-            ValidationMessage.Template(msgs => Div.Class("field-error mt-1 text-sm text-red-600 dark:text-red-400")[msgs[0]]).For(Bind)
+            ValidationMessage.Template(msgs => Div.Class("field-error mt-1 text-sm text-ui-danger")[msgs[0]]).For(Bind)
         ];
     }
 }

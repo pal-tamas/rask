@@ -16,7 +16,7 @@ public sealed partial class InstallPromptPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Install prompt"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "Show a custom \"Install app\" button via IInstallPrompt instead of the browser's default ",
             "mini-infobar. The framework captures and defers the beforeinstallprompt event at boot, so you ",
             "reveal your button when CanInstallAsync() is true and trigger PromptAsync() from the click. ",

@@ -11,8 +11,10 @@ public sealed class AppTests
         var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
         Assert.StartsWith("<!DOCTYPE html>", html);
-        Assert.Contains("<html lang=\"en\">", html);
-        Assert.Contains("<body class=\"bg-slate-50 dark:bg-slate-900\">", html);
+        // data-rask-ui turns the kit's theme on for the document; the kit scopes daisyUI's palette to
+        // it so that referencing the package cannot repaint an app that only wanted a button.
+        Assert.Contains("<html lang=\"en\" data-rask-ui=\"\">", html);
+        Assert.Contains("<body class=\"bg-ui-well\">", html);
     }
 
     [Fact]

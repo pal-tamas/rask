@@ -26,18 +26,18 @@ public sealed partial class ElementsMetadataDemo : Component
 
     protected override Component? Render() => Div.Class("flex flex-col gap-3")[
         Div[
-            P.Class("text-sm mb-1 text-slate-500 dark:text-slate-400")[
+            P.Class("text-sm mb-1 text-ui-muted")[
                 "The structural elements compose a document. Here is a real shell and its serialized HTML:"],
             Pre.Class("bg-slate-900 text-slate-100 rounded p-3 mb-0").Style("white-space:pre-wrap;word-break:break-word")[
                 Code[Shell().ToHtml()]]
         ],
         Div[
-            P.Class("text-sm mb-1 text-slate-500 dark:text-slate-400")[
+            P.Class("text-sm mb-1 text-ui-muted")[
                 "template holds inert content (cloned by JS); slot is a shadow-DOM placeholder:"],
             Div.Class("border rounded p-2")[
                 Template.Id("row-tmpl")[Li["Inert template content"]],
                 Slot.Name("label")["Default slot content"],
-                P.Class("mb-0 mt-1 text-slate-500 dark:text-slate-400 text-sm")[
+                P.Class("mb-0 mt-1 text-ui-muted text-sm")[
                     "(the ", Code["template"], " content is hidden by the browser until cloned)"]
             ]
         ]

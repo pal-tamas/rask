@@ -24,7 +24,7 @@ public sealed partial class ValidatableObjectDemo : Component
             return null;
         }
 
-        return Div.Class($"{Ui.AlertDanger} text-sm mb-0")[
+        return Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
             Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
@@ -34,27 +34,27 @@ public sealed partial class ValidatableObjectDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Label.For("v11-name").Class($"{Ui.Label} text-sm mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("v11-name").Class(Ui.Input),
+                Label.For("v11-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
+                Input.Bind(() => _model.Name).Id("v11-name").Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Label.For("v11-departure").Class($"{Ui.Label} text-sm mb-1")["Departure"],
-                Input.Bind(() => _model.Departure).Id("v11-departure").Class(Ui.Input),
+                Label.For("v11-departure").Class($"{Tw.Label} text-sm mb-1")["Departure"],
+                Input.Bind(() => _model.Departure).Id("v11-departure").Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Departure)
             ],
             Div[
-                Label.For("v11-arrival").Class($"{Ui.Label} text-sm mb-1")["Arrival"],
-                Input.Bind(() => _model.Arrival).Id("v11-arrival").Class(Ui.Input),
+                Label.For("v11-arrival").Class($"{Tw.Label} text-sm mb-1")["Arrival"],
+                Input.Bind(() => _model.Arrival).Id("v11-arrival").Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.CalendarCheck).Class("me-1"), "Book"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Calendar).Class("me-1"), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

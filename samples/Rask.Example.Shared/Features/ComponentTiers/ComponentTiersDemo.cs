@@ -21,10 +21,10 @@ public sealed partial class ComponentTiersDemo : Component
     // A Tier-0 static helper itself — the pattern the first card describes — reused for each column.
     private static Component Tier(string title, string blurb, Component body) =>
         Div.Class("md:col-span-4")[
-            Div.Class($"{Ui.Card} h-full")[
-                Div.Class(Ui.CardBody)[
+            Div.Class($"{Tw.Card} h-full")[
+                Div.Class(Tw.CardBody)[
                     H6.Class("font-semibold mb-1")[title],
-                    P.Class("text-sm text-slate-500 dark:text-slate-400")[blurb],
+                    P.Class("text-sm text-ui-muted")[blurb],
                     body
                 ]
             ]

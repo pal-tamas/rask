@@ -190,12 +190,12 @@ public sealed partial class PlaygroundView : Component
                     // and the E2E both select on them, so they are behaviour, not styling.
                     Button
                         .Type("button")
-                        .Class($"pg-reset {Ui.Button}")
+                        .Class($"pg-reset {Tw.Button}")
                         .Disabled(!CanInteract)
                         .OnClickAsync(ResetAsync)["Reset"],
                     Button
                         .Type("button")
-                        .Class($"pg-run {Ui.Primary}")
+                        .Class($"pg-run {Tw.Primary}")
                         .Disabled(!CanInteract || IsActiveChapterLocked)
                         .OnClickAsync(RunAsync)[_busy ? "Running…" : "Run ▸"],
                     // Cross-app links back to the docs + repo, and the shared light/dark toggle.
@@ -203,15 +203,15 @@ public sealed partial class PlaygroundView : Component
                         .Href("https://rask.sh/docs/")
                         .Target("_blank")
                         .Rel("noopener")
-                        .Class(Ui.Button)["Docs"],
+                        .Class(Tw.Button)["Docs"],
                     A
                         .Href("https://github.com/pal-tamas/rask")
                         .Target("_blank")
                         .Rel("noopener")
-                        .Class(Ui.Button)["GitHub"],
+                        .Class(Tw.Button)["GitHub"],
                     Button
                         .Type("button")
-                        .Class(Ui.Button)
+                        .Class(Tw.Button)
                         .OnClickAsync(ToggleThemeAsync)
                         .Aria(ThemeToggleAria)["◐"]
                 ]
@@ -353,12 +353,12 @@ public sealed partial class PlaygroundView : Component
                 Div.Class("pg-brief-nav")[
                     Button
                         .Type("button")
-                        .Class($"pg-prev {Ui.Button}")
+                        .Class($"pg-prev {Tw.Button}")
                         .Disabled(!CanInteract || chapter.Number == 1)
                         .OnClickAsync(() => StepAsync(-1))["← Back"],
                     Button
                         .Type("button")
-                        .Class($"pg-next {Ui.Button}")
+                        .Class($"pg-next {Tw.Button}")
                         .Disabled(!CanInteract || chapter.Number == TutorialChapters.All.Count)
                         .OnClickAsync(() => StepAsync(1))["Next →"]
                 ]

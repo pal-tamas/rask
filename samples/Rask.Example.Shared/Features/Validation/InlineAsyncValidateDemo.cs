@@ -19,8 +19,8 @@ public sealed partial class InlineAsyncValidateDemo : Component
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
-            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking…"
+        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
+            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking…"
         ];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
@@ -31,7 +31,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             return null;
         }
 
-        return Div.Class($"{Ui.AlertDanger} text-sm mb-0")[
+        return Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
             Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
@@ -58,22 +58,22 @@ public sealed partial class InlineAsyncValidateDemo : Component
                     : Array.Empty<string>();
             })[
             Div[
-                Label.For("v10-code").Class($"{Ui.Label} text-sm mb-1")["Promo code"],
+                Label.For("v10-code").Class($"{Tw.Label} text-sm mb-1")["Promo code"],
                 Input.Bind(() => _model.Code)
                     .Id("v10-code")
-                    .Class(Ui.Input)
+                    .Class(Tw.Input)
                     .ValidateAsync(CheckCodeAsync),
                 ValidatingIndicator.Template(Checking).For(() => _model.Code),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Gift).Class("me-1"), "Redeem"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Gift).Class("me-1"), "Redeem"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

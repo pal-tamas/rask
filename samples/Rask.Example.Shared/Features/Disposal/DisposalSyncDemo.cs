@@ -11,18 +11,18 @@ public sealed partial class DisposalSyncDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Button.Type("button").Class(Ui.BtnPrimary)
+                Button.Type("button").Class(Tw.BtnPrimary)
                     .Id("dispose-sync-mount")
                     .Disabled(_syncMounted)
-                    .OnClick(MountSync)[Icon.Name(IconName.PlayCircle).Class("me-1"), "Mount sync probe"],
-                Button.Type("button").Class(Ui.BtnOutlineSecondary)
+                    .OnClick(MountSync)[UiIcon.Name(UiIconName.Play).Class("me-1"), "Mount sync probe"],
+                Button.Type("button").Class(Tw.BtnOutlineSecondary)
                     .Id("dispose-sync-unmount")
                     .Disabled(!_syncMounted)
-                    .OnClick(UnmountSync)[Icon.Name(IconName.StopCircle).Class("me-1"), "Unmount sync probe"]
+                    .OnClick(UnmountSync)[UiIcon.Name(UiIconName.Stop).Class("me-1"), "Unmount sync probe"]
             ],
             _syncMounted
                 ? DisposableTimerProbe.Log(AppendSyncLog).InstanceId(_nextSyncId)
-                : P.Class("text-slate-500 dark:text-slate-400 italic mb-0")["Probe not mounted."],
+                : P.Class("text-ui-muted italic mb-0")["Probe not mounted."],
             DisposalDemoLog.Entries(_syncLog).ListId("dispose-sync-log")
         ];
 

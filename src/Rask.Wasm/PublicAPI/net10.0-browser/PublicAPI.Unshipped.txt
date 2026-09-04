@@ -419,6 +419,7 @@ Rask.Wasm.WasmHostBuilder.UsePwa(Rask.Core.Browser.WebAppManifest! manifest) -> 
 Rask.Wasm.WasmPrerender
 RaskBuilderSettersRask_Wasm
 const Rask.Wasm.WasmPrerender.OutputVariable = "RASK_PRERENDER_OUT" -> string!
+const Rask.Wasm.WasmPrerender.PathBaseVariable = "RASK_PRERENDER_PATH_BASE" -> string!
 override Rask.Wasm.Browser.BackgroundSyncEvent.Equals(object? obj) -> bool
 override Rask.Wasm.Browser.BackgroundSyncEvent.GetHashCode() -> int
 override Rask.Wasm.Browser.BackgroundSyncEvent.ToString() -> string!

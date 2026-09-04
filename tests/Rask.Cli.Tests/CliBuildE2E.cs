@@ -52,6 +52,7 @@ internal static class CliBuildE2E
         "Rask.Cache",                       // tutorial ch6 — AddRaskCache / ICache.GetOrAddAsync
         "Rask.Logging",                     // --logs — AddRaskLogging, and the dashboard's History mode
         "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_rask pages
+        "Rask.Ui",                          // the component kit Rask.Dashboard is drawn with, and depends on
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
     ];
 

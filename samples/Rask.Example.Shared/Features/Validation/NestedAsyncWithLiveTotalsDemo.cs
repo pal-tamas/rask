@@ -37,8 +37,8 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
-            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking delivery zone…"
+        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
+            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking delivery zone…"
         ];
 
     private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
@@ -84,10 +84,10 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}")
                 .Class("flex flex-col gap-3")[
                 Div[
-                    Label.For("v-nlive-name").Class($"{Ui.Label} text-sm mb-1")["Customer name"],
+                    Label.For("v-nlive-name").Class($"{Tw.Label} text-sm mb-1")["Customer name"],
                     Input.Bind(() => _model.CustomerName)
                         .Id("v-nlive-name")
-                        .Class(Ui.Input)
+                        .Class(Tw.Input)
                         .Validate(v =>
                             string.IsNullOrWhiteSpace(v)
                                 ? new[] { "Name is required." }
@@ -95,12 +95,12 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Div[
-                    Label.For("v-nlive-postal").Class($"{Ui.Label} text-sm mb-1")[
-                        "Postal code ", Span.Class("text-slate-500 dark:text-slate-400")["(try 12345, 99999, or any 5-digit code)"]
+                    Label.For("v-nlive-postal").Class($"{Tw.Label} text-sm mb-1")[
+                        "Postal code ", Span.Class("text-ui-muted")["(try 12345, 99999, or any 5-digit code)"]
                     ],
                     Input.Bind(() => _model.Address.PostalCode)
                         .Id("v-nlive-postal")
-                        .Class(Ui.Input)
+                        .Class(Tw.Input)
                         .ValidateAsync(ValidatePostalAsync),
                     ValidatingIndicator.Template(Checking).For(() => _model.Address.PostalCode),
                     ValidationMessage.Template(FieldError).For(() => _model.Address.PostalCode)
@@ -111,18 +111,18 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                         Div.Class("col-span-6")[
                             Input.Bind(() => _model.Items[0].Name)
                                 .Id("v-nlive-item0-name")
-                                .Class(Ui.Input)
+                                .Class(Tw.Input)
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[0].Quantity)
                                 .Id("v-nlive-item0-qty")
-                                .Class(Ui.Input)
+                                .Class(Tw.Input)
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[0].UnitPrice)
                                 .Id("v-nlive-item0-price")
-                                .Class(Ui.Input)
+                                .Class(Tw.Input)
                                 .Step("0.01")
                         ]
                     ],
@@ -130,29 +130,29 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                         Div.Class("col-span-6")[
                             Input.Bind(() => _model.Items[1].Name)
                                 .Id("v-nlive-item1-name")
-                                .Class(Ui.Input)
+                                .Class(Tw.Input)
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[1].Quantity)
                                 .Id("v-nlive-item1-qty")
-                                .Class(Ui.Input)
+                                .Class(Tw.Input)
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
                             Input.Bind(() => _model.Items[1].UnitPrice)
                                 .Id("v-nlive-item1-price")
-                                .Class(Ui.Input)
+                                .Class(Tw.Input)
                                 .Step("0.01")
                         ]
                     ]
                 ],
                 Div[
-                    Label.For("v-nlive-promo").Class($"{Ui.Label} text-sm mb-1")[
-                        "Promo code ", Span.Class("text-slate-500 dark:text-slate-400")["(try SAVE10 or SAVE25)"]
+                    Label.For("v-nlive-promo").Class($"{Tw.Label} text-sm mb-1")[
+                        "Promo code ", Span.Class("text-ui-muted")["(try SAVE10 or SAVE25)"]
                     ],
-                    Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class(Ui.Input)
+                    Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class(Tw.Input)
                 ],
-                Div.Id("v-nlive-totals").Class("bg-slate-100 rounded p-3 text-sm")[
+                Div.Id("v-nlive-totals").Class("bg-ui-well rounded p-3 text-sm")[
                     Div.Class("flex justify-between flex-wrap items-center")[
                         Span["Subtotal"],
                         Span.Id("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]
@@ -174,13 +174,13 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div[
-                    Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.CreditCard).Class("me-1"), "Pay"]
+                    Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CreditCard).Class("me-1"), "Pay"]
                 ]
             ],
             _submission is null
                 ? null
-                : Div.Id("v-nlive-submission").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[
-                    Icon.Name(IconName.CheckCircle).Class("me-2"), _submission
+                : Div.Id("v-nlive-submission").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[
+                    UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission
                 ]
         ];
     }

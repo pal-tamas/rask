@@ -10,6 +10,16 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Rask WASM marker: gates build/Rask.Wasm.targets (wwwroot staging + scoped-asset bake). -->
     <RaskWasm>true</RaskWasm>
+    <!--
+      Render every route to real HTML at publish. This is the framework's own front door, and without it
+      the first thing every visitor and every crawler received was the boot shell — a spinner and the
+      word "Loading" — because the real markup did not exist until megabytes of runtime had downloaded.
+      That is what a search engine indexed and what a social card previewed.
+
+      Publish-only, so the inner loop does not pay for it. The pass writes into the published wwwroot and
+      splices each page into the boot shell, so the bundle still boots and takes the page over.
+    -->
+    <RaskPrerender>true</RaskPrerender>
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders at
          publish, so static-host (GitHub Pages) redeploys stay subresource-integrity-safe. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
@@ -25,20 +35,22 @@
          initialiser ([DynamicDependency] per registered page). -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <!-- The landing page formats no culture-sensitive values, so drop the ~2.6 MB ICU data.
-         Gated off the fast no-native build for the same reason as RunAOTCompilation above. -->
-    <!-- This app hosts the guides, and the localization guide's demo formats the same values across
-         four languages — which needs real culture data. So it ships ICU (~2.6 MB of icudt*.dat under
-         _framework/) rather than dropping it. One property covers both halves: it also clears
-         PredefinedCulturesOnly, which otherwise defaults to true under invariant globalization and
-         makes CultureInfo.GetCultureInfo("hu-HU") THROW rather than fall back.
+    <!--
+      NO RaskGlobalization, so the ~2.6 MB of ICU data stays out of the bundle. The landing page formats
+      no culture-sensitive value: every number on it is a literal in the markup.
 
-         This also makes the showcase the repo's ICU canary: the opt-in is exercised by the browser
-         E2E gate on every push rather than only by an MSBuild property assertion. -->
-    <RaskGlobalization>true</RaskGlobalization>
-    <!-- Suppress IL2104 from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner; this app
-         only INVOKES JS (never marks methods [JSInvokable]), so that path is never taken. -->
+      It used to opt in, under a comment describing a different application — "this app hosts the
+      guides, and the localization guide's demo formats the same values across four languages". That is
+      the docs showcase, at /docs/. The comment arrived here with a copy of the showcase's csproj and
+      nothing contradicted it, so the front door carried the largest single asset in the bundle for a
+      feature it does not have.
+    -->
+    <!-- Suppress IL2104 from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner. This page
+         no longer references that package directly — it ships no JavaScript and injects no IJSRuntime —
+         but it still arrives transitively through the WASM host, and a trimmed publish still fails on
+         its warnings. This app marks nothing [JSInvokable], so the scanned path is never taken. -->
     <NoWarn>$(NoWarn);IL2104</NoWarn>
+
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,7 +59,11 @@
          so an in-repo consumer referencing the host by ProjectReference must pull them in directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <PackageReference Include="Microsoft.JSInterop"/>
+    <!-- The component kit the operator console and the docs showcase are drawn with. The landing page
+         takes the parts that fit a marketing page — buttons, metrics, detail lists, code blocks, icons
+         and the palette — and builds its own sections from Tailwind; it has no tab bar to put in a
+         UiNav and no breadcrumb to switch. -->
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <!-- Build-order edge only. The Tailwind wiring itself arrives from Directory.Build.{props,targets}
          (and, for a scaffolded app, from inside the host package) — this reference exists so that
          Rask.Tailwind.Tasks.dll is on disk before the UsingTask that loads it runs. Build-only: an

@@ -14,26 +14,26 @@ public sealed partial class ValidationFieldsDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
             Div[
-                Label.For("v1-name").Class($"{Ui.Label} text-sm mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("v1-name").Class(Ui.Input),
+                Label.For("v1-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
+                Input.Bind(() => _model.Name).Id("v1-name").Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Label.For("v1-email").Class($"{Ui.Label} text-sm mb-1")["Email"],
+                Label.For("v1-email").Class($"{Tw.Label} text-sm mb-1")["Email"],
                 Input.Bind(() => _model.Email)
                     .Id("v1-email")
                     .Type(InputType.Email)
-                    .Class(Ui.Input),
+                    .Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Div[
-                Label.For("v1-age").Class($"{Ui.Label} text-sm mb-1")["Age"],
-                Input.Bind(() => _model.Age).Id("v1-age").Class(Ui.Input),
+                Label.For("v1-age").Class($"{Tw.Label} text-sm mb-1")["Age"],
+                Input.Bind(() => _model.Age).Id("v1-age").Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Age)
             ],
             Div[
-                Label.For("v1-plan").Class($"{Ui.Label} text-sm mb-1")["Plan"],
-                Select.Bind(() => _model.Plan).Id("v1-plan").Class(Ui.Select)[
+                Label.For("v1-plan").Class($"{Tw.Label} text-sm mb-1")["Plan"],
+                Select.Bind(() => _model.Plan).Id("v1-plan").Class(Tw.Select)[
                     Option.Value("")["— choose —"],
                     Option.Value("free")["Free"],
                     Option.Value("pro")["Pro"],
@@ -42,11 +42,11 @@ public sealed partial class ValidationFieldsDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Plan)
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.Check2Circle).Class("me-1"), "Register"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Register"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }

@@ -16,7 +16,7 @@ public sealed partial class EyeDropperPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["EyeDropper"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "Let the user pick a color from anywhere on screen with the system magnifier loupe, via ",
             "IEyeDropper (the EyeDropper API) — handy for a design tool or theme editor. WASM-only: ",
             "open() needs a live user gesture, and it's Chromium-family only at the time of writing."

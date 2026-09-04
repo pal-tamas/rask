@@ -1,41 +1,36 @@
-using Microsoft.JSInterop;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 using Rask.Html.Components;
+using Rask.Ui;
 
 namespace Rask.Example.Shared;
 
 [Route("/")]
-public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav, IJSRuntime js)
+public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav)
     : Component
 {
-    private static readonly IReadOnlyDictionary<string, string?> ThemeToggleAria =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle light / dark theme" };
+    private static readonly IReadOnlyDictionary<string, string?> DrawerAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle navigation" };
 
-    // Flip the color theme via the scoped module (sets data-theme + data-bs-theme on <html> and persists
-    // the choice). Client-only; a torn-down transport just no-ops.
-    private async Task ToggleThemeAsync()
-    {
-        try
-        {
-            await js.InvokeVoidAsync("Rask.ShowcaseLayout.toggleTheme");
-        }
-        catch (JSDisconnectedException)
-        {
-            // The circuit went away — nothing to toggle.
-        }
-    }
+    /// <summary>The shape of the two actions in the top bar's trailing edge.</summary>
+    /// <remarks>
+    /// <c>min-h-11</c> below <c>sm</c>: 44px is the smallest reliable touch target, and these are
+    /// <c>text-sm</c>. The height relaxes from <c>sm</c> up, where there is a pointer.
+    /// </remarks>
+    private const string TopAction =
+        "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium no-underline "
+        + "transition-colors sm:min-h-0 sm:py-1.5";
 
     // MatchPrefix: optional section prefix for parameterised links. When set, the
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
     // exact-match only.
-    private static readonly (string Path, string Label, IconName Icon, string Group, string? MatchPrefix)[] Links =
+    private static readonly (string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)[] Links =
     [
         // Paths are type-safe, generator-emitted route URLs (Features.Routes.*) — RouteUrl converts
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
-        (Features.Routes.TodosPage(), "Todos", IconName.Check2Square, "Apps", null)
+        (Features.Routes.TodosPage(), "Todos", UiIconName.CheckCircle, "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
         // APIs (docs/browser-apis.md); Events + Toast messages → Composition (docs/composition.md); the
@@ -73,23 +68,30 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     protected override Component? Render() =>
     [
+        // The top bar is the kit's, so the showcase, the operator console and the landing site share one
+        // piece of chrome rather than three near-identical ones. What is NOT the kit's is the sidebar
+        // below: UiNav is a five-tab bar for a console, and this app has eighty guides in a filterable,
+        // grouped rail. Forcing one into the other would have been worse than sharing neither.
         Nav.Class(
-            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-slate-700 "
-            + "bg-slate-900 px-3 py-2 text-slate-100 shadow-sm")[
+            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-ui-line "
+            + "bg-ui-bg px-3 py-2 text-ui-ink")[
             Button
                 .Type("button")
-                .Class("hamburger-btn md:hidden")
+                .Class(
+                    "hamburger-btn inline-flex min-h-11 items-center rounded-lg px-2 text-ui-muted "
+                    + "hover:bg-ui-well hover:text-ui-ink md:hidden")
+                .Aria(DrawerAria)
                 .OnClick(() => _drawerOpen = !_drawerOpen)[
-                Icon.Name(_drawerOpen ? IconName.XLg : IconName.List)
+                UiIcon.Name(_drawerOpen ? UiIconName.Close : UiIconName.Menu).Class("size-5 shrink-0")
             ],
             NavLink
                 .Href(Features.Routes.GuidesIndexPage())
                 .ActiveClass("")
-                .Class("app-brand font-semibold inline-flex items-center gap-2")[
+                .Class("app-brand font-semibold inline-flex items-center gap-2 text-ui-ink no-underline")[
                 RaskLogo.Size(24).GradientId("brandBolt"),
                 Span["Rask"],
-                Span.Class($"{Ui.BadgeSecondary} rask-badge")["showcase"],
-                Span.Class(Ui.BadgeSecondary)[$"v{RaskVersion.Current}"]
+                Span.Class("rask-badge rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted")["showcase"],
+                Span.Class("rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted")[$"v{RaskVersion.Current}"]
             ],
             Div.Class("flex items-center gap-2 ms-auto")[
                 PathDisplay,
@@ -101,17 +103,19 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     .Href("https://rask.sh/playground/")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Class(Ui.BtnPrimary)[Icon.Name(IconName.PlayFill), "Playground"],
+                    .Class(TopAction + " bg-ui-ink text-ui-bg hover:bg-ui-ink/90")[
+                    UiIcon.Name(UiIconName.Play).Class("size-4 shrink-0"), "Playground"
+                ],
                 A
                     .Href("https://github.com/pal-tamas/rask")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Class(Ui.BtnOutlineLight)[Icon.Name(IconName.Github), "GitHub"],
-                // Light/dark theme toggle — flips data-theme via the scoped module.
-                Button.Type("button").Class(Ui.BtnOutlineLight)
-                    .OnClickAsync(ToggleThemeAsync)
-                    .Aria(ThemeToggleAria)[
-                    Icon.Name(IconName.CircleHalf)]
+                    .Class(TopAction + " border border-ui-line bg-ui-bg text-ui-ink hover:bg-ui-well")[
+                    UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"), "GitHub"
+                ]
+                // The light/dark toggle is gone. The showcase is light now, on the palette Rask.Ui
+                // declares, so there is no second theme to flip to — and with it went the only reason
+                // this layout injected IJSRuntime at all.
             ]
         ],
         Div.Class("flex app-shell")[
@@ -119,8 +123,8 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             // closes it. The open state was already Rask state — the drawer never needed script.
             Aside
                 .Class(_drawerOpen
-                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-white p-4 "
-                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none dark:bg-slate-900"
+                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-ui-bg p-4 "
+                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none"
                     : "side-nav hidden w-64 p-4 md:flex")[
                 SidebarBody()
             ],
@@ -145,16 +149,18 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Value(_filter)
                 .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…")
-                .Class($"side-nav-filter {Ui.Input}")
+                .Class($"side-nav-filter {Tw.Input}")
         ],
-        Div.Class("side-nav-scroll")[BuildSections()]
+        Div.Class("side-nav-scroll")[
+            Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]
+        ]
     ];
 
     // Guides-first: the narrative guides are the primary spine (top of the sidebar, groups expanded by
     // default via OpenGuideGroups), followed by the interactive Examples (the framework/core showcase
     // plus any host-contributed entries, e.g. the WASM PWA examples) and the Bootstrap-component
     // showcase — both demoted below the guides and collapsed until visited.
-    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
+    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
     {
         yield return ("Guides", GuidesNav());
         yield return ("Examples",
@@ -162,9 +168,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     }
 
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
-    private static IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
+    private static IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
-        yield return (Features.Routes.GuidesIndexPage(), "All guides", IconName.Book, "Overview", null);
+        yield return (Features.Routes.GuidesIndexPage(), "All guides", UiIconName.Book, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
         {
             yield return (Features.Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
@@ -200,13 +206,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Div.Class("side-nav-section")[section]);
+            children.Add(Li.Class("side-nav-section menu-title")[section]);
             children.AddRange(groups);
         }
 
         if (children.Count == 0)
         {
-            children.Add(Div.Class("side-nav-empty text-slate-500 dark:text-slate-400 text-sm")["Nothing matches that filter."]);
+            children.Add(Li.Class("side-nav-empty menu-title")["Nothing matches that filter."]);
         }
 
         return children;
@@ -214,18 +220,32 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     private Component GroupBlock(
         string key, string group, bool open,
-        IReadOnlyList<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> items) =>
-        Div.Class("nav-group").Key(key)[
+        IReadOnlyList<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> items) =>
+        // daisyUI's menu, and a real <ul>/<li> tree rather than a stack of divs: that shape is what the
+        // component styles, and it is also what tells a screen reader how many entries a group has and
+        // which one it is on.
+        //
+        // The nav-group-* and side-nav-link class names stay on the elements. They carry no styling any
+        // more — daisyUI does that — but 55 assertions across the unit and browser suites name them, and
+        // those assertions are still about the right things: that a group reads as open, that the active
+        // link is the one for this page. Renaming them would have turned a restyle into a rewrite of the
+        // tests that prove the restyle works, which is how a conversion loses its own safety net.
+        Li.Class("nav-group").Key(key)[
             Button
                 .Type("button")
-                .Class(open ? "nav-group-toggle open" : "nav-group-toggle")
+                .Class(open ? "nav-group-toggle open menu-dropdown-toggle menu-dropdown-show" : "nav-group-toggle menu-dropdown-toggle")
                 .OnClick(() => ToggleGroup(key))[
-                Icon.Name(open ? IconName.ChevronDown : IconName.ChevronRight).Class("nav-group-chevron"),
+                UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight).Class("nav-group-chevron size-3.5"),
                 Span.Class("nav-group-label")[group]
             ],
             !open
                 ? null
-                : Div.Class("nav-group-items flex flex-col")[
+                  // menu-dropdown-show belongs on the SUBMENU, not only on the toggle. daisyUI hides
+                  // the list with `.menu :where(li > .menu-dropdown:not(.menu-dropdown-show))
+                  // { display: none }`, and carries the class on the toggle purely to rotate its
+                  // chevron — so with it on the button alone every group renders and nothing in it is
+                  // ever visible.
+                : Ul.Class("nav-group-items menu-dropdown menu-dropdown-show")[
                     // No cast: the chain ends at the children indexer, so it is already a Component
                     // and Select infers the sequence — which is what the indexer wants.
                     items.Select(i =>
@@ -239,14 +259,20 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                             match = mp;
                         }
 
-                        return NavLink
-                            .Key(i.Path)
-                            .Href(i.Path)
-                            .Match(match)
-                            .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
-                            .Class("side-nav-link")[
-                            Icon.Name(i.Icon).Class("me-2"),
-                            Span[i.Label]
+                        return Li.Key(i.Path)[
+                            NavLink
+                                .Href(i.Path)
+                                .Match(match)
+                                .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
+                                // Both names, on purpose. menu-active is what daisyUI styles; active is
+                                // NavLink's own default and what seventeen assertions across the unit and
+                                // browser suites look for. Dropping either would cost the styling or the
+                                // tests that prove the link is the one for this page.
+                                .ActiveClass("active menu-active")
+                                .Class("side-nav-link")[
+                                UiIcon.Name(i.Icon).Class("me-2"),
+                                Span[i.Label]
+                            ]
                         ];
                     })
                 ]
@@ -291,11 +317,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
     // groups in the order their first item appears, exactly as the flat list was authored).
-    private static IEnumerable<(string Group, List<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> Items)>
-        GroupConsecutive(IEnumerable<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)> links)
+    private static IEnumerable<(string Group, List<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> Items)>
+        GroupConsecutive(IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> links)
     {
         string? current = null;
-        List<(string Path, string Label, IconName Icon, string Group, string? MatchPrefix)>? bucket = null;
+        List<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)>? bucket = null;
 
         foreach (var link in links)
         {

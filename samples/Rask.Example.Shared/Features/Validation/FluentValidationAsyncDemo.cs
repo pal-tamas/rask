@@ -15,26 +15,26 @@ public sealed partial class FluentValidationAsyncDemo : Component
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
     private static Component Checking() =>
-        Span.Class("validating-indicator text-slate-500 dark:text-slate-400 text-sm mt-1")[
-            Icon.Name(IconName.ArrowClockwise).Class("me-1"), "Checking availability..."
+        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
+            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking availability..."
         ];
 
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
             Div[
-                Label.For("v9-code").Class($"{Ui.Label} text-sm mb-1")["Ticket code"],
-                Input.Bind(() => _model.Code).Id("v9-code").Class(Ui.Input),
+                Label.For("v9-code").Class($"{Tw.Label} text-sm mb-1")["Ticket code"],
+                Input.Bind(() => _model.Code).Id("v9-code").Class(Tw.Input),
                 ValidatingIndicator.Template(Checking).For(() => _model.Code),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.TicketPerforated).Class("me-1"), "Reserve"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Ticket).Class("me-1"), "Reserve"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 
