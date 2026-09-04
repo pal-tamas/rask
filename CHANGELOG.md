@@ -323,6 +323,24 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The kit's stylesheet shipped the whole of daisyUI, because the plugin was being read as source.**
+  `vendor/daisyui.mjs` is 348 KB of daisyUI's own code and it sits inside the project Tailwind scans, so
+  the scanner found every class name daisyUI defines and treated the bundle as a safelist for the entire
+  library. The compiled sheet therefore carried every component whether or not anything used one.
+  `@source not "./vendor"` takes it back to what the kit actually writes: **192 KB from 384 KB raw, and
+  27.9 KB from 48.4 KB gzipped**. The sheet is inlined into every document, so that is 20.5 KB off every
+  page.
+
+  It also restores `UiClassNamesTests`, which checks that every class the kit can write is one daisyUI
+  really defines. With the bundle scanned, every daisyUI name was present in the sheet for reasons
+  unrelated to the kit, so the check was passing on evidence it had not earned.
+
+  This one is worth remembering for its shape rather than its size: **a stylesheet containing too much
+  looks exactly like a stylesheet containing enough.** Nothing renders wrong, no test goes red, and the
+  only symptom is a number with nothing to compare it against. It surfaced only from asking why
+  `mockup-browser` was in the output when no component mentions it.
+
+
 - **`UiIcon` sized itself only until a caller asked for anything, and then rendered nothing at all.**
   `Class` REPLACED the icon's own `size-5 shrink-0` rather than adding to it, so every call site that
   passed a margin — `me-1`, `me-2`, a colour, a scoped class — shipped an inline SVG with no width and

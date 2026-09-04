@@ -62,6 +62,19 @@
   invisible to the scan, and the failure is silent: the component renders with no styling at all and the
   build stays green. Measured: adding one file naming `drawer` grew this sheet by 4 KB.
 */
+/*
+  The plugin bundle is NOT a source file, and saying so is load-bearing.
+
+  Tailwind scans the project it runs in, and vendor/daisyui.mjs is inside it: 348 KB of daisyUI's own
+  code, naming every class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the
+  compiled sheet carried every component whether or not anything here used one. It reads as correct,
+  because a sheet containing too much looks exactly like a sheet containing enough.
+
+  It also quietly weakened UiClassNamesTests, which checks that every name the kit can write exists in
+  the sheet. With the bundle scanned, every daisyUI name was in there for reasons unrelated to the kit.
+*/
+@source not "./vendor";
+
 @plugin "./vendor/daisyui.mjs" {
   themes: light --default, dark --prefersdark;
   root: "[data-rask-ui]";
