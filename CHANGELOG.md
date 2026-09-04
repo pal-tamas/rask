@@ -56,18 +56,21 @@ them until tagged releases begin.
 
 ### Changed
 
-- **Two sample databases were committed, which froze their schemas.** `samples/Rask.Example.Auth`'s
-  `auth-sample.db` and the WasmCookie host's own database were tracked in git, and both samples build
-  their schema with `EnsureCreated` — which does nothing to a database that already exists. So every
-  battery table added after those files were committed was silently missing at runtime, with `git
-  status` clean and every build green. It surfaced as a browser journey dying on `Cannot create a
-  DbSet for 'QueuedMail'` long after the mail tables were a thing.
+- **`.gitignore` no longer lets a sample's SQLite database be committed.** The runtime-artifact block
+  carried a comment claiming it was "no longer a per-sample list" and was exactly that: it named only
+  `app.db` and `logs.db`, so a sample whose database has any other filename was never ignored and got
+  picked up by the next `git add -A`.
 
-  The `.gitignore` block above them claimed it was "no longer a per-sample list" and was exactly that,
-  naming only `app.db` and `logs.db`. It is a glob now, verified against `git ls-files` to swallow
-  nothing else tracked, and the six files are untracked. `samples/Rask.Example.Auth` also mapped
-  `AddRaskAuth()` without `AddRaskMail()` while every battery was on; a battery that is on needs its
-  tables mapped.
+  That is worth more than tidiness, because a committed database is a **frozen schema**: these samples
+  build theirs with `EnsureCreated`, which does nothing to a database that already exists, so any table
+  added afterwards is silently absent at runtime while `git status` stays clean and every build passes.
+  It costs a browser journey dying on `Cannot create a DbSet for 'QueuedMail'` with nothing else to go
+  on. (Caught during this branch's own development, on files this branch had committed — none of them
+  reached a release.) The block is a glob now, verified against `git ls-files` to swallow nothing else
+  tracked.
+
+  Relatedly, `samples/Rask.Example.Auth` mapped `AddRaskAuth()` without `AddRaskMail()` while every
+  battery was on. A battery that is on needs its tables mapped.
 
 - **Six places still told you to type `--auth`, which now errors.** Removing the flag swept the guides
   and the tutorial but missed `README.md`, `docs/api-endpoints.md` and four separate claims inside
