@@ -9,6 +9,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask new` ran a production front-end build during scaffolding.** With the batteries on, `rask new`
+  creates the first migration, and `dotnet-ef` builds the project to load the `DbContext`. That build
+  took `RaskSpaBuild` / `RaskMetaBuild` at their default of `true`, so scaffolding a front-end template
+  ran the bundler — or, on the meta lane, a full Nuxt/Next/SvelteKit **production** build — behind a
+  line that says "Creating the first migration…" and nothing else
+  ([#991](https://github.com/pal-tamas/rask/issues/991)).
+
+  Minutes of silence for output nobody reads: the next thing anyone does is `rask dev`, which turns
+  both properties off again and lets the framework's own dev server own the front end. Worse, a
+  machine without node failed the migration step for a reason that has nothing to do with the
+  database.
+
+  The first migration now runs with both properties off. MSBuild reads properties from the
+  environment, which is how they reach a build whose command line belongs to `dotnet-ef` — the same
+  channel `rask dev` already uses for `HotReloadAutoRestart` — so `rask db`'s argument surface is
+  untouched and every other invocation of it is unchanged.
+
 - **A repaint requested while a dispatch was emitting its frame was discarded, not deferred.** Every
   WASM render path holds `InHandlerScope` across the coalescing loop *and* the noop publish guard
   *and* the frame emit. A `StateHasChanged` arriving after the loop settled parked in

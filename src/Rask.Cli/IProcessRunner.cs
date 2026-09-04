@@ -31,7 +31,12 @@ internal interface IProcessRunner
     /// Run a child process and capture its output (probing commands like <c>rask info</c> that parse
     /// <c>dotnet --version</c>).
     /// </summary>
-    Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken);
+    Task<ProcessResult> CaptureAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null);
 
     /// <summary>
     /// Run a child process whose output the user sees live <em>and</em> the caller reads — every line is
@@ -118,9 +123,14 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         }
     }
 
-    public async Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
+    public async Task<ProcessResult> CaptureAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
-        using var process = Start(fileName, arguments, workingDirectory, redirect: true);
+        using var process = Start(fileName, arguments, workingDirectory, redirect: true, environment);
         var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
