@@ -62,7 +62,7 @@ internal static class PrerenderShell
             ? document[documentHead.InnerStart..documentHead.InnerEnd]
             : string.Empty;
 
-        builder.Append(shell, 0, shellHead.InnerStart);
+        builder.Append(MergeHtmlAttributes(shell[..shellHead.InnerStart], document));
         builder.Append(HasTitle(documentHeadInner) ? RemoveTitle(shellHeadInner) : shellHeadInner);
         builder.Append(StripShellOwnedTags(documentHeadInner));
         builder.Append(shell, shellHead.InnerEnd, shellBody.InnerStart - shellHead.InnerEnd);
@@ -77,6 +77,152 @@ internal static class PrerenderShell
         builder.Append(shell, shellBody.InnerEnd, shell.Length - shellBody.InnerEnd);
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    ///     Carries the rendered document's <c>&lt;html&gt;</c> attributes onto the shell's, keeping the
+    ///     shell's value wherever both name the same attribute.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Without this, everything a root component's <c>Shell</c> override puts on
+    ///         <c>&lt;html&gt;</c> is silently dropped by prerendering: the merge keeps the shell,
+    ///         because the shell is what carries the import map and the boot script, and the shell's
+    ///         opening tag comes from the SDK rather than from the app.
+    ///     </para>
+    ///     <para>
+    ///         It is not a theoretical loss. The landing site sets <c>data-rask-ui</c> there to turn the
+    ///         component kit's theme on, and shipped to production with every colour computing to
+    ///         nothing — structurally perfect, entirely grey — because the attribute never reached the
+    ///         published page. Layout survives that, which is what makes it so quiet.
+    ///     </para>
+    ///     <para>
+    ///         The shell wins on conflict. Its <c>lang</c> and any attribute a sub-path publish rewrote
+    ///         are the ones that were computed for THIS publish, and a render that disagrees is a render
+    ///         that did not know about it.
+    ///     </para>
+    /// </remarks>
+    private static string MergeHtmlAttributes(string shellPrefix, string document)
+    {
+        var documentOpen = IndexOfTag(document, "html");
+        if (documentOpen < 0)
+        {
+            return shellPrefix;
+        }
+
+        var documentGt = document.AsSpan(documentOpen).IndexOf('>');
+        if (documentGt <= 0)
+        {
+            return shellPrefix;
+        }
+
+        var documentAttrs = document.Substring(documentOpen + 5, documentGt - 5).Trim().TrimEnd('/').Trim();
+        if (documentAttrs.Length == 0)
+        {
+            return shellPrefix;
+        }
+
+        var shellOpen = IndexOfTag(shellPrefix, "html");
+        if (shellOpen < 0)
+        {
+            return shellPrefix;
+        }
+
+        var shellGt = shellPrefix.AsSpan(shellOpen).IndexOf('>');
+        if (shellGt <= 0)
+        {
+            return shellPrefix;
+        }
+
+        var shellAttrs = shellPrefix.Substring(shellOpen + 5, shellGt - 5).Trim().TrimEnd('/').Trim();
+
+        var added = new StringBuilder();
+        foreach (var attribute in SplitAttributes(documentAttrs))
+        {
+            var name = AttributeName(attribute);
+            if (name.Length == 0 || HasAttribute(shellAttrs, name))
+            {
+                continue;
+            }
+
+            added.Append(' ').Append(attribute);
+        }
+
+        if (added.Length == 0)
+        {
+            return shellPrefix;
+        }
+
+        var insertAt = shellOpen + shellGt;
+        return shellPrefix[..insertAt] + added + shellPrefix[insertAt..];
+    }
+
+    /// <summary>Splits an attribute list, respecting quoted values.</summary>
+    private static List<string> SplitAttributes(string attributes)
+    {
+        var result = new List<string>();
+        var current = new StringBuilder();
+        var quote = '\0';
+
+        foreach (var c in attributes)
+        {
+            if (quote != '\0')
+            {
+                current.Append(c);
+                if (c == quote)
+                {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (c is '"' or '\'')
+            {
+                quote = c;
+                current.Append(c);
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c))
+            {
+                if (current.Length > 0)
+                {
+                    result.Add(current.ToString());
+                    current.Clear();
+                }
+
+                continue;
+            }
+
+            current.Append(c);
+        }
+
+        if (current.Length > 0)
+        {
+            result.Add(current.ToString());
+        }
+
+        return result;
+    }
+
+    private static string AttributeName(string attribute)
+    {
+        var eq = attribute.IndexOf('=', StringComparison.Ordinal);
+        return (eq < 0 ? attribute : attribute[..eq]).Trim();
+    }
+
+    private static bool HasAttribute(string attributes, string name)
+    {
+        foreach (var attribute in SplitAttributes(attributes))
+        {
+            if (string.Equals(AttributeName(attribute), name, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

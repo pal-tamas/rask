@@ -1,0 +1,27 @@
+{
+  "name": "client-prod",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@babel/parser": "7.29.8",
+    "@vue/compiler-core": "3.5.42",
+    "@vue/compiler-dom": "3.5.42",
+    "@vue/compiler-ssr": "3.5.42",
+    "@vue/reactivity": "3.5.42",
+    "@vue/runtime-core": "3.5.42",
+    "@vue/runtime-dom": "3.5.42",
+    "@vue/server-renderer": "3.5.42",
+    "@vue/shared": "3.5.42",
+    "devalue": "5.9.2",
+    "entities": "7.0.1",
+    "estree-walker": "2.0.2",
+    "hookable": "6.1.1",
+    "nostics": "1.2.0",
+    "source-map-js": "1.2.1",
+    "ufo": "1.6.4",
+    "unhead": "3.4.0",
+    "vue": "3.5.42",
+    "vue-bundle-renderer": "2.3.2"
+  }
+}
