@@ -111,7 +111,12 @@ internal sealed class DevCommand(
         var environment = BuildEnvironment(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable,
             target.IslandDevServerUrl,
-            once);
+            once,
+            // Only when a front end was actually found, because this is what tells the host to STOP
+            // supervising. Without a client directory no dev server is started either, so handing the
+            // host a port would leave it forwarding into nothing — and would replace the supervisor's
+            // precise "no server entry at '…'" with a wall of connection failures.
+            target.ClientDirectory is null ? null : target.ClientDevServerUrl);
 
         // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
         // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry
@@ -198,7 +203,7 @@ internal sealed class DevCommand(
     /// </remarks>
     private async Task StartClientDevServer(DevTarget target, CancellationToken cancellationToken)
     {
-        if (target.Kind != DevTemplateKind.SpaHosted)
+        if (target.Kind is not (DevTemplateKind.SpaHosted or DevTemplateKind.MetaHosted))
         {
             return;
         }
@@ -207,7 +212,9 @@ internal sealed class DevCommand(
         {
             Console.WriteLine(
                 "No client directory found beside this host, so no dev server was started. Run the "
-                + "bundler yourself, or point RaskSpaClientDir at it.",
+                + (target.Kind == DevTemplateKind.MetaHosted
+                    ? "framework's dev server yourself, or point RaskMetaAppDir at it."
+                    : "bundler yourself, or point RaskSpaClientDir at it."),
                 ConsoleStyle.Dim);
             return;
         }
@@ -426,6 +433,15 @@ internal sealed class DevCommand(
                 args.Add("--property:RaskSpaBuild=false");
             }
 
+            // The same trade on the meta lane, where it is worth more: `npm run build` there is a full
+            // PRODUCTION build of Nuxt, Next or SvelteKit — the framework's own dev server is running
+            // beside this and is what the browser talks to, so that output is never read. The generated
+            // TypeScript is emitted anyway, independently of this flag, for the same reason as above.
+            if (kind == DevTemplateKind.MetaHosted)
+            {
+                args.Add("--property:RaskMetaBuild=false");
+            }
+
             // Islands are served by their own Vite dev server for this session, so the production
             // bundle would be a full rebuild of every island on every save that nothing then reads.
             //
@@ -463,7 +479,8 @@ internal sealed class DevCommand(
         string? urls,
         Func<string, string?> readEnv,
         string? islandDevServerUrl = null,
-        bool once = false)
+        bool once = false,
+        string? metaDevServerUrl = null)
     {
         var env = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -509,6 +526,17 @@ internal sealed class DevCommand(
             env["RASK_ISLANDS_DEV"] = islandDevServerUrl;
         }
 
+        // Where the meta framework's own dev server is listening. Without it the host has nothing to
+        // serve and nothing to forward to: RaskMetaBuild=false means there is no built front end, so the
+        // supervisor refuses to start and takes the whole session down before the first page. With it the
+        // host stops supervising and forwards to the process `rask dev` started beside it instead.
+        //
+        // Never under --once: that mode runs the app as it would run in production, against a real build.
+        if (!once && kind == DevTemplateKind.MetaHosted && metaDevServerUrl is { Length: > 0 })
+        {
+            env["RASK_META_DEV"] = metaDevServerUrl;
+        }
+
         return env;
     }
 
@@ -531,13 +559,14 @@ internal sealed class DevCommand(
             return null;
         }
 
-        // For a SPA host the browser belongs on the BUNDLER, not on ASP.NET: the dev server is what serves
-        // the app and what HMR reaches, and it proxies the wire back to the host. Opening the host's own
-        // port instead lands on "nothing built yet" and looks like a broken scaffold.
+        // For either front-end lane the browser belongs on the DEV SERVER, not on ASP.NET: it is what
+        // serves the app and what HMR reaches, and it proxies the wire back to the host. Opening the
+        // host's own port instead lands on "nothing built yet" and looks like a broken scaffold.
         //
         // --urls is still honoured: it names where the HOST listens, and someone who set it deliberately is
         // saying that is the address they mean.
-        if (target.Kind == DevTemplateKind.SpaHosted && urls is not { Length: > 0 })
+        if (target.Kind is DevTemplateKind.SpaHosted or DevTemplateKind.MetaHosted
+            && urls is not { Length: > 0 })
         {
             return target.ClientDevServerUrl ?? ViteDevServerUrl;
         }
@@ -596,7 +625,7 @@ internal sealed class DevCommand(
 
     private void WriteBanner(DevTarget target, bool once, bool noHotReload, bool restartOnRudeEdit, string? urls)
     {
-        WriteHeading($"Rask dev — {target.Name} ({Describe(target.Kind)})");
+        WriteHeading($"Rask dev — {target.Name} ({Describe(target)})");
 
         var url = FirstUrl(urls) ?? target.LaunchUrl;
         if (url is not null)
@@ -630,11 +659,15 @@ internal sealed class DevCommand(
         Console.Out.WriteLine();
     }
 
-    private static string Describe(DevTemplateKind kind) => kind switch
+    private static string Describe(DevTarget target) => target.Kind switch
     {
         DevTemplateKind.Server => "server",
         DevTemplateKind.WasmHosted => "wasm-hosted",
         DevTemplateKind.SpaHosted => "react",
+
+        // The framework's own name, because on this lane it is the thing that differs — six of them share
+        // one kind, and "meta" alone would leave the banner saying less than the csproj does.
+        DevTemplateKind.MetaHosted => target.MetaFramework ?? "meta",
         DevTemplateKind.WasmStandalone => "wasm",
         _ => "app"
     };

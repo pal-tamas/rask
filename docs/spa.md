@@ -392,6 +392,93 @@ the starter's markup carries no `class` attributes of its own. Move any rule int
 your own markup and delete it; that is the same page. Delete the layer entirely and the page renders
 as unstyled text, because Tailwind's preflight removes the browser's defaults on purpose.
 
+## Browser APIs
+
+Rask ships typed wrappers over the browser's Web APIs, and on a Rask component front end you inject
+them as C# services. Here you are writing TypeScript, so you get the layer underneath them instead:
+the same modules, imported directly.
+
+```ts
+import { getCurrentPosition } from '@rask/browser/geolocation'
+import { prefersDark } from '@rask/browser/mediaQuery'
+
+const fix = await getCurrentPosition({ enableHighAccuracy: true })
+```
+
+They arrive in `src/rask/browser/` the way `client.ts` does — copied out of the package on every
+build, so upgrading Rask upgrades them. Import a module directly, as above, and your bundler keeps
+only what you used; or take the namespace form, `import { geolocation } from '@rask/browser'`.
+
+**`@rask/*` is a tsconfig path**, written for you as `src/rask/tsconfig.rask.json` on every build. Add
+the mapping to your own `tsconfig.json`:
+
+```json
+{ "compilerOptions": { "paths": { "@rask/*": ["./src/rask/*"] } } }
+```
+
+Add it **to** whatever `paths` your template already has, rather than extending the generated file:
+TypeScript does not merge `paths` across an `extends`, so a `paths` of your own would replace the
+inherited mapping entirely and `@rask/client` would stop resolving. Vite reads these through
+`vite-tsconfig-paths` where your template includes it; otherwise add a matching `resolve.alias`.
+
+It is the same specifier [the meta lane](meta.md#browser-apis) uses, where the modules land in
+whichever source directory that framework prefers — so the import reads the same in both, and moving
+between them teaches you nothing new. Relative imports keep working if you would rather not.
+
+**This is the same code Rask's own Server and WASM clients run.** It is not a TypeScript port kept in
+step by hand: the C# `IGeolocation` reaches the browser by calling into these very modules. A quirk
+fixed for one caller is fixed for the other in the same commit.
+
+Available today — the layer is moving over one API at a time:
+
+| | Modules |
+| --- | --- |
+| **Storage** | `indexedDb` · `originPrivateFileSystem` · `fileSystem` · `storageManager` · `cookies` |
+| **Device** | `geolocation` · `deviceOrientation` · `deviceMotion` · `battery` · `gamepad` · `mediaDevices` |
+| **Page** | `mediaQuery` · `visualViewport` · `screen` · `screenOrientation` · `fullscreen` · `pictureInPicture` |
+| **Observers** | `intersectionObserver` · `resizeObserver` · `mutationObserver` |
+| **Identity & crypto** | `webAuthn` · `crypto` · `permissions` |
+| **Coordination** | `broadcastChannel` · `webLocks` |
+| **Media & speech** | `mediaSession` · `speechSynthesis` · `speechRecognition` |
+| **PWA** | `webPush` · `notifications` · `badge` · `wakeLock` · `installPrompt` |
+| **Peer to peer** | `signaling` |
+| **Other** | `networkInformation` · `performance` · `eyeDropper` |
+
+Note what is **not** here, because the line matters more than the list. `clipboard` is
+`navigator.clipboard.writeText`, `localStorage` is `localStorage`, and `element.animate()` is already a
+method on the element — wrapping those would hand you a worse version of what `lib.dom.d.ts` already
+types. The same goes for `RTCPeerConnection` and the device APIs (`serial`, `usb`, `hid`, `bluetooth`):
+native, well typed, and yours to call. `signaling` is here precisely because it is the exception — the
+relay it connects to is Rask's, so it is not something you could write against nothing.
+
+These are the ones you would rather not write. `webAuthn` is the clearest: the platform deals in
+`ArrayBuffer`s while every relying party speaks base64url, so the module takes and returns base64url on
+both sides and a passkey ceremony is two calls. `originPrivateFileSystem` does ranged reads and writes
+into the origin's private tree with `keepExistingData` set — without which a ranged write silently
+discards every byte outside the range it wrote. `wakeLock` re-acquires the lock when the page becomes
+visible again, because the browser takes it away when the page is hidden and does not give it back,
+which is how a recipe left open quietly stops keeping the screen on.
+
+Names are idiomatic TypeScript, and where the platform already has a name it keeps it —
+`getCurrentPosition`, not `GetCurrentPositionAsync`. Subscriptions hand back a stop function rather
+than a disposable:
+
+```ts
+const stop = watchPosition(fix => setPosition(fix))
+// later, in a cleanup
+stop()
+```
+
+**Everything the platform gives you already, you should keep taking from the platform.**
+`navigator.clipboard.writeText` needs no wrapper in TypeScript, and `lib.dom.d.ts` types it better
+than Rask could. These modules exist for the parts that are genuinely awkward — a callback API that
+should be a promise, a live object that has to be snapshotted, a vendor-prefixed fallback chain, a
+base64url ceremony — and for the parts with a server half, which is the next section.
+
+**They are safe to import in a server render.** Nothing in `src/rask/browser/` touches `window` or
+`document` at import time, so a module can be imported at the top of a file that also runs during
+SSR. Calling one still needs a browser, as it would anywhere.
+
 ## Installable, and push-capable
 
 `--pwa` makes the app installable; `--push` adds Web Push from the ASP.NET host.

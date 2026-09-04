@@ -3,7 +3,7 @@
 // this IIFE at a `// @@RASK_*@@` marker, in an order the build had to get right and nothing checked;
 // they are now an import list the compiler verifies.
 //
-// The framework's own browser shims (rask-api, rask-pwa) and the delegated event router
+// The framework's own browser shims (rask-api, browser/globals) and the delegated event router
 // (rask-events) are imported for their side effects: each installs listeners or publishes a
 // `window.__rask*` namespace that .NET reaches by dotted name, so there is nothing to bind.
 import { applyDiff, applyFrameInvokes, type DiffOp } from "../../Rask.Core/Resources/rask-dom.js";
@@ -31,7 +31,6 @@ import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
-import "../../Rask.Core/Resources/rask-pwa.js";
 import "../../Rask.Core/Resources/rask-events.js";
 
 (function () {

@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Rask.Generators.Analyzers;
 using Rask.Generators.CodeFixes;
 
@@ -360,4 +362,171 @@ public class CodeFixProviderTests
                 public class Base { public int Count => 1; }
                 public class Derived : Base { public int Count => 2; }
                 """));
+
+    // ---- RASK071: ASP.NET's [Route] -> Rask's own ----
+
+    // The common shape: the file imports MVC (that is how the wrong attribute got typed) and does not
+    // import Rask.Core.Routing. A bare Route here would bind straight back to MVC's attribute, so the
+    // fix has to leave the name qualified.
+    [Fact]
+    public async Task Rask071_WithMvcImported_WritesTheQualifiedName()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
+            Page("using Microsoft.AspNetCore.Mvc;", "[Route(\"/orders\")]"));
+
+        Assert.Contains("Rask.Core.Routing.Route(\"/orders\")", fixhed);
+        // The fix is worthless if it swaps one silent non-registration for another.
+        Assert.DoesNotContain("[Route(\"/orders\")]", fixhed);
+    }
+
+    // With Rask's namespace already imported and nothing to collide with, the simplifier reduces the
+    // qualified name to the spelling a person would have written.
+    [Fact]
+    public async Task Rask071_WithRaskRoutingImported_ReducesToTheShortName()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
+            Page("using Rask.Core.Routing;", "[Microsoft.AspNetCore.Mvc.Route(\"/orders\")]"));
+
+        Assert.Contains("[Route(\"/orders\")]", fixhed);
+        Assert.DoesNotContain("Microsoft.AspNetCore.Mvc", fixhed);
+    }
+
+    // Both namespaces in scope is the case that punishes a naive fix: a bare Route is ambiguous
+    // (CS0104), so the qualified form has to survive rather than be reduced away.
+    [Fact]
+    public async Task Rask071_WithBothImported_StaysQualified()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
+            Page("using Microsoft.AspNetCore.Mvc;\nusing Rask.Core.Routing;",
+                "[Microsoft.AspNetCore.Mvc.Route(\"/orders\")]"));
+
+        Assert.Contains("Rask.Core.Routing.Route(\"/orders\")", fixhed);
+    }
+
+    [Fact]
+    public async Task Rask071_BlazorsAttribute_IsFixedToo()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
+            Page("using Rask.Core.Routing;", "[Microsoft.AspNetCore.Components.Route(\"/orders\")]"));
+
+        Assert.Contains("[Route(\"/orders\")]", fixhed);
+        Assert.DoesNotContain("Microsoft.AspNetCore.Components", fixhed);
+    }
+
+    // Rewriting only the NAME rather than rebuilding the attribute is what keeps the template intact,
+    // constraint and all — a rebuilt attribute is where a route template quietly loses its ":int".
+    [Fact]
+    public async Task Rask071_KeepsTheTemplateExactly()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
+            Page("using Rask.Core.Routing;",
+                "[Microsoft.AspNetCore.Mvc.Route(\"/orders/{id:int}\")]"));
+
+        Assert.Contains("\"/orders/{id:int}\"", fixhed);
+    }
+
+
+    // MVC's attribute carries settable Name and Order; Rask's has neither. The arguments are carried
+    // over verbatim, so offering the fix here would answer RASK071 with CS0117 on a property that does
+    // not exist — a worse diagnostic than the one being fixed, and on a line the developer did not touch.
+    [Fact]
+    public async Task Rask071_WithMvcOnlyProperties_FixIsWithheld() =>
+        Assert.False(await CodeFixHarness.IsAnalyzerFixOfferedAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
+            Page("using Rask.Core.Routing;",
+                "[Microsoft.AspNetCore.Mvc.Route(\"/orders\", Name = \"orders\", Order = 2)]")));
+
+    // An alias that bakes its own template in takes no arguments at all, so the rewritten attribute
+    // would be missing the template Rask's constructor requires — CS7036.
+    [Fact]
+    public async Task Rask071_AliasWithNoArguments_FixIsWithheld() =>
+        Assert.False(await CodeFixHarness.IsAnalyzerFixOfferedAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071", """
+                using Rask.Core;
+                namespace Demo;
+
+                public sealed class ApiRouteAttribute() : Microsoft.AspNetCore.Mvc.RouteAttribute("/orders");
+
+                [ApiRoute]
+                public sealed partial class Orders : Component
+                {
+                    protected override Component? Render() => null;
+                }
+                """));
+
+    // The parameter-naming form is not the property form: Rask's constructor parameter is also called
+    // `template`, so this one carries over intact and the fix stays on offer.
+    [Fact]
+    public async Task Rask071_WithTheTemplateNamedAsAParameter_IsStillFixed()
+    {
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
+            Page("using Rask.Core.Routing;", "[Microsoft.AspNetCore.Mvc.Route(template: \"/orders\")]"));
+
+        Assert.Contains("[Route(template: \"/orders\")]", fixhed);
+    }
+
+    private static string Page(string usings, string attribute) => $$"""
+        using Rask.Core;
+        {{usings}}
+        namespace Demo;
+
+        {{attribute}}
+        public sealed partial class Orders : Component
+        {
+            protected override Component? Render() => null;
+        }
+        """;
+
+    // The trap this fix exists to avoid, asserted on the COMPILER rather than on the text: a server file
+    // holding both a genuine MVC controller and a Rask page. Reaching for the tidier fix here — insert
+    // `using Rask.Core.Routing;` and leave a bare Route — would make the CONTROLLER's attribute ambiguous
+    // and trade RASK071 for CS0104 somewhere the developer never looked. Asserting "no using was added"
+    // would pin today's mechanism; compiling the result pins the property that actually matters.
+    [Fact]
+    public async Task Rask071_DoesNotBreakAnMvcControllerSharingTheFile()
+    {
+        var source = """
+                     using Rask.Core;
+                     using Microsoft.AspNetCore.Mvc;
+                     namespace Demo;
+
+                     [Route("/api/orders")]
+                     public sealed class OrdersController : ControllerBase
+                     {
+                         public string Get() => "ok";
+                     }
+
+                     [Route("/orders")]
+                     public sealed partial class Orders : Component
+                     {
+                         protected override Component? Render() => null;
+                     }
+                     """;
+
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071", source);
+
+        Assert.Contains("Rask.Core.Routing.Route(\"/orders\")", fixhed);
+        // The controller is untouched and still binds to MVC's attribute.
+        Assert.Contains("[Route(\"/api/orders\")]", fixhed);
+
+        var errors = CSharpCompilation.Create(
+                "Fixed",
+                [CSharpSyntaxTree.ParseText(fixhed, new CSharpParseOptions(LanguageVersion.Latest))],
+                GeneratorDriverFixture.BuildReferences(),
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                    nullableContextOptions: NullableContextOptions.Enable))
+            .GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToList();
+
+        Assert.True(errors.Count == 0,
+            "the fixed file must still compile:\n  " + string.Join("\n  ", errors.Select(d => d.ToString())));
+    }
 }

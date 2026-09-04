@@ -30,11 +30,19 @@
   </ItemGroup>
 
   <!--
-    Deploy next to Rask.Spa.Hosting.targets so <UsingTask AssemblyFile="$(MSBuildThisFileDirectory)…"/>
+    Deploy next to each hosting package's .targets so <UsingTask AssemblyFile="$(MSBuildThisFileDirectory)…"/>
     resolves identically for in-repo consumers and for NuGet consumers, which get build/ verbatim.
+
+    BOTH TypeScript lanes load this task now. The name is still Rask.Spa.Tasks because that is where it
+    was born and a rename is a package-shape change for no behavioural gain; what it does — read the
+    generated contract constants out of the compiled assembly and write them as .ts — is neither lane's
+    private business. The alternative was a second copy of the same task in a Meta.Tasks assembly,
+    which is two implementations of one file format waiting to disagree.
   -->
-  <Target Name="CopyTaskAssemblyToRaskSpaBuild" AfterTargets="Build">
+  <Target Name="CopyTaskAssemblyToHostingBuildFolders" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Spa.Hosting\build\"
+          SkipUnchangedFiles="true"/>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Meta.Hosting\build\"
           SkipUnchangedFiles="true"/>
   </Target>
 

@@ -65,4 +65,18 @@
     <RaskMetaMinimumNode Condition="'$(RaskMetaMinimumNode)' == ''">22.12.0</RaskMetaMinimumNode>
   </PropertyGroup>
 
+  <!--
+    The generator that turns your C# message records into TypeScript reads this, and reads it through
+    Roslyn's analyzer-config surface rather than as an ordinary MSBuild property — so it has to be
+    declared visible or it is simply absent, and CqrsCodecGenerator emits nothing at all.
+
+    That absence is exactly what this lane had: the property was defaulted and made visible only by
+    Rask.Spa.Hosting, so a meta host referencing Rask.Cqrs.Server got no contracts, no error, and no
+    hint that a whole feature had not run. The value itself is defaulted in the .targets, where the
+    resolved app directory is known.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskEmitTypeScript"/>
+  </ItemGroup>
+
 </Project>

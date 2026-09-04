@@ -271,8 +271,8 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Mapped before UseRask: its catch-all serves the SPA for anything unmatched, so a minimal API
-// registered after it would never be reached.
+// Endpoints go here, before UseRask, so they read in one place. Order is not what makes them work:
+// routing matches on precedence, and any route is more specific than the catch-all.
 app.MapPushSubscriptions();
 
 // To host this app under a sub-path (e.g. behind a reverse proxy mapping

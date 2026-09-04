@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +15,7 @@ namespace Rask.Meta.Hosting.Tests;
 ///     established that registering the hosted service causes any of it to happen. That is the gap
 ///     where a package ships doing nothing at all, with a green suite.
 /// </remarks>
+[Collection(MetaHostCollection.Name)]
 public class SupervisorSeamTests
 {
     private static WebApplication BuildHost(Action<MetaHostingOptions> configure)
@@ -41,6 +43,31 @@ public class SupervisorSeamTests
         await app.StartAsync();
 
         Assert.True(app.Services.GetRequiredService<NodeReadiness>().IsReady);
+    }
+
+    /// <summary>
+    ///     A request arriving after the drain begins is refused rather than forwarded.
+    /// </summary>
+    /// <remarks>
+    ///     Closing the door is what makes the wait terminate: without it the in-flight count keeps
+    ///     being topped up by new arrivals and the drain sits out its whole budget under any load.
+    /// </remarks>
+    [Fact]
+    public async Task A_request_after_the_drain_begins_is_refused()
+    {
+        await using var app = BuildHost(options => options.SuperviseNode = false);
+        await app.StartAsync();
+
+        app.Services.GetRequiredService<MetaDrain>().BeginDrain();
+
+        var forwarder = app.Services.GetRequiredService<NodeForwarder>();
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/page";
+        context.Response.Body = new MemoryStream();
+
+        await forwarder.ForwardAsync(context);
+
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, context.Response.StatusCode);
     }
 
     /// <summary>

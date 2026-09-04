@@ -1,0 +1,13 @@
+#nullable enable
+Rask.Api.ApiOptions
+Rask.Api.ApiOptions.ApiOptions() -> void
+Rask.Api.ApiOptions.Controllers.get -> bool
+Rask.Api.ApiOptions.Controllers.set -> void
+Rask.Api.ApiOptions.NotFound.get -> bool
+Rask.Api.ApiOptions.NotFound.set -> void
+Rask.Api.ApiOptions.Prefix.get -> string!
+Rask.Api.ApiOptions.Prefix.set -> void
+Rask.Api.RaskApiEndpointExtensions
+Rask.Api.RaskApiServiceCollectionExtensions
+static Rask.Api.RaskApiEndpointExtensions.MapRaskApi(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+static Rask.Api.RaskApiServiceCollectionExtensions.AddRaskApi(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Api.ApiOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

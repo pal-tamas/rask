@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Api"/>
+    <Using Include="Rask.Api.Client"/>
+  </ItemGroup>
+
+  <!--
+    The generator is referenced as an ANALYZER here, not as an assembly: this project's whole purpose is
+    to compile the client it emits from the controllers below and then call them over real HTTP.
+    Analyzers do not flow through a ProjectReference, so it has to be named explicitly.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Api\Rask.Api.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Api.Client\Rask.Api.Client.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Api.Generators\Rask.Api.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

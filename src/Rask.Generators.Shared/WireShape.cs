@@ -177,7 +177,7 @@ internal static class WireShape
             {
                 Kind = WireKind.Enum,
                 Fqn = Fqn(type),
-                ReadExpression = "global::Rask.Cqrs.WireJson.ReadInt64",
+                ReadExpression = "global::Rask.Wire.WireJson.ReadInt64",
                 WriteExpression = "writer.WriteNumberValue((long){0})",
 
                 // Carried for the TypeScript emitter, which needs the member names to emit a real
@@ -204,7 +204,7 @@ internal static class WireShape
             {
                 Kind = WireKind.Bytes,
                 Fqn = Fqn(type),
-                ReadExpression = "global::Rask.Cqrs.WireJson.ReadBytes",
+                ReadExpression = "global::Rask.Wire.WireJson.ReadBytes",
                 WriteExpression = "writer.WriteBase64StringValue({0})",
             };
         }
@@ -508,31 +508,31 @@ internal static class WireShape
 
     private static readonly Dictionary<SpecialType, (string Read, string Write)> Scalars = new()
     {
-        [SpecialType.System_Boolean] = ("global::Rask.Cqrs.WireJson.ReadBoolean", "writer.WriteBooleanValue({0})"),
-        [SpecialType.System_Byte] = ("global::Rask.Cqrs.WireJson.ReadByte", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_SByte] = ("global::Rask.Cqrs.WireJson.ReadSByte", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Int16] = ("global::Rask.Cqrs.WireJson.ReadInt16", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_UInt16] = ("global::Rask.Cqrs.WireJson.ReadUInt16", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Int32] = ("global::Rask.Cqrs.WireJson.ReadInt32", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_UInt32] = ("global::Rask.Cqrs.WireJson.ReadUInt32", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Int64] = ("global::Rask.Cqrs.WireJson.ReadInt64", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_UInt64] = ("global::Rask.Cqrs.WireJson.ReadUInt64", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Single] = ("global::Rask.Cqrs.WireJson.ReadSingle", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Double] = ("global::Rask.Cqrs.WireJson.ReadDouble", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Decimal] = ("global::Rask.Cqrs.WireJson.ReadDecimal", "writer.WriteNumberValue({0})"),
-        [SpecialType.System_Char] = ("global::Rask.Cqrs.WireJson.ReadChar", "global::Rask.Cqrs.WireJson.WriteCharValue(writer, {0})"),
-        [SpecialType.System_String] = ("global::Rask.Cqrs.WireJson.ReadString", "writer.WriteStringValue({0})"),
-        [SpecialType.System_DateTime] = ("global::Rask.Cqrs.WireJson.ReadDateTime", "writer.WriteStringValue({0})"),
+        [SpecialType.System_Boolean] = ("global::Rask.Wire.WireJson.ReadBoolean", "writer.WriteBooleanValue({0})"),
+        [SpecialType.System_Byte] = ("global::Rask.Wire.WireJson.ReadByte", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_SByte] = ("global::Rask.Wire.WireJson.ReadSByte", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_Int16] = ("global::Rask.Wire.WireJson.ReadInt16", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_UInt16] = ("global::Rask.Wire.WireJson.ReadUInt16", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_Int32] = ("global::Rask.Wire.WireJson.ReadInt32", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_UInt32] = ("global::Rask.Wire.WireJson.ReadUInt32", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_Int64] = ("global::Rask.Wire.WireJson.ReadInt64", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_UInt64] = ("global::Rask.Wire.WireJson.ReadUInt64", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_Single] = ("global::Rask.Wire.WireJson.ReadSingle", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_Double] = ("global::Rask.Wire.WireJson.ReadDouble", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_Decimal] = ("global::Rask.Wire.WireJson.ReadDecimal", "writer.WriteNumberValue({0})"),
+        [SpecialType.System_Char] = ("global::Rask.Wire.WireJson.ReadChar", "global::Rask.Wire.WireJson.WriteCharValue(writer, {0})"),
+        [SpecialType.System_String] = ("global::Rask.Wire.WireJson.ReadString", "writer.WriteStringValue({0})"),
+        [SpecialType.System_DateTime] = ("global::Rask.Wire.WireJson.ReadDateTime", "writer.WriteStringValue({0})"),
     };
 
     private static readonly Dictionary<string, (string Read, string Write)> NamedScalars = new()
     {
-        ["global::System.Guid"] = ("global::Rask.Cqrs.WireJson.ReadGuid", "writer.WriteStringValue({0})"),
-        ["global::System.DateTimeOffset"] = ("global::Rask.Cqrs.WireJson.ReadDateTimeOffset", "writer.WriteStringValue({0})"),
-        ["global::System.DateOnly"] = ("global::Rask.Cqrs.WireJson.ReadDateOnly", "global::Rask.Cqrs.WireJson.WriteDateOnlyValue(writer, {0})"),
-        ["global::System.TimeOnly"] = ("global::Rask.Cqrs.WireJson.ReadTimeOnly", "global::Rask.Cqrs.WireJson.WriteTimeOnlyValue(writer, {0})"),
-        ["global::System.TimeSpan"] = ("global::Rask.Cqrs.WireJson.ReadTimeSpan", "global::Rask.Cqrs.WireJson.WriteTimeSpanValue(writer, {0})"),
-        ["global::System.Uri"] = ("global::Rask.Cqrs.WireJson.ReadUri", "global::Rask.Cqrs.WireJson.WriteUriValue(writer, {0})"),
+        ["global::System.Guid"] = ("global::Rask.Wire.WireJson.ReadGuid", "writer.WriteStringValue({0})"),
+        ["global::System.DateTimeOffset"] = ("global::Rask.Wire.WireJson.ReadDateTimeOffset", "writer.WriteStringValue({0})"),
+        ["global::System.DateOnly"] = ("global::Rask.Wire.WireJson.ReadDateOnly", "global::Rask.Wire.WireJson.WriteDateOnlyValue(writer, {0})"),
+        ["global::System.TimeOnly"] = ("global::Rask.Wire.WireJson.ReadTimeOnly", "global::Rask.Wire.WireJson.WriteTimeOnlyValue(writer, {0})"),
+        ["global::System.TimeSpan"] = ("global::Rask.Wire.WireJson.ReadTimeSpan", "global::Rask.Wire.WireJson.WriteTimeSpanValue(writer, {0})"),
+        ["global::System.Uri"] = ("global::Rask.Wire.WireJson.ReadUri", "global::Rask.Wire.WireJson.WriteUriValue(writer, {0})"),
     };
 
     private static readonly HashSet<string> DictionaryDefinitions = new()

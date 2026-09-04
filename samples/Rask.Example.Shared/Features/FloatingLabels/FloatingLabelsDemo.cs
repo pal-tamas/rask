@@ -11,12 +11,11 @@ public sealed partial class FloatingLabelsDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Created account for {m.FullName} <{m.Email}>").Class("flex flex-col gap-2")[
-            DataAnnotationsValidator,
             // One line per field — the Floating* components wrap Input/Select/Textarea + Label +
             // ValidationMessage in Bootstrap's .form-floating markup. The label is read from each
             // property's [Display(Name)], the input type is inferred from the property's CLR type,
             // and validation flows from the [Required]/[Range]/etc. attributes through
-            // DataAnnotationsValidator(). Every property is nullable — Rask clears to null.
+            // the built-in DataAnnotations pass. Every property is nullable — Rask clears to null.
             FloatingInput.Bind(() => _model.FullName),
             FloatingInput.Bind(() => _model.Email),
             FloatingInput.Bind(() => _model.Age),

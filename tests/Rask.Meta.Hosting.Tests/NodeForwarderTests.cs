@@ -19,6 +19,7 @@ namespace Rask.Meta.Hosting.Tests;
 ///     actual connection, and an in-memory transport would report them as passing whether or not they
 ///     hold.
 /// </remarks>
+[Collection(MetaHostCollection.Name)]
 public class NodeForwarderTests
 {
     private static CancellationToken Timeout() =>

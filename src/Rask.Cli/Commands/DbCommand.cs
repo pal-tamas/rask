@@ -10,9 +10,22 @@ namespace Rask.Cli.Commands;
 /// directory and installing the <c>dotnet-ef</c> tool on first use if it's missing. Anything after
 /// <c>--</c> is forwarded to <c>dotnet ef</c> verbatim (an escape hatch for <c>--verbose</c> etc.).
 /// </summary>
-internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
+/// <param name="buildEnvironment">
+///     Overlaid onto the environment of the <c>dotnet-ef</c> child process, which is how MSBuild
+///     properties reach a build this command does not own the command line of. <c>rask new</c> passes
+///     <c>RaskSpaBuild=false</c> / <c>RaskMetaBuild=false</c> so scaffolding's first migration does not
+///     run a production front-end build. Null — no overlay — everywhere else.
+/// </param>
+internal sealed partial class DbCommand(
+    IConsole console,
+    IFileSystem fileSystem,
+    IProcessRunner process,
+    string workingDirectory,
+    IReadOnlyDictionary<string, string>? buildEnvironment = null)
     : CliCommand(console)
 {
+    private readonly IReadOnlyDictionary<string, string>? _buildEnvironment = buildEnvironment;
+
     // These two never touch EF: they copy a file through SQLite (locally) or through a container on
     // the host, so they must not pay for a dotnet-ef install, and must work on an app that has none.
     private static readonly string[] FileSubcommands = ["backup", "restore"];
@@ -238,7 +251,8 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
             return await ListAsJsonAsync(efArgs, cancellationToken).ConfigureAwait(false);
         }
 
-        return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken).ConfigureAwait(false);
+        return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken, _buildEnvironment)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -255,7 +269,7 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
     private async Task<int> ListAsJsonAsync(IReadOnlyList<string> efArgs, CancellationToken cancellationToken)
     {
         var result = await _process
-            .CaptureAsync("dotnet", [.. efArgs, "--json"], _workingDirectory, cancellationToken)
+            .CaptureAsync("dotnet", [.. efArgs, "--json"], _workingDirectory, cancellationToken, _buildEnvironment)
             .ConfigureAwait(false);
 
         if (result.ExitCode != 0)

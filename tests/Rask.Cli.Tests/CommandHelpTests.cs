@@ -95,7 +95,8 @@ public sealed class CommandHelpTests
 
         await app.RunAsync(["new", "--help"], CancellationToken.None);
 
-        Assert.Contains("[server|wasm|react|preact|vue|angular|solid|svelte|lit]", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("[server|wasm|react|preact|vue|angular|solid|svelte|lit|nuxt|nextjs|sveltekit"
+            + "|solidstart|tanstack-start|analog]", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

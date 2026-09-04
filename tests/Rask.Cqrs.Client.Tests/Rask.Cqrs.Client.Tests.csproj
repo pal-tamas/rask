@@ -24,6 +24,7 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Cqrs"/>
+    <Using Include="Rask.Wire"/>
     <Using Include="Rask.Core.Forms"/>
   </ItemGroup>
 
