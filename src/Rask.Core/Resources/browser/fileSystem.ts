@@ -8,6 +8,19 @@
 // A picker the user closes rejects with AbortError. That is an ordinary outcome rather than a failure,
 // so it resolves null (or an empty array) — a caller writes an if, not a try.
 
+/**
+ * The async-iterable half of a directory handle.
+ *
+ * Declared here rather than taken from `lib.dom`, like every other vendor shape in this directory:
+ * `keys()` is recent enough that a consumer on an older TypeScript does not have it, and the failure
+ * lands as a type error inside Rask's own code during THEIR build. Measured on a scaffolded Next app,
+ * whose TypeScript is its own rather than ours.
+ */
+interface DirectoryHandleWithKeys {
+    keys(): AsyncIterableIterator<string>;
+}
+
+
 export interface FilePickerOptions {
     /** Shown beside the file-type filter in the picker. */
     description?: string | null;
@@ -149,7 +162,7 @@ export async function writeBytes(
 /** The names directly inside a directory. */
 export async function list(directory: FileSystemDirectoryHandle): Promise<string[]> {
     const names: string[] = [];
-    for await (const name of directory.keys()) {
+    for await (const name of (directory as unknown as DirectoryHandleWithKeys).keys()) {
         names.push(name);
     }
     return names;
