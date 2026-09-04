@@ -7,6 +7,35 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A repaint requested while a dispatch was emitting its frame was discarded, not deferred.** Every
+  WASM render path holds `InHandlerScope` across the coalescing loop *and* the noop publish guard
+  *and* the frame emit. A `StateHasChanged` arriving after the loop settled parked in
+  `_pendingRenderInScope`, and the next dispatch's loop opened by clearing that flag — so the request
+  was thrown away rather than postponed. It is now drained at every scope exit
+  ([#986](https://github.com/pal-tamas/rask/issues/986)).
+
+  `InitialRenderAsync` had a second instance of the same hole: it held the scope but built its
+  payload directly instead of through the coalescing loop, so nothing drained the flag at all. Every
+  other render path already coalesced; that one was the exception.
+
+  This is most of what kept a spinner on screen after a hard load onto a page whose `OnMountAsync`
+  fetches. The request settles in a couple of milliseconds, well inside the initial render's emit, so
+  the state was set and no frame ever carried it. A Playwright trace of a failing run shows the fetch
+  returning `200 OK` in ~3 ms while the DOM still holds the "Loading…" markup and no `<article>` at
+  all — the data arrives and the paint is lost.
+
+  The drain issues a **publish** render. A plain one bypasses the noop guard and pushes the frame even
+  when the HTML is byte-identical, making the client morph identical markup and stripping the DOM
+  state JS applied since the last frame — highlight.js classes, and the rendered demo output on the
+  guide pages. That variant made the WASM journeys fail *more* often: the bug is a lost repaint, but
+  the cure is not "repaint harder".
+
+  Both windows are pinned by tests that drive the scope directly, because neither is reachable from a
+  component: by the time the loop settles, every user lifecycle hook has already run, which is
+  precisely why the drop was invisible.
+
 ### Added
 
 - **`rask new --template nuxt` — and nextjs, sveltekit, solidstart, tanstack-start, analog.** The meta
