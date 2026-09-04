@@ -9,6 +9,24 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The SQLite journey's database assertions reported machine load as a product failure.** The bulk
+  imports and the concurrent-writer bursts waited on Playwright's default 5s budget for work that
+  takes 1–3s idle, so roughly two seconds of headroom stood between a green suite and a red one
+  ([#962](https://github.com/pal-tamas/rask/issues/962)).
+
+  That is not enough on this machine. The E2E lane serialises browser journeys, but the unit suites
+  and the CLI build gate are not in it, so a journey routinely runs while several other builds
+  saturate the box — and the failure it produced (`Rows imported so far: 0.` after 14 polls) reads
+  exactly like a product bug.
+
+  The eight assertions that wait on real database work now get their own 30s budget; the ones that wait
+  on a render keep the default, because raising it globally would slow every genuine failure to the
+  pace of the slowest load-dependent one.
+
+  The cost of leaving this was never the red run — it is that a suite crying wolf under load is how a
+  real regression gets waved through. This repository's own casebook records seven "flakes" that were
+  all real bugs.
+
 - **`rask new` ran a production front-end build during scaffolding.** With the batteries on, `rask new`
   creates the first migration, and `dotnet-ef` builds the project to load the `DbContext`. That build
   took `RaskSpaBuild` / `RaskMetaBuild` at their default of `true`, so scaffolding a front-end template
