@@ -1,6 +1,6 @@
 ---
 name: cut-release
-description: Cut a Rask release. Use when publishing a new version to NuGet/GitHub. Promotes the CHANGELOG [Unreleased] section to a dated version, then tags vX.Y.Z so MinVer derives the version and release.yml runs the unit gate + sharded E2E + packs and pushes the NuGet packages and GitHub release.
+description: Cut a Rask release. Use when publishing a new version to NuGet/GitHub. Promotes the CHANGELOG [Unreleased] section to a dated version, then tags vX.Y.Z so MinVer derives the version and release.yml builds, packs and pushes the NuGet packages and GitHub release. release.yml runs no tests, so the local gates must be run before tagging.
 ---
 
 # cut-release
@@ -49,11 +49,17 @@ git checkout main && git pull --ff-only        # fast-forward to the merged rele
 git tag vX.Y.Z
 git push origin vX.Y.Z                          # push ONLY the tag — main is already up to date
 ```
-`release.yml` (on `push: tags: v*`) runs the unit gate, the sharded E2E matrix, then packs the
-NuGets (`Rask.Server`, `Rask.Wasm`, `Rask.Wasm.Hosting`, `Rask.Validation.DataAnnotations`,
+`release.yml` (on `push: tags: v*`) builds, then packs the
+NuGets (`Rask.Server`, `Rask.Wasm`, `Rask.Wasm.Hosting`,
 `Rask.Validation.FluentValidation`, `Rask.Bootstrap`, `Rask.WebPush`, `Rask.Cli`, …), pushes them
 to nuget.org, and creates the
 GitHub release. Watch it (`run watch` on the bare run id, not a job, exits on the run's conclusion):
+
+> **`release.yml` runs NO tests** — not the unit gate, not E2E. It restores, builds, packs and
+> pushes. (This skill used to claim it ran the unit gate and a sharded E2E matrix; those jobs went
+> with `ci.yml`/`e2e.yml`.) Nothing between your tag and nuget.org will catch a regression, and a
+> push to nuget.org is permanent. **Run `scripts/run-unit-local.sh` and `scripts/run-e2e-local.sh`
+> before you tag.**
 ```bash
 gh run list --workflow=release.yml -L 1     # grab the run id
 gh run watch <run-id> --exit-status

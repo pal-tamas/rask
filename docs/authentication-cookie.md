@@ -9,9 +9,12 @@ Cookie-based login and session for the Rask Server (WS) host and for a WASM SPA 
 The lowest-friction, most secure option for the Server (WS) host — the token lives in an HttpOnly cookie and
 never reaches JavaScript.
 
-> **Scaffold it:** `rask new MyApp --auth` generates exactly this — a `/login` form, a
-> `DemoCredentialStore`, a protected `/members` page, and the `AddCookie` + `UseAuthentication` wiring below.
-> A runnable reference also lives in `samples/Rask.Example.Auth`.
+> **You probably do not need this page.** Cookie sign-in is what a Rask app does by default: the
+> [accounts battery](authentication.md) registers the scheme, backs it with ASP.NET Core Identity, and
+> routes `/login`, `/register` and `/logout` for you. What follows is how to wire the same thing by hand
+> against **your own** credential store — an existing users table, an internal directory, anything that
+> can answer "is this password right" and hand back claims. A runnable reference lives in
+> `samples/Rask.Example.Auth`.
 
 **A credential store (demo — swap for your real one):**
 

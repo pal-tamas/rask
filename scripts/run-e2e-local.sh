@@ -19,128 +19,169 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
-# Is another copy of this gate already running?
+# How much of this machine may this gate take?
 #
 # The port collision was fixed in #626, but two suites on one machine still contend for resources, and
 # the way that surfaces is the expensive one: a plausible-looking red in one or both runs, minutes after
 # the contention, with nothing in the log pointing back at it. It has already cost one unexplained
 # timeout across two worktrees that were coordinating and still both believed the machine was idle.
 #
-# REFUSE by default, with an override. This runs from .githooks/pre-push, which prints thousands of
-# build lines, and a warning in the middle of that is a warning nobody reads — which would leave the
-# contention to be discovered later as a red that looks real. Refusing also matches how every other
-# opt-out here already works (RASK_SKIP_E2E, RASK_SKIP_CLI_BUILD_E2E, RASK_SKIP_WATCH_E2E), so it needs
-# no new convention.
+# The answer is no longer one all-or-nothing lane held for the whole run. This gate spends most of its
+# time building and publishing — measured at 9m30s of a 10m12s run before `dotnet test` even started —
+# and that work shares a machine perfectly well; it is the browser suite that cannot. So the budget in
+# scripts/lib/machine-lane.sh is claimed in two steps: the build and publishes below run alongside
+# whatever else is going on, and rask_e2e_await_slots (further down, just before the suite) is the one
+# point that waits. Everything about HOW that waiting is ordered, and why it is decided by process
+# rather than by a lockfile, lives in machine-lane.sh and lane-claim.sh rather than being restated here.
 #
-# The argument against — that a blocked push with a false positive becomes "I cannot push and I do not
-# know why" — is real, and is answered in two places rather than by warning instead. The match is
-# decided on the EXECUTABLE POSITION in the other process's argv (rask_is_e2e_gate_command), because a
-# bare name matched a shell whose argv merely mentioned the script the first time this was tested — and
-# an anchor on the scripts/ path, which was the first fix, then silently missed the relative invocation
-# the docs actually tell you to use. And the refusal prints the offending pid, its elapsed time, its full
-# command line, and the exact variable that overrides it, so it can never be the unexplained kind.
+# The two anchored lines it prints — "run-e2e-local: still queued after …" and "run-e2e-local: refused
+# to start …" — are contracts: scripts/lib/build-failure.sh greps for them to tell a busy machine from
+# a broken branch, and rewording either silently reclassifies a contended run as a genuine failure.
 #
-# Detected by PROCESS, never by a lockfile: a lockfile survives kill -9 and a laptop sleep and then
-# wedges the gate until someone works out what to delete. Process detection is self-healing — a run
-# someone Ctrl-C'd leaves nothing behind. This repo has enough gates that failed quietly without adding
-# one that fails loudly at the worst moment.
-#
-# Printing WHICH run and HOW LONG is the useful half — "there is a conflict" tells you there is a
-# problem, `ps -o etime=` is what lets you decide whether to wait for it or investigate your own red.
-#
-# Skipped under CI purely so this can never be the thing that breaks an automated run. Nothing in
-# .github/workflows runs the browser E2E or the benchmarks today — GitHub only publishes (release.yml,
-# pages.yml, nightly.yml) and lints commit messages — so this is insurance against a future parallel
-# path, not protection of a known one.
-# Sourced unconditionally, though only the REFUSAL below is skipped under CI: the contention hint on a
-# failing suite at the end of this script needs rask_other_heavy_builds either way, and a helper that
-# exists only on one branch of an `if` is a "command not found" waiting for the first CI run.
+# Sourced unconditionally, though the WAIT itself is skipped under CI: the contention hint on a failing
+# suite at the end of this script needs rask_other_heavy_builds either way, and a helper that exists
+# only on one branch of an `if` is a "command not found" waiting for the first CI run.
 # shellcheck source=lib/e2e-concurrency.sh
 . "$root/scripts/lib/e2e-concurrency.sh"
+# The slot budget this gate now claims against, rather than taking the whole machine for its whole
+# run. Sources e2e-concurrency.sh itself, so the line above is redundant in effect and kept in place
+# because the contention hint at the end of this script names that file as where its helper lives.
+# shellcheck source=lib/machine-lane.sh
+. "$root/scripts/lib/machine-lane.sh"
 
-if [ -z "${CI:-}" ]; then
-  others="$(rask_e2e_lane_holders | tr '\n' ' ')"
+# Wait until this machine has room for the browser suite.
+#
+# MOVED, in the change that split this gate by phase. This block used to run at the top of the script,
+# so a gate held the whole machine from its very first line. Measured on a live run: 9m30s of build
+# and publish before `dotnet test` appeared at all — roughly a quarter of the ~40m norm, during which
+# seven other worktrees were blocked while this one used a SINGLE core (the build below is -m:1, and
+# stays that way). Builds are throughput work and tolerate sharing; the browser suite genuinely does
+# not. So the build and publish phases now take a partial claim, several worktrees may build at once,
+# and only this function serialises. A gate that queues here has already done its building.
+#
+# The claim is PUBLISHED BEFORE THE WAIT, and that ordering is load-bearing rather than tidy. A gate
+# queued here has not started `dotnet test` yet, so nothing in its own process tree says what it is
+# about to need; without an explicit claim its juniors would read it as merely building, under-count
+# it, and start work it is about to need the whole machine for. See scripts/lib/lane-claim.sh.
+#
+# Everything #934 established is kept: ordering by process age, the deadline, the poll interval, and
+# every override. So are the two ANCHORED output lines below — scripts/lib/build-failure.sh greps for
+# them to decide whether a red gate means "your branch is broken" or "your machine was busy", and a
+# reworded line there silently reclassifies a contended run as a genuine failure.
+rask_e2e_await_slots() {
+  # Skipped under CI purely so this can never be the thing that breaks an automated run. Nothing in
+  # .github/workflows runs the browser E2E today, so this is insurance against a future parallel path.
+  [ -n "${CI:-}" ] && return 0
 
-  if [ -n "${others// /}" ]; then
-    echo "run-e2e-local: another browser E2E gate holds this machine."
-    for pid in $others; do
-      elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
-      cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
-      [ -n "$elapsed" ] && echo "               pid $pid, running for ${elapsed}: $cmd"
-    done
-    echo
-    echo "            Two suites on one machine contend for resources. The port collision was fixed in"
-    echo "            #626, but contention still surfaces as a plausible-looking red in one or both runs,"
-    echo "            minutes later, with nothing in the log pointing back at it. It has already cost one"
-    echo "            unexplained timeout between two worktrees that were coordinating and still both"
-    echo "            believed the machine was idle."
-    echo
+  slots_needed="$(rask_lane_budget)"
+  rask_lane_claim "$slots_needed" test
 
-    if [ "${RASK_E2E_ALLOW_CONCURRENT:-}" = "1" ]; then
-      echo "run-e2e-local: RASK_E2E_ALLOW_CONCURRENT=1 — starting alongside it anyway."
-      echo "            Treat any failure as suspect until you have re-run it alone."
-    else
-      # QUEUE, rather than refuse.
-      #
-      # Refusing was right about the contention and wrong about what to do with it. The lane is a
-      # machine-wide singleton shared by several worktrees, so "wait for it and push again" was the
-      # standing advice — which meant every caller hand-rolled a waiter, and the ones that did not got
-      # a failed push for a machine state that had nothing to do with their branch. A queue keeps the
-      # serialization guarantee (still exactly one suite at a time) and spends the wait automatically.
-      #
-      # The refusal is kept as the TIMEOUT, so nothing waits forever: past the deadline this exits 1
-      # with the same guidance it always printed. RASK_E2E_QUEUE=0 restores the old refuse-immediately
-      # behaviour for anyone who wants the push back rather than the wait.
-      #
-      # Note the ordering is computed FRESH each poll rather than once up front. A waiter that cached
-      # its seniors would keep waiting for a pid that had already exited, and — worse — would miss a
-      # gate that started later but outranks it after a tie-break.
-      queue_deadline_s="${RASK_E2E_QUEUE_TIMEOUT:-5400}"
-      queue_poll_s="${RASK_E2E_QUEUE_POLL:-20}"
-      queue_waited_s=0
+  rask_lane_fits "$slots_needed" && return 0
 
-      if [ "${RASK_E2E_QUEUE:-1}" = "0" ]; then
-        echo "            Wait for the run above to finish, then push again. To run anyway:"
-        echo "                RASK_E2E_ALLOW_CONCURRENT=1 git push        (or set it for this script)"
-        echo "            and treat any failure as suspect until you have re-run it alone."
-        # A distinct, anchored line for rask_build_failure_kind. It cannot classify on the "holds this
-        # machine" banner above: that now prints on runs which go on to QUEUE AND SUCCEED, so keying on
-        # it would relabel a genuine failure hours later as contention.
-        echo "run-e2e-local: refused to start — RASK_E2E_QUEUE=0 and the lane is held."
-        exit 1
-      fi
+  echo "run-e2e-local: this machine's slots are taken, and the browser suite needs all $slots_needed."
+  rask_e2e_name_seniors
+  echo
+  echo "            Two suites on one machine contend for resources. The port collision was fixed in"
+  echo "            #626, but contention still surfaces as a plausible-looking red in one or both runs,"
+  echo "            minutes later, with nothing in the log pointing back at it. It has already cost one"
+  echo "            unexplained timeout between two worktrees that were coordinating and still both"
+  echo "            believed the machine was idle."
+  echo
 
-      echo "run-e2e-local: queued behind it — waiting up to $((queue_deadline_s / 60))m for the lane."
-      echo "            Ctrl-C to give up; RASK_E2E_QUEUE=0 to refuse immediately instead of waiting;"
-      echo "            RASK_SKIP_E2E=1 to skip the gate entirely."
+  if [ "${RASK_E2E_ALLOW_CONCURRENT:-}" = "1" ]; then
+    # Now strictly better than it used to be: the claim above stays published, so this run is at least
+    # honest about the load it is adding and everyone else accounts for it. It still buys a result you
+    # cannot trust.
+    echo "run-e2e-local: RASK_E2E_ALLOW_CONCURRENT=1 — starting alongside it anyway."
+    echo "            Treat any failure as suspect until you have re-run it alone."
+    return 0
+  fi
 
-      while [ -n "$(rask_e2e_lane_holders | tr -d '\n ')" ]; do
-        if [ "$queue_waited_s" -ge "$queue_deadline_s" ]; then
-          echo
-          echo "run-e2e-local: still queued after $((queue_waited_s / 60))m — giving up rather than waiting silently."
-          echo "            The lane is held by:"
-          for pid in $(rask_e2e_lane_holders); do
-            elapsed="$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')"
-            cmd="$(ps -o command= -p "$pid" 2>/dev/null | cut -c1-120)"
-            [ -n "$elapsed" ] && echo "                pid $pid, running for ${elapsed}: $cmd"
-          done
-          echo "            A gate that has outlived the ~40m norm is usually a wedged run, not a busy"
-          echo "            machine — check it before assuming you are merely unlucky."
-          exit 1
-        fi
-        sleep "$queue_poll_s"
-        queue_waited_s=$((queue_waited_s + queue_poll_s))
-        # One line a minute: enough to show the wait is alive inside a hook printing thousands of build
-        # lines, quiet enough not to become the noise it is reporting on.
-        if [ "$((queue_waited_s % 60))" -eq 0 ]; then
-          echo "run-e2e-local: still queued ($((queue_waited_s / 60))m)…"
-        fi
-      done
+  queue_deadline_s="${RASK_E2E_QUEUE_TIMEOUT:-5400}"
+  queue_poll_s="${RASK_E2E_QUEUE_POLL:-20}"
+  queue_waited_s=0
 
-      echo "run-e2e-local: lane free after $((queue_waited_s / 60))m $((queue_waited_s % 60))s — starting."
+  if [ "${RASK_E2E_QUEUE:-1}" = "0" ]; then
+    echo "            Wait for the run above to finish, then push again. To run anyway:"
+    echo "                RASK_E2E_ALLOW_CONCURRENT=1 git push        (or set it for this script)"
+    echo "            and treat any failure as suspect until you have re-run it alone."
+    # A distinct, anchored line for rask_build_failure_kind. It cannot classify on the banner above:
+    # that now prints on runs which go on to QUEUE AND SUCCEED, so keying on it would relabel a
+    # genuine failure hours later as contention.
+    echo "run-e2e-local: refused to start — RASK_E2E_QUEUE=0 and the lane is held."
+    exit 1
+  fi
+
+  echo "run-e2e-local: queued behind it — waiting up to $((queue_deadline_s / 60))m for the slots."
+  echo "            The build and publishes above are already done, so this wait is the suite only."
+  echo "            Ctrl-C to give up; RASK_E2E_QUEUE=0 to refuse immediately instead of waiting;"
+  echo "            RASK_SKIP_E2E=1 to skip the gate entirely."
+
+  # Recomputed FRESH each poll rather than cached. A waiter holding a stale list would keep waiting
+  # for a pid that had already exited and — worse — would miss a gate that started later but outranks
+  # it after a tie-break.
+  while ! rask_lane_fits "$slots_needed"; do
+    if [ "$queue_waited_s" -ge "$queue_deadline_s" ]; then
+      echo
+      echo "run-e2e-local: still queued after $((queue_waited_s / 60))m — giving up rather than waiting silently."
+      echo "            The slots are held by:"
+      rask_e2e_name_seniors
+      echo "            A gate that has outlived the ~40m norm is usually a wedged run, not a busy"
+      echo "            machine — check it before assuming you are merely unlucky."
+      exit 1
     fi
+    sleep "$queue_poll_s"
+    queue_waited_s=$((queue_waited_s + queue_poll_s))
+    # One line a minute: enough to show the wait is alive inside a hook printing thousands of build
+    # lines, quiet enough not to become the noise it is reporting on.
+    if [ "$((queue_waited_s % 60))" -eq 0 ]; then
+      echo "run-e2e-local: still queued ($((queue_waited_s / 60))m)…"
+    fi
+  done
+
+  echo "run-e2e-local: slots free after $((queue_waited_s / 60))m $((queue_waited_s % 60))s — starting the suite."
+}
+
+# Printing WHICH run and HOW LONG is the useful half — "there is a conflict" tells you there is a
+# problem, `ps -o etime=` is what lets you decide whether to wait for it or investigate your own red.
+rask_e2e_name_seniors() {
+  rask_lane_senior_gates | while read -r pid slots; do
+    # Through the same indirected accessors the ordering uses, not a bare `ps`. Two reasons, and the
+    # second is the one that matters: it keeps this testable, and it stops the list going silently
+    # empty. A senior can exit between being ranked and being named, and a bare `ps` then prints
+    # nothing for it — so a refusal could name NOBODY, which is precisely the unexplained kind this
+    # gate has always gone out of its way not to be. The pid is printed either way.
+    elapsed="$(rask_e2e_etime_of "$pid")"
+    cmd="$(rask_e2e_command_of "$pid" | cut -c1-110)"
+    [ -n "$elapsed" ] || elapsed="(exited)"
+    echo "               pid $pid, $slots slot(s), running for ${elapsed}: $cmd"
+  done
+  return 0
+}
+
+# RASK_E2E_QUEUE=0 means "give me my push back rather than the wait", so it has to be answered BEFORE
+# the build, not after it.
+#
+# Splitting this gate by phase moved the only slot check to just above the suite — roughly ten minutes
+# in, by this file's own measurement. That is right for waiting (the wait is then spent having already
+# built) and wrong for refusing: someone who set QUEUE=0 precisely to avoid a delay would have paid the
+# entire build first and only then been told no. The refusal is therefore asked twice, once here where
+# it can still save the ten minutes, and once below for a lane that fills up while we build.
+#
+# Same anchored line both times — scripts/lib/build-failure.sh greps for it to tell a busy machine from
+# a broken branch.
+if [ -z "${CI:-}" ] && [ "${RASK_E2E_QUEUE:-1}" = "0" ] && [ "${RASK_E2E_ALLOW_CONCURRENT:-}" != "1" ]; then
+  if ! rask_lane_fits "$(rask_lane_budget)"; then
+    echo "run-e2e-local: this machine's slots are taken, and the browser suite needs all $(rask_lane_budget)."
+    rask_e2e_name_seniors
+    echo "            Wait for the run above to finish, then push again. To run anyway:"
+    echo "                RASK_E2E_ALLOW_CONCURRENT=1 git push        (or set it for this script)"
+    echo "            and treat any failure as suspect until you have re-run it alone."
+    echo "run-e2e-local: refused to start — RASK_E2E_QUEUE=0 and the lane is held."
+    exit 1
   fi
 fi
+
 
 # shellcheck source=lib/build-failure.sh
 . "$root/scripts/lib/build-failure.sh"
@@ -176,7 +217,11 @@ echo "==> Build the E2E graph once (Release, serial, prebuilt WASM runtime)"
 # browser targets, and reporting that as a broken journey sends people to debug a test that is fine
 # (#718). `set -o pipefail` above is what makes the pipeline report dotnet's status rather than tee's.
 build_log="$(mktemp -t rask-e2e-build.XXXXXX)"
-trap 'rm -f "$build_log"' EXIT
+# rask_lane_release rides along here rather than in a second trap, because a bare `trap ... EXIT`
+# REPLACES any handler already installed — a separate release trap added later would silently destroy
+# this one and leak the build log, or vice versa. Releasing is harmless when no claim was ever made,
+# so this is safe on every exit path including the early ones above.
+trap 'rm -f "$build_log"; rask_lane_release' EXIT
 
 build_status=0
 dotnet build Rask.slnx -c Release -m:1 -p:WasmBuildNative=false 2>&1 | tee "$build_log" || build_status=$?
@@ -290,6 +335,10 @@ fi
 # setting the pre-push hook should ever use.
 #
 #   RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh
+# The one point in this gate that serialises. Everything above — the preflight, the solution build,
+# the eight sample publishes — ran with a partial claim alongside whatever else the machine was doing.
+rask_e2e_await_slots
+
 e2e_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Examples.E2E.Tests}"
 if [ -n "${RASK_E2E_FILTER:-}" ]; then
   echo "==> Browser journey E2E (FILTERED: $e2e_filter)"

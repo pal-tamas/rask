@@ -18,26 +18,26 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Ui.BtnPrimary).Id("bt-request").OnClickAsync(PairAndRead)[
-                        Icon.Name(IconName.Bluetooth).Class("me-1"), "Pair & read battery"],
+                    Button.Class(Tw.BtnPrimary).Id("bt-request").OnClickAsync(PairAndRead)[
+                        UiIcon.Name(UiIconName.Signal).Class("me-1"), "Pair & read battery"],
                     Button
-                        .Class(Ui.BtnOutlineDanger)
+                        .Class(Tw.BtnOutlineDanger)
                         .Id("bt-disconnect")
                         .Disabled(_device is null)
                         .OnClickAsync(Disconnect)["Disconnect"]
                 ],
                 _name is null
-                    ? Div.Class("text-sm text-slate-500 dark:text-slate-400")["No device paired."]
+                    ? Div.Class("text-sm text-ui-muted")["No device paired."]
                     : Dl.Class("grid grid-cols-12 gap-4 text-sm mb-2").Id("bt-info")[
-                        Dt.Class("col-span-5 sm:col-span-4 text-slate-500 dark:text-slate-400")["Device"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Device"],
                         Dd.Class("col-span-7 sm:col-span-8")[_name],
-                        Dt.Class("col-span-5 sm:col-span-4 text-slate-500 dark:text-slate-400")["Battery"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Battery"],
                         Dd.Class("col-span-7 sm:col-span-8")[Code.Id("bt-battery")[_battery]]
                     ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("bt-status")[_status]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("bt-status")[_status]]
             ]
         ];
 

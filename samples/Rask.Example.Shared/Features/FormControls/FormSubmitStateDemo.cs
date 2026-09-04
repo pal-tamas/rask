@@ -14,14 +14,14 @@ public sealed partial class FormSubmitStateDemo : Component
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("md:col-span-7")[
                 Form.Model(_model).OnValidSubmitAsync(SaveAsync).Id("fss-form")[submitting => [
-                    Label.Class($"{Ui.Label} font-semibold")["Username"],
+                    Label.Class($"{Tw.Label} font-semibold")["Username"],
                     Input.Bind(() => _model.Username)
-                        .Class($"{Ui.Input} mb-2")
+                        .Class($"{Tw.Input} mb-2")
                         .Disabled(submitting)
                         .Placeholder("Pick a name…")
                         .Id("fss-input"),
                     Button.Type("submit")
-                        .Class(Ui.BtnPrimary)
+                        .Class(Tw.BtnPrimary)
                         .Disabled(submitting)
                         .Id("fss-submit")[submitting ? "Saving…" : "Sign up"]
                 ]]

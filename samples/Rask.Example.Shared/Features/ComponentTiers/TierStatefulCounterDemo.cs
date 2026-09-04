@@ -10,7 +10,7 @@ public sealed partial class TierStatefulCounterDemo : Component
     private int _count;
 
     protected override Component? Render() =>
-        Button.Type("button").Class(Ui.BtnPrimary).OnClick(() => _count++)[
+        Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => _count++)[
             $"Clicked {_count} times"
         ];
 }

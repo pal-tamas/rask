@@ -45,10 +45,10 @@ public sealed partial class IslandsDemo : Component
 
     protected override Component? Render() =>
     [
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Vue island that calls back into C#"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "The bars are rendered by ", Code["VueChart.vue"],
                     ". Its props are declared in C# and its callback re-enters C# over the same ",
                     "WebSocket every DOM handler uses — the island never opens a channel of its own."
@@ -66,10 +66,10 @@ public sealed partial class IslandsDemo : Component
             ]
         ],
 
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A React island, and a Lit one, side by side"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "Six runtimes on one page, in one tree. The React counter keeps a ", Code["useState"],
                     " C# never sees; the Lit badge is a custom element whose reactive properties the ",
                     "adapter simply assigns. ", Strong["Preact"], " is the seventh, and the one that ",
@@ -92,10 +92,10 @@ public sealed partial class IslandsDemo : Component
             ]
         ],
 
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Svelte island that keeps its own state"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "C# owns the reading. The nudge counter belongs to ", Code["SvelteMeter.svelte"],
                     " and C# never sees it — so if raising the reading reset it, the update would be a ",
                     "remount rather than a reconcile."
@@ -104,16 +104,16 @@ public sealed partial class IslandsDemo : Component
                 SvelteMeter.Value(_reading).Label("Capacity"),
 
                 Div.Class("flex gap-2 mt-3")[
-                    Button.Class(Ui.BtnPrimary).Id("island-raise").OnClick(Raise)["Raise the reading"],
-                    Button.Class(Ui.BtnOutlinePrimary).Id("island-reset").OnClick(Reset)["Reset"]
+                    Button.Class(Tw.BtnPrimary).Id("island-raise").OnClick(Raise)["Raise the reading"],
+                    Button.Class(Tw.BtnOutlinePrimary).Id("island-reset").OnClick(Reset)["Reset"]
                 ]
             ]
         ],
 
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Solid island, in a folder of its own"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "Solid compiles ", Code[".tsx"], " and so does React, so each one's Vite plugin is ",
                     "scoped to the directory its own islands live in. That is why this component sits ",
                     "under ", Code["Features/Islands/Solid/"], " — sharing a folder would leave both ",
@@ -130,10 +130,10 @@ public sealed partial class IslandsDemo : Component
             ]
         ],
 
-        Div.Class($"{Ui.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["An Angular island, which boots asynchronously"],
-                P.Class("text-sm text-slate-500 dark:text-slate-400")[
+                P.Class("text-sm text-ui-muted")[
                     "The only runtime here whose bootstrap returns a promise. Props that arrive before ",
                     "it resolves are held and applied on arrival rather than dropped — so pressing ",
                     Strong["Raise the reading"], " on a cold page still shows the quote C# last sent, ",

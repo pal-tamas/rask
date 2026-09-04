@@ -4,9 +4,9 @@ Inline, DataAnnotations, FluentValidation, and async validators for Rask forms.
 
 ‹ Back to [Forms & validation](forms.md)
 
-## Inline validation (no extra package)
+## Inline validation
 
-The lightest layer ships in `Rask.Core`. Pass a `Validate:` lambda — per-field or per-form. Both
+The lightest layer. Pass a `Validate:` lambda — per-field or per-form. Both
 accept a sync `Func<…, IEnumerable<string>>` or an async
 `Func<…, CancellationToken, ValueTask<IEnumerable<string>>>`; overload resolution picks by arity, no
 cast. An empty sequence means valid.
@@ -38,10 +38,9 @@ the token cancels the in-flight check on the next keystroke:
 
 ## DataAnnotations
 
-Add the `Rask.Validation.DataAnnotations` package and drop `DataAnnotationsValidator()` inside the
-form. It's a real (headless) component that registers an `IFieldValidator` on the form's
-`EditContext` via `EditContextScope.Current?.AddValidator(...)` — one declaration covers the whole
-reachable model graph. The package adds a global using, so the validator is in scope.
+Put the attributes on the model. That is the whole setup — there is no package to add and nothing to
+declare in the form. `Form<TModel>` registers the pass itself, and one registration covers the whole
+reachable model graph.
 
 ```csharp
 public sealed class SignupModel
@@ -51,7 +50,6 @@ public sealed class SignupModel
 }
 
 Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
-    DataAnnotationsValidator,
     Input.Bind(() => _model.Username),
     ValidationMessage.For(() => _model.Username).Template(errs => Div.Class("err")[errs[0]]),
     Input.Bind(() => _model.Email),
@@ -80,13 +78,31 @@ A custom `ValidationAttribute` (with DI via `ctx.GetService<T>()`):
 
 <!-- demo:validation-validatable-object -->
 
+### Turning it off
+
+Absence of code is the meaning here: a form that says nothing about validation validates. Only the
+deviation is written.
+
+```csharp
+Form.Model(_model).AutoValidate(false)[ … ]   // this form only
+
+app.Configure(c => c.Validation.Off());       // the whole app
+RaskValidation.AutoValidate = false;          // the same switch, without the Rask package
+```
+
+The global off wins — a form cannot opt back in.
+
 ---
 
 ## FluentValidation
 
-Add the `Rask.Validation.FluentValidation` package and drop
-`FluentValidationValidator(new MyValidator())` inside the form. It wraps any
-`FluentValidation.IValidator` into an `IAsyncFieldValidator` (so async `MustAsync` rules work too).
+Writing the validator is the registration. A generator finds every `AbstractValidator<T>` in your app
+at compile time, and a `Form<T>` asks for the one that validates its model — so there is nothing to
+declare in the form and nothing to wire in `Program.cs`. It is wrapped as an `IAsyncFieldValidator`,
+so async `MustAsync` rules work exactly like synchronous ones.
+
+There is no assembly scan anywhere in this: registration is emitted as a `[ModuleInitializer]`, which
+is what lets a WebAssembly app use FluentValidation and still publish trimmed.
 
 ```csharp
 public sealed class OrderValidator : AbstractValidator<OrderModel>
@@ -99,7 +115,6 @@ public sealed class OrderValidator : AbstractValidator<OrderModel>
 }
 
 Form<OrderModel>(_model, m => _submission = "Ordered")[
-    FluentValidationValidator(new OrderValidator()),
     Input.Bind(() => _model.Product),
     ValidationMessage.For(() => _model.Product).Template(errs => Div.Class("err")[errs[0]]),
     Input.Bind(() => _model.Quantity),
@@ -117,6 +132,32 @@ Per-keystroke validation on a root-model field scopes FluentValidation to that s
 An async `MustAsync` rule rides the same wrapper:
 
 <!-- demo:validation-fluent-async -->
+
+### A validator that needs services
+
+A uniqueness rule has to ask something. Declare the dependency on the constructor and it is resolved
+from the render scope — the generator reads the constructor and builds the validator for you:
+
+```csharp
+public sealed class OrderValidator : AbstractValidator<OrderModel>
+{
+    public OrderValidator(IProductCatalog catalog) =>
+        RuleFor(x => x.Product)
+            .MustAsync(async (sku, ct) => await catalog.ExistsAsync(sku, ct))
+            .WithMessage("No such product.");
+}
+```
+
+One public constructor is the rule. Several leaves no way to choose, which is
+[RASKVAL002](diagnostics.md#raskval002); two validators for one model is
+[RASKVAL001](diagnostics.md#raskval001).
+
+### Both passes run, attributes first
+
+A model can carry `[Required]` **and** have an `AbstractValidator<T>`. Both run: DataAnnotations is
+the sync stage and the discovered validator the async one, so the existing pipeline order already
+puts attributes first, and per-field first-error-wins means an attribute message shadows a
+FluentValidation one on the same field. Nothing was reordered to make this work.
 
 ---
 
@@ -148,7 +189,7 @@ Three ways to validate asynchronously:
    _ctx.AddValidator(new UniqueUsernameValidator());
    // Form<…>(_model, Context: _ctx)[ … ]
    ```
-3. **FluentValidation `MustAsync`** — async rules ride the same `FluentValidationValidator` wrapper.
+3. **FluentValidation `MustAsync`** — async rules ride the discovered validator, which is wrapped as an `IAsyncFieldValidator`.
 
 Each `await` in a handler triggers a re-render, so a `ValidatingIndicator` can surface while a
 check is in flight:

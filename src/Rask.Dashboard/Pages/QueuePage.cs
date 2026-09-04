@@ -78,7 +78,7 @@ public sealed partial class QueuePage(
         }
 
         return [
-            OpsHeader
+            UiHeader
                 .Heading(_panel.Title)
                 .Icon(_panel.Icon)
                 .Actions(Div.Class("flex flex-wrap gap-2")[QueueActionButtons()]),
@@ -105,17 +105,17 @@ public sealed partial class QueuePage(
     /// </remarks>
     private Component CountTiles() =>
         Div.Class("mb-4 sm:mb-5")[
-            OpsMetricRow.Columns(5)[
+            UiMetricRow.Columns(5)[
                 Tile(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, tone: null),
                 Tile(QueueFilter.Due, "Due", _counts.Due, tone: null),
                 Tile(QueueFilter.Delayed, "Delayed", _counts.Delayed, tone: null),
-                Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? "danger" : null),
+                Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? UiTone.Error : null),
                 Tile(QueueFilter.Processed, "Processed", _counts.Processed, tone: null)
             ]
         ];
 
-    private Component Tile(QueueFilter filter, string label, int count, string? tone) =>
-        OpsMetric
+    private Component Tile(QueueFilter filter, string label, int count, UiTone? tone) =>
+        UiMetric
             .Key(label)
             .Label(label)
             .Value(count.ToString())
@@ -131,11 +131,11 @@ public sealed partial class QueuePage(
     private Component RowsTable()
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        return OpsTable[
+        return UiTable[
             // The secondary columns are dropped below sm rather than scrolled to. A table an operator has to
             // swipe sideways has hidden the column they came for; the primary cell carries the same facts
-            // stacked underneath instead, so nothing is lost — see the remarks on OpsTable.
-            Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
+            // stacked underneath instead, so nothing is lost — see the remarks on UiTable.
+            Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                 Tr[
                     Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["#"],
                     Th.Class("px-3 py-2 font-medium")[TypeColumnLabel()],
@@ -157,21 +157,21 @@ public sealed partial class QueuePage(
         var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
 
         return Tr.Key(row.Id).Class(isDead
-            ? "border-b border-ops-line/60 bg-ops-danger/5 last:border-0"
-            : "border-b border-ops-line/60 last:border-0")[
-            Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-ops-muted sm:table-cell {Ops.Mono}")[row.Id.ToString()],
+            ? "border-b border-ui-line/60 bg-ui-danger/5 last:border-0"
+            : "border-b border-ui-line/60 last:border-0")[
+            Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-ui-muted sm:table-cell {UiStyles.Mono}")[row.Id.ToString()],
             Td.Class("w-full max-w-0 px-3 py-2 align-top")[
                 Div.Class("min-w-0")[
                     Div.Class("truncate sm:max-w-[28rem]").Title(row.Type)[row.Type],
                     // What the hidden columns were carrying, folded under the one cell that survives.
-                    Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ops-muted sm:hidden")[
-                        Span.Class(Ops.Mono)[$"#{row.Id}"],
+                    Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
+                        Span.Class(UiStyles.Mono)[$"#{row.Id}"],
                         Span.Title(row.CreatedAt.ToString("u"))[DashboardParts.Ago(row.CreatedAt, now)],
                         StatusBadge(row, isDead, now)
                     ]
                 ]
             ],
-            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted sm:table-cell")
+            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted sm:table-cell")
                 .Title(row.CreatedAt.ToString("u"))[
                 DashboardParts.Ago(row.CreatedAt, now)
             ],
@@ -192,20 +192,20 @@ public sealed partial class QueuePage(
 
         // Opens the detail sheet. A button rather than a clickable row: a <tr> is not focusable, and the
         // console has no script to make one behave like a control.
-        yield return OpsButton
+        yield return UiButton
             .Key("details")
             .Label("Details")
-            .Icon(OpsIconName.ChevronRight)
+            .Icon(UiIconName.ChevronRight)
             .OnClick(() => Open(row.Id));
     }
 
     private Component StatusBadge(QueueRow row, bool isDead, DateTime now) => row switch
     {
-        { ProcessedAt: not null } => OpsBadge.Label("done").Tone("ok"),
-        _ when isDead => OpsBadge.Label("dead letter").Tone("danger"),
+        { ProcessedAt: not null } => UiBadge.Label("done").Tone("ok"),
+        _ when isDead => UiBadge.Label("dead letter").Tone("danger"),
         _ when row.RunAt > now =>
-            OpsBadge.Label($"retries in {DashboardParts.Duration(row.RunAt - now)}"),
-        _ => OpsBadge.Label("due").Tone("info"),
+            UiBadge.Label($"retries in {DashboardParts.Duration(row.RunAt - now)}"),
+        _ => UiBadge.Label("due").Tone("info"),
     };
 
     /// <summary>
@@ -227,39 +227,42 @@ public sealed partial class QueuePage(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
 
-        return OpsModal
-            .Heading(row.Type)
+        // No Id, so this takes the modal's STATE-DRIVEN path: the page renders the sheet when a row is
+        // selected and Close flips that back. The native popover path cannot express it — nothing in C#
+        // can press the button that would open it.
+        return UiModal
+            .Title(row.Type)
             .Close(Close)
             .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
                 RowActionButtons(row, isDead),
-                OpsButton.Key("close").Label("Close").OnClick(Close)
+                UiButton.Key("close").Label("Close").OnClick(Close)
             ])[
-            OpsDetailList[
-                OpsDetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
-                OpsDetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
-                OpsDetailRow.Key("attempts").Label("Total attempts")
+            UiDetailList[
+                UiDetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
+                UiDetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
+                UiDetailRow.Key("attempts").Label("Total attempts")
                     .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(true),
-                OpsDetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(true),
-                OpsDetailRow.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
+                UiDetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(true),
+                UiDetailRow.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
                     .Value(row.RunAt.ToString("u")).Mono(true),
                 row.ProcessedAt is { } done
-                    ? OpsDetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono(true)
+                    ? UiDetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono(true)
                     : null,
-                OpsDetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
+                UiDetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
             ],
             Div.Class("mt-4 flex items-center gap-2")[
-                Span.Class("text-xs font-medium text-ops-muted")["Status"],
+                Span.Class("text-xs font-medium text-ui-muted")["Status"],
                 StatusBadge(row, isDead, now)
             ],
             row.Error is { } error
                 ? Div.Class("mt-4")[
-                    Div.Class("mb-1.5 text-xs font-medium text-ops-danger")["Last error"],
-                    OpsCode.Content(error).Tone("danger")
+                    Div.Class("mb-1.5 text-xs font-medium text-ui-danger")["Last error"],
+                    UiCode.Content(error).Tone(UiTone.Error)
                 ]
                 : null,
             Div.Class("mt-4")[
-                Div.Class("mb-1.5 text-xs font-medium text-ops-muted")["Payload"],
-                OpsCode.Content(row.Payload)
+                Div.Class("mb-1.5 text-xs font-medium text-ui-muted")["Payload"],
+                UiCode.Content(row.Payload)
             ]
         ];
     }
@@ -292,11 +295,11 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("retry-all")
                 .Type("button")
-                .Class(Ops.Danger)
+                .Class(UiStyles.Danger)
                 .OnClickAsync(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
                     async ct => $"Re-queued {await _panel!.RetryAllAsync(ct).ConfigureAwait(false)}."))[
-                OpsIcon.Name(OpsIconName.Retry).Class("size-4"),
+                UiIcon.Name(UiIconName.Retry).Class("size-4"),
                 Span["Retry all failed"]
             ];
         }
@@ -306,7 +309,7 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("purge")
                 .Type("button")
-                .Class(Ops.Button)
+                .Class(UiStyles.Button)
                 .OnClickAsync(() => RunAsync(
                     "Delete processed rows older than 7 days? Outstanding work and dead letters are kept.",
                     async ct => $"Purged {await _panel!.PurgeProcessedAsync(TimeSpan.FromDays(7), ct).ConfigureAwait(false)}."))[
@@ -322,7 +325,7 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("retry")
                 .Type("button")
-                .Class(Ops.Danger)
+                .Class(UiStyles.Danger)
                 .OnClickAsync(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
                     async ct => await _panel!.RetryAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -335,7 +338,7 @@ public sealed partial class QueuePage(
             yield return Button
                 .Key("delete")
                 .Type("button")
-                .Class(Ops.Danger)
+                .Class(UiStyles.Danger)
                 .OnClickAsync(() => RunAsync(
                     $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
                     async ct => await _panel!.DeleteAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -388,11 +391,11 @@ public sealed partial class QueuePage(
     // The question, in the flow, where it cannot be missed.
     private Component? ConfirmPrompt() =>
         _pending is { } pending
-            ? OpsNotice.Tone("warn")[
+            ? UiNotice.Tone("warn")[
                 Span.Class("min-w-0 grow break-words")[pending.Prompt],
-                OpsButton.Key("confirm").Label("Confirm").Tone("danger")
+                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error)
                     .OnClickAsync(() => ExecuteAsync(pending.Action)),
-                OpsButton.Key("cancel").Label("Cancel").OnClick(Cancel)
+                UiButton.Key("cancel").Label("Cancel").OnClick(Cancel)
             ]
             : null;
 
@@ -401,9 +404,9 @@ public sealed partial class QueuePage(
     // thing and moves nothing.
     private Component? ResultToast() =>
         _message is { } message
-            ? OpsToast
+            ? UiToast
                 .Message(message)
-                .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? "danger" : null)
+                .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? UiTone.Error : null)
                 .Dismiss(Dismiss)
             : null;
 
@@ -430,15 +433,15 @@ public sealed partial class QueuePage(
         // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
         // which is where thumbs are.
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            OpsButton.Key("prev").Label("Previous")
+            UiButton.Key("prev").Label("Previous")
                 .Disabled(_page == 0)
                 .OnClickAsync(() => GoAsync(_page - 1)),
-            Span.Class("text-center text-xs text-ops-muted")[
+            Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {_page + 1} of {pages}"],
                 // The total is the first thing to go when there is no room for it.
                 Span.Class("hidden sm:inline")[$" — {_total} rows"]
             ],
-            OpsButton.Key("next").Label("Next")
+            UiButton.Key("next").Label("Next")
                 .Disabled(_page >= pages - 1)
                 .OnClickAsync(() => GoAsync(_page + 1))
         ];

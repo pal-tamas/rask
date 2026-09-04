@@ -56,14 +56,33 @@
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
 
+    <ProjectReference Include="..\Rask.Auth\Rask.Auth.csproj"/>
+
+    <!--
+      HTTP endpoints. Rask.Api carries the hosting and the client generator; Rask.Api.Client carries the
+      runtime the generated client calls, and belongs in BOTH halves — a component that calls its own
+      API renders on the server as well as in the browser.
+    -->
+    <ProjectReference Include="..\Rask.Api\Rask.Api.csproj"/>
+    <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj"/>
+
     <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
     <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>
     <ProjectReference Include="..\Rask.Outbox\Rask.Outbox.csproj"/>
 
     <ProjectReference Include="..\Rask.Dashboard\Rask.Dashboard.csproj"/>
+    <!-- Named explicitly even though Rask.Dashboard already brings it: the kit is the framework's own
+         component vocabulary and an app is meant to build with it, not merely inherit it from the
+         console it happens to mount. -->
+    <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj"/>
     <ProjectReference Include="..\Rask.WebPush\Rask.WebPush.csproj"/>
+
+    <!-- DataAnnotations needs no reference at all — it is in Rask.Core, which every host bundles. This
+         is the other half: an AbstractValidator<T> in the app is discovered and wired by the generator
+         that ships in the host's analyzer payload. -->
+    <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
 
     <!-- The browser rung: `c.Wasm = true` publishes a bundle from this same project and serves it. -->
     <ProjectReference Include="..\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
@@ -82,12 +101,30 @@
     all. A local-first app references those three itself and accepts the untrimmed build knowingly.
 
     What is here is source-generated and reflection-free, so the bundle stays trimmed.
+
+    Validation is the one deliberate exception, and it is a measured one rather than an assumption: the
+    WASM showcase has published FluentValidation at TrimMode=full with zero IL warnings since long
+    before it was a battery. A form is the same component on both hosts, so leaving it out here would
+    mean a shared component library whose rules run on the server and silently do not in the browser —
+    the failure this repo treats as its worst.
   -->
   <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\Rask.Auth.Client\Rask.Auth.Client.csproj"/>
     <ProjectReference Include="..\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
+    <!--
+      The client runtime, but NOT Rask.Api: that one carries MVC and the generator, which belong to the
+      half that answers endpoints rather than the half that calls them. The generated client itself
+      arrives as a baked file, not from a package.
+    -->
+    <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj"/>
+    <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
+    <!-- The kit is on BOTH faces, unlike the console it was extracted from. Rask.Dashboard is
+         server-only because its panels read a DbContext; this is markup, and the browser is where the
+         surfaces that need it most run. -->
+    <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj"/>
   </ItemGroup>
 
   <!-- RaskApp needs WebApplicationBuilder, so the server files compile into the server half only. -->

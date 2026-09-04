@@ -15,7 +15,7 @@ public sealed partial class SvgClickableDemo : Component
     protected override Component? Render() =>
         [
             Svg.Width("240").Height("48").ViewBox("0 0 240 48")[BuildSwatches()],
-            P.Class("mt-2 mb-0 text-sm text-slate-500 dark:text-slate-400")[
+            P.Class("mt-2 mb-0 text-sm text-ui-muted")[
                 "Selected colour: ",
                 Strong[Swatches[_selected].Name]
             ]

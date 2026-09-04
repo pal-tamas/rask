@@ -1,3 +1,5 @@
+using Rask.Api;
+using Rask.Auth;
 using Rask.Cache;
 using Rask.Core.Browser;
 using Rask.Core.Live;
@@ -37,6 +39,39 @@ public sealed class RaskAppOptions
     /// <summary>The source-generated CQRS mediator, and the query cache that rides with it.</summary>
     public Battery Cqrs { get; } = new();
 
+    /// <summary>
+    /// Accounts, and the flows every app needs: register, sign in, sign out, confirm an address
+    /// and reset a password.
+    /// </summary>
+    /// <remarks>
+    /// On by default, which is the point — a scaffolded app can sign somebody in without a line of auth
+    /// code. Accounts are ASP.NET Core Identity's, so the password hashing, lockout and security stamps
+    /// are the standard ones; what Rask adds is the host-neutral surface over them, so the same
+    /// <c>IAuth</c> and <c>IUserProvider</c> mean the same thing on the Server host, in WebAssembly, and
+    /// inside an island. The first account to register becomes the administrator.
+    /// <para>
+    /// Confirmation and reset links go out through the <see cref="Mail" /> battery. Requiring a
+    /// confirmed address before sign-in is off by default — see <c>AuthOptions.RequireConfirmedEmail</c>
+    /// for why a freshly scaffolded app must not start with that gate closed.
+    /// </para>
+    /// <para>
+    /// Turning it off leaves the account tables mapped, like every other database-backed battery, so
+    /// flipping this line back on does not produce a destructive migration.
+    /// </para>
+    /// </remarks>
+    public Battery<AuthOptions> Auth { get; } = new();
+
+    /// <summary>
+    ///     Validation, in forms and on dispatched requests: a model's
+    ///     <c>System.ComponentModel.DataAnnotations</c> attributes and any
+    ///     <c>AbstractValidator&lt;T&gt;</c> you wrote, both applied with nothing declared.
+    ///     <para>
+    ///         Turning it off stops both. A single form opts out on its own with
+    ///         <c>Form.Model(m).AutoValidate(false)</c>.
+    ///     </para>
+    /// </summary>
+    public Battery Validation { get; } = new();
+
     /// <summary>Durable background jobs on the app's own database.</summary>
     public Battery<JobOptions> Jobs { get; } = new();
 
@@ -48,6 +83,17 @@ public sealed class RaskAppOptions
 
     /// <summary>The transactional outbox for durable domain-event delivery.</summary>
     public Battery<OutboxOptions> Outbox { get; } = new();
+
+    /// <summary>
+    /// HTTP endpoints: API controllers and minimal APIs, with a typed client generated from them.
+    /// </summary>
+    /// <remarks>
+    /// On like every other battery, and it costs an app with no endpoints nothing but MVC's registration.
+    /// What it buys the app that does have one is the part that is easy to get wrong by hand: an
+    /// unmatched request under the API prefix answers 404 with a problem document, rather than reaching
+    /// the catch-all and rendering the app with a 200 where the caller expected JSON.
+    /// </remarks>
+    public Battery<ApiOptions> Api { get; } = new();
 
     /// <summary>Server-sent Web Push (VAPID + RFC 8291).</summary>
     /// <remarks>

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -33,10 +32,15 @@ internal static class CliBuildE2E
         "Rask.Wasm",                        // the wasm template, and the --wasm companion project
         "Rask.Wasm.Hosting",                // the --wasm one-project build
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
+        "Rask.Wire",                        // Rask.Cqrs depends on it: the wire primitives its codecs call
+        "Rask.Api",                         // API hosting + the client generator (server half)
+        "Rask.Api.Client",                  // the runtime the generated client calls, on both halves
         "Rask.Query",                       // wired by default wherever --cqrs is
         "Rask.Cqrs.Client",                 // --wasm --cqrs: the browser half of remote dispatch
         "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
         "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
+        "Rask.Auth",                        // --data: the scaffolded context maps the account tables
+        "Rask.Meta.Hosting",                // the meta templates: the node supervisor, and the same emit
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
         "Rask.SQLite.EntityFrameworkCore",  // server template --data and generated features that own a context (UseRaskSqlite)
@@ -49,7 +53,7 @@ internal static class CliBuildE2E
         "Rask.Cache",                       // tutorial ch6 — AddRaskCache / ICache.GetOrAddAsync
         "Rask.Logging",                     // --logs — AddRaskLogging, and the dashboard's History mode
         "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_rask pages
-        "Rask.Validation.DataAnnotations",  // tutorial ch.2's form validation
+        "Rask.Ui",                          // the component kit Rask.Dashboard is drawn with, and depends on
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
     ];
 
@@ -156,12 +160,10 @@ internal static class CliBuildE2E
         throw new InvalidOperationException($"No version known for '{package}'. Pin it in Directory.Packages.props.");
     }
 
-    private static Dictionary<string, string> RepoPackagePins()
-    {
-        var props = File.ReadAllText(Path.Combine(FindRepoRoot(), "Directory.Packages.props"));
-        return Regex.Matches(props, """<PackageVersion\s+Include="([^"]+)"\s+Version="([^"]+)"\s*/>""")
-            .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value, StringComparer.Ordinal);
-    }
+    // Parsed as XML by RepoPins rather than by a regex here: the regex this replaced only matched the
+    // exact self-closing single-space form, so reformatting Directory.Packages.props would have dropped
+    // packages silently and surfaced as VersionFor's "No version known" throw.
+    private static Dictionary<string, string> RepoPackagePins() => RepoPins.Packages();
 
     // Local feed first (this commit's packages), nuget.org for the framework/Microsoft.* deps.
     internal static void WriteNuGetConfig(SystemFileSystem fs, string projectDir, string feed) =>

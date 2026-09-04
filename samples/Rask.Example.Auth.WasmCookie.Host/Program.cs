@@ -1,20 +1,15 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
+using Rask.Auth;
 using Rask.Cqrs.Server;
 using Rask.Example.Auth.WasmCookie.Host;
 using Rask.Wasm.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(o =>
-    {
-        o.Cookie.Name = "rask.auth";
-        o.ExpireTimeSpan = TimeSpan.FromHours(8);
-        o.SlidingExpiration = true;
-    });
-builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
+// Accounts, on ASP.NET Core Identity: real password hashing, lockout, and the /api/auth endpoints the
+// browser bundle talks to. The cookie scheme comes with it, so nothing here registers one by hand.
+builder.Services.AddDbContextFactory<AuthDbContext>(o => o.UseSqlite("Data Source=wasmcookie-auth.db"));
+builder.Services.AddRaskAuth<AuthDbContext>();
 builder.Services.AddRask(); // Rask.Wasm.Hosting — response compression for the AppBundle
 
 // The endpoint half of remote dispatch, plus what its handlers need. One call registers Rask.Cqrs and
@@ -29,58 +24,23 @@ var app = builder.Build();
 // — there are no [Authorize] endpoints; the WASM client gates content with the Authorize component.)
 app.UseAuthentication();
 
-// Auth API consumed by the WASM client (same origin, so the HttpOnly cookie rides every request).
-app.MapPost("/api/login", async (HttpContext ctx, LoginRequest dto, ICredentialStore creds) =>
-{
-    var claims = creds.Validate(dto.Username, dto.Password);
-    if (claims is null)
-    {
-        return Results.Unauthorized();
-    }
-
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-    await ctx.SignInAsync(new ClaimsPrincipal(identity));
-    return Results.Ok();
-});
-
-app.MapGet("/api/me", (HttpContext ctx) =>
-    ctx.User.Identity?.IsAuthenticated == true
-        ? Results.Ok(new MeDto(
-            ctx.User.Identity!.Name!,
-            ctx.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray()))
-        : Results.NoContent());
-
-app.MapPost("/auth/logout", async (HttpContext ctx) =>
-{
-    await ctx.SignOutAsync();
-    return Results.Ok();
-});
+// The auth API the browser bundle talks to: register, login, logout and me, under /api/auth. Same
+// origin, so the HttpOnly cookie rides every request and no token ever reaches JavaScript.
+//
+// BEFORE UseRask, whose catch-all serves the bundle for anything unmatched and would otherwise answer
+// these with the app shell.
+app.MapRaskAuth();
 
 // Answers the messages the bundle dispatches: GET and POST on /_rask/cqrs/request/{name}, the verb
 // carrying what IQuery and ICommand already declare. BEFORE UseRask, whose catch-all serves the bundle
 // for anything unmatched and would otherwise answer these with the app shell.
 app.MapRaskCqrs();
 
+// A demo account, so the sample can be signed into the moment it is cloned. A real app seeds nobody:
+// the first person to register becomes the administrator, and while no account exists that registration
+// wants the one-time token from the startup log.
+await AuthSeed.EnsureDemoUserAsync(app.Services);
+
 app.UseRask(); // serve the published WASM AppBundle
 
 app.Run();
-
-public sealed record LoginRequest(string Username, string Password);
-
-public sealed record MeDto(string Name, string[] Roles);
-
-public interface ICredentialStore
-{
-    IReadOnlyList<Claim>? Validate(string username, string password);
-}
-
-public sealed class DemoCredentialStore : ICredentialStore
-{
-    public IReadOnlyList<Claim>? Validate(string username, string password) =>
-        (username, password) switch
-        {
-            ("alice", "password") => [new Claim(ClaimTypes.Name, "alice"), new Claim(ClaimTypes.Role, "user")],
-            ("root", "password") => [new Claim(ClaimTypes.Name, "root"), new Claim(ClaimTypes.Role, "admin")],
-            _ => null
-        };
-}

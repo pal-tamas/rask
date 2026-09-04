@@ -118,8 +118,8 @@
     wildcards — it would treat the pattern as a literal filename and rebuild unconditionally.
   -->
   <ItemGroup>
-    <_RaskWasmSharedTs Include="..\Rask.Core\Resources\*.ts"
-                       Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\*.d.ts"/>
+    <_RaskWasmSharedTs Include="..\Rask.Core\Resources\**\*.ts"
+                       Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\**\*.d.ts"/>
     <_RaskWasmClientTs Include="Resources\rask.wasm.ts;Resources\rask-wasm-api.ts;@(_RaskWasmSharedTs)"/>
     <_RaskWasmMainTs Include="Browser\main.ts"/>
     <_RaskWasmSwTs Include="Resources\rask-sw.ts;..\Rask.Core\Resources\rask-sw-shared.ts"/>

@@ -7,6 +7,12 @@ Rask.Battery.On() -> void
 Rask.Battery<TOptions>
 Rask.Battery<TOptions>.Battery() -> void
 Rask.Battery<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Battery<TOptions!>!
+Rask.DataAnnotationsRequestValidator<TRequest>
+Rask.DataAnnotationsRequestValidator<TRequest>.DataAnnotationsRequestValidator(System.IServiceProvider! services) -> void
+Rask.DataAnnotationsRequestValidator<TRequest>.ValidateAsync(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
+Rask.FluentValidationRequestValidator<TRequest>
+Rask.FluentValidationRequestValidator<TRequest>.FluentValidationRequestValidator(System.IServiceProvider! services) -> void
+Rask.FluentValidationRequestValidator<TRequest>.ValidateAsync(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.RaskApp
 Rask.RaskApp.Build<TApp>(string! pathBase = "") -> Microsoft.AspNetCore.Builder.WebApplication!
 Rask.RaskApp.Configuration.get -> Microsoft.Extensions.Configuration.IConfiguration!
@@ -17,6 +23,8 @@ Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
 Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
 Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.RaskAppOptions
+Rask.RaskAppOptions.Api.get -> Rask.Battery<Rask.Api.ApiOptions!>!
+Rask.RaskAppOptions.Auth.get -> Rask.Battery<Rask.Auth.AuthOptions!>!
 Rask.RaskAppOptions.BehindProxy.get -> bool
 Rask.RaskAppOptions.BehindProxy.set -> void
 Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Cache.CacheOptions!>!
@@ -44,6 +52,12 @@ Rask.RaskAppOptions.RunBeforeDatabaseOpensAsync.set -> void
 Rask.RaskAppOptions.Server.get -> System.Action<Rask.Server.RaskServerOptions!>?
 Rask.RaskAppOptions.Server.set -> void
 Rask.RaskAppOptions.Snapshots.get -> Rask.Battery<Rask.SQLite.Snapshots.SqliteSnapshotOptions!>!
+Rask.RaskAppOptions.Validation.get -> Rask.Battery!
 Rask.RaskAppOptions.Wasm.get -> bool
 Rask.RaskAppOptions.Wasm.set -> void
+Rask.RaskRemoteRequestValidator
+Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopes) -> void
+Rask.RaskRemoteRequestValidator.ValidateAsync(object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
+Rask.RaskRequestValidation
 static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.Builder.WebApplicationBuilder!>? configure = null) -> Rask.RaskApp!
+static Rask.RaskRequestValidation.AddRaskRequestValidation(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

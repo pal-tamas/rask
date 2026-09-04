@@ -81,6 +81,12 @@ public sealed partial class DashboardLayout(
         // An operator surface has no business in a search index, even behind a policy.
         Meta.Name("robots").Content("noindex, nofollow"),
         // Raw, because CSS is not HTML: encoding it would break every selector containing > or &.
+        // The KIT's sheet first, then the console's own. Two sheets rather than one because Tailwind
+        // scans the project it runs in, so the classes Rask.Ui's components write are compiled there and
+        // the classes these pages write are compiled here — neither build can see the other's markup.
+        // Order is the contract: the console's @theme redefines the --color-ui-* tokens the kit declares,
+        // and an override only wins while it is the copy the cascade reads last.
+        Style[Raw.Value(UiStylesheet.Css)],
         Style[Raw.Value(Css)],
     ];
 
@@ -106,14 +112,16 @@ public sealed partial class DashboardLayout(
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        OpsShell[
-            OpsTopBar.Trailing(OpsTopLink.Label("Docs").Href("https://rask.sh/docs/"))[
-                OpsBrand,
+        UiShell[
+            UiTopBar.Trailing(UiTopLink.Label("Docs").Href("https://rask.sh/docs/"))[
+                // The wordmark and the destination are the console's, not the kit's — the kit is shared
+                // with the site and the docs now, and each says its own name.
+                UiBrand.Label("Ops").Href(Routes.OverviewPage()),
                 QueueSeparator(),
                 QueueSwitcher()
             ],
-            OpsNav[NavTabs()],
-            OpsMain[
+            UiNav[NavTabs()],
+            UiMain[
                 UnsecuredWarning(),
                 Outlet
             ]
@@ -143,13 +151,13 @@ public sealed partial class DashboardLayout(
     // Named Tab, not NavTab: a private method named after a chain entry would shadow the entry it needs to
     // call, and the entry is a member of this markup host rather than a type it can qualify.
     private Component Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
-        OpsNavTab
+        UiNavTab
             .Label(label)
             .Href(url)
             .Active(IsActive(prefix ?? url.Path, exact));
 
     private Component? QueueSeparator() =>
-        CurrentQueue() is null ? null : OpsCrumbSeparator;
+        CurrentQueue() is null ? null : UiCrumbSeparator;
 
     private Component? QueueSwitcher()
     {
@@ -160,7 +168,7 @@ public sealed partial class DashboardLayout(
             return null;
         }
 
-        return OpsCrumbSwitcher
+        return UiCrumbSwitcher
             .Label("Switch queue")
             .Value(current.Slug)
             .Choices([.. Available.Select(q => (q.Slug, q.Title))])
@@ -208,12 +216,12 @@ public sealed partial class DashboardLayout(
         security.IsUnsecured
             ? Div.Role("alert")
                 .Class(
-                    "mb-4 flex items-start gap-3 rounded-xl border border-ops-warn/40 bg-ops-warn/10 px-4 py-3 "
-                    + "text-sm text-ops-ink sm:mb-6")[
-                OpsIcon.Name(OpsIconName.ShieldWarning).Class("mt-0.5 size-5 shrink-0 text-ops-warn-ink"),
+                    "mb-4 flex items-start gap-3 rounded-xl border border-ui-warn/40 bg-ui-warn/10 px-4 py-3 "
+                    + "text-sm text-ui-ink sm:mb-6")[
+                UiIcon.Name(UiIconName.ShieldWarning).Class("mt-0.5 size-5 shrink-0 text-ui-warn-ink"),
                 Span.Class("min-w-0 break-words")[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
-                    Code.Class("rounded bg-ops-warn/15 px-1 py-0.5 font-mono text-xs")[RaskDashboardPolicies.Access],
+                    Code.Class("rounded bg-ui-warn/15 px-1 py-0.5 font-mono text-xs")[RaskDashboardPolicies.Access],
                     " authorization policy; without one the dashboard denies everyone outside Development."
                 ]
             ]

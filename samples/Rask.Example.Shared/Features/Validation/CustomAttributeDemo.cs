@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Rask.Example.Shared.Features;
 
-// Custom ValidationAttribute showcase. Three flavors flow through Rask's DataAnnotationsValidator
+// Custom ValidationAttribute showcase. Three flavors flow through the built-in pass
 // unchanged because System.ComponentModel.DataAnnotations.Validator walks every attribute on the
 // property — there's no opt-in needed for user-authored subclasses:
 //   • StrongPassword overrides IsValid(object?) — the simplest shape.
@@ -22,29 +22,28 @@ public sealed partial class CustomAttributeDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("flex flex-col gap-3")[
-            DataAnnotationsValidator,
             Div[
-                Label.For("v12-username").Class($"{Ui.Label} text-sm mb-1")["Username"],
-                Input.Bind(() => _model.Username).Id("v12-username").Class(Ui.Input),
+                Label.For("v12-username").Class($"{Tw.Label} text-sm mb-1")["Username"],
+                Input.Bind(() => _model.Username).Id("v12-username").Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Username)
             ],
             Div[
-                Label.For("v12-password").Class($"{Ui.Label} text-sm mb-1")["Password"],
-                Input.Bind(() => _model.Password).Id("v12-password").Type(InputType.Password).Class(Ui.Input),
+                Label.For("v12-password").Class($"{Tw.Label} text-sm mb-1")["Password"],
+                Input.Bind(() => _model.Password).Id("v12-password").Type(InputType.Password).Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.Password)
             ],
             Div[
-                Label.For("v12-confirm").Class($"{Ui.Label} text-sm mb-1")["Confirm password"],
-                Input.Bind(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class(Ui.Input),
+                Label.For("v12-confirm").Class($"{Tw.Label} text-sm mb-1")["Confirm password"],
+                Input.Bind(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class(Tw.Input),
                 ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
-                Button.Class(Ui.BtnPrimary).Type("submit")[Icon.Name(IconName.ShieldCheck).Class("me-1"), "Create account"]
+                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.ShieldOk).Class("me-1"), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Ui.AlertSuccess} text-sm mt-3 mb-0")[Icon.Name(IconName.CheckCircle).Class("me-2"), _submission]
+            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

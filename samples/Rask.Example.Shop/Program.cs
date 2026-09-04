@@ -1,15 +1,15 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Rask.Auth;
 using Rask.Cache;
 using Rask.Core.Browser;
 using Rask.Cqrs;
 using Rask.Dashboard;
 using Rask.Dashboard.Panels;
 using Rask.Data;
-using Rask.Example.Shop.Features.Auth;
 using Rask.Example.Shop.Features.Ops;
 using Rask.Example.Shop.Features.Push;
 using Rask.Example.Shop.Features.Shared;
@@ -195,7 +195,7 @@ builder.Services.AddSingleton<IDashboardBackupProbe, BackupProbe>();
 // is gated on this policy. Without one it would deny everyone outside Development. The demo credential
 // store has no roles, so this admits any signed-in user; a real app would require one.
 builder.Services.AddAuthorization(o =>
-    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
+    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin)));
 
 // The read-through cache accessor `rask generate cache` scaffolded. Scoped, like any component
 // dependency; the ICache it wraps is backed by the same database as everything else.
@@ -215,26 +215,24 @@ builder.Services.AddRaskPwa(new WebAppManifest
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
 });
 // Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem.
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(o =>
-    {
-        o.Cookie.Name = "rask.auth";
-        // Secure-by-default: never send the auth cookie over plain HTTP, and use SameSite=Lax so it
-        // doesn't ride cross-site POSTs (CSRF). The dev launch profile runs on HTTPS so the cookie
-        // is set in development too; if you must serve over plain HTTP, relax SecurePolicy.
-        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        // Fully qualified: the --pwa `using Rask.Core.Browser` also defines a SameSiteMode.
-        o.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-        o.LoginPath = "/login";
-        o.AccessDeniedPath = "/forbidden";
-    });
-builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
+// Accounts: register, sign in, sign out, on ASP.NET Core Identity. The cookie scheme comes with it, so
+// RaskApp's UseAuthentication/UseAuthorization below find a scheme provider and wire themselves in the
+// right order. The FIRST account to register becomes the administrator — which is what gates /_rask above.
+builder.Services.AddRaskAuth<AppDbContext>();
 var app = builder.Build();
 
 // Create the schema and seed, BEFORE app.Run() starts the hosted processors. A real app runs
 // `rask db add Init` / `rask db update` instead; this sample uses EnsureCreated so it can be cloned
 // and run with no migration step. See DbInitializer for why the ordering matters.
-await DbInitializer.InitializeAsync(app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>());
+// UserManager and RoleManager are scoped, so the seeding borrows a scope of its own — this runs before
+// app.Run(), where there is no request to take one from.
+using (var seedScope = app.Services.CreateScope())
+{
+    await DbInitializer.InitializeAsync(
+        app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>(),
+        seedScope.ServiceProvider.GetRequiredService<UserManager<RaskUser>>(),
+        seedScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
+}
 
 // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
 // (HSTS, redirects, your own logging) sees the request the visitor actually made.
@@ -271,8 +269,8 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Mapped before UseRask: its catch-all serves the SPA for anything unmatched, so a minimal API
-// registered after it would never be reached.
+// Endpoints go here, before UseRask, so they read in one place. Order is not what makes them work:
+// routing matches on precedence, and any route is more specific than the catch-all.
 app.MapPushSubscriptions();
 
 // To host this app under a sub-path (e.g. behind a reverse proxy mapping

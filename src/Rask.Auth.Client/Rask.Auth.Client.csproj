@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Auth.Client</PackageId>
+    <Title>Rask.Auth.Client — accounts for a browser host</Title>
+    <Description>The browser half of Rask.Auth. Register it and a WebAssembly app gets the same IAuth and IUserProvider a server-rendered one has — register, sign in and sign out are the identical calls, and reading the current user is the identical property. It talks to the app's own /api/auth endpoints over a same-origin cookie, so no token is ever held in JavaScript. Deliberately free of ASP.NET Core Identity and Entity Framework: neither belongs in a trimmed browser publish.</Description>
+    <PackageTags>authentication wasm webassembly browser identity claims cookie-auth spa dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- IAuth, IUserProvider, Navigator, LocalUrl and the AuthApi wire contract. PrivateAssets="all" —
+         Rask.Core is IsPackable=false, and it reaches consumers from the Rask.Wasm package this add-on
+         sits alongside; re-packing it here would ship a duplicate assembly.
+
+         Deliberately NOT Rask.Auth: that half carries ASP.NET Core Identity and Entity Framework, and
+         neither has any business in a browser publish. The two halves agree through AuthApi in Core. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Auth.Client.Tests"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Auth.Client;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

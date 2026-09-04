@@ -1,162 +1,44 @@
 /*
   The landing site's stylesheet, compiled by Rask.Tailwind into wwwroot/css/app.css.
 
-  What is NOT here is the point: the 300 lines of hand-written component classes this replaced. What
-  remains is the part utilities genuinely cannot express — the palette, the two things the canvas and the
-  scroll observer drive from JavaScript, and the syntax highlighting for a code sample that arrives as
-  trusted Raw HTML and so has no call site for a utility to sit on.
+  Two things are gone from this file, and their absence is the point.
+
+  The @layer components block held .reveal, .bar and .t-* — rules that existed only so App.ts could
+  drive them. That script is gone (the page ships no JavaScript now), and with it the reason for those
+  rules. .reveal in particular was `opacity: 0` until an IntersectionObserver said otherwise, which is
+  exactly the wrong thing on a prerendered page: every section would have arrived invisible and stayed
+  that way for anyone without JavaScript, including the crawler the prerender is for.
+
+  The palette is gone too, into Rask.Ui. The kit declares the --color-ui-* tokens and this page draws
+  with them, so the console, this site and the docs share one set of surfaces, one hairline and one
+  ink. What remains below is only what this page adds on top: the brand accent, and its ground.
 */
 @import "tailwindcss";
 
 /*
-  Dark is the default and light is the deviation, matching how the page is actually seen.
+  The kit's sheet is inlined ahead of this one (see App.HeadAssets), so anything redefined here wins.
 
-  These names are a CONTRACT with App.ts, which paints the hero canvas with
-  getComputedStyle(document.documentElement).getPropertyValue('--color-accent') and friends. Rename one
-  here and the canvas keeps drawing, in black, with nothing reporting it — so the names are shared
-  deliberately rather than duplicated into a second set of aliases.
+  Only the accent is redefined. The kit's brand is the console's blue; Rask's is the violet the logo,
+  the favicon and every published asset already use, and a marketing page is where that matters. The
+  surfaces, hairlines and status colours are taken as they come — a landing page that invented its own
+  greys would be the drift this kit was extracted to stop.
 */
 @theme {
-  --color-ground: oklch(0.15 0.02 285);
-  --color-panel: oklch(0.19 0.02 285);
-  --color-panel-2: oklch(0.23 0.02 285);
-  --color-line: oklch(0.62 0.19 292 / 14%);
-  --color-grid: oklch(0.62 0.19 292 / 5%);
-  --color-ink: oklch(0.94 0.01 285);
-  --color-ink-soft: oklch(0.84 0.02 285);
-  --color-muted: oklch(0.68 0.02 285);
-  --color-accent: oklch(0.62 0.19 292);
-  --color-accent-2: oklch(0.55 0.22 292);
-  --color-accent-ink: oklch(0.80 0.12 292);
-  --color-signal: oklch(0.78 0.15 165);
-  --color-signal-soft: oklch(0.78 0.15 165 / 14%);
-  /* The comparison bars' "other framework" colour. Deliberately quiet: the chart argues with numbers. */
-  --color-blazor: oklch(0.50 0.02 285);
+  --color-ui-brand: oklch(0.55 0.22 292);
+
+  /* The accent as TEXT on a light ground. The brand above is a fill — on white it measures 4.1:1,
+     which is under the 4.5:1 body text needs, and this one is used for links and eyebrows. */
+  --color-ui-brand-ink: oklch(0.48 0.22 292);
 }
 
-/* The toggle stamps data-theme; with no explicit choice the system decides. */
 @layer base {
-  :root[data-theme="light"],
-  :root:not([data-theme="dark"]) {
-    color-scheme: light dark;
-  }
+  /* The page's ground. The kit deliberately ships no html/body rules — an application owns its own
+     document — so the one place that decides what colour this page is, is this file.
 
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --color-ground: oklch(0.98 0.005 285);
-      --color-panel: oklch(0.96 0.008 285);
-      --color-panel-2: oklch(0.93 0.01 285);
-      --color-line: oklch(0.55 0.22 292 / 16%);
-      --color-grid: oklch(0.55 0.22 292 / 5%);
-      --color-ink: oklch(0.20 0.02 285);
-      --color-ink-soft: oklch(0.34 0.02 285);
-      --color-muted: oklch(0.52 0.02 285);
-      --color-accent: oklch(0.55 0.22 292);
-      --color-accent-2: oklch(0.48 0.22 292);
-      --color-accent-ink: oklch(0.48 0.22 292);
-      --color-signal: oklch(0.60 0.14 165);
-      --color-signal-soft: oklch(0.60 0.14 165 / 12%);
-      --color-blazor: oklch(0.78 0.01 285);
-    }
-  }
-
-  :root[data-theme="light"] {
-    --color-ground: oklch(0.98 0.005 285);
-    --color-panel: oklch(0.96 0.008 285);
-    --color-panel-2: oklch(0.93 0.01 285);
-    --color-line: oklch(0.55 0.22 292 / 16%);
-    --color-grid: oklch(0.55 0.22 292 / 5%);
-    --color-ink: oklch(0.20 0.02 285);
-    --color-ink-soft: oklch(0.34 0.02 285);
-    --color-muted: oklch(0.52 0.02 285);
-    --color-accent: oklch(0.55 0.22 292);
-    --color-accent-2: oklch(0.48 0.22 292);
-    --color-accent-ink: oklch(0.48 0.22 292);
-    --color-signal: oklch(0.60 0.14 165);
-    --color-signal-soft: oklch(0.60 0.14 165 / 12%);
-    --color-blazor: oklch(0.78 0.01 285);
-  }
-
+     The well rather than the panel white: cards sit ON something. */
+  html,
   body {
-    background-color: var(--color-ground);
-    color: var(--color-ink);
-    /* Two glows and a grid. A utility can hold one gradient; this is the page's whole ground. */
-    background-image:
-      radial-gradient(1200px 600px at 78% -10%, var(--color-line), transparent 60%),
-      linear-gradient(var(--color-grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
-    background-size:
-      auto,
-      48px 48px,
-      48px 48px;
-  }
-}
-
-/*
-  JavaScript's half of the page, kept as real classes because that is what App.ts selects on.
-
-  .reveal is observed by an IntersectionObserver which adds .in; .bars gets .run, and each .bar then has
-  its height set from data-h. Folding any of these into a utility string would let a restyle break an
-  animation, or a test, in a way that reads as a styling change.
-*/
-@layer components {
-  .reveal {
-    opacity: 0;
-    transform: translateY(14px);
-    transition:
-      opacity 0.5s ease,
-      transform 0.5s ease;
-  }
-
-  .reveal.in {
-    opacity: 1;
-    transform: none;
-  }
-
-  .bar {
-    width: 44px;
-    height: 0;
-    border-radius: 8px 8px 0 0;
-    transition: height 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
-    position: relative;
-  }
-
-  .bar.blazor {
-    background: var(--color-blazor);
-  }
-
-  .bar.rask {
-    background: linear-gradient(180deg, var(--color-accent), var(--color-accent-2));
-  }
-
-  .bar .cap {
-    position: absolute;
-    inset-inline: 0;
-    top: -1.35rem;
-    text-align: center;
-    font-size: 0.7rem;
-    color: var(--color-muted);
-  }
-}
-
-/*
-  The Counter.cs sample is trusted Raw HTML — it has no call site a utility could attach to, so its
-  highlighting is CSS by necessity rather than by preference.
-*/
-@layer components {
-  .t-key {
-    color: var(--color-accent-ink);
-  }
-
-  .t-type {
-    color: var(--color-signal);
-  }
-
-  .t-str {
-    color: oklch(0.80 0.11 85);
-  }
-
-  .t-fn {
-    color: var(--color-ink);
+    background-color: var(--color-ui-well);
+    color: var(--color-ui-ink);
   }
 }

@@ -64,8 +64,8 @@
     wildcards — it would treat the pattern as a literal filename and rebuild unconditionally.
   -->
   <ItemGroup>
-    <_RaskServerClientTs Include="Resources\rask.ts;..\Rask.Core\Resources\*.ts"
-                         Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\*.d.ts"/>
+    <_RaskServerClientTs Include="Resources\rask.ts;..\Rask.Core\Resources\**\*.ts"
+                         Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\**\*.d.ts"/>
     <_RaskServerSwTs Include="Resources\rask-sw.ts;..\Rask.Core\Resources\rask-sw-shared.ts"/>
   </ItemGroup>
 

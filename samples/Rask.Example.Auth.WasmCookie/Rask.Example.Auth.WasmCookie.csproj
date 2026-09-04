@@ -34,6 +34,7 @@
     <!-- The browser half of remote dispatch. Only this project takes it: the host answers those
          endpoints, so shipping endpoint-CALLING code into the process that serves them would be the
          arrangement the two packages were split up to prevent. -->
+    <ProjectReference Include="..\..\src\Rask.Auth.Client\Rask.Auth.Client.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"

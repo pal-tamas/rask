@@ -97,7 +97,7 @@ public class LocalizationScaffoldTests
     public void The_wasm_template_scaffolds_a_catalog_per_language()
     {
         var result = ProjectGenerator.GenerateWasm(
-            "/out", "Demo", auth: false, pwa: false, docker: false, "1.0.0", Batteries("en", "hu"));
+            "/out", "Demo", pwa: false, docker: false, "1.0.0", Batteries("en", "hu"));
         var paths = result.Files.Select(f => f.Path).ToArray();
 
         Assert.Contains("/out/Resources/Strings.en.json", paths);
@@ -154,7 +154,7 @@ public class LocalizationScaffoldTests
     private static string FileOf(ServerBatteries batteries, string path)
     {
         var result = ProjectGenerator.GenerateWasm(
-            "/out", "Demo", batteries.Auth, batteries.Pwa, batteries.Docker, "1.0.0", batteries);
+            "/out", "Demo", batteries.Pwa, batteries.Docker, "1.0.0", batteries);
 
         return result.Files.Single(f => f.Path == path).Content;
     }

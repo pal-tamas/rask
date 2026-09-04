@@ -32,20 +32,20 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
-                    Span.Class(_visible ? $"{Ui.BadgeSuccess}" : $"{Ui.BadgeSecondary}").Id("io-status")[
+                    Span.Class(_visible ? $"{Tw.BadgeSuccess}" : $"{Tw.BadgeSecondary}").Id("io-status")[
                         _visible ? "in view" : "out of view"],
-                    Span.Class("text-sm text-slate-500 dark:text-slate-400").Id("io-changes")[$"{_changes} change(s)"]
+                    Span.Class("text-sm text-ui-muted").Id("io-changes")[$"{_changes} change(s)"]
                 ],
-                P.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")["Scroll down — the target reports when it enters the viewport."],
+                P.Class("text-sm text-ui-muted mb-2")["Scroll down — the target reports when it enters the viewport."],
                 // A tall spacer so the target starts below the fold, then the observed target.
                 Div.Style("height: 130vh"),
                 Div
                     .Ref(_target)
                     .Id("io-target")
-                    .Class("p-4 rounded text-center " + (_visible ? "bg-success-subtle" : "bg-slate-100"))[
+                    .Class("p-4 rounded text-center " + (_visible ? "bg-success-subtle" : "bg-ui-well"))[
                     "🎯 observed target"
                 ]
             ]

@@ -12,6 +12,11 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
     private const int MaxTransientRetries = 3;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);
 
+    // A fetch that never settles is the one failure the retry loop below could not see. Without a
+    // per-attempt deadline the await simply never returns: no exception, no retry, and the spinner
+    // stays up for ever — which is precisely the outcome the retries were written to prevent.
+    private static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(5);
+
     private string? _error;
     private Post? _post;
 
@@ -19,14 +24,33 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
     {
         for (var attempt = 0; ; attempt++)
         {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+            deadline.CancelAfter(AttemptTimeout);
+
             try
             {
                 _post = await http.GetFromJsonAsync("data/posts-1.json", HttpJsonContext.Default.Post,
-                    CancellationToken);
+                    deadline.Token);
                 return;
             }
             // Navigating away unmounts the page and cancels the token — the page is gone, nothing to show.
-            catch (OperationCanceledException) { return; }
+            // Distinguished from the deadline below by asking the COMPONENT's token, since a linked
+            // source reports both the same way.
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested) { return; }
+            // The attempt itself ran out of time: a fetch that never settled. Retried like any other
+            // transient transport failure.
+            catch (OperationCanceledException) when (attempt < MaxTransientRetries)
+            {
+                try { await Task.Delay(RetryDelay, CancellationToken); }
+                catch (OperationCanceledException) { return; }
+            }
+            // Still not settling after every retry. Says so, rather than reporting the framework's
+            // "A task was canceled." — which tells a reader nothing about what was being waited on.
+            catch (OperationCanceledException)
+            {
+                _error = $"The request did not complete within {AttemptTimeout.TotalSeconds:0}s.";
+                return;
+            }
             // On WASM a hard browser refresh kills the in-flight fetch outside the AbortController, so it
             // surfaces as an HttpRequestException with no StatusCode ("TypeError: Load failed") rather than
             // an OperationCanceledException. The same null-status failure also fires transiently on the
@@ -50,22 +74,22 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
     {
         if (_error is not null)
         {
-            return Div.Class($"{Ui.AlertDanger} mb-0")[
+            return Div.Class($"{Tw.AlertDanger} mb-0")[
                 Strong["Error: "], _error
             ];
         }
 
         if (_post is null)
         {
-            return Div.Class("text-slate-500 dark:text-slate-400 flex items-center")[
-                Span.Class($"{Ui.Spinner} size-4 me-2"),
+            return Div.Class("text-ui-muted flex items-center")[
+                Span.Class($"{Tw.Spinner} size-4 me-2"),
                 "Loading…"
             ];
         }
 
-        return Article.Class($"{Ui.Card} border-0 bg-slate-100")[
-            Div.Class(Ui.CardBody)[
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 uppercase mb-1")[$"Post #{_post.Id}"],
+        return Article.Class($"{Tw.Card} border-0 bg-ui-well")[
+            Div.Class(Tw.CardBody)[
+                Div.Class("text-sm text-ui-muted uppercase mb-1")[$"Post #{_post.Id}"],
                 H3.Class("text-base font-semibold")[_post.Title],
                 P.Class("mb-0 text-sm")[_post.Body]
             ]

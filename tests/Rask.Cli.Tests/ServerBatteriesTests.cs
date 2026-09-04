@@ -92,14 +92,16 @@ public sealed class ServerBatteriesTests
     }
 
     [Fact]
-    public void Auth_is_the_one_thing_the_defaults_leave_off()
+    public void Wasm_is_the_one_thing_the_defaults_leave_off()
     {
-        // A login wall changes what the app IS rather than what it can do, so it stays a decision. It is
-        // also the reason the wizard asks for it separately from the checklist of things to remove.
+        // Shipping a browser bundle changes what the app IS rather than what it can do — every publish
+        // links a WebAssembly runtime and pages start leaving the server — so it stays a decision.
+        // Authentication used to be the other one; it is not a decision any more, because an app with a
+        // database has accounts.
         var all = NewCommand.ToBatteries(TemplateCatalog.Default, []);
 
-        Assert.False(all.Auth);
-        Assert.True(NewCommand.ToBatteries(TemplateCatalog.Default, [], auth: true).Auth);
+        Assert.False(all.Wasm);
+        Assert.True(NewCommand.ToBatteries(TemplateCatalog.Default, [], wasm: true).Wasm);
     }
 
     [Fact]

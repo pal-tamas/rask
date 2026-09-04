@@ -203,7 +203,7 @@ no `--culture` flag, because a flag would only restate what the file already say
 once at scaffold time while the file goes on being the truth.
 
 *Where* a language control belongs in your chrome is a different question, and it is a design decision
-about your app rather than wiring — the same line `--auth` and the styling flags sit on. So a
+about your app rather than wiring — the same line the styling decisions sit on. So a
 scaffolded app negotiates language correctly out of the box, and a visitor can be *sent* to a language
 by link, but there is no affordance for choosing one until you add the component above.
 

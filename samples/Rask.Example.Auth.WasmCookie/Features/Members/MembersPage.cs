@@ -22,7 +22,7 @@ public sealed partial class MembersPage : Component
         ];
 }
 
-public sealed partial class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
+public sealed partial class MemberContent(IAuth auth, IUserProvider userProvider) : Component
 {
     protected override Component? Render() =>
         [
@@ -32,6 +32,6 @@ public sealed partial class MemberContent(WasmLoginService login, IUserProvider 
             // Rendered inside the gate, so the dispatch below is made by a signed-in visitor — the
             // endpoint requires an authenticated caller by default.
             RemoteDispatchPanel,
-            Button.Id("logout").OnClickAsync(login.LogoutAsync).Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-violet-700 ring-violet-300 hover:bg-violet-50 dark:text-violet-300 dark:ring-violet-700 dark:hover:bg-violet-950")["Sign out"]
+            Button.Id("logout").OnClickAsync(() => auth.SignOutAsync(returnUrl: "/login")).Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-transparent ring-1 text-violet-700 ring-violet-300 hover:bg-violet-50 dark:text-violet-300 dark:ring-violet-700 dark:hover:bg-violet-950")["Sign out"]
         ];
 }

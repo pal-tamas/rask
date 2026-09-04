@@ -1,0 +1,121 @@
+/*
+  The kit's own stylesheet, compiled by Rask.Tailwind at THIS project's build.
+
+  Tailwind is a compiler: it scans the project it runs in for the class names actually written and emits
+  only those utilities. That is why this lives here rather than being left to the consuming app — the kit
+  ships as a compiled assembly, so an app's own Tailwind build cannot see these class names and would emit
+  none of them, leaving every component rendered as unstyled HTML with nothing reporting it.
+
+  The output is embedded and inlined by the consuming surface (UiStylesheet.Css), so there is no
+  stylesheet to serve, no static web assets, and nothing for a host to map.
+
+  NO PREFLIGHT, and no html/body rules — the one place this deliberately differs from Rask.Dashboard's
+  sheet. The console may ship a global reset because it is a mounted application that owns its own
+  document (RaskMountedApp); it learned that the hard way, when the reset landed on the host application's
+  own pages for as long as an operator had the console open. An app consuming this kit owns its document,
+  and usually runs its own Tailwind besides. A second reset arriving from a library is that same bug with
+  a wider blast radius, and re-creates the multi-sheet stack where cascade ORDER decides the outcome that
+  #914 removed. Utilities only: the app keeps its own reset and its own base layer.
+
+  THE PALETTE IS INLINE BELOW, and it has to be. Moving it to a sibling ui.tokens.css and pulling it back
+  with `@import` compiled without error and emitted a sheet of the right size — with ZERO ui-* utilities
+  in it. A `@theme` reached through an import after the Tailwind entry points is not interpreted as
+  theme; the tokens simply are not there when utilities are generated, and every component silently
+  loses its colour while the build stays green. Keep it here.
+
+  An app that writes its own ui-* classes needs these tokens in ITS @theme for the same reason — Tailwind
+  emits a utility only where it can see the token. Copy the block into your own stylesheet; see
+  docs/ui-kit.md. The showcase does exactly that, and UiPaletteTests asserts its copy matches this one.
+*/
+/*
+  LAYERED, and this is not cosmetic — it decides whether a consuming app keeps its own cascade.
+
+  Unlayered CSS beats layered CSS in every browser, whatever the source order. Tailwind puts an app's
+  utilities in `@layer utilities`, so a sheet from a library that imports these WITHOUT layer() lands
+  unlayered and silently outranks every utility the app wrote. It broke the showcase exactly that way:
+  the kit's `.hidden` beat the app's `.md\:flex`, and the sidebar stayed display:none at every width
+  while the page around it looked perfectly normal.
+
+  daisyUI's own rules are already layered (`@layer daisyui...`), so only these two needed saying.
+*/
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/*
+  daisyUI supplies the component vocabulary; this kit supplies the typed C# API over it.
+
+  VENDORED, and referenced by relative path. daisyUI publishes a standalone bundle for exactly this
+  case, which matters because Tailwind resolves `@plugin "daisyui"` the way Node does — by walking up
+  from this file looking for node_modules — and the standalone binary Rask.Tailwind prefers bundles
+  Tailwind inside itself and carries no package tree to find anything in:
+
+      Error: Can't resolve 'daisyui' in .../src/Rask.Ui/Styles
+
+  A relative path sidesteps the resolution entirely, so this project keeps the standalone engine and
+  needs no npm install, no node_modules and no package.json of its own. vendor/daisyui.mjs is
+  daisyUI 5.7.27 verbatim (MIT), taken from its pinned GitHub release, which is byte-identical to the
+  `latest` download at that version. It is build-time input only and ships in nothing.
+
+  themes: light is the default and dark follows the OS. Both are daisyUI's own, which is what makes the
+  theme switch work with NO JavaScript — daisyUI matches `input.theme-controller[value=x]:checked` and
+  `[data-theme=x]`, so a checkbox or a radio flips the whole palette through CSS alone.
+
+  root: the theme is confined to [data-rask-ui] rather than the document. By default daisyUI paints
+  `:root`, so merely REFERENCING this package would repaint the background and text colour of an app
+  that only wanted a button. This kit already refuses to ship a preflight for that reason, and a `:root`
+  background is the same bug wearing a different selector. See UiStylesheet.ThemeScopeAttribute.
+
+  exclude rootscrollgutter, which paints the document for its own reasons.
+
+  NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
+  scanned source. So every class a component writes must appear as a COMPLETE literal in C# — which is
+  what UiClassNames.cs is for — never built by concatenating ("btn-" + tone). A composed name is
+  invisible to the scan, and the failure is silent: the component renders with no styling at all and the
+  build stays green. Measured: adding one file naming `drawer` grew this sheet by 4 KB.
+*/
+/*
+  The plugin bundle is NOT a source file, and saying so is load-bearing.
+
+  Tailwind scans the project it runs in, and vendor/daisyui.mjs is inside it: 348 KB of daisyUI's own
+  code, naming every class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the
+  compiled sheet carried every component whether or not anything here used one. It reads as correct,
+  because a sheet containing too much looks exactly like a sheet containing enough.
+
+  It also quietly weakened UiClassNamesTests, which checks that every name the kit can write exists in
+  the sheet. With the bundle scanned, every daisyUI name was in there for reasons unrelated to the kit.
+*/
+@source not "./vendor";
+
+@plugin "./vendor/daisyui.mjs" {
+  themes: light --default, dark --prefersdark;
+  root: "[data-rask-ui]";
+  exclude: rootscrollgutter;
+}
+
+@theme {
+  /*
+    TRANSITIONAL. These are the kit's original token names, now expressed in daisyUI's semantic
+    variables so that both vocabularies resolve to the same colour while call sites migrate off them.
+    They are not a second palette: every one is an alias, and they go away once nothing names them.
+
+    They resolve only inside the theme scope — daisyUI defines --color-base-* under [data-rask-ui], so
+    outside it these are invalid and compute to nothing, exactly like every other kit colour.
+  */
+  --color-ui-bg: var(--color-base-100);
+  --color-ui-panel: var(--color-base-100);
+  --color-ui-well: var(--color-base-200);
+  --color-ui-line: var(--color-base-300);
+  --color-ui-ink: var(--color-base-content);
+  --color-ui-muted: var(--color-neutral);
+
+  --color-ui-brand: var(--color-primary);
+  --color-ui-brand-ink: var(--color-primary);
+
+  --color-ui-ok: var(--color-success);
+  --color-ui-warn: var(--color-warning);
+  --color-ui-danger: var(--color-error);
+
+  --color-ui-ok-ink: var(--color-success);
+  --color-ui-warn-ink: var(--color-warning);
+}
+

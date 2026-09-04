@@ -10,8 +10,8 @@ internal static partial class SeeAlso
     {
         var children = new List<Component>
         {
-            Span.Class("text-slate-500 font-semibold")[
-                Icon.Name(IconName.JournalText).Class("me-1"), "See also"
+            Span.Class("text-ui-muted font-semibold")[
+                UiIcon.Name(UiIconName.Book).Class("me-1"), "See also"
             ]
         };
         children.AddRange(guides.Select(g => (Component)NavLink

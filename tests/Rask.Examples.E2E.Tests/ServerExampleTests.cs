@@ -219,6 +219,48 @@ public sealed class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFi
         await Expect(Page.Locator("#v4-password")).ToHaveValueAsync("");
     });
 
+    // A real Blazor component, hosted as a Rask island, reaching a BROWSER API on the Server host.
+    //
+    // The lane had no Server sample at all until this one, and the gap was not cosmetic: every gate it
+    // had ran against the WASM showcase or a unit test with a fake IJSRuntime, so a hosted component's
+    // [Inject] could be — and was — silently null for a whole release (#956). Nothing here passes
+    // unless three separate things are true.
+    //
+    //   1. [Inject] delivered a real IJSRuntime. Before #956 the island built its component with
+    //      new(), which skips Blazor's injection path, and the call below threw ArgumentNullException.
+    //   2. Rask fired OnAfterRenderAsync. StaticHtmlRenderer never does, so without Rask driving it
+    //      the probe sits at its placeholder forever.
+    //   3. The answer came back OVER THE SOCKET. On this host the call escalates the page to a live
+    //      session, and the identifier it asks for — __raskApi.matchMedia — is Rask's shared browser
+    //      layer, the same module a TypeScript front end imports as browser/mediaQuery.
+    //
+    // Asserted on the VALUE, never on the element: the probe renders either way, and "…" is exactly
+    // what a presence check would pass on.
+    [Fact]
+    public Task BlazorIsland_ReadsABrowserApiFromOnAfterRender() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        await ClickSidebar("Blazor island");
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Blazor island",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        // The parameters crossed as live C# values, and the hosted component's own @onclick works over
+        // Rask's handler channel with no circuit.
+        await Expect(Page.Locator("[data-testid=ticker-symbol]")).ToHaveTextAsync("RASK",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Page.ClickAsync("[data-testid=ticker-watch]");
+        await Expect(Page.Locator("[data-testid=ticker-watches]")).ToContainTextAsync("watching: 1",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // The browser answered, and the answer reached C# and came back as markup. Playwright runs
+        // light unless told otherwise, so "light" is the value under test and "…" is the failure.
+        await Expect(Page.Locator("[data-testid=probe-scheme]")).ToHaveTextAsync("light",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 20_000 });
+    });
+
     // Plant a snapshot in the shape rask.js's saveRestoreFields writes, under its own key.
     private Task WriteRestoreFieldsAsync(string path, string fieldsJson) =>
         Page.EvaluateAsync(

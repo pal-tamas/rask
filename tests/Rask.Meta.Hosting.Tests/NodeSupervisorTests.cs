@@ -34,8 +34,8 @@ public class NodeSupervisorTests
     }
 
     private static NodeSupervisor Build(MetaHostingOptions options, TestLifetime lifetime) =>
-        new(options, new MetaPaths(options, new TestEnvironment()), new NodeReadiness(), lifetime,
-            NullLogger<NodeSupervisor>.Instance);
+        new(options, new MetaPaths(options, new TestEnvironment()), new NodeReadiness(), new MetaDrain(),
+            lifetime, NullLogger<NodeSupervisor>.Instance);
 
     /// <summary>
     ///     Backoff grows, then stops growing.
@@ -76,6 +76,74 @@ public class NodeSupervisorTests
             attempt, TimeSpan.FromSeconds(lastedSeconds), TimeSpan.FromMinutes(1));
 
         Assert.Equal(expected, next);
+    }
+
+    /// <summary>
+    ///     Stopping waits for in-flight forwards before the Node process is signalled.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The ordering this exists for is not ours to choose: hosted services stop in REVERSE
+    ///         registration order, and Kestrel's is registered before anything an app adds — so the
+    ///         supervisor stops FIRST, while Kestrel is still draining. Without this wait the process is
+    ///         signalled out from under every page render in flight, on every deploy.
+    ///     </para>
+    ///     <para>
+    ///         Driven against the supervisor directly, and that is deliberate. The same assertion made
+    ///         against a running <c>WebApplication</c> passes whether or not this wait exists, because
+    ///         <c>StopAsync</c> also stops Kestrel and Kestrel drains in-flight requests by itself — so
+    ///         the app-level version measured ASP.NET's behaviour and proved nothing about ours. It was
+    ///         written that way first, and passed with the fix removed.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task Stopping_waits_for_in_flight_forwards()
+    {
+        var drain = new MetaDrain();
+        drain.Enter();
+
+        var options = new MetaHostingOptions
+        {
+            SuperviseNode = false,
+            ShutdownTimeout = TimeSpan.FromSeconds(10),
+        };
+
+        using var supervisor = new NodeSupervisor(
+            options, new MetaPaths(options, new TestEnvironment()), new NodeReadiness(), drain,
+            new TestLifetime(), NullLogger<NodeSupervisor>.Instance);
+
+        await supervisor.StartAsync(CancellationToken.None);
+
+        var stopping = supervisor.StopAsync(CancellationToken.None);
+        await Task.Delay(200);
+        Assert.False(stopping.IsCompleted, "stopping did not wait for the in-flight forward");
+
+        drain.Exit();
+
+        await stopping.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    /// <summary>
+    ///     A forward that never finishes does not hold the stop open past its budget.
+    /// </summary>
+    [Fact]
+    public async Task A_stuck_forward_does_not_block_stopping_for_ever()
+    {
+        var drain = new MetaDrain();
+        drain.Enter();
+
+        var options = new MetaHostingOptions
+        {
+            SuperviseNode = false,
+            ShutdownTimeout = TimeSpan.FromMilliseconds(100),
+        };
+
+        using var supervisor = new NodeSupervisor(
+            options, new MetaPaths(options, new TestEnvironment()), new NodeReadiness(), drain,
+            new TestLifetime(), NullLogger<NodeSupervisor>.Instance);
+
+        await supervisor.StartAsync(CancellationToken.None);
+        await supervisor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
     }
 
     /// <summary>
@@ -139,7 +207,7 @@ public class NodeSupervisorTests
         };
 
         using var supervisor = new NodeSupervisor(
-            options, new MetaPaths(options, new TestEnvironment()), readiness, lifetime,
+            options, new MetaPaths(options, new TestEnvironment()), readiness, new MetaDrain(), lifetime,
             NullLogger<NodeSupervisor>.Instance);
         await supervisor.RunAsync(CancellationToken.None);
 

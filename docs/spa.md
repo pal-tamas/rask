@@ -87,7 +87,7 @@ the C# templates need neither.
 A client that generates no `tsconfig.json` fails the build:
 
 ```
-error RASKSPA004: Rask.Spa.Hosting: 'Shop.Client' has no tsconfig.json, and Rask generates
+error RASKSPA004: Rask.Spa.Hosting: 'Shop/Client' has no tsconfig.json, and Rask generates
 TypeScript contracts into it. Rask supports TypeScript single-page app clients: scaffold the
 client from its framework's TypeScript template (`npm create vite@latest -- --template react-ts`),
 or point RaskSpaTypeScriptConfig at the config it does have.
@@ -114,9 +114,22 @@ Two ways out, and both are honest ones:
 
 | | |
 |---|---|
-| `Shop.Server/` | The ASP.NET host: your message records, their handlers, and the JSON endpoint the client dispatches through. |
-| `Shop.Client/` | The client, as `create-vite` scaffolds it, plus Rask's overlay — at most four files: a Vite config for the dev proxy, an entry that installs the `QueryClient`, the component that dispatches, and (React and Solid) its routes. |
-| `Shop.Client/src/rask/` | Generated on every build. Gitignored. |
+| `Shop/` | The ASP.NET host: your message records, their handlers, and the JSON endpoint the client dispatches through. |
+| `Shop/Client/` | The client, as `create-vite` scaffolds it, plus Rask's overlay — at most four files: a Vite config for the dev proxy, an entry that installs the `QueryClient`, the component that dispatches, and (React and Solid) its routes. |
+| `Shop/Client/src/rask/` | Generated on every build. Gitignored. |
+
+**One project, with the front end as a folder inside it.** A C#-on-both-halves solution needs a
+`.Shared` project because both halves are C# and must compile the same record — but here the client's
+half of every contract is *generated TypeScript*, so the messages live in the host and there is
+nothing for a second .NET project to hold. The host is `Shop`, not `Shop.Server`: with no sibling to
+distinguish it from, that suffix named nothing.
+
+This is the same shape [the meta framework lane](meta.md) uses, so `rask new` produces one
+recognisable layout whichever front end you pick.
+
+> **Moving an existing app.** Rename `Shop.Server/` to `Shop/`, move `Shop.Client/` to `Shop/Client/`,
+> rename the `.csproj`, and drop `.Server` from the root namespace. The build finds the client by
+> convention again after that; `RaskSpaClientDir` is only needed if you keep it somewhere else.
 
 ## The call site
 
@@ -312,7 +325,7 @@ app.UseRaskSpa(configure: options =>
 
 | Property | Default | |
 |---|---|---|
-| `RaskSpaClientDir` | the `.Server` → `.Client` convention | Where the front end lives. |
+| `RaskSpaClientDir` | a `Client` folder in the host project | Where the front end lives. |
 | `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
 | `RaskSpaGeneratedDir` | `src/rask` | Where the generated contracts land, inside the client. |
 | `RaskSpaBuild` | `true` | `false` skips node entirely. |
@@ -379,6 +392,93 @@ the starter's markup carries no `class` attributes of its own. Move any rule int
 your own markup and delete it; that is the same page. Delete the layer entirely and the page renders
 as unstyled text, because Tailwind's preflight removes the browser's defaults on purpose.
 
+## Browser APIs
+
+Rask ships typed wrappers over the browser's Web APIs, and on a Rask component front end you inject
+them as C# services. Here you are writing TypeScript, so you get the layer underneath them instead:
+the same modules, imported directly.
+
+```ts
+import { getCurrentPosition } from '@rask/browser/geolocation'
+import { prefersDark } from '@rask/browser/mediaQuery'
+
+const fix = await getCurrentPosition({ enableHighAccuracy: true })
+```
+
+They arrive in `src/rask/browser/` the way `client.ts` does — copied out of the package on every
+build, so upgrading Rask upgrades them. Import a module directly, as above, and your bundler keeps
+only what you used; or take the namespace form, `import { geolocation } from '@rask/browser'`.
+
+**`@rask/*` is a tsconfig path**, written for you as `src/rask/tsconfig.rask.json` on every build. Add
+the mapping to your own `tsconfig.json`:
+
+```json
+{ "compilerOptions": { "paths": { "@rask/*": ["./src/rask/*"] } } }
+```
+
+Add it **to** whatever `paths` your template already has, rather than extending the generated file:
+TypeScript does not merge `paths` across an `extends`, so a `paths` of your own would replace the
+inherited mapping entirely and `@rask/client` would stop resolving. Vite reads these through
+`vite-tsconfig-paths` where your template includes it; otherwise add a matching `resolve.alias`.
+
+It is the same specifier [the meta lane](meta.md#browser-apis) uses, where the modules land in
+whichever source directory that framework prefers — so the import reads the same in both, and moving
+between them teaches you nothing new. Relative imports keep working if you would rather not.
+
+**This is the same code Rask's own Server and WASM clients run.** It is not a TypeScript port kept in
+step by hand: the C# `IGeolocation` reaches the browser by calling into these very modules. A quirk
+fixed for one caller is fixed for the other in the same commit.
+
+Available today — the layer is moving over one API at a time:
+
+| | Modules |
+| --- | --- |
+| **Storage** | `indexedDb` · `originPrivateFileSystem` · `fileSystem` · `storageManager` · `cookies` |
+| **Device** | `geolocation` · `deviceOrientation` · `deviceMotion` · `battery` · `gamepad` · `mediaDevices` |
+| **Page** | `mediaQuery` · `visualViewport` · `screen` · `screenOrientation` · `fullscreen` · `pictureInPicture` |
+| **Observers** | `intersectionObserver` · `resizeObserver` · `mutationObserver` |
+| **Identity & crypto** | `webAuthn` · `crypto` · `permissions` |
+| **Coordination** | `broadcastChannel` · `webLocks` |
+| **Media & speech** | `mediaSession` · `speechSynthesis` · `speechRecognition` |
+| **PWA** | `webPush` · `notifications` · `badge` · `wakeLock` · `installPrompt` |
+| **Peer to peer** | `signaling` |
+| **Other** | `networkInformation` · `performance` · `eyeDropper` |
+
+Note what is **not** here, because the line matters more than the list. `clipboard` is
+`navigator.clipboard.writeText`, `localStorage` is `localStorage`, and `element.animate()` is already a
+method on the element — wrapping those would hand you a worse version of what `lib.dom.d.ts` already
+types. The same goes for `RTCPeerConnection` and the device APIs (`serial`, `usb`, `hid`, `bluetooth`):
+native, well typed, and yours to call. `signaling` is here precisely because it is the exception — the
+relay it connects to is Rask's, so it is not something you could write against nothing.
+
+These are the ones you would rather not write. `webAuthn` is the clearest: the platform deals in
+`ArrayBuffer`s while every relying party speaks base64url, so the module takes and returns base64url on
+both sides and a passkey ceremony is two calls. `originPrivateFileSystem` does ranged reads and writes
+into the origin's private tree with `keepExistingData` set — without which a ranged write silently
+discards every byte outside the range it wrote. `wakeLock` re-acquires the lock when the page becomes
+visible again, because the browser takes it away when the page is hidden and does not give it back,
+which is how a recipe left open quietly stops keeping the screen on.
+
+Names are idiomatic TypeScript, and where the platform already has a name it keeps it —
+`getCurrentPosition`, not `GetCurrentPositionAsync`. Subscriptions hand back a stop function rather
+than a disposable:
+
+```ts
+const stop = watchPosition(fix => setPosition(fix))
+// later, in a cleanup
+stop()
+```
+
+**Everything the platform gives you already, you should keep taking from the platform.**
+`navigator.clipboard.writeText` needs no wrapper in TypeScript, and `lib.dom.d.ts` types it better
+than Rask could. These modules exist for the parts that are genuinely awkward — a callback API that
+should be a promise, a live object that has to be snapshotted, a vendor-prefixed fallback chain, a
+base64url ceremony — and for the parts with a server half, which is the next section.
+
+**They are safe to import in a server render.** Nothing in `src/rask/browser/` touches `window` or
+`document` at import time, so a module can be imported at the top of a file that also runs during
+SSR. Calling one still needs a browser, as it would anywhere.
+
 ## Installable, and push-capable
 
 `--pwa` makes the app installable; `--push` adds Web Push from the ASP.NET host.
@@ -427,6 +527,79 @@ encrypt for a subscription that looked like it registered. `push.ts` flattens it
 Generate a key pair with `VapidKeys.Generate()` and put it in user-secrets; until you do, `/_push/key`
 answers with an empty key and `subscribeToPush()` returns `null` rather than throwing. See
 [Web Push](pwa.md).
+
+## Signing people in
+
+The [accounts battery](authentication.md) is on in the host, so the four endpoints it maps are already
+there. A TypeScript front end talks to them directly — there is no Rask client to install, because
+there is nothing to install: they are ordinary JSON over ordinary `fetch`.
+
+```
+POST /api/auth/register          { email, password, firstRunToken? }
+POST /api/auth/login             { email, password, remember? }
+POST /api/auth/logout
+GET  /api/auth/me                -> { id, email, roles }  |  204
+POST /api/auth/forgot-password   { email }
+POST /api/auth/reset-password    { userId, token, password }
+POST /api/auth/confirm-email     { userId, token }
+```
+
+You can call them with `fetch`, but you do not have to: the [browser layer](#browser-apis) ships
+a module for them, so each flow is a function.
+
+```ts
+import { auth } from './rask/browser'
+
+const result = await auth.login({ email, password })
+
+if (result.ok) {
+  console.log(result.user.roles)      // typed CurrentUser
+} else {
+  result.failure.error                 // "InvalidCredentials", "LockedOut", …
+}
+
+const me = await auth.me()             // CurrentUser, or null when nobody is signed in
+await auth.logout()
+
+// Recovery. None of these signs anybody in, so they answer {ok} rather than a user.
+await auth.sendPasswordReset(email)
+await auth.resetPassword(userId, token, password)   // both read out of the emailed link's query
+await auth.confirmEmail(userId, token)
+```
+
+It adds the required header, keeps the paths in one place, and gives you the response shapes typed —
+the same `AuthApi` contract the C# clients speak, so a front end and a component are talking to one
+API rather than to two that happen to agree today.
+
+The emailed links point at the **host's** built-in `/reset-password` and `/confirm-email` pages unless
+you change `AuthOptions.ResetPasswordPath` / `ConfirmEmailPath` to routes your front end owns. Point
+them at your own, read `userId` and `token` off the query string, and call the two functions above.
+
+Three things to know, and only three:
+
+- **`X-Rask-Auth` is required on every state-changing call**, and `auth.ts` adds it for you. Cross-site
+  markup — a form, an `<img>`, a `<script>` — cannot set a custom header, so requiring one is what
+  keeps another origin from driving these endpoints with your visitor's cookie. Calling the endpoints
+  by hand means adding it yourself; forgetting is a `400`, not a silent success.
+- **You do not attach the cookie.** It is `HttpOnly`, so JavaScript cannot read it and does not need
+  to: these calls are same-origin, and a same-origin `fetch` sends cookies by default. Nothing goes in
+  `localStorage`, so there is no token for a script on the page to steal.
+- **`/api/auth/me` answers `204`, not `401`, when nobody is signed in.** "Nobody" is a perfectly good
+  answer to that question; treating it as a failure would fill your logs with errors on every
+  anonymous page load.
+
+Read it once when the app loads, and again after a successful login or logout — those are the only
+three moments the answer changes.
+
+### Protecting the server side
+
+Client-side routing decides what a visitor *sees*, which is presentation rather than security. What
+actually protects data is the endpoint: put `[Authorize]` on your controllers and minimal APIs, and
+they answer `401` regardless of what the front end chose to render.
+
+> **Map your API before `UseRaskSpa()`.** It ends the pipeline with a fallback that serves the bundle
+> for anything unmatched, so an endpoint mapped after it is never reached — the same ordering rule
+> `MapRaskCqrs()` has.
 
 ## See also
 

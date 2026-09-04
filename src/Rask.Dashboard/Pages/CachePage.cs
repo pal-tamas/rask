@@ -62,14 +62,14 @@ public sealed partial class CachePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            OpsHeader.Heading("Cache").Actions(FlushButton()),
+            UiHeader.Heading("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
             Div.Class("mb-4 sm:mb-5")[
-                OpsMetricRow.Columns(3)[
-                    OpsMetric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
-                    OpsMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
-                    OpsMetric
+                UiMetricRow.Columns(3)[
+                    UiMetric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
+                    UiMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                    UiMetric
                         .Key("expired")
                         .Label("Expired, not swept")
                         .Value(_stats.Expired.ToString())
@@ -80,9 +80,9 @@ public sealed partial class CachePage(
             // shipped — but nothing ever rendered a box to type it into, so it was reachable only by
             // hand-editing the URL.
             Div.Class("mb-4")[
-                OpsSearch
+                UiSearch
                     .Placeholder("Search keys")
-                    .Label("Search cache keys")
+                    .AccessibleLabel("Search cache keys")
                     .Value(Search)
                     .OnSearch(SearchAsync)
             ],
@@ -105,8 +105,8 @@ public sealed partial class CachePage(
     }
 
     private Component KeyTable(DateTime now) =>
-        OpsTable[
-            Thead.Class("border-b border-ops-line text-xs text-ops-muted")[
+        UiTable[
+            Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                 Tr[
                     Th.Class("px-3 py-2 font-medium")["Key"],
                     Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Size"],
@@ -117,16 +117,16 @@ public sealed partial class CachePage(
                 ]
             ],
             Tbody[_rows.Select(r => Tr.Key(r.Key).Class(r.ExpiresAt <= now
-                ? "border-b border-ops-line/60 text-ops-muted last:border-0"
-                : "border-b border-ops-line/60 last:border-0")[
+                ? "border-b border-ui-line/60 text-ui-muted last:border-0"
+                : "border-b border-ui-line/60 last:border-0")[
                 Td.Class("w-full max-w-0 px-3 py-2 align-top")[
                     Div.Class("min-w-0")[
-                        Div.Class($"truncate sm:max-w-[28rem] {Ops.Mono}").Title(r.Key)[r.Key],
+                        Div.Class($"truncate sm:max-w-[28rem] {UiStyles.Mono}").Title(r.Key)[r.Key],
                         // Size and expiry follow the key down when their own columns are gone.
-                        Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ops-muted sm:hidden")[
+                        Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
                             Span.Class("tabular-nums")[DashboardParts.Bytes(r.Bytes)],
                             r.ExpiresAt <= now
-                                ? OpsBadge.Label("expired")
+                                ? UiBadge.Label("expired")
                                 : Span.Title(r.ExpiresAt.ToString("u"))[
                                     $"expires {DashboardParts.Ago(r.ExpiresAt, now)}"
                                 ]
@@ -134,16 +134,16 @@ public sealed partial class CachePage(
                     ]
                 ],
                 Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums sm:table-cell")[DashboardParts.Bytes(r.Bytes)],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted md:table-cell")
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted md:table-cell")
                     .Title(r.CreatedAt.ToString("u"))[
                     DashboardParts.Ago(r.CreatedAt, now)
                 ],
                 Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs sm:table-cell").Title(r.ExpiresAt.ToString("u"))[
                     r.ExpiresAt <= now
-                        ? OpsBadge.Label("expired")
-                        : Span.Class("text-ops-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
+                        ? UiBadge.Label("expired")
+                        : Span.Class("text-ui-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
                 ],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ops-muted lg:table-cell")[
+                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted lg:table-cell")[
                     r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"
                 ],
                 Td.Class("px-3 py-2 align-top text-right")[EvictButton(r.Key)]
@@ -161,14 +161,14 @@ public sealed partial class CachePage(
         // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
         // which is where thumbs are.
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            OpsButton.Key("prev").Label("Previous")
+            UiButton.Key("prev").Label("Previous")
                 .Disabled(_page == 0)
                 .OnClickAsync(() => GoAsync(_page - 1)),
-            Span.Class("text-center text-xs text-ops-muted")[
+            Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {_page + 1} of {pages}"],
                 Span.Class("hidden sm:inline")[$" — {_total} keys"]
             ],
-            OpsButton.Key("next").Label("Next")
+            UiButton.Key("next").Label("Next")
                 .Disabled(_page >= pages - 1)
                 .OnClickAsync(() => GoAsync(_page + 1))
         ];
@@ -179,27 +179,27 @@ public sealed partial class CachePage(
     // stampede — hence the Destructive tier and a confirmation.
     private Component? EvictButton(string key) =>
         options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? OpsButton.Label("Evict").OnClickAsync(() => EvictAsync(key))
+            ? UiButton.Label("Evict").OnClickAsync(() => EvictAsync(key))
             : null;
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? OpsButton.Label("Flush cache").Tone("danger").Icon(OpsIconName.Trash).OnClick(() => Confirm(true))
+            ? UiButton.Label("Flush cache").Tone(UiTone.Error).Icon(UiIconName.Trash).OnClick(() => Confirm(true))
             : null;
 
     private Component? ConfirmPrompt() =>
         _confirmFlush
-            ? OpsNotice.Tone("warn")[
+            ? UiNotice.Tone("warn")[
                 Span.Class("min-w-0 grow break-words")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                OpsButton.Key("confirm").Label("Confirm").Tone("danger").OnClickAsync(FlushAsync),
-                OpsButton.Key("cancel").Label("Cancel").OnClick(() => Confirm(false))
+                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error).OnClickAsync(FlushAsync),
+                UiButton.Key("cancel").Label("Cancel").OnClick(() => Confirm(false))
             ]
             : null;
 
     private Component? ResultToast() =>
-        _message is { } message ? OpsToast.Message(message).Dismiss(Dismiss) : null;
+        _message is { } message ? UiToast.Message(message).Dismiss(Dismiss) : null;
 
     private void Confirm(bool pending)
     {

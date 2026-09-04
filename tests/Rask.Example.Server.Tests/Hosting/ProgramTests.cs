@@ -43,7 +43,10 @@ public sealed class ProgramTests
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
         Assert.StartsWith("<!DOCTYPE html>", body);
-        Assert.Contains("<html lang=\"en\">", body);
+        // data-rask-ui turns the kit's theme on for the document. The kit scopes daisyUI's palette to
+        // it so that referencing the package cannot repaint an app that only wanted a button, which
+        // makes its presence in the SERVED response, not just in a render test, worth asserting.
+        Assert.Contains("<html lang=\"en\" data-rask-ui=\"\">", body);
     }
 
     [Fact]

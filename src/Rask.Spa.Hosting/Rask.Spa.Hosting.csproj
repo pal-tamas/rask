@@ -45,7 +45,7 @@
   <ItemGroup>
     <!--
       Build-order-only edge to the MSBuild task project, which drops Rask.Spa.Tasks.dll into build/
-      here (CopyTaskAssemblyToRaskSpaBuild) for <UsingTask> to load and for the build\** Pack glob to
+      here (CopyTaskAssemblyToHostingBuildFolders) for <UsingTask> to load and for the build\** Pack glob to
       collect. The DLL is a generated artifact, gitignored rather than committed, so this reference is
       what guarantees it exists before this project builds or packs. ReferenceOutputAssembly="false"
       keeps it purely an ordering edge — no compile reference, no nupkg dependency, and no cross-TFM
@@ -86,6 +86,24 @@
       release train to keep wire-locked to this one, for ~400 lines.
     -->
     <None Include="client\**" Pack="true" PackagePath="client\"/>
+    <!--
+      The browser layer, packed FROM Rask.Core rather than copied into this project, so there is one
+      source of truth for code two very different consumers run: Rask's own Server and WASM clients
+      bundle it through Resources/browser/globals.ts, and a TypeScript front end imports these same
+      files. A copy here would be a second implementation of the WebAuthn base64url dance and the
+      push subscription's flat-vs-nested shape, and the two would drift.
+
+      Packing across a directory boundary rather than taking a ProjectReference is deliberate: this
+      package depends on nothing else in Rask (see the header), and reaching for source at pack time
+      does not change that — the same reach the host projects' esbuild targets already make.
+
+      globals.ts is excluded. It exists to publish the window.__rask* namespaces that .NET resolves
+      dotted identifiers against; a front end imports the modules and has no use for it.
+    -->
+    <None Include="..\Rask.Core\Resources\browser\*.ts"
+          Exclude="..\Rask.Core\Resources\browser\globals.ts"
+          Pack="true"
+          PackagePath="client\browser\"/>
   </ItemGroup>
 
 </Project>

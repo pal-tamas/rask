@@ -5,8 +5,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Api;
+using Rask.Auth;
 using Rask.Cache;
 using Rask.Core.Browser;
+using Rask.Core.Forms;
 using Rask.Cqrs;
 using Rask.Dashboard;
 using Rask.Data;
@@ -46,10 +49,20 @@ internal static class RaskBatteryWiring
 
         // The mediator, and the query cache that rides with it. A dispatcher without a cache means every
         // render refetches, which is the first thing anyone building over IDispatcher needs solved.
+        // Validation is a property of the RENDER as much as of dispatch, so the switch is set before
+        // anything else is wired: RaskValidation.AutoValidate is what a Form reads, and it is static
+        // because a form has no options object to consult and exists on both hosts.
+        RaskValidation.AutoValidate = options.Validation.Enabled;
+
         if (options.Cqrs.Enabled)
         {
-            services.AddRaskCqrs();
+            services.AddRaskCqrs(o => o.ValidateRequests = options.Validation.Enabled);
             services.AddRaskQuery();
+
+            if (options.Validation.Enabled)
+            {
+                services.AddRaskRequestValidation();
+            }
         }
 
         // Every scaffolded feature handler dispatches through the mediator, so a database without one has
@@ -94,6 +107,14 @@ internal static class RaskBatteryWiring
             var manifest = DefaultManifest(builder.Environment);
             options.Pwa.Apply(manifest);
             services.AddRaskPwa(manifest);
+        }
+
+        // Above the early return, because HTTP endpoints have nothing to do with the database — an app
+        // with no DbContext still has an API, and wiring this alongside the pillars would silently give
+        // it none.
+        if (options.Api.Enabled)
+        {
+            services.AddRaskApi(o => options.Api.Apply(o));
         }
 
         if (!data)
@@ -189,6 +210,16 @@ internal static class RaskBatteryWiring
         if (options.Jobs.Enabled)
         {
             services.AddRaskJobs<TContext>(o => options.Jobs.Apply(o));
+        }
+
+        // Accounts. Wired here rather than beside the host because it needs the application context —
+        // Identity's stores live on it — and because AddRaskAuth registers the cookie scheme, which
+        // RaskApp then picks up: it calls UseAuthentication/UseAuthorization before UseRask whenever a
+        // scheme provider is present, so an app never has to order that middleware itself. That is the
+        // mistake RASK024 exists to catch, and "auth is on by default" would otherwise reintroduce it.
+        if (options.Auth.Enabled)
+        {
+            services.AddRaskAuth<TContext>(o => options.Auth.Apply(o));
         }
 
         if (options.Mail.Enabled)

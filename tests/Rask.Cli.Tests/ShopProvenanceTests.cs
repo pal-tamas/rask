@@ -23,6 +23,7 @@ public sealed class ShopProvenanceTests
         "Features/Shared/DbInitializer.cs",   // a real app migrates; this one uses EnsureCreated so it just runs
         "Features/Orders/OrderCreatedHandler.cs", // the generator scaffolds a logging stub; this is the body
         "Features/Orders/OrderConfirmation.cs",   // ditto, for the email content
+        "Features/Auth/MembersPage.cs",           // a protected page of its own; /login is the framework's
         "Features/Ops/OpsPage.cs",                // the hand-rolled dashboard over every pillar's table
         "Features/Ops/BackupProbe.cs",            // lights up the built-in dashboard's Backup card
         "Program.cs",                             // + the DbInitializer call and SnapshotOnStartup
@@ -68,10 +69,9 @@ public sealed class ShopProvenanceTests
         var generated = ProjectGenerator.GenerateServer(
             "/generated",
             ProjectName,
-            // Exactly `rask new Rask.Example.Shop --auth --bootstrap`: the batteries are the defaults now,
-            // so the sample is the CLI's plain output plus the two things it still asks you — auth, and the
-            // Bs* styling the sample is written in.
-            NewCommand.ToBatteries(TemplateCatalog.Default, [], auth: true),
+            // Exactly `rask new Rask.Example.Shop`: every battery is a default now, and authentication is
+            // one of them, so the sample is the CLI's plain output with nothing added on the command line.
+            NewCommand.ToBatteries(TemplateCatalog.Default, []),
             version: "0.0.0");
 
         var sampleDirectory = SampleDirectory();
@@ -95,6 +95,80 @@ public sealed class ShopProvenanceTests
         }
 
         Assert.True(checkedAny, "The provenance check compared nothing — the exemption list has swallowed the sample.");
+    }
+
+    /// <summary>
+    ///     The sample carries no scaffolded file the CLI has stopped writing.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The check above walks the CLI's output and looks for each file in the sample. That direction
+    ///         alone cannot see an <b>orphan</b> — a file the sample still carries and the generator no
+    ///         longer emits — so a scaffold that goes away leaves its output behind, committed, stale, and
+    ///         green. That is exactly what happened when <c>--auth</c> was removed: the sample kept a demo
+    ///         credential store and a login page, and this suite passed.
+    ///     </para>
+    ///     <para>
+    ///         The feature slices are exempt by prefix rather than by name. They came from
+    ///         <c>rask generate</c>, which no longer exists, so every one of them is hand-written now —
+    ///         listing thirty paths would be noise around a single fact.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void The_sample_carries_no_file_the_cli_has_stopped_writing()
+    {
+        // Slices from the removed `rask generate`, and the assets the sample styles itself with.
+        string[] ownedBySample =
+        [
+            "Features/Orders/",
+            "Features/Products/",
+            "Features/Ops/",
+            "Features/Push/",
+            "Properties/",
+            "Resources/",
+            "Styles/",
+        ];
+
+        var generated = ProjectGenerator.GenerateServer(
+            "/generated",
+            ProjectName,
+            NewCommand.ToBatteries(TemplateCatalog.Default, []),
+            version: "0.0.0");
+
+        var emitted = generated.Files
+            .Select(f => Path.GetRelativePath("/generated", f.Path).Replace('\\', '/'))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var sampleDirectory = SampleDirectory();
+
+        foreach (var path in Directory.EnumerateFiles(sampleDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sampleDirectory, path).Replace('\\', '/');
+
+            // Build output, which is on disk but not in the repository. The compiled stylesheet is
+            // named because it does not live under obj/: Tailwind writes it into wwwroot, and
+            // .gitignore excludes it there.
+            if (relative.StartsWith("obj/", StringComparison.Ordinal)
+                || relative.StartsWith("bin/", StringComparison.Ordinal)
+                || relative.Contains("/obj/", StringComparison.Ordinal)
+                || relative.Contains("/bin/", StringComparison.Ordinal)
+                || relative == "wwwroot/css/app.css")
+            {
+                continue;
+            }
+
+            if (HandWritten.Contains(relative)
+                || emitted.Contains(relative)
+                || Array.Exists(ownedBySample, prefix => relative.StartsWith(prefix, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            Assert.Fail(
+                $"{relative} is in the sample but the CLI no longer writes it. Either the scaffold that "
+                + "produced it went away — in which case delete it, or move it to the hand-written list "
+                + "with a reason — or this sample has drifted from `rask new`.");
+        }
     }
 
     [Fact]

@@ -173,7 +173,6 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
             H1["New Product"],
             _error is null ? null : Div.Role("alert")[_error],
             Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
-                DataAnnotationsValidator,
                 Div[Label.For("name")["Name"], Input.Bind(() => _form.Name).Id("name")],
                 Div[Label.For("price")["Price"], Input.Bind(() => _form.Price).Id("price")],
                 Div[Label.For("instock")["InStock"], Input.Bind(() => _form.InStock).Id("instock")],
@@ -189,12 +188,9 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
 `Routes.ProductsPage()` is generated from the `[Route]` on the list page you're about to write — a typed
 URL, so renaming a route breaks the build instead of the link. See [routing](../routing.md).
 
-`DataAnnotationsValidator()` comes from its own package — the one thing on this page `rask new` doesn't
-already give you:
-
-```bash
-dotnet add package Rask.Validation.DataAnnotations
-```
+Nothing in that form mentions validation, and the `[Required]` / `[MaxLength]` attributes you put on
+`ProductRequest` are still enforced: `Form<T>` validates its model on its own, with no package to add
+and nothing to declare. See [validation](../validation.md).
 
 Note `OnMountAsync`, not a constructor or `OnInitialized`: a Rask component loads its data when it
 mounts. The [lifecycle](../lifecycle.md) guide has the full order.
@@ -300,7 +296,6 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
                 H1["Edit Product"],
                 _error is null ? null : Div.Role("alert")[_error],
                 Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
-                    DataAnnotationsValidator,
                     Div[
                         Label.For("name")["Name"],
                         Input.Bind(() => _form.Name).Id("name")

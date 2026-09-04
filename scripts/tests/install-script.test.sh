@@ -316,15 +316,26 @@ for f in \
     docs/getting-started.md \
     docs/installation.md \
     llms.txt \
-    samples/Rask.Example.Site/InstallTabs.cs; do
+    samples/Rask.Example.Site/InstallTabs.cs \
+    samples/Rask.Example.Shared/Features/Guides/GuidesIndexPage.cs; do
     check "$f carries the canonical rask.sh URL" yes \
         "$(grep -qF "$sh_url" "$f" && printf yes || printf no)"
 done
 
-for f in rask.ps1 README.md docs/installation.md; do
+for f in rask.ps1 README.md docs/installation.md \
+    samples/Rask.Example.Shared/Features/Guides/GuidesIndexPage.cs; do
     check "$f carries the canonical rask.ps1 URL" yes \
         "$(grep -qF "$ps1_url" "$f" && printf yes || printf no)"
 done
+
+# The two SITES have to agree with each other, not merely each carry a URL. The landing page and the
+# documentation index are different apps that cannot share a constant — the site deliberately
+# references none of the showcase — so `rask new` is written out twice, and this is what stops the two
+# from drifting into telling a visitor different things.
+check "both sites scaffold with the same command" yes \
+    "$(grep -qF 'rask new MyApp' samples/Rask.Example.Site/InstallTabs.cs \
+       && grep -qF 'rask new MyApp' samples/Rask.Example.Shared/Features/Guides/GuidesIndexPage.cs \
+       && printf yes || printf no)"
 
 # A stale host is the drift that actually happens: rask.dev is a domain this project does not own
 # (it exists only as a fake problem-type URI in the Cqrs tests), and a raw.githubusercontent URL

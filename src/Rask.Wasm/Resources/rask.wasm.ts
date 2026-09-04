@@ -6,7 +6,7 @@
 // the same scope at a `// @@RASK_*@@` marker, in an order the build had to get right and nothing
 // checked; they are now an import list the compiler verifies.
 //
-// The framework's own browser shims (rask-api, rask-pwa, rask-wasm-api) are imported for their side
+// The framework's own browser shims (rask-api, browser/globals, rask-wasm-api) are imported for their side
 // effects: each publishes a `window.__rask*` namespace that .NET reaches by dotted name, so there is
 // nothing to bind here.
 import { applyDiff, applyFrameInvokes, type DiffOp } from "../../Rask.Core/Resources/rask-dom.js";
@@ -28,7 +28,6 @@ import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
-import "../../Rask.Core/Resources/rask-pwa.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import "./rask-wasm-api.js";
 

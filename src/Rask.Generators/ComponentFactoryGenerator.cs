@@ -367,7 +367,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate,
                     p.IsAutoRerenderDelegate || folded, generic: false,
                     !folded && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
-                    c.TypeParameters, c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name),
+                    AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name),
                     p.Summary,
                     // A form control's chain carries its mode, so its steps are written over it: the
                     // controlled-mode props (Checked, OnInput, OnChange) only on Controlled, everything
@@ -769,7 +769,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             var pending = OwnSetterProps(c).Where(p => bits.ContainsKey(p.Name)).ToList();
 
             sb.Append("    ").Append(visibility).Append(" static void ").Append(EagerResetName(c))
-                .Append(c.TypeParameters).Append("(global::Rask.Core.Component __c0)")
+                .Append(AnnotateDecl(c, c.TypeParameters)).Append("(global::Rask.Core.Component __c0)")
                 .AppendLine(c.TypeParameterConstraints);
             sb.AppendLine("    {");
             sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
@@ -787,7 +787,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.AppendLine("    }");
 
             sb.Append("    ").Append(visibility).Append(" static void ").Append(PendingResetName(c))
-                .Append(c.TypeParameters).Append("(global::Rask.Core.Component __c0, ulong __p)")
+                .Append(AnnotateDecl(c, c.TypeParameters)).Append("(global::Rask.Core.Component __c0, ulong __p)")
                 .AppendLine(c.TypeParameterConstraints);
             sb.AppendLine("    {");
             sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
@@ -940,8 +940,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // opened with `Value` never sees them — `.AfterBind(…)` on it is a compile error naming
             // Build<…, Controlled>, where before it compiled and the hook simply never ran.
             EmitSetter(sb, name, typeFqn, c.FullyQualifiedName, isDelegate: false, wrap: false, generic: false,
-                fold: false, c.TypeParameters, c.TypeParameterConstraints, visibility, pendingBit: -1,
-                summary: summary, mode: ModeOf(name));
+                fold: false, AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility,
+                pendingBit: -1, summary: summary, mode: ModeOf(name));
         }
     }
 
@@ -1714,7 +1714,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 var stageParams = TypeParametersFor(c, opening[0]);
                 sb.Append(pad).Append("    public ")
                     .Append(StageFqn(c, opening[0], Append(stageParams, OpeningMode(c, opening[0])))).Append(' ')
-                    .Append(EscapeIdentifier(opening[0].ParamName)).Append(stageParams).Append('(')
+                    .Append(EscapeIdentifier(opening[0].ParamName)).Append(AnnotateDecl(c, stageParams)).Append('(')
                     .Append(StepParamType(opening[0])).Append(' ')
                     .Append(EscapeIdentifier(opening[0].ParamName)).AppendLine(")");
                 sb.Append(pad).Append("        => new(").Append(EscapeIdentifier(opening[0].ParamName))
@@ -1736,7 +1736,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(opening[1].ParamName).AppendLine(", which fixes the rest of its type.</summary>");
             sb.Append(pad).AppendLine(hidden);
             sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StageName(c, opening[0]))
-                .Append(Append(stageParams, carriedMode)).AppendLine();
+                .Append(Append(AnnotateDecl(c, stageParams), carriedMode)).AppendLine();
             sb.Append(pad).AppendLine("{");
             sb.Append(pad).Append("    internal ").Append(StageName(c, opening[0])).Append('(')
                 .Append(StepParamType(opening[0])).Append(" value) => ")
@@ -1764,7 +1764,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .AppendLine(".</summary>");
             sb.Append(pad).AppendLine(hidden);
             sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StateName(c, state))
-                .Append(Append(c.TypeParameters, carriedMode)).AppendLine();
+                .Append(Append(AnnotateDecl(c, c.TypeParameters), carriedMode)).AppendLine();
             sb.Append(pad).AppendLine("{");
             sb.Append(pad).Append("    internal ").Append(StateName(c, state)).Append('(')
                 .Append(c.FullyQualifiedName).AppendLine(" component) => Component = component;");
@@ -1850,7 +1850,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         sb.Append(pad).Append("/// <summary>Opens a ").Append(c.TypeName)
             .AppendLine(" whose type argument is stated rather than inferred.</summary>");
-        sb.Append(pad).Append("public ").Append(result).Append(" Of").Append(c.TypeParameters)
+        sb.Append(pad).Append("public ").Append(result).Append(" Of").Append(AnnotateDecl(c, c.TypeParameters))
             .Append("()").AppendLine(c.TypeParameterConstraints);
         sb.Append(pad).AppendLine("{");
         sb.Append(pad).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c))
@@ -1974,7 +1974,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         EmitDocComment(sb, step.Summary, pad);
         sb.Append(pad).Append("public ").Append(result).Append(' ')
-            .Append(EscapeIdentifier(step.ParamName)).Append(methodParams).Append('(')
+            .Append(EscapeIdentifier(step.ParamName)).Append(AnnotateDecl(c, methodParams)).Append('(')
             .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName)).Append(')')
             .Append(methodParams.Length == 0 ? string.Empty : c.TypeParameterConstraints).AppendLine();
         sb.Append(pad).AppendLine("{");
@@ -2284,6 +2284,93 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static string StageFqn(Candidate c, EntryInference opening, string typeParameters) =>
         (c.Namespace.Length == 0 ? "global::" : "global::" + c.Namespace + ".")
         + StageName(c, opening) + typeParameters;
+
+    // A type parameter's [DynamicallyAccessedMembers] has to travel with it into the generated chain.
+    // The chain is the ONLY way to build a component, so an annotation the generated seed, stage or
+    // setter does not repeat is an annotation the trimmer never gets to act on — worse, the component
+    // then declares a requirement its own call sites cannot satisfy, which is IL2091 on every one of
+    // them. Rendered once per parameter here, in declaration order, and repeated by AnnotateDecl
+    // wherever that parameter is DECLARED (never where it is passed as a type argument — an attribute
+    // is not legal there).
+    //
+    // The enum value is emitted as a cast integer rather than a flags expression: the member names are
+    // an open set, and reconstructing "PublicProperties | PublicFields" correctly for every combination
+    // buys nothing a cast does not already say.
+    private static ImmutableArray<string> TypeParameterAnnotations(
+        ImmutableArray<ITypeParameterSymbol> typeParameters)
+    {
+        if (typeParameters.Length == 0)
+        {
+            return ImmutableArray<string>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<string>(typeParameters.Length);
+        foreach (var tp in typeParameters)
+        {
+            builder.Add(DamAnnotation(tp));
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    private static string DamAnnotation(ITypeParameterSymbol typeParameter)
+    {
+        foreach (var attr in typeParameter.GetAttributes())
+        {
+            if (attr.AttributeClass?.ToDisplayString()
+                != "System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute")
+            {
+                continue;
+            }
+
+            if (attr.ConstructorArguments.Length != 1 || attr.ConstructorArguments[0].Value is not { } value)
+            {
+                continue;
+            }
+
+            var flags = Convert.ToInt32(value, CultureInfo.InvariantCulture)
+                .ToString(CultureInfo.InvariantCulture);
+            return "[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers("
+                   + "(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes)"
+                   + flags + ")] ";
+        }
+
+        return string.Empty;
+    }
+
+    // Re-renders a type parameter LIST for a declaration position, putting each parameter's annotation
+    // back in front of it. Returns the list unchanged when nothing is annotated, which is every
+    // component but the handful that reflect over a type argument.
+    private static string AnnotateDecl(Candidate c, string typeParameterList)
+    {
+        var annotations = c.TypeParameterAnnotations;
+        if (typeParameterList.Length == 0 || annotations.Count == 0)
+        {
+            return typeParameterList;
+        }
+
+        var declared = OrderedTypeParameters(c.TypeParameters);
+        var subset = OrderedTypeParameters(typeParameterList);
+        if (subset.Count == 0)
+        {
+            return typeParameterList;
+        }
+
+        var annotated = false;
+        var parts = new List<string>(subset.Count);
+        foreach (var name in subset)
+        {
+            // Positional lookup against the component's own list. A renamed parameter (the collision
+            // dodge in EmitReset/EmitEntryForwarder) simply will not match, and falls back to no
+            // annotation rather than putting the wrong one on.
+            var index = declared.IndexOf(name);
+            var annotation = index >= 0 && index < annotations.Count ? annotations[index] : string.Empty;
+            annotated |= annotation.Length != 0;
+            parts.Add(annotation + name);
+        }
+
+        return annotated ? "<" + string.Join(", ", parts) + ">" : typeParameterList;
+    }
 
     // The type parameters a pin accounts for, in the component's own declaration order — the stage
     // between two pins is generic over exactly the ones the FIRST pin fixed.
@@ -3791,6 +3878,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var typeParams = symbol.IsGenericType
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
             : string.Empty;
+        var typeParamAnnotations = TypeParameterAnnotations(symbol.TypeParameters);
         var constraints = BuildConstraintsClause(symbol.TypeParameters);
         GenericFactoryConfig? genericFactory = null;
         foreach (var attr in symbol.GetAttributes())
@@ -3807,6 +3895,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             symbol.Name,
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             typeParams,
+            new EquatableArray<string>(typeParamAnnotations),
             constraints,
             hasParameterlessCtor,
             hasDICtor,
@@ -4802,6 +4891,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string TypeName,
         string FullyQualifiedName,
         string TypeParameters,
+        // One entry per type parameter, in declaration order: the attribute text to repeat in front of
+        // that parameter wherever it is DECLARED, or "" when it carries none. See
+        // TypeParameterAnnotations for why the chain has to repeat them.
+        EquatableArray<string> TypeParameterAnnotations,
         string TypeParameterConstraints,
         bool HasParameterlessCtor,
         bool HasDIConstructor,

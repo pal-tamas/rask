@@ -14,16 +14,16 @@ public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsync
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Button
-                        .Class(_sentinel is null ? $"{Ui.BtnPrimary}" : $"{Ui.BtnDanger}")
+                        .Class(_sentinel is null ? $"{Tw.BtnPrimary}" : $"{Tw.BtnDanger}")
                         .Id("wakelock-toggle")
                         .OnClickAsync(Toggle)[
                         _sentinel is null ? "Keep screen awake" : "Release"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
             ]
         ];
 

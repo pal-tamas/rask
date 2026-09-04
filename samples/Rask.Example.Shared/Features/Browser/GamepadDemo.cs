@@ -46,17 +46,17 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400 mb-2")[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
+                Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
+                Div.Class("text-sm text-ui-muted mb-2")[
                     "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString()]],
                 _pads.Count == 0
-                    ? Div.Class("text-slate-500 dark:text-slate-400 text-sm")["No controllers connected."]
-                    : Ul.Class($"{Ui.ListGroup} divide-y divide-slate-200 dark:divide-slate-700")[
-                        _pads.Values.Select(p => (Component)Li.Class($"{Ui.ListGroupItem} px-0").Key(p.Index)[
+                    ? Div.Class("text-ui-muted text-sm")["No controllers connected."]
+                    : Ul.Class($"{Tw.ListGroup} divide-y divide-ui-line")[
+                        _pads.Values.Select(p => (Component)Li.Class($"{Tw.ListGroupItem} px-0").Key(p.Index)[
                             Div.Class("text-sm font-semibold")[$"#{p.Index} — {p.Id}"],
-                            Div.Class("text-sm text-slate-500 dark:text-slate-400")[
+                            Div.Class("text-sm text-ui-muted")[
                                 $"axes [{string.Join(", ", p.Axes.Select(a => a.ToString("0.00")))}] · "
                                 + $"buttons pressed {p.Buttons.Count(b => b > 0.5)}/{p.Buttons.Count}"]
                         ])

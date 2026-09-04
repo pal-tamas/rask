@@ -27,10 +27,9 @@ internal sealed record ServerBatteries
     ///     once it has downloaded.
     /// </summary>
     /// <remarks>
-    ///     Off by default, and off for the same reason auth is: it changes what the app <em>is</em>
-    ///     rather than what it can do. Every publish then links a WebAssembly runtime, which takes
-    ///     minutes, and pages start leaving the server — neither is something to hand someone who did
-    ///     not ask.
+    ///     Off by default: it changes what the app <em>is</em> rather than what it can do. Every publish
+    ///     then links a WebAssembly runtime, which takes minutes, and pages start leaving the server —
+    ///     neither is something to hand someone who did not ask.
     /// </remarks>
     public bool Wasm { get; init; }
 
@@ -50,9 +49,6 @@ internal sealed record ServerBatteries
     /// <summary>The configured languages, in order.</summary>
     public IEnumerable<string> Cultures =>
         CultureList.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-    /// <summary>Cookie authentication: login + members pages and a demo credential store.</summary>
-    public bool Auth { get; init; }
 
     /// <summary>An installable PWA: manifest, icon, and offline page.</summary>
     public bool Pwa { get; init; }

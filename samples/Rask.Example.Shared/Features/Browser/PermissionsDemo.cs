@@ -13,21 +13,21 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Ui.Card} shadow-sm border-0")[
-            Div.Class(Ui.CardBody)[
+        Div.Class($"{Tw.Card} shadow-sm border-0")[
+            Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("perm-geo")
                         .OnClickAsync(QueryGeo)[
                         "Query geolocation"],
-                    Button.Type("button").Class(Ui.BtnOutlinePrimary)
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("perm-clip")
                         .OnClickAsync(QueryClipboard)[
                         "Query clipboard-read"]
                 ],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
-                Div.Class("text-sm text-slate-500 dark:text-slate-400")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-ui-muted")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
+                Div.Class("text-sm text-ui-muted")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
+                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
             ]
         ];
 

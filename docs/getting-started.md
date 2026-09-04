@@ -68,10 +68,10 @@ app registers none, because a language there means shipping ICU: roughly a megab
 that an app formatting nothing culture-sensitive should not pay by default. See
 [localization](localization.md).
 
-Two things are left to you: `--auth` scaffolds a working login flow (see
-[authentication](authentication.md)). Styling is not a flag: every project is Tailwind.
-To leave a battery out, name it: `rask new MyApp --no-push --no-ops`. The full flag list is in
-[the CLI reference](cli.md).
+Almost nothing is left to you. Sign-in comes with the app — register, sign in and sign out work out of
+the box, and the first account you create is the administrator (see [authentication](authentication.md)).
+Styling is not a flag either: every project is Tailwind. To leave a battery out, name it:
+`rask new MyApp --no-push --no-ops`. The full flag list is in [the CLI reference](cli.md).
 
 ## 2. Run it
 
@@ -127,8 +127,9 @@ WASM templates differ mainly in `Program.cs`):
   ```
 
   Nothing has to be turned off in order to configure it: you can also call a battery's own `AddRaskX`
-  directly and yours wins. And to map your own endpoints, use `app.MapEndpoints(e => …)` — Rask's
-  catch-all serves the app for anything unmatched, so an endpoint mapped after it would never be reached.
+  directly and yours wins. And to map your own endpoints, use `app.MapEndpoints(e => …)` — a named place
+  for them rather than an ordering rule, since routing matches on precedence and any route you write is
+  more specific than Rask's catch-all.
 
 - **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.

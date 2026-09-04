@@ -22,14 +22,14 @@ public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
         Div.Id("cqrs-counter").Class("flex flex-col gap-3")[
             Div.Class("flex gap-3 items-center flex-wrap items-center")[
                 Span.Id("cqrs-count").Class("text-3xl font-semibold")[$"{_view.Count}"],
-                Button.Type("button").Class(Ui.BtnPrimary).Id("cqrs-increment").OnClickAsync(IncrementAsync)["Increment"]
+                Button.Type("button").Class(Tw.BtnPrimary).Id("cqrs-increment").OnClickAsync(IncrementAsync)["Increment"]
             ],
             _view.Log.Count == 0
-                ? P.Class("text-slate-500 dark:text-slate-400 text-sm mb-0")["Loading the counter…"]
-                : Ul.Id("cqrs-log").Class(Ui.ListGroup)[
+                ? P.Class("text-ui-muted text-sm mb-0")["Loading the counter…"]
+                : Ul.Id("cqrs-log").Class(Tw.ListGroup)[
                     // The behavior logs every dispatch (the on-mount query included), and the
                     // notification handler adds the "count is now N" line after each command.
-                    _view.Log.Select((entry, i) => Li.Key(i).Class($"{Ui.ListGroupItem} text-sm py-1")[entry])
+                    _view.Log.Select((entry, i) => Li.Key(i).Class($"{Tw.ListGroupItem} text-sm py-1")[entry])
                 ]
         ];
 }

@@ -38,18 +38,20 @@ public sealed class WasmCookieAuthExampleTests : IAsyncLifetime
         await Expect(_page.Locator("#members-anon"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 90_000 });
 
-        // 2. Sign in as admin — /api/login sets the cookie, RefreshAsync re-hydrates from /api/me.
+        // 2. Sign in as admin — /api/auth/login sets the cookie, RefreshAsync re-hydrates from
+        //    /api/auth/me. Both halves are the framework's now: AddRaskAuthClient() in the bundle,
+        //    MapRaskAuth() on the host.
         await _page.GotoAsync("/login");
         await Expect(_page.Locator("#login-submit"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
-        await _page.Locator("#username").FillAsync("root");
-        await _page.Locator("#password").FillAsync("password");
+        await _page.Locator("#email").FillAsync("ada@example.com");
+        await _page.Locator("#password").FillAsync("Password1");
         await _page.Locator("#login-submit").ClickAsync();
 
         await Expect(_page).ToHaveURLAsync(new Regex(@"/members$"),
             new PageAssertionsToHaveURLOptions { Timeout = 60_000 });
         await Expect(_page.Locator("#members-greeting"))
-            .ToContainTextAsync("root", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+            .ToContainTextAsync("ada@example.com", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Expect(_page.Locator("#admin-note"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
@@ -58,10 +60,11 @@ public sealed class WasmCookieAuthExampleTests : IAsyncLifetime
         //     and only here over a real fetch, with a real HttpOnly cookie, from a client whose
         //     HttpClient.BaseAddress was read back through the JS module after boot (#896).
         //
-        //     The query answers with the identity the SERVER sees, so "root" appearing in it is proof
+        //     The query answers with the identity the SERVER sees, so the admin's address appearing in
+        //     it is proof
         //     that the dispatch carried the session rather than a name the message supplied.
         await Expect(_page.Locator("#cqrs-whoami"))
-            .ToContainTextAsync("The server sees root (admin)",
+            .ToContainTextAsync("The server sees ada@example.com (admin)",
                 new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
 
         // The command half: a POST, answered with server state that changed because of it. Asserted on
@@ -88,17 +91,17 @@ public sealed class WasmCookieAuthExampleTests : IAsyncLifetime
         // 4. Non-admin sign-in: authenticates but sees no admin note.
         await Expect(_page.Locator("#login-submit"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
-        await _page.Locator("#username").FillAsync("alice");
-        await _page.Locator("#password").FillAsync("password");
+        await _page.Locator("#email").FillAsync("bob@example.com");
+        await _page.Locator("#password").FillAsync("Password1");
         await _page.Locator("#login-submit").ClickAsync();
         await Expect(_page.Locator("#members-greeting"))
-            .ToContainTextAsync("alice", new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+            .ToContainTextAsync("bob@example.com", new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
         await Expect(_page.Locator("#admin-note")).ToHaveCountAsync(0);
 
         // And the dispatch follows the session rather than the page: the same query, the same bundle,
         // a different answer because a different cookie rode it.
         await Expect(_page.Locator("#cqrs-whoami"))
-            .ToContainTextAsync("The server sees alice (user)",
+            .ToContainTextAsync("The server sees bob@example.com (user)",
                 new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     }
 }

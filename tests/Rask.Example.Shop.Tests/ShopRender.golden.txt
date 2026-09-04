@@ -7,9 +7,6 @@
 ==== OrderConfirmation ====
 <div style="font-family:system-ui,sans-serif;max-width:32rem"><h1 style="font-size:1.25rem">Thanks for your order</h1><p>We&#x27;ve got your order, Ada Lovelace.</p><p>Total: <strong>&#xA4;19.99</strong></p><hr /><p style="color:#666;font-size:0.875rem">This message was queued on the app&#x27;s own database and delivered by a background worker.</p></div>
 
-==== LoginPage ====
-<div class="welcome-card"><h1>Sign in</h1><form data-rask-on-submit="h0"><div><label for="username">Username</label><input id="username" type="text" name="Username" value="" data-rask-on-input="h1" data-rask-on-change="h2" /></div><div><label for="password">Password</label><input id="password" type="password" name="Password" value="" data-rask-on-input="h3" data-rask-on-change="h4" /></div><button type="submit">Sign in</button></form><p>Try alice / password (user) or root / password (admin).</p></div>
-
 ==== MembersPage ====
 <div class="welcome-card"><h1>Welcome, ada</h1><div style="color:#7a5c00">&#x1F511; You have admin access.</div><button data-rask-on-click="h0">Sign out</button></div>
 

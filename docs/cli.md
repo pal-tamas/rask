@@ -95,13 +95,14 @@ machine with no SDK simply has no `dotnetSdk` key, where the human report prints
 rask                                 # the wizard, from a blank slate
 rask new                             # the same wizard
 rask new MyApp                       # everything: a server app with the whole stack wired
-rask new MyApp --auth                # + a cookie login, sessions, and members pages
 rask new MyApp --wasm                # + a browser bundle, published from this same project
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
 rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
+rask new Shop --template nuxt        # a Nuxt app Rask fronts and supervises (node at runtime)
+rask new Shop --template nextjs      # …or sveltekit, solidstart, tanstack-start, analog
 ```
 
 **Batteries are included.** `rask new MyApp` gives you everything the template carries as standard — a
@@ -112,8 +113,6 @@ and the localization machinery. Not a sample page to delete: the wiring, ready f
 **Three things are left to you**, because they are the ones that change what the app *is* rather than
 what it can do:
 
-- **auth** — `--auth` adds a cookie login, sessions and members pages. A login wall in front of a
-  project you are about to show someone is a decision, so it is asked rather than assumed.
 - **the browser rung** — `--wasm` publishes a browser bundle beside the server from the same project,
   so an eligible page moves into WebAssembly once it has downloaded
   ([render modes](render-modes.md)). Off by default because every publish then links a WebAssembly
@@ -134,7 +133,7 @@ enter through it gives you the same project a bare `rask new` does. It then scaf
 you'd passed the flags.
 
 The wizard **fills gaps rather than re-asking**: anything already on the command line is kept and its
-question skipped, so `rask new --template wasm --auth` asks only for the name, and a `--no-` flag
+question skipped, so `rask new --template wasm --no-ops` asks only for the name, and a `--no-` flag
 already typed skips the checklist entirely. Piped or in a script (no terminal), a missing name is a
 plain error instead, and bare `rask` prints the command list — so automation stays predictable.
 
@@ -189,9 +188,10 @@ MyApp/
   Properties/launchSettings.json
 ```
 
-The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice. `--auth` adds
-a `Features/Auth/` slice. Add pages and components to taste — the [tutorial](tutorial/00-overview.md)
-shows the shapes.
+The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice. Sign-in,
+registration and sign-out need no slice at all — they are [built in](authentication.md), routed at
+`/login`, `/register` and `/logout`, and replaced by declaring your own page at the same route. Add
+pages and components to taste — the [tutorial](tutorial/00-overview.md) shows the shapes.
 
 ### It runs before you touch it
 
@@ -216,7 +216,6 @@ commands to run rather than failing: the files on disk are correct either way.
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
 | `--template`, `-t` | `server` (default), `wasm`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
-| `--auth` | Scaffold a cookie login/session (web templates). **Off by default**, like `--wasm`. |
 | `--wasm` | Also publish a browser bundle from this project (server template), so an eligible page moves into WebAssembly once it has downloaded — see [render modes](render-modes.md). Publish takes minutes longer; `dotnet run` is unaffected. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator — and [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
@@ -228,7 +227,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-push` | Leave out server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. The PWA stays. |
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
-| `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. |
+| `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. It is gated on the `admin` role — the one the first account to register holds — because it shows job payloads, stored email bodies and log lines. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore` and the migration). |
@@ -270,11 +269,10 @@ default list: the default set *is* the column.
 | Web Push | ✅ | — | ✅ |
 | Docker | ✅ | ✅ | ✅ |
 | localization *(in `Program.cs`, not a flag)* | ✅ | —² | — |
-| `--auth` *(opt-in)* | ✅ | ✅ | — |
 | `--wasm` *(opt-in)* | ✅ | — | — |
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
-rather than ignored. `--auth` is left out rather than half-scaffolded: a sign-in flow has to be written
+rather than ignored. A sign-in flow used to be left out of these templates rather than half-scaffolded, because it had to be written
 in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
 scaffolded there — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
@@ -406,6 +404,12 @@ The production bundle is skipped for that session (`-p:RaskSpaBuild=false`): the
 client, and paying for a full bundle on every save would make watch unusable. The **generated
 contracts are still written**, because a dev server compiling the previous build's contracts is exactly
 the failure that pipeline exists to prevent.
+
+A [**meta framework**](meta.md) solution — Nuxt, Next, SvelteKit and the rest — runs the same two
+processes, with the framework's own dev server in the bundler's place and its own port (3000, or 5173
+for SvelteKit and Analog). `-p:RaskMetaBuild=false` there skips a full *production* front-end build on
+every save, and because that leaves no server entry to supervise, the host is told where the dev server
+is instead and forwards to it — so both its port and the dev server's answer for the session.
 
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the

@@ -17,7 +17,7 @@ public sealed partial class WakeLockPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Wake lock"],
-        P.Class("text-slate-500 dark:text-slate-400")[
+        P.Class("text-ui-muted")[
             "Keep the screen from dimming or locking via IWakeLock (the Screen Wake Lock API) — for timers, ",
             "reading, or media. The lock is released automatically when the page is hidden and re-acquired ",
             "when it returns."

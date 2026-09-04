@@ -144,7 +144,33 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         {
             InHandlerScope = false;
             _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
         }
+    }
+
+    // A StateHasChanged can land after the coalescing loop has settled but while the scope is still
+    // held — during the noop guard, the frame emit, or the commit. The in-scope branch above parks it
+    // in _pendingRenderInScope, and nothing acted on it: the NEXT dispatch's coalescing loop opens by
+    // clearing the flag, so the request was discarded, not deferred (#986).
+    //
+    // On a hard load straight onto a page whose OnMountAsync fetches, that is where the fetch's
+    // continuation lands — the request completes in a couple of milliseconds while the initial render
+    // is still emitting — so the state was set and the page kept its spinner (#972).
+    //
+    // A PUBLISH render, not a plain one: a plain render bypasses the noop guard below and pushes the
+    // frame even when the HTML is byte-identical, forcing the client to morph identical markup and
+    // stripping DOM state JS applied since the last frame (highlight.js classes, rendered demo
+    // output). Budget exhaustion inside the loop clears the flag itself, so a component that requests
+    // a render from every Render() cannot spin through here.
+    internal Task DrainRenderRequestedAfterScope()
+    {
+        if (!_pendingRenderInScope)
+        {
+            return Task.CompletedTask;
+        }
+
+        _pendingRenderInScope = false;
+        return RequestPublishRenderAsync();
     }
 
     private void OnUserChanged() => _ = RequestRenderAsync();
@@ -155,7 +181,16 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         InHandlerScope = true;
         try
         {
-            await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            // Coalescing, not a bare BuildPayloadAsync: InHandlerScope is true for the whole of
+            // this method, so any StateHasChanged raised while the first payload is being built
+            // takes the short-circuit in RequestRenderInternalAsync and only sets
+            // _pendingRenderInScope. A bare build never drains that flag, so the request was
+            // dropped and the page kept its first-paint markup until some later event forced
+            // another dispatch. The canonical loser is an OnMountAsync fetch whose continuation
+            // lands after the walk materialised the HTML (OnRendered onwards) — the spinner then
+            // stayed on screen forever. Every other render path already coalesces; this one was
+            // the exception (#972).
+            await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false);
             if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
@@ -169,6 +204,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         {
             InHandlerScope = false;
             _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
         }
     }
 
@@ -260,6 +296,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         {
             InHandlerScope = false;
             _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
         }
     }
 
@@ -318,6 +355,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         {
             InHandlerScope = false;
             _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
         }
     }
 
@@ -370,6 +408,11 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                 "in-dispatch render was queued and dropped. Inspect any handlers " +
                 "that re-trigger StateHasChanged in OnRenderedAsync / dispose " +
                 "callbacks during this dispatch.");
+
+            // Consume it: reported and dropped ON PURPOSE. Leaving it set would hand it to
+            // DrainRenderRequestedAfterScope, which would re-render, exhaust the budget again and
+            // loop — the runaway the budget exists to stop.
+            _pendingRenderInScope = false;
         }
     }
 

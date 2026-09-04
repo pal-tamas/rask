@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <!--
+    The generator is referenced as an ORDINARY assembly, not as an analyzer: these tests instantiate it
+    and inspect what it reports. That is also what makes the negative cases testable at all — a case
+    that emits nothing, or emits code that would not compile, cannot be examined through the analyzer
+    path.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Api.Generators\Rask.Api.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Api.Client\Rask.Api.Client.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared.GeneratorTests\GeneratorHarness.cs" Link="GeneratorHarness.cs"/>
+  </ItemGroup>
+
+</Project>

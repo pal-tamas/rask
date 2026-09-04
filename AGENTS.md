@@ -14,7 +14,7 @@ Apply the matching playbook automatically:
 - **run-rask** / **run-rask-wasm** / **run-rask-cli** — build, launch and drive the real thing (Server
   showcase, WASM showcase, the `rask` CLI) when a test passing isn't the same as it working.
 - **rask-review** — security/perf/memory/best-practices. **open-pr** — Conventional-Commit PR, no AI footers.
-- **cut-release** — tag `vX.Y.Z`. **check-nuget-updates** — dependency hygiene.
+- **cut-release** — tag `vX.Y.Z`. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 ## The gate (every change)
 1. `dotnet format Rask.slnx` (+ `--verify-no-changes`) — the full pass, not `whitespace`; the

@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Api</PackageId>
+    <Title>Rask.Api — HTTP Endpoints in a Rask App</Title>
+    <Description>Ordinary ASP.NET Core API controllers and minimal API endpoints, hosted properly inside a Rask app. Maps controllers, and answers an unmatched request under the API prefix with an RFC 9457 problem document instead of letting the app's catch-all return a web page where the caller expected JSON. Pairs with Rask.Api.Client, whose typed client is generated from these endpoints, so a call site carries no URL string.</Description>
+    <PackageTags>aspnetcore api controllers minimal-api rest problem-details dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!--
+    The client generator, referenced as an analyzer (no runtime assembly reference). It ships with the
+    HOSTING package rather than with Rask.Api.Client, and that is load-bearing: it has to run in the
+    compilation that can see the controllers, which is the server's. The browser companion references
+    only Rask.Api.Client, so it never loads the generator and cannot emit a second copy of every client
+    type on top of the baked one (CS0101).
+
+    Its own assembly rather than a slot in Rask.Batteries.Generators, because that one is packed by
+    Rask.Cqrs alone — a second package shipping the same analyzer loads it twice, and the consumer gets
+    CS0101/CS0111 on every generated type. Rask.Api must not depend on a mediator to ship a REST client.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Api.Generators\Rask.Api.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <None Include="..\Rask.Api.Generators\bin\$(Configuration)\netstandard2.0\Rask.Api.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+  <!--
+    Fail loud at pack time rather than shipping a package that silently generates nothing: a
+    <None Include> of an absent file packs nothing and emits no error. That is exactly how this went
+    unnoticed — every in-repo test names the generator as an explicit analyzer ProjectReference, and
+    analyzers do NOT flow through one, so only a consumer restoring the real package could tell.
+  -->
+  <Target Name="_RaskVerifyApiAnalyzerPacked" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('..\Rask.Api.Generators\bin\$(Configuration)\netstandard2.0\Rask.Api.Generators.dll')"
+           Text="Rask.Api.Generators.dll not found at '..\Rask.Api.Generators\bin\$(Configuration)\netstandard2.0\Rask.Api.Generators.dll' — build Rask.Api.Generators before packing, or consumers get hosting with no typed client." />
+  </Target>
+
+  <!-- Ship the global `using Rask.Api;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>
