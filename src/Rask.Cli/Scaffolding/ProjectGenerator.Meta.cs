@@ -36,13 +36,13 @@ internal static partial class ProjectGenerator
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}/{NameToken}.csproj", MetaCsproj(batteries, framework, version)),
-            ($"{NameToken}/Program.cs", MetaProgram(batteries)),
-            ($"{NameToken}/Features/Hello/Messages.cs", SpaMessages),
-            ($"{NameToken}/Features/Hello/HelloHandlers.cs", SpaHandlers),
-            ($"{NameToken}/Properties/launchSettings.json", SpaLaunchSettings),
-            ($"{NameToken}/appsettings.json", AppSettings),
-            ($"{NameToken}/appsettings.Production.json", AppSettingsProduction),
+            ($"{NameToken}.csproj", MetaCsproj(batteries, framework, version)),
+            ($"Program.cs", MetaProgram(batteries)),
+            ($"Features/Hello/Messages.cs", SpaMessages),
+            ($"Features/Hello/HelloHandlers.cs", SpaHandlers),
+            ($"Properties/launchSettings.json", SpaLaunchSettings),
+            ($"appsettings.json", AppSettings),
+            ($"appsettings.Production.json", AppSettingsProduction),
 
             ("README.md", MetaReadme(framework)),
 
@@ -60,7 +60,7 @@ internal static partial class ProjectGenerator
         // plugin.
         foreach (var (path, content) in framework.ConfigFiles)
         {
-            files.Add(($"{NameToken}/{framework.AppDir}/{path}", content));
+            files.Add(($"{framework.AppDir}/{path}", content));
         }
 
         // Tailwind, for the two frameworks whose creators cannot be asked for it. The other four take
@@ -68,20 +68,20 @@ internal static partial class ProjectGenerator
         // something the framework's own documentation does not describe would be worth less than none.
         if (framework.TailwindStylesheet is { Length: > 0 } stylesheet)
         {
-            files.Add(($"{NameToken}/{framework.AppDir}/{stylesheet}", SpaTailwindCss));
+            files.Add(($"{framework.AppDir}/{stylesheet}", SpaTailwindCss));
 
             if (framework.TailwindThroughPostcss)
             {
                 // Vite reads a PostCSS config on its own, so this needs no edit to a plugins array that
                 // belongs to the framework — which for Analog is the same file the Rask dev proxy is
                 // patched into, and the one carrying its Angular plugin.
-                files.Add(($"{NameToken}/{framework.AppDir}/.postcssrc.json", SpaTailwindPostcssRc));
+                files.Add(($"{framework.AppDir}/.postcssrc.json", SpaTailwindPostcssRc));
             }
         }
 
         if (batteries.Data)
         {
-            files.Add(($"{NameToken}/Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
+            files.Add(($"Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
         }
 
         if (batteries.Docker)
@@ -90,10 +90,10 @@ internal static partial class ProjectGenerator
             files.Add((".dockerignore", DockerIgnore));
         }
 
-        files.AddRange(ProjectHygiene($"{NameToken}/{NameToken}.csproj"));
+        files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
 
         var scaffoldFiles = Materialize(targetDirectory, name, files);
-        var client = System.IO.Path.Combine(targetDirectory, name, framework.AppDir);
+        var client = System.IO.Path.Combine(targetDirectory, framework.AppDir);
 
         return new ScaffoldResult(scaffoldFiles, MetaNextSteps(name, framework, batteries.Docker))
         {
@@ -111,12 +111,11 @@ internal static partial class ProjectGenerator
                     // directory already exists (#886).
                     NodeRequirement.ScaffoldHint(framework.ScaffolderName))
                 {
-                    // Every creator on this lane is run from INSIDE the project directory with a target
-                    // of `client`, rather than being handed `Shop/client`. Three of the six refuse a
-                    // nested path or a capital letter in it — two by exiting, and create-analog by
-                    // stopping to ask, which inside `rask new` is a hang. One rule for all six is worth
-                    // more than three special cases and a fourth waiting to be discovered.
-                    WorkingSubdirectory = name,
+                    // Every creator on this lane is given a bare `client` rather than a nested path.
+                    // Three of the six refuse one — two by exiting on the capital letter, and
+                    // create-analog by stopping to ask, which inside `rask new` is a hang. It needs no
+                    // working subdirectory: the target directory already IS the project directory.
+                    CreatedDirectory = framework.AppDir,
                 },
             ],
             Patches = MetaPatches(client, framework),
