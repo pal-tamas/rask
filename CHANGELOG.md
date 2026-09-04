@@ -166,6 +166,26 @@ them until tagged releases begin.
 
 ### Added
 
+- **The kit ships every daisyUI theme, and a picker for them.** It carried two — `light` and `dark` —
+  while the vendored bundle already contained all 35, so 33 palettes were being compiled away.
+
+  Costed before it was taken, because the sheet is inlined into every document: the whole set is
+  **+6.2 KB gzipped** (30.6 KB → 36.8 KB, 205 KB → 241 KB raw). A theme is a block of custom properties
+  rather than a second copy of the component rules, which is why thirty-three of them cost so little.
+
+  `UiThemeName` names them, so choosing one is checked by the compiler rather than spelled into a
+  string — an unmatched `data-theme` is not an error anywhere, it simply selects nothing and the palette
+  stays where it was. `UiThemeTests` holds the enum and the compiled sheet to each other in **both**
+  directions, since one is a C# file and the other is daisyUI's `themes:` option and nothing else keeps
+  them in step.
+
+  `UiThemePicker` is the whole set as a radio group of `theme-controller` inputs, which daisyUI matches
+  in CSS — so it switches the palette with no JavaScript, like `UiThemeController` before it. Radios
+  rather than a `<select>` for exactly that reason: a select's value is only readable from a script, and
+  there is none. Nothing persists the choice; an app that wants it remembered should render `data-theme`
+  from its own stored preference.
+
+
 - **Email confirmation and password reset, over the mail battery.** Registering now sends a
   confirmation link, `/forgot-password` emails a reset link, and `/reset-password` and `/confirm-email`
   are where those links land — three more built-in pages, overridable the same way `/login` is, and
