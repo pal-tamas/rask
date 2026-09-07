@@ -628,8 +628,8 @@ internal static partial class ProjectGenerator
             // at build time, so the two halves cannot disagree about a payload or a result.
             //
             // RequireAuthenticatedUser is OFF because this template has no authentication to require —
-            // left on, every message would answer 401 and nothing would work. Add a cookie or JWT scheme
-            // and DELETE this argument: the default is on for a reason.
+            // left on, every message would answer 401 and nothing would work. Add AddRaskAuth() and
+            // DELETE this argument: the default is on for a reason.
             builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
 
             builder.Services.AddSingleton<Company.RaskServer.Features.Hello.VisitCounter>();

@@ -109,9 +109,8 @@ public static class GuideCatalog
 
 
         // ---- Integration ----
-        new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.", "Integration"),
+        new("authentication", "Authentication", "Cookie sessions and OIDC on Server and WASM, route guards.", "Integration"),
         new("authentication-cookie", "Auth — cookie", "Cookie login and session on Server and on a WASM SPA with an API host.", "Integration"),
-        new("authentication-jwt", "Auth — JWT", "Bearer-token JWT auth on Server, WASM+host, and standalone static WASM.", "Integration"),
         new("authentication-providers", "Auth — providers", "Identity, Keycloak, Auth0, and other OIDC providers.", "Integration"),
         new("authentication-hardening", "Auth — hardening", "Production hardening for cookies, tokens, and sessions.", "Integration"),
         new("http-and-files", "HTTP & files", "Fetch JSON with a DI'd HttpClient; upload and download files.", "Integration"),

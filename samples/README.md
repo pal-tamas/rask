@@ -33,9 +33,7 @@ Each pairs a login flow with a protected `/members` page. See the
 | Project | Scheme | Host model | Run |
 |---------|--------|-----------|-----|
 | [`Rask.Example.Auth`](Rask.Example.Auth) | Cookie | Server-side | `dotnet run --project samples/Rask.Example.Auth` |
-| [`Rask.Example.Auth.Jwt`](Rask.Example.Auth.Jwt) | JWT (server) | Server-side | `dotnet run --project samples/Rask.Example.Auth.Jwt` |
 | `Rask.Example.Auth.WasmCookie` + [`.Host`](Rask.Example.Auth.WasmCookie.Host) | Cookie | WASM client + ASP.NET host | `dotnet run --project samples/Rask.Example.Auth.WasmCookie.Host` |
-| `Rask.Example.Auth.WasmJwt` + [`.Host`](Rask.Example.Auth.WasmJwt.Host) | JWT (bearer) | WASM client + ASP.NET host | `dotnet run --project samples/Rask.Example.Auth.WasmJwt.Host` |
 
 For the WASM auth pairs, run the **`.Host`** project — it serves the published WASM client
 and exposes the login/API endpoints. The client project is referenced by its host and is
@@ -44,5 +42,6 @@ not launched on its own.
 ## Notes
 
 - All commands run from the repository root.
-- Auth is configured on ASP.NET's own `AddCookie` / `AddJwtBearer` — Rask has no auth
-  options object. The samples are wired with demo credentials; do not ship them as-is.
+- The session is a cookie, and `Rask.Auth` owns that scheme — an external provider composes by
+  adding a challenge scheme beside it. The samples are wired with demo credentials; do not ship
+  them as-is.

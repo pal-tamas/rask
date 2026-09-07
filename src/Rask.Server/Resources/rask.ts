@@ -210,29 +210,6 @@ import "../../Rask.Core/Resources/rask-events.js";
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     const baseWsUrl = proto + "//" + location.host + prependBase("/rask/ws");
 
-    // JWT-on-WebSocket hook. Browsers can't set Authorization headers on a WS upgrade, so a
-    // bearer-token app carries the access token on the URL as ?access_token= (the SignalR pattern;
-    // pair it with AddJwtBearer's OnMessageReceived reading the query for the Rask WS path). The
-    // token is read fresh on every (re)connect from window.Rask.authToken (string or function) or a
-    // <meta name="rask-access-token"> tag. With no token set this is a no-op — cookie auth is
-    // unaffected and the URL is unchanged.
-    function buildWsUrl() {
-        let token: string | null = null;
-        try {
-            const r = window.Rask as unknown as { authToken?: (() => string) | string };
-            if (r && typeof r.authToken === "function") token = r.authToken();
-            else if (r && typeof r.authToken === "string") token = r.authToken;
-            if (!token) {
-                const meta = document.querySelector('meta[name="rask-access-token"]');
-                if (meta) token = meta.getAttribute("content");
-            }
-        } catch (e) {
-            token = null;
-        }
-        if (!token) return baseWsUrl;
-        return baseWsUrl + (baseWsUrl.indexOf("?") >= 0 ? "&" : "?") + "access_token=" + encodeURIComponent(token);
-    }
-
     let ws: WebSocket | null = null;
     const queue: string[] = [];
     let open = false;
@@ -319,7 +296,7 @@ import "../../Rask.Core/Resources/rask-events.js";
             return;
         }
 
-        ws = new WebSocket(buildWsUrl());
+        ws = new WebSocket(baseWsUrl);
         // Captured once: `ws` is reassigned on every reconnect, so a handler that read it later
         // would be talking about whichever socket is current rather than the one it belongs to.
         const socket = ws;

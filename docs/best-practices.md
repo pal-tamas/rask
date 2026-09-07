@@ -221,14 +221,13 @@ mistake, the rule notes the ID.
   the session from `HttpContext.User` on the initial GET and the WS upgrade; if auth runs *after*
   Rask the principal is empty and every `[Authorize]` page challenges. This is **RASK024**. Behind a
   reverse proxy, wire `UseForwardedHeaders()` *first* so the origin checks see the public host.
-- **Prefer the cookie scheme; keep tokens out of JavaScript.** An HttpOnly cookie is immune to XSS
-  token theft. If a token must live in the browser (standalone WASM), store it **encrypted**
-  (`ProtectedTokenStore`) or at least short-lived in `sessionStorage` — never plaintext
-  `localStorage` in production (the scaffold's plaintext store is the floor, not the recommendation).
-- **Gate interactive WASM/JWT content with the `Authorize` component, not route `[Authorize]`.** A
-  bearer challenge returns 401, not a login redirect, so route gating is the wrong tool for an
-  interactive page; `Authorize(Authorized:, NotAuthorized:, Authorizing:)` gates on the local
-  principal.
+- **The session is a cookie, and nothing of it reaches JavaScript.** `Rask.Auth` owns the scheme and
+  sets it `HttpOnly`, `Secure`, `SameSite=Lax`, so there is no token for XSS to steal and none to
+  store in the browser. Don't reintroduce one by hand.
+- **Gate interactive WASM content that renders before its principal lands with the `Authorize`
+  component, not route `[Authorize]`.** Route gating runs once, before the page renders; a WASM
+  provider is still hydrating then, so `Authorize(Authorized:, NotAuthorized:, Authorizing:)` — whose
+  `Authorizing` slot covers exactly that window — is the right tool.
 - **Lean on the built-in URL sanitization.** URL-bearing attributes neutralize dangerous schemes
   (`javascript:`, `vbscript:`) to `about:blank` by default; use `RaskUrl.Trusted(...)` only for URLs
   you control. Treat the **session id as a bearer secret** (HTTPS only, never logged), and set a
@@ -288,7 +287,7 @@ mistake, the rule notes the ID.
 | Subscribing to an event without unsubscribing | Pair `+=` in `OnMount` with `-=` in `OnUnmount` |
 | Scoped `DbContext` in a Server app | `IDbContextFactory<T>` + a fresh context per op |
 | Async EF/HTTP calls without the token | Thread `Component.CancellationToken` through |
-| `localStorage` plaintext JWT in production | HttpOnly cookie, or encrypted/short-lived storage |
+| Any auth token in `localStorage` | The `HttpOnly` session cookie the battery already sets |
 | `UseAuthentication()` after `UseRask()` (**RASK024**) | Auth → Authorization → Rask, in that order |
 | `Img` without `Alt` (**RASK023**) | Real alt text, or `Alt: ""` for decorative |
 | `for`-loop index captured in a binding lambda | Copy to a per-iteration local, or use `foreach` |

@@ -1,7 +1,9 @@
 # Authentication — identity providers
 
 Provider integrations for [Rask authentication](authentication.md): bring your own user store, or sign in
-through an external OpenID Connect provider. For the core cookie/JWT flows and the `Authorize` gate, see the
+through an external OpenID Connect provider. Either way the session Rask authenticates is still the
+cookie — `Rask.Auth` owns that scheme, and a provider composes by adding a *challenge* scheme beside it
+and signing in through the cookie. For the cookie flows and the `Authorize` gate, see the
 [main authentication guide](authentication.md).
 
 
@@ -9,6 +11,12 @@ through an external OpenID Connect provider. For the core cookie/JWT flows and t
 
 ASP.NET Identity is just a richer `ICredentialStore` + cookie. Wire Identity for storage/password hashing,
 then sign in through Rask's handshake.
+
+> **This replaces the accounts battery — turn it off first.** `Rask.Auth` *is* ASP.NET Identity behind
+> Rask's own surface, and it owns both the cookie scheme and the default scheme. Left on beside the
+> wiring below you get two account stores, and the battery's `Cookies` wins as `DefaultScheme` over the
+> `IdentityConstants.ApplicationScheme` set here. Drop the `AddRaskAuth` line, or
+> `app.Configure(c => c.Auth.Off())`, before adopting this section.
 
 ```csharp
 builder.Services
@@ -62,15 +70,19 @@ principal unchanged. Registration/2FA/lockout are standard Identity APIs called 
 
 For an external IdP, let ASP.NET's OIDC handler own the login redirect; Rask reads the resulting cookie.
 
+> **Add the challenge scheme, not a cookie scheme.** With the accounts battery on — the default —
+> `Rask.Auth` owns the cookie and configures it last, so a `.AddCookie()` of your own is redundant
+> here and its settings would be overwritten by `AuthOptions`. The IdP performs the *challenge*; the
+> session it produces is still the battery's cookie. In an app that turned the battery off
+> (`app.Configure(c => c.Auth.Off())`) the cookie is yours again — add `.AddCookie()` back and set
+> `DefaultScheme` yourself.
+
 ```csharp
-builder.Services.AddAuthentication(o =>
-    {
-        o.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        o.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-    })
-    .AddCookie()
+builder.Services.AddAuthentication()
     .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, o =>
     {
+        // Sign in through the cookie the battery owns; the IdP only performs the challenge.
+        o.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         o.Authority = "https://keycloak.example.com/realms/rask"; // your realm
         o.ClientId = "rask-app";
         o.ClientSecret = builder.Configuration["Keycloak:ClientSecret"];
@@ -81,6 +93,11 @@ builder.Services.AddAuthentication(o =>
         o.TokenValidationParameters.RoleClaimType = "roles"; // map Keycloak realm roles → User.IsInRole
         o.TokenValidationParameters.NameClaimType = "preferred_username";
     });
+
+// Challenge through the IdP instead of the built-in /login form.
+builder.Services.Configure<AuthenticationOptions>(
+    o => o.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme);
+
 builder.Services.AddRask(auth => auth.ChallengePath = "/login");
 // app: UseAuthentication(); UseAuthorization(); UseRask<App>();
 ```
