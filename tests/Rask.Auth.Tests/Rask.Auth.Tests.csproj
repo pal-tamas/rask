@@ -41,6 +41,10 @@
        IAuth/AuthResult. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Auth\Rask.Auth.csproj"/>
+
+    <!-- RaskTest.Render, for the one test that has to prove a GET on the confirm page changes
+         nothing: that property is about what the PAGE does on arrival, not about the service. -->
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 

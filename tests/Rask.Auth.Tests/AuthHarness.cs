@@ -32,11 +32,23 @@ public sealed class MailSpy : IMail
 
     public IReadOnlyList<SentMail> Sent => _sent;
 
+    /// <summary>
+    /// Makes every send throw, which is the shape a misconfigured mail battery has: registered, so
+    /// <c>IsConfigured</c> is true, but unable to queue — most often because its tables are not in the
+    /// DbContext model. It is the only state in which #1011's membership oracle was reachable.
+    /// </summary>
+    public bool Throws { get; set; }
+
     /// <summary>The last message sent to an address, or null when there is none.</summary>
     public SentMail? LastTo(string address) => _sent.FindLast(m => m.To == address);
 
     public Task SendAsync(Email email, CancellationToken cancellationToken = default)
     {
+        if (Throws)
+        {
+            throw new InvalidOperationException("mail battery is misconfigured");
+        }
+
         // Email.Body(Component) has already rendered to HTML by the time it is queued, so this is the
         // same string a real send would hand to the SMTP transport.
         _sent.Add(new SentMail(

@@ -9,6 +9,37 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A mail scanner could burn a confirmation link before its owner ever clicked it**
+  ([#1013](https://github.com/pal-tamas/rask/issues/1013)). `/confirm-email` confirmed on arrival, and the
+  token is single-use. The reasoning for that — "the link was the deliberate act; a second click adds a
+  step and no safety" — is right about the person and wrong about everything else that fetches the URL:
+  mail scanners, link previewers, corporate URL-rewriting gateways and prefetchers all GET it first.
+  Whichever arrived first spent the token, and the human then clicked their own link and was told it did
+  not work, indistinguishable from a real expiry, with a fresh link doing exactly the same thing.
+
+  Confirming now happens behind a button. A GET renders a page and changes nothing.
+
+  A second arrival — a reload, a Back, a link opened twice — also stopped reporting `InvalidToken`, which
+  was actively misleading: everything the visitor wanted had already happened, and "request a new link"
+  sent them round a loop that cannot end. `AuthError.EmailAlreadyConfirmed` says so instead, and leaks
+  nothing a holder of the link does not already know.
+
+- **`/forgot-password` told an attacker which addresses are registered**
+  ([#1011](https://github.com/pal-tamas/rask/issues/1011)). When the mail queue refused a message, the
+  reset reported `MailNotConfigured` — but that branch is only reachable for an address that **exists**,
+  so two requests separated a registered account from an unknown one. It was a documented trade, on the
+  grounds that only a misconfigured app can reach it. That is not a defence: misconfigured is a state an
+  attacker can wait for, and enumeration is permanent once done.
+
+  The failure now goes to the log, where the person who can fix a mail battery will see it, and the
+  caller gets the same answer every caller gets. The diagnosability the trade was protecting is kept
+  where it is actionable and removed where it was a signal. The probe for an app with **no** mail battery
+  at all still fires before any address is looked up, so it stays uniform across addresses while telling
+  such an app plainly — that is a fact about the app, not about whether an account exists.
+
+  Three tests, all of which fail against the code as it was, including one asserting that rendering the
+  confirm page calls `ConfirmEmailAsync` zero times.
+
 - **Every route link under a sub-path deploy pointed at the origin root**
   ([#975](https://github.com/pal-tamas/rask/issues/975)). `NavLink` wrote its `Href` straight through, and
   a generated `Routes.*` URL is the route's own path — so an app served at `/docs/` rendered

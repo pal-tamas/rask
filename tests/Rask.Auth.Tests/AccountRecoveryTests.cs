@@ -1,6 +1,8 @@
 using System.Web;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Auth.Pages;
 using Rask.Core.Authentication;
+using Rask.Testing;
 
 namespace Rask.Auth.Tests;
 
@@ -224,6 +226,110 @@ public sealed class AccountRecoveryTests
         Assert.True(owner.Succeeded, $"harness setup failed: {owner.Error} {owner.Message}");
 
         return harness;
+    }
+
+    [Fact]
+    public async Task A_failed_send_answers_exactly_as_an_unknown_address_does()
+    {
+        // #1011. The failure branch was only reachable for an address that EXISTS, so answering
+        // differently there made the page a membership oracle: send two resets, and the one that errors
+        // is the registered account. Needing a misconfigured app to reach it is not a defence —
+        // misconfigured is a state an attacker can wait for, and enumeration is permanent once done.
+        await using var harness = await ClaimedAsync();
+        harness.Mail!.Throws = true;
+
+        var known = await SendResetAsync(harness, Owner);
+        var unknown = await SendResetAsync(harness, "nobody@example.com");
+
+        Assert.Equal(known.Succeeded, unknown.Succeeded);
+        Assert.Equal(known.Error, unknown.Error);
+        Assert.True(known.Succeeded);
+    }
+
+    [Fact]
+    public async Task An_app_with_no_mail_battery_is_still_told_plainly()
+    {
+        // The other side of that trade, kept. The probe fires BEFORE any address is looked up, so it is
+        // uniform across addresses and still tells an app that cannot send mail at all — which is a fact
+        // about the app, not about whether an account exists.
+        await using var harness = await ClaimedAsync(mail: false);
+
+        var known = await SendResetAsync(harness, Owner);
+        var unknown = await SendResetAsync(harness, "nobody@example.com");
+
+        Assert.Equal(AuthError.MailNotConfigured, known.Error);
+        Assert.Equal(known.Error, unknown.Error);
+    }
+
+    [Fact]
+    public void Rendering_the_confirm_page_does_not_spend_the_token()
+    {
+        // The actual security property of #1013, and the one a service-level test cannot state: a GET is
+        // not a deliberate act by the person the link was sent to. Mail scanners, link previewers,
+        // corporate URL-rewriting gateways and prefetchers all fetch it first, and whichever arrived
+        // first spent the single-use token — after which the human clicks their own link and is told it
+        // did not work, indistinguishably from a real expiry.
+        //
+        // Asserted against a spy rather than a database, because the claim is precisely "the page does
+        // not CALL this on render", and a spy says that without anything else being able to explain it.
+        var auth = new ConfirmSpy();
+        var services = new ServiceCollection().BuildServiceProvider();
+
+        // ActivatorUtilities, as the router itself constructs a page: the spy goes in as the ctor
+        // dependency it takes.
+        var page = ActivatorUtilities.CreateInstance<ConfirmEmailPage>(services, auth);
+        page.UserId = "u1";
+        page.Token = "t1";
+
+        var html = RaskTest.Render(page, services).Html;
+
+        Assert.Equal(0, auth.Confirms);
+        Assert.Contains("confirm-submit", html, StringComparison.Ordinal);
+    }
+
+    private sealed class ConfirmSpy : IAuth
+    {
+        public int Confirms { get; private set; }
+
+        public Task<AuthResult> ConfirmEmailAsync(string userId, string token)
+        {
+            Confirms++;
+            return Task.FromResult(AuthResult.Success);
+        }
+
+        public Task<AuthResult> RegisterAsync(
+            string email, string password, string? returnUrl = null, string? firstRunToken = null) =>
+            Task.FromResult(AuthResult.Success);
+
+        public Task<AuthResult> SignInAsync(
+            string email, string password, bool remember = false, string? returnUrl = null) =>
+            Task.FromResult(AuthResult.Success);
+
+        public Task SignOutAsync(string? returnUrl = null) => Task.CompletedTask;
+
+        public Task<AuthResult> SendPasswordResetAsync(string email) =>
+            Task.FromResult(AuthResult.Success);
+
+        public Task<AuthResult> ResetPasswordAsync(string userId, string token, string password) =>
+            Task.FromResult(AuthResult.Success);
+    }
+
+    [Fact]
+    public async Task Confirming_twice_says_so_rather_than_blaming_the_link()
+    {
+        // #1013. A confirmation token is single-use, so the second arrival — a reload, a Back, a link
+        // opened twice — reported "that link did not work" about an address that is confirmed, and sent
+        // the visitor to request another one, which does the same thing.
+        await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
+        var (userId, token) = Parse(harness.Mail!.LastTo(Owner)!.Link!);
+
+        Assert.True((await ConfirmAsync(harness, userId, token)).Succeeded);
+
+        var again = await ConfirmAsync(harness, userId, token);
+
+        Assert.False(again.Succeeded);
+        Assert.Equal(AuthError.EmailAlreadyConfirmed, again.Error);
+        Assert.True(await IsConfirmedAsync(harness, Owner));
     }
 
     private static async Task<AuthResult> RegisterAsync(

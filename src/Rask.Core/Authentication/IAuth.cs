@@ -54,6 +54,17 @@ public enum AuthError
     EmailNotConfirmed = 9,
 
     /// <summary>
+    /// The address is already confirmed, so the link had nothing left to do.
+    /// </summary>
+    /// <remarks>
+    /// Separated from <see cref="InvalidToken" /> because it is the one case where "that link did not
+    /// work" is actively misleading: everything the visitor wanted has already happened, and telling
+    /// them to request a new link sends them round a loop that cannot end. It leaks nothing a holder of
+    /// the link does not already know — they were sent it.
+    /// </remarks>
+    EmailAlreadyConfirmed = 11,
+
+    /// <summary>
     /// The app cannot send email, so a flow that depends on one cannot start.
     /// </summary>
     /// <remarks>

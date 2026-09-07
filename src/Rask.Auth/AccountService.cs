@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Rask.Core.Authentication;
 
+using Rask.Core.Diagnostics;
+
 namespace Rask.Auth;
 
 /// <summary>What an account operation produced: the outcome, and the principal when it succeeded.</summary>
@@ -188,17 +190,25 @@ internal sealed class AccountService<TUser>(
 
             // The queue refused it — a mail battery whose tables are not in the model, most likely.
             //
-            // This is the ONE answer here that differs between a registered address and an unknown
-            // one, so it is a membership oracle, and it is a deliberate trade rather than an
-            // oversight. It can only fire in an app that is already misconfigured: with the queue
-            // working, every address takes the success path. Weighed against reporting "check your
-            // email" for every reset an app will never send — which nobody can diagnose from any page,
-            // and which the person waiting reads as the app being broken about THEM — surfacing the
-            // misconfiguration on the first attempt is worth more than hiding it. Fixing the
-            // configuration closes the oracle with it.
+            // Reported to the LOG, never to the caller (#1011). This branch is only reachable for an
+            // address that exists, so answering differently here made the page a membership oracle: send
+            // two resets, and the one that errors is the registered address. That it takes a
+            // misconfigured app to reach it is not a defence — misconfigured is precisely the state an
+            // attacker can wait for, and enumeration is permanent once done.
+            //
+            // The diagnosability it was protecting is real and is kept, just aimed at the operator
+            // instead of the visitor: the person who can fix a mail battery reads logs, and the person
+            // holding the reset form cannot act on it at all. The probe above still fails FAST and
+            // loudly when mail is not configured at all, before any address is looked up, so it stays
+            // uniform across addresses while an app with no mail battery is still told plainly.
             if (!sent)
             {
-                return AuthResult.Fail(AuthError.MailNotConfigured);
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error,
+                    "Rask.Auth",
+                    "A password reset could not be queued for a registered address. The caller was told "
+                    + "the same thing every caller is told, so this line is the only place it appears. "
+                    + "The usual cause is a mail battery whose tables are not in the DbContext model.");
             }
         }
 
@@ -251,6 +261,14 @@ internal sealed class AccountService<TUser>(
         if (await users.FindByIdAsync(userId).ConfigureAwait(false) is not { } user)
         {
             return AuthResult.Fail(AuthError.InvalidToken);
+        }
+
+        // Asked BEFORE spending the token (#1013). A confirmation token is single-use, so a second
+        // arrival at this page — a reload, a Back, a link opened twice — used to report "that link did
+        // not work" about an address that is confirmed, and send the visitor to request another one.
+        if (await users.IsEmailConfirmedAsync(user).ConfigureAwait(false))
+        {
+            return AuthResult.Fail(AuthError.EmailAlreadyConfirmed);
         }
 
         var result = await users.ConfirmEmailAsync(user, token).ConfigureAwait(false);

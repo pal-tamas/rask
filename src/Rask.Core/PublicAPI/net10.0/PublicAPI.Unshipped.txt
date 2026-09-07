@@ -19,6 +19,7 @@ Rask.Core.Authentication.AuthAction.SignOut = 1 -> Rask.Core.Authentication.Auth
 Rask.Core.Authentication.AuthApi
 Rask.Core.Authentication.AuthError
 Rask.Core.Authentication.AuthError.DuplicateAccount = 3 -> Rask.Core.Authentication.AuthError
+Rask.Core.Authentication.AuthError.EmailAlreadyConfirmed = 11 -> Rask.Core.Authentication.AuthError
 Rask.Core.Authentication.AuthError.EmailNotConfirmed = 9 -> Rask.Core.Authentication.AuthError
 Rask.Core.Authentication.AuthError.FirstRunTokenRequired = 5 -> Rask.Core.Authentication.AuthError
 Rask.Core.Authentication.AuthError.InvalidCredentials = 1 -> Rask.Core.Authentication.AuthError

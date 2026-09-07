@@ -31,6 +31,8 @@ internal static class AuthMessages
         AuthError.InvalidEmail => "That does not look like an email address this app accepts.",
         AuthError.EmailNotConfirmed =>
             "Confirm your email address before signing in. The link was sent when you registered.",
+        AuthError.EmailAlreadyConfirmed =>
+            "That address is already confirmed. You can sign in.",
         AuthError.InvalidToken =>
             "That link has expired or has already been used. Ask for a new one.",
         // Named for what an operator has to fix, because nobody else can. This is the one message here
