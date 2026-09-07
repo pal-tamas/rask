@@ -35,6 +35,24 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The WASM islands journey counted three islands where the page has had four since [#958](https://github.com/pal-tamas/rask/issues/958)**
+  ([#1027](https://github.com/pal-tamas/rask/issues/1027)). `d56dfb82` added a Solid island to the WASM
+  showcase and left the count that guards that page at three, so `main` was red on the journey from that
+  commit onward. Because the browser suite runs on `git push` rather than in CI, it surfaced as a blocked
+  push on the next unrelated commit rather than as a failure at the time.
+
+  The assertion carried the comment "adding a fourth here has to come with a decision about this number",
+  and that is exactly how the omission was named — so the shape is kept, and Solid gets real assertions
+  instead of only a bumped number. A count on its own cannot tell "mounted" from "did not mount":
+  `<rask-external>` is Rask's own element and is there either way. React and Solid both compile `.tsx`
+  and depend on directory-scoped Vite plugins, where the loser is built with the other's JSX transform
+  and mounts nothing — so the assertion is on a node only Solid's transform can produce, plus the six
+  sparkline points its `IReadOnlyList<int>` prop carries across.
+
+  The showcase page was stale from the same commit in a way no test covered: its `CodeSample` file list
+  omitted `SolidSpark.cs`/`SolidSpark.tsx`, so the page rendered a Solid island whose source a reader
+  could not see, under a note reading "Three runtimes in one tree".
+
 - **The playground cannot be trimmed, and the reason it could not was never the one written down.**
   Acting on the note above, trimming was turned back on with Roslyn rooted as a `TrimmerRootAssembly`.
   Roslyn survived that perfectly — snippets still compiled. They then failed to **run**, because the

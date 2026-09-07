@@ -25,8 +25,9 @@ public sealed partial class IslandsPage : Component
         P.Class("text-ui-muted")[
             "An island is an ordinary Rask component whose markup a front-end framework produces. ",
             "These are the same files the Server showcase builds — C# owns the props, the generated ",
-            "types cross back into the ", Code[".vue"], ", ", Code[".tsx"], " and ", Code[".svelte"],
-            ", and the subtree is a diff boundary Rask never patches into. Only the transport differs."
+            "types cross back into the ", Code[".vue"], ", the two ", Code[".tsx"], " and the ",
+            Code[".svelte"], ", and the subtree is a diff boundary Rask never patches into. Only the ",
+            "transport differs."
         ],
         CodeSample
             .Files([
@@ -34,8 +35,9 @@ public sealed partial class IslandsPage : Component
                 "VueChart.cs", "VueChart.vue",
                 "ReactCounter.cs", "ReactCounter.tsx",
                 "SvelteMeter.cs", "SvelteMeter.svelte",
+                "SolidSpark.cs", "SolidSpark.tsx",
             ])
-            .Notes("Three runtimes in one tree, running client-side. The callback that reaches C# here "
+            .Notes("Four runtimes in one tree, running client-side. The callback that reaches C# here "
                 + "does so through a [JSExport] call into this tab's own runtime; the front-end files "
                 + "are byte-identical to the Server showcase's.")
             .Result(IslandsDemo)
