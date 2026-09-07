@@ -162,15 +162,3 @@ interface MonacoEnvironmentShape {
 
 declare var MonacoEnvironment: MonacoEnvironmentShape | undefined;
 
-/**
- * The .NET WASM runtime's own accessor, used to read the boot config.
- *
- * Typed loosely on purpose: the resource-group shape has changed across .NET versions (arrays of
- * `{name}`, or name-to-hash maps), and the reader below is written to tolerate all of them. A
- * precise type here would be a guess that goes stale on the next runtime bump.
- */
-interface DotnetRuntimeApi {
-    getConfig?(): { resources?: Record<string, unknown> } | null;
-}
-
-declare function getDotnetRuntime(index: number): DotnetRuntimeApi | null;

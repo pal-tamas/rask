@@ -97,5 +97,93 @@
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
 
+  <!--
+    The Roslyn reference set, shipped as DATA rather than read off the live _framework.
+
+    The compiler used to download this app's OWN shipped assemblies and hand them to Roslyn as metadata
+    references. That worked, and it is why the whole app had to be PublishTrimmed=false: trimming strips
+    members Roslyn must see, so the app could not be trimmed without breaking the thing it exists to do.
+    53 MB of assemblies, and every page of a merged site would have carried them.
+
+    @(ReferencePathWithRefAssemblies) is a better answer on its own terms, not just a smaller one: it is
+    exactly what the C# compiler saw when it built this project — reference assemblies, metadata only, no
+    IL — so the in-browser compiler now offers precisely the surface the playground itself compiles
+    against. Reading the live _framework offered whatever happened to survive into the bundle, which is a
+    different set and one that changes with unrelated build settings.
+
+    Staged into obj/ and contributed as computed static web assets, the same shape Rask.Wasm.targets uses
+    for its own boot files, so publish carries them without a wwwroot glob having to see them at
+    evaluation.
+  -->
+  <!--
+    DependsOnTargets, not AfterTargets. With both an AfterTargets and a BeforeTargets hook MSBuild runs
+    the target at whichever fires FIRST, and GenerateComputedBuildStaticWebAssets fires before
+    ResolveReferences — so the first version of this ran with @(ReferencePathWithRefAssemblies) empty and
+    staged nothing, silently, while the build stayed green. Depending on the target that produces the
+    item is the only ordering that actually guarantees it is populated.
+  -->
+  <Target Name="_PlaygroundStageReferenceAssemblies"
+          DependsOnTargets="ResolveReferences;FindReferenceAssembliesForReferences"
+          BeforeTargets="GenerateComputedBuildStaticWebAssets">
+    <PropertyGroup>
+      <_PlaygroundRefDir>$(IntermediateOutputPath)playground-refs\</_PlaygroundRefDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_PlaygroundRefDir)refs"/>
+
+    <!--
+      Roslyn's own assemblies are excluded. They are here because THIS project compiles against them to
+      host the compiler; a snippet written in the playground never references them, and the samples say
+      as much ("uses only types in the shipped _framework — BCL + Rask.Core"). Keeping them would ship
+      the compiler's machinery as a reference set for compiling against the compiler.
+
+      Measured: 31 MB staged, 22 MB of it Roslyn. Dropping it leaves 8 MB — against the 53 MB of
+      untrimmed implementation assemblies this replaces.
+    -->
+    <ItemGroup>
+      <_PlaygroundReference Include="@(ReferencePathWithRefAssemblies)"
+                            Exclude="@(ReferencePathWithRefAssemblies->WithMetadataValue('Filename','Microsoft.CodeAnalysis'))"/>
+      <_PlaygroundReference Remove="@(_PlaygroundReference)"
+                            Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.CodeAnalysis'))"/>
+    </ItemGroup>
+
+    <!-- SkipUnchangedFiles: this runs on every build and the set is megabytes. -->
+    <Copy SourceFiles="@(_PlaygroundReference)"
+          DestinationFolder="$(_PlaygroundRefDir)refs"
+          SkipUnchangedFiles="true"/>
+
+    <!--
+      A manifest, because the browser cannot list a directory. Written from the same item the copy used,
+      so it cannot describe a set the copy did not produce.
+    -->
+    <WriteLinesToFile
+      File="$(_PlaygroundRefDir)refs.txt"
+      Lines="@(_PlaygroundReference->'%(Filename)%(Extension)')"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"/>
+
+    <ItemGroup>
+      <_PlaygroundRefAsset Include="$(_PlaygroundRefDir)**\*"/>
+    </ItemGroup>
+
+    <DefineStaticWebAssets Condition=" '@(_PlaygroundRefAsset)' != '' "
+                           CandidateAssets="@(_PlaygroundRefAsset)"
+                           SourceType="Computed"
+                           SourceId="$(PackageId)"
+                           ContentRoot="$(_PlaygroundRefDir)"
+                           BasePath="$(StaticWebAssetBasePath)"
+                           RelativePathPattern="**"
+                           FingerprintCandidates="false">
+      <Output TaskParameter="Assets" ItemName="StaticWebAsset"/>
+      <Output TaskParameter="Assets" ItemName="_PlaygroundRefStaticWebAsset"/>
+    </DefineStaticWebAssets>
+
+    <DefineStaticWebAssetEndpoints Condition=" '@(_PlaygroundRefStaticWebAsset)' != '' "
+                                   CandidateAssets="@(_PlaygroundRefStaticWebAsset)"
+                                   ExistingEndpoints="@(StaticWebAssetEndpoint)"
+                                   ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+      <Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint"/>
+    </DefineStaticWebAssetEndpoints>
+  </Target>
 
 </Project>

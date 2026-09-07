@@ -7,6 +7,32 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The playground compiles against reference assemblies shipped as data, not against its own bundle.**
+  The in-browser compiler used to download this app's own implementation assemblies out of `_framework/`,
+  read off the runtime's boot config, and hand them to Roslyn. That worked, and it is the reason the whole
+  app had to be `PublishTrimmed=false`: trimming strips members Roslyn must see, so the app could not be
+  trimmed without breaking the one thing it exists to do.
+
+  The build now stages `@(ReferencePathWithRefAssemblies)` — exactly what the C# compiler saw when it
+  built the project, metadata only — and the loader reads those. It is the more correct set as well as
+  the smaller one: `_framework` offered whatever happened to survive into the bundle, which is a
+  different surface and one that shifts with unrelated build settings.
+
+  Roslyn's own assemblies are excluded, because a snippet never references the compiler. **8.8 MB of
+  reference assemblies against 53 MB of untrimmed implementation assemblies** — 31 MB staged, 22 MB of it
+  Roslyn.
+
+  This is the enabler rather than the payoff: it removes the reason the app cannot be trimmed. Trimming
+  is still off until Roslyn's reflection is rooted, which is the next step.
+
+  One ordering trap worth recording. The staging target first carried both `AfterTargets="ResolveReferences"`
+  and `BeforeTargets="GenerateComputedBuildStaticWebAssets"`; MSBuild runs a target at whichever hook
+  fires **first**, and the static-web-asset hook fires before references are resolved — so it staged
+  nothing, silently, while the build stayed green. `DependsOnTargets` on the target that produces the
+  item is the only ordering that guarantees it is populated.
+
 ### Fixed
 
 - **Prerendering broke deep links to the routes it could not prerender**
