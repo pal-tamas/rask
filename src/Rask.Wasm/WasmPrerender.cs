@@ -86,6 +86,26 @@ public static class WasmPrerender
                 + "writing whole documents, which will NOT boot the bundle");
         }
 
+        // The untouched shell, kept where a static host will serve it for an unknown path (#974).
+        //
+        // Prerendering an app with un-prerenderable routes used to break their deep links, and by
+        // building the very thing that was supposed to help. The root route's own output IS index.html,
+        // so once this pass runs the file a static host falls back to is no longer a neutral shell —
+        // it is the HOME PAGE, fully rendered. A deep link to a route that could not be prerendered
+        // then arrives, gets the home page's markup, and the bundle boots into a document already
+        // describing a different page. Before prerendering, the same link got an empty shell and
+        // routed correctly.
+        //
+        // 404.html because that is what every static host this targets already reaches for — GitHub
+        // Pages, Netlify, Cloudflare Pages, S3 — and it costs no configuration. Written BEFORE the loop,
+        // from the shell read above, so it cannot pick up a page's output.
+        if (shell is not null)
+        {
+            var fallback = Path.Combine(outputDirectory, FallbackFileName);
+            await File.WriteAllTextAsync(fallback, shell).ConfigureAwait(false);
+            Console.WriteLine($"[Rask.Prerender] wrote the neutral boot shell to {FallbackFileName}");
+        }
+
         var written = 0;
         foreach (var path in plan.Paths)
         {
@@ -178,6 +198,12 @@ public static class WasmPrerender
     ///     The published boot shell, or <c>null</c> when there is none to splice into.
     /// </summary>
     internal const string ShellFileName = "index.html";
+
+    /// <summary>
+    ///     Where the UNTOUCHED shell is kept, so a deep link to a route this pass could not prerender
+    ///     still gets a neutral document to boot into rather than the home page's markup (#974).
+    /// </summary>
+    internal const string FallbackFileName = "404.html";
 
     private static async Task<string?> ReadShellAsync(string outputDirectory)
     {

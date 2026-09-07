@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Prerendering broke deep links to the routes it could not prerender**
+  ([#974](https://github.com/pal-tamas/rask/issues/974)), and did it by building the very thing meant to
+  help. The root route's own output **is** `index.html` — the same file a static host falls back to for
+  an unknown path. So once the pass had run, a deep link to a skipped route (a parameterised one, or one
+  that threw or timed out) got the **home page**, fully rendered, and the bundle booted into a document
+  already describing a different page. Before prerendering, that same link got an empty shell and routed
+  correctly.
+
+  The untouched shell is now copied to `404.html` before any page is written, so it cannot pick up a
+  route's output. `404.html` because every static host this targets already reaches for it — GitHub
+  Pages, Netlify, Cloudflare Pages, S3 — so it costs no configuration. With no boot shell to copy, none
+  is invented: writing a prerendered document there would serve the home page for every unknown path,
+  which is this failure rather than a milder version of it.
+
+  Both halves are pinned, and the first fails against the old code: the fallback must boot (import map,
+  `<base href>`, boot script) **and** must not contain the home page that the same run prerendered into
+  `index.html`.
+
 ### Changed
 
 - **The SPA templates no longer scaffold TanStack Query or TanStack Router.** A scaffolded client's

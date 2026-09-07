@@ -55,6 +55,26 @@ build log**:
 [Rask.Prerender]   skipped /todos/{id:guid}/edit — its path is not known without data
 ```
 
+### The skipped routes still work — through `404.html`
+
+A route that was skipped is still served by the bundle at run time, but only if the host hands the
+browser something that can boot. That is not automatic, and it used to be actively broken by
+prerendering itself: **the root route's own output IS `index.html`**, the same file a static host
+falls back to for an unknown path. Once the pass had run, a deep link to a skipped route got the
+**home page**, fully rendered, and the bundle booted into a document already describing a different
+page. Before prerendering, that same link got an empty shell and routed correctly.
+
+So the pass copies the untouched shell to **`404.html`** before it writes any page:
+
+```
+[Rask.Prerender] wrote the neutral boot shell to 404.html
+```
+
+`404.html` because every static host this targets already reaches for it — GitHub Pages, Netlify,
+Cloudflare Pages, S3 — so it costs no configuration. With no boot shell to copy, none is written:
+inventing one from a prerendered document would serve the home page for every unknown path, which is
+the failure this exists to prevent rather than a milder version of it.
+
 A parameterised route cannot be enumerated without knowing the values, and a catch-all is a 404
 page at best. The skipped list is reported rather than logged at debug, and reported **even when it
 is empty**, because a pass that quietly covered a site's static half would read exactly like one

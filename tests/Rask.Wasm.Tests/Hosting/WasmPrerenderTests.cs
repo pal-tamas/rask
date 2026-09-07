@@ -265,6 +265,89 @@ public class WasmPrerenderTests
         }
     }
 
+    [Fact]
+    public async Task TheUntouchedShellIsKeptAsANeutralFallbackForRoutesThatWereNotPrerendered()
+    {
+        // #974. Prerendering breaks deep links to un-prerenderable routes by building the very thing
+        // meant to help: the root route's output IS index.html, so after this pass the file a static
+        // host falls back to is no longer a neutral shell — it is the HOME PAGE, fully rendered. A deep
+        // link to a route that could not be prerendered then boots into a document already describing a
+        // different page. Before prerendering, that same link got an empty shell and routed correctly.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+
+        RouteRegistry.Replace(nameof(TheUntouchedShellIsKeptAsANeutralFallbackForRoutesThatWereNotPrerendered), [
+            new RouteRegistration(typeof(Home), "/", null),
+        ]);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(dir, "index.html"),
+            """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"/><base href="/"/><title>Rask</title>
+            <script type="importmap">{"imports":{}}</script></head>
+            <body data-rask-root><div class="rask-boot">Loading…</div>
+            <script src="main.js" type="module"></script></body></html>
+            """);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var fallback = await File.ReadAllTextAsync(Path.Combine(dir, "404.html"));
+
+            // It can boot — the import map, the base href and the boot script are all there.
+            Assert.Contains("<script src=\"main.js\" type=\"module\">", fallback, StringComparison.Ordinal);
+            Assert.Contains("type=\"importmap\"", fallback, StringComparison.Ordinal);
+            Assert.Contains("<base href=\"/\"/>", fallback, StringComparison.Ordinal);
+
+            // And it is NEUTRAL. This is the whole assertion: the home page was prerendered into
+            // index.html in this very run, and none of it may appear here.
+            Assert.DoesNotContain("home-page", fallback, StringComparison.Ordinal);
+
+            // The root page really was prerendered, so the check above is not passing because nothing
+            // happened.
+            Assert.Contains("home-page", await File.ReadAllTextAsync(Path.Combine(dir, "index.html")), StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task NoBootShellMeansNoFallbackIsInvented()
+    {
+        // With no shell to copy there is nothing neutral to write, and writing a whole prerendered
+        // document as 404.html would be worse than writing none: a static host would serve the home
+        // page for every unknown path, which is the failure this fixes rather than a lesser version
+        // of it.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+
+        RouteRegistry.Replace(nameof(NoBootShellMeansNoFallbackIsInvented), [
+            new RouteRegistration(typeof(Home), "/", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            Assert.False(File.Exists(Path.Combine(dir, "404.html")));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
     private static int Occurrences(string haystack, string needle)
     {
         var count = 0;
