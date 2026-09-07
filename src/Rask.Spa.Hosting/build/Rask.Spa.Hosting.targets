@@ -4,7 +4,7 @@
     Rask.Spa.Hosting build integration: run the front end's own toolchain, then hand the result to the
     ASP.NET host.
 
-      1. Resolve the client directory (an explicit property, or the .Server/.Client naming convention).
+      1. Resolve the client directory (an explicit property, or the `client` folder convention).
       2. Probe for node, and say what to install if it isn't there.
       3. `npm ci` — its own target with its own up-to-date check, because it is the expensive one.
       4. `npm run build` — incremental against the client's sources.
@@ -35,29 +35,49 @@
     >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskSpaClientDir)'))</_RaskSpaDir>
 
     <!--
-      Otherwise the convention: a `Client` folder inside the host project. One project owns both
+      Otherwise the convention: a `client` folder inside the host project. One project owns both
       halves, which is also what the meta framework lane does — a front end is not a second .NET
       project, and naming the host `.Server` only ever distinguished it from the sibling this replaces.
 
+      Lower case, and the same word the meta lane uses. A JavaScript front end is named the way the
+      JavaScript ecosystem names directories; `Client` with a capital is reserved for the WASM lane's
+      `{name}.Client`, which is a C# project and follows .NET's convention instead. The two lanes
+      used to differ here — meta was forced to lower case because half its scaffolders derive an npm
+      package name from the target directory and reject capitals — and one word spelled two ways was
+      never worth the paragraph it took to explain.
+
+      `Client` is still accepted below, so a project scaffolded before this change keeps building.
+      Worth being explicit about why that fallback earns its place on a pre-1.0 framework: on
+      macOS and Windows the rename is invisible, and on Linux, without it, the convention would simply
+      stop matching — no error, no dev server, the front end quietly absent from the publish.
+
       The package.json check is what makes this safe to evaluate in every project of every solution,
       and it carries more weight now than it did: the old rule looked only at projects named
-      `*.Server`, and this one considers every project. A directory called `Client` is not rare; a
-      directory called `Client` holding a package.json, inside a project that also references this
+      `*.Server`, and this one considers every project. A directory called `client` is not rare; a
+      directory called `client` holding a package.json, inside a project that also references this
       package, is.
 
       RaskMetaFramework is the one thing that makes it rare enough. A meta framework host puts its
-      front end in exactly this shape — one project, a folder inside it, a package.json — so on a
-      case-insensitive filesystem the meta lane's `client` IS this convention's `Client`, and this
-      lane would claim a project it has no business in. The two are mutually exclusive by
-      construction: a project either serves a static bundle or fronts a framework's own node server.
-      In this repo the six Rask.Example.Meta.* samples are exactly that case, and they are why this
-      condition exists rather than being a hypothetical.
+      front end in exactly this shape — one project, a folder inside it, a package.json — and now in a
+      directory of exactly the same name, so without this condition this lane would claim a project it
+      has no business in. (That was already true on a case-insensitive filesystem, where the meta
+      lane's `client` and this convention's `Client` were the same directory; it is simply true
+      everywhere now.) The two are mutually exclusive by construction: a project either serves a
+      static bundle or fronts a framework's own node server. In this repo the six Rask.Example.Meta.*
+      samples are exactly that case, and they are why this condition exists rather than being a
+      hypothetical.
     -->
     <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == '' AND '$(RaskMetaFramework)' == ''"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/Client'))</_RaskSpaConventionDir>
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/client'))</_RaskSpaConventionDir>
+
+    <_RaskSpaLegacyConventionDir Condition="'$(_RaskSpaDir)' == '' AND '$(RaskMetaFramework)' == ''"
+    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/Client'))</_RaskSpaLegacyConventionDir>
 
     <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND Exists('$(_RaskSpaConventionDir)/package.json')"
     >$(_RaskSpaConventionDir)</_RaskSpaDir>
+
+    <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND Exists('$(_RaskSpaLegacyConventionDir)/package.json')"
+    >$(_RaskSpaLegacyConventionDir)</_RaskSpaDir>
 
     <_RaskSpaDist Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaDistDir)</_RaskSpaDist>
 

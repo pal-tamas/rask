@@ -119,13 +119,15 @@ internal sealed record DevTarget(
         var kind = Classify(fileSystem, csproj);
         var meta = kind == DevTemplateKind.MetaHosted ? ReadMetaFramework(fileSystem, csproj) : null;
 
-        // Both front-end lanes put the app in a `Client` folder inside the host, which is what makes one
+        // Both front-end lanes put the app in a `client` folder inside the host, which is what makes one
         // resolver right for both. The meta lane can move it with RaskMetaAppDir, and that is read here
         // because the app directory is also where its publish output lands — a host that moved it would
-        // otherwise get no dev server at all, with nothing said.
+        // otherwise get no dev server at all, with nothing said. `Client` is still accepted for a project
+        // scaffolded before the rename, matching the build's own fallback in Rask.Spa.Hosting.targets.
         var client = kind switch
         {
-            DevTemplateKind.SpaHosted => FrontEndDirectory(fileSystem, resolved, "Client"),
+            DevTemplateKind.SpaHosted =>
+                FrontEndDirectory(fileSystem, resolved, "client") ?? FrontEndDirectory(fileSystem, resolved, "Client"),
             DevTemplateKind.MetaHosted => FrontEndDirectory(fileSystem, resolved, ReadMetaAppDir(fileSystem, csproj)),
             _ => null,
         };
@@ -276,14 +278,14 @@ internal sealed record DevTarget(
         return match.Success ? match.Groups[1].Value : null;
     }
 
-    /// <summary>Where the front end lives, as <c>RaskMetaAppDir</c> set it or <c>Client</c> by default.</summary>
+    /// <summary>Where the front end lives, as <c>RaskMetaAppDir</c> set it or <c>client</c> by default.</summary>
     private static string ReadMetaAppDir(IFileSystem fileSystem, string csproj)
     {
         var match = Regex.Match(
             ReadOrEmpty(fileSystem, csproj),
             @"<RaskMetaAppDir>\s*([^<\s]+)\s*</RaskMetaAppDir>");
 
-        return match.Success ? match.Groups[1].Value : "Client";
+        return match.Success ? match.Groups[1].Value : MetaTemplate.DefaultAppDir;
     }
 
     /// <summary>Where the meta framework's own dev server listens.</summary>
@@ -348,13 +350,13 @@ internal sealed record DevTarget(
 
     /// <summary>
     ///     The front end inside a host, by the same convention both builds use: a folder in the project
-    ///     directory — <c>Client</c> unless the meta lane moved it — holding a <c>package.json</c>.
+    ///     directory — <c>client</c> unless the meta lane moved it — holding a <c>package.json</c>.
     /// </summary>
     /// <remarks>
     ///     The <c>package.json</c> check is what makes this safe, not decoration — and it carries more
     ///     weight than it did when the rule looked at siblings named <c>*.Client</c>, because a folder
-    ///     called <c>Client</c> is a far more ordinary thing for a project to contain than a sibling
-    ///     project was. A folder called <c>Client</c> that also holds a <c>package.json</c> is not.
+    ///     called <c>client</c> is a far more ordinary thing for a project to contain than a sibling
+    ///     project was. A folder called <c>client</c> that also holds a <c>package.json</c> is not.
     /// </remarks>
     private static string? FrontEndDirectory(IFileSystem fileSystem, string csproj, string appDirectory)
     {

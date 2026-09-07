@@ -242,19 +242,37 @@ public sealed class MetaTemplateTests
     [InlineData("solidstart")]
     [InlineData("tanstack-start")]
     [InlineData("analog")]
-    public void The_front_end_folder_is_lowercase_and_the_csproj_says_so(string key)
+    public void The_front_end_folder_is_lowercase_and_the_build_looks_in_the_same_place(string key)
     {
         // Half of these creators derive an npm package name from the target directory and reject a
-        // capital letter in it outright. The whole lane therefore uses `client`, where the SPA lane uses
-        // `Client` — and the csproj has to carry RaskMetaAppDir, because the property defaults to the
-        // capitalised name. Without it the build looks in one folder while the app is in another, which
-        // on a case-sensitive filesystem is simply a front end that was never built.
+        // capital letter in it outright, so the whole lane uses `client` — which is now also what the
+        // SPA lane uses and what RaskMetaAppDir defaults to.
+        //
+        // What matters is not that the csproj STATES the directory; it is that the directory the scaffold
+        // creates and the directory the build looks in are the same one. They used to differ by default,
+        // so the scaffold wrote the property on every project to force agreement; now they agree already
+        // and the property is written only by a framework that needs somewhere else. Asserting the old
+        // spelling would have failed on a change that made the thing it was guarding impossible.
+        //
+        // The failure this guards is silent: on a case-sensitive filesystem a mismatch is not an error,
+        // it is a front end that was never built.
         Assert.True(MetaTemplate.TryGet(key, out var framework));
-        Assert.Equal("client", framework.AppDir);
+        Assert.Equal(framework.AppDir.ToLowerInvariant(), framework.AppDir);
 
-        var csproj = File(Generate(key), "Shop.csproj");
+        var files = Generate(key);
+        var csproj = File(files, "Shop.csproj");
 
-        Assert.Contains("<RaskMetaAppDir>client</RaskMetaAppDir>", csproj, StringComparison.Ordinal);
+        // What the build will resolve: the property when the scaffold wrote one, otherwise the default.
+        var declared = System.Text.RegularExpressions.Regex.Match(
+            csproj, @"<RaskMetaAppDir>\s*([^<\s]+)\s*</RaskMetaAppDir>");
+        var buildLooksIn = declared.Success ? declared.Groups[1].Value : MetaTemplate.DefaultAppDir;
+
+        Assert.Equal(framework.AppDir, buildLooksIn);
+
+        // And the creator really is pointed at that directory, so neither side is agreeing about a
+        // folder nothing writes. On this lane the front end is npm's output, not the scaffolder's, so
+        // this is the third party that has to agree — and the one that would silently disagree.
+        Assert.Equal(framework.AppDir, Assert.Single(files.ExternalScaffolds).CreatedDirectory);
     }
 
     [Fact]

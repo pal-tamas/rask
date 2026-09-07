@@ -9,7 +9,7 @@ namespace Rask.Examples.E2E.Tests;
 ///     host (<see cref="SiteWasmAppFixture" />) — the GitHub Pages front door. The whole page is rendered
 ///     by a Rask WASM app, so the journey proves the framework renders a full document shell, that the
 ///     live counter and install tabs are genuine stateful Rask components (click → diff → re-render), and
-///     that the docs/playground links point at the nested sub-apps.
+///     that the docs link points at the nested sub-app.
 /// </summary>
 [Collection(SiteExampleCollection.Name)]
 public sealed class SiteExampleTests
@@ -100,8 +100,8 @@ public sealed class SiteExampleTests
                 Assert.StartsWith("docs/guides/", href, StringComparison.Ordinal);
             }
 
-            // The front door links into the nested docs + playground sub-apps, and names them for what
-            // they are — the site is three apps, and calling /docs/ "the live demo" left the docs unnamed.
+            // The front door links into the nested docs sub-app and names it for what it is — calling
+            // /docs/ "the live demo" left the docs themselves unnamed.
             await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", "docs/");
             await Expect(page.Locator("#cta-docs")).ToHaveTextAsync("Docs");
 

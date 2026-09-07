@@ -16,7 +16,8 @@
 # markdown, so it is normalised — tags stripped, entities decoded, indentation removed — and then
 # compared verbatim against the README. Drift in either direction fails, including a regression to
 # an API that no longer exists, because the README's copy is compiled for real by
-# tests/Rask.Example.Playground.Tests/ChainSnippetTests.cs.
+# tests/Rask.Generators.Tests/DocSnippetTests.cs. (It lived in the playground's test project until the
+# playground was removed; the gate is only worth anything with both halves, so it moved rather than went.)
 #
 # NOT included, deliberately, so a future reader does not "fix" it into this list:
 #   docs/getting-started.md teaches state with a heading and a paragraph, which is what the prose

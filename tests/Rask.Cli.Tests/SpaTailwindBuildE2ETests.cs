@@ -108,7 +108,7 @@ public sealed class SpaTailwindBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var client = Path.Combine(projectDir, "Client");
+            var client = Path.Combine(projectDir, "client");
             InjectProbe(client, frameworkKey);
 
             // ONE command, and deliberately the .NET one. Rask.Spa.Hosting's targets own the whole chain

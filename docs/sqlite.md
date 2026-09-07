@@ -691,17 +691,16 @@ For a **server** app, none of this changes the advice: keep SQLite behind the se
 talk to it through an API. The browser database is for apps that must
 work offline or own their data locally — not a way to avoid having a server.
 
-> **It does run, though: the [playground's tutorial](playground.md#the-guided-tutorial) does exactly
-> this.** Its data chapters run EF Core + `Microsoft.Data.Sqlite` in the browser — native relink and all —
+> **It does run, though.** EF Core + `Microsoft.Data.Sqlite` work in the browser — native relink and all —
 > and everything above about *pragmas* still holds, but "it can't work" would be too strong. Two
 > constraints if you try it: the app must be **untrimmed** (`PublishTrimmed=true` breaks EF Core, though
 > raw ADO.NET survives it), and it needs `NoWarn=WASM0001` for the varargs `sqlite3_config` natives, which
 > this repo's warnings-as-errors would otherwise turn into a failed build.
 >
-> What the playground does *not* solve is durability: its databases live in the runtime's in-memory
-> filesystem and are gone on reload, which is the right trade for a teaching sandbox and the wrong one for
-> an app. **[`Rask.SQLite.Browser`](#rasksqlitebrowser--keeping-a-browser-database) is the answer to that**,
-> and it ships today.
+> What that does *not* solve is durability: a database in the runtime's in-memory filesystem is gone on
+> reload, which is the right trade for a scratch sandbox and the wrong one for an app.
+> **[`Rask.SQLite.Browser`](#rasksqlitebrowser--keeping-a-browser-database) is the answer to that**, and it
+> ships today.
 
 ### `Rask.SQLite.Browser` — keeping a browser database
 

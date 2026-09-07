@@ -29,8 +29,10 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         await Page.GotoAsync("/islands");
 
         // Four runtimes on this page, not the Server showcase's six: Lit and Angular are not part of
-        // the WASM pair. Counted rather than assumed, so adding a fifth here has to come with a
-        // decision about this number — which is exactly what caught Solid arriving in #958 without it.
+        // the WASM pair, because both pair with a plain .ts and this app genuinely uses Rask's scoped
+        // TypeScript. Counted rather than assumed, so adding a fifth here has to come with a decision
+        // about this number — which is how Solid arrived: #958 added it to this page and this count
+        // stayed at three, so the suite went red on main and named the omission.
         await Expect(Page.Locator("rask-external[data-rask-opaque]")).ToHaveCountAsync(4);
 
         // Mounted, not merely rendered: these nodes exist only because an adapter created them, which
@@ -38,11 +40,21 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         await Expect(Page.GetByTestId("vue-chart")).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("react-counter")).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("svelte-meter")).ToBeVisibleAsync();
+
+        // Solid earns a named assertion rather than only the count. It and React both compile .tsx, so
+        // their Vite plugins are scoped by directory; get that wrong and the loser is built with the
+        // other's JSX transform, which ships and mounts NOTHING. A bare count would still read 4 —
+        // <rask-external> is Rask's element and exists whether or not the adapter ran — so what
+        // distinguishes the two outcomes is a node only Solid's own transform can have produced.
         await Expect(Page.GetByTestId("solid-spark")).ToBeVisibleAsync();
 
         // Props crossed as JSON and arrived as data — one bar per C# record.
         await Expect(Page.Locator("[data-testid=vue-chart] button[data-label]")).ToHaveCountAsync(4);
         await Expect(Page.Locator("[data-testid=vue-chart] button[data-label=Jan]")).ToHaveCountAsync(1);
+
+        // The same claim for Solid, whose prop is a plain IReadOnlyList<int>: six readings in C#, six
+        // points in the sparkline.
+        await Expect(Page.Locator("[data-testid=solid-spark] [data-testid^=solid-bar-]")).ToHaveCountAsync(6);
     });
 
     [Fact]

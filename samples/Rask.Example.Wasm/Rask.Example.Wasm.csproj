@@ -12,22 +12,38 @@
          scoped-asset bake). Replaces the old WasmGenerateAppBundle marker. -->
     <RaskWasm>true</RaskWasm>
     <!--
-      NOT prerendered yet, deliberately — see the note below before turning it on.
+      NOT prerendered yet — but the reason recorded here is no longer the reason, and the blocker it
+      named is fixed. Read this before either turning it on or repeating the analysis.
 
-      Only 5 of this app's 20 routes can be prerendered: the browser-API demos (media devices,
-      fullscreen, serial, USB, HID, Bluetooth…) have nothing to bind to off a browser, throw during the
-      pass, and are skipped by design. That leaves the bundle serving a MIXTURE, and the mixture is the
-      problem: a static host answers an un-prerendered deep link with its SPA fallback, which is the
-      root index.html — and once the root is prerendered, that fallback stops being a neutral boot shell
-      and becomes a fully rendered guides index. Deep-linking into one of the fifteen then misroutes.
+      The objection was the MIXTURE. Only 5 of this app's 20 routes can be prerendered: the browser-API
+      demos (media devices, fullscreen, serial, USB, HID, Bluetooth…) have nothing to bind to off a
+      browser, throw during the pass, and are skipped by design. A static host answers an un-prerendered
+      deep link with its SPA fallback, which is the root index.html — and once the root is prerendered
+      that fallback stops being a neutral boot shell and becomes a fully rendered guides index, so
+      deep-linking into one of the fifteen misroutes.
 
-      The landing site does not hit this because it is a single route: everything it serves is
-      prerendered, so there is no mixture and no fallback to get wrong.
+      That objection closed with its own stated prerequisite: "a fallback document that is still the boot
+      shell rather than any one rendered page". #974 is exactly that — the pass now writes the untouched
+      shell to 404.html before the page loop, so the fallback is neutral no matter what the root becomes.
 
-      Turning this on needs the un-prerendered-route story settled first — most likely a fallback
-      document that is still the boot shell rather than any one rendered page. The framework fix that
-      this attempt did surface (RASK_PRERENDER_PATH_BASE, so a sub-path publish bakes prefixed asset
-      URLs) is landed separately and is a prerequisite for it.
+      Measured on this app, publishing with -p:RaskPrerender=true:
+
+        [Rask.Prerender] 20 route(s) to render, 3 skipped
+        [Rask.Prerender] wrote the neutral boot shell to 404.html
+        [Rask.Prerender] result written=5 skipped=3        (and 15 threw, as predicted)
+
+      404.html came out at 8.7 KB with no guides markup in it; index.html at 239 KB fully rendered. So
+      the mixture is safe now.
+
+      Turning it on is therefore a judgement call about this sample rather than a blocked one, and it is
+      left off here only because flipping it deserves its own browser-E2E run against a prerendered
+      bundle — a prerendered document that the WASM runtime then morphs is a different first paint from
+      the one every journey currently asserts.
+
+      One real framework bug surfaced on the way and IS fixed: the prerender companion carried the app's
+      references but not its global usings, so this app could not compile for net10.0 at all — sixty
+      CS0103s on UiIconName, in files that build perfectly for the browser. See
+      Rask.Wasm.Prerender.targets and PrerenderCompanionGenerationTests.
     -->
     <!-- <RaskPrerender>true</RaskPrerender> -->
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders

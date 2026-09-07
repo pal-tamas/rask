@@ -86,7 +86,6 @@ public sealed partial class HomePage : Component
                     // Hidden on a narrow viewport rather than wrapped: the bar is chrome, and links
                     // stacking over two lines push the hero below the fold on a phone.
                     NavItem("Docs", "docs/", hideOnPhone: true),
-                    NavItem("Playground", "playground/", hideOnPhone: true),
                     NavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false),
 
                     // Every theme the kit ships, switched in CSS. It works on this page precisely
@@ -124,7 +123,11 @@ public sealed partial class HomePage : Component
                         P.Class(Sub)["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
                             A.Id("cta-docs").Class(BtnPrimary).Href("docs/").Target("_blank").Rel("noopener")["Docs"],
-                            A.Class(BtnGhost).Href("playground/").Target("_blank").Rel("noopener")["Playground"]
+                            A
+                                .Class(BtnGhost)
+                                .Href("https://github.com/pal-tamas/rask")
+                                .Target("_blank")
+                                .Rel("noopener")["GitHub"]
                         ],
                         Div.Class("mt-8 flex flex-wrap gap-2")[
                             Span.Class(Badge)[B[".NET 10"]],
@@ -374,8 +377,8 @@ public sealed partial class HomePage : Component
         Footer.Class("border-t border-ui-line py-16 sm:py-20")[
             Div.Class(Wrap)[
                 Div.Class("mx-auto max-w-2xl text-center")[
-                    H2.Class(H2Class)["The live docs and the playground are the real tour."],
-                    P.Class(Lede)["This is just the front door. Click through a full multi-page Rask app in the browser, or write a component live in the playground."],
+                    H2.Class(H2Class)["The live docs are the real tour."],
+                    P.Class(Lede)["This is just the front door. Click through a full multi-page Rask app, running in the browser, and read every guide beside the component it describes."],
                     Div.Class("mt-8 flex flex-wrap justify-center gap-3")[
                         // "Docs", not "Open the live demo". The hero's CTA was renamed when calling the
                         // docs "the live demo" left the docs themselves with no name; this one was
@@ -391,7 +394,6 @@ public sealed partial class HomePage : Component
                     ],
                     Div.Class("mt-10 flex flex-wrap justify-center gap-5 text-sm text-ui-muted [&>a]:no-underline hover:[&>a]:text-ui-ink")[
                         A.Href("docs/").Target("_blank").Rel("noopener")["Docs"],
-                        A.Href("playground/").Target("_blank").Rel("noopener")["Playground"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],

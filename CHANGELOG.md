@@ -63,33 +63,120 @@ them until tagged releases begin.
   ownership alone instead of having a dev tool impose `0644 root:root` on a file that already existed.
   The same fix applies on macOS, where the same call would have failed the same way.
 
-### Changed
+### Removed
 
-- **The playground compiles against reference assemblies shipped as data, not against its own bundle.**
-  The in-browser compiler used to download this app's own implementation assemblies out of `_framework/`,
-  read off the runtime's boot config, and hand them to Roslyn. That worked, and it is the reason the whole
-  app had to be `PublishTrimmed=false`: trimming strips members Roslyn must see, so the app could not be
-  trimmed without breaking the one thing it exists to do.
+- **The JavaScript front end scaffolds into `client/`, lower case, on both front-end lanes.** The SPA
+  lane used `Client/` and the meta lane used `client/`, and the difference was real enough to need a
+  paragraph in `docs/meta.md` explaining it. A capital `Client` now means one thing only: the WASM lane's
+  `{name}.Client`, which is a C# project and takes .NET's convention. A JavaScript directory takes
+  JavaScript's.
 
-  The build now stages `@(ReferencePathWithRefAssemblies)` — exactly what the C# compiler saw when it
-  built the project, metadata only — and the loader reads those. It is the more correct set as well as
-  the smaller one: `_framework` offered whatever happened to survive into the bundle, which is a
-  different surface and one that shifts with unrelated build settings.
+  The meta lane never had a choice — half its scaffolders derive an npm package name from the target
+  directory and reject capitals, `create-analog` by *stopping to ask*, which inside `rask new` is a hang
+  rather than a failure. What it did have was a `RaskMetaAppDir` default of `Client` that disagreed with
+  it, so every scaffolded csproj wrote the property purely to override the framework's own default.
+  `RaskMetaAppDir` now defaults to `client`, and the property is emitted only for a framework that needs
+  somewhere else.
 
-  Roslyn's own assemblies are excluded, because a snippet never references the compiler. **8.8 MB of
-  reference assemblies against 53 MB of untrimmed implementation assemblies** — 31 MB staged, 22 MB of it
-  Roslyn.
+  `rask dev`'s resolver had the same disagreement and it was a latent bug: `ReadMetaAppDir` fell back to
+  `Client` while the scaffolder created `client`. Every scaffold wrote the property explicitly, so the
+  fallback never fired — but a hand-written meta project that left it out would have found no dev server
+  on Linux, and been told nothing. The default now lives in one constant (`MetaTemplate.DefaultAppDir`)
+  that the scaffolder, the resolver and the build all read.
 
-  This is the enabler rather than the payoff: it removes the reason the app cannot be trimmed. Trimming
-  is still off until Roslyn's reflection is rooted, which is the next step.
+  **Existing projects keep building.** The SPA convention probes `client/` first and then `Client/`, in
+  both `Rask.Spa.Hosting.targets` and `rask dev`. That fallback is worth its keep on a pre-1.0 framework
+  because of how it fails without it: on macOS and Windows the rename is invisible, and on Linux the
+  convention simply stops matching — no error, no dev server, and a front end quietly missing from the
+  publish. `RaskSpaClientDir` still overrides both.
 
-  One ordering trap worth recording. The staging target first carried both `AfterTargets="ResolveReferences"`
-  and `BeforeTargets="GenerateComputedBuildStaticWebAssets"`; MSBuild runs a target at whichever hook
-  fires **first**, and the static-web-asset hook fires before references are resolved — so it staged
-  nothing, silently, while the build stayed green. `DependsOnTargets` on the target that produces the
-  item is the only ordering that guarantees it is populated.
+  Verified by `SpaTailwindBuildE2ETests`, which scaffolds, runs `npm ci` and `vite build`, and asserts a
+  utility class reaches the emitted CSS — so the rename is proven through the toolchain rather than
+  through the file list.
+
+  One test changed shape rather than spelling. `The_front_end_folder_is_lowercase_and_the_csproj_says_so`
+  asserted that the csproj *states* the directory, which stopped being true when the default started
+  agreeing with the scaffold. It now asserts what actually matters — that the directory the creator
+  writes into and the directory the build resolves are the same one — and so survives the change it was
+  guarding rather than failing on it.
+
+  Drive-by, found while checking the same table: `docs/spa.md` still described an entry that "installs the
+  `QueryClient`" and per-framework route files. TanStack Query and Router came out of the SPA scaffold
+  earlier; the overlay is now a Vite config, the entry, and one component calling `rask.dispatch`.
+
+- **The live playground is removed.** `samples/Rask.Example.Playground`, its test project, its browser
+  journey, `docs/playground.md` and the `/playground/` sub-app on rask.sh all go. The site is now two apps
+  rather than three: the landing page at `/` and the live showcase at `/docs/`.
+
+  It was the only consumer of `Microsoft.CodeAnalysis.CSharp.Features`, which is dropped from
+  `Directory.Packages.props` and from the dependabot ignore list with it.
+
+  Two things it was carrying are kept, because they were never really about the playground:
+
+  - **The README and docs snippet gate.** `ChainSnippetTests` compiled the README's counter and the
+    `building-components.md` / `forms.md` examples for real, and had caught a trailing comma inside a
+    `[ … ]` indexer, a `.Change(…)` step that never existed, and the factory spelling in `forms.md`
+    (#1007). `scripts/tests/front-doors.test.sh` leans on it — it proves the README hero and the site
+    hero are the same text, and this proves that text compiles; neither half is worth much alone. The
+    snippets moved to `tests/Rask.Generators.Tests/DocSnippetTests.cs` and now run through
+    `ComponentFactoryGenerator` directly, with the builder surface on. What did not survive is the two
+    cases that also rendered the component and asserted on its HTML — that needed a compiler that emits
+    and executes.
+  - **The `.pg-code-host` morph invariant.** `MorphManagedGuardTests` holds it as a unit test; it used to
+    have a browser journey behind it, and now does not.
+
+  Worth recording, since the question will come back: the playground could never have been trimmed. Not
+  because of Roslyn — Roslyn survives trimming when rooted, and snippets still compiled — but because a
+  snippet is compiled against full reference assemblies and then **executed** against the app's own
+  trimmed runtime. Anything the app did not itself statically reference was gone, so a snippet died at
+  load after a clean compile, with no editor error and a green publish: first `TypeLoadException` on the
+  chain seed behind `Input`, then, once the Rask assemblies were rooted, `MissingMethodException` on
+  `FieldInfo.GetFieldFromHandle` — a BCL method the C# compiler itself emits. User code can touch any of
+  the 167 `System.*` assemblies it compiled against, so the only sound root set was the whole BCL. That is
+  intrinsic to compiling and running arbitrary code in the browser, and no packaging change lifts it.
 
 ### Fixed
+
+- **Prerendering could not compile any app that declares a global `using` in its csproj.** The pass
+  compiles the app's sources a second time for `net10.0`, out of a companion project generated into
+  `obj/`. That companion carried the app's `ProjectReference`s and `PackageReference`s — under a comment
+  explaining that it must, since it compiles the app's own sources — but not its `<Using>` items.
+
+  It fails as `CS0103` on a name that is plainly in scope, because the assembly really is on the
+  companion's reference list; the error points at the source rather than at the missing using, and reads
+  as though the app is broken. The showcase produced sixty of them on `UiIconName`, in files that compile
+  perfectly for the browser. Nothing caught it because it only appears once `RaskPrerender` is on.
+
+  `Static` and `Alias` are carried too — dropping the metadata while keeping the item would quietly turn
+  a global using into a different one, which is worse than dropping it. `PrerenderCompanionGenerationTests`
+  pins all three, and was checked against the unfixed targets first: four failures, four passes after.
+
+  Turning prerendering on for the showcase is now a judgement call rather than a blocked one. Its csproj
+  argued that a partially prerendered bundle misroutes deep links, because the SPA fallback is the root
+  `index.html` and a prerendered root stops being a neutral shell — and named its own prerequisite, "a
+  fallback document that is still the boot shell". [#974](https://github.com/pal-tamas/rask/issues/974)
+  delivered exactly that. Measured: `written=5 skipped=3` with 15 browser-API routes throwing as
+  predicted, a 8.7 KB neutral `404.html` carrying no guides markup, and a 239 KB rendered `index.html`.
+  It stays off for now only because flipping it deserves its own browser-E2E run — a prerendered document
+  that the WASM runtime then morphs is a different first paint from the one the journeys assert.
+
+- **The WASM islands journey counted three islands where the page has had four since [#958](https://github.com/pal-tamas/rask/issues/958)**
+  ([#1027](https://github.com/pal-tamas/rask/issues/1027)). `d56dfb82` added a Solid island to the WASM
+  showcase and left the count that guards that page at three, so `main` was red on the journey from that
+  commit onward. Because the browser suite runs on `git push` rather than in CI, it surfaced as a blocked
+  push on the next unrelated commit rather than as a failure at the time.
+
+  The assertion carried the comment "adding a fourth here has to come with a decision about this number",
+  and that is exactly how the omission was named — so the shape is kept, and Solid gets real assertions
+  instead of only a bumped number. A count on its own cannot tell "mounted" from "did not mount":
+  `<rask-external>` is Rask's own element and is there either way. React and Solid both compile `.tsx`
+  and depend on directory-scoped Vite plugins, where the loser is built with the other's JSX transform
+  and mounts nothing — so the assertion is on a node only Solid's transform can produce, plus the six
+  sparkline points its `IReadOnlyList<int>` prop carries across.
+
+  The showcase page was stale from the same commit in a way no test covered: its `CodeSample` file list
+  omitted `SolidSpark.cs`/`SolidSpark.tsx`, so the page rendered a Solid island whose source a reader
+  could not see, under a note reading "Three runtimes in one tree".
 
 - **Prerendering broke deep links to the routes it could not prerender**
   ([#974](https://github.com/pal-tamas/rask/issues/974)), and did it by building the very thing meant to

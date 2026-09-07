@@ -7,7 +7,7 @@
 
 ### The .NET One Person Framework — build, run, and ship a whole product solo, in C#, on one server.
 
-**[Site ↗](https://rask.sh/)** · **[Docs ↗](https://rask.sh/docs/)** · **[Playground ↗](https://rask.sh/playground/)**
+**[Site ↗](https://rask.sh/)** · **[Docs ↗](https://rask.sh/docs/)**
 
 </div>
 

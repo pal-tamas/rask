@@ -22,7 +22,7 @@ public sealed class DevSpaHostedTests
     {
         var fs = new FakeFileSystem();
         fs.Seed("/app/Shop/Shop.csproj", SpaServerCsproj);
-        fs.Seed("/app/Shop/Client/package.json", """{ "name": "shop-client" }""");
+        fs.Seed("/app/Shop/client/package.json", """{ "name": "shop-client" }""");
         return fs;
     }
 
@@ -41,7 +41,7 @@ public sealed class DevSpaHostedTests
         var target = DevTarget.Detect(Solution(), "/app/Shop", null);
 
         Assert.EndsWith(
-            Path.Combine("Shop", "Client"), target!.ClientDirectory!, StringComparison.Ordinal);
+            Path.Combine("Shop", "client"), target!.ClientDirectory!, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public sealed class DevSpaHostedTests
     {
         var fs = new FakeFileSystem();
         fs.Seed("/app/Shop/Shop.csproj", SpaServerCsproj);
-        fs.Seed("/app/Shop/Client/ApiClient.cs", "public class ApiClient;");
+        fs.Seed("/app/Shop/client/ApiClient.cs", "public class ApiClient;");
 
         Assert.Null(DevTarget.Detect(fs, "/app/Shop", null)!.ClientDirectory);
     }

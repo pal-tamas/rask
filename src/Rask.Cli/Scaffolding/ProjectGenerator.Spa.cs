@@ -10,7 +10,7 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>
-    ///     Generates a TypeScript-front-end app: <c>{name}</c> (ASP.NET + CQRS) with a <c>Client</c>
+    ///     Generates a TypeScript-front-end app: <c>{name}</c> (ASP.NET + CQRS) with a <c>client</c>
     ///     folder inside it, scaffolded by the framework's own tool and then overlaid.
     /// </summary>
     /// <remarks>
@@ -47,12 +47,12 @@ internal static partial class ProjectGenerator
         // nothing reads.
         if (framework.WritesViteConfig)
         {
-            files.Add(($"Client/vite.config.ts", SpaViteConfig(framework, tailwind: true)));
+            files.Add(($"client/vite.config.ts", SpaViteConfig(framework, tailwind: true)));
         }
 
         foreach (var (path, content) in framework.ClientFiles)
         {
-            files.Add(($"Client/{path}", content));
+            files.Add(($"client/{path}", content));
         }
 
         // Replaces the scaffolder's demo stylesheet rather than sitting beside it: leaving it in
@@ -61,7 +61,7 @@ internal static partial class ProjectGenerator
         // exactly what the starter still renders. So the replacement has to put that styling back
         // (SpaTailwindCss does, in its base layer) or --tailwind ships a worse-looking page than
         // no flag at all.
-        files.Add(($"Client/{framework.GlobalStylesheet}", SpaTailwindCss));
+        files.Add(($"client/{framework.GlobalStylesheet}", SpaTailwindCss));
 
         // Angular has no vite.config.ts to register a plugin in — its Vite config belongs to
         // @angular/build, not to you — so it takes Tailwind through PostCSS, which the Angular
@@ -69,7 +69,7 @@ internal static partial class ProjectGenerator
         // the stylesheet: the app builds, and every utility class is missing.
         if (!framework.WritesViteConfig)
         {
-            files.Add(($"Client/.postcssrc.json", SpaTailwindPostcssRc));
+            files.Add(($"client/.postcssrc.json", SpaTailwindPostcssRc));
         }
         if (batteries.Pwa)
         {
@@ -77,16 +77,16 @@ internal static partial class ProjectGenerator
             // verbatim, so these are reachable at / in a production build AND under the dev server. A
             // host-served service worker would 404 during `rask dev`, where the browser talks to Vite and
             // only /_rask is proxied — and a service worker that 404s once is not retried.
-            files.Add(($"Client/public/manifest.webmanifest", SpaManifest));
-            files.Add(($"Client/public/icon.svg", IconSvg));
-            files.Add(($"Client/public/rask-sw.js", SpaServiceWorker));
+            files.Add(($"client/public/manifest.webmanifest", SpaManifest));
+            files.Add(($"client/public/icon.svg", IconSvg));
+            files.Add(($"client/public/rask-sw.js", SpaServiceWorker));
         }
 
         if (batteries.Push)
         {
-            // Both halves of the merge: #970's nested Client folder, and OUT of src/rask/, which the
+            // Both halves of the merge: #970's nested client folder, and OUT of src/rask/, which the
             // scaffolder gitignores and the build owns (#957).
-            files.Add(($"Client/src/push.ts", SpaPushClient));
+            files.Add(($"client/src/push.ts", SpaPushClient));
 
             // The same store and endpoints the server template scaffolds, verbatim. Shared rather than
             // copied: /_push/subscribe binding a flat PushSubscription is the contract push.ts is
@@ -112,7 +112,7 @@ internal static partial class ProjectGenerator
         files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
 
         var scaffoldFiles = Materialize(targetDirectory, name, files);
-        var client = System.IO.Path.Combine(targetDirectory, "Client");
+        var client = System.IO.Path.Combine(targetDirectory, MetaTemplate.DefaultAppDir);
 
         return new ScaffoldResult(scaffoldFiles, SpaNextSteps(name, framework, batteries.Docker))
         {
@@ -941,8 +941,8 @@ internal static partial class ProjectGenerator
         COPY ["Company.RaskServer/Company.RaskServer.csproj", "Company.RaskServer/"]
         RUN dotnet restore "Company.RaskServer/Company.RaskServer.csproj"
 
-        COPY ["Company.RaskServer/Client/package.json", "Company.RaskServer/Client/package-lock.json*", "Company.RaskServer/Client/"]
-        RUN cd Company.RaskServer/Client && npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+        COPY ["Company.RaskServer/client/package.json", "Company.RaskServer/client/package-lock.json*", "Company.RaskServer/client/"]
+        RUN cd Company.RaskServer/client && npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
         COPY . .
         RUN dotnet publish "Company.RaskServer/Company.RaskServer.csproj" -c Release -o /app/publish
@@ -986,8 +986,8 @@ internal static partial class ProjectGenerator
         | | |
         |---|---|
         | `Company.RaskServer/` | The ASP.NET host: the message records, their handlers, and the JSON endpoint the client dispatches through. |
-        | `Company.RaskServer/Client/` | The {{framework.DisplayName}} app, as `create-vite` scaffolds it, plus four files Rask overlays. |
-        | `Company.RaskServer/Client/src/rask/` | Generated on every build from the server's contracts. Gitignored — do not edit. |
+        | `Company.RaskServer/client/` | The {{framework.DisplayName}} app, as `create-vite` scaffolds it, plus four files Rask overlays. |
+        | `Company.RaskServer/client/src/rask/` | Generated on every build from the server's contracts. Gitignored — do not edit. |
 
         ## Running it
 
@@ -1031,7 +1031,7 @@ internal static partial class ProjectGenerator
         steps.AppendLine("  rask dev            # the host, and the client's dev server, together");
         steps.AppendLine();
         steps.AppendLine("The first build installs the client's dependencies and writes its generated");
-        steps.AppendLine($"contracts into {name}/Client/src/rask/ — that directory is gitignored, because it is");
+        steps.AppendLine($"contracts into {name}/client/src/rask/ — that directory is gitignored, because it is");
         steps.AppendLine("rewritten from the server's message records every time they change.");
 
         if (docker)
@@ -1145,7 +1145,7 @@ internal sealed record SpaFramework(
 
     /// <summary>The default: ask create-vite for a framework's TypeScript template.</summary>
     private static Func<string, IReadOnlyList<string>> Vite(string template) =>
-        _ => ["--yes", "create-vite@latest", "Client", "--template", template];
+        _ => ["--yes", "create-vite@latest", "client", "--template", template];
 
     public static readonly SpaFramework React = new(
         "react", "React", "react-ts",
@@ -1238,7 +1238,7 @@ internal sealed record SpaFramework(
         Scaffolder = name =>
         [
             "--yes", "@angular/cli@latest", "new", ClientPackageName(name),
-            "--directory", "Client",
+            "--directory", "client",
             "--style", "css", "--ssr", "false",
             "--skip-git", "--skip-install", "--defaults",
         ],

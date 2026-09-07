@@ -83,14 +83,18 @@ asks a question it will not accept an answer to, so for those two Rask installs 
 SPA lane](spa.md) does, and with the same rule: the Vite plugin where there is a Vite config Rask
 writes, `@tailwindcss/postcss` where the config belongs to the framework.
 
-**The front end lives in `client/`, lower case** — where [the SPA lane](spa.md) uses `Client/`. Not a
-stylistic difference: half of these creators derive an npm package name from the target directory and
-will not accept one with capitals in it. `create-next-app` and `@tanstack/cli` exit outright ("name can
-no longer contain capital letters"), and `create-analog` stops and asks, which is worse — a prompt
-inside `rask new` is a hang, not a failure you can act on. So every creator here is run from *inside*
-the project directory with a target of `client`, and the scaffold sets `RaskMetaAppDir` to match, so
-the build and the host look in the same place. The casing matters on Linux even where macOS forgives
-it.
+**The front end lives in `client/`, lower case** — the same directory [the SPA lane](spa.md) uses. A
+capital `Client` belongs to the WASM lane's `{name}.Client`, which is a C# project and takes .NET's
+convention instead.
+
+This lane had no choice about it even before the two were unified: half of these creators derive an npm
+package name from the target directory and will not accept one with capitals in it. `create-next-app`
+and `@tanstack/cli` exit outright ("name can no longer contain capital letters"), and `create-analog`
+stops and asks, which is worse — a prompt inside `rask new` is a hang, not a failure you can act on. So
+every creator here is run from *inside* the project directory with a target of `client`. Since that is
+now `RaskMetaAppDir`'s own default, the scaffold no longer writes the property; it appears in the csproj
+only for a framework that needs some other directory. The casing matters on Linux even where macOS
+forgives it.
 
 Two of those configs are **patched, never overwritten**. SvelteKit's `vite.config.ts` carries the node
 adapter (modern SvelteKit configures kit through the Vite plugin and writes no `svelte.config.js` at
@@ -198,7 +202,7 @@ error, no warning, nothing to notice.
 
 ### From the server render
 
-The half that is specific to this lane. A route module in `Client/` runs in **Node** before it ever
+The half that is specific to this lane. A route module in `client/` runs in **Node** before it ever
 runs in a browser, and two things differ there: a relative URL has no origin to resolve against, and
 there is no cookie jar — so a dispatch from a loader is anonymous unless you say otherwise.
 
@@ -273,7 +277,7 @@ step by hand: the C# `IGeolocation` reaches the browser by calling into these ve
 fixed for one caller is fixed for the other in the same commit.
 
 **They are safe to import in a server render**, which on this lane is not a footnote — every route
-module in `Client/` is loaded by Node before it is ever loaded by a browser. Nothing in the layer
+module in `client/` is loaded by Node before it is ever loaded by a browser. Nothing in the layer
 touches `window` or `document` at import time, and a test asserts it by importing every module in a
 process that has neither. Calling one still needs a browser, as it would anywhere.
 

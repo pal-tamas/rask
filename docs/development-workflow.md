@@ -149,7 +149,7 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   with `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`).
   While iterating on **one** journey, narrow the run with `RASK_E2E_FILTER` — the sample publishes still
   happen (they are what the tests boot), but you pay for one journey instead of the whole suite:
-  `RASK_E2E_FILTER='FullyQualifiedName~PlaygroundExampleTests' scripts/run-e2e-local.sh`. It says loudly
+  `RASK_E2E_FILTER='FullyQualifiedName~WasmExampleTests' scripts/run-e2e-local.sh`. It says loudly
   that the run was filtered, because a narrowed green is not the gate.
 
   **The machine has a slot budget, and every gate claims against it.** Several worktrees share one
