@@ -17,6 +17,7 @@ abstract Rask.Blazor.BlazorComponent<TComponent>.WriteParameters(System.Collecti
 const Rask.Blazor.BlazorDefaults.ComponentAttribute = "component" -> string!
 const Rask.Blazor.BlazorDefaults.HostTag = "rask-blazor" -> string!
 const Rask.Blazor.BlazorDefaults.NameAttribute = "name" -> string!
+override Rask.Blazor.BlazorComponent<TComponent>.HeadAssets.get -> Rask.Core.Component?
 override Rask.Blazor.BlazorComponent<TComponent>.OnPropsChangedAsync() -> System.Threading.Tasks.Task!
 override Rask.Blazor.BlazorComponent<TComponent>.OnRenderedAsync(bool firstRender) -> System.Threading.Tasks.Task!
 override Rask.Blazor.BlazorComponent<TComponent>.OnUnmountAsync() -> System.Threading.Tasks.Task!

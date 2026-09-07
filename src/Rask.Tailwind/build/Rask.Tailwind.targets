@@ -172,11 +172,36 @@
     </ItemGroup>
   </Target>
 
+  <!--
+    The source LIST, written where the build can compare it (#1016).
+
+    Inputs/Outputs compares timestamps, and a DELETED file has none. Remove the last component using
+    `bg-ui-brand` and every remaining source is older than the sheet, so the target is skipped and the
+    sheet keeps a utility nothing writes any more. The page still renders, so the staleness shows up as
+    styling that is a version behind — the shape this repository's casebook keeps recording.
+
+    WriteOnlyWhenDifferent means the stamp's timestamp moves only when the SET of sources changes, so
+    listing it as an input costs nothing on a build where nothing was added or removed.
+  -->
+  <Target Name="_RaskTailwindSourceList"
+          DependsOnTargets="_RaskTailwindResolve"
+          Condition="'$(_RaskTailwindDoBuild)' == 'true'">
+    <PropertyGroup>
+      <_RaskTailwindSourceStamp>$(IntermediateOutputPath)rask-tailwind.sources.txt</_RaskTailwindSourceStamp>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <WriteLinesToFile File="$(_RaskTailwindSourceStamp)"
+                      Lines="@(_RaskTailwindSource->'%(FullPath)')"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true"/>
+  </Target>
+
   <Target Name="_RaskTailwindBuild"
           BeforeTargets="BeforeBuild"
-          DependsOnTargets="_RaskTailwindResolve;_RaskTailwindNpmInstall"
+          DependsOnTargets="_RaskTailwindResolve;_RaskTailwindNpmInstall;_RaskTailwindSourceList"
           Condition="'$(_RaskTailwindDoBuild)' == 'true'"
-          Inputs="@(_RaskTailwindSource)"
+          Inputs="@(_RaskTailwindSource);$(IntermediateOutputPath)rask-tailwind.sources.txt"
           Outputs="$(_RaskTailwindOutput)">
     <PropertyGroup>
       <_RaskTailwindMinify Condition="'$(RaskTailwindMinify)' == 'true'"> --minify</_RaskTailwindMinify>

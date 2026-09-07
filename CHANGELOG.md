@@ -9,6 +9,65 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Five defects in `Rask.Blazor`, and one of them took the whole generator down.**
+
+  **A hosted `[Parameter]` named `Key` was silently dropped** ([#950](https://github.com/pal-tamas/rask/issues/950)).
+  "The island declares this member itself, so leave it alone" is only true of something the author wrote
+  on the island — but the walk collecting those members went up the base types too, so every instance
+  member Rask puts on `Component` looked hand-written. A hosted parameter named `Key` matched
+  `Component.Key` and was dropped: no property, no chain step, no diagnostic, and the island fed Rask's
+  reconciliation key to the hosted component's own parameter. Checked by putting the bug back.
+
+  **An island nested more than one level deep was never generated for**
+  ([#949](https://github.com/pal-tamas/rask/issues/949)). The type walk unrolled exactly one level of
+  nesting by hand while `Containers()` beside it already walked to arbitrary depth — so the two halves
+  disagreed and the miss was silent: no generated part, so the chain step simply did not exist and the
+  call site failed as `CS1929` against an unrelated overload. Now recursive, like `ExternalGenerator`.
+
+  **A generic container was re-opened without its type parameters**, and worse. `partial class Box` does
+  not re-open `Box<T>`; it declares a second, non-generic type. Fixing that surfaced the real damage:
+  the hint name was `island.ToDisplayString()`, so a generic container produced
+  `Box<T>.Boxed.Blazor.g.cs` — and `AddSource` REFUSES a name containing `<`, with an exception that
+  aborts the entire generator. One generic container anywhere in a compilation therefore took down every
+  island in it, reporting missing `WriteParameters` on components with nothing wrong with them.
+
+  **Handler placeholders could reach the served HTML** ([#952](https://github.com/pal-tamas/rask/issues/952)).
+  Two probes for the ambient context ran in opposite orders, so they could disagree — the render walk
+  saw a live session and wrote placeholders, the binding step saw none and returned the markup with them
+  still in it, putting U+0001-delimited tokens into `data-rask-on-*` attributes. The orders now match,
+  and the no-session branch strips each placeholder together with its attribute, which is the rule the
+  render walk already followed: inert markup beats markup advertising a handler that cannot be delivered.
+
+  **`AddRaskBlazor` discarded a second call's configuration** ([#948](https://github.com/pal-tamas/rask/issues/948)).
+  `configure` ran on a fresh object that `TryAddSingleton` then dropped whenever anything had registered
+  one already — which is what a library and an app each calling it looks like. It now goes through
+  `services.Configure`, which accumulates. The hosted `NavigationManager` also got its base URI verbatim,
+  and `NavigationManager.Initialize` requires a trailing slash, throwing an exception that names neither
+  Rask nor the option; it is normalised now.
+
+  **`RaskBlazorOptions.HeadAssets` was read by nothing** ([#947](https://github.com/pal-tamas/rask/issues/947)),
+  so the documented way to style a hosted component library did precisely nothing and MudBlazor or Radzen
+  rendered unstyled with a green build. `BlazorComponent<T>` now contributes it through
+  `Component.HeadAssets`. Safe from every island at once: `HeadAssetRegistry` already deduplicates by
+  rendered markup, so two islands asking for one stylesheet emit one link.
+
+- **Tailwind kept classes nothing writes any more** ([#1016](https://github.com/pal-tamas/rask/issues/1016)).
+  `_RaskTailwindBuild` compared timestamps, and a deleted file has none — so removing the last component
+  using a utility left every remaining source older than the sheet, the target was skipped, and the
+  stylesheet kept a class no source produces. The page still renders, so it shows up as styling a version
+  behind. The source LIST is now written to a stamp under `obj/` and listed as an input;
+  `WriteOnlyWhenDifferent` means its timestamp moves only when the set of sources changes.
+
+- **A stale task assembly blocked its own rebuild** ([#965](https://github.com/pal-tamas/rask/issues/965)).
+  MSBuild loads a `<UsingTask>` assembly while evaluating the consuming project — before the
+  `ProjectReference` that would rebuild it — so a pull that changed `Rask.External.targets` failed every
+  build as `MSB4064`, naming a task parameter that is plainly there in the source, with no way out but
+  knowing to delete a gitignored DLL by hand. This cost three separate rounds while fixing #943 in this
+  same change. The deploy step now records a SHA-256 of the targets beside the DLL, and a mismatch
+  degrades to the bootstrap path the build already has for a tree with no DLL at all: the island targets
+  skip, the reference rebuilds the assembly, the next build is correct. A missing stamp is not a
+  mismatch, so an older package is unaffected.
+
 - **The CLI build gate was red on `main`, so every `git push` was blocked.** Six tests looked for a
   scaffolded SPA at `projectDir/name/name.csproj` and `projectDir/name/Client`. `GenerateSpa` writes
   `{NameToken}.csproj` and `Client/…` directly under the target directory — flat, since the host stopped

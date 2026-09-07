@@ -163,12 +163,15 @@ public sealed class WriteExternalPropTypesTask : Task
 
             if (!declared)
             {
-                // High when there ARE front-end files, because that is the case that used to look like a
-                // passing check and was not one. The message names what was found and why it is not
-                // being checked, so the reader can tell "nothing to do" from "your islands are not
-                // being verified" — which is the distinction the silence destroyed.
+                // Normal, not High. #943 is about SILENCE — a check that stops running and says nothing —
+                // and Normal cures that: any `-v:n` build shows it, which is what someone asking "did my
+                // islands get checked?" runs. High was tried and is its own version of the same defect:
+                // seven projects in this repository legitimately have front-end files and no islands (the
+                // six meta samples and the showcase's scoped TypeScript), so it printed a paragraph each,
+                // on every build, about nothing being wrong. A line that always fires is a line nobody
+                // reads, which is how the real occurrence would be missed.
                 Log.LogMessage(
-                    FrontEndFiles.Length > 0 ? MessageImportance.High : MessageImportance.Low,
+                    FrontEndFiles.Length > 0 ? MessageImportance.Normal : MessageImportance.Low,
                     $"Rask.External: '{Path.GetFileName(AssemblyPath)}' declares no external components, "
                     + $"so the prop type-check is skipped for the {FrontEndFiles.Length} front-end file(s) "
                     + "beside it. Without a declaration nothing distinguishes an island from scoped "

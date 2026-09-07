@@ -150,6 +150,9 @@ src/Rask.Spa.Hosting/build/Rask.Spa.Tasks.dll
 src/Rask.Meta.Hosting/build/Rask.Spa.Tasks.dll
 src/Rask.Tailwind/build/Rask.Tailwind.Tasks.dll
 src/Rask.External/build/Rask.External.Tasks.dll
+# Written beside that DLL by CopyTaskAssemblyToRaskExternalBuild: the hash of the targets it was
+# built against, so a mismatched pair is detected instead of failing as MSB4064 (#965).
+src/Rask.External/build/Rask.External.Tasks.contract
 src/Rask.Core/build/Rask.TypeScript.Tasks.dll
 
 # Ad-hoc SQLite load-harness runs (the committed reference lives in Baselines/).

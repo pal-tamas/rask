@@ -371,11 +371,29 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             return markup?.Html;
         }
 
-        var context = LiveRenderContext.CurrentSync ?? LiveRenderContext.Current;
+        // Current ?? CurrentSync, matching CreateRenderer (#952). The two probes used to be in opposite
+        // orders, so they could disagree — and the disagreement is invisible: the render walk sees a live
+        // context and writes placeholders, this method sees none and returned the markup with them still
+        // in it, so U+0001-delimited tokens reached the served HTML inside data-rask-on-* attributes.
+        var context = LiveRenderContext.Current ?? LiveRenderContext.CurrentSync;
         var renderer = _renderer;
         if (context is null || renderer is null)
         {
-            return markup.Html;
+            // Inert markup, not markup advertising a handler that cannot be delivered — the rule
+            // RewriteHtml already follows when it knows there is no session. Each placeholder is removed
+            // together with the attribute holding it, which is reconstructed exactly rather than matched:
+            // the event name and the index are both known here, so no scanning is needed.
+            var inert = new System.Text.StringBuilder(markup.Html);
+            for (var i = 0; i < markup.Handlers.Count; i++)
+            {
+                inert.Replace($" data-rask-on-{markup.Handlers[i].EventName}=\"{Placeholder(i)}\"", string.Empty);
+
+                // A placeholder that reached the markup any other way still must not survive: a control
+                // character in the served HTML is worse than a missing handler.
+                inert.Replace(Placeholder(i), string.Empty);
+            }
+
+            return inert.ToString();
         }
 
         var sb = new System.Text.StringBuilder(markup.Html);
@@ -485,6 +503,30 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         _renderer = null;
         _instance = default;
         _markup = null;
+    }
+
+    /// <summary>
+    ///     The head assets <see cref="RaskBlazorOptions.HeadAssets" /> declares, so a hosted component
+    ///     library's stylesheet reaches the page.
+    /// </summary>
+    /// <remarks>
+    ///     Read from the options rather than declared per island, because the answer is the same for every
+    ///     island in the app — which is what the option is for, and what its documentation has promised
+    ///     since it was added. Nothing read it, so the documented way to style a hosted library did
+    ///     precisely nothing and the library rendered unstyled with a green build (#947).
+    ///
+    ///     Contributing from every island is safe: <c>HeadAssetRegistry</c> deduplicates by the rendered
+    ///     markup, so two islands asking for the same stylesheet emit one link.
+    /// </remarks>
+    protected override Component? HeadAssets
+    {
+        get
+        {
+            var services = LiveRenderContext.Current?.Services ?? LiveRenderContext.CurrentSync?.Services;
+            var assets = services?.GetService<RaskBlazorOptions>()?.HeadAssets;
+
+            return assets is { Count: > 0 } ? Fragment[assets] : null;
+        }
     }
 
     /// <inheritdoc />

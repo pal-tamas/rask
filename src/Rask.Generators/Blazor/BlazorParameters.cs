@@ -141,14 +141,22 @@ internal static class BlazorParameters
 
         for (var t = island; t is not null; t = t.BaseType)
         {
+            // The island ITSELF, not its bases (#950). "The island declares this one, so leave it alone"
+            // is only true of a member the author wrote on the island; walking the bases in made every
+            // instance member Rask puts on Component look like a hand-written override. A hosted
+            // [Parameter] named Key then matched Component.Key and was silently dropped, so the island
+            // fed Rask's reconciliation key to the hosted component's own parameter — no step, no
+            // diagnostic, and a value the component plainly declares with no way to pass it.
+            var isIsland = SymbolEqualityComparer.Default.Equals(t, island);
+
             foreach (var m in t.GetMembers())
             {
-                if (!m.IsStatic)
+                if (isIsland && !m.IsStatic)
                 {
                     declared.Add(m.Name);
                 }
 
-                if (!SymbolEqualityComparer.Default.Equals(t, island))
+                if (!isIsland)
                 {
                     inherited.Add(m.Name);
                 }

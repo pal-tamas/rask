@@ -147,9 +147,31 @@ public sealed class BlazorGenerator : IIncrementalGenerator
 
             var parameters = BlazorParameters.Read(island, hosted);
             spc.AddSource(
-                $"{island.ToDisplayString()}.Blazor.g.cs",
+                $"{HintName(island)}.Blazor.g.cs",
                 SourceText.From(Render(island, parameters), Encoding.UTF8));
         }
+    }
+
+    /// <summary>A hint name Roslyn will accept for <paramref name="island" />.</summary>
+    /// <remarks>
+    ///     <c>ToDisplayString()</c> spells a generic container as <c>Box&lt;T&gt;.Boxed</c>, and
+    ///     <c>AddSource</c> REFUSES a hint name containing '&lt;' — with an ArgumentException, which
+    ///     aborts the whole generator, so one generic container took down every island in the
+    ///     compilation and the errors named `WriteParameters` on components that have nothing wrong with
+    ///     them. Found by the first test that ever declared one.
+    /// </remarks>
+    private static string HintName(INamedTypeSymbol island)
+    {
+        var sb = new StringBuilder(island.ToDisplayString());
+        for (var i = 0; i < sb.Length; i++)
+        {
+            if (sb[i] is '<' or '>' or ',' or ' ')
+            {
+                sb[i] = '_';
+            }
+        }
+
+        return sb.ToString();
     }
 
     private static string Render(INamedTypeSymbol island, List<BlazorParam> parameters)
@@ -165,14 +187,18 @@ public sealed class BlazorGenerator : IIncrementalGenerator
 
         // Re-open the containing types, outermost first, so a nested island's generated part lands
         // inside them rather than beside them at namespace scope.
+        // WITH type parameters (#949). `partial class Outer` does not re-open `Outer<T>` — it declares a
+        // second, non-generic type, and the generated part lands in a type the island is not in. The
+        // constraints are deliberately not repeated: a partial declaration may omit them, and repeating
+        // them means every constraint has to be re-emitted exactly or the compiler rejects the pair.
         var containers = Containers(island).Reverse().ToList();
         foreach (var container in containers)
         {
-            sb.Append("partial class ").AppendLine(container.Name);
+            sb.Append("partial class ").Append(container.Name).AppendLine(TypeParameters(container));
             sb.AppendLine("{");
         }
 
-        sb.Append("partial class ").AppendLine(island.Name);
+        sb.Append("partial class ").Append(island.Name).AppendLine(TypeParameters(island));
         sb.AppendLine("{");
 
         foreach (var p in parameters)
@@ -260,6 +286,12 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         }
     }
 
+    /// <summary>The type's own parameter list, <c>&lt;T, TKey&gt;</c>, or empty when it has none.</summary>
+    private static string TypeParameters(INamedTypeSymbol type) =>
+        type.TypeParameters.Length == 0
+            ? string.Empty
+            : "<" + string.Join(", ", type.TypeParameters.Select(p => p.Name)) + ">";
+
     private static bool IsPartial(INamedTypeSymbol type) =>
         type.DeclaringSyntaxReferences.Any(r =>
             r.GetSyntax() is TypeDeclarationSyntax d
@@ -268,22 +300,33 @@ public sealed class BlazorGenerator : IIncrementalGenerator
     private static Location LocationOf(INamedTypeSymbol type) =>
         type.Locations.FirstOrDefault() ?? Location.None;
 
-    private static IEnumerable<INamedTypeSymbol> Types(INamespaceSymbol ns)
+    // Recursive, like ExternalGenerator.Types (#949). One hand-unrolled level of nesting found an island
+    // inside a container but not one inside a container inside a container — and the miss is silent: no
+    // generated part, so the chain steps for its [Parameter]s simply do not exist and the call site fails
+    // as CS1929 against an unrelated overload. Containers() already walked to arbitrary depth, so the
+    // intent was never one level.
+    private static IEnumerable<INamedTypeSymbol> Types(INamespaceOrTypeSymbol root)
     {
-        foreach (var t in ns.GetTypeMembers())
+        foreach (var member in root.GetMembers())
         {
-            yield return t;
-            foreach (var nested in t.GetTypeMembers())
+            switch (member)
             {
-                yield return nested;
-            }
-        }
+                case INamespaceSymbol ns:
+                    foreach (var nested in Types(ns))
+                    {
+                        yield return nested;
+                    }
 
-        foreach (var child in ns.GetNamespaceMembers())
-        {
-            foreach (var t in Types(child))
-            {
-                yield return t;
+                    break;
+
+                case INamedTypeSymbol type:
+                    yield return type;
+                    foreach (var nested in Types(type))
+                    {
+                        yield return nested;
+                    }
+
+                    break;
             }
         }
     }

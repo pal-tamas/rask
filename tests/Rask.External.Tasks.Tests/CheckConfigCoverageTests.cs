@@ -42,17 +42,22 @@ public sealed class CheckConfigCoverageTests : IDisposable
     }
 
     [Fact]
-    public void The_skip_is_reported_at_high_importance_when_there_are_files_to_check()
+    public void The_skip_is_reported_when_there_are_files_to_check()
     {
         // The half of #943 that matters: the old skip said nothing at all, so a build that checked
         // nothing and a build that checked everything looked identical. Silence is the defect.
+        //
+        // Normal rather than High, and the difference is the point. Seven projects here legitimately
+        // have front-end files and no islands, so High printed a paragraph each on every build — a line
+        // that always fires is a line nobody reads. Normal shows under `-v:n`, which is what someone
+        // asking "did my islands get checked?" actually runs.
         var engine = new StubEngine();
         var task = NewTask(Front("Chart.tsx"));
         task.BuildEngine = engine;
 
         Assert.True(task.Execute());
 
-        var said = engine.Messages.Single(m => m.Importance == MessageImportance.High);
+        var said = engine.Messages.Single(m => m.Importance == MessageImportance.Normal);
         Assert.Contains("declares no external components", said.Message, StringComparison.Ordinal);
         Assert.Contains("skipped", said.Message, StringComparison.Ordinal);
     }
@@ -60,16 +65,18 @@ public sealed class CheckConfigCoverageTests : IDisposable
     [Fact]
     public void Nothing_to_check_is_reported_quietly()
     {
-        // The counterpart, so the loud message stays meaningful: a project with no front-end files at
-        // all has nothing to warn about, and a high-importance line on every such build is how a real
-        // warning gets tuned out.
+        // The counterpart, so the message stays meaningful: a project with no front-end files at all has
+        // nothing to report, and must not spend a visible line saying so.
         var engine = new StubEngine();
         var task = NewTask();
         task.BuildEngine = engine;
 
         Assert.True(task.Execute());
 
-        Assert.DoesNotContain(engine.Messages, m => m.Importance == MessageImportance.High);
+        // <= Normal, not >=: the enum runs High = 0, Normal = 1, Low = 2, so "at least as visible as
+        // Normal" is the LOWER value. Written the other way this passed on a Low message and would have
+        // let a shouted one through too.
+        Assert.DoesNotContain(engine.Messages, m => m.Importance <= MessageImportance.Normal);
     }
 
     [Fact]

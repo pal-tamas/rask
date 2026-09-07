@@ -174,10 +174,58 @@
     has built the DLL for any project holding the edge. In the shipped package the DLL always sits
     beside this file, so the guard never fires there.
   -->
+  <!--
+    Is the task assembly beside this file the one this file was written for? (#965)
+
+    MSBuild loads a <UsingTask> assembly while it evaluates the consuming project, which is BEFORE the
+    ProjectReference that would rebuild it. So a pull that adds a task parameter cannot heal itself: the
+    stale DLL is loaded, the new targets pass it a parameter it does not have, and every build fails as
+    MSB4064 naming a parameter that is right there in the source. The only escape was knowing to delete
+    a gitignored file by hand.
+
+    The stamp is written by CopyTaskAssemblyToRaskExternalBuild at the moment the DLL is deployed, so a
+    matching pair always agrees. A NuGet consumer gets both from the same package and never sees this.
+
+    On a mismatch the build DEGRADES to the bootstrap path it already has for a tree with no DLL at all,
+    rather than failing: the task-driven targets skip, the ProjectReference rebuilds the assembly during
+    this same build, and the next one is correct. A missing stamp is NOT a mismatch — an older package
+    ships no stamp, and treating that as stale would disable the feature for everyone who has one.
+
+    Known limit: this compares the TARGETS, which is the change the failure reports. A change to the task
+    SOURCE alone leaves the stamp valid, and that DLL is refreshed one build later by the ProjectReference.
+  -->
+  <Target Name="_RaskExternalCheckTaskStamp"
+          Condition="'$(DesignTimeBuild)' != 'true'
+                     AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')
+                     AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.contract')">
+    <GetFileHash Files="$(MSBuildThisFileDirectory)Rask.External.targets" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_RaskExternalTargetsNow"/>
+    </GetFileHash>
+
+    <PropertyGroup>
+      <_RaskExternalTargetsNowHash>@(_RaskExternalTargetsNow->'%(FileHash)')</_RaskExternalTargetsNowHash>
+    </PropertyGroup>
+
+    <ReadLinesFromFile File="$(MSBuildThisFileDirectory)Rask.External.Tasks.contract">
+      <Output TaskParameter="Lines" ItemName="_RaskExternalTaskContract"/>
+    </ReadLinesFromFile>
+
+    <PropertyGroup>
+      <_RaskExternalTaskStale
+        Condition="'@(_RaskExternalTaskContract)' != '' AND '@(_RaskExternalTaskContract)' != '$(_RaskExternalTargetsNowHash)'"
+      >true</_RaskExternalTaskStale>
+    </PropertyGroup>
+
+    <Message Importance="high"
+             Condition="'$(_RaskExternalTaskStale)' == 'true'"
+             Text="Rask.External: build/Rask.External.Tasks.dll was built against a different Rask.External.targets, so the island targets are skipped for this build. The ProjectReference rebuilds it now; build again and they run. (Delete build/Rask.External.Tasks.dll if it persists.)"/>
+  </Target>
+
   <Target Name="_RaskExternalWritePropTypes"
           AfterTargets="CoreCompile"
-          DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles;_RaskExternalCheckTaskStamp"
           Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'
+                     AND '$(_RaskExternalTaskStale)' != 'true'
                      AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')"
           Inputs="@(IntermediateAssembly);@(_RaskExternalFile)"
           Outputs="$(_RaskExternalObj)types.stamp">

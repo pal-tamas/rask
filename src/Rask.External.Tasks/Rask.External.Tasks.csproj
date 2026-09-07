@@ -33,6 +33,25 @@
   <Target Name="CopyTaskAssemblyToRaskExternalBuild" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.External\build\"
           SkipUnchangedFiles="true"/>
+
+    <!--
+      The contract stamp (#965). Records WHICH Rask.External.targets this assembly was built beside, so
+      the targets can tell a matching pair from a mismatched one.
+
+      Without it a pull that adds a task parameter deadlocks the build: MSBuild loads the task assembly
+      when it evaluates the consuming project, which is before the ProjectReference that would rebuild
+      it, so every build fails as MSB4064 naming a parameter the source plainly has — and the only way
+      out is to know to delete a gitignored DLL by hand.
+    -->
+    <GetFileHash Files="$(MSBuildThisFileDirectory)..\Rask.External\build\Rask.External.targets"
+                 Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_RaskExternalTargetsHashed"/>
+    </GetFileHash>
+
+    <WriteLinesToFile File="$(MSBuildThisFileDirectory)..\Rask.External\build\Rask.External.Tasks.contract"
+                      Lines="@(_RaskExternalTargetsHashed->'%(FileHash)')"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true"/>
   </Target>
 
   <ItemGroup>
