@@ -88,6 +88,28 @@ public sealed class DevHostTests
         Assert.Null(DevHostFiles.AddHost(first!, "appname.test"));
     }
 
+    /// <summary>
+    ///     Windows hosts files use CRLF. If the "already there" check missed a name because of a stray
+    ///     carriage return, every single <c>rask dev</c> would rewrite the file — and raise a UAC prompt
+    ///     to do it. Idempotency is what makes this feature tolerable, so it is pinned on both endings.
+    /// </summary>
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void The_already_there_check_survives_either_line_ending(string newline)
+    {
+        var original = string.Join(newline, ["127.0.0.1\tlocalhost", "255.255.255.255\tbroadcasthost", ""]);
+
+        var added = DevHostFiles.AddHost(original, "appname.test");
+        Assert.NotNull(added);
+
+        var withCarriageReturns = added!.Replace("\n", newline, StringComparison.Ordinal)
+            .Replace(newline + newline, newline, StringComparison.Ordinal);
+
+        Assert.Equal(["appname.test"], DevHostFiles.ManagedHosts(withCarriageReturns));
+        Assert.Null(DevHostFiles.AddHost(withCarriageReturns, "appname.test"));
+    }
+
     [Fact]
     public void A_second_project_joins_the_same_block()
     {
