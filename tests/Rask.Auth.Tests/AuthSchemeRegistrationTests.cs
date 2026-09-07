@@ -7,14 +7,15 @@ using Microsoft.Extensions.Options;
 namespace Rask.Auth.Tests;
 
 /// <summary>
-///     The battery registers a cookie scheme only when the app has not registered one itself.
+///     The battery owns the cookie scheme: it registers one whatever the app did, and its settings win.
 /// </summary>
 /// <remarks>
-///     Registering a scheme twice is not a no-op: <c>AuthenticationOptions.AddScheme</c> throws
-///     "Scheme already exists". Because auth is on by default, a battery that always registered one
-///     would break at <b>startup</b> for two ordinary apps — one bringing its own OIDC or JWT scheme
-///     (the pattern <c>docs/authentication-providers.md</c> documents), and one still carrying a
-///     hand-written <c>AddAuthentication().AddCookie()</c> from before the battery existed.
+///     Cookies are the only session Rask authenticates, so the battery no longer stands down when the app
+///     has wired authentication of its own. Registering the scheme entry twice is not a no-op —
+///     <c>AuthenticationOptions.AddScheme</c> throws "Scheme already exists", lazily, when the options are
+///     first materialised — so an app still carrying a hand-written <c>AddAuthentication().AddCookie()</c>
+///     must not be turned into a startup crash. Owning the scheme means the battery's configuration wins,
+///     not that the app fails to start.
 /// </remarks>
 [Collection(AuthDbCollection.Name)]
 public sealed class AuthSchemeRegistrationTests
@@ -22,7 +23,7 @@ public sealed class AuthSchemeRegistrationTests
     [Fact]
     public void An_app_with_no_scheme_of_its_own_gets_the_cookie_one()
     {
-        using var provider = Build(configureAuthentication: false);
+        using var provider = Build();
 
         var schemes = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value.Schemes;
 
@@ -32,7 +33,8 @@ public sealed class AuthSchemeRegistrationTests
     [Fact]
     public void An_app_that_already_registered_a_cookie_scheme_still_starts()
     {
-        using var provider = Build(configureAuthentication: true);
+        using var provider = Build(o => o.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(c => c.LoginPath = "/sign-in"));
 
         // Materialising AuthenticationOptions is where a duplicate registration throws, so resolving it
         // at all is most of the assertion.
@@ -42,33 +44,64 @@ public sealed class AuthSchemeRegistrationTests
     }
 
     [Fact]
-    public void An_app_that_brought_its_own_scheme_keeps_its_own_settings()
+    public void The_batterys_cookie_settings_win_over_the_apps_own()
     {
-        using var provider = Build(configureAuthentication: true);
+        using var provider = Build(o => o.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(c => c.LoginPath = "/sign-in"));
 
-        var cookie = provider
+        var cookie = Cookie(provider);
+
+        // The battery's default, not the app's /sign-in. The battery configures the named options last,
+        // which is what "Rask.Auth owns the cookie scheme" has to mean to be worth anything: /login is
+        // where the built-in page lives and where the guards redirect.
+        Assert.Equal("/login", cookie.LoginPath);
+    }
+
+    [Fact]
+    public void The_cookie_scheme_is_the_default_even_when_the_app_named_another_one()
+    {
+        using var provider = Build(o => o.AddAuthentication("other")
+            .AddCookie("other", c => c.LoginPath = "/elsewhere"));
+
+        var options = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
+
+        // An external provider composes by adding a CHALLENGE scheme beside this one; the cookie stays
+        // the scheme IAuthSignIn drives and the redeem endpoint writes.
+        Assert.Equal(CookieAuthenticationDefaults.AuthenticationScheme, options.DefaultScheme);
+        Assert.Contains(options.Schemes, s => s.Name == "other");
+    }
+
+    [Fact]
+    public void An_app_can_still_configure_the_cookie_after_the_battery()
+    {
+        using var provider = Build(configureAfter: services => services
+            .Configure<CookieAuthenticationOptions>(
+                CookieAuthenticationDefaults.AuthenticationScheme, o => o.Cookie.Domain = ".example.com"));
+
+        var cookie = Cookie(provider);
+
+        // Owning the scheme is not owning every knob: AuthOptions does not carry a cookie domain, and
+        // configuring the same named options after AddRaskAuth is the escape hatch that remains.
+        Assert.Equal(".example.com", cookie.Cookie.Domain);
+        Assert.Equal("/login", cookie.LoginPath);
+    }
+
+    private static CookieAuthenticationOptions Cookie(IServiceProvider provider) =>
+        provider
             .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
             .Get(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        // The app's value, not the battery's default of /login. Deferring means deferring completely:
-        // half-applying the battery's options over an app's own scheme would be worse than either.
-        Assert.Equal("/sign-in", cookie.LoginPath);
-    }
-
-    private static ServiceProvider Build(bool configureAuthentication)
+    private static ServiceProvider Build(
+        Action<IServiceCollection>? configureBefore = null,
+        Action<IServiceCollection>? configureAfter = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContextFactory<AuthDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-        if (configureAuthentication)
-        {
-            services
-                .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(o => o.LoginPath = "/sign-in");
-        }
-
+        configureBefore?.Invoke(services);
         services.AddRaskAuth<AuthDbContext>();
+        configureAfter?.Invoke(services);
 
         return services.BuildServiceProvider();
     }

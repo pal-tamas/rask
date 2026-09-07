@@ -28,5 +28,5 @@ which is why `WhoAmI` can answer with the identity the *server* sees.
 
 See the [CQRS guide](../../docs/cqrs.md).
 
-JWT variant: `Rask.Example.Auth.WasmJwt.Host`. See the
+The server-rendered equivalent is `Rask.Example.Auth`. See the
 [authentication guide](../../docs/authentication.md). **Demo credentials only — do not ship.**

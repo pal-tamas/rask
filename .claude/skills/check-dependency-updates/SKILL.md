@@ -28,7 +28,6 @@ dotnet list Rask.slnx package --deprecated
 | --- | --- |
 | `SQLitePCLRaw.*` | Held at 3.x **ahead** of what `Microsoft.Data.Sqlite` asks for, to escape CVE-2025-6965. Never "resolve" it down to the 2.1.x family the graph requests. Both halves move together. |
 | `Microsoft.CodeAnalysis.CSharp{,.Features,.Workspaces}` | Must not exceed the Roslyn in the build SDK — a newer analyzer than the running `csc` is CS9057, and it raises the compiler floor for every downstream consumer. Dependabot ignores these; bump by hand with an SDK-band change. |
-| `System.IdentityModel.Tokens.Jwt` | Matched to what `Microsoft.AspNetCore.Authentication.JwtBearer` resolves. |
 | `Spectre.Console` / `.Testing` | One version, always — the testing package is built against the exact matching library. |
 | `RaskTsgoVersion` | A deliberately **dated** dev build. `@typescript/native-preview` publishes to `latest` daily, so `latest` there means "whatever was built this morning". |
 

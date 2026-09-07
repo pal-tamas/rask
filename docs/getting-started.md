@@ -422,7 +422,7 @@ Read **[the doctrine](one-person-framework.md)** for the why. Reference guides f
 - **Load or save data** → [data access](data-access.md) — EF Core + SQLite in a Server app.
 - **Run code on mount / after render** → [lifecycle](lifecycle.md) — `OnMount*` / `OnRendered*`, async hooks.
 - **Share state without prop-drilling** → [composition](composition.md) — context, callbacks, `VirtualizeModel`.
-- **Add a login** → [authentication](authentication.md) — cookie/JWT/OIDC on Server and WASM.
+- **Add a login** → [authentication](authentication.md) — cookie sessions and OIDC on Server and WASM.
 - **Test your components** → [testing](testing.md) — unit-testing components and rendered HTML.
 - **Write idiomatic Rask** → [best practices](best-practices.md) — patterns and pitfalls that keep an app correct, secure, and fast.
 - **Decode a build error** → [diagnostics](diagnostics.md) — every RASK0xx analyzer ID and its fix.

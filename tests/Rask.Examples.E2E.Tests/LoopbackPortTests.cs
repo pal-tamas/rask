@@ -43,7 +43,8 @@ public sealed class LoopbackPortTests
     // must NOT be retried, or a genuinely broken sample turns a 120s timeout into a 600s one and the
     // reader is told the port was busy.
     [Theory]
-    [InlineData("Unhandled exception. System.InvalidOperationException: Jwt__Key is not configured.")]
+    [InlineData("Unhandled exception. System.InvalidOperationException: "
+                + "ConnectionStrings__App is not configured.")]
     [InlineData("Microsoft.Data.Sqlite.SqliteException: SQLite Error 14: 'unable to open database file'.")]
     [InlineData("")]
     public void LooksLikeAddressInUse_ignores_an_ordinary_crash(string log) =>

@@ -59,7 +59,7 @@ public class QuiescentRenderTests
         // A JS call made during a render queues onto a frame, and during the GET there is no client
         // to send that frame to — so the awaiting task completes once the socket is up and never
         // before. Waiting for it buys nothing and costs the whole budget on EVERY page load. The
-        // framework's own JWT auth sample restores its session exactly this way, which is how this
+        // framework's own WASM auth sample restores its session exactly this way, which is how this
         // was found: every page of it took five seconds.
         using var host = RaskTestHost.Create<JsInteropOnMountApp>(
             configureServer: o => o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(5));

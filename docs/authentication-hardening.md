@@ -17,8 +17,7 @@ a reverse proxy, Content-Security-Policy, and the pre-ship checklist. For the au
 | **Inbound WS frame abuse (DoS)** | Three built-in per-connection bounds the receive loop enforces with sane fixed defaults: a reassembled frame past **8 MB** aborts the socket (bounds a fragmented-frame memory DoS); more than **1000 frames/second** closes it (bounds a small-frame parse-CPU DoS the size cap misses); and more than **512 queued handler dispatches** closes it (backpressure when a client outpaces handler draining or a handler hangs). On a close the client reconnects against the intact session and resumes. These guard a single misbehaving connection — still front the app with a **reverse-proxy / WAF rate limit** to bound connection-count and cross-connection floods. |
 | **Sign-out invalidation** | Redeem clears the cookie; the WS reconnect re-seeds `SessionUserProvider` to anonymous. `SessionUserProvider.Clear()` is available for explicit invalidation. |
 | **Session expiry → re-auth** | A swept live session pushes `{type:"session",status:"unknown"}`; `rask.js` reloads → fresh GET → route guard challenges to `ChallengePath?returnUrl=…`. |
-| **JWT on WebSocket** | Token rides `?access_token=` on the WS URL via `window.Rask.authToken`; pair with `AddJwtBearer`'s `OnMessageReceived`. |
-| **Token at rest (JWT/WASM)** | `ProtectedTokenStore` encrypts with Data Protection before storage; the HttpOnly-cookie scheme keeps it out of JS entirely. |
+| **No token in the browser** | The session is a cookie, `HttpOnly` and never readable from JavaScript, so there is nothing for XSS to exfiltrate and nothing to encrypt at rest. Rask carries no bearer token on the WS URL either — a query string leaks through logs, proxies and `Referer`. |
 
 ---
 
@@ -109,11 +108,9 @@ origins you actually use, and consider `report-uri`/`report-to` to catch violati
 
 ## Security checklist
 
-- ☑ Serve auth over **HTTPS** only (`Cookie.SecurePolicy = Always` on `AddCookie`).
-- ☑ Cookies: `HttpOnly`, `Secure`, `SameSite=Lax` (or `Strict`).
-- ☑ Prefer the **cookie scheme** — the token never reaches JavaScript (immune to XSS token theft).
-- ☑ If a token must be in the browser, store it **encrypted** (`ProtectedTokenStore`), never plaintext.
-- ☑ Short JWT lifetime + app-driven silent refresh so sessions stay smooth without long-lived tokens.
+- ☑ Serve auth over **HTTPS** only — the battery sets `Cookie.SecurePolicy = Always` and it is not a knob.
+- ☑ Cookies are `HttpOnly`, `Secure`, `SameSite=Lax`, set by the battery rather than by the app.
+- ☑ Keep the session short — `AuthOptions.ExpireTimeSpan` with `SlidingExpiration`, rather than a long-lived one.
 - ☑ Keep `UseAuthentication()` **before** `UseRask()`.
 - ☑ Validate redirect targets — Rask sanitizes the `returnUrl` to local same-origin paths (rejects `//`, `/\`, and backslash/control-char variants).
 - ☑ Set a **[Content-Security-Policy](#content-security-policy)** — Rask runs under a strict policy (`script-src 'self'`, plus `'wasm-unsafe-eval'` on WASM); only `style-src` needs `'unsafe-inline'` for `Style:` attributes.

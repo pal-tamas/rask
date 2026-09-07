@@ -77,7 +77,7 @@ dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Examples.E2E"   # fast 
 dotnet test tests/Rask.Examples.E2E.Tests --filter "FullyQualifiedName~Rask.Examples.E2E.Tests.{Host}"
 ```
 `{Host}` ∈ ServerExampleTests, WasmExampleTests, StandaloneWasmExampleTests, WasmSubPathExampleTests,
-AuthExampleTests, JwtServerAuthExampleTests, WasmCookieAuthExampleTests, WasmJwtAuthExampleTests.
+AuthExampleTests, WasmCookieAuthExampleTests.
 (E2E flake note: `Highlight_DeepLinkToCodeSamplePage_HighlightsOnFirstPaint` has a first-paint
 race — rerun before assuming a regression.)
 

@@ -1,7 +1,9 @@
 # Authentication — identity providers
 
 Provider integrations for [Rask authentication](authentication.md): bring your own user store, or sign in
-through an external OpenID Connect provider. For the core cookie/JWT flows and the `Authorize` gate, see the
+through an external OpenID Connect provider. Either way the session Rask authenticates is still the
+cookie — `Rask.Auth` owns that scheme, and a provider composes by adding a *challenge* scheme beside it
+and signing in through the cookie. For the cookie flows and the `Authorize` gate, see the
 [main authentication guide](authentication.md).
 
 

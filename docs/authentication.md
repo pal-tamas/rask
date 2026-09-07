@@ -29,8 +29,13 @@ public sealed partial class Header(IUserProvider users) : Component
 
 To do without it, drop the `AddRaskAuth` line from `Program.cs` — or, in an app built on the `Rask`
 package, write `app.Configure(c => c.Auth.Off())`. Bringing your own store or an external provider
-(a JWT, Keycloak/OIDC, an existing users table) is still supported: the pages, the guards and the
+(Keycloak/OIDC, an existing users table) is still supported: the pages, the guards and the
 `Authorize` component are written against `ClaimsPrincipal`, so they do not care where it came from.
+
+**The session is always a cookie.** Rask authenticates one kind of session and `Rask.Auth` owns that
+scheme, so there is no bearer-token mode to choose and nothing to hold in `localStorage`. An external
+provider composes the ordinary ASP.NET way — it adds a *challenge* scheme beside the cookie and signs
+in through it — which is what [identity providers](authentication-providers.md) documents.
 
 ## On this page
 
@@ -40,7 +45,6 @@ package, write `app.Configure(c => c.Auth.Off())`. Bringing your own store or an
 - [Configuration](#configuration)
 - [Declarative gating — the `Authorize` component](#declarative-gating)
 - [Cookie authentication](authentication-cookie.md) — cookie login/session on Server and WASM.
-- [JWT authentication](authentication-jwt.md) — bearer tokens on Server, WASM, and standalone WASM.
 - [ASP.NET Identity](authentication-providers.md#aspnet-identity)
 - [Keycloak / OpenID Connect](authentication-providers.md#keycloak--openid-connect)
 - [Other OIDC providers — Auth0, AWS Cognito, Duende IdentityServer](authentication-providers.md#other-oidc-providers)
@@ -157,10 +161,8 @@ await auth.confirmEmail(userId, token)
 
 ## Configuration
 
-Session and account policy live on `AuthOptions`, reached through the battery. Everything ASP.NET owns
-— the cookie itself, an additional JWT or OIDC scheme, roles and policies — is still configured through
-ASP.NET's own primitives, and an app that registers its own scheme keeps it: the battery notices and
-does not register a second one.
+Session and account policy live on `AuthOptions`, reached through the battery. Roles, policies and any
+additional OIDC scheme are still configured through ASP.NET's own primitives.
 
 ```csharp
 app.Configure(c => c.Auth.Configure(o =>
@@ -171,24 +173,34 @@ app.Configure(c => c.Auth.Configure(o =>
 }));
 ```
 
+**The battery owns the cookie scheme.** `AddRaskAuth` registers it whatever the app did, makes it the
+default, and applies the `AuthOptions` values above it — so an app that also wrote
+`AddAuthentication().AddCookie(...)` starts normally and gets Rask's settings rather than a
+"Scheme already exists" crash on its first request. For a cookie knob `AuthOptions` does not carry,
+configure the same named options *after* `AddRaskAuth`:
+
+```csharp
+builder.Services.Configure<CookieAuthenticationOptions>(
+    CookieAuthenticationDefaults.AuthenticationScheme, o => o.Cookie.Domain = ".example.com");
+```
+
 A few framework defaults are fixed (not configurable knobs):
 
 | Behaviour | Value |
 |---|---|
-| Initial HTTP GET challenge / forbid | the configured auth scheme's own `LoginPath` / `AccessDeniedPath` (e.g. on `AddCookie`) |
+| Initial HTTP GET challenge / forbid | the cookie scheme's `LoginPath` / `AccessDeniedPath` (`AuthOptions.LoginPath` / `AccessDeniedPath`) |
 | Client-side route-guard redirect (an in-app nav to a protected route) | `/login` / `/forbidden` — name your login route `/login` to match |
 | Sign-in/out redeem ticket lifetime | 30 seconds |
 
+The first row's two paths are `AuthOptions` values, shown here at their defaults:
+
 ```csharp
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(o =>
-    {
-        o.LoginPath = "/login";          // ← where unauthenticated users are challenged (HTTP GET)
-        o.AccessDeniedPath = "/forbidden";
-        o.Cookie.Name = "rask.auth";
-        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    });
-builder.Services.AddRask();              // no auth config here — it's all on AddCookie/AddJwtBearer
+app.Configure(c => c.Auth.Configure(o =>
+{
+    o.LoginPath = "/login";          // ← where unauthenticated users are challenged (HTTP GET)
+    o.AccessDeniedPath = "/forbidden";
+    o.CookieName = "rask.auth";      // Secure + HttpOnly + SameSite=Lax are not knobs
+}));
 ```
 
 ---
@@ -248,8 +260,7 @@ The provider integrations and the hardening reference now live in focused compan
 |---|---|
 | Server (WS) app, simplest + safest | **Cookie + Server** |
 | WASM SPA talking to your own ASP.NET API, simplest + safest | **Cookie + WASM** |
-| Static-file WASM SPA against a separate API (no host of your own) | **Standalone WASM** (JWT in `sessionStorage`) |
-| Need a bearer-token API the same identity serves | **JWT** (cookie storage if you can, protected storage if not) |
+| Static-file WASM SPA against an API on another origin | **Cookie + WASM**, with the API setting the cookie for its own origin — CORS with credentials, `SameSite=None; Secure` |
 | Existing user database, password hashing, 2FA | **ASP.NET Identity** (+ cookie) |
 | Central SSO / social login / corporate IdP | **OIDC** (+ cookie) — Keycloak, Auth0, AWS Cognito, Duende IdentityServer |
 

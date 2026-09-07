@@ -9,6 +9,48 @@ them until tagged releases begin.
 
 ### Removed
 
+- **JWT/bearer authentication is gone; the session is always a cookie.** Rask authenticated one kind
+  of session in practice and documented two, and the second one cost more than it carried: a token in
+  browser storage that XSS can read, a token on the WebSocket URL that leaks through proxy logs and
+  `Referer`, and a whole parallel set of samples, guides and hardening advice whose main message was
+  "prefer the cookie". Choosing between them was never a real choice.
+
+  Deleted: `Rask.Core.Authentication.ITokenStore` (unshipped public API, consumed by nothing in `src/`),
+  `docs/authentication-jwt.md`, the `Rask.Example.Auth.Jwt` / `Rask.Example.Auth.WasmJwt` /
+  `Rask.Example.Auth.WasmJwt.Host` samples with their two E2E suites, and the
+  `Microsoft.AspNetCore.Authentication.JwtBearer` / `System.IdentityModel.Tokens.Jwt` pins.
+
+  Also gone from `rask.ts`: the JWT-on-WebSocket hook that appended `?access_token=` to the socket URL
+  from `window.Rask.authToken` or a `<meta name="rask-access-token">` tag. Nothing in the framework
+  read it, and a credential in a query string is a leak surface that a cookie-only session has no
+  reason to keep open.
+
+  **Bringing your own store or an external provider is unaffected.** Identity, Keycloak, Auth0, Cognito
+  and Duende all end in a cookie session, so they were never the JWT path — they compose by adding a
+  *challenge* scheme beside the cookie, which is the ordinary ASP.NET arrangement and now the only one
+  `docs/authentication-providers.md` documents.
+
+### Changed
+
+- **`Rask.Auth` owns the cookie scheme instead of standing down.** The battery used to skip its own
+  `AddAuthentication().AddCookie(...)` entirely when it found an `IAuthenticationSchemeProvider`
+  already in the collection — a whole-or-nothing deferral, so an app that registered any scheme for any
+  reason silently lost every `AuthOptions` value: cookie name, `LoginPath`, `AccessDeniedPath`,
+  expiry, `SecurePolicy = Always`. An OIDC app got that outcome just by wiring OIDC, and the failure is
+  invisible until someone notices sign-in redirecting to the wrong path or the cookie missing `Secure`.
+
+  It now registers the cookie scheme unconditionally, makes it the default, and configures the named
+  options **last** so its settings win over an app's own `AddCookie(...)` delegate. Registering the
+  scheme *entry* is the one non-idempotent step — `AuthenticationOptions.AddScheme` throws
+  "Scheme already exists", lazily, on the first request — so that single step is guarded and an app
+  still carrying a hand-written `AddAuthentication().AddCookie()` starts normally rather than dying
+  with a message that names no line to delete.
+
+  Owning the scheme is not owning every knob: a cookie setting `AuthOptions` does not carry is applied
+  by configuring the same named options *after* `AddRaskAuth`, and that is now covered by a test.
+
+### Removed
+
 - **The JavaScript front end scaffolds into `client/`, lower case, on both front-end lanes.** The SPA
   lane used `Client/` and the meta lane used `client/`, and the difference was real enough to need a
   paragraph in `docs/meta.md` explaining it. A capital `Client` now means one thing only: the WASM lane's

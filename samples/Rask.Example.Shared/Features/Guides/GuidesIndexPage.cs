@@ -63,8 +63,8 @@ public sealed partial class GuidesIndexPage : Component
             ],
             P.Class("mt-3 text-xs text-ui-muted")[
                 "Windows: ", Code["irm https://rask.sh/rask.ps1 | iex"], ". Add ",
-                Code["--template wasm"], " for a standalone browser app, or ", Code["--auth"],
-                " for a cookie/JWT starter."
+                Code["--template wasm"], " for a standalone browser app. Accounts and cookie ",
+                "sign-in are already on."
             ]
         ];
 

@@ -100,10 +100,6 @@ Rask.Core.Authentication.IAuth.SignOutAsync(string? returnUrl = null) -> System.
 Rask.Core.Authentication.IAuthSignIn
 Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.ITokenStore
-Rask.Core.Authentication.ITokenStore.ClearAsync() -> System.Threading.Tasks.ValueTask
-Rask.Core.Authentication.ITokenStore.GetAsync() -> System.Threading.Tasks.ValueTask<string?>
-Rask.Core.Authentication.ITokenStore.SetAsync(string! token, bool persist) -> System.Threading.Tasks.ValueTask
 Rask.Core.Authentication.IUserProvider
 Rask.Core.Authentication.IUserProvider.Changed -> System.Action?
 Rask.Core.Authentication.IUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!

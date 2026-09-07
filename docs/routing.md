@@ -383,6 +383,6 @@ crawler and a cache both understand it where a client-side hop is neither. Calle
 render — neither a handler nor the initial render — it still throws.
 
 **Route-level authorization.** Put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on
-a page component; the `RouteAuthorizationGuard` enforces it before the page renders. Auth is configured entirely on
-ASP.NET's own `AddCookie` / `AddJwtBearer` / `AddAuthorization` — Rask adds no parallel options. Full flows for
-cookie/JWT on Server and WASM are in [authentication.md](authentication.md).
+a page component; the `RouteAuthorizationGuard` enforces it before the page renders. The session is a cookie and
+`Rask.Auth` owns that scheme; roles and policies are ASP.NET's own `AddAuthorization`. Full flows on Server and
+WASM are in [authentication.md](authentication.md).

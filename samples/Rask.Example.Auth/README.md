@@ -29,6 +29,5 @@ The "Forgotten your password?" link goes to `/forgot-password`, which is the fra
 no SMTP configured that means it is written to `./mail-pickup` as an `.eml`. Open the newest one and
 follow the link to land on `/reset-password`.
 
-Other auth flavours: [`Rask.Example.Auth.Jwt`](../Rask.Example.Auth.Jwt) (server JWT), and the WASM
-pairs under `Rask.Example.Auth.Wasm*`. See the
-[authentication guide](../../docs/authentication.md). **Demo credentials only — do not ship.**
+The same flows on a WASM SPA with an API host: `Rask.Example.Auth.WasmCookie` and its `.Host`. See
+the [authentication guide](../../docs/authentication.md). **Demo credentials only — do not ship.**
