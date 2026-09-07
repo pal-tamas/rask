@@ -417,6 +417,64 @@ It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Developm
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the
 app instead of stopping at an interactive prompt. Pass `--no-restart` to be asked instead.
 
+### `https://<name>.test` (macOS)
+
+An app called `AppName` is served on **`https://appname.test`** — a real name, real HTTPS, no port.
+Nothing to install and nothing to configure: the name comes from the project, and `rask dev` sets the
+machine up the first time you run it.
+
+The first run asks for your password once, showing exactly what it will change:
+
+```text
+To serve this app on https://appname.test, Rask needs your password once to:
+  • trust 'Rask Local Development CA' as a local certificate authority (System keychain)
+  • add '127.0.0.1 appname.test' to /etc/hosts
+  • redirect port 443 to this app (pf anchor 'com.apple/rask')
+
+Set that up now? [Y/n]
+```
+
+Say no and it serves on localhost as it always did. **Every later run is silent** — the plan is
+recomputed from the machine each time and comes back empty, so the password belongs to first-time setup
+rather than to starting an app. The certificate authority is trusted **once, ever**: every other project
+you run afterwards gets its own `.test` name with no prompt at all.
+
+`.test` is not a stylistic choice. [RFC 6761 §6.2](https://www.rfc-editor.org/rfc/rfc6761#section-6.2)
+reserves it for exactly this and guarantees it is never delegated in the real DNS root, so a dev name
+can never collide with a site you actually need to reach. The two obvious alternatives are traps:
+`.local` belongs to multicast DNS and on macOS is answered by `mDNSResponder` rather than `/etc/hosts`,
+and `.dev` is a real gTLD on the HSTS preload list — which is what forced Valet off it when Chrome began
+force-upgrading every `.dev` to HTTPS.
+
+It is **HTTPS only**. No plaintext listener is bound, so the live WebSocket is `wss://`, a `Secure`
+cookie behaves in development the way it will in production, and there is nothing on the machine serving
+the app unencrypted. `dotnet dev-certs https` cannot provide this — it has no hostname option of any
+kind and only ever mints `CN=localhost` — so Rask issues the certificate itself from its own local
+authority, using .NET's X.509 stack rather than an installed `openssl` or `mkcert`.
+
+Everything it stores lives in `~/.rask/certs`, with private keys readable only by you. To undo it: delete
+the `# >>> rask dev >>>` block from `/etc/hosts`, and remove **Rask Local Development CA** from Keychain
+Access. The port-443 redirect is a pf anchor that does not survive a reboot.
+
+**When it stays on localhost.** It never fails a dev loop over a URL — any step that does not work falls
+back to `http://localhost:5000` with a note. It is also skipped by design when:
+
+| Situation | Why |
+| --- | --- |
+| `--no-host`, or `RASK_DEV_NO_HOST` is set | You asked for localhost. |
+| `--urls` was passed | You named the addresses to listen on; serving somewhere else would be the opposite of helpful. |
+| Not macOS | The keychain, `/etc/hosts` and pf are all platform-specific. Linux and Windows keep the localhost URL for now. |
+| No terminal (CI, a piped run) | The prompt would have nobody to answer it. |
+| A **react** or **meta framework** solution | The browser talks to the bundler's dev server over plain HTTP, so a certificate on the ASP.NET host behind it is not the one it would ever see. |
+| The project has [**islands**](islands.md) | Islands load from a second dev server over HTTP, which an HTTPS page is not allowed to do at all (mixed content). |
+
+The last two need their bundler taught to serve TLS before this can cover them; until then they keep the
+localhost URL that does work.
+
+> **One app at a time gets port 443.** pf redirects on address and port — it cannot see a hostname, let
+> alone a TLS SNI — so the redirect points at whichever `rask dev` is currently running. Two dev servers
+> at once is the case this cannot serve.
+
 | Flag | What it does |
 | --- | --- |
 | `--project`, `-p` | Project to run. Accepts a `.csproj` or a directory. |
@@ -428,6 +486,7 @@ app instead of stopping at an interactive prompt. Pass `--no-restart` to be aske
 | `--no-restart` | Ask before restarting on an edit hot reload can't apply. |
 | `--once` | Run once without watching (a plain `dotnet run`). |
 | `--no-banner` | Suppress the startup banner. |
+| `--no-host` | Serve on localhost instead of this project's `https://<name>.test` address. |
 
 > **Changed in this release.** `--no-hot-reload` used to mean "a plain `dotnet run`" — it stopped watching
 > altogether, and cleared `DOTNET_WATCH`, which is what the framework keys its own dev-time behaviour off.

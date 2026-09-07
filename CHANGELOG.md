@@ -7,6 +7,33 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`rask dev` serves an app on `https://appname.test` — a real name, real HTTPS, no port, no installs.**
+  The name is derived from the project, so there is no flag and nothing to configure. The first run asks
+  for a password once, listing exactly what it will change; every run after that is silent, because the
+  plan is recomputed from the machine each time and comes back empty. macOS for now.
+
+  Three machine changes, each the least invasive form available. The hosts entry goes in a marked
+  `# >>> rask dev >>>` block and nothing outside it is ever rewritten. The port-443 redirect is loaded
+  into a pf anchor under `com.apple/*`, which macOS's stock `/etc/pf.conf` already evaluates — so no
+  ruleset is replaced and `pf.conf` is not edited, both of which would put the developer's existing
+  firewall rules at risk. Trust is a **local certificate authority**, trusted once ever, that then issues
+  a certificate per hostname: self-signed leaves would have moved the password prompt to every new
+  project, which is the friction the feature exists to remove.
+
+  `dotnet dev-certs https` cannot do any of this — it has no hostname or SAN option and only ever mints
+  `CN=localhost` — so the certificates are minted with .NET's own X.509 stack. No `openssl`, no `mkcert`,
+  no Homebrew: a working `https://appname.test` costs nothing to install, which is the whole point.
+
+  HTTPS only, with no plaintext listener bound, so `wss://` and `Secure` cookies behave in development
+  the way they will in production. Keys live in `~/.rask/certs`, readable only by their owner.
+
+  It never fails a dev loop over a URL: every failure path falls back to `http://localhost:5000` with a
+  note. Skipped by design for `--urls`, `--no-host`/`RASK_DEV_NO_HOST`, non-macOS, a run with no terminal,
+  and the react/meta/islands lanes — those serve the page from a bundler's own HTTP dev server, so a
+  certificate on the ASP.NET host behind it is not the one the browser would see.
+
 ### Changed
 
 - **The playground compiles against reference assemblies shipped as data, not against its own bundle.**
