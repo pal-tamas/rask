@@ -89,7 +89,20 @@ public sealed partial class NavLink : Element
         base.WriteAttributes(sb);
         if (Href is not null)
         {
-            AppendUrlAttr(sb, "href", Href.Value.ToString());
+            // Prefixed with the deploy's PathBase, exactly as scoped-asset URLs already are (#975).
+            //
+            // A generated Routes.* URL is the route's own path, so under a sub-path deploy the anchor
+            // came out root-relative and missing the prefix: served at /docs/, the link said /guides/x.
+            // Clicking it in the app worked, which is why this survived — the runtime intercepts the
+            // click and routes client-side against its own PathBase. Everything that is NOT an
+            // intercepted click did not: open in a new tab, middle-click, copy link address, a crawler,
+            // any reload of that URL. All of them went to the origin root and 404'd, so "send someone a
+            // link to this page" produced a dead one.
+            //
+            // Prefixed HERE rather than in RouteUrl.ToString(), which is deliberate: the same value is
+            // compared against RouteState.Path, and that is prefix-less. Carrying the prefix inside the
+            // type would fix the anchor and break every match.
+            AppendUrlAttr(sb, "href", LiveOptions.PathBase + Href.Value);
         }
 
         AppendAttr(sb, "data-rask-nav", null);

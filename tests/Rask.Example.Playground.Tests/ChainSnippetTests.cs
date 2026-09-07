@@ -136,6 +136,79 @@ public sealed class ChainSnippetTests
         Assert.Contains("Coffee", result.Component!.ToHtml(), StringComparison.Ordinal);
     }
 
+    // docs/forms.md §2 — the first form anyone reads. It taught `Form<SignupModel>(_model,
+    // OnValidSubmit: …)`, a factory call dropped in #792, sitting a few lines above the chain spelling
+    // it had been replaced by: one document, two syntaxes, one of which does not compile (#1007). Prose
+    // does not build, so the corrected text is compiled here.
+    [Fact]
+    public async Task Forms_doc_form_and_context_examples_compile()
+    {
+        var result = await NewCompiler().CompileAsync("""
+            using System;
+            using Rask.Core;
+            using Rask.Core.Forms;
+
+            namespace Demo;
+
+            public sealed class SignupModel
+            {
+                public string Username { get; set; } = "";
+            }
+
+            public sealed partial class Playground : Component
+            {
+                private readonly SignupModel _model = new();
+
+                protected override Component? Render() =>
+                    Form.Model(_model).OnValidSubmit(m => Console.WriteLine(m.Username))[
+                        Input.Bind(() => _model.Username),
+                        Button.Type("submit")["Sign up"]
+                    ];
+            }
+            """);
+
+        Assert.True(result.Succeeded, Dump(result));
+    }
+
+    // The same doc's "Auto-created vs explicit Context" example, which carried the factory's
+    // `Context:` argument. `Context` is a chain step, and it composes with OnValidSubmit rather than
+    // replacing it — which is exactly what the broken spelling obscured.
+    [Fact]
+    public async Task Forms_doc_explicit_context_example_compiles()
+    {
+        var result = await NewCompiler().CompileAsync("""
+            using System;
+            using Rask.Core;
+            using Rask.Core.Forms;
+
+            namespace Demo;
+
+            public sealed class TaskModel
+            {
+                public string Title { get; set; } = "";
+            }
+
+            public sealed partial class Playground : Component
+            {
+                private readonly TaskModel _model = new();
+                private EditContext? _ctx;
+                private string? _submission;
+
+                protected override Component? Render()
+                {
+                    _ctx ??= new EditContext(_model);
+
+                    return Form.Model(_model).OnValidSubmit(m => _submission = "Saved").Context(_ctx)[
+                        Input.Bind(() => _model.Title),
+                        Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
+                    ];
+                }
+            }
+            """);
+
+        Assert.True(result.Succeeded, Dump(result));
+    }
+
     private static string Dump(PlaygroundResult result) =>
         "Diagnostics:\n" + string.Join("\n",
             result.Diagnostics.Select(d => $"  {d.Severity} {d.Id} ({d.StartLine},{d.StartColumn}): {d.Message}"));

@@ -9,6 +9,37 @@ namespace Rask.Html.Tests.Components;
 
 public partial class NavLinkTests : global::Rask.Core.RaskMarkup
 {
+    // A sub-path deploy (#975). The generated Routes.* URL is the route's own path, so the anchor used to
+    // come out root-relative: served at /docs/, the link said /guides/x. Clicking it in the app worked —
+    // the runtime intercepts the click and routes client-side against its own PathBase — which is exactly
+    // why this survived. Everything that is not an intercepted click went to the origin root and 404'd:
+    // open in a new tab, middle-click, copy link address, a crawler, any reload.
+    //
+    // LiveOptions.PathBase is process-wide static, so it is saved and restored. Nothing else in this
+    // assembly reads or writes it; if that ever changes, these belong in their own non-parallel
+    // collection rather than left to race.
+    [Theory]
+    [InlineData("", "/users/42")]
+    [InlineData("/docs", "/docs/users/42")]
+    [InlineData("/docs/", "/docs/users/42")]
+    [InlineData("docs", "/docs/users/42")]
+    public void Href_CarriesTheDeployPathBase(string pathBase, string expected)
+    {
+        var prior = LiveOptions.PathBase;
+        try
+        {
+            LiveOptions.PathBase = pathBase;
+
+            Assert.Equal(
+                $"<a href=\"{expected}\" data-rask-nav></a>",
+                NavLink.Href("/users/42").ToHtml());
+        }
+        finally
+        {
+            LiveOptions.PathBase = prior;
+        }
+    }
+
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags_WithDataRaskNav() =>
         Assert.Equal("<a data-rask-nav></a>", NavLink.ToHtml());

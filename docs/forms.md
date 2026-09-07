@@ -233,13 +233,13 @@ than 5011 B without any ceremony.
 
 ---
 
-## 2. `Form<TModel>` and the `EditContext`
+## 2. `Form.Model(…)` and the `EditContext`
 
-`Form<TModel>(model, …)` wraps the inputs and owns an `EditContext` — the per-field state store
-plus the validator pipeline. Bound inputs inside the form discover that context automatically.
+`Form.Model(model)` wraps the inputs and owns an `EditContext` — the per-field state store plus the
+validator pipeline. Bound inputs inside the form discover that context automatically.
 
 ```csharp
-Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
+Form.Model(_model).OnValidSubmit(m => Console.WriteLine(m.Username))[
     Input.Bind(() => _model.Username),
     Button.Type("submit")["Sign up"]
 ]
@@ -293,14 +293,14 @@ instance yourself when you need to drive validation imperatively, register an
 _ctx = new EditContext(_model);
 _ctx.AddValidator(new SlowTitleValidator());
 
-Form<TaskModel>(_model, m => _submission = "Saved", Context: _ctx)[
+Form.Model(_model).OnValidSubmit(m => _submission = "Saved").Context(_ctx)[
     Input.Bind(() => _model.Title),
     Button.Type("button").OnClickAsync(() => _ctx.ValidateAsync().AsTask())["Validate now"],
     Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
 ]
 ```
 
-`Form` requires either `Model` or `Context`.
+`Form` requires either `Model` or `Context` — they are the two ways to open its chain.
 
 ### Rendering messages
 

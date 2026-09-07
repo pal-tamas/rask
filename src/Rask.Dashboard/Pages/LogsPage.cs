@@ -234,24 +234,32 @@ public sealed partial class LogsPage(
             .Value(Query)
             .OnSearch(SearchAsync);
 
-    private async Task SearchAsync(string value)
+    private Task SearchAsync(string value)
     {
+        // Navigate, do not merely reload (#936). The property is declared [QueryParam("q")] and the page
+        // calls the result a shareable link, but assigning it and re-rendering left the address bar on
+        // the previous URL — so the link in the bar answered a different question than the page on
+        // screen, and copying it lost the search. CategoryChangedAsync beside this was already right;
+        // this is the same shape.
         Query = string.IsNullOrWhiteSpace(value) ? null : value;
         Page = 1;
-        await LoadAsync(CancellationToken).ConfigureAwait(false);
-        StateHasChanged();
+        navigator.NavigateTo(Link(level: Level, category: Category, query: Query));
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// The current view's URL with the given facets. Every filter is carried explicitly so that changing one
     /// composes with the others instead of silently resetting them.
     /// </summary>
-    private string Link(string? level, string? category, int? page = null) =>
+    private string Link(string? level, string? category, int? page = null, string? query = null) =>
         Routes.LogsPage(
             View: IsHistory ? "history" : null,
             Level: level,
             Category: category,
-            Query: IsHistory ? Query : null,
+            // `query` defaults to null, which for every OTHER caller has to mean "keep what is there"
+            // rather than "clear it" — hence the fallback. The search box passes its own value, which is
+            // how clearing the box reaches the URL as an absent q rather than as the previous term.
+            Query: IsHistory ? query ?? Query : null,
             Page: page is > 1 ? page : null);
 
     private Component LiveBody()

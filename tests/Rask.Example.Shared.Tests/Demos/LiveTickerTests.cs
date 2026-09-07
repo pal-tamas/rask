@@ -22,9 +22,15 @@ public sealed partial class LiveTickerTests : global::Rask.Core.RaskMarkup
     // only keep a momentarily-starved runner from flaking.
     private static readonly TimeSpan Settle = TimeSpan.FromSeconds(10);
 
-    // The cap test must accumulate 60 ticks (≈60 × 65 ms of real delay) before the
-    // buffer fills, so it needs a proportionally larger budget than a single-tick wait.
-    private static readonly TimeSpan FillToCapacity = TimeSpan.FromSeconds(20);
+    // The cap test must accumulate 60 ticks before the buffer fills, and each one costs the demo's
+    // simulated 50 ms of network latency plus the poll interval — about 3.1 s of unavoidable real time,
+    // plus 60 renders. A flat 20 s left roughly 6x headroom, which sounds ample and is not: this gate
+    // runs while other builds saturate the box, and the failure it produced ("the history never filled
+    // to capacity") reads exactly like a broken cap rather than a busy machine (#1024).
+    //
+    // Scaled to the work rather than picked: WaitFor.True returns the instant the condition holds, so a
+    // healthy run still finishes in about 3.5 s and only a genuinely stuck loop pays the full budget.
+    private static readonly TimeSpan FillToCapacity = TimeSpan.FromSeconds(60);
 
     [Fact]
     public async Task OnMountAsync_PopulatesHistoryFromSyntheticFeed()
@@ -110,6 +116,29 @@ public sealed partial class LiveTickerTests : global::Rask.Core.RaskMarkup
         var symbol = new Box<string>("BTC");
         var counter = 0;
         var (page, log, mounted) = BuildHost(symbol, 1, _ => 10_000m + counter++);
+
+        // Stopped in a finally, unlike every earlier version of this test. The loop polls every 1 ms and
+        // calls StateHasChanged on each tick; left running when an assertion throws, it keeps rendering
+        // for the rest of the class and starves everything after it. That is the likeliest explanation
+        // for the 16-minute run #1024 records — a 20 s timeout cannot account for it, and the two
+        // sibling tests that unmount explicitly are the two that never hung.
+        try
+        {
+            await AssertCapHoldsAsync(page);
+        }
+        finally
+        {
+            mounted.Value = false;
+            page.Render();
+        }
+
+        Assert.Contains(log.Snapshot(), l => l.Contains("OnMountAsync"));
+    }
+
+    // Extracted so the caller can stop the poll loop in a finally around it: everything below can throw,
+    // and a throw is exactly when the loop must not be left running.
+    private static async Task AssertCapHoldsAsync(RenderedComponent page)
+    {
         await WaitFor.True(
             () => PointCount(page.Render()) >= 60, FillToCapacity,
             "the history never filled to capacity");

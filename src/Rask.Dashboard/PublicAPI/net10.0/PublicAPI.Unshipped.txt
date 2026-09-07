@@ -29,7 +29,7 @@ Rask.Dashboard.Logging.DashboardLogEntry.Sequence.init -> void
 Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.get -> System.DateTimeOffset
 Rask.Dashboard.Logging.DashboardLogEntry.Timestamp.init -> void
 Rask.Dashboard.Pages.CachePage
-Rask.Dashboard.Pages.CachePage.CachePage(Rask.Dashboard.Panels.ICachePanelReader! cache, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
+Rask.Dashboard.Pages.CachePage.CachePage(Rask.Dashboard.Panels.ICachePanelReader! cache, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, Rask.Core.Routing.Navigator! navigator) -> void
 Rask.Dashboard.Pages.CachePage.Search.get -> string?
 Rask.Dashboard.Pages.CachePage.Search.set -> void
 Rask.Dashboard.Pages.DashboardLayout

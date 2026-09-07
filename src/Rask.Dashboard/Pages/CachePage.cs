@@ -12,7 +12,8 @@ namespace Rask.Dashboard.Pages;
 public sealed partial class CachePage(
     ICachePanelReader cache,
     RaskDashboardOptions options,
-    TimeProvider timeProvider) : PollingPanel
+    TimeProvider timeProvider,
+    Navigator navigator) : PollingPanel
 {
     private CacheStats _stats;
     private IReadOnlyList<CacheKeyRow> _rows = [];
@@ -96,12 +97,19 @@ public sealed partial class CachePage(
         ];
     }
 
-    private async Task SearchAsync(string value)
+    private Task SearchAsync(string value)
     {
+        // Navigate, do not merely reload (#936). Search is declared [QueryParam("q")] and its own summary
+        // calls the result a shareable link, but assigning it and re-rendering left the address bar on
+        // the previous URL — so the bar and the page disagreed, and copying the link lost the search.
+        //
+        // Only the search reaches the URL. Paging is deliberately left as page-local state: `_page` is a
+        // field rather than a [QueryParam], so putting it in the link here would produce a URL that does
+        // not restore, which is worse than one that plainly carries less.
         Search = string.IsNullOrWhiteSpace(value) ? null : value;
         _page = 0;
-        await LoadAsync(CancellationToken).ConfigureAwait(false);
-        StateHasChanged();
+        navigator.NavigateTo(Routes.CachePage(Search: Search));
+        return Task.CompletedTask;
     }
 
     private Component KeyTable(DateTime now) =>

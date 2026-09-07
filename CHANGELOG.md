@@ -9,6 +9,62 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Every route link under a sub-path deploy pointed at the origin root**
+  ([#975](https://github.com/pal-tamas/rask/issues/975)). `NavLink` wrote its `Href` straight through, and
+  a generated `Routes.*` URL is the route's own path — so an app served at `/docs/` rendered
+  `href="/guides/00-overview"`. Scoped-asset URLs were already correct; it was specifically route URLs
+  that skipped the prefix.
+
+  Clicking such a link in the app worked, which is why it survived: the runtime intercepts the click and
+  routes client-side against its own `PathBase`. Everything that is **not** an intercepted click did not —
+  open in a new tab, middle-click, copy link address, a crawler, any reload — all of them 404. `rask.sh/docs/`
+  is a sub-path deploy, so this was every sidebar link in the published showcase.
+
+  Prefixed at the **render site**, not inside `RouteUrl.ToString()`. That is the load-bearing part: the
+  same value is compared against `RouteState.Path`, which is prefix-less, so carrying the prefix in the
+  type would fix the anchor and break every route match.
+
+- **Both dashboard search boxes called their result a shareable link, and neither reached the URL**
+  ([#936](https://github.com/pal-tamas/rask/issues/936)). Cache and Logs each declare their term as a
+  `[QueryParam]`, and each `SearchAsync` assigned the property, reloaded and re-rendered — leaving the
+  address bar on the previous URL. Nothing looks wrong on screen: the results are right and the box holds
+  the term. What it costs is exactly what the feature is for — copying the link, or reloading, silently
+  dropped the search. `LogsPage.CategoryChangedAsync` beside it was already right; both search paths now
+  match it, and `CachePage` takes a `Navigator` to do so (recorded in the public API).
+
+  Only the search reaches the URL. Cache's paging stays page-local on purpose: `_page` is a field rather
+  than a `[QueryParam]`, so putting it in the link would produce a URL that does not restore, which is
+  worse than one that plainly carries less.
+
+  Pinned by three tests driven through a **real change event** on the rendered input rather than by
+  calling the private method — `Navigator` refuses to run outside a handler scope, so a search box wired
+  to anything but a handler could never have navigated at all. Two of them fail against the pages as they
+  were.
+
+- **The first form in `docs/forms.md` did not compile** ([#1007](https://github.com/pal-tamas/rask/issues/1007)).
+  It taught `Form<SignupModel>(_model, OnValidSubmit: …)` — the factory call dropped in #792 — a few lines
+  above the chain spelling that replaced it, so one document carried two syntaxes and the first one a
+  reader meets was the dead one. The explicit-`Context` example had the same problem. Both are corrected
+  and both are now compiled by `ChainSnippetTests`, through the same Roslyn pipeline the playground uses;
+  checked by putting the old spelling back and watching it fail.
+
+  `AuthOptions`' own XML `<example>` had drifted the same way, showing `o.Bearer = true` for a property
+  that does not exist — a sample that would not compile, on the type whose summary is the first thing an
+  IDE shows about auth configuration.
+
+- **A test left a 1 ms poll loop running for the rest of its class**
+  ([#1024](https://github.com/pal-tamas/rask/issues/1024)). `PollLoop_HistoryStaysCappedAt60` never
+  unmounted its host, so on a failing run the demo kept polling and calling `StateHasChanged` — for every
+  test that came after it. That is the likeliest explanation for the 16-minute run the issue records and
+  calls "the more alarming half": a 20 s timeout cannot account for it, and the two sibling tests that do
+  unmount explicitly are the two that never hung. The loop is now stopped in a `finally`.
+
+  Its budget was also wrong rather than unlucky. Sixty ticks cost the demo's simulated 50 ms of latency
+  each — about 3.1 s of unavoidable real time plus 60 renders — and 20 s of that is roughly 6x headroom,
+  which sounds ample until the gate runs while other builds saturate the machine. Scaled to the work at
+  60 s; `WaitFor.True` returns the moment the condition holds, so a healthy run still finishes in about
+  3.5 s and only a genuinely stuck loop pays the budget.
+
 - **Quiescence waited for a hook's task, not for the render that task enables.**
   `LifecycleSyncContext.Post` schedules the continuation of an async lifecycle hook. The user's method
   body returns *inside* that continuation, which transitions the hook's own `Task` to Completed — one

@@ -11,7 +11,7 @@ namespace Rask.Auth;
 /// app.Configure(c => c.Auth.Configure(o =>
 /// {
 ///     o.CookieName = "shop.auth";
-///     o.Bearer = true;              // only when a same-origin cookie cannot serve the caller
+///     o.MinimumPasswordLength = 12;
 /// }));
 /// </code>
 /// </example>
