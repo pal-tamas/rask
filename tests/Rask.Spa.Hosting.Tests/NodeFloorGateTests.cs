@@ -81,7 +81,7 @@ public sealed class NodeFloorGateTests
     {
         var build = Path.Combine(RepoRoot(), "src", "Rask.Spa.Hosting", "build");
         var temp = Path.Combine(Path.GetTempPath(), "rask-spa-floor", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(temp, "Client"));
+        Directory.CreateDirectory(Path.Combine(temp, "client"));
         try
         {
             var project = Path.Combine(temp, "probe.proj");

@@ -79,11 +79,11 @@ public class MetaPublishBuildE2ETests : IDisposable
             """);
 
         Write("Program.cs", "System.Console.WriteLine(\"host\");");
-        Write("Client/package.json", """{ "name": "front", "private": true }""");
+        Write("client/package.json", """{ "name": "front", "private": true }""");
 
         foreach (var file in frontEndFiles)
         {
-            Write("Client/" + file, "// built");
+            Write("client/" + file, "// built");
         }
     }
 
@@ -122,9 +122,9 @@ public class MetaPublishBuildE2ETests : IDisposable
 
         var published = Publish();
 
-        Assert.True(File.Exists(Path.Combine(published, "Client", ".output", "server", "index.mjs")));
+        Assert.True(File.Exists(Path.Combine(published, "client", ".output", "server", "index.mjs")));
         Assert.True(File.Exists(
-            Path.Combine(published, "Client", ".output", "public", "_nuxt", "entry.abc.js")));
+            Path.Combine(published, "client", ".output", "public", "_nuxt", "entry.abc.js")));
     }
 
     /// <summary>
@@ -148,10 +148,10 @@ public class MetaPublishBuildE2ETests : IDisposable
         var published = Publish();
 
         Assert.True(File.Exists(
-            Path.Combine(published, "Client", ".next", "standalone", "server.js")));
+            Path.Combine(published, "client", ".next", "standalone", "server.js")));
         Assert.True(File.Exists(
-            Path.Combine(published, "Client", ".next", "static", "chunks", "main.abc.js")));
-        Assert.True(File.Exists(Path.Combine(published, "Client", "public", "robots.txt")));
+            Path.Combine(published, "client", ".next", "static", "chunks", "main.abc.js")));
+        Assert.True(File.Exists(Path.Combine(published, "client", "public", "robots.txt")));
     }
 
     /// <summary>

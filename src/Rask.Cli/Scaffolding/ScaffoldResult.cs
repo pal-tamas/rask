@@ -37,9 +37,9 @@ internal sealed record ExternalScaffold(
     /// </summary>
     /// <remarks>
     ///     For creators that will only take a single path segment. <c>create-analog</c> is the one:
-    ///     given <c>Shop/Client</c> it stops and asks for a package name — for ANY nested path, lower
+    ///     given <c>Shop/client</c> it stops and asks for a package name — for ANY nested path, lower
     ///     case included — and a prompt inside <c>rask new</c> is a hang rather than a failure anyone can
-    ///     act on. Run from inside <c>Shop</c> with a target of <c>Client</c>, it completes.
+    ///     act on. Run from inside <c>Shop</c> with a target of <c>client</c>, it completes.
     /// </remarks>
     public string WorkingSubdirectory { get; init; } = string.Empty;
 

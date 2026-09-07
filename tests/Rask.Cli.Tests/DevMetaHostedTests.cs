@@ -27,7 +27,7 @@ public sealed class DevMetaHostedTests
         </Project>
         """;
 
-    private static FakeFileSystem Solution(string csproj = MetaCsproj, string appDir = "Client")
+    private static FakeFileSystem Solution(string csproj = MetaCsproj, string appDir = "client")
     {
         var fs = new FakeFileSystem();
         fs.Seed("/app/Shop/Shop.csproj", csproj);
@@ -51,7 +51,7 @@ public sealed class DevMetaHostedTests
         var target = DevTarget.Detect(Solution(), "/app/Shop", null);
 
         Assert.EndsWith(
-            Path.Combine("Shop", "Client"), target!.ClientDirectory!, StringComparison.Ordinal);
+            Path.Combine("Shop", "client"), target!.ClientDirectory!, StringComparison.Ordinal);
         Assert.Equal("dev", target.ClientDevScript);
     }
 
@@ -106,7 +106,7 @@ public sealed class DevMetaHostedTests
     {
         var fs = new FakeFileSystem();
         fs.Seed("/app/App.csproj", """<Project Sdk="Microsoft.NET.Sdk.Web"></Project>""");
-        fs.Seed("/app/Client/package.json", "{}");
+        fs.Seed("/app/client/package.json", "{}");
 
         var target = DevTarget.Detect(fs, "/app", null);
 

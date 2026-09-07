@@ -525,16 +525,16 @@ internal static partial class ProjectGenerator
             refs.Append($"\n    <PackageReference Include=\"{package}\" Version=\"{version}\"/>");
         }
 
-        // Only when it is not the default. Analog's front end lives in a lowercase folder, because its
-        // creator will not scaffold into a directory whose name is not a valid npm package name — and a
-        // build that looks in Client/ while the app is in client/ finds nothing on any case-sensitive
-        // filesystem.
-        // RaskMetaAppDir defaults to `Client`, and this lane cannot use it: half of these creators
-        // derive an npm package name from the target directory and reject capitals outright. So the
-        // front end lives in `client` and the property says so — otherwise the build looks in one
-        // folder while the app is in another, which on Linux is simply a missing front end.
-        var appDir = $"\n    <!-- These creators reject a capital letter in the directory name. -->"
-                     + $"\n    <RaskMetaAppDir>{framework.AppDir}</RaskMetaAppDir>";
+        // Only when it is not the default, which since the rename to a lowercase `client` is the case
+        // for every framework in the table — the property used to be written on every scaffold purely
+        // to override a PascalCase default these creators could not accept. It stays here because
+        // RaskMetaAppDir is the supported way to move the front end, and a framework whose creator
+        // insists on some other directory would still be spelled out in the csproj rather than
+        // silently disagreeing with the build.
+        var appDir = string.Equals(framework.AppDir, MetaTemplate.DefaultAppDir, StringComparison.Ordinal)
+            ? string.Empty
+            : $"\n    <!-- This creator will not scaffold into the default directory. -->"
+              + $"\n    <RaskMetaAppDir>{framework.AppDir}</RaskMetaAppDir>";
 
         var litestream = batteries.Data
             ? "\n    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->"

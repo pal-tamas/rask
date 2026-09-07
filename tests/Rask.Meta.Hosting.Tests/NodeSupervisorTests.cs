@@ -176,14 +176,14 @@ public class NodeSupervisorTests
     {
         var options = new MetaHostingOptions
         {
-            AppDirectory = "Client",
+            AppDirectory = "client",
             Framework = MetaFramework.Nuxt,
         };
 
         using var supervisor = Build(options, new TestLifetime());
 
         Assert.Equal(
-            Path.Combine(AppContext.BaseDirectory, "Client", ".output/server/index.mjs"),
+            Path.Combine(AppContext.BaseDirectory, "client", ".output/server/index.mjs"),
             supervisor.ServerEntryPath);
     }
 

@@ -73,19 +73,31 @@ internal sealed record MetaTemplate(
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         <c>client</c>, lower case, for every framework on this lane — where the SPA lane uses
-    ///         <c>Client</c>. Not a stylistic difference: half of these creators derive an npm package
-    ///         name from the target directory and will not accept one with capitals in it.
-    ///         <c>create-next-app</c> and <c>@tanstack/cli</c> exit ("name can no longer contain capital
-    ///         letters"), and <c>create-analog</c> stops and asks — the worst of the three, because a
-    ///         prompt inside <c>rask new</c> is a hang.
+    ///         <c>client</c>, lower case — the same directory the SPA lane uses, and the same word the
+    ///         JavaScript ecosystem uses. A capital <c>Client</c> is reserved for the WASM lane's
+    ///         <c>{name}.Client</c>, which is a C# project and takes .NET's convention instead.
     ///     </para>
     ///     <para>
-    ///         The csproj carries <c>RaskMetaAppDir</c> to match, so the build and the host look in the
-    ///         same place. The case matters on Linux even where macOS would forgive it.
+    ///         This lane had no choice about it even before the two were unified: half of these creators
+    ///         derive an npm package name from the target directory and will not accept one with capitals
+    ///         in it. <c>create-next-app</c> and <c>@tanstack/cli</c> exit ("name can no longer contain
+    ///         capital letters"), and <c>create-analog</c> stops and asks — the worst of the three,
+    ///         because a prompt inside <c>rask new</c> is a hang.
+    ///     </para>
+    ///     <para>
+    ///         Because this now matches <c>RaskMetaAppDir</c>'s own default, the scaffold no longer writes
+    ///         the property on every project; it appears only for a framework that needs some other
+    ///         directory. The case matters on Linux even where macOS would forgive it.
     ///     </para>
     /// </remarks>
-    public string AppDir { get; init; } = "client";
+    public string AppDir { get; init; } = DefaultAppDir;
+
+    /// <summary>
+    ///     The front-end directory both lanes use, and the default of the <c>RaskMetaAppDir</c> and
+    ///     <c>RaskSpaClientDir</c> build properties. One constant so the scaffolder, the dev-server
+    ///     resolver and the build cannot drift into looking in different folders.
+    /// </summary>
+    public const string DefaultAppDir = "client";
 
     /// <summary>
     ///     The stylesheet Rask writes when the creator cannot be asked for Tailwind, or null when it can.
@@ -331,7 +343,7 @@ internal sealed record MetaTemplate(
     ///         <c>--no-tailwind</c> is understood.
     ///     </para>
     ///     <para>
-    ///         It also refuses a nested path. Given <c>Shop/Client</c> — or <c>shop/client</c>; the
+    ///         It also refuses a nested path. Given <c>Shop/client</c> — or <c>shop/client</c>; the
     ///         casing is not what does it — it stops and asks for a package name, and no flag answers
     ///         that question: <c>--name</c>, <c>--packageName</c> and <c>--skipPackageName</c> are all
     ///         simply ignored. So it is the one creator run from INSIDE the project directory, with a

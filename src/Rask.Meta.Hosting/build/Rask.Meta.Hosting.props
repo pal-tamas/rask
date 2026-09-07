@@ -30,7 +30,7 @@
       app has no separate client artifact for a host to reference — it has a server of its own — so a
       second project would buy nothing and cost a reference nobody uses.
     -->
-    <RaskMetaAppDir Condition="'$(RaskMetaAppDir)' == ''">Client</RaskMetaAppDir>
+    <RaskMetaAppDir Condition="'$(RaskMetaAppDir)' == ''">client</RaskMetaAppDir>
 
     <!--
       `npm ci` where it can run: reproducible, faster, and loud when package-lock.json has drifted

@@ -9,6 +9,45 @@ them until tagged releases begin.
 
 ### Removed
 
+- **The JavaScript front end scaffolds into `client/`, lower case, on both front-end lanes.** The SPA
+  lane used `Client/` and the meta lane used `client/`, and the difference was real enough to need a
+  paragraph in `docs/meta.md` explaining it. A capital `Client` now means one thing only: the WASM lane's
+  `{name}.Client`, which is a C# project and takes .NET's convention. A JavaScript directory takes
+  JavaScript's.
+
+  The meta lane never had a choice — half its scaffolders derive an npm package name from the target
+  directory and reject capitals, `create-analog` by *stopping to ask*, which inside `rask new` is a hang
+  rather than a failure. What it did have was a `RaskMetaAppDir` default of `Client` that disagreed with
+  it, so every scaffolded csproj wrote the property purely to override the framework's own default.
+  `RaskMetaAppDir` now defaults to `client`, and the property is emitted only for a framework that needs
+  somewhere else.
+
+  `rask dev`'s resolver had the same disagreement and it was a latent bug: `ReadMetaAppDir` fell back to
+  `Client` while the scaffolder created `client`. Every scaffold wrote the property explicitly, so the
+  fallback never fired — but a hand-written meta project that left it out would have found no dev server
+  on Linux, and been told nothing. The default now lives in one constant (`MetaTemplate.DefaultAppDir`)
+  that the scaffolder, the resolver and the build all read.
+
+  **Existing projects keep building.** The SPA convention probes `client/` first and then `Client/`, in
+  both `Rask.Spa.Hosting.targets` and `rask dev`. That fallback is worth its keep on a pre-1.0 framework
+  because of how it fails without it: on macOS and Windows the rename is invisible, and on Linux the
+  convention simply stops matching — no error, no dev server, and a front end quietly missing from the
+  publish. `RaskSpaClientDir` still overrides both.
+
+  Verified by `SpaTailwindBuildE2ETests`, which scaffolds, runs `npm ci` and `vite build`, and asserts a
+  utility class reaches the emitted CSS — so the rename is proven through the toolchain rather than
+  through the file list.
+
+  One test changed shape rather than spelling. `The_front_end_folder_is_lowercase_and_the_csproj_says_so`
+  asserted that the csproj *states* the directory, which stopped being true when the default started
+  agreeing with the scaffold. It now asserts what actually matters — that the directory the creator
+  writes into and the directory the build resolves are the same one — and so survives the change it was
+  guarding rather than failing on it.
+
+  Drive-by, found while checking the same table: `docs/spa.md` still described an entry that "installs the
+  `QueryClient`" and per-framework route files. TanStack Query and Router came out of the SPA scaffold
+  earlier; the overlay is now a Vite config, the entry, and one component calling `rask.dispatch`.
+
 - **The live playground is removed.** `samples/Rask.Example.Playground`, its test project, its browser
   journey, `docs/playground.md` and the `/playground/` sub-app on rask.sh all go. The site is now two apps
   rather than three: the landing page at `/` and the live showcase at `/docs/`.
