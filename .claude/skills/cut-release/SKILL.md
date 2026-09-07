@@ -8,11 +8,13 @@ description: Cut a Rask release. Use when publishing a new version to NuGet/GitH
 Versioning is **MinVer from git tags** (`Directory.Build.props` → `<MinVerTagPrefix>v</…>`).
 There is no version number to bump in a file — **the tag is the version**.
 
-**Order matters: land the CHANGELOG on `main` via a PR FIRST, then tag the merged commit.**
-`main` is a **protected branch** (no direct pushes — `git push origin main` is rejected by a
-hook), and a **commitlint** check enforces Conventional Commits on every commit. So the release
-changelog must go through a PR with a Conventional title, exactly like any other change. Tagging
-afterward keeps the tag on a real `main` commit (don't tag a local commit you couldn't push).
+**Order matters: land the CHANGELOG on `main` FIRST, then tag that commit.** Tagging a local commit
+you have not pushed puts the tag on something `main` does not have.
+
+Commit **directly to `main`** — that is the standing policy for the owner's own work, and PRs are for
+external contributions. `main` still carries a "require a pull request" rule, but `enforce_admins` is
+off, so an admin push is accepted. A **commitlint** check enforces Conventional Commits, so a bare
+`Release vX.Y.Z` FAILS (`type-empty` / `subject-empty`) — use `chore(release): vX.Y.Z`.
 
 ## 1. Pre-flight
 - On `main`, clean tree, CI green.
@@ -25,35 +27,33 @@ afterward keeps the tag on a real `main` commit (don't tag a local commit you co
   and it would turn every deliberate rename into a shipped-API removal to argue with. At 1.0, promote
   unshipped → shipped in the release PR, once.
 
-## 2. Promote the CHANGELOG on a release branch
+## 2. Promote the CHANGELOG
 In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (keep its
 `### Added/Changed/Fixed/...` subsections), and add a fresh empty `## [Unreleased]` above it.
-Commit on a branch with a **Conventional Commit** message (plain `Release vX.Y.Z` FAILS commitlint):
+Commit with a **Conventional Commit** message (plain `Release vX.Y.Z` FAILS commitlint):
 ```bash
-git checkout -b release/vX.Y.Z
 git add CHANGELOG.md && git commit -m "chore(release): vX.Y.Z"
-git push -u origin release/vX.Y.Z
+git push origin main
 ```
 
-## 3. PR → merge to main
+## 3. Tag that commit + push (triggers release.yml)
 ```bash
-gh pr create --base main --head release/vX.Y.Z --title "chore(release): vX.Y.Z" --body "…"
-# wait for the 14 checks to go green, then:
-gh pr merge --squash --delete-branch
-```
-Squash lands it as `chore(release): vX.Y.Z (#NN)` on `main` (matches prior releases).
-
-## 4. Tag the merged commit + push (triggers release.yml)
-```bash
-git checkout main && git pull --ff-only        # fast-forward to the merged release commit
+git pull --ff-only                             # make sure nothing landed in between
 git tag vX.Y.Z
 git push origin vX.Y.Z                          # push ONLY the tag — main is already up to date
 ```
-`release.yml` (on `push: tags: v*`) builds, then packs the
-NuGets (`Rask.Server`, `Rask.Wasm`, `Rask.Wasm.Hosting`,
-`Rask.Validation.FluentValidation`, `Rask.Bootstrap`, `Rask.WebPush`, `Rask.Cli`, …), pushes them
-to nuget.org, and creates the
-GitHub release. Watch it (`run watch` on the bare run id, not a job, exits on the run's conclusion):
+`release.yml` (on `push: tags: v*`) builds, packs every project that is not `IsPackable=false`,
+pushes them to nuget.org, and creates the GitHub release.
+
+Deliberately NOT enumerated here. This list said eight packages, named `Rask.Bootstrap` (no longer
+packable), and predated a dozen projects — a hand-kept list of a set the build already knows is one
+that rots quietly. Ask the tree instead:
+
+```bash
+for f in src/*/*.csproj; do grep -q "<IsPackable>false" "$f" || basename "$f" .csproj; done
+```
+
+Watch the run (`run watch` on the bare run id, not a job, exits on the run's conclusion):
 
 > **`release.yml` runs NO tests** — not the unit gate, not E2E. It restores, builds, packs and
 > pushes. (This skill used to claim it ran the unit gate and a sharded E2E matrix; those jobs went
@@ -65,8 +65,9 @@ gh run list --workflow=release.yml -L 1     # grab the run id
 gh run watch <run-id> --exit-status
 ```
 
-## 5. Verify
-- GitHub release created with the eight `.nupkg` assets (`gh release view vX.Y.Z`).
+## 4. Verify
+- GitHub release created, carrying one `.nupkg` per packable project (`gh release view vX.Y.Z`);
+  compare against the loop in step 3 rather than against a number written down here.
 - Packages visible on nuget.org at version `X.Y.Z`.
 - To undo a mistaken tag **before** publish completes: `git push --delete origin vX.Y.Z`. Once
   `release.yml` has pushed to nuget.org, the version is permanent (nuget rejects a re-push of the

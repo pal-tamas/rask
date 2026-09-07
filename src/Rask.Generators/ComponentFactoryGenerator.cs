@@ -74,7 +74,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask036 = new(
         "RASK036",
         "A builder-entry host must be partial",
-        "'{0}' is not declared 'partial', so {1} cannot be injected into it; writing one of their names unqualified inside it will not compile. Add the 'partial' modifier.",
+        "{0}, so {1} cannot be injected into it; writing one of their names unqualified inside it will not compile. Add the 'partial' modifier where it is missing.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -2985,15 +2985,27 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // top-level host gets, naming the enclosing type that has to change.
             if (host2.IsNested && !host2.EnclosingAllPartial)
             {
+                // Names the ENCLOSING type as the thing to change, which the comment above has always
+                // claimed and the message did not do (#1019). Saying "'NestedHost' is not declared
+                // 'partial'" about a type that is plainly declared partial sends the reader to re-read
+                // the one line that is already correct; the container is what is missing the modifier.
+                // Reported here rather than fixed silently because the alternative — skipping — is how a
+                // nested component loses its chain with nothing said at all.
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask036, MakeDeclLocation(host2), host2.TypeName, Rask036Loses(host2.Delivery)));
+                    Rask036,
+                    MakeDeclLocation(host2),
+                    $"'{host2.TypeName}' is nested in a type that is not declared 'partial'",
+                    Rask036Loses(host2.Delivery)));
                 continue;
             }
 
             if (!host2.IsPartial)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask036, MakeDeclLocation(host2), host2.TypeName, Rask036Loses(host2.Delivery)));
+                    Rask036,
+                    MakeDeclLocation(host2),
+                    $"'{host2.TypeName}' is not declared 'partial'",
+                    Rask036Loses(host2.Delivery)));
                 continue;
             }
 

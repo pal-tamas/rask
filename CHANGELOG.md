@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **RASK036 named the wrong type for a nested host**
+  ([#1019](https://github.com/pal-tamas/rask/issues/1019)). A component nested in a container that is not
+  `partial` gets no chain entries — correct, since the generated file has to re-open every enclosing type
+  and only a partial has somewhere to re-open. What was wrong is what it said: *"'NestedHost' is not
+  declared 'partial'"*, about a type that is plainly declared `partial`. The reader is sent to re-read
+  the one line that was already right, and the container — the thing actually missing the modifier — is
+  never mentioned. The report site's own comment claimed it named "the enclosing type that has to
+  change"; it passed the nested type's name.
+
+  That closes out #1019, which was filed as unconfirmed with two suspects (nesting, accessibility) and
+  is neither on its own: nesting is fine, at any depth, provided every enclosing type is `partial`. The
+  second half of the reporter's confusion is a separate rule worth knowing — inside a markup host the
+  injected entry is the **simple** name, so `Outer.NestedHost` resolves the *type* and fails, while
+  `NestedHost` is the chain entry.
+
+- **`cut-release` described a release flow that no longer exists.** It opened by saying `main` is a
+  protected branch that rejects direct pushes, and routed the changelog through a release branch and a
+  PR — which stopped being true when `enforce_admins` was turned off, and contradicts the standing
+  policy that the owner's own work goes straight to `main`. It also enumerated eight NuGet packages by
+  name, including `Rask.Bootstrap`, which is no longer packable; the real number is 35. The list is
+  replaced by the one-line loop that asks the tree, because a hand-kept copy of something the build
+  already knows is a list that rots quietly.
+
 - **A mail scanner could burn a confirmation link before its owner ever clicked it**
   ([#1013](https://github.com/pal-tamas/rask/issues/1013)). `/confirm-email` confirmed on arrival, and the
   token is single-use. The reasoning for that — "the link was the deliberate act; a second click adds a

@@ -581,6 +581,48 @@ public class BuilderEntryEmissionTests
         Assert.Contains(run.WithId("RASK036"), d => d.GetMessage().Contains("CardTests", StringComparison.Ordinal));
     }
 
+    // #1019. A host nested in a NON-partial container gets no entries, which is correct — the generated
+    // file has to re-open every enclosing type, and only a partial has somewhere to re-open. What was
+    // wrong is what the message said: it named the nested type, which is plainly declared partial, so
+    // the reader was sent to re-read the one line that was already right. The container is the thing to
+    // change, and the report site's own comment had claimed that all along.
+    [Fact]
+    public void A_host_nested_in_a_non_partial_container_names_the_CONTAINER()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Card : Component { }
+                                              public class Outer
+                                              {
+                                                  public partial class NestedTests : RaskMarkup { }
+                                              }
+                                              """);
+
+        var message = Assert.Single(run.WithId("RASK036")).GetMessage();
+
+        Assert.Contains("NestedTests", message, StringComparison.Ordinal);
+        Assert.Contains("nested in a type that is not declared 'partial'", message, StringComparison.Ordinal);
+    }
+
+    // The counterpart: make the container partial and the diagnostic goes away entirely, so the message
+    // above cannot be satisfied by something that reports on every nested host regardless.
+    [Fact]
+    public void A_host_nested_in_a_partial_container_is_fine()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Card : Component { }
+                                              public partial class Outer
+                                              {
+                                                  public partial class NestedTests : RaskMarkup { }
+                                              }
+                                              """);
+
+        Assert.Empty(run.WithId("RASK036"));
+    }
+
     // [RaskMarkup] on a type whose base slot is still free costs nothing extra: the generated partial
     // writes `: RaskMarkup` for it, so the framework tags arrive by the same inheritance the base-class
     // form uses, and the attribute is only a way of saying it without spending the slot YOURSELF. What
