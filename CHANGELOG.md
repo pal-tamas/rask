@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The CLI build gate was red on `main`, so every `git push` was blocked.** Six tests looked for a
+  scaffolded SPA at `projectDir/name/name.csproj` and `projectDir/name/Client`. `GenerateSpa` writes
+  `{NameToken}.csproj` and `Client/…` directly under the target directory — flat, since the host stopped
+  being a `.Server` sibling and the front end became a folder rather than a second project. Every other
+  test in the same file already used `Path.Combine(projectDir, name + ".csproj")`; these were left
+  behind.
+
+  They failed in about 120 ms with `MSBUILD : error MSB1009: Project file does not exist` — before
+  anything was built, so the message describes the test's own path and not the scaffold it was meant to
+  check. The gate runs in the `pre-push` hook, which means this did not merely fail a suite: nothing
+  could be pushed at all without `--no-verify`, on any branch. Now 29 passed, 0 failed.
+
 - **A scaffolded Analog front end shipped a bare `@rask/client` and died in the browser.** The alias is
   written into the app's own `tsconfig.json`, which is a *type-checking* concept — Vite never reads it
   when bundling. `AddRaskViteConfig` was supposed to add the bundler half, but skipped it whenever the

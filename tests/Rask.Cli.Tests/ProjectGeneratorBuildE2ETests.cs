@@ -302,7 +302,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             // Both files, because both are load-bearing: package.json is what makes the Client folder
             // convention resolve, and tsconfig.json is what satisfies RASKSPA004 — the build's refusal to
             // generate TypeScript contracts into a client that is not a TypeScript project.
-            var client = Path.Combine(projectDir, name, "Client");
+            var client = Path.Combine(projectDir, "Client");
             fs.CreateDirectory(client);
             fs.WriteAllText(Path.Combine(client, "package.json"), """{ "name": "stand-in", "private": true }""");
 
@@ -314,7 +314,7 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var server = Path.Combine(projectDir, name, name + ".csproj");
+            var server = Path.Combine(projectDir, name + ".csproj");
             var (exit, output) = await CliBuildE2E.RunDotnet(
                 $"build \"{server}\" -warnaserror -m:1 -p:RaskSpaBuild=false");
             Assert.True(exit == 0, $"[data={data}] generated react solution failed to build.{CliBuildE2E.Diagnostics(output)}");
@@ -380,13 +380,13 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             // package.json and no tsconfig.json: the convention resolves the client, the contract emit turns
             // itself on, and there is nothing on the other side able to check what it writes.
-            var client = Path.Combine(projectDir, name, "Client");
+            var client = Path.Combine(projectDir, "Client");
             fs.CreateDirectory(client);
             fs.WriteAllText(Path.Combine(client, "package.json"), """{ "name": "stand-in", "private": true }""");
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var server = Path.Combine(projectDir, name, name + ".csproj");
+            var server = Path.Combine(projectDir, name + ".csproj");
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -m:1 -p:RaskSpaBuild=false");
 
             Assert.True(exit != 0, $"a JavaScript client built anyway.{CliBuildE2E.Diagnostics(output)}");
