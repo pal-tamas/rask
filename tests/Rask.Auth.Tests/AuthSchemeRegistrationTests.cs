@@ -86,6 +86,28 @@ public sealed class AuthSchemeRegistrationTests
         Assert.Equal("/login", cookie.LoginPath);
     }
 
+    [Fact]
+    public void An_external_provider_added_after_the_battery_composes_with_the_cookie()
+    {
+        // A second cookie scheme under another name stands in for AddOpenIdConnect, so this suite does
+        // not take a dependency on the OIDC package to assert a shape that is about scheme wiring: an
+        // external provider performs the CHALLENGE and signs in through the cookie the battery owns.
+        // This is the arrangement docs/authentication-providers.md shows, in the order it shows it.
+        using var provider = Build(configureAfter: services =>
+        {
+            services.AddAuthentication().AddCookie("idp", c => c.LoginPath = "/idp");
+            services.Configure<AuthenticationOptions>(o => o.DefaultChallengeScheme = "idp");
+        });
+
+        var options = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
+
+        Assert.Equal(CookieAuthenticationDefaults.AuthenticationScheme, options.DefaultScheme);
+        Assert.Equal("idp", options.DefaultChallengeScheme);
+        Assert.Contains(options.Schemes, s => s.Name == "idp");
+        // The battery keeps configuring its own cookie; adding a provider does not disturb it.
+        Assert.Equal("/login", Cookie(provider).LoginPath);
+    }
+
     private static CookieAuthenticationOptions Cookie(IServiceProvider provider) =>
         provider
             .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
