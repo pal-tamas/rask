@@ -1,0 +1,82 @@
+namespace Rask.Site;
+
+/// <summary>
+/// The "up and running in one command" install block — a stateful Rask component. Clicking a tab
+/// sets <c>_active</c> and re-renders the selected terminal; no JS, no hidden-toggling.
+/// </summary>
+public sealed partial class InstallTabs : Component
+{
+    private static readonly string[] Labels = ["Server", "WASM"];
+
+    private int _active; // 0 = Server, 1 = WASM
+
+    /// <summary>
+    /// The install command, spelled once. It is the same string in the README, NUGET.md, docs/cli.md,
+    /// docs/getting-started.md, docs/installation.md, the tutorial and llms.txt, and
+    /// <c>scripts/tests/install-script.test.sh</c> fails the build if any of them drifts — a wrong URL
+    /// on the landing page is a broken front door that nothing else would catch.
+    /// </summary>
+    private const string InstallCommand = "curl -sSL https://rask.sh/rask.sh | sh";
+
+    private const string WindowsInstallCommand = "irm https://rask.sh/rask.ps1 | iex";
+
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Div.Class("mx-auto max-w-2xl")[
+            Div
+                .Class("mb-3 flex justify-center gap-2")
+                .Role("tablist")
+                .Aria(new Dictionary<string, string?> { ["label"] = "Project template" })[
+                Tab(0), Tab(1)
+            ],
+            // .term and .install-foot are TEST contracts: SiteExampleTests reads the rendered command and
+            // the Windows one-liner out of them, and a locator that resolves to nothing fails by timing
+            // out rather than by naming what moved.
+            Div.Class("term overflow-x-auto rounded-2xl border border-ui-line bg-ui-well p-5 text-left")[
+                Terminal()
+            ],
+            P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
+                "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
+                ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
+            ],
+            P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
+                "Add ", Code["--auth"], " for a cookie/JWT starter · full path in the ",
+                A
+                    .Class("text-ui-brand-ink no-underline hover:underline")
+                    .Href("https://github.com/pal-tamas/rask/blob/main/docs/getting-started.md")
+                    .Target("_blank")
+                    .Rel("noopener")["getting-started guide"], "."
+            ]
+        ];
+
+    private static Component Line(string prompt, string rest) =>
+        [Span.Class("select-none text-ui-brand-ink")[prompt], rest + "\n"];
+
+    private Component Tab(int i) =>
+        Button
+            .Key(i)
+            // min-h-11 below sm: 44px is the smallest reliable touch target, and these are text-sm.
+            .Class("inline-flex min-h-11 items-center rounded-lg px-4 text-sm sm:min-h-0 sm:py-1.5 " + (i == _active
+                ? "border border-ui-line bg-ui-bg font-medium text-ui-ink"
+                : "border border-transparent text-ui-muted hover:bg-ui-well hover:text-ui-ink"))
+            .Type("button")
+            .Role("tab")
+            .Aria(new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" })
+            .OnClick(() => _active = i)[Labels[i]];
+
+    private Component Terminal() => _active switch
+    {
+        1 => Pre.Class("font-mono text-xs leading-relaxed text-ui-ink")[Code[
+            Span.Class("text-ui-muted")["# standalone browser-WASM SPA, installable and offline\n"],
+            Line("$", " " + InstallCommand),
+            Line("$", " rask new MyApp --template wasm"),
+            Span.Class("select-none text-ui-brand-ink")["$"], " cd MyApp && rask dev"
+        ]],
+        _ => Pre.Class("font-mono text-xs leading-relaxed text-ui-ink")[Code[
+            Span.Class("text-ui-muted")["# ASP.NET live-server app, batteries included\n"],
+            Line("$", " " + InstallCommand),
+            Line("$", " rask new MyApp"),
+            Span.Class("select-none text-ui-brand-ink")["$"], " cd MyApp && rask dev"
+        ]]
+    };
+}

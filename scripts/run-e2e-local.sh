@@ -240,24 +240,9 @@ if [ "$build_status" -ne 0 ]; then
 fi
 
 echo "==> Publish the samples the E2E fixtures boot"
-# Server shard boots the *published* host; the WASM static-host shards need their published wwwroot bundle.
-dotnet publish samples/Rask.Example.Server -c Release --no-build --no-restore --nologo
-# The Shop fixture runs the published app too, so the fixture boots what a deploy would.
-dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --nologo
-dotnet publish samples/Rask.Example.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
-# The other exception to WasmBuildNative=false, and the slowest line here (an emscripten relink, minutes
-# not seconds): this sample runs SQLite in the browser, and SQLite is a native library. Skipping the
-# relink produces a bundle that boots and then fails on every database call, so the flag must NOT be
-# passed. BrowserJobsWasmAppFixture checks the published output and says so if it was.
-#
-# Which makes it a project built two ways into one obj/ — the case the note at the top of this file warns
-# about — so its TFM intermediates are cleared first. It has no scoped assets today, so the missing bake
-# that used to bite the playground here cannot bite it yet; that is exactly why this is worth doing now
-# rather than after someone adds a scoped .css to the sample and spends an afternoon on a 404 that names
-# nothing. It keeps --no-restore: nothing here gates a PackageReference on the build mode, so the package
-# graph is identical either way.
-rm -rf samples/Rask.Example.Wasm.Jobs/obj/Release/net10.0-browser
-dotnet publish samples/Rask.Example.Wasm.Jobs -c Release --no-restore --nologo
+# The one app the browser suite drives: the published site bundle, served by a plain static host the
+# way GitHub Pages serves it. It used to be eight publishes across eight samples; there is one site now.
+dotnet publish site/Rask.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
 
 # This used to shell out to `pwsh <path>/playwright.ps1 install chromium`, and skipped itself whenever
 # pwsh was missing. On Linux that is the common case, not the edge one — PowerShell is in neither

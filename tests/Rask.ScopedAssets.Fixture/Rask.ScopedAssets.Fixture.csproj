@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A real assembly carrying source-generator-emitted __RaskScopedCssRegistration and
+    __RaskScopedJsRegistration, so BakeScopedAssetsTaskTests can drive the end-to-end bake against
+    something the generator actually produced rather than a synthetic class built with Reflection.Emit.
+
+    It used to lean on Rask.Example.Shared for this. That worked while a showcase happened to exist with
+    scoped assets in it, and it broke the moment the samples were deleted — a build-order dependency on
+    a sample that the test never named as a requirement. No src/ assembly has scoped CSS, so the fixture
+    is explicit now: three files whose whole purpose is to be baked.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

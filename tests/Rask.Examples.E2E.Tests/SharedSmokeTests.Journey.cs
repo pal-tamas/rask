@@ -10,7 +10,7 @@ namespace Rask.Examples.E2E.Tests;
 // The fine-grained framework/component LOGIC the old per-feature facts asserted (every validation
 // attribute message, every nullable binding case, lifecycle hook ordering, diff codec, route-value
 // parsing, …) is covered in-process by the unit suites (Rask.Core.Tests/Forms, Rask.Server.Tests,
-// Rask.Validation.*.Tests, Rask.Example.Shared.Tests). What only a browser can prove — real DOM
+// Rask.Validation.*.Tests, Rask.Site.Tests). What only a browser can prove — real DOM
 // rendering, the live morph, scoped-CSS computed styles, JS interop, focus, drag events, history,
 // reconnect, slow links — lives here, exercised once end-to-end against each host.
 public abstract partial class SharedSmokeTests

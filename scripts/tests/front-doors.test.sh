@@ -4,7 +4,7 @@
 # It is written in three places, and each of them is somebody's front door:
 #   README.md                          the repository landing page
 #   NUGET.md                           packed into every published package, so the nuget.org page
-#   samples/Rask.Example.Site/Pages/HomePage.cs   the hero on the published site
+#   site/Rask.Site/Features/Home/HomePage.cs   the hero on the published site
 #
 # Nothing pinned them to each other, and they drifted exactly as you would expect. #924 cut the
 # sample to one button and left the other two on the old three-line version; worse, the hero had
@@ -62,7 +62,7 @@ hero_counter() {
         inconst && /^        """$/               { body = 1; next }
         inconst && body && /^        """;$/      { exit }
         inconst && body                          { print }
-    ' samples/Rask.Example.Site/Pages/HomePage.cs \
+    ' site/Rask.Site/Features/Home/HomePage.cs \
     | sed -e 's/<[^>]*>//g' \
           -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&quot;/"/g' -e 's/&amp;/\&/g' \
           -e 's/^        //'
@@ -116,8 +116,8 @@ check "a NUGET.md-only commit runs this guard" yes "$(matches_front_doors NUGET.
 
 # The hero needs no entry of its own: it lives under samples/, which the ordinary filter already
 # matches, so its commits run the full gate — and that runs this file via run-unit-local.sh.
-check "the site hero is under samples/" yes \
-    "$([ -f samples/Rask.Example.Site/Pages/HomePage.cs ] && printf yes || printf no)"
+check "the site hero is under site/" yes \
+    "$([ -f site/Rask.Site/Features/Home/HomePage.cs ] && printf yes || printf no)"
 
 # ...which is only true while the ordinary filter really does match the tree the hero lives in. That
 # filter decides whether the WHOLE format + unit suite runs, and its failure mode is silence: a prefix
@@ -138,7 +138,7 @@ runs_full_gate() {
 # because it is the newest and the one a future reader is most likely to leave out.
 check "a site/ commit runs the gate"      yes "$(runs_full_gate site/Rask.Site/Program.cs)"
 check "a src/ commit runs the gate"       yes "$(runs_full_gate src/Rask.Core/Component.cs)"
-check "a samples/ commit runs the gate"   yes "$(runs_full_gate samples/Rask.Example.Wasm/Program.cs)"
+check "a second site/ path runs the gate" yes "$(runs_full_gate site/Rask.Site/Program.cs)"
 check "a docs/ commit runs the gate"      yes "$(runs_full_gate docs/routing.md)"
 check "a tests/ commit runs the gate"     yes "$(runs_full_gate tests/Rask.Core.Tests/X.cs)"
 check "a scripts/ commit runs the gate"   yes "$(runs_full_gate scripts/run-unit-local.sh)"

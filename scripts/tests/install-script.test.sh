@@ -316,14 +316,14 @@ for f in \
     docs/getting-started.md \
     docs/installation.md \
     llms.txt \
-    samples/Rask.Example.Site/InstallTabs.cs \
-    samples/Rask.Example.Shared/Features/Guides/GuidesIndexPage.cs; do
+    site/Rask.Site/Features/Home/InstallTabs.cs \
+    site/Rask.Site/Features/Guides/GuidesIndexPage.cs; do
     check "$f carries the canonical rask.sh URL" yes \
         "$(grep -qF "$sh_url" "$f" && printf yes || printf no)"
 done
 
 for f in rask.ps1 README.md docs/installation.md \
-    samples/Rask.Example.Shared/Features/Guides/GuidesIndexPage.cs; do
+    site/Rask.Site/Features/Guides/GuidesIndexPage.cs; do
     check "$f carries the canonical rask.ps1 URL" yes \
         "$(grep -qF "$ps1_url" "$f" && printf yes || printf no)"
 done
@@ -333,8 +333,8 @@ done
 # references none of the showcase — so `rask new` is written out twice, and this is what stops the two
 # from drifting into telling a visitor different things.
 check "both sites scaffold with the same command" yes \
-    "$(grep -qF 'rask new MyApp' samples/Rask.Example.Site/InstallTabs.cs \
-       && grep -qF 'rask new MyApp' samples/Rask.Example.Shared/Features/Guides/GuidesIndexPage.cs \
+    "$(grep -qF 'rask new MyApp' site/Rask.Site/Features/Home/InstallTabs.cs \
+       && grep -qF 'rask new MyApp' site/Rask.Site/Features/Guides/GuidesIndexPage.cs \
        && printf yes || printf no)"
 
 # A stale host is the drift that actually happens: rask.dev is a domain this project does not own

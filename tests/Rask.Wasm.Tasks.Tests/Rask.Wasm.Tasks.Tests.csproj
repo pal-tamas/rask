@@ -12,13 +12,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Utilities.Core"/>
-    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <!-- FullIcuPropertyNameTests reads the installed WebAssembly SDK pack, which a machine without the
          wasm-tools workload does not have. Skipped there rather than failed — but LOUDLY, since a
          silent pass is how the bug it guards survived in the first place. -->
-    <PackageReference Include="Xunit.SkippableFact"/>
-    <PackageReference Include="xunit"/>
+    <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -26,23 +26,24 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit"/>
+    <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
     <!--
       The task DLL is netstandard2.0; reference it as a real project so the test
-      runner picks up rebuilds. Rask.Example.Shared brings in a real assembly
+      runner picks up rebuilds. Rask.ScopedAssets.Fixture brings in a real assembly
       with __RaskScopedCssRegistration / __RaskScopedJsRegistration so the
       end-to-end bake path can be driven against a known fixture without
       having to hand-build a synthetic registration class via Reflection.Emit.
+      It used to be Rask.Example.Shared — a showcase that happened to have scoped
+      assets in it, which made this an unnamed dependency on a sample.
     -->
-    <ProjectReference Include="..\..\src\Rask.Wasm.Tasks\Rask.Wasm.Tasks.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\src\Rask.Wasm.Tasks\Rask.Wasm.Tasks.csproj" />
+    <ProjectReference Include="..\Rask.ScopedAssets.Fixture\Rask.ScopedAssets.Fixture.csproj" />
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj" />
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj" />
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

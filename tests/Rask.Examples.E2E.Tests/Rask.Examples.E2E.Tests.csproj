@@ -15,9 +15,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Playwright"/>
-    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-    <PackageReference Include="xunit"/>
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -29,52 +29,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit"/>
+    <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- Caps cross-collection parallelism for LOCAL full-suite runs (see xunit.runner.json).
          Each browser-host collection fixture boots a full `dotnet run` host plus a Chromium
          page, so unbounded parallelism over-subscribes a small box. This cap is the ONLY thing
          bounding that now: the suite runs on one developer machine via scripts/run-e2e-local.sh
          (.githooks/pre-push), never in CI. It used to be belt-and-braces alongside a sharded `e2e`
          job, which no longer exists — no workflow in this repo runs the browser E2E. -->
-    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\samples\Rask.Example.Server\Rask.Example.Server.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Meta.Nuxt\Rask.Example.Meta.Nuxt.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Meta.TanStack\Rask.Example.Meta.TanStack.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Meta.SolidStart\Rask.Example.Meta.SolidStart.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Meta.SvelteKit\Rask.Example.Meta.SvelteKit.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Meta.Next\Rask.Example.Meta.Next.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Meta.Analog\Rask.Example.Meta.Analog.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.EfCore\Rask.Example.EfCore.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Shop\Rask.Example.Shop.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Auth\Rask.Example.Auth.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Auth.Jwt\Rask.Example.Auth.Jwt.csproj"
-                      ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Auth.WasmCookie.Host\Rask.Example.Auth.WasmCookie.Host.csproj"
-                      ReferenceOutputAssembly="false"
-                      SkipGetTargetFrameworkProperties="true"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Auth.WasmJwt.Host\Rask.Example.Auth.WasmJwt.Host.csproj"
-                      ReferenceOutputAssembly="false"
-                      SkipGetTargetFrameworkProperties="true"/>
-    <ProjectReference Include="..\..\samples\Rask.Example.Wasm.Host\Rask.Example.Wasm.Host.csproj"
-                      ReferenceOutputAssembly="false"
-                      SkipGetTargetFrameworkProperties="true"/>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--
@@ -89,28 +55,20 @@
     past the point the test starts driving it.
   -->
   <ItemGroup>
-    <_RaskBrowserFixture Include="BrowserFixtures\*.ts"/>
-    <_RaskBrowserFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts"
-                                   Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts"/>
+    <_RaskBrowserFixture Include="BrowserFixtures\*.ts" />
+    <_RaskBrowserFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts" Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts" />
   </ItemGroup>
 
   <!-- DependsOnTargets: inert at AfterTargets="Build", stated so the generated-task ordering
        invariant holds without an exemption (#878). -->
-  <Target Name="_RaskBundleBrowserFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
-          Inputs="@(_RaskBrowserFixture);@(_RaskBrowserFixtureDependency)"
-          Outputs="@(_RaskBrowserFixture->'$(OutDir)browser-fixtures/%(Filename).js')">
-    <ResolveTypeScriptToolTask Tool="esbuild"
-                               Version="$(RaskEsbuildVersion)"
-                               CacheRoot="$(RaskTypeScriptCacheRoot)"
-                               Registry="$(RaskTypeScriptRegistry)"
-                               Offline="$(RaskTypeScriptOffline)">
-      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+  <Target Name="_RaskBundleBrowserFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences" Inputs="@(_RaskBrowserFixture);@(_RaskBrowserFixtureDependency)" Outputs="@(_RaskBrowserFixture->'$(OutDir)browser-fixtures/%(Filename).js')">
+    <ResolveTypeScriptToolTask Tool="esbuild" Version="$(RaskEsbuildVersion)" CacheRoot="$(RaskTypeScriptCacheRoot)" Registry="$(RaskTypeScriptRegistry)" Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath" />
     </ResolveTypeScriptToolTask>
 
-    <MakeDir Directories="$(OutDir)browser-fixtures"/>
+    <MakeDir Directories="$(OutDir)browser-fixtures" />
 
-    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskBrowserFixture.FullPath)&quot; --bundle --format=iife --target=es2020 --log-level=warning --outfile=&quot;$(OutDir)browser-fixtures/%(_RaskBrowserFixture.Filename).js&quot;"
-          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskBrowserFixture.FullPath)&quot; --bundle --format=iife --target=es2020 --log-level=warning --outfile=&quot;$(OutDir)browser-fixtures/%(_RaskBrowserFixture.Filename).js&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
 
 </Project>

@@ -51,11 +51,9 @@ jobs:
       # renders its route to real HTML and splices it into the boot shell — no flag needed here. Look
       # for the "[Rask.Prerender] result written=N" line in this step's log: it is the only thing that
       # says whether the pass produced anything, since the file it writes is the one the shell occupies.
-      - name: Publish the landing site (Rask.Example.Site → /)
-        run: dotnet publish samples/Rask.Example.Site -c Release
+      - name: Publish the site (site/Rask.Site → /)
+        run: dotnet publish site/Rask.Site -c Release
 
-      - name: Publish the live showcase / docs (Rask.Example.Wasm → /docs/)
-        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/docs
 
       # Expected, harmless: with DevTools open each WASM app logs a 404 for _framework/dotnet.runtime.js.map.
       # The Release publish strips all .map files, but the fingerprinted dotnet.runtime.*.js keeps its
@@ -64,12 +62,11 @@ jobs:
       # post-publish: the runtime JS is SRI-pinned in the import map (see #63), so changing its bytes
       # breaks the integrity check. Shipping the 270 KB map to silence a DevTools-only 404 isn't worth
       # it on a size-tuned bundle (we already drop ICU).
-      - name: Assemble the Pages bundle (landing at root, docs nested)
+      - name: Assemble the Pages bundle
         id: bundle
         run: |
-          LANDING=samples/Rask.Example.Site/bin/Release/net10.0-browser/publish/wwwroot
-          DOCS=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/publish/wwwroot
-          for d in "$LANDING" "$DOCS"; do
+          SITE_PUBLISH=site/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
+          for d in "$SITE_PUBLISH"; do
             if [ ! -d "$d" ]; then
               echo "Could not locate published wwwroot: $d" >&2
               find . -maxdepth 6 -type d -name wwwroot
@@ -78,8 +75,7 @@ jobs:
           done
           SITE="$RUNNER_TEMP/site"
           mkdir -p "$SITE"
-          cp -r "$LANDING"/. "$SITE"/                 # marketing landing app at the root
-          cp -r "$DOCS" "$SITE/docs"
+          cp -r "$SITE_PUBLISH"/. "$SITE"/            # one app: landing at /, showcase at /docs
           # The installers every doc advertises: https://<site>/rask.sh and /rask.ps1. They live at
           # the repo root as the single source of truth and are published from there rather than
           # duplicated into the landing app's wwwroot, so there is exactly one copy to review, test
@@ -95,12 +91,11 @@ jobs:
           # answering on the wrong host. www.rask.sh CNAMEs to pal-tamas.github.io and GitHub 301s it
           # here; the apex carries the A/AAAA records.
           echo "rask.sh" > "$SITE/CNAME"
-          # GitHub Pages serves /404.html for any unknown path; boot the docs SPA (its <base href> is
-          # /<repo>/docs/, so it client-routes correctly) as the deep-link fallback — the landing page
-          # itself is a single route, so it needs none.
-          cp "$SITE/docs/index.html" "$SITE/404.html"
-          echo "--- landing <base> ---";      grep -i "<base"   "$SITE/index.html" || true
-          echo "--- docs <base> ---";         grep -i "<base"   "$SITE/docs/index.html" || true
+          # GitHub Pages serves /404.html for any unknown path. There is nothing to copy here any
+          # more: /docs/ is a route inside the one app rather than a nested sub-app, and the prerender
+          # pass writes an untouched boot shell to 404.html itself (#974). Copying a RENDERED page over
+          # it is what that issue was about — every deep link would boot into whatever page got copied.
+          echo "--- <base> ---"; grep -i "<base" "$SITE/index.html" || true
           echo "dir=$SITE" >> "$GITHUB_OUTPUT"
 
       - uses: actions/configure-pages@v6

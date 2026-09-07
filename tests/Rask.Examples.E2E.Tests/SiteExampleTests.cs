@@ -5,19 +5,19 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Examples.E2E.Tests;
 
 /// <summary>
-///     The marketing landing site (<c>Rask.Example.Site</c>), published and served from a plain static
-///     host (<see cref="SiteWasmAppFixture" />) — the GitHub Pages front door. The whole page is rendered
+///     The marketing landing page at the site root, published and served from a plain static
+///     host (<see cref="WasmExampleAppFixture" />) — the GitHub Pages front door. The whole page is rendered
 ///     by a Rask WASM app, so the journey proves the framework renders a full document shell, that the
 ///     live counter and install tabs are genuine stateful Rask components (click → diff → re-render), and
 ///     that the docs link points at the nested sub-app.
 /// </summary>
-[Collection(SiteExampleCollection.Name)]
+[Collection(WasmExampleCollection.Name)]
 public sealed class SiteExampleTests
 {
-    private readonly SiteWasmAppFixture _app;
+    private readonly WasmExampleAppFixture _app;
     private readonly PlaywrightFixture _pw;
 
-    public SiteExampleTests(SiteWasmAppFixture app, PlaywrightFixture pw)
+    public SiteExampleTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     {
         _app = app;
         _pw = pw;

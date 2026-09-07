@@ -2,7 +2,7 @@ using System.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Rask.Core.ScopedAssets;
-using Rask.Example.Shared;
+using Rask.ScopedAssets.Fixture;
 
 namespace Rask.Wasm.Tasks.Tests;
 
@@ -10,7 +10,7 @@ namespace Rask.Wasm.Tasks.Tests;
 ///     Verifies <see cref="BakeScopedAssetsTask" /> writes the scoped-asset registry
 ///     to <c>{BundleDir}/_rask/a/{hash}.{ext}</c> for standalone WASM deploys (GH
 ///     Pages, plain static-file servers). Covers the early-return paths and the
-///     end-to-end bake driven against a real assembly (Rask.Example.Shared) whose
+///     end-to-end bake driven against a real assembly (Rask.ScopedAssets.Fixture) whose
 ///     <c>__RaskScopedCssRegistration</c> module initializer fires on test startup.
 /// </summary>
 public sealed class BakeScopedAssetsTaskTests : IDisposable
@@ -81,17 +81,17 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     [Fact]
     public void RealAssemblies_BakeWritesOneFilePerRegisteredAsset()
     {
-        // Rask.Example.Shared's source-generator-emitted __RaskScopedCssRegistration and
+        // Rask.ScopedAssets.Fixture's source-generator-emitted __RaskScopedCssRegistration and
         // __RaskScopedJsRegistration run at assembly load; this test's project references
-        // Rask.Example.Shared so by the time the test executes, the in-process registry
+        // Rask.ScopedAssets.Fixture so by the time the test executes, the in-process registry
         // already contains its entries. The task RefreshAll-loops over those registration
         // classes, then writes one file per (hash, kind) entry.
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
-        var exampleSharedDll = typeof(App).Assembly.Location;
+        var fixtureDll = typeof(ScopedWidget).Assembly.Location;
         Assert.True(File.Exists(raskCoreDll), $"Rask.Core.dll not at {raskCoreDll}");
-        Assert.True(File.Exists(exampleSharedDll), $"Rask.Example.Shared.dll not at {exampleSharedDll}");
+        Assert.True(File.Exists(fixtureDll), $"Rask.ScopedAssets.Fixture.dll not at {fixtureDll}");
 
-        var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(exampleSharedDll) });
+        var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(fixtureDll) });
 
         Assert.True(task.Execute());
 
@@ -101,7 +101,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         var cssBundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
         var jsBundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
         var expectedFiles = (cssBundleHash.Length > 0 ? 1 : 0) + (jsBundleHash.Length > 0 ? 1 : 0);
-        Assert.True(expectedFiles > 0, "Rask.Example.Shared should register at least one scoped asset kind");
+        Assert.True(expectedFiles > 0, "Rask.ScopedAssets.Fixture should register at least one scoped asset kind");
 
         // One concatenated bundle file per kind (css + js), not one per component.
         var bakedFiles = Directory.EnumerateFiles(outDir).ToArray();
@@ -112,9 +112,9 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     public void RealAssemblies_BakedFilenamesMatchHashAndExtension()
     {
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
-        var exampleSharedDll = typeof(App).Assembly.Location;
+        var fixtureDll = typeof(ScopedWidget).Assembly.Location;
 
-        var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(exampleSharedDll) });
+        var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(fixtureDll) });
         task.Execute();
 
         var outDir = Path.Combine(_bundleDir, "_rask", "a");
@@ -143,7 +143,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
             new ITaskItem[]
             {
                 new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
-                new TaskItem(typeof(App).Assembly.Location)
+                new TaskItem(typeof(ScopedWidget).Assembly.Location)
             });
         task.FailOnEmpty = true;
 
@@ -156,7 +156,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     public void FailOnEmpty_WhenRegistryResolvedButZeroBaked_ReturnsFalseAndLogsError()
     {
         // Rask.Core is present so the registry resolves, but we feed NO registration-
-        // bearing assembly (no Rask.Example.Shared), and clear the registry first so the
+        // bearing assembly (no Rask.ScopedAssets.Fixture), and clear the registry first so the
         // module-initializer-populated entries from this test process don't leak in.
         // Result: registry resolved, zero entries → the guard fails the build.
         ScopedAssetRegistry.InvalidateAllCss();
@@ -186,8 +186,8 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     public void Rerun_OverwritesSameFiles_Idempotent()
     {
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
-        var exampleSharedDll = typeof(App).Assembly.Location;
-        var assemblies = new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(exampleSharedDll) };
+        var fixtureDll = typeof(ScopedWidget).Assembly.Location;
+        var assemblies = new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(fixtureDll) };
 
         NewTask(_bundleDir, assemblies).Execute();
         var outDir = Path.Combine(_bundleDir, "_rask", "a");

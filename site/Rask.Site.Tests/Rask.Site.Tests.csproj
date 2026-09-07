@@ -1,0 +1,126 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);RASK014</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <!-- Parses the tutorial's C# snippets (TutorialSnippetTests). The docs are the only place the
+         framework's code is taught now, so they get a parser rather than a proofread. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <!-- The guides are rendered with Markdig and highlighted with ColorCode; the linked sources name
+         both. -->
+    <PackageReference Include="Markdig"/>
+    <PackageReference Include="ColorCode.HTML"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Rask.Ui"/>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Testing"/>
+    <!-- WaitFor lives in the shared helper library now, so every suite polls the same way (#769). -->
+    <Using Include="Rask.TestSupport"/>
+  </ItemGroup>
+
+  <!--
+    The site is a net10.0-browser EXE, and a net10.0 test project cannot ProjectReference one — so its
+    sources are LINKED and compiled here a second time, the way tests/Rask.Example.Site.Tests already
+    did before the merge. Program.cs is excluded because it is top-level statements: including it would
+    give this assembly a second entry point.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Site\**\*.cs">
+      <Link>Site/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+    <Compile Remove="..\Rask.Site\obj\**"/>
+    <Compile Remove="..\Rask.Site\bin\**"/>
+    <Compile Remove="..\Rask.Site\node_modules\**"/>
+    <Compile Remove="..\Rask.Site\Program.cs"/>
+  </ItemGroup>
+
+  <!--
+    The scoped .css/.ts that pair with those linked sources, handed to the generator the same way
+    Rask.Core.targets hands the site its own — by folder glob, which only ever covers the project it
+    runs in.
+
+    Without these the pairing simply does not happen here: the components compile, render, and carry NO
+    data-r-* scope id, so ScopedDemoTests' "two components get distinct scopes" assertion reads null and
+    the scoped-CSS feature is untested by anything. That is the specific cost of linking sources instead
+    of referencing a project, and it is worth paying explicitly rather than discovering later.
+  -->
+  <ItemGroup>
+    <AdditionalFiles Include="..\Rask.Site\**\*.css"
+                     Exclude="..\Rask.Site\bin\**;..\Rask.Site\obj\**;..\Rask.Site\node_modules\**;..\Rask.Site\wwwroot\**;..\Rask.Site\Styles\**"/>
+  </ItemGroup>
+
+  <!--
+    The guides the site renders, embedded here too — and this is the item most likely to be dropped by
+    someone tidying this file, so it is worth being explicit about what happens then.
+
+    GuideEmbeddingTests and GuidesTests assert that every embedded doc appears in GuideCatalog. With no
+    embedded docs at all that assertion is VACUOUSLY TRUE: the suite goes green having checked nothing,
+    and stays green while the catalog rots. RequireEmbeddedGuides below turns that into a build error
+    rather than trusting the next reader to notice.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\**\*.md">
+      <LogicalName>raskdoc/%(Filename)%(Extension)</LogicalName>
+      <Link>Docs/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Rask.Site\Features\**\*.cs;..\Rask.Site\Features\**\*.ts;..\Rask.Site\Features\**\*.css;..\Rask.Site\Shared\**\*.cs;..\Rask.Site\Shared\**\*.ts;..\Rask.Site\Shared\**\*.css">
+      <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Target Name="RequireEmbeddedGuides" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_RaskGuideDoc Include="@(EmbeddedResource)" Condition="$([System.String]::new('%(LogicalName)').StartsWith('raskdoc/'))"/>
+    </ItemGroup>
+    <Error Condition="'@(_RaskGuideDoc->Count())' == '0'"
+           Text="No docs/**/*.md are embedded into this test assembly, so every 'each embedded guide is in the catalog' assertion passes vacuously. Restore the raskdoc EmbeddedResource item above."/>
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
+    <!-- The shipped testing package: this suite tests a sample app, so it drives it the way an
+         app author would. -->
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <ProjectReference Include="..\..\tests\Rask.TestSupport\Rask.TestSupport.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
+    <!-- The linked sources include the WASM-only demos and the islands. Rask.Wasm multi-targets
+         net10.0;net10.0-browser, so this net10.0 suite gets the net10.0 face of the same API — which is
+         also how the prerender companion compiles these files. -->
+    <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
+    <!-- The CQRS handler registry is GENERATED, and this project compiles the handlers' sources rather
+         than referencing a built assembly — so without this analyzer the handlers exist and nothing
+         registers them. It fails a long way from here: dispatcher.QueryAsync throws inside OnMountAsync,
+         the component keeps its initial empty state, and the demo renders its "Loading…" placeholder
+         forever. The golden caught it as a <ul> turning into a <p>. -->
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

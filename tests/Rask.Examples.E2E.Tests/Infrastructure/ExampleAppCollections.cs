@@ -1,143 +1,14 @@
 namespace Rask.Examples.E2E.Tests.Infrastructure;
 
 [CollectionDefinition(Name)]
-public sealed class ServerExampleCollection
-    : ICollectionFixture<ServerExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "ServerExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class MetaNuxtExampleCollection
-    : ICollectionFixture<MetaNuxtAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "MetaNuxtExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class MetaNextExampleCollection
-    : ICollectionFixture<MetaNextAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "MetaNextExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class MetaSvelteKitExampleCollection
-    : ICollectionFixture<MetaSvelteKitAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "MetaSvelteKitExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class MetaSolidStartExampleCollection
-    : ICollectionFixture<MetaSolidStartAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "MetaSolidStartExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class MetaTanStackExampleCollection
-    : ICollectionFixture<MetaTanStackAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "MetaTanStackExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class MetaAnalogExampleCollection
-    : ICollectionFixture<MetaAnalogAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "MetaAnalogExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class EfCoreExampleCollection
-    : ICollectionFixture<EfCoreExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "EfCoreExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class SqliteExampleCollection
-    : ICollectionFixture<SqliteExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "SqliteExample";
-}
-
-[CollectionDefinition(Name)]
 public sealed class WasmExampleCollection
     : ICollectionFixture<WasmExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {
     public const string Name = "WasmExample";
 }
 
-[CollectionDefinition(Name)]
-public sealed class StandaloneWasmExampleCollection
-    : ICollectionFixture<StandaloneWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "StandaloneWasmExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class SiteExampleCollection
-    : ICollectionFixture<SiteWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "SiteExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class BrowserJobsWasmExampleCollection
-    : ICollectionFixture<BrowserJobsWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "BrowserJobsWasmExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class SubPathWasmExampleCollection
-    : ICollectionFixture<SubPathWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "SubPathWasmExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class AuthExampleCollection
-    : ICollectionFixture<AuthExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "AuthExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class JwtServerAuthExampleCollection
-    : ICollectionFixture<JwtServerAuthAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "JwtServerAuthExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class WasmCookieAuthExampleCollection
-    : ICollectionFixture<WasmCookieAuthAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "WasmCookieAuthExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class WasmJwtAuthExampleCollection
-    : ICollectionFixture<WasmJwtAuthAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "WasmJwtAuthExample";
-}
-
-[CollectionDefinition(Name)]
-public sealed class ShopExampleCollection
-    : ICollectionFixture<ShopExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
-{
-    public const string Name = "ShopExample";
-}
-
-/// <summary>
-///     A real browser and nothing else — no app, no host, no port. For the shared client modules whose
-///     behaviour depends on DOM semantics a stub DOM cannot model (form-control dirtiness, in
-///     particular), where standing an app up would only add a dependency the assertion never uses.
-/// </summary>
+// Playwright with no application behind it: for journeys that drive a page they build themselves
+// (data: URLs, hand-written HTML) rather than one a host serves.
 [CollectionDefinition(Name)]
 public sealed class BrowserOnlyCollection : ICollectionFixture<PlaywrightFixture>
 {

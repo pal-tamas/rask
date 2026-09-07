@@ -1,5 +1,0 @@
-{
-  "id": 1,
-  "title": "Components are just methods",
-  "body": "This post is served as a local static JSON file from the app's own origin. HttpClient is registered in DI and injected into the page through its primary constructor, then OnMountAsync fetches this file with GetFromJsonAsync — the same code path that would call a real API, minus the external dependency."
-}
