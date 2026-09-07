@@ -101,22 +101,25 @@ done
 echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
 dotnet format Rask.slnx --verify-no-changes --no-restore
 
-# The generated TypeScript is checked by tsc, which needs node. The rest of this gate deliberately does
-# not (the build passes -p:RaskSpaBuild=false), so the toolchain is provisioned here when it can be and
-# the check is excluded — LOUDLY — when it cannot. What must not happen is the third option: a test that
-# quietly reports success without ever running a type-checker, which is how a generator emitting
-# malformed TypeScript would ship green.
+# The generated TypeScript is compiled by tsgo, which the test fetches itself as a checksum-verified
+# binary at a pinned version, cached per user. So the type CHECK needs no node and always runs. Nothing
+# to exclude any more: it used to be skipped when npx was absent, and a check whose first question is
+# "is the tooling here?" is one that eventually answers no and stops running — which is how a generator
+# emitting malformed TypeScript would ship green.
 #
-# Cached under artifacts/, so the install is a one-off rather than a per-run download.
-# The generated TypeScript is compiled by tsgo, which the test fetches as a checksum-verified binary at
-# a pinned version, cached per user. The type check needs no node, so it always runs. The GATE does
-# need node, since the showcase gained islands: it carries a package.json, so the solution build runs
-# npm and Vite for it (pass -p:RaskExternalBuild=false to build it without). What must not happen
-# is a test that quietly reports success without ever having run a type-checker, which is how a
-# generator emitting malformed TypeScript would ship green.
-# Nothing to exclude any more: the check fetches tsgo itself, as a checksum-verified binary, the same
-# way the framework build does. It used to be skipped when npx was absent — and a check whose first
-# question is "is the tooling here?" is one that eventually answers no and stops running.
+# The GATE, on the other hand, needs node, and needs more of it than it used to. The build line above
+# turns off only the WASM bundle; RaskExternalBuild, RaskSpaBuild and RaskMetaBuild all default to true
+# (src/Rask.External/build/Rask.External.props, src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props,
+# src/Rask.Meta.Hosting/build/Rask.Meta.Hosting.props), and Rask.slnx now carries the showcase's islands
+# plus six Rask.Example.Meta.* samples. Building the solution therefore runs npm and Vite for the
+# islands AND a full PRODUCTION front-end build for each of Nuxt, Next, SvelteKit, SolidStart, TanStack
+# and Analog.
+#
+# This comment used to claim the opposite — "the build passes -p:RaskSpaBuild=false", a flag no script
+# in this repo has ever passed (#1012). Anyone reading it would have concluded the unit gate was
+# node-light and cheap. It is neither, and the stale sentence is exactly what would have stopped someone
+# noticing that the gate's cost changed when the meta samples landed. Whether the unit gate SHOULD build
+# sample front ends is a separate, open question; this comment's job is only to describe what it does.
 tsc_filter=""
 
 echo "==> Unit & integration tests (excludes the browser E2E)"

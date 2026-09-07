@@ -25,7 +25,8 @@
 #              refuse outright. Nothing ran, so every other kind would be a guess about a run that
 #              never happened. Note this is now the exception rather than the rule — a gate that finds
 #              the lane held waits for it, and a run that waits and then starts is not `busy` at all.
-#   code     — real compile errors (`error CS…`). The gate's own message is correct; the branch is broken.
+#   code     — the build produced errors (`error CS…`, or an analyzer id: `error RS…`, `error ASP…`,
+#              `error IDE…`). The gate's own message is correct; the branch is broken.
 #   workload — `error NETSDK1147` and no CS errors. A browser target could not resolve its workload.
 #   sdk      — some other `error NETSDK…` and no CS errors. An SDK/restore problem, still not the branch.
 #   unknown  — neither appears. The gate failed somewhere that is not a compile at all (a failing
@@ -37,8 +38,15 @@
 # correct explanation and contradicting it. The guard says "wait"; the classifier said "go read your
 # test output".
 #
-# CS wins over the machine kinds when both appear: a NETSDK error alongside genuine compile errors does
-# not excuse them.
+# `code` wins over the machine kinds when both appear: a NETSDK error alongside genuine compile errors
+# does not excuse them.
+#
+# The `code` count deliberately spans more than `CS`. This build is warnings-as-errors with analyzers on
+# (`Directory.Build.props`, `docs/code-analysis.md`), and the PublicAPI gate makes an unrecorded public
+# member a build error by design (RS0016/RS0017, `docs/api-style.md`) — so for anyone adding public API,
+# `error RS…` is the MOST likely way to break the build, ahead of `NETSDK`. Counting only `CS` sent those
+# runs to `unknown`, whose message asserts the failure is not a build failure and names three absent
+# things to investigate (#968): the #718 defect with its polarity reversed.
 rask_build_failure_kind() {
   local log="${1:-}"
 
@@ -48,7 +56,7 @@ rask_build_failure_kind() {
   # takes SIGPIPE, and the pipeline reports failure — the same trap that let a 421-file commit past the
   # pre-commit hook (see the note in .githooks/pre-commit). `|| true` because grep exits 1 on no match.
   local cs netsdk workload busy
-  cs=$(grep -Ec 'error[[:space:]]+CS[0-9]+' "$log" 2>/dev/null || true)
+  cs=$(grep -Ec 'error[[:space:]]+(CS|RS|ASP|IDE)[0-9]+' "$log" 2>/dev/null || true)
   netsdk=$(grep -Ec 'error[[:space:]]+NETSDK[0-9]+' "$log" 2>/dev/null || true)
   workload=$(grep -Ec 'error[[:space:]]+NETSDK1147' "$log" 2>/dev/null || true)
 
@@ -64,9 +72,9 @@ rask_build_failure_kind() {
   busy=$(grep -Ec '^run-e2e-local: (still queued after|refused to start)' "$log" 2>/dev/null || true)
 
   # `busy` sits BELOW code and above the machine kinds. A refusal means the suite never started, so it
-  # outranks anything inferred from an absence — but it must never outrank a real `error CS`: if
-  # something got far enough to fail compiling then something did run, and hiding that would be #718
-  # in reverse, blaming the machine for a broken branch.
+  # outranks anything inferred from an absence — but it must never outrank a real build error: if
+  # something got far enough to fail the compiler or an analyzer then something did run, and hiding that
+  # would be #718 in reverse, blaming the machine for a broken branch.
   if [ "${cs:-0}" -gt 0 ]; then
     printf 'code\n'
   elif [ "${busy:-0}" -gt 0 ]; then
@@ -112,7 +120,8 @@ rask_explain_build_failure() {
         echo "$gate: this is NOT your branch."
         echo
         echo "  Your machine cannot build browser targets right now: the 'wasm-tools' workload is"
-        echo "  unresolvable (error NETSDK1147), and nothing failed to compile (0 'error CS')."
+        echo "  unresolvable (error NETSDK1147), and nothing failed to build (no 'error CS', 'error RS',"
+        echo "  'error ASP' or 'error IDE')."
         echo
         echo "  The usual cause is a workload install in flight from another session or another worktree —"
         echo "  it bumps the shared manifests for the whole SDK band machine-wide, and for a moment they"
@@ -134,16 +143,18 @@ rask_explain_build_failure() {
       {
         echo "$gate: this looks like an SDK or restore problem, not your branch."
         echo
-        echo "  The build reported 'error NETSDK…' and nothing failed to compile (0 'error CS'), so the"
-        echo "  code is not what broke. Read the NETSDK error above — it names the missing piece."
+        echo "  The build reported 'error NETSDK…' and nothing failed to build — no 'error CS' and no"
+        echo "  analyzer error either — so the code is not what broke. Read the NETSDK error above: it"
+        echo "  names the missing piece."
       } >&2
       ;;
     *)
       {
         echo "$gate: failed without any compile error."
         echo
-        echo "  Neither 'error CS' nor 'error NETSDK' appears in the output, so this is not a build"
-        echo "  failure — look for a failing assertion, a timeout, or a host that exited early."
+        echo "  No 'error CS', no analyzer error ('error RS…', 'error ASP…', 'error IDE…') and no"
+        echo "  'error NETSDK…' appears in the output, so this is not a build failure — look for a"
+        echo "  failing assertion, a timeout, or a host that exited early."
         [ -n "$other_message" ] && { echo; echo "  $other_message"; }
       } >&2
       ;;

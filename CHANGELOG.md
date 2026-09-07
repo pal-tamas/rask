@@ -9,6 +9,114 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The CLI build gate was red on `main`, so every `git push` was blocked.** Six tests looked for a
+  scaffolded SPA at `projectDir/name/name.csproj` and `projectDir/name/Client`. `GenerateSpa` writes
+  `{NameToken}.csproj` and `Client/…` directly under the target directory — flat, since the host stopped
+  being a `.Server` sibling and the front end became a folder rather than a second project. Every other
+  test in the same file already used `Path.Combine(projectDir, name + ".csproj")`; these were left
+  behind.
+
+  They failed in about 120 ms with `MSBUILD : error MSB1009: Project file does not exist` — before
+  anything was built, so the message describes the test's own path and not the scaffold it was meant to
+  check. The gate runs in the `pre-push` hook, which means this did not merely fail a suite: nothing
+  could be pushed at all without `--no-verify`, on any branch. Now 29 passed, 0 failed.
+
+- **Four local gates told the operator something that was not true.** Each is small on its own; together
+  they are the same defect four times, and it is the one this repository's casebook keeps recording — a
+  gate that is red, or silent, for a reason other than the one it names.
+
+  **The build-failure classifier read an analyzer error as "not a build failure"**
+  ([#968](https://github.com/pal-tamas/rask/issues/968)). `rask_build_failure_kind` counted only
+  `error CS…` and `error NETSDK…`, so a push that failed on 132 lines of `error RS0016` — the PublicAPI
+  gate, on a new public type whose surface had not been recorded — fell through to `unknown`, whose
+  message says in as many words that this is *not* a build failure and names three things to look for
+  that were all absent. This build is warnings-as-errors with analyzers on, and the PublicAPI gate makes
+  an unrecorded public member a build error **by design**, so for anyone adding public API `error RS…` is
+  the most likely way to break the build — ahead of `NETSDK`. The count now spans `CS`, `RS`, `ASP` and
+  `IDE`, and the table test states all four rather than the two someone happened to try.
+
+  **A build in one worktree warned because another worktree was building**
+  ([#964](https://github.com/pal-tamas/rask/issues/964)). `RaskConfigureGitHooks` re-asserted
+  `core.hooksPath` on every build. `git config` with no per-worktree flag writes the *common* config, and
+  the write takes `.git/config.lock` — so with several worktrees building at once an ordinary build could
+  fail to take that lock and report `could not lock config file … File exists` as MSB3073, a
+  warnings-as-errors failure whose real cause was a different worktree. The target now reads the value
+  first and writes only on a mismatch: the value is set once and never changes, so every later build does
+  a lock-free read and stops. Deliberately **not** `IgnoreExitCode` on the write — an unconfigured
+  `core.hooksPath` runs no hooks and says nothing, which is how two attribution trailers once reached
+  `main`, so a genuine failure to configure them must still be loud. Checked by putting the bug back:
+  with the value unset and the lock held, the write is still attempted and still warns.
+
+  **The packaging contract test reported an unbuilt tree as a packaging defect**
+  ([#1006](https://github.com/pal-tamas/rask/issues/1006)). Four packages name an MSBuild task assembly
+  that no `Pack` glob may match (#852: a glob is expanded at project *evaluation*, so on a tree where the
+  DLL is not yet built it silently packs nothing). That DLL is dropped into the source tree by a
+  build-order-only `ProjectReference`, so it exists only after that project has been built — and
+  `dotnet test tests/Rask.Cli.Tests` alone never builds it. The suite then went red naming a real project
+  and a real file, and read as "the meta package is broken" when the cause was building one project
+  instead of the solution. The two cases are now separated by the only thing that tells them apart:
+  whether anything in the project *produces* the file. `Foo.Tasks.dll` beside a `ProjectReference` to
+  `Foo.Tasks.csproj` is an unbuilt tree; anything else is still the NU5019 trap the test exists for — and
+  a pack line whose producing reference has been removed now fails, which it did not before.
+
+  **`run-unit-local.sh` described build flags it does not pass**
+  ([#1012](https://github.com/pal-tamas/rask/issues/1012)). The script carried two comments describing two
+  different behaviours and matching neither: one claimed "the build passes `-p:RaskSpaBuild=false`" — a
+  flag no script in this repo has ever passed — and one below it said the opposite. Both are replaced by
+  what the gate actually does. `RaskExternalBuild`, `RaskSpaBuild` and `RaskMetaBuild` all default to
+  `true`, and `Rask.slnx` now carries the showcase's islands plus six `Rask.Example.Meta.*` samples, so
+  building the solution runs npm and Vite for the islands **and a full production front-end build for each
+  of Nuxt, Next, SvelteKit, SolidStart, TanStack and Analog**. The stale sentence was precisely what would
+  have stopped someone noticing that the unit gate's cost changed when those samples landed. Whether the
+  unit gate *should* build sample front ends is left open; the comment's job is to describe what it does.
+
+- **The island type-check ran before the install, and then stopped running without saying so.** Three
+  defects in one path, and the third is what hid the other two.
+
+  **The check needed packages the build had not installed yet**
+  ([#967](https://github.com/pal-tamas/rask/issues/967)). `_RaskExternalTypeCheck` reached the install
+  only through `_RaskExternalBundle`, which runs after it — so a pull that added a package failed at the
+  type-check first, as `TS2307` on an import that is perfectly correct, naming the author's own file. The
+  check now depends on `_RaskExternalInstall`, which has its own `package.json` stamp and so costs
+  nothing when current. Verified by touching `package.json`: `npm ci` now runs *before* tsgo.
+
+  **A stale `node_modules` looked fine to the guard** ([#966](https://github.com/pal-tamas/rask/issues/966)).
+  `_RaskExternalDepsMissing` tested only that the directory existed, so packages predating the manifest
+  passed it — and what that produces is not a missing-package error but 19 `TS7026` on intrinsic JSX
+  elements, in a file nobody touched. The build now compares `package.json` against
+  `node_modules/.package-lock.json`, npm's own receipt, and names the cause. Not an error, because
+  `RaskExternalBuild=false` is a supported way to build without node and is exactly what turns off the
+  install that would fix it. (`System.IO.File` is not on MSBuild's property-function allowlist — MSB4185
+  — so the comparison goes through `%(ModifiedTime)`.)
+
+  **Every checker was skipped, silently, whenever the assembly declared no components**
+  ([#943](https://github.com/pal-tamas/rask/issues/943)). The task returned as soon as it read zero
+  constants, so no `tsconfig.check.json`, no `tsconfig.vue.json`, no `tsconfig.svelte.json` — and each
+  checker is gated on `Exists(<its config>)`, so tsgo, vue-tsc and svelte-check all did nothing while
+  none of the three "skipping…" messages fired, because each is gated on a different cause.
+
+  **The obvious repair — check the discovered files anyway — was tried, and is wrong.** A file list
+  cannot identify island code by itself, and this repository holds two counter-examples. Turning the
+  check on that way failed the showcase on `Rask.Example.Shared/Features/Gantt/Gantt.ts`, which is
+  **scoped TypeScript**, claimed only because `Name.ts` belongs to both a Lit island and Rask.Core
+  ([#938](https://github.com/pal-tamas/rask/issues/938)); it reported four `TS2304` on names that are
+  well defined where that file is actually compiled. It then failed all six `Rask.Example.Meta.*`
+  samples, whose entire `client/` tree is a **meta framework's own front end** — `TS2304` on Next's
+  generated `LayoutProps`, `TS2307` on `@rask/client`, `TS6504` on SolidStart's shipped `.jsx`.
+
+  So the skip stays and becomes **loud** instead: a high-importance message naming what was found, why it
+  is not being checked, and what to look at if islands were expected. Two things change besides. Stale
+  configs are now deleted, which the early return also skipped — a `tsconfig.vue.json` left by a build
+  from when the project still had a Vue island is a checker that keeps running against a file list that
+  no longer matches the tree. And a bare `.ts` or `.js` is checked only when a declared island claims it:
+  unlike the MSBuild discovery, this task runs *after* the compile and can read the assembly, so it can
+  make a test the discovery cannot. That does not close #938, but it removes the half of it that turns a
+  correct file into a red build.
+
+  Five task-level tests instantiate the task and call `Execute`, covering both directions: nothing
+  claimed to be checked when nothing is declared, the skip reported loudly when there are files and
+  quietly when there are none, and a stale config deleted.
+
 - **A scaffolded Analog front end shipped a bare `@rask/client` and died in the browser.** The alias is
   written into the app's own `tsconfig.json`, which is a *type-checking* concept — Vite never reads it
   when bundling. `AddRaskViteConfig` was supposed to add the bundler half, but skipped it whenever the

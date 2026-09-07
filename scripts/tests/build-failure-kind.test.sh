@@ -90,6 +90,34 @@ assert "compile errors alone" code \
 /src/App/Program.cs(14,5): error CS1002: ; expected
 '
 
+# The #968 shape: 132 lines of `error RS0016` from the PublicAPI gate and not one `error CS`. This is a
+# build failure — the branch does not build — but counting only CS classified it `unknown`, whose message
+# says in as many words that it is NOT a build failure and sends the author looking for a failing
+# assertion, a timeout or an early host exit. All three were absent; nothing browser-related had run.
+assert "PublicAPI analyzer errors alone are a build failure" code \
+  '/src/Rask.Auth/AccountService.cs(31,26): error RS0016: Symbol '\''Rask.Auth.AccountService.SignInAsync'\'' is not part of the declared API
+/src/Rask.Auth/AuthOptions.cs(12,23): error RS0016: Symbol '\''Rask.Auth.AuthOptions.Cookie'\'' is not part of the declared API
+'
+
+# ASP0016 has the same shape and is a build error here for the same reason: analyzers on, warnings as
+# errors. Stated rather than assumed, because the RS row alone would pass with a `RS`-only regex.
+assert "ASP analyzer errors alone are a build failure" code \
+  '/src/Rask.Server/Endpoints/Render.cs(88,13): error ASP0016: Do not return a value from RequestDelegate
+'
+
+# Code style is warnings-as-errors too (EnforceCodeStyleInBuild), so IDE ids arrive as errors and mean
+# the same thing to the reader: the build did not succeed because of the diff.
+assert "IDE code-style errors alone are a build failure" code \
+  '/src/Rask.Core/Live/LiveOptions.cs(93,1): error IDE0055: Fix formatting
+'
+
+# An analyzer error must outrank the machine kinds exactly as CS does — the #718 rule, applied to the
+# ids that were missing from it.
+assert "an analyzer error wins over NETSDK, like CS does" code \
+  '/proj/App.csproj : error NETSDK1147: To build this project, the following workloads must be installed: wasm-tools
+/src/Rask.Ui/UiThemeName.cs(7,21): error RS0016: Symbol '\''Rask.Ui.UiThemeName.Dark'\'' is not part of the declared API
+'
+
 # The case from #718, in the shape it actually arrived: many NETSDK1147, not one CS.
 assert "NETSDK1147 alone is the machine, not the branch" workload \
   '/proj/App.csproj : error NETSDK1147: To build this project, the following workloads must be installed: wasm-tools
@@ -121,6 +149,8 @@ assert "empty log" unknown ''
 assert "warnings only are not errors" unknown \
   '/proj/App.csproj : warning NETSDK1137: It is no longer necessary to use Microsoft.NET.Sdk.Web
 /src/App/Program.cs(5,9): warning CS0168: The variable '\''e'\'' is declared but never used
+/src/App/Api.cs(3,1): warning RS0026: Symbol '\''X'\'' violates the backcompat requirement
+/src/App/Api.cs(4,1): warning IDE0161: Convert to file-scoped namespace
 '
 
 # A path that does not exist must not crash the gate mid-failure.

@@ -233,9 +233,17 @@
     Roughly 0.2s for a small project. RaskExternalTypeCheck=false turns it off for anyone
     mid-refactor with a deliberately red front end.
   -->
+  <!--
+    DependsOnTargets carries _RaskExternalInstall (#967).
+
+    The check reads the island's imports, so it needs the packages that satisfy them. Reaching the
+    install only through _RaskExternalBundle put it AFTER this target, so a pull that added a package
+    failed here first — as TS2307 on an import that is perfectly correct, naming the author's own file.
+    The install has its own package.json stamp, so depending on it costs nothing when it is current.
+  -->
   <Target Name="_RaskExternalTypeCheck"
           AfterTargets="_RaskExternalWritePropTypes"
-          DependsOnTargets="ResolveProjectReferences"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalInstall"
           Condition="'$(RaskExternalTypeCheck)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND '@(_RaskExternalFile)' != ''">
     <!--
       ResolveTypeScriptToolTask belongs to Rask.Core's build integration, not this one, and this
@@ -257,11 +265,51 @@
 
     <PropertyGroup>
       <_RaskExternalDepsMissing Condition="Exists('$(MSBuildProjectDirectory)/package.json') AND !Exists('$(MSBuildProjectDirectory)/node_modules')">true</_RaskExternalDepsMissing>
+
+    </PropertyGroup>
+
+    <!--
+      node_modules present but OLDER than the package.json beside it (#966).
+
+      Through %(ModifiedTime) rather than a property function: System.IO.File is not on MSBuild's
+      property-function allowlist (MSB4185), and a target's own Inputs/Outputs answers "should this
+      target run", which is a different question and leaves nothing a later task can read. The metadata
+      is a sortable timestamp, so an ordinal string compare orders it correctly.
+
+      npm rewrites node_modules/.package-lock.json on every install, so it is the install's own receipt
+      and the only file in there whose timestamp means anything.
+    -->
+    <ItemGroup>
+      <_RaskExternalManifest Include="$(MSBuildProjectDirectory)/package.json"/>
+      <_RaskExternalInstallReceipt Include="$(MSBuildProjectDirectory)/node_modules/.package-lock.json"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_RaskExternalManifestTime>@(_RaskExternalManifest->'%(ModifiedTime)')</_RaskExternalManifestTime>
+      <_RaskExternalReceiptTime>@(_RaskExternalInstallReceipt->'%(ModifiedTime)')</_RaskExternalReceiptTime>
+      <_RaskExternalDepsStale
+        Condition="'$(_RaskExternalManifestTime)' != '' AND '$(_RaskExternalReceiptTime)' != ''
+                   AND $([System.String]::Compare('$(_RaskExternalManifestTime)', '$(_RaskExternalReceiptTime)')) &gt; 0"
+      >true</_RaskExternalDepsStale>
     </PropertyGroup>
 
     <Message Importance="high"
              Condition="'$(_RaskExternalDepsMissing)' == 'true'"
              Text="Rask.External: skipping the prop type-check — this project has a package.json but no node_modules, so its imports cannot resolve. Run the install to enable it."/>
+
+    <!--
+      A node_modules OLDER than the package.json beside it (#966). The directory exists, so the probe
+      above is satisfied and every checker runs — against packages that predate the manifest. What that
+      produces is not a missing-package error but a cascade of TS7026 on intrinsic JSX elements, because
+      the types the runtime's JSX depends on are the ones that are absent: 19 errors on a file nobody
+      touched. Named here rather than left to the checker, which cannot know why.
+
+      Not an error: RaskExternalBuild=false is a supported way to build without node, and the install
+      that would fix this is exactly what that turns off.
+    -->
+    <Message Importance="high"
+             Condition="'$(_RaskExternalDepsStale)' == 'true' AND '$(_RaskExternalDepsMissing)' != 'true'"
+             Text="Rask.External: '$(MSBuildProjectName)' has a node_modules older than its package.json, so the type-check is reading packages that predate the manifest. If it reports errors on code you have not changed, run the install first."/>
 
     <!-- Resolved when ANY tsgo config exists. Gated on tsconfig.check.json alone, a project whose only
          islands are Solid or Angular resolved no tool, and every Exec below was skipped silently — a

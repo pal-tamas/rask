@@ -66,17 +66,42 @@
   <!--
     Auto-enable the repo's git hooks (pre-commit: dotnet format + unit; pre-push: browser E2E) so a fresh
     clone picks them up on first build — no manual `git config core.hooksPath .githooks`. The hook contents
-    live in .githooks/; this only points git at them. Idempotent (git config is a no-op if already set) and
-    best-effort (ContinueOnError). Skipped in CI (GitHub sets CI=true) and during IDE design-time builds,
-    and only runs inside a git working copy (.git present — a directory in the main clone, a file in a
-    worktree), so a restored/consumed package never triggers it. Hooks stay advisory: bypass any with
-    the git no-verify flag, RASK_SKIP_UNIT=1, or RASK_SKIP_E2E=1. See .github/CONTRIBUTING.md.
+    live in .githooks/; this only points git at them. Skipped in CI (GitHub sets CI=true) and during IDE
+    design-time builds, and only runs inside a git working copy (.git present — a directory in the main
+    clone, a file in a worktree), so a restored/consumed package never triggers it. Hooks stay advisory:
+    bypass any with the git no-verify flag, RASK_SKIP_UNIT=1, or RASK_SKIP_E2E=1. See .github/CONTRIBUTING.md.
+
+    READ before writing (#964). `git config` with no per-worktree flag writes the COMMON config, so a build
+    in a linked worktree writes the main checkout's .git/config — and the write takes .git/config.lock. Several
+    worktrees build concurrently on this machine, so an ordinary build could fail to take that lock and
+    report `could not lock config file … File exists` as MSB3073, a warnings-as-errors build failure whose
+    real cause was another worktree building at the same time. Re-asserting a value that is already set is
+    what needed the lock: the value is written once and never changes, so every build after the first now
+    does a lock-free read and stops. A genuine failure to configure the hooks still warns, which matters —
+    an unconfigured core.hooksPath runs NO hooks and says nothing, and that is how two attribution trailers
+    once reached main.
   -->
   <Target Name="RaskConfigureGitHooks" BeforeTargets="Build"
           Condition=" '$(CI)' != 'true' And '$(DesignTimeBuild)' != 'true'
                       And Exists('$(MSBuildThisFileDirectory).githooks')
                       And Exists('$(MSBuildThisFileDirectory).git') ">
+    <!--
+      IgnoreExitCode because a `get` of an unset key exits 1, which is the fresh-clone case this target
+      exists to serve, not an error.
+    -->
+    <Exec Command="git config --get core.hooksPath"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="true"
+          IgnoreExitCode="true"
+          EchoOff="true"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_RaskGitHooksPath" />
+    </Exec>
+
     <Exec Command="git config core.hooksPath .githooks"
+          Condition=" '$(_RaskGitHooksPath)' != '.githooks' "
           WorkingDirectory="$(MSBuildThisFileDirectory)"
           ContinueOnError="true"
           StandardOutputImportance="low"
