@@ -262,7 +262,7 @@ public sealed class SpaTemplateTests
     }
 
     [Fact]
-    public void Adding_the_query_dependency_leaves_the_rest_of_package_json_alone()
+    public void Adding_tailwind_leaves_the_rest_of_package_json_alone()
     {
         const string Original = """
             {
@@ -274,29 +274,49 @@ public sealed class SpaTemplateTests
             }
             """;
 
-        var patched = ProjectGenerator.AddClientDependencies(Original, SpaFramework.React);
+        var patched = ProjectGenerator.AddClientDependencies(Original, SpaFramework.React, tailwind: true);
 
-        Assert.Contains("\"@tanstack/react-query\"", patched, StringComparison.Ordinal);
+        Assert.Contains("\"tailwindcss\"", patched, StringComparison.Ordinal);
         Assert.Contains("\"react\": \"^19.2.8\"", patched, StringComparison.Ordinal);
         Assert.Contains("\"vite\": \"^8.2.2\"", patched, StringComparison.Ordinal);
         Assert.Contains("tsc -b \\u0026\\u0026 vite build", patched, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Adding_the_query_dependency_twice_is_the_same_as_once()
+    public void Adding_tailwind_twice_is_the_same_as_once()
     {
-        var once = ProjectGenerator.AddClientDependencies("""{ "dependencies": { "react": "^19.2.8" } }""", SpaFramework.React);
+        var once = ProjectGenerator.AddClientDependencies(
+            """{ "dependencies": { "react": "^19.2.8" } }""", SpaFramework.React, tailwind: true);
 
-        Assert.Equal(once, ProjectGenerator.AddClientDependencies(once, SpaFramework.React));
+        Assert.Equal(once, ProjectGenerator.AddClientDependencies(once, SpaFramework.React, tailwind: true));
+    }
+
+    [Fact]
+    public void Without_tailwind_the_template_adds_no_runtime_dependency_at_all()
+    {
+        // The point of dropping TanStack Query and Router: a scaffolded client's dependencies are
+        // create-vite's, and nothing else. A template that picks a cache and a router picks them for
+        // every app scaffolded from it, and those are the two choices a front-end developer is most
+        // likely to have already made.
+        const string Original = """{ "dependencies": { "react": "^19.2.8" } }""";
+
+        Assert.Equal(
+            ProjectGenerator.AddClientDependencies(Original, SpaFramework.React),
+            ProjectGenerator.AddClientDependencies(Original, SpaFramework.React));
+
+        var patched = ProjectGenerator.AddClientDependencies(Original, SpaFramework.React);
+
+        Assert.DoesNotContain("@tanstack", patched, StringComparison.Ordinal);
     }
 
     [Fact]
     public void A_package_json_with_no_dependencies_still_gets_one()
     {
         // create-vite's output is not ours, and its shape is free to change.
-        var patched = ProjectGenerator.AddClientDependencies("""{ "name": "shop-client" }""", SpaFramework.React);
+        var patched = ProjectGenerator.AddClientDependencies(
+            """{ "name": "shop-client" }""", SpaFramework.React, tailwind: true);
 
-        Assert.Contains("\"@tanstack/react-query\"", patched, StringComparison.Ordinal);
+        Assert.Contains("\"tailwindcss\"", patched, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -334,8 +354,8 @@ public sealed class SpaTemplateTests
         var framework = Framework(key);
         var result = ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
-        // Whatever the framework, the client has to reach the generated messages and the bridge — those
-        // two imports are what the whole template exists to make possible.
+        // Whatever the framework, the client has to reach the generated messages and the dispatcher —
+        // those two imports are what the whole template exists to make possible.
         var client = string.Join(
             "\n",
             result.Files
@@ -343,13 +363,13 @@ public sealed class SpaTemplateTests
                 .Select(f => f.Content));
 
         Assert.Contains("rask/messages", client, StringComparison.Ordinal);
-        Assert.Contains("rask/query", client, StringComparison.Ordinal);
+        Assert.Contains("rask/client", client, StringComparison.Ordinal);
         Assert.Contains("getGreeting", client, StringComparison.Ordinal);
         Assert.Contains("recordVisit", client, StringComparison.Ordinal);
 
-        // Invalidation by the factory's own wire name, never a string literal — renaming the C# record
-        // has to move the cache key with it.
-        Assert.Contains("getGreeting.messageName", client, StringComparison.Ordinal);
+        // Both directions, not just the read: a template that only fetches would not show that a command
+        // goes back the same way.
+        Assert.Contains("rask.dispatch(", client, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -391,47 +411,39 @@ public sealed class SpaTemplateTests
 
     [Theory]
     [MemberData(nameof(Frameworks))]
-    public void Every_framework_pins_the_TanStack_Query_adapter_its_own_code_imports(string key)
+    public void No_framework_scaffolds_a_data_library_or_a_router(string key)
     {
+        // The template picks neither a cache nor a router. Both are choices a front-end developer is
+        // most likely to have already made, and a starter that makes them makes them for every app
+        // scaffolded from it. Asserted across ALL seven rather than the two that used to carry a router,
+        // because the way this regresses is one framework quietly keeping its old import.
         var framework = Framework(key);
-        var patched = ProjectGenerator.AddClientDependencies("""{ "name": "c" }""", framework);
-
-        Assert.Contains($"\"{framework.QueryPackage}\"", patched, StringComparison.Ordinal);
-
-        // The adapter the package.json pins and the one the client code imports are one decision written
-        // in two places, and nothing else checks they agree. A mismatch is an unresolved import at build.
         var client = string.Join("\n", framework.ClientFiles.Select(f => f.Content));
-        Assert.Contains($"from '{framework.QueryPackage}'", client, StringComparison.Ordinal);
-    }
 
-    [Theory]
-    [InlineData("react", "@tanstack/react-router")]
-    [InlineData("solid", "@tanstack/solid-router")]
-    public void React_and_Solid_get_TanStack_Router(string key, string package)
-    {
-        var framework = Framework(key);
+        Assert.DoesNotContain("@tanstack", client, StringComparison.Ordinal);
+        Assert.DoesNotContain("./rask/query", client, StringComparison.Ordinal);
+        Assert.DoesNotContain(framework.ClientFiles, file => file.Path.Contains("router", StringComparison.Ordinal));
 
-        Assert.Equal(package, framework.RouterPackage);
-        Assert.Contains(framework.ClientFiles, file => file.Path == "src/router.tsx");
-        Assert.Contains(
-            $"\"{package}\"",
+        // And nothing is added to package.json either, so a scaffolded client's dependencies are
+        // create-vite's and nothing else.
+        Assert.DoesNotContain(
+            "@tanstack",
             ProjectGenerator.AddClientDependencies("""{ "name": "c" }""", framework),
             StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("preact")]
-    [InlineData("svelte")]
-    [InlineData("lit")]
-    public void Everything_else_gets_no_router(string key)
+    [MemberData(nameof(Frameworks))]
+    public void Every_framework_calls_the_dispatcher_directly(string key)
     {
-        // TanStack Router ships React and Solid adapters only. Scaffolding a different router for the
-        // others would be Rask picking one on their behalf, in a template whose whole argument is that
-        // the framework's own conventions win.
+        // The counterpart: having removed the cache, the starter still has to DO something. Every
+        // template fetches through rask.dispatch and imports its messages from the generated contracts,
+        // which is the part the whole template exists to demonstrate.
         var framework = Framework(key);
+        var client = string.Join("\n", framework.ClientFiles.Select(f => f.Content));
 
-        Assert.Null(framework.RouterPackage);
-        Assert.DoesNotContain(framework.ClientFiles, file => file.Path.Contains("router", StringComparison.Ordinal));
+        Assert.Contains("rask.dispatch(", client, StringComparison.Ordinal);
+        Assert.Contains("rask/messages", client, StringComparison.Ordinal);
     }
 
     [Fact]

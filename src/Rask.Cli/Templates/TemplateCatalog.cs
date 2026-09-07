@@ -92,8 +92,10 @@ internal static class TemplateCatalog
         // its /api/auth endpoints through auth.ts in the shared browser layer. What these templates do not
         // scaffold is a sign-in PAGE in each framework's own idiom.
         //
-        // The set matches the frameworks TanStack Query ships an adapter for, because the adapter is what
-        // makes the generated contracts worth having — everything below the call site is the same wire.
+        // The set is the frameworks create-vite ships a TypeScript template for, plus Angular through its
+        // own CLI. It used to be "the frameworks TanStack Query ships an adapter for", which stopped
+        // being the reason when the templates stopped shipping TanStack — and a rationale that no longer
+        // holds is worse than none, because the next person extends the set by the wrong rule.
         .. SpaFrameworks(),
 
         // The meta framework templates, one per framework: the framework's own Node server, with Rask

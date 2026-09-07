@@ -7,6 +7,43 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The SPA templates no longer scaffold TanStack Query or TanStack Router.** A scaffolded client's
+  dependencies are now `create-vite`'s and nothing else: the starter calls `rask.dispatch` directly and
+  renders one view. A template that picks a cache and a router picks them for every app scaffolded from
+  it, and those are the two choices a front-end developer is most likely to have already made.
+
+  All seven clients were rewritten rather than stripped, because the behaviour those libraries were
+  providing still has to be there: each one fetches on mount, refetches when its input changes, and
+  aborts the request in flight so a slow earlier one cannot land after a later one and show the wrong
+  answer. That last part is the piece a naive removal drops, and it is invisible until someone types
+  quickly.
+
+  `src/rask/query.ts` is still vendored beside the client — it imports nothing from TanStack and returns
+  plain options objects — so adding a cache back is an `npm install` and two lines. `Rask.Query`, the C#
+  side, is untouched.
+
+  Also removed, because it was the reason for a decision that no longer holds: the framework set was
+  documented in three places as "exactly the frameworks TanStack Query ships an adapter for". It is now
+  described by what actually determines it — the templates `create-vite` ships, plus Angular through its
+  own CLI. A rationale that no longer holds is worse than none, because the next person extends the set
+  by the wrong rule.
+
+  The `package.json` patch is skipped entirely when `--tailwind` is off: with nothing left to add it
+  would have rewritten the file to say exactly what it already said, and announced that it had. Pinned by
+  a test across all seven frameworks rather than the two that used to carry a router, since the way this
+  regresses is one framework quietly keeping its old import.
+
+  The **TanStack Start meta template is untouched** — it is a different lane, and TanStack Start is built
+  on TanStack Router.
+
+  The CLI build gate caught one real defect in the rewrite that no unit test could: the templates
+  imported `type Greeting` from `./rask/messages`, and the generated module *imports* that type from
+  `./rask/contracts` without re-exporting it (`TS2459`). It is fixed and the gate is green at 29/29 —
+  worth recording because the whole point of that gate is to build what `rask new` actually produces,
+  and a scaffolded client's imports are exactly the thing nothing else compiles.
+
 ### Fixed
 
 - **A declared island whose front-end file the build never sees now says so**

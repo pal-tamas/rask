@@ -15,22 +15,24 @@ cd Shop
 rask dev
 ```
 
-| `--template` | Scaffolded from | TanStack Query | TanStack Router |
-|---|---|---|---|
-| `react` | `create-vite --template react-ts` | `@tanstack/react-query` | ✅ `@tanstack/react-router` |
-| `preact` | `create-vite --template preact-ts` | `@tanstack/react-query` ¹ | — |
-| `vue` | `create-vite --template vue-ts` | `@tanstack/vue-query` | — |
-| `solid` | `create-vite --template solid-ts` | `@tanstack/solid-query` | ✅ `@tanstack/solid-router` |
-| `svelte` | `create-vite --template svelte-ts` | `@tanstack/svelte-query` | — |
-| `lit` | `create-vite --template lit-ts` | `@tanstack/lit-query` | — |
-| `angular` | `ng new` (the Angular CLI) | `@tanstack/angular-query-experimental` | — |
+| `--template` | Scaffolded from |
+|---|---|
+| `react` | `create-vite --template react-ts` |
+| `preact` | `create-vite --template preact-ts` |
+| `vue` | `create-vite --template vue-ts` |
+| `solid` | `create-vite --template solid-ts` |
+| `svelte` | `create-vite --template svelte-ts` |
+| `lit` | `create-vite --template lit-ts` |
+| `angular` | `ng new` (the Angular CLI) |
 
-¹ There is no `@tanstack/preact-query`, and there does not need to be: create-vite's Preact template
-already maps `react` and `react-dom` to `preact/compat` in its tsconfig, and `@preact/preset-vite`
-does the same at build time, so the React adapter type-checks and bundles unchanged.
+The set is the frameworks `create-vite` ships a TypeScript template for, plus Angular through its own
+CLI. Below the call site every one of them is the same wire.
 
-The set is exactly the frameworks **TanStack Query** ships an adapter for. Below the call site every
-one of them is the same wire; the adapter is what makes the generated contracts worth having.
+**No data-fetching library, and no router.** The starter calls `rask.dispatch` directly and renders
+one view. That is not an omission — a template that picks a cache and a router picks them for every
+app scaffolded from it, and those are the two choices a front-end developer is most likely to already
+have made. Adding TanStack Query, or a router, is an ordinary `npm install` away, and the generated
+contracts are unaffected either way: they describe the wire, not how you call it.
 
 **Angular keeps its own CLI.** Angular's build *is* Vite-based — `@angular/build:application` has run
 its dev server on Vite since v17 — but `create-vite` has no Angular template and the Vite config
@@ -65,13 +67,6 @@ and says so in its own words; Rask does not try to track it.
 
 Set `RaskSpaMinimumNode` if you want the build to insist on more than Rask does — it is a real
 comparison, so raising it raises the bar.
-
-**TanStack Router comes wired up for React and Solid**, because those are the two adapters it ships.
-The routes are declared in code, in `src/router.tsx`, rather than through the file-based plugin —
-that plugin wants to own `src/routes/`, and this client is scaffolded by somebody else. Nothing stops
-you switching to it later. For the others Rask scaffolds no router at all rather than picking one on
-the framework's behalf, in a template whose whole argument is that the framework's own conventions
-win.
 
 `rask new --template react` runs the framework's **own** scaffolder — `create-vite` — and overlays
 four files onto what it produces. Everything else in the client is whatever Vite ships today. That
@@ -147,7 +142,15 @@ const greeting = await rask.dispatch(getGreeting({ name: 'Ada' }))
 Rename a property on the C# record and this line stops compiling. That is the whole point of
 generating the types rather than describing them.
 
-With TanStack Query, which the template wires up:
+### Adding a cache
+
+The starter fetches on mount and refetches when its input changes, with an `AbortController` so a
+slow earlier request cannot land after a later one. That is enough for a starter and deliberately
+not a cache.
+
+If you want one, `Rask.Spa.Hosting` vendors `src/rask/query.ts` beside the client — `raskQuery` and
+`raskMutation` return plain options objects and import nothing from TanStack, so they work under
+every adapter:
 
 ```tsx
 const { data, isPending } = useQuery(raskQuery(getGreeting({ name })))
@@ -158,29 +161,13 @@ const visit = useMutation({
 ```
 
 `raskQuery` accepts only a **query**. Handing it a command is a compile error — the same thing the
-server enforces by answering `405` to a command sent as a `GET`.
+server enforces by answering `405` to a command sent as a `GET`. Invalidation uses
+`getGreeting.messageName` rather than a string literal, so renaming the record moves the cache key
+with it.
 
-Invalidation uses `getGreeting.messageName` rather than a string literal, so renaming the record
-moves the cache key with it.
-
-### The one thing that differs per framework
-
-`raskQuery` and `raskMutation` return plain options objects and import nothing from TanStack, so the
-same two calls work under every adapter. What differs is how the adapter wants them:
-
-```ts
-useQuery(raskQuery(getGreeting({ name })))                  // React, Preact
-useQuery(() => raskQuery(getGreeting({ name: name() })))   // Solid
-useQuery(computed(() => raskQuery(getGreeting({ name: name.value }))))   // Vue
-createQuery(() => raskQuery(getGreeting({ name })))        // Svelte
-injectQuery(() => raskQuery(getGreeting({ name: this.name() })))         // Angular
-createQueryController(this, () => raskQuery(getGreeting({ name: this.name })))   // Lit
-```
-
-The thunk is not a formality. It is what lets the options re-read the signal, the ref, the rune or
-the reactive property and refetch when it changes — pass the object directly in Solid, Svelte, Vue or
-Angular and it reads the value once, at setup, and never again. The scaffolded starter already does this correctly
-for whichever framework you picked.
+Solid, Svelte, Vue, Angular and Lit want the options wrapped in a thunk, and that is not a formality:
+it is what lets them re-read the signal, the ref, the rune or the reactive property and refetch when
+it changes. Pass the object directly and it reads the value once, at setup, and never again.
 
 ## Dates
 

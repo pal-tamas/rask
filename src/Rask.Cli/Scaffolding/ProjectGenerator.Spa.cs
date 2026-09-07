@@ -139,17 +139,26 @@ internal static partial class ProjectGenerator
     private static IReadOnlyList<ScaffoldPatch> SpaPatches(
         string client, SpaFramework framework, bool tailwind, bool pwa)
     {
-        var patches = new List<ScaffoldPatch>
+        var patches = new List<ScaffoldPatch>();
+
+        // Only when there is something to add. With TanStack gone the template adds no runtime
+        // dependency of its own, so without --tailwind this patch would rewrite package.json to say
+        // exactly what it already said, and announce that it had.
+        if (tailwind)
         {
-            new(
+            patches.Add(new(
                 System.IO.Path.Combine(client, "package.json"),
                 json => AddClientDependencies(json, framework, tailwind),
-                "adding " + Dependencies(framework)),
+                "adding " + Dependencies(framework)));
+        }
+
+        patches.AddRange(
+        [
             new(
                 System.IO.Path.Combine(client, ".gitignore"),
                 IgnoreGeneratedContracts,
                 "ignoring the generated contracts"),
-        };
+        ]);
 
         if (pwa)
         {
@@ -568,13 +577,10 @@ internal static partial class ProjectGenerator
 
     /// <summary>What the patch says it is adding, for the line the command prints.</summary>
     private static string Dependencies(SpaFramework framework) =>
-        framework.RouterPackage is null
-            ? framework.QueryPackage
-            : framework.QueryPackage + " and " + framework.RouterPackage;
+        framework.WritesViteConfig ? "tailwindcss and @tailwindcss/vite" : "tailwindcss and @tailwindcss/postcss";
 
     /// <summary>
-    ///     Adds this framework's TanStack packages to whatever <c>create-vite</c> wrote, leaving the rest
-    ///     of the file alone.
+    ///     Adds Tailwind to whatever <c>create-vite</c> wrote, leaving the rest of the file alone.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -603,12 +609,6 @@ internal static partial class ProjectGenerator
         {
             dependencies = [];
             root["dependencies"] = dependencies;
-        }
-
-        dependencies[framework.QueryPackage] = framework.QueryVersion;
-        if (framework.RouterPackage is { } router)
-        {
-            dependencies[router] = framework.RouterVersion;
         }
 
         if (tailwind)
@@ -1061,10 +1061,6 @@ internal sealed record SpaFramework(
     string ViteTemplate,
     string PluginImport,
     string PluginCall,
-    string QueryPackage,
-    string QueryVersion,
-    string? RouterPackage,
-    string? RouterVersion,
     IReadOnlyList<(string Path, string Content)> ClientFiles)
 {
     /// <summary>
@@ -1141,15 +1137,11 @@ internal sealed record SpaFramework(
     ///     reproducible, and pinning exactly here would freeze every scaffolded app on whatever was
     ///     current the day its Rask shipped.
     /// </summary>
-    private const string QueryRange = "^5.102.0";
 
     /// <summary>Svelte Query versions independently of the others, and is already at 6.</summary>
-    private const string SvelteQueryRange = "^6.1.0";
 
     /// <summary>Lit Query is young, and its 0.x means a minor can break — so the range is tighter.</summary>
-    private const string LitQueryRange = "^0.2.0";
 
-    private const string RouterRange = "^1.170.0";
 
     /// <summary>The default: ask create-vite for a framework's TypeScript template.</summary>
     private static Func<string, IReadOnlyList<string>> Vite(string template) =>
@@ -1158,27 +1150,15 @@ internal sealed record SpaFramework(
     public static readonly SpaFramework React = new(
         "react", "React", "react-ts",
         "react from '@vitejs/plugin-react'", "react()",
-        "@tanstack/react-query", QueryRange,
-        "@tanstack/react-router", RouterRange,
         SpaClientSources.React)
     {
         Scaffolder = Vite("react-ts"),
     };
 
-    /// <summary>
-    ///     Preact, on the React adapter.
-    /// </summary>
-    /// <remarks>
-    ///     There is no <c>@tanstack/preact-query</c> and there does not need to be: create-vite's Preact
-    ///     template already maps <c>react</c> and <c>react-dom</c> to <c>preact/compat</c> in its
-    ///     tsconfig, and <c>@preact/preset-vite</c> does the same at build time — so the React adapter
-    ///     type-checks and bundles here unchanged.
-    /// </remarks>
+    /// <summary>Preact, on create-vite's own template.</summary>
     public static readonly SpaFramework Preact = new(
         "preact", "Preact", "preact-ts",
         "preact from '@preact/preset-vite'", "preact()",
-        "@tanstack/react-query", QueryRange,
-        null, null,
         SpaClientSources.Preact)
     {
         Scaffolder = Vite("preact-ts"),
@@ -1187,8 +1167,6 @@ internal sealed record SpaFramework(
     public static readonly SpaFramework Solid = new(
         "solid", "Solid", "solid-ts",
         "solid from 'vite-plugin-solid'", "solid()",
-        "@tanstack/solid-query", QueryRange,
-        "@tanstack/solid-router", RouterRange,
         SpaClientSources.Solid)
     {
         Scaffolder = Vite("solid-ts"),
@@ -1197,23 +1175,16 @@ internal sealed record SpaFramework(
     public static readonly SpaFramework Vue = new(
         "vue", "Vue", "vue-ts",
         "vue from '@vitejs/plugin-vue'", "vue()",
-        "@tanstack/vue-query", QueryRange,
-        null, null,
         SpaClientSources.Vue)
     {
         GlobalStylesheet = "src/style.css",
         Scaffolder = Vite("vue-ts"),
     };
 
-    /// <summary>
-    ///     Svelte. No TanStack Router — it ships React and Solid adapters only, and SvelteKit is what
-    ///     this ecosystem reaches for instead.
-    /// </summary>
+    /// <summary>Svelte, on create-vite's own template.</summary>
     public static readonly SpaFramework Svelte = new(
         "svelte", "Svelte", "svelte-ts",
         "{ svelte } from '@sveltejs/vite-plugin-svelte'", "svelte()",
-        "@tanstack/svelte-query", SvelteQueryRange,
-        null, null,
         SpaClientSources.Svelte)
     {
         GlobalStylesheet = "src/app.css",
@@ -1227,8 +1198,6 @@ internal sealed record SpaFramework(
     public static readonly SpaFramework Lit = new(
         "lit", "Lit", "lit-ts",
         string.Empty, string.Empty,
-        "@tanstack/lit-query", LitQueryRange,
-        null, null,
         SpaClientSources.Lit)
     {
         Scaffolder = Vite("lit-ts"),
@@ -1258,8 +1227,6 @@ internal sealed record SpaFramework(
     public static readonly SpaFramework Angular = new(
         "angular", "Angular", string.Empty,
         string.Empty, string.Empty,
-        "@tanstack/angular-query-experimental", QueryRange,
-        null, null,
         SpaClientSources.Angular)
     {
         IndexHtml = "src/index.html",

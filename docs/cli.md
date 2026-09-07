@@ -161,9 +161,11 @@ than three: the client's half of every contract is generated TypeScript, so ther
 `.Shared` to hold. Always the `-ts` half of each pair: Rask supports **TypeScript** SPA clients, and a
 client with no TypeScript configuration is refused at build time with `RASKSPA004`.
 
-The set is exactly the frameworks TanStack Query ships an adapter for, and **TanStack Router is wired
-up for React and Solid** — the two adapters it ships. Angular differs in three ways (its own CLI, its
-own dev port, and a nested `dist`); see [TypeScript front ends](spa.md).
+The set is the frameworks `create-vite` ships a TypeScript template for, plus Angular through its own
+CLI. **No data-fetching library and no router**: the starter calls `rask.dispatch` directly and renders
+one view, because a template that picks a cache and a router picks them for every app scaffolded from
+it. Angular differs in three ways (its own CLI, its own dev port, and a nested `dist`); see
+[TypeScript front ends](spa.md).
 
 A new project has **wiring, not sample code** — there is still nothing to delete before you start — and
 everything it scaffolds follows the vertical-slice layout the guides build on: feature code under

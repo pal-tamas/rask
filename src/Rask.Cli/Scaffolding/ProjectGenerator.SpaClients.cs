@@ -34,75 +34,59 @@ internal static class SpaClientSources
         ("src/main.tsx", """
             import { StrictMode } from 'react'
             import { createRoot } from 'react-dom/client'
-            import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-            import { RouterProvider } from '@tanstack/react-router'
-            import { raskRetry } from './rask/query'
-            import { router } from './router'
+            import App from './App'
             import './index.css'
-
-            // TanStack's own defaults, on purpose: staleTime 0 and a five-minute garbage-collection
-            // window. Rask's C# query client mirrors them, so the two halves of an app behave the same
-            // way. The one override is retry — a 4xx will never succeed on a retry, and the default of
-            // three turns one refused request into four while telling the user nothing for seconds.
-            const queryClient = new QueryClient({ defaultOptions: { queries: { retry: raskRetry } } })
 
             createRoot(document.getElementById('root')!).render(
               <StrictMode>
-                <QueryClientProvider client={queryClient}>
-                  <RouterProvider router={router} />
-                </QueryClientProvider>
+                <App />
               </StrictMode>,
             )
 
             """),
 
-        ("src/router.tsx", """
-            import { Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
-            import Home from './App'
-
-            // Routes in code rather than through the file-based plugin. Two routes do not need a
-            // generated route tree, and that plugin wants to own src/routes/ — which is the one thing
-            // this template cannot give it, because the client is scaffolded by somebody else and Rask
-            // only overlays.
-            const rootRoute = createRootRoute({ component: () => <Outlet /> })
-
-            const homeRoute = createRoute({
-              getParentRoute: () => rootRoute,
-              path: '/',
-              component: Home,
-            })
-
-            export const router = createRouter({ routeTree: rootRoute.addChildren([homeRoute]) })
-
-            // What makes Link, useNavigate and useParams know these routes by name rather than by string.
-            declare module '@tanstack/react-router' {
-              interface Register {
-                router: typeof router
-              }
-            }
-
-            """),
-
         ("src/App.tsx", """
-            import { useState } from 'react'
-            import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-            import { raskMutation, raskQuery } from './rask/query'
+            import { useCallback, useEffect, useState } from 'react'
+            import { rask } from './rask/client'
             import { getGreeting, recordVisit } from './rask/messages'
+            import type { Greeting } from './rask/contracts'
 
             export default function App() {
               const [name, setName] = useState('world')
-              const queryClient = useQueryClient()
+              const [greeting, setGreeting] = useState<Greeting | null>(null)
+              const [error, setError] = useState<string | null>(null)
+              const [busy, setBusy] = useState(false)
 
-              // The message carries its own result type, so `greeting` is a Greeting with no cast and no
-              // wire name spelled out here. Renaming a property in the C# record breaks this line at
-              // build time rather than on the wire.
-              const { data: greeting, isPending, error } = useQuery(raskQuery(getGreeting({ name })))
+              // rask.dispatch and nothing else. The message carries its own result type, so `greeting` is
+              // a Greeting with no cast and no wire name spelled out here — renaming a property in the C#
+              // record breaks this at build time rather than on the wire.
+              const load = useCallback(async (signal?: AbortSignal) => {
+                setError(null)
+                try {
+                  setGreeting(await rask.dispatch(getGreeting({ name }), { signal }))
+                } catch (e) {
+                  // An aborted request is the previous keystroke being superseded, not a failure.
+                  if (!signal?.aborted) setError(e instanceof Error ? e.message : String(e))
+                }
+              }, [name])
 
-              const visit = useMutation({
-                ...raskMutation(recordVisit),
-                // The factory carries its wire name, so invalidation is never a string literal either.
-                onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-              })
+              // Refetch as the name changes, and abort the request in flight so a slow earlier one
+              // cannot land after a later one and show the wrong answer.
+              useEffect(() => {
+                const controller = new AbortController()
+                void load(controller.signal)
+                return () => controller.abort()
+              }, [load])
+
+              const visit = async () => {
+                setBusy(true)
+                try {
+                  await rask.dispatch(recordVisit({ name }))
+                  await load()
+                } finally {
+                  setBusy(false)
+                }
+              }
 
               return (
                 <main>
@@ -112,8 +96,8 @@ internal static class SpaClientSources
                     Name <input value={name} onChange={(event) => setName(event.target.value)} />
                   </label>
 
-                  {isPending && <p>Loading…</p>}
-                  {error && <p role="alert">{error.message}</p>}
+                  {!greeting && !error && <p>Loading…</p>}
+                  {error && <p role="alert">{error}</p>}
 
                   {greeting && (
                     <>
@@ -129,7 +113,7 @@ internal static class SpaClientSources
                     </>
                   )}
 
-                  <button onClick={() => visit.mutate({ name })} disabled={visit.isPending}>
+                  <button onClick={visit} disabled={busy}>
                     Record a visit
                   </button>
                 </main>
@@ -143,46 +127,51 @@ internal static class SpaClientSources
     [
         ("src/main.tsx", """
             import { render } from 'preact'
-            import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-            import { raskRetry } from './rask/query'
-            import { App } from './app.tsx'
+            import { App } from './app'
             import './index.css'
 
-            // @tanstack/react-query, not a preact-specific package: there is no such thing, and there
-            // does not need to be. create-vite's Preact template already maps react and react-dom to
-            // preact/compat in tsconfig.app.json, and @preact/preset-vite does the same at build time —
-            // so the React adapter type-checks and bundles here unchanged.
-            const queryClient = new QueryClient({ defaultOptions: { queries: { retry: raskRetry } } })
-
-            render(
-              <QueryClientProvider client={queryClient}>
-                <App />
-              </QueryClientProvider>,
-              document.getElementById('app')!,
-            )
+            render(<App />, document.getElementById('app')!)
 
             """),
 
         ("src/app.tsx", """
-            import { useState } from 'preact/hooks'
-            import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-            import { raskMutation, raskQuery } from './rask/query'
+            import { useCallback, useEffect, useState } from 'preact/hooks'
+            import { rask } from './rask/client'
             import { getGreeting, recordVisit } from './rask/messages'
+            import type { Greeting } from './rask/contracts'
 
             export function App() {
               const [name, setName] = useState('world')
-              const queryClient = useQueryClient()
+              const [greeting, setGreeting] = useState<Greeting | null>(null)
+              const [error, setError] = useState<string | null>(null)
+              const [busy, setBusy] = useState(false)
 
               // The message carries its own result type, so `greeting` is a Greeting with no cast and no
-              // wire name spelled out here. Renaming a property in the C# record breaks this line at
-              // build time rather than on the wire.
-              const { data: greeting, isPending, error } = useQuery(raskQuery(getGreeting({ name })))
+              // wire name spelled out here.
+              const load = useCallback(async (signal?: AbortSignal) => {
+                setError(null)
+                try {
+                  setGreeting(await rask.dispatch(getGreeting({ name }), { signal }))
+                } catch (e) {
+                  if (!signal?.aborted) setError(e instanceof Error ? e.message : String(e))
+                }
+              }, [name])
 
-              const visit = useMutation({
-                ...raskMutation(recordVisit),
-                // The factory carries its wire name, so invalidation is never a string literal either.
-                onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-              })
+              useEffect(() => {
+                const controller = new AbortController()
+                void load(controller.signal)
+                return () => controller.abort()
+              }, [load])
+
+              const visit = async () => {
+                setBusy(true)
+                try {
+                  await rask.dispatch(recordVisit({ name }))
+                  await load()
+                } finally {
+                  setBusy(false)
+                }
+              }
 
               return (
                 <main>
@@ -196,8 +185,8 @@ internal static class SpaClientSources
                     />
                   </label>
 
-                  {isPending && <p>Loading…</p>}
-                  {error && <p role="alert">{error.message}</p>}
+                  {!greeting && !error && <p>Loading…</p>}
+                  {error && <p role="alert">{error}</p>}
 
                   {greeting && (
                     <>
@@ -211,7 +200,7 @@ internal static class SpaClientSources
                     </>
                   )}
 
-                  <button onClick={() => visit.mutate({ name })} disabled={visit.isPending}>
+                  <button onClick={visit} disabled={busy}>
                     Record a visit
                   </button>
                 </main>
@@ -226,70 +215,38 @@ internal static class SpaClientSources
         ("src/index.tsx", """
             /* @refresh reload */
             import { render } from 'solid-js/web'
-            import { QueryClient, QueryClientProvider } from '@tanstack/solid-query'
-            import { RouterProvider } from '@tanstack/solid-router'
-            import { raskRetry } from './rask/query'
-            import { router } from './router'
+            import App from './App'
             import './index.css'
 
-            const queryClient = new QueryClient({ defaultOptions: { queries: { retry: raskRetry } } })
-
-            render(
-              () => (
-                <QueryClientProvider client={queryClient}>
-                  <RouterProvider router={router} />
-                </QueryClientProvider>
-              ),
-              document.getElementById('root')!,
-            )
-
-            """),
-
-        ("src/router.tsx", """
-            import { Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/solid-router'
-            import Home from './App'
-
-            // Routes in code rather than through the file-based plugin — see the React template's
-            // router for why: that plugin wants to own src/routes/, and this client is scaffolded by
-            // somebody else.
-            const rootRoute = createRootRoute({ component: () => <Outlet /> })
-
-            const homeRoute = createRoute({
-              getParentRoute: () => rootRoute,
-              path: '/',
-              component: Home,
-            })
-
-            export const router = createRouter({ routeTree: rootRoute.addChildren([homeRoute]) })
-
-            declare module '@tanstack/solid-router' {
-              interface Register {
-                router: typeof router
-              }
-            }
+            render(() => <App />, document.getElementById('root')!)
 
             """),
 
         ("src/App.tsx", """
-            import { Show, createSignal } from 'solid-js'
-            import { useMutation, useQuery, useQueryClient } from '@tanstack/solid-query'
-            import { raskMutation, raskQuery } from './rask/query'
+            import { Show, createResource, createSignal } from 'solid-js'
+            import { rask } from './rask/client'
             import { getGreeting, recordVisit } from './rask/messages'
 
             export default function App() {
               const [name, setName] = createSignal('world')
-              const queryClient = useQueryClient()
+              const [busy, setBusy] = createSignal(false)
 
-              // Solid's primitives take a FUNCTION returning options, and that is not a formality: it is
-              // what lets the query re-read the signal and refetch when it changes. Passing the object
-              // directly would read name() once, at setup, and never again.
-              const greeting = useQuery(() => raskQuery(getGreeting({ name: name() })))
+              // createResource takes the signal as its SOURCE, and that is not a formality: it is what
+              // re-runs the fetch when the name changes. Reading name() inside the fetcher alone would
+              // read it once, at setup, and never again.
+              const [greeting, { refetch }] = createResource(name, (value) =>
+                rask.dispatch(getGreeting({ name: value })),
+              )
 
-              const visit = useMutation(() => ({
-                ...raskMutation(recordVisit),
-                // The factory carries its wire name, so invalidation is never a string literal.
-                onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-              }))
+              const visit = async () => {
+                setBusy(true)
+                try {
+                  await rask.dispatch(recordVisit({ name: name() }))
+                  await refetch()
+                } finally {
+                  setBusy(false)
+                }
+              }
 
               return (
                 <main>
@@ -303,14 +260,14 @@ internal static class SpaClientSources
                     />
                   </label>
 
-                  <Show when={greeting.isPending}>
+                  <Show when={greeting.loading}>
                     <p>Loading…</p>
                   </Show>
                   <Show when={greeting.error}>
-                    {(error) => <p role="alert">{error().message}</p>}
+                    {(error) => <p role="alert">{String(error())}</p>}
                   </Show>
 
-                  <Show when={greeting.data}>
+                  <Show when={greeting()}>
                     {(data) => (
                       <>
                         <p>{data().message}</p>
@@ -324,7 +281,7 @@ internal static class SpaClientSources
                     )}
                   </Show>
 
-                  <button onClick={() => visit.mutate({ name: name() })} disabled={visit.isPending}>
+                  <button onClick={visit} disabled={busy()}>
                     Record a visit
                   </button>
                 </main>
@@ -338,38 +295,57 @@ internal static class SpaClientSources
     [
         ("src/main.ts", """
             import { createApp } from 'vue'
-            import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
-            import { raskRetry } from './rask/query'
             import './style.css'
             import App from './App.vue'
 
-            const queryClient = new QueryClient({ defaultOptions: { queries: { retry: raskRetry } } })
-
-            createApp(App).use(VueQueryPlugin, { queryClient }).mount('#app')
+            createApp(App).mount('#app')
 
             """),
 
         ("src/App.vue", """
             <script setup lang="ts">
-            import { computed, ref } from 'vue'
-            import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-            import { raskMutation, raskQuery } from './rask/query'
+            import { computed, ref, watch } from 'vue'
+            import { rask } from './rask/client'
             import { getGreeting, recordVisit } from './rask/messages'
+            import type { Greeting } from './rask/contracts'
 
             const name = ref('world')
-            const queryClient = useQueryClient()
+            const greeting = ref<Greeting | null>(null)
+            const error = ref<string | null>(null)
+            const busy = ref(false)
 
-            // A computed, not a plain object: that is what lets the options re-read the ref and refetch
-            // when it changes. Passing the object directly would read name.value once, at setup.
-            const { data: greeting, isPending, error } = useQuery(
-              computed(() => raskQuery(getGreeting({ name: name.value }))),
-            )
+            // watch with immediate, not a one-off call: that is what re-reads the ref and refetches when
+            // it changes. The AbortController is what stops a slow earlier request landing after a later
+            // one and showing the wrong answer.
+            let inFlight: AbortController | null = null
 
-            const visit = useMutation({
-              ...raskMutation(recordVisit),
-              // The factory carries its wire name, so invalidation is never a string literal.
-              onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-            })
+            async function load() {
+              inFlight?.abort()
+              const controller = new AbortController()
+              inFlight = controller
+              error.value = null
+
+              try {
+                greeting.value = await rask.dispatch(
+                  getGreeting({ name: name.value }),
+                  { signal: controller.signal },
+                )
+              } catch (e) {
+                if (!controller.signal.aborted) error.value = e instanceof Error ? e.message : String(e)
+              }
+            }
+
+            watch(name, load, { immediate: true })
+
+            async function visit() {
+              busy.value = true
+              try {
+                await rask.dispatch(recordVisit({ name: name.value }))
+                await load()
+              } finally {
+                busy.value = false
+              }
+            }
 
             const serverTime = computed(() =>
               greeting.value
@@ -387,8 +363,8 @@ internal static class SpaClientSources
                   <input v-model="name" />
                 </label>
 
-                <p v-if="isPending">Loading…</p>
-                <p v-else-if="error" role="alert">{{ error.message }}</p>
+                <p v-if="!greeting && !error">Loading…</p>
+                <p v-else-if="error" role="alert">{{ error }}</p>
 
                 <template v-if="greeting">
                   <p>{{ greeting.message }}</p>
@@ -397,7 +373,7 @@ internal static class SpaClientSources
                   <p>Visits: {{ greeting.visits }}</p>
                 </template>
 
-                <button :disabled="visit.isPending.value" @click="visit.mutate({ name })">
+                <button :disabled="busy" @click="visit">
                   Record a visit
                 </button>
               </main>
@@ -410,38 +386,56 @@ internal static class SpaClientSources
     [
         ("src/App.svelte", """
             <script lang="ts">
-              import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query'
-              import { raskRetry } from './rask/query'
               import Greeting from './lib/Greeting.svelte'
-
-              const queryClient = new QueryClient({ defaultOptions: { queries: { retry: raskRetry } } })
             </script>
 
-            <QueryClientProvider client={queryClient}>
-              <Greeting />
-            </QueryClientProvider>
+            <Greeting />
 
             """),
 
         ("src/lib/Greeting.svelte", """
             <script lang="ts">
-              import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query'
-              import { raskMutation, raskQuery } from '../rask/query'
+              import { rask } from '../rask/client'
               import { getGreeting, recordVisit } from '../rask/messages'
+              import type { Greeting } from '../rask/contracts'
 
               let name = $state('world')
-              const queryClient = useQueryClient()
+              let greeting = $state<Greeting | null>(null)
+              let error = $state<string | null>(null)
+              let busy = $state(false)
 
-              // Svelte Query v6 takes a THUNK, and that is not a formality: it is what lets the options
-              // re-read the rune and refetch when it changes. Passing the object directly would read
-              // `name` once, at setup, and never again.
-              const greeting = createQuery(() => raskQuery(getGreeting({ name })))
+              let inFlight: AbortController | null = null
 
-              const visit = createMutation(() => ({
-                ...raskMutation(recordVisit),
-                // The factory carries its wire name, so invalidation is never a string literal.
-                onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-              }))
+              async function load() {
+                inFlight?.abort()
+                const controller = new AbortController()
+                inFlight = controller
+                error = null
+
+                try {
+                  greeting = await rask.dispatch(getGreeting({ name }), { signal: controller.signal })
+                } catch (e) {
+                  if (!controller.signal.aborted) error = e instanceof Error ? e.message : String(e)
+                }
+              }
+
+              // $effect re-runs when `name` changes, which is what makes this a live query rather than a
+              // one-off read at setup. The abort above is what stops a slow earlier request landing after
+              // a later one and showing the wrong answer.
+              $effect(() => {
+                name
+                void load()
+              })
+
+              async function visit() {
+                busy = true
+                try {
+                  await rask.dispatch(recordVisit({ name }))
+                  await load()
+                } finally {
+                  busy = false
+                }
+              }
             </script>
 
             <main>
@@ -451,21 +445,21 @@ internal static class SpaClientSources
                 Name <input bind:value={name} />
               </label>
 
-              {#if greeting.isPending}
+              {#if !greeting && !error}
                 <p>Loading…</p>
-              {:else if greeting.isError}
-                <p role="alert">{greeting.error.message}</p>
-              {:else if greeting.data}
-                <p>{greeting.data.message}</p>
+              {:else if error}
+                <p role="alert">{error}</p>
+              {:else if greeting}
+                <p>{greeting.message}</p>
                 <!-- seenAt is a real Date, revived because the C# type said it was an instant. -->
                 <p>
                   Server time:
-                  {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.data.seenAt)}
+                  {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
                 </p>
-                <p>Visits: {greeting.data.visits}</p>
+                <p>Visits: {greeting.visits}</p>
               {/if}
 
-              <button onclick={() => visit.mutate({ name })} disabled={visit.isPending}>
+              <button onclick={visit} disabled={busy}>
                 Record a visit
               </button>
             </main>
@@ -499,29 +493,24 @@ internal static class SpaClientSources
         ("src/app/app.config.ts", """
             import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
             import { provideRouter } from '@angular/router';
-            import { QueryClient, provideTanStackQuery } from '@tanstack/angular-query-experimental';
 
             import { routes } from './app.routes';
-            import { raskRetry } from '../rask/query';
 
             export const appConfig: ApplicationConfig = {
               providers: [
                 provideBrowserGlobalErrorListeners(),
                 provideRouter(routes),
-                // TanStack's own defaults, on purpose — staleTime 0 and a five-minute collection window.
-                // The one override is retry: a 4xx will never succeed on a retry.
-                provideTanStackQuery(new QueryClient({ defaultOptions: { queries: { retry: raskRetry } } })),
               ],
             };
 
             """),
 
         ("src/app/app.ts", """
-            import { Component, inject, signal } from '@angular/core';
-            import { QueryClient, injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
+            import { Component, effect, signal } from '@angular/core';
 
-            import { raskMutation, raskQuery } from '../rask/query';
+            import { rask } from '../rask/client';
             import { getGreeting, recordVisit } from '../rask/messages';
+            import type { Greeting } from '../rask/contracts';
 
             @Component({
               selector: 'app-root',
@@ -529,34 +518,58 @@ internal static class SpaClientSources
               styleUrl: './app.css',
             })
             export class App {
-              private readonly queryClient = inject(QueryClient);
-
               protected readonly name = signal('world');
+              protected readonly greeting = signal<Greeting | null>(null);
+              protected readonly error = signal<string | null>(null);
+              protected readonly busy = signal(false);
 
-              // injectQuery runs this function in a reactive context, so reading the signal here is what
-              // makes the query refetch when the name changes — the same role the thunk plays in Solid.
-              // The message carries its own result type, so `data()` is a Greeting with no cast and no wire
-              // name spelled out here.
-              protected readonly greeting = injectQuery(() => raskQuery(getGreeting({ name: this.name() })));
+              private inFlight: AbortController | null = null;
 
-              protected readonly visit = injectMutation(() => ({
-                ...raskMutation(recordVisit),
-                // The factory carries its wire name, so invalidation is never a string literal.
-                onSuccess: () => this.queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-              }));
+              constructor() {
+                // Reading name() inside an effect is what makes this refetch when the name changes.
+                // Aborting the previous request is what stops a slow earlier one landing after a later
+                // one and showing the wrong answer.
+                effect(() => {
+                  const value = this.name();
+                  void this.load(value);
+                });
+              }
 
               protected setName(value: string): void {
                 this.name.set(value);
               }
 
-              protected record(): void {
-                this.visit.mutate({ name: this.name() });
+              protected async record(): Promise<void> {
+                this.busy.set(true);
+                try {
+                  await rask.dispatch(recordVisit({ name: this.name() }));
+                  await this.load(this.name());
+                } finally {
+                  this.busy.set(false);
+                }
               }
 
               // seenAt is a real Date, revived because the C# type said it was an instant. `undefined` as
               // the locale means the visitor's own, and their own time zone.
               protected time(value: Date): string {
                 return new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(value);
+              }
+
+              private async load(name: string): Promise<void> {
+                this.inFlight?.abort();
+                const controller = new AbortController();
+                this.inFlight = controller;
+                this.error.set(null);
+
+                try {
+                  // The message carries its own result type, so this is a Greeting with no cast and no
+                  // wire name spelled out here.
+                  this.greeting.set(await rask.dispatch(getGreeting({ name }), { signal: controller.signal }));
+                } catch (e) {
+                  if (!controller.signal.aborted) {
+                    this.error.set(e instanceof Error ? e.message : String(e));
+                  }
+                }
               }
             }
 
@@ -571,21 +584,21 @@ internal static class SpaClientSources
                 <input [value]="name()" (input)="setName($any($event.target).value)" />
               </label>
 
-              @if (greeting.isPending()) {
+              @if (!greeting() && !error()) {
                 <p>Loading…</p>
               }
 
-              @if (greeting.error(); as error) {
-                <p role="alert">{{ error.message }}</p>
+              @if (error(); as message) {
+                <p role="alert">{{ message }}</p>
               }
 
-              @if (greeting.data(); as data) {
+              @if (greeting(); as data) {
                 <p>{{ data.message }}</p>
                 <p>Server time: {{ time(data.seenAt) }}</p>
                 <p>Visits: {{ data.visits }}</p>
               }
 
-              <button [disabled]="visit.isPending()" (click)="record()">Record a visit</button>
+              <button [disabled]="busy()" (click)="record()">Record a visit</button>
             </main>
 
             """),
@@ -596,31 +609,12 @@ internal static class SpaClientSources
         ("src/my-element.ts", """
             import { LitElement, html } from 'lit'
             import { customElement, state } from 'lit/decorators.js'
-            import {
-              QueryClient,
-              QueryClientProvider,
-              createMutationController,
-              createQueryController,
-            } from '@tanstack/lit-query'
-            import { raskMutation, raskQuery, raskRetry } from './rask/query'
+            import { rask } from './rask/client'
             import { getGreeting, recordVisit } from './rask/messages'
+            import type { Greeting } from './rask/contracts'
 
-            const queryClient = new QueryClient({ defaultOptions: { queries: { retry: raskRetry } } })
-
-            // The provider is a custom ELEMENT, and it has to be a DOM ancestor of anything that
-            // queries — lit-query hands the client down through @lit/context, which travels by event up
-            // the tree rather than by import. That is why <rask-greeting> is nested rather than mounted
-            // on its own.
-            @customElement('rask-query-provider')
-            export class RaskQueryProvider extends QueryClientProvider {
-              constructor() {
-                super()
-                this.client = queryClient
-              }
-            }
-
-            @customElement('rask-greeting')
-            export class RaskGreeting extends LitElement {
+            @customElement('my-element')
+            export class MyElement extends LitElement {
               // Light DOM, on purpose. Lit renders into a shadow root by default, and page-level CSS does
               // not cross one — so the app's stylesheet (Tailwind's included) would style everything on
               // the page EXCEPT this component, with nothing reporting it. That trade buys encapsulation
@@ -634,21 +628,28 @@ internal static class SpaClientSources
               @state()
               private accessor name = 'world'
 
-              // A thunk, so the controller re-reads the reactive property and refetches when it changes.
-              private readonly greeting = createQueryController(this, () =>
-                raskQuery(getGreeting({ name: this.name })),
-              )
+              @state()
+              private accessor greeting: Greeting | null = null
 
-              private readonly visit = createMutationController(this, () => ({
-                ...raskMutation(recordVisit),
-                // The factory carries its wire name, so invalidation is never a string literal.
-                onSuccess: () => queryClient.invalidateQueries({ queryKey: [getGreeting.messageName] }),
-              }))
+              @state()
+              private accessor error: string | null = null
+
+              @state()
+              private accessor busy = false
+
+              private inFlight: AbortController | null = null
+
+              connectedCallback() {
+                super.connectedCallback()
+                void this.load()
+              }
+
+              disconnectedCallback() {
+                super.disconnectedCallback()
+                this.inFlight?.abort()
+              }
 
               render() {
-                const query = this.greeting()
-                const mutation = this.visit()
-
                 return html`
                   <main>
                     <h1>Rask + Lit</h1>
@@ -659,48 +660,67 @@ internal static class SpaClientSources
                         .value=${this.name}
                         @input=${(event: Event) => {
                           this.name = (event.target as HTMLInputElement).value
+                          void this.load()
                         }}
                       />
                     </label>
 
-                    ${query.isPending ? html`<p>Loading…</p>` : ''}
-                    ${query.isError ? html`<p role="alert">${query.error.message}</p>` : ''}
-                    ${query.data
+                    ${!this.greeting && !this.error ? html`<p>Loading…</p>` : ''}
+                    ${this.error ? html`<p role="alert">${this.error}</p>` : ''}
+                    ${this.greeting
                       ? html`
-                          <p>${query.data.message}</p>
+                          <p>${this.greeting.message}</p>
                           <!-- seenAt is a real Date, revived because the C# type said so. -->
                           <p>
                             Server time:
                             ${new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
-                              query.data.seenAt,
+                              this.greeting.seenAt,
                             )}
                           </p>
-                          <p>Visits: ${query.data.visits}</p>
+                          <p>Visits: ${this.greeting.visits}</p>
                         `
                       : ''}
 
-                    <button
-                      ?disabled=${mutation.isPending}
-                      @click=${() => this.visit.mutate({ name: this.name })}
-                    >
+                    <button ?disabled=${this.busy} @click=${this.record}>
                       Record a visit
                     </button>
                   </main>
                 `
               }
-            }
 
-            @customElement('my-element')
-            export class MyElement extends LitElement {
-              render() {
-                return html`<rask-query-provider><rask-greeting></rask-greeting></rask-query-provider>`
+              private record = async () => {
+                this.busy = true
+                try {
+                  await rask.dispatch(recordVisit({ name: this.name }))
+                  await this.load()
+                } finally {
+                  this.busy = false
+                }
+              }
+
+              // Aborting the previous request is what stops a slow earlier one landing after a later one
+              // and showing the wrong answer.
+              private async load() {
+                this.inFlight?.abort()
+                const controller = new AbortController()
+                this.inFlight = controller
+                this.error = null
+
+                try {
+                  this.greeting = await rask.dispatch(
+                    getGreeting({ name: this.name }),
+                    { signal: controller.signal },
+                  )
+                } catch (e) {
+                  if (!controller.signal.aborted) {
+                    this.error = e instanceof Error ? e.message : String(e)
+                  }
+                }
               }
             }
 
             declare global {
               interface HTMLElementTagNameMap {
-                'rask-query-provider': RaskQueryProvider
-                'rask-greeting': RaskGreeting
                 'my-element': MyElement
               }
             }

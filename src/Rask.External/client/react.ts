@@ -1,9 +1,8 @@
 // rask-external React adapter, vendored from Rask.External.
 //
 // Covers Preact unchanged. create-vite's Preact template aliases `react` and `react-dom` to
-// `preact/compat` in both tsconfig and the Vite plugin — the same aliasing the TypeScript SPA lane
-// already relies on for TanStack Query — so this file type-checks and bundles against either, and
-// Rask never needs to know which one it got.
+// `preact/compat` in both tsconfig and the Vite plugin, so this file type-checks and bundles against
+// either, and Rask never needs to know which one it got.
 //
 // You own this file. It is refreshed on build only while the header line above is intact.
 
