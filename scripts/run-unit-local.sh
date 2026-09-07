@@ -84,22 +84,61 @@ for t in scripts/tests/*.test.sh; do
   bash "$t"
 done
 
-echo "==> Build once (Release, no WASM bundle: -p:RaskWasm=false -p:WasmBuildNative=false)"
+echo "==> Build once (Release; no WASM bundle, no sample front ends)"
 # -m:$lane_slots is the lever that actually bounds this gate. Left at MSBuild's default it takes every
 # logical core, and three of these running from three worktrees is how the machine reached 35 worker
 # nodes on 14 cores, load average 98, 0.0% idle -- at which point every timing-sensitive test in all
 # three runs was untrustworthy. This was the only gate in the repo without an -m cap; the others all
 # pass -m:1.
+# RaskMetaBuild / RaskSpaBuild off: this gate runs UNIT tests, and not one of them exercises a
+# meta framework's or a SPA's compiled front end — the browser E2E gate builds those, which is where
+# a broken Nuxt config should surface. Left on, `dotnet build Rask.slnx` runs npm plus a PRODUCTION
+# front-end build for each of the six Rask.Example.Meta.* samples.
+#
+# Measured on this machine rather than assumed, because the saving is much smaller than it looks:
+# warm, 12.7s -> 10.7s for the whole solution; with one sample's front end invalidated, 4.5s -> 1.4s
+# for that project. It is minutes only on a genuinely cold tree. The gate's real cost is elsewhere —
+# the test run is ~146s and `dotnet format --verify-no-changes` ~57s, together about 90% of a warm
+# run — so do not read this line as the thing that makes the gate fast.
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
-  -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true
+  -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
+  -p:RaskMetaBuild=false -p:RaskSpaBuild=false
 
 echo "==> Source generators in Debug (dotnet format resolves analyzers from the default configuration)"
 for proj in src/*.Generators/*.csproj; do
   dotnet build "$proj" -c Debug --nologo -v quiet
 done
 
-echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
-dotnet format Rask.slnx --verify-no-changes --no-restore
+# Scoped to the files being committed when the caller says so (the pre-commit hook does), and the whole
+# solution otherwise. Measured: 59s full, 30s scoped — the remaining 30s is solution load, which no
+# scoping avoids.
+#
+# Sound rather than merely cheaper: dotnet format decides per DOCUMENT, so a file it is not shown is a
+# file it would have had nothing to say about. And a tree cannot contain an unformatted committed file
+# for this to miss, because that file would have had to pass this same gate on its own way in.
+#
+# The standalone gate keeps the full pass on purpose. It is the definition-of-done run, invoked with no
+# commit in view, and "everything is formatted" is exactly the claim it exists to make.
+format_scope=""
+if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ]; then
+  # -z/-d so a path with a space or a newline in it cannot split into two arguments.
+  staged_cs="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep -E '\.cs$' || true)"
+
+  if [ -n "$staged_cs" ]; then
+    echo "==> Formatting check (staged .cs files only — RASK_FORMAT_SCOPE=staged)"
+    # shellcheck disable=SC2086
+    printf '%s\n' "$staged_cs" | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --no-restore --include
+    format_scope="done"
+  else
+    echo "==> Formatting check skipped — RASK_FORMAT_SCOPE=staged and no .cs staged."
+    format_scope="done"
+  fi
+fi
+
+if [ -z "$format_scope" ]; then
+  echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
+  dotnet format Rask.slnx --verify-no-changes --no-restore
+fi
 
 # The generated TypeScript is compiled by tsgo, which the test fetches itself as a checksum-verified
 # binary at a pinned version, cached per user. So the type CHECK needs no node and always runs. Nothing
@@ -107,13 +146,9 @@ dotnet format Rask.slnx --verify-no-changes --no-restore
 # "is the tooling here?" is one that eventually answers no and stops running — which is how a generator
 # emitting malformed TypeScript would ship green.
 #
-# The GATE, on the other hand, needs node, and needs more of it than it used to. The build line above
-# turns off only the WASM bundle; RaskExternalBuild, RaskSpaBuild and RaskMetaBuild all default to true
-# (src/Rask.External/build/Rask.External.props, src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props,
-# src/Rask.Meta.Hosting/build/Rask.Meta.Hosting.props), and Rask.slnx now carries the showcase's islands
-# plus six Rask.Example.Meta.* samples. Building the solution therefore runs npm and Vite for the
-# islands AND a full PRODUCTION front-end build for each of Nuxt, Next, SvelteKit, SolidStart, TanStack
-# and Analog.
+# The GATE still needs node, for the islands. RaskExternalBuild is left ON deliberately — the showcase
+# carries a package.json, so the solution build runs npm and Vite for it, and that IS covered by unit
+# tests. RaskSpaBuild and RaskMetaBuild are turned off on the build line above; see the note there.
 #
 # This comment used to claim the opposite — "the build passes -p:RaskSpaBuild=false", a flag no script
 # in this repo has ever passed (#1012). Anyone reading it would have concluded the unit gate was
@@ -131,11 +166,19 @@ echo "==> Unit & integration tests (excludes the browser E2E)"
 # sequence file naming the test in flight and collects a dump, so the next occurrence is diagnosable
 # instead of merely observed. It costs nothing on a green run.
 set +e
-# Half the slots here, not all of them, because the other half is spent INSIDE each assembly:
-# tests/xunit.runner.json caps a single assembly at 2 concurrent tests, so (assemblies in flight) x
-# (threads each) lands back on the slot count this gate was granted. Passing the full count to both
-# would square it, which is the shape of the original bug rather than a fix for it.
-test_slots=$((lane_slots / 2))
+# The FULL slot count, not half of it. The halving assumed (assemblies in flight) x (2 threads each)
+# would square the budget; measured back-to-back on this 14-core box, that reasoning cost more than it
+# saved — the same suite runs in 284s at -m:4 and 128s at -m:8, a 2.2x difference on the phase that is
+# about two thirds of a warm gate.
+#
+# The oversubscription the halving feared is real but bounded: xUnit threads are mostly blocked on I/O
+# and on each other, not saturating a core apiece. Checked for the failure mode that would matter —
+# timing-sensitive tests going red under load is this repository's most expensive kind of noise — with
+# repeat full runs at the higher count, both green.
+#
+# If timing flakes do start tracking this, halve it back rather than chasing the individual tests: a
+# suite that only passes at low parallelism is telling you something, and it is cheaper to believe it.
+test_slots="$lane_slots"
 [ "$test_slots" -lt 1 ] && test_slots=1
 
 dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \

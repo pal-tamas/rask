@@ -9,6 +9,59 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Quiescence waited for a hook's task, not for the render that task enables.**
+  `LifecycleSyncContext.Post` schedules the continuation of an async lifecycle hook. The user's method
+  body returns *inside* that continuation, which transitions the hook's own `Task` to Completed — one
+  line **before** the `StateHasChanged()` that paints the resolved data. `QuiescentRender.RunAsync` waits
+  on that task, so it could wake in the gap, re-render, find nothing pending and serve a page whose data
+  had arrived but whose render had not happened.
+
+  `Post` now registers a gate with the quiescence scope **before** starting the continuation, and opens
+  it in a `finally` after the render. Registering first is what makes it airtight: `Post` always runs
+  before the work it schedules, so the wave loop cannot snapshot between the two. A hook that throws
+  still opens the gate, or a component fault would become a page that hangs to the budget. Three tests
+  pin it, and all three fail with the change reverted, naming the cause: *the scope reported nothing
+  pending*.
+
+  **This does not close [#932](https://github.com/pal-tamas/rask/issues/932).** That was the suspected
+  cause and it is a real defect in its own right, but the flaky test still failed with this in place, so
+  the race it reports is elsewhere — most likely that `StateHasChanged()` requests a render rather than
+  performing one, leaving a second window between the gate opening and the child component mounting. The
+  issue stays open with that narrowed. Recorded here because two earlier readings of this were wrong: a
+  harness that ran the class twelve times under load "confirmed" the fix and then passed twelve times
+  with the bug deliberately put back, which is no evidence at all.
+
+- **The local unit gate went from ~367s to ~215s warm, and ~186s from the pre-commit hook.** Timed end
+  to end, not inferred from the parts. Profiled first, warm: the test run was about two thirds of it,
+  `dotnet format --verify-no-changes` a quarter, and everything else — the solution build, the gate
+  script tests, the Debug generator build — under a tenth together.
+
+  **The test phase ran at half the slots it had been granted.** The halving assumed
+  (assemblies in flight) x (2 threads each) would square the budget. Measured back-to-back on this
+  14-core box it cost far more than it saved: 284s at `-m:4`, 128s at `-m:8`. xUnit's threads are mostly
+  blocked on I/O and on each other rather than holding a core apiece. Checked for the failure mode that
+  would actually matter — timing-sensitive tests going red under load, this repository's most expensive
+  kind of noise — with repeated full runs at the higher count, all green. If flakes do start tracking
+  it, halve it back rather than chasing individual tests.
+
+  **The format check now scopes to what is being committed** when the pre-commit hook runs it: 59s to
+  30s, the remainder being solution load that no scoping avoids. Sound rather than merely cheaper —
+  `dotnet format` decides per document, and a committed file cannot already be unformatted, because it
+  would have had to pass this same gate on its way in. The standalone gate keeps the full pass, since it
+  is the definition-of-done run and "everything is formatted" is the claim it exists to make.
+
+- **The unit gate built six production front ends it never tests.** `dotnet build Rask.slnx` was run with
+  only the WASM bundle disabled, so `RaskSpaBuild` and `RaskMetaBuild` stayed at their default of `true`
+  and every run did a full Nuxt / Next / SvelteKit / SolidStart / TanStack / Analog production build. No
+  unit test exercises any of them; the browser E2E gate builds them, which is where a broken front-end
+  config should surface.
+
+  Measured rather than assumed, and the honest numbers are much smaller than the change looks: warm, the
+  solution build goes 12.7s → 10.7s; with one sample's front end invalidated, that project goes 4.5s →
+  1.4s. It is minutes only on a cold tree. The gate's real cost is elsewhere — the test run is ~146s and
+  `dotnet format --verify-no-changes` ~57s, together about 90% of a warm run — and the comment on the
+  build line now says so, so the next person does not read this as the thing that made the gate fast.
+
 - **Five defects in `Rask.Blazor`, and one of them took the whole generator down.**
 
   **A hosted `[Parameter]` named `Key` was silently dropped** ([#950](https://github.com/pal-tamas/rask/issues/950)).
