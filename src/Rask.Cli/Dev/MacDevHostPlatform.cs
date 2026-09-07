@@ -43,13 +43,17 @@ internal sealed class MacDevHostPlatform(IProcessRunner process, IConsole consol
             ["-n", "/usr/bin/security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", SystemKeychain, certificatePath],
             cancellationToken).ConfigureAwait(false) == 0;
 
+    /// <summary>
+    ///     Overwrites the hosts file, writing through the existing file rather than replacing it.
+    /// </summary>
+    /// <remarks>
+    ///     <c>cp</c> rather than <c>install</c>: <c>install</c> unlinks the destination and creates a new
+    ///     one, which fails outright when <c>/etc/hosts</c> is a bind mount, a symlink or immutable.
+    ///     Writing in place also leaves the file with the mode and ownership it already had, rather than
+    ///     having a dev tool decide what those should be.
+    /// </remarks>
     public override async Task<bool> InstallHostsAsync(string stagedPath, CancellationToken cancellationToken) =>
-        // `install` sets the destination's mode and ownership explicitly rather than inheriting whatever
-        // the staging file happened to have.
-        await RunAsync(
-            "sudo",
-            ["-n", "/usr/bin/install", "-m", "0644", "-o", "root", "-g", "wheel", stagedPath, HostsPath],
-            cancellationToken).ConfigureAwait(false) == 0;
+        await RunAsync("sudo", ["-n", "/bin/cp", stagedPath, HostsPath], cancellationToken).ConfigureAwait(false) == 0;
 
     /// <summary>
     ///     The pf rules this machine still needs, or null when they are already loaded.

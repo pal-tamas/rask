@@ -138,11 +138,19 @@ internal sealed class LinuxDevHostPlatform(IProcessRunner process, IConsole cons
         return true;
     }
 
+    /// <summary>
+    ///     Overwrites the hosts file, writing through the existing file rather than replacing it.
+    /// </summary>
+    /// <remarks>
+    ///     <c>cp</c> rather than <c>install</c>, which was the first thing the container gate caught.
+    ///     <c>install</c> unlinks the destination and creates a new one, and <c>/etc/hosts</c> is a bind
+    ///     mount in every container — and a symlink or an immutable file on some real machines — so it
+    ///     fails with "Device or resource busy". <c>cp</c> truncates and writes in place, which also
+    ///     means the file keeps the mode and ownership it already had instead of having 0644 root:root
+    ///     imposed on it by a dev tool.
+    /// </remarks>
     public override async Task<bool> InstallHostsAsync(string stagedPath, CancellationToken cancellationToken) =>
-        await RunAsync(
-            "sudo",
-            ["-n", "install", "-m", "0644", "-o", "root", "-g", "root", stagedPath, HostsPath],
-            cancellationToken).ConfigureAwait(false) == 0;
+        await RunAsync("sudo", ["-n", "cp", stagedPath, HostsPath], cancellationToken).ConfigureAwait(false) == 0;
 
     /// <summary>
     ///     The sysctl value to set, or null when this machine already lets us bind 443.
@@ -213,12 +221,24 @@ internal sealed class LinuxDevHostPlatform(IProcessRunner process, IConsole cons
                 continue;
             }
 
-            // -t C,, marks it trusted for TLS server authentication and nothing else. Deleted first so a
-            // re-issued authority replaces the old entry instead of colliding with its nickname.
-            await RunAsync(
+            // A re-issued authority has to replace the old entry rather than collide with its nickname,
+            // so any existing one is removed first — but only if it is actually there. Deleting
+            // unconditionally works, and prints "SEC_ERROR_INVALID_ARGS" to the developer's terminal on
+            // every first install, which reads like a failure in the middle of a successful setup.
+            var existing = await CaptureAsync(
                 "certutil",
-                ["-d", "sql:" + database, "-D", "-n", DevCertificates.AuthorityName],
+                ["-d", "sql:" + database, "-L", "-n", DevCertificates.AuthorityName],
                 cancellationToken).ConfigureAwait(false);
+
+            if (existing.ExitCode == 0)
+            {
+                await RunAsync(
+                    "certutil",
+                    ["-d", "sql:" + database, "-D", "-n", DevCertificates.AuthorityName],
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            // -t C,, marks it trusted for TLS server authentication and nothing else.
 
             await RunAsync(
                 "certutil",

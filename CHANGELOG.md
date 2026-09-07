@@ -49,6 +49,20 @@ them until tagged releases begin.
   operating system's. On Linux `certutil` covers it; on macOS and Windows it has to be imported by hand,
   and `rask dev` says so rather than leaving a warning page to explain it.
 
+  **The Linux half is verified against a real Linux machine**, by
+  `scripts/run-devhost-linux-local.sh`: a throwaway container running as an ordinary user with
+  passwordless sudo, where the CA anchors, `certutil`, `/etc/hosts` and the sysctl are all really
+  modified, and `curl` then completes a TLS handshake to `https://appname.test` with no `--cacert` and
+  nothing told about the authority. Only a correctly installed system trust makes that succeed. It is
+  opt-in (`RASK_DEVHOST_E2E=1`) because it rewrites the machine it runs on.
+
+  That gate immediately earned itself. The hosts file was being written with `install`, which unlinks
+  the destination and creates a new one — and `/etc/hosts` is a bind mount in every container, and a
+  symlink or an immutable file on some real machines, so it failed outright with "Device or resource
+  busy". It now uses `cp`, which writes through the existing file and, as a bonus, leaves the mode and
+  ownership alone instead of having a dev tool impose `0644 root:root` on a file that already existed.
+  The same fix applies on macOS, where the same call would have failed the same way.
+
 ### Changed
 
 - **The playground compiles against reference assemblies shipped as data, not against its own bundle.**
