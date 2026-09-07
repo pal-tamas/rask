@@ -110,6 +110,27 @@
                           Condition=" '%(_RaskAppPackage.Version)' != '' "/>
       <_RaskPrerenderLine Include="@(_RaskAppPackage->'    &lt;PackageReference Include=&quot;%(Identity)&quot; /&gt;')"
                           Condition=" '%(_RaskAppPackage.Version)' == '' "/>
+
+      <!--
+        THE APP'S OWN GLOBAL USINGS, for the same reason as its references directly above and missed for
+        longer: the companion compiles the app's SOURCES, and a source that leans on a global using
+        declared in the csproj does not compile without it. ImplicitUsings is carried near the top of this
+        file, but that only covers the SDK's set; a <Using Include="..."/> the app declares for itself was
+        dropped.
+
+        It fails as CS0103 on a name that is plainly right there — the referenced assembly IS on the
+        companion's list, so the error points at the source rather than at the missing using, and reads
+        like the app is broken. The showcase hit exactly this on Rask.Ui: sixty errors on UiIconName in
+        files that compile perfectly for the browser.
+
+        Static and Alias are carried too. An app that writes `using static` or an alias in its csproj is
+        rarer than one that does not, but dropping the metadata while keeping the item would turn a
+        working global using into a subtly different one, which is worse than dropping it outright.
+      -->
+      <_RaskPrerenderLine Include="@(Using->WithMetadataValue('Static', '')->WithMetadataValue('Alias', '')->'    &lt;Using Include=&quot;%(Identity)&quot; /&gt;')"/>
+      <_RaskPrerenderLine Include="@(Using->WithMetadataValue('Static', 'true')->'    &lt;Using Include=&quot;%(Identity)&quot; Static=&quot;true&quot; /&gt;')"/>
+      <_RaskPrerenderLine Include="@(Using->'    &lt;Using Include=&quot;%(Identity)&quot; Alias=&quot;%(Alias)&quot; /&gt;')"
+                          Condition=" '%(Using.Alias)' != '' "/>
       <_RaskPrerenderLine Include="  &lt;/ItemGroup&gt;"/>
       <_RaskPrerenderLine Include="&lt;/Project&gt;"/>
     </ItemGroup>

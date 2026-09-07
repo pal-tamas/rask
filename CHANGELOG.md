@@ -81,6 +81,29 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Prerendering could not compile any app that declares a global `using` in its csproj.** The pass
+  compiles the app's sources a second time for `net10.0`, out of a companion project generated into
+  `obj/`. That companion carried the app's `ProjectReference`s and `PackageReference`s — under a comment
+  explaining that it must, since it compiles the app's own sources — but not its `<Using>` items.
+
+  It fails as `CS0103` on a name that is plainly in scope, because the assembly really is on the
+  companion's reference list; the error points at the source rather than at the missing using, and reads
+  as though the app is broken. The showcase produced sixty of them on `UiIconName`, in files that compile
+  perfectly for the browser. Nothing caught it because it only appears once `RaskPrerender` is on.
+
+  `Static` and `Alias` are carried too — dropping the metadata while keeping the item would quietly turn
+  a global using into a different one, which is worse than dropping it. `PrerenderCompanionGenerationTests`
+  pins all three, and was checked against the unfixed targets first: four failures, four passes after.
+
+  Turning prerendering on for the showcase is now a judgement call rather than a blocked one. Its csproj
+  argued that a partially prerendered bundle misroutes deep links, because the SPA fallback is the root
+  `index.html` and a prerendered root stops being a neutral shell — and named its own prerequisite, "a
+  fallback document that is still the boot shell". [#974](https://github.com/pal-tamas/rask/issues/974)
+  delivered exactly that. Measured: `written=5 skipped=3` with 15 browser-API routes throwing as
+  predicted, a 8.7 KB neutral `404.html` carrying no guides markup, and a 239 KB rendered `index.html`.
+  It stays off for now only because flipping it deserves its own browser-E2E run — a prerendered document
+  that the WASM runtime then morphs is a different first paint from the one the journeys assert.
+
 - **The WASM islands journey counted three islands where the page has had four since [#958](https://github.com/pal-tamas/rask/issues/958)**
   ([#1027](https://github.com/pal-tamas/rask/issues/1027)). `d56dfb82` added a Solid island to the WASM
   showcase and left the count that guards that page at three, so `main` was red on the journey from that
