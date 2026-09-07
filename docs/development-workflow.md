@@ -309,6 +309,18 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   push changes `DeployCommand`/`Host*`/`SshTarget`/`DockerProbe`/`DeployConfig` or the deploy tests
   (bypass with `RASK_SKIP_DEPLOY_E2E=1`). **Not covered:** real DNS and Let's Encrypt issuance — the gate
   uses a `.test` domain, so ACME never runs.
+- **The Linux dev-host gate is opt-in and runs in a container.** `scripts/run-devhost-linux-local.sh`
+  verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) against a real Linux machine:
+  a throwaway container running as an ordinary user with passwordless sudo, where the CA anchors,
+  `certutil`'s NSS databases, `/etc/hosts` and the `ip_unprivileged_port_start` sysctl are all genuinely
+  modified. It finishes by having `curl` complete a TLS handshake to `https://appname.test` with **no
+  `--cacert`** and nothing told about the authority — only a correctly installed system trust can make
+  that succeed. Everything else about the dev host is a pure function or a fake process runner, which
+  proves the argv Rask *builds* and nothing about whether a machine ends up trusting anything; this is
+  the only coverage that the setup actually sets anything up. It rewrites the machine it runs on, so it
+  is gated behind `RASK_DEVHOST_E2E=1` and is never part of a push. It needs a `docker` CLI and a daemon
+  that can run a privileged container. **Not covered:** macOS and Windows, whose keychain, UAC and pf
+  steps have no equivalent sandbox — those remain exercised by hand.
 - **The install gate runs locally, on pushes that touch the public installer.** `rask.sh` and `rask.ps1`
   at the repo root are what [`docs/installation.md`](installation.md) tells people to `curl | sh`, and
   they are published to GitHub Pages by `pages.yml`. Two things cover them.

@@ -17,7 +17,8 @@ opening/merging the PR.
 - **XSS**: only `Text` HTML-encodes; `Raw` emits verbatim. Any new `Raw`/`HtmlSerializer` path
   with user-influenced content is a finding.
 - **Auth handshake**: redeem rejects cross-origin (`IsSameOrigin`); redeem-ticket TTL respected;
-  `SessionUserProvider.Clear()` invalidates; JWT only rides the WS as `?access_token=`.
+  `SessionUserProvider.Clear()` invalidates. The session is a cookie — a bearer token on the WS
+  URL or a token in browser storage is a finding, not a feature.
 - **Scoped assets** stay `.AllowAnonymous()` + `nosniff` + immutable cache; no secrets in payloads.
 - Route guards: `[Authorize]`/`[AllowAnonymous]` and client redirects (`/login`, `/forbidden`) intact.
 

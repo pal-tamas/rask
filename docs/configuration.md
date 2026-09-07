@@ -212,7 +212,7 @@ The record lives in the browser, which is what makes it need no shared store, no
 infrastructure. It is encrypted and authenticated under its own data-protection purpose, so it is opaque
 and unforgeable to the client holding it. Expiry is enforced by ASP.NET's time-limited protector rather
 than a field we compare, so an expired record cannot be opened at all. It carries **no principal** — a
-reconnect authenticates from its cookie or bearer token exactly as before — but it is bound to the
+reconnect authenticates from its session cookie exactly as before — but it is bound to the
 identity it was issued to, so it cannot be replayed onto another account, and signing in or out
 invalidates it. A rebuild takes a `MaxSessions` slot through the same atomic reservation a `GET` uses, so
 the reconnect storm after a deploy sheds like ordinary traffic instead of walking past the cap.

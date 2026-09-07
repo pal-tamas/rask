@@ -73,6 +73,7 @@ internal sealed class DevCommand(
             .Flag("no-restart", description: "Ask before restarting on an edit hot reload can't apply.")
             .Flag("once", description: "Run once without watching (plain 'dotnet run').")
             .Flag("no-banner", description: "Suppress the startup banner.")
+            .Flag("no-host", description: "Serve on localhost instead of this project's https://<name>.test address.")
             .Flag("dry-run", description: "Print the command that would run without starting anything.");
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
@@ -133,12 +134,26 @@ internal sealed class DevCommand(
             return 0;
         }
 
-        if (!parsed.HasFlag("no-banner") && !Console.IsOutputRedirected)
+        // Before the banner, because it decides what the banner says the app is reachable on — and after
+        // the dry run, which prints a plan and must never change the machine to do it.
+        var devHost = await TryPrepareDevHostAsync(target, parsed, nonInteractive, cancellationToken).ConfigureAwait(false);
+        if (devHost is not null)
         {
-            WriteBanner(target, once, parsed.HasFlag("no-hot-reload"), restartOnRudeEdit, parsed.Option("urls"));
+            var withHost = new Dictionary<string, string>(environment, StringComparer.Ordinal);
+            foreach (var (key, value) in devHost.Environment)
+            {
+                withHost[key] = value;
+            }
+
+            environment = withHost;
         }
 
-        var open = ResolveBrowserOpen(target, parsed.HasFlag("open"), parsed.HasFlag("no-open"), parsed.Option("urls"));
+        if (!parsed.HasFlag("no-banner") && !Console.IsOutputRedirected)
+        {
+            WriteBanner(target, once, parsed.HasFlag("no-hot-reload"), restartOnRudeEdit, parsed.Option("urls"), devHost?.Url);
+        }
+
+        var open = ResolveBrowserOpen(target, parsed.HasFlag("open"), parsed.HasFlag("no-open"), parsed.Option("urls"), devHost?.Url);
         var opening = open is null ? Task.CompletedTask : OpenWhenListeningAsync(open, cancellationToken);
 
         // The build-status channel (#603). A failed rebuild leaves the app process DOWN, so the browser
@@ -540,10 +555,56 @@ internal sealed class DevCommand(
         return env;
     }
 
+    /// <summary>
+    ///     Set the machine up to serve this project on <c>https://&lt;name&gt;.test</c>, or return null to
+    ///     use the ordinary localhost URLs.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Only on the lanes where Kestrel is what the browser talks to. On the SPA and meta lanes
+    ///         the page is served by the front end's own dev server over plain HTTP, so a certificate on
+    ///         the ASP.NET host behind it is not the one the browser would ever see; and an island
+    ///         project loads its modules from a second HTTP dev server, which an HTTPS page is not
+    ///         allowed to do at all (mixed content). Both need their bundler taught to serve TLS before
+    ///         this can cover them — until then they keep the localhost URL that does work.
+    ///     </para>
+    ///     <para>
+    ///         Skipped whenever <c>--urls</c> is given: someone naming the addresses to listen on is
+    ///         being explicit, and quietly serving somewhere else would be the opposite of helpful.
+    ///     </para>
+    /// </remarks>
+    private async Task<DevHostResult?> TryPrepareDevHostAsync(
+        DevTarget target,
+        ParsedArguments parsed,
+        bool nonInteractive,
+        CancellationToken cancellationToken)
+    {
+        if (parsed.HasFlag("no-host")
+            || parsed.Option("urls") is { Length: > 0 }
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RASK_DEV_NO_HOST"))
+            || !DevHostSetup.IsSupported)
+        {
+            return null;
+        }
+
+        if (target.Kind is not (DevTemplateKind.Server or DevTemplateKind.WasmHosted or DevTemplateKind.Unknown))
+        {
+            return null;
+        }
+
+        if (target.HasIslands)
+        {
+            return null;
+        }
+
+        var setup = new DevHostSetup(Console, _process, new DevHostStore(DevHostStore.DefaultRoot));
+        return await setup.TryPrepareAsync(target.Name, !nonInteractive, cancellationToken).ConfigureAwait(false);
+    }
+
     // Which URL, if any, we should open ourselves. Null when nobody should, or when watch is already
     // going to: the profile's own launchBrowser is honoured by dotnet watch and .NET 10 has no
     // environment variable to suppress it, so opening as well would just produce two tabs.
-    private string? ResolveBrowserOpen(DevTarget target, bool open, bool noOpen, string? urls)
+    private string? ResolveBrowserOpen(DevTarget target, bool open, bool noOpen, string? urls, string? devHostUrl = null)
     {
         if (noOpen || !open)
         {
@@ -571,7 +632,7 @@ internal sealed class DevCommand(
             return target.ClientDevServerUrl ?? ViteDevServerUrl;
         }
 
-        var url = FirstUrl(urls) ?? target.LaunchUrl;
+        var url = devHostUrl ?? FirstUrl(urls) ?? target.LaunchUrl;
         if (url is null)
         {
             Console.WriteLine("--open: no URL to open (no launch profile and no --urls).", ConsoleStyle.Dim);
@@ -623,11 +684,19 @@ internal sealed class DevCommand(
         }
     }
 
-    private void WriteBanner(DevTarget target, bool once, bool noHotReload, bool restartOnRudeEdit, string? urls)
+    private void WriteBanner(
+        DevTarget target,
+        bool once,
+        bool noHotReload,
+        bool restartOnRudeEdit,
+        string? urls,
+        string? devHostUrl = null)
     {
         WriteHeading($"Rask dev — {target.Name} ({Describe(target)})");
 
-        var url = FirstUrl(urls) ?? target.LaunchUrl;
+        // The dev host wins: when one is set up it is the address the app is actually reachable on, and
+        // the launch profile still names the localhost URL nothing is listening on any more.
+        var url = devHostUrl ?? FirstUrl(urls) ?? target.LaunchUrl;
         if (url is not null)
         {
             Console.WriteLine($"  {url}", ConsoleStyle.Code);

@@ -96,8 +96,8 @@ public static partial class RaskEndpointExtensions
     ///     authentication, file upload/download, <see cref="IJSRuntime" /> bridge, and the live
     ///     runtime script). Call this in <c>ConfigureServices</c>, then
     ///     <see cref="UseRask{TApp}(WebApplication, string, string)" />
-    ///     in the pipeline. Authentication itself is configured on ASP.NET's own
-    ///     <c>AddAuthentication</c>/<c>AddCookie</c>/<c>AddJwtBearer</c> — Rask has no auth options object.
+    ///     in the pipeline. The session Rask authenticates is a cookie, and the <c>Rask.Auth</c>
+    ///     battery owns that scheme — <c>AddRask</c> itself carries no auth options object.
     /// </summary>
     /// <param name="services">The service collection to add Rask services to.</param>
     /// <param name="configure">

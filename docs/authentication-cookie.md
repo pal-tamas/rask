@@ -15,6 +15,11 @@ never reaches JavaScript.
 > against **your own** credential store — an existing users table, an internal directory, anything that
 > can answer "is this password right" and hand back claims. A runnable reference lives in
 > `samples/Rask.Example.Auth`.
+>
+> **Turn the battery off first.** `Rask.Auth` owns the cookie scheme and configures it last, so with
+> the battery still on, the `AddCookie(...)` below is overwritten by `AuthOptions` and your cookie
+> name, expiry and login path quietly do not take. `app.Configure(c => c.Auth.Off())` — or dropping
+> the `AddRaskAuth` line — is what makes this page's wiring yours.
 
 **A credential store (demo — swap for your real one):**
 

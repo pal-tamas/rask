@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Rask.Core.Authentication;
 
 namespace Rask.Auth;
@@ -104,34 +105,59 @@ public static class RaskAuthServiceCollectionExtensions
 
         services.AddHostedService<FirstRunTokenInitializer>();
 
-        // Only when the app has not already set up authentication itself. Registering a scheme twice is
-        // not a no-op — AuthenticationOptions.AddScheme throws "Scheme already exists" — so a battery
-        // that always registered one would break at STARTUP for two ordinary cases: an app that brings
-        // its own OIDC or JWT scheme (the pattern docs/authentication-providers.md documents), and any
-        // app still carrying a hand-written AddAuthentication().AddCookie() from before this battery.
+        // The cookie scheme is Rask.Auth's, unconditionally: cookies are the only session Rask
+        // authenticates, so the battery owns the scheme rather than standing down when the app has
+        // wired authentication of its own. An external provider still composes — it adds a CHALLENGE
+        // scheme (AddOpenIdConnect, AddGoogle, …) beside this one and signs in through it, which is the
+        // ordinary ASP.NET arrangement and the one docs/authentication-providers.md now documents. An
+        // app that needs a cookie knob AuthOptions does not carry configures the same named options
+        // after AddRaskAuth.
         //
-        // IAuthenticationSchemeProvider is the marker AddAuthentication leaves behind, and it is the same
-        // one RaskApp reads to decide whether to call UseAuthentication.
-        if (!services.Any(d => d.ServiceType == typeof(IAuthenticationSchemeProvider)))
+        // AddAuthentication is safe to repeat: it re-registers the core services idempotently and adds
+        // one more IConfigureOptions, so calling it here after (or before) the app's own call just
+        // leaves the cookie scheme as the default — which is what a Rask app wants either way, since
+        // this is the scheme IAuthSignIn drives and the redeem endpoint writes.
+        services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        // Registering the scheme ITSELF is the one step that is not idempotent: AuthenticationOptions
+        // .AddScheme throws "Scheme already exists" — lazily, when the options are first materialised,
+        // so the app dies on its first request with a message naming no line to delete. An app carrying
+        // a hand-written AddAuthentication().AddCookie() from before this battery is exactly that case,
+        // so add the entry only when nothing else already did. The settings below are applied either
+        // way: owning the scheme means Rask's configuration wins, not that the app fails to start.
+        services.Configure<AuthenticationOptions>(o =>
         {
-            services
-                .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(o =>
-                {
-                    o.Cookie.Name = options.CookieName;
-                    o.Cookie.HttpOnly = true;
-                    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                    // Lax, not Strict: Strict withholds the cookie on the first navigation that arrives
-                    // from another site, so a visitor following a link into a protected page would land
-                    // signed-out and be bounced to /login despite having a valid session.
-                    o.Cookie.SameSite = SameSiteMode.Lax;
-                    o.LoginPath = options.LoginPath;
-                    o.LogoutPath = options.LogoutPath;
-                    o.AccessDeniedPath = options.AccessDeniedPath;
-                    o.ExpireTimeSpan = options.ExpireTimeSpan;
-                    o.SlidingExpiration = options.SlidingExpiration;
-                });
-        }
+            if (!o.SchemeMap.ContainsKey(CookieAuthenticationDefaults.AuthenticationScheme))
+            {
+                o.AddScheme<CookieAuthenticationHandler>(
+                    CookieAuthenticationDefaults.AuthenticationScheme, displayName: null);
+            }
+        });
+
+        // The rest of what AddCookie() wires. Each of these is idempotent on its own, so they run
+        // whether or not the scheme entry above was already there.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IPostConfigureOptions<CookieAuthenticationOptions>, PostConfigureCookieAuthenticationOptions>());
+        services.TryAddTransient<CookieAuthenticationHandler>();
+
+        // Named options, configured last, so these beat an app's own AddCookie(...) delegate.
+        services.Configure<CookieAuthenticationOptions>(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            o =>
+            {
+                o.Cookie.Name = options.CookieName;
+                o.Cookie.HttpOnly = true;
+                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                // Lax, not Strict: Strict withholds the cookie on the first navigation that arrives
+                // from another site, so a visitor following a link into a protected page would land
+                // signed-out and be bounced to /login despite having a valid session.
+                o.Cookie.SameSite = SameSiteMode.Lax;
+                o.LoginPath = options.LoginPath;
+                o.LogoutPath = options.LogoutPath;
+                o.AccessDeniedPath = options.AccessDeniedPath;
+                o.ExpireTimeSpan = options.ExpireTimeSpan;
+                o.SlidingExpiration = options.SlidingExpiration;
+            });
 
         // AddRask() also calls this; it is idempotent, and Rask.Auth must not depend on being wired
         // after the host.

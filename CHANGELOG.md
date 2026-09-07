@@ -7,6 +7,104 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`rask dev` serves an app on `https://appname.test` — a real name, real HTTPS, no port, no installs.**
+  The name is derived from the project, so there is no flag and nothing to configure. The first run asks
+  for permission once, listing exactly what it will change; every run after that is silent, because the
+  plan is recomputed from the machine each time and comes back empty. **macOS, Windows and Linux.**
+
+  The three steps are the same everywhere; what carries them out is not, and the port differs more than
+  expected. **Only macOS needs a redirect at all** — it alone reserves ports below 1024 from an ordinary
+  process, so it gets a pf anchor mapping 443 onto Kestrel's 5001. Windows binds 443 outright and needs
+  no port work whatsoever; Linux binds it too after one sysctl. Trust follows the same pattern: Windows
+  is the least invasive of the three, writing `CurrentUser\Root` through .NET's own API with no elevation
+  at all (Windows raises its own consent dialog), while Linux is the most awkward, needing the
+  distribution's CA anchors *and* NSS via `certutil` for Chrome and Firefox, which ignore those anchors
+  entirely. Linux opens port 443 with a sysctl rather than a firewall rule deliberately: nftables and
+  iptables are actively managed by docker, ufw and firewalld, so injecting a redirect there is far
+  likelier to collide with something the developer depends on.
+
+  Three machine changes, each the least invasive form available. The hosts entry goes in a marked
+  `# >>> rask dev >>>` block and nothing outside it is ever rewritten. The port-443 redirect is loaded
+  into a pf anchor under `com.apple/*`, which macOS's stock `/etc/pf.conf` already evaluates — so no
+  ruleset is replaced and `pf.conf` is not edited, both of which would put the developer's existing
+  firewall rules at risk. Trust is a **local certificate authority**, trusted once ever, that then issues
+  a certificate per hostname: self-signed leaves would have moved the password prompt to every new
+  project, which is the friction the feature exists to remove.
+
+  `dotnet dev-certs https` cannot do any of this — it has no hostname or SAN option and only ever mints
+  `CN=localhost` — so the certificates are minted with .NET's own X.509 stack. No `openssl`, no `mkcert`,
+  no Homebrew: a working `https://appname.test` costs nothing to install, which is the whole point.
+
+  HTTPS only, with no plaintext listener bound, so `wss://` and `Secure` cookies behave in development
+  the way they will in production. Keys live in `~/.rask/certs`, readable only by their owner.
+
+  It never fails a dev loop over a URL: every failure path falls back to `http://localhost:5000` with a
+  note. Skipped by design for `--urls`, `--no-host`/`RASK_DEV_NO_HOST`, an unsupported platform, a run
+  with no terminal, and the react/meta/islands lanes — those serve the page from a bundler's own HTTP dev
+  server, so a certificate on the ASP.NET host behind it is not the one the browser would see.
+
+  One caveat worth stating plainly: **Firefox keeps its own certificate store** and never reads the
+  operating system's. On Linux `certutil` covers it; on macOS and Windows it has to be imported by hand,
+  and `rask dev` says so rather than leaving a warning page to explain it.
+
+  **The Linux half is verified against a real Linux machine**, by
+  `scripts/run-devhost-linux-local.sh`: a throwaway container running as an ordinary user with
+  passwordless sudo, where the CA anchors, `certutil`, `/etc/hosts` and the sysctl are all really
+  modified, and `curl` then completes a TLS handshake to `https://appname.test` with no `--cacert` and
+  nothing told about the authority. Only a correctly installed system trust makes that succeed. It is
+  opt-in (`RASK_DEVHOST_E2E=1`) because it rewrites the machine it runs on.
+
+  That gate immediately earned itself. The hosts file was being written with `install`, which unlinks
+  the destination and creates a new one — and `/etc/hosts` is a bind mount in every container, and a
+  symlink or an immutable file on some real machines, so it failed outright with "Device or resource
+  busy". It now uses `cp`, which writes through the existing file and, as a bonus, leaves the mode and
+  ownership alone instead of having a dev tool impose `0644 root:root` on a file that already existed.
+  The same fix applies on macOS, where the same call would have failed the same way.
+
+### Removed
+
+- **JWT/bearer authentication is gone; the session is always a cookie.** Rask authenticated one kind
+  of session in practice and documented two, and the second one cost more than it carried: a token in
+  browser storage that XSS can read, a token on the WebSocket URL that leaks through proxy logs and
+  `Referer`, and a whole parallel set of samples, guides and hardening advice whose main message was
+  "prefer the cookie". Choosing between them was never a real choice.
+
+  Deleted: `Rask.Core.Authentication.ITokenStore` (unshipped public API, consumed by nothing in `src/`),
+  `docs/authentication-jwt.md`, the `Rask.Example.Auth.Jwt` / `Rask.Example.Auth.WasmJwt` /
+  `Rask.Example.Auth.WasmJwt.Host` samples with their two E2E suites, and the
+  `Microsoft.AspNetCore.Authentication.JwtBearer` / `System.IdentityModel.Tokens.Jwt` pins.
+
+  Also gone from `rask.ts`: the JWT-on-WebSocket hook that appended `?access_token=` to the socket URL
+  from `window.Rask.authToken` or a `<meta name="rask-access-token">` tag. Nothing in the framework
+  read it, and a credential in a query string is a leak surface that a cookie-only session has no
+  reason to keep open.
+
+  **Bringing your own store or an external provider is unaffected.** Identity, Keycloak, Auth0, Cognito
+  and Duende all end in a cookie session, so they were never the JWT path — they compose by adding a
+  *challenge* scheme beside the cookie, which is the ordinary ASP.NET arrangement and now the only one
+  `docs/authentication-providers.md` documents.
+
+### Changed
+
+- **`Rask.Auth` owns the cookie scheme instead of standing down.** The battery used to skip its own
+  `AddAuthentication().AddCookie(...)` entirely when it found an `IAuthenticationSchemeProvider`
+  already in the collection — a whole-or-nothing deferral, so an app that registered any scheme for any
+  reason silently lost every `AuthOptions` value: cookie name, `LoginPath`, `AccessDeniedPath`,
+  expiry, `SecurePolicy = Always`. An OIDC app got that outcome just by wiring OIDC, and the failure is
+  invisible until someone notices sign-in redirecting to the wrong path or the cookie missing `Secure`.
+
+  It now registers the cookie scheme unconditionally, makes it the default, and configures the named
+  options **last** so its settings win over an app's own `AddCookie(...)` delegate. Registering the
+  scheme *entry* is the one non-idempotent step — `AuthenticationOptions.AddScheme` throws
+  "Scheme already exists", lazily, on the first request — so that single step is guarded and an app
+  still carrying a hand-written `AddAuthentication().AddCookie()` starts normally rather than dying
+  with a message that names no line to delete.
+
+  Owning the scheme is not owning every knob: a cookie setting `AuthOptions` does not carry is applied
+  by configuring the same named options *after* `AddRaskAuth`, and that is now covered by a test.
+
 ### Removed
 
 - **The JavaScript front end scaffolds into `client/`, lower case, on both front-end lanes.** The SPA

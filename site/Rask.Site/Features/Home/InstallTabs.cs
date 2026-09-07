@@ -40,7 +40,7 @@ public sealed partial class InstallTabs : Component
                 ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
             ],
             P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
-                "Add ", Code["--auth"], " for a cookie/JWT starter · full path in the ",
+                "Accounts and cookie sign-in are already on · full path in the ",
                 A
                     .Class("text-ui-brand-ink no-underline hover:underline")
                     .Href("https://github.com/pal-tamas/rask/blob/main/docs/getting-started.md")
