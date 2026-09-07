@@ -20,6 +20,11 @@ fi
 # pipeline reports failure — so a large staged change reads as "no code changes" and sails through
 # unchecked, while a small one gates normally. It let a 421-file commit touching all of src/ past.
 #
+# site/ is the published rask.sh app — the landing page, the guides and every live demo. It is the
+# newest prefix here and the one most likely to be forgotten: a tree that matches none of these is not
+# rejected, it is silently waved through with "no code changes staged". Adding the prefix BEFORE the
+# tree exists is deliberate, so there is never a window where site/ commits are ungated.
+#
 # samples/ and docs/ are in here for the same reason src/ is: the suite genuinely gates them.
 #
 #   samples/ is compiled, analyzer-checked, warnings-as-errors code with its own test projects. More than
@@ -48,7 +53,7 @@ fi
 # Running the one check here, rather than adding these files to the filter below, is deliberate: the
 # filter decides whether to run the FULL format + unit suite, and making a typo fix pay for that is
 # the cost scripts/tests/install-script.test.sh declined to impose. This costs well under a second.
-# The site hero needs no entry — it lives under samples/, so it already runs the whole gate, which
+# The site hero needs no entry — it lives under site/, so it already runs the whole gate, which
 # runs this test through scripts/run-unit-local.sh.
 front_doors='^(README\.md|NUGET\.md)$'
 
@@ -61,7 +66,7 @@ if git diff --cached --name-only | grep -E "$front_doors" >/dev/null; then
   fi
 fi
 
-if ! git diff --cached --name-only | grep -E '^(src/|samples/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
+if ! git diff --cached --name-only | grep -E '^(src/|site/|samples/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi

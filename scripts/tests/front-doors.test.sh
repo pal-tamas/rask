@@ -119,6 +119,33 @@ check "a NUGET.md-only commit runs this guard" yes "$(matches_front_doors NUGET.
 check "the site hero is under samples/" yes \
     "$([ -f samples/Rask.Example.Site/Pages/HomePage.cs ] && printf yes || printf no)"
 
+# ...which is only true while the ordinary filter really does match the tree the hero lives in. That
+# filter decides whether the WHOLE format + unit suite runs, and its failure mode is silence: a prefix
+# it does not match is not rejected, it is waved through with "no code changes staged". A tree could sit
+# in the repository for weeks, ungated, with every commit reporting success.
+#
+# So it is extracted from the hook and EXECUTED here, the same way the front-door filter above is —
+# grepping for the prefix would pass against a filter edited into something that no longer matches.
+gate_filter="$(sed -n "s/^if ! git diff --cached --name-only | grep -E '\(.*\)' >\/dev\/null; then\$/\1/p" .githooks/pre-commit)"
+check "the gate filter is still where we think" yes \
+    "$([ -n "$gate_filter" ] && printf yes || printf no)"
+
+runs_full_gate() {
+    printf '%s\n' "$1" | grep -qE "$gate_filter" && printf yes || printf no
+}
+
+# Every tree the suite actually gates. site/ is the published rask.sh app; it is listed explicitly
+# because it is the newest and the one a future reader is most likely to leave out.
+check "a site/ commit runs the gate"      yes "$(runs_full_gate site/Rask.Site/Program.cs)"
+check "a src/ commit runs the gate"       yes "$(runs_full_gate src/Rask.Core/Component.cs)"
+check "a samples/ commit runs the gate"   yes "$(runs_full_gate samples/Rask.Example.Wasm/Program.cs)"
+check "a docs/ commit runs the gate"      yes "$(runs_full_gate docs/routing.md)"
+check "a tests/ commit runs the gate"     yes "$(runs_full_gate tests/Rask.Core.Tests/X.cs)"
+check "a scripts/ commit runs the gate"   yes "$(runs_full_gate scripts/run-unit-local.sh)"
+
+# And the negative, so the check above cannot pass by matching everything.
+check "a stray root file does not"        no  "$(runs_full_gate NOTES.txt)"
+
 echo
 if [ "$failures" -gt 0 ]; then
     echo "front-doors.test.sh: $failures of $checked checks FAILED." >&2

@@ -70,7 +70,7 @@
       rather than escalated: we ship the docs we have without forcing a full-coverage documentation
       sweep across every public member under warnings-as-errors.
     -->
-    <GenerateDocumentationFile Condition=" !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.StartsWith('Rask.Benchmarks')) AND !$(MSBuildProjectName.StartsWith('Rask.Example')) ">true</GenerateDocumentationFile>
+    <GenerateDocumentationFile Condition=" !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.StartsWith('Rask.Benchmarks')) AND !$(MSBuildProjectName.StartsWith('Rask.Example')) AND !$(MSBuildProjectName.StartsWith('Rask.Site')) ">true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <!--
@@ -137,6 +137,15 @@
          validation usings name assemblies it does not have — the front end is TypeScript, which is
          the entire point of the lane. -->
     <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Example.')) AND !$(_RaskUsingsName.StartsWith('Rask.Example.Meta.')) AND '$(_RaskUsingsName)' != 'Rask.Example.Site.Tests' AND '$(_RaskUsingsName)' != 'Rask.Example.Razor' ">true</_RaskInRepoImplicitUsings>
+
+    <!-- The published site (site/Rask.Site) and its test project want exactly the same set: it is the
+         app these usings were written for, and it renders C# components on the WASM host. Matched by
+         prefix so Rask.Site.Tests comes along; _RaskUsingsName has already stripped '.Prerender', so the
+         prerender companion resolves through this same line rather than needing one of its own.
+
+         A missing entry here does not read as a missing property — it reads as several hundred CS0246s
+         in a tree that was only moved, which is a long way from the one line that caused it. -->
+    <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Site')) ">true</_RaskInRepoImplicitUsings>
     <!--
       FluentValidation injects its own global using (Rask.Validation.FluentValidation below). Downstream
       consumers only get it by referencing that NuGet package; in-repo we'd otherwise force every
@@ -156,7 +165,7 @@
          of `rask new`, whose every generated feature handler dispatches through the mediator) is the
          other in-repo example that references Rask.Cqrs. Scope the global `using Rask.Cqrs;` to those. -->
     <_RaskExampleCqrsUsings>false</_RaskExampleCqrsUsings>
-    <_RaskExampleCqrsUsings Condition=" '$(_RaskUsingsName)' == 'Rask.Example.Shared' OR $(_RaskUsingsName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleCqrsUsings>
+    <_RaskExampleCqrsUsings Condition=" '$(_RaskUsingsName)' == 'Rask.Example.Shared' OR $(_RaskUsingsName.StartsWith('Rask.Example.Shop')) OR $(_RaskUsingsName.StartsWith('Rask.Site')) ">true</_RaskExampleCqrsUsings>
     <!--
       The Shop sample is the only in-repo example that references the DB-backed pillars. A NuGet consumer
       gets each package's global usings from its build/*.props automatically; an in-repo ProjectReference
