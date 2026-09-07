@@ -161,6 +161,8 @@ public sealed class WriteExternalPropTypesTask : Task
                 written++;
             }
 
+            ReportUnbuiltIslands();
+
             if (!declared)
             {
                 // Normal, not High. #943 is about SILENCE — a check that stops running and says nothing —
@@ -195,6 +197,68 @@ public sealed class WriteExternalPropTypesTask : Task
             // build's props, which type-checks and then arrives wrong in the browser.
             Log.LogError($"Rask.External: could not read the generated prop types from '{AssemblyPath}' — {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    ///     Warns when a declared island's front-end file is not among the ones the build will bundle.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The generator decides what the rendered markup POINTS AT; the MSBuild globs decide what
+    ///         actually gets BUILT. Nothing compared the two (#942), and the failure is silent and total:
+    ///         the page renders, the chunk is never built, and the only symptom is
+    ///         <c>Rask islands: 'Gauge' is not in the manifest</c> in the browser console — at run time,
+    ///         in someone else's browser, with a green build behind it.
+    ///     </para>
+    ///     <para>
+    ///         This task is the one place holding both halves: it reads the declared components out of
+    ///         the compiled assembly and is handed <c>@(_RaskExternalFile)</c>. It had both and compared
+    ///         neither.
+    ///     </para>
+    ///     <para>
+    ///         A warning rather than an error, so a consumer mid-refactor is told rather than stopped —
+    ///         <c>RaskExternalLitAutoPair=false</c> makes an unpaired island a SUPPORTED configuration
+    ///         rather than a typo. Worth being plain about what that means HERE though: this repository
+    ///         builds with <c>-warnaserror</c>, so in its own gate this does stop the build. That is the
+    ///         right outcome for a repo whose samples are the documentation, and it is the consumer who
+    ///         gets the softer treatment.
+    ///     </para>
+    /// </remarks>
+    private void ReportUnbuiltIslands()
+    {
+        var modules = ExternalIslandMetadata.Modules(
+            string.IsNullOrEmpty(IslandAssemblyPath) ? AssemblyPath : IslandAssemblyPath);
+
+        if (modules.Count == 0)
+        {
+            return;
+        }
+
+        var discovered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in FrontEndFiles)
+        {
+            discovered.Add(Path.GetFileName(item.GetMetadata("FullPath").Replace('\\', '/')));
+        }
+
+        foreach (var pair in modules)
+        {
+            // Matched on the file NAME, which is the pairing rule everywhere else in this feature, and
+            // the only one that survives a declared module written as "./Gauge.ts" against a discovered
+            // item held as an absolute path.
+            var file = Path.GetFileName(pair.Value.Replace('\\', '/'));
+
+            if (file.Length == 0 || discovered.Contains(file))
+            {
+                continue;
+            }
+
+            Log.LogWarning(
+                $"Rask.External: '{pair.Key}' declares the front-end file '{file}', which is not among "
+                + "the files this project will bundle. Its markup will render and its chunk will not "
+                + "exist, so the browser reports \"'" + pair.Key + "' is not in the manifest\" and the "
+                + "island never mounts. Either put the file where the island globs reach it, or declare "
+                + "it explicitly with a <RaskExternal Include=\"…\"/> item.");
         }
     }
 

@@ -59,6 +59,34 @@ internal static class ExternalIslandMetadata
     }
 
     /// <summary>
+    ///     Each island's declared MODULE — the front-end file its rendered markup points at — keyed by
+    ///     component name.
+    /// </summary>
+    /// <remarks>
+    ///     The same <c>"runtime|module"</c> constant <see cref="Runtimes" /> reads, taking the other
+    ///     half. Kept beside it so the two cannot disagree about how that constant is shaped.
+    /// </remarks>
+    public static Dictionary<string, string> Modules(string? assemblyPath)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(assemblyPath) || !File.Exists(assemblyPath))
+        {
+            return map;
+        }
+
+        foreach (var pair in GeneratedTypeScript.Read(assemblyPath!, IslandNamespace, IslandTypeName))
+        {
+            var separator = pair.Value.IndexOf('|');
+            if (separator >= 0)
+            {
+                map[pair.Key] = pair.Value.Substring(separator + 1);
+            }
+        }
+
+        return map;
+    }
+
+    /// <summary>
     ///     The runtime declared for a front-end file, or null if no component claims it.
     /// </summary>
     /// <remarks>

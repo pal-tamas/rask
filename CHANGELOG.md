@@ -9,6 +9,46 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A declared island whose front-end file the build never sees now says so**
+  ([#942](https://github.com/pal-tamas/rask/issues/942)). The generator decides what the rendered markup
+  points AT; the MSBuild globs decide what gets BUILT. Nothing compared the two — the generator's own
+  XML doc said as much. The failure is silent and total: the page renders, the chunk is never built, and
+  the only symptom is `Rask islands: 'Gauge' is not in the manifest` in a browser console, at run time,
+  with a green build behind it. `RaskExternalLitAutoPair=false` made that a *supported* configuration
+  rather than a typo, so the risky shape is now normal.
+
+  `WriteExternalPropTypesTask` is the one place holding both halves — it reads the declared components
+  out of the compiled assembly and is handed `@(_RaskExternalFile)` — and it compared neither. It does
+  now, for all runtimes at once. Checked by moving `ReactCounter.tsx` out of the showcase: the build was
+  green before and now names the island and the file it points at.
+
+### Documentation
+
+- **`RASKISLAND003` does not cover a host that serves the bundle from disk, and now says so**
+  ([#944](https://github.com/pal-tamas/rask/issues/944)). The guard is conditioned on the static-web-assets
+  endpoints manifest existing, so a project with `StaticWebAssetsEnabled=false` would pass by skipping.
+
+  The issue assumed that describes the WASM host. It does not, and the difference is worth recording:
+  the islands live in the app project (`Rask.Example.Wasm`), while the property is set on the host
+  (`Rask.Example.Wasm.Host`), which owns no island files and so is excluded by the target's own
+  condition. Setting it on the app project instead is refused by the WASM SDK itself —
+  `error MSB4057: The target "LoadStaticWebAssetsBuildManifest" does not exist in the project`. So on
+  that lane the endpoints manifest **is** written into `PublishDir` and the existing check is live;
+  verified by publishing and finding both it and `wwwroot/_rask/external/manifest.json`.
+
+  An `Error` for the serve-from-disk case was written and then removed rather than shipped: it could not
+  be made to fire under any configuration of this repository that builds, and a guard nobody has watched
+  fail is the thing this repository keeps a casebook about.
+
+### Added
+
+- **Islands are exercised on the WASM host in a browser** ([#944](https://github.com/pal-tamas/rask/issues/944)).
+  `docs/islands.md` said "both hosts, verified" while `IslandsExampleTests` bound to the Server
+  collection only. `WasmIslandsExampleTests` covers the three runtimes that page carries, and the
+  assertion that earns it its keep is the callback: on the Server host the same click travels over the
+  live WebSocket, while here there is no socket and the handler id returns through `[JSExport]` into the
+  runtime in that tab. Identical markup, entirely different path.
+
 - **RASK036 named the wrong type for a nested host**
   ([#1019](https://github.com/pal-tamas/rask/issues/1019)). A component nested in a container that is not
   `partial` gets no chain entries — correct, since the generated file has to re-open every enclosing type

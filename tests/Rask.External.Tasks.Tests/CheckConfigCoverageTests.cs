@@ -111,6 +111,20 @@ public sealed class CheckConfigCoverageTests : IDisposable
         Assert.False(WriteExternalPropTypesTask.IsAmbiguouslyPaired("/app/Islands/Meter.svelte"));
     }
 
+    [Fact]
+    public void An_assembly_that_declares_no_islands_warns_about_none()
+    {
+        // The guard on the guard. This task runs for EVERY project in a solution, and most of them
+        // declare no islands at all — a cross-check that spoke up there would be noise on every build.
+        var engine = new StubEngine();
+        var task = NewTask(Front("Chart.tsx"));
+        task.BuildEngine = engine;
+
+        Assert.True(task.Execute());
+
+        Assert.Empty(engine.Warnings);
+    }
+
     private ITaskItem Front(string name)
     {
         var path = Path.Combine(_root, name);
@@ -152,8 +166,10 @@ public sealed class CheckConfigCoverageTests : IDisposable
         public int ColumnNumberOfTaskNode => 0;
         public string ProjectFileOfTaskNode => "test.csproj";
 
+        public List<BuildWarningEventArgs> Warnings { get; } = [];
+
         public void LogErrorEvent(BuildErrorEventArgs e) { }
-        public void LogWarningEvent(BuildWarningEventArgs e) { }
+        public void LogWarningEvent(BuildWarningEventArgs e) => Warnings.Add(e);
         public void LogMessageEvent(BuildMessageEventArgs e) => Messages.Add(e);
         public void LogCustomEvent(CustomBuildEventArgs e) { }
 

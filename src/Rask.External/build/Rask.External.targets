@@ -635,6 +635,31 @@
     <Error Condition="Exists('$(_RaskExternalEndpoints)') AND !$(_RaskExternalEndpointsText.Contains('$(_RaskExternalRouteProbe)'))"
            Code="RASKISLAND003"
            Text="Rask.External: the bundle was published but no endpoint serves it. '$(_RaskExternalEndpoints)' contains no route under '$(RaskExternalPublicBase)', and app.MapStaticAssets() serves only what that manifest lists — so every chunk request would fall through to the UseRask catch-all and come back as the page's HTML, and the client would report `Unexpected token '&lt;'` with nothing mounted. The bundle output has to be registered as a static web asset, which _RaskExternalStaticWebAssets does; check it ran and that RaskExternalOutputDir still sits under wwwroot (#884)."/>
+
+    <!--
+      What this does NOT cover (#944).
+
+      The check above is conditioned on the endpoints manifest existing. A host that sets
+      StaticWebAssetsEnabled=false writes none and serves the bundle from disk, so the guard would pass
+      by skipping there — #884's own failure shape wearing the opposite sign.
+
+      That case turns out to be unreachable for the WASM lane rather than merely unguarded, which is
+      worth writing down because the issue assumed otherwise. The islands live in the app project
+      (Rask.Example.Wasm), not the host (Rask.Example.Wasm.Host) — and the host, which is what sets the
+      property, owns no island files, so this target's own condition excludes it. Setting the property on
+      the app project instead is refused by the WASM SDK itself: `error MSB4057: The target
+      "LoadStaticWebAssetsBuildManifest" does not exist in the project`.
+
+      So for the WASM lane the endpoints manifest IS written into PublishDir and the check above is live.
+      Verified by publishing Rask.Example.Wasm and finding both
+      publish/Rask.Example.Wasm.staticwebassets.endpoints.json and
+      publish/wwwroot/_rask/external/manifest.json.
+
+      An Error for the serve-from-disk case was written and then removed rather than shipped: it could
+      not be made to fire in this repository under any configuration that builds, and a guard nobody has
+      watched fail is the thing this repository keeps a casebook about. What remains genuinely open is
+      the browser half — no E2E exercises islands on the WASM host.
+    -->
   </Target>
 
   <!--
