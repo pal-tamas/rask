@@ -28,16 +28,17 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     {
         await Page.GotoAsync("/islands");
 
-        // Three runtimes on this page, not the Server showcase's six: Lit, Solid and Angular are not
-        // part of the WASM pair. Counted rather than assumed, so adding a fourth here has to come with
-        // a decision about this number.
-        await Expect(Page.Locator("rask-external[data-rask-opaque]")).ToHaveCountAsync(3);
+        // Four runtimes on this page, not the Server showcase's six: Lit and Angular are not part of
+        // the WASM pair. Counted rather than assumed, so adding a fifth here has to come with a
+        // decision about this number — which is exactly what caught Solid arriving in #958 without it.
+        await Expect(Page.Locator("rask-external[data-rask-opaque]")).ToHaveCountAsync(4);
 
         // Mounted, not merely rendered: these nodes exist only because an adapter created them, which
         // means the chunk was fetched from the manifest and executed inside the browser-WASM host.
         await Expect(Page.GetByTestId("vue-chart")).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("react-counter")).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("svelte-meter")).ToBeVisibleAsync();
+        await Expect(Page.GetByTestId("solid-spark")).ToBeVisibleAsync();
 
         // Props crossed as JSON and arrived as data — one bar per C# record.
         await Expect(Page.Locator("[data-testid=vue-chart] button[data-label]")).ToHaveCountAsync(4);
