@@ -233,7 +233,7 @@
     and only the scoped CSS/JS is quietly absent.
 
     That silence is the whole problem. Every scoped-asset URL 404s in the browser, and for an app whose
-    scoped JS owns something load-bearing (the playground's editor, say) it presents as a hung page rather
+    scoped JS owns something load-bearing (an editor or a chart, say) it presents as a hung page rather
     than a missing file — sending you to debug the app instead of the build. This is exactly what happened
     in #650/#652, twice, to two different people.
 

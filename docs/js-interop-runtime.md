@@ -286,8 +286,8 @@ head back to what your components rendered, which keeps `<title>`/`<meta>`/scope
 theme colours, a charting library, a syntax highlighter, an analytics tag) isn't part of that render —
 so **Rask preserves it for you automatically**. The reconciler watches `<head>` and tags anything a
 library injects with `data-rask-managed` (the same marker it uses for its own scoped-asset tags), so it
-survives every re-render with **no code on your side**. The [playground](playground.md) relies on this to
-keep Monaco's editor theme across each Run.
+survives every re-render with **no code on your side**. A code editor keeping its injected theme across
+a re-render is the usual case.
 
 The mechanism only preserves nodes injected *after* an initial render (the common case — libraries set up
 once your component has mounted). If you need to keep something present at first paint, or want to be

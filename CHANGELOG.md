@@ -7,31 +7,38 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
-### Changed
+### Removed
 
-- **The playground compiles against reference assemblies shipped as data, not against its own bundle.**
-  The in-browser compiler used to download this app's own implementation assemblies out of `_framework/`,
-  read off the runtime's boot config, and hand them to Roslyn. That worked, and it was believed to be the
-  reason the whole app had to be `PublishTrimmed=false` — trimming strips members Roslyn must see. It was
-  only one of the reasons, and not the binding one.
+- **The live playground is removed.** `samples/Rask.Example.Playground`, its test project, its browser
+  journey, `docs/playground.md` and the `/playground/` sub-app on rask.sh all go. The site is now two apps
+  rather than three: the landing page at `/` and the live showcase at `/docs/`.
 
-  The build now stages `@(ReferencePathWithRefAssemblies)` — exactly what the C# compiler saw when it
-  built the project, metadata only — and the loader reads those. It is the more correct set as well as
-  the smaller one: `_framework` offered whatever happened to survive into the bundle, which is a
-  different surface and one that shifts with unrelated build settings.
+  It was the only consumer of `Microsoft.CodeAnalysis.CSharp.Features`, which is dropped from
+  `Directory.Packages.props` and from the dependabot ignore list with it.
 
-  Roslyn's own assemblies are excluded, because a snippet never references the compiler. **8.8 MB of
-  reference assemblies against 53 MB of untrimmed implementation assemblies** — 31 MB staged, 22 MB of it
-  Roslyn.
+  Two things it was carrying are kept, because they were never really about the playground:
 
-  Trimming stays off, and the follow-up settled that it always will — see below. The staging still earns
-  its keep on payload and correctness; it just is not the trimming enabler it was written up as.
+  - **The README and docs snippet gate.** `ChainSnippetTests` compiled the README's counter and the
+    `building-components.md` / `forms.md` examples for real, and had caught a trailing comma inside a
+    `[ … ]` indexer, a `.Change(…)` step that never existed, and the factory spelling in `forms.md`
+    (#1007). `scripts/tests/front-doors.test.sh` leans on it — it proves the README hero and the site
+    hero are the same text, and this proves that text compiles; neither half is worth much alone. The
+    snippets moved to `tests/Rask.Generators.Tests/DocSnippetTests.cs` and now run through
+    `ComponentFactoryGenerator` directly, with the builder surface on. What did not survive is the two
+    cases that also rendered the component and asserted on its HTML — that needed a compiler that emits
+    and executes.
+  - **The `.pg-code-host` morph invariant.** `MorphManagedGuardTests` holds it as a unit test; it used to
+    have a browser journey behind it, and now does not.
 
-  One ordering trap worth recording. The staging target first carried both `AfterTargets="ResolveReferences"`
-  and `BeforeTargets="GenerateComputedBuildStaticWebAssets"`; MSBuild runs a target at whichever hook
-  fires **first**, and the static-web-asset hook fires before references are resolved — so it staged
-  nothing, silently, while the build stayed green. `DependsOnTargets` on the target that produces the
-  item is the only ordering that guarantees it is populated.
+  Worth recording, since the question will come back: the playground could never have been trimmed. Not
+  because of Roslyn — Roslyn survives trimming when rooted, and snippets still compiled — but because a
+  snippet is compiled against full reference assemblies and then **executed** against the app's own
+  trimmed runtime. Anything the app did not itself statically reference was gone, so a snippet died at
+  load after a clean compile, with no editor error and a green publish: first `TypeLoadException` on the
+  chain seed behind `Input`, then, once the Rask assemblies were rooted, `MissingMethodException` on
+  `FieldInfo.GetFieldFromHandle` — a BCL method the C# compiler itself emits. User code can touch any of
+  the 167 `System.*` assemblies it compiled against, so the only sound root set was the whole BCL. That is
+  intrinsic to compiling and running arbitrary code in the browser, and no packaging change lifts it.
 
 ### Fixed
 
@@ -52,27 +59,6 @@ them until tagged releases begin.
   The showcase page was stale from the same commit in a way no test covered: its `CodeSample` file list
   omitted `SolidSpark.cs`/`SolidSpark.tsx`, so the page rendered a Solid island whose source a reader
   could not see, under a note reading "Three runtimes in one tree".
-
-- **The playground cannot be trimmed, and the reason it could not was never the one written down.**
-  Acting on the note above, trimming was turned back on with Roslyn rooted as a `TrimmerRootAssembly`.
-  Roslyn survived that perfectly — snippets still compiled. They then failed to **run**, because the
-  blocker is the execute side, not the compile side: a snippet is compiled against the full reference
-  assemblies in `refs/`, but the assembly Roslyn emits is loaded into the app's own runtime, where
-  everything the playground does not itself statically reference has been trimmed away. The failure
-  arrives after a clean compile, with no editor error and a green publish.
-
-  Two layers, each fix exposing the next: `TypeLoadException` on `Rask.Html.Components.RaskSeed_Input`
-  (the chain seed behind `Input`), fixable by rooting the Rask assemblies; then `MissingMethodException`
-  on `FieldInfo.GetFieldFromHandle`, a BCL method the C# compiler itself emits. That one is not fixable —
-  user code may touch any of the 167 `System.*` assemblies in `refs.txt`, so the only sound root set is
-  the whole BCL. Trimming bought ~5 MB brotli and produced a playground that boots, compiles and throws
-  on Run.
-
-  Both of the app's opt-outs were justified in comments by the same now-dead reason ("Roslyn reads the
-  shipped `_framework` assemblies"), and both are still required for reasons nobody had recorded. The
-  comments now carry what was measured rather than a theory, because a comment that is right about the
-  setting and wrong about why is an argument for making the change that breaks things.
-
 
 - **Prerendering broke deep links to the routes it could not prerender**
   ([#974](https://github.com/pal-tamas/rask/issues/974)), and did it by building the very thing meant to

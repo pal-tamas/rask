@@ -95,17 +95,6 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             ],
             Div.Class("flex items-center gap-2 ms-auto")[
                 PathDisplay,
-                // The live playground is a separate WASM sub-app (Roslyn compiles Rask C# in the browser),
-                // deployed only to GitHub Pages alongside this showcase. This layout is shared by the
-                // Server and WASM showcases (and runs locally), neither of which serves a /playground
-                // route — so link to the one place it actually lives (absolute), opened in a new tab.
-                A
-                    .Href("https://rask.sh/playground/")
-                    .Target("_blank")
-                    .Rel("noopener")
-                    .Class(TopAction + " bg-ui-ink text-ui-bg hover:bg-ui-ink/90")[
-                    UiIcon.Name(UiIconName.Play).Class("size-4 shrink-0"), "Playground"
-                ],
                 A
                     .Href("https://github.com/pal-tamas/rask")
                     .Target("_blank")

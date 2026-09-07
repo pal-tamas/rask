@@ -190,7 +190,6 @@ public static class GuideCatalog
         new("building-form-controls", "Building form controls", "Author your own IFormControl<T>.", "Advanced"),
         new("aot", "AOT compilation", "Ahead-of-time compile for WASM, and trim-safety.", "Advanced"),
         new("prerendering", "Prerendering", "Render a standalone WASM app's pages to HTML at publish.", "Advanced"),
-        new("playground", "Live playground", "The in-browser Roslyn playground.", "Advanced"),
         new("code-analysis", "Code analysis", "The analyzers and warnings-as-errors adoption.", "Advanced"),
         new("api-style", "Public API style", "How every public name is chosen, and the gate that records the surface.", "Advanced"),
         new("diagnostics", "Diagnostics", "Every RASK0xx descriptor, its trigger, and the fix.", "Advanced"),

@@ -11,7 +11,8 @@ namespace Rask.Core.Tests.Live;
 // (a rendered node is part of the payload), so skipping it turns the mistake into a no-op.
 //
 // This exercises the production rask-morph.ts in a Node subprocess with a stub DOM. The
-// user-observable side is covered by PlaygroundExampleTests (.pg-code-host count after a run).
+// user-observable side used to be covered by PlaygroundExampleTests (.pg-code-host count after a run);
+// the playground was removed, so this unit guard is now the only thing holding the invariant.
 public sealed class MorphManagedGuardTests
 {
     [Fact]

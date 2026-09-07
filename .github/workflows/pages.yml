@@ -36,12 +36,12 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # The Pages site is three Rask WASM apps served from the apex custom domain https://rask.sh:
-      # the marketing landing page (Rask.Example.Site) at the root /, the live feature showcase
-      # (Rask.Example.Wasm) at /docs/, and the live playground at /playground/. The custom domain
-      # serves the site at the ORIGIN root, so the landing app needs no RaskPathBase at all (its
-      # <base href="/"> is already correct, and _RaskRewriteBaseHref no-ops on '' and '/'); only the
-      # two nested apps set one so the target rewrites their <base href> to the sub-path. Publishing
+      # The Pages site is two Rask WASM apps served from the apex custom domain https://rask.sh:
+      # the marketing landing page (Rask.Example.Site) at the root /, and the live feature showcase
+      # (Rask.Example.Wasm) at /docs/. The custom domain serves the site at the ORIGIN root, so the
+      # landing app needs no RaskPathBase at all (its <base href="/"> is already correct, and
+      # _RaskRewriteBaseHref no-ops on '' and '/'); only the nested app sets one so the target
+      # rewrites its <base href> to the sub-path. Publishing
       # the landing app under /<repo>/ here — as this workflow did while the site lived at
       # pal-tamas.github.io/rask/ — would 404 every asset on the apex. Every other asset URL +
       # the SRI-pinned import map stays document-relative, so the corrected base resolves them all
@@ -57,11 +57,6 @@ jobs:
       - name: Publish the live showcase / docs (Rask.Example.Wasm → /docs/)
         run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/docs
 
-      # The playground is untrimmed (Roslyn needs full assembly metadata as references), so it is kept
-      # out of the size-tuned docs bundle and published to its own output dir.
-      - name: Publish the playground (→ /playground/)
-        run: dotnet publish samples/Rask.Example.Playground -c Release /p:RaskPathBase=/playground -o playground-publish
-
       # Expected, harmless: with DevTools open each WASM app logs a 404 for _framework/dotnet.runtime.js.map.
       # The Release publish strips all .map files, but the fingerprinted dotnet.runtime.*.js keeps its
       # trailing `//# sourceMappingURL=` comment, so the browser fetches a map that isn't shipped. It
@@ -69,13 +64,12 @@ jobs:
       # post-publish: the runtime JS is SRI-pinned in the import map (see #63), so changing its bytes
       # breaks the integrity check. Shipping the 270 KB map to silence a DevTools-only 404 isn't worth
       # it on a size-tuned bundle (we already drop ICU).
-      - name: Assemble the Pages bundle (landing at root, docs + playground nested)
+      - name: Assemble the Pages bundle (landing at root, docs nested)
         id: bundle
         run: |
           LANDING=samples/Rask.Example.Site/bin/Release/net10.0-browser/publish/wwwroot
           DOCS=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/publish/wwwroot
-          PLAYGROUND=playground-publish/wwwroot
-          for d in "$LANDING" "$DOCS" "$PLAYGROUND"; do
+          for d in "$LANDING" "$DOCS"; do
             if [ ! -d "$d" ]; then
               echo "Could not locate published wwwroot: $d" >&2
               find . -maxdepth 6 -type d -name wwwroot
@@ -86,7 +80,6 @@ jobs:
           mkdir -p "$SITE"
           cp -r "$LANDING"/. "$SITE"/                 # marketing landing app at the root
           cp -r "$DOCS" "$SITE/docs"
-          cp -r "$PLAYGROUND" "$SITE/playground"
           # The installers every doc advertises: https://<site>/rask.sh and /rask.ps1. They live at
           # the repo root as the single source of truth and are published from there rather than
           # duplicated into the landing app's wwwroot, so there is exactly one copy to review, test
@@ -108,7 +101,6 @@ jobs:
           cp "$SITE/docs/index.html" "$SITE/404.html"
           echo "--- landing <base> ---";      grep -i "<base"   "$SITE/index.html" || true
           echo "--- docs <base> ---";         grep -i "<base"   "$SITE/docs/index.html" || true
-          echo "--- playground <base> ---";   grep -i "<base"   "$SITE/playground/index.html" || true
           echo "dir=$SITE" >> "$GITHUB_OUTPUT"
 
       - uses: actions/configure-pages@v6
