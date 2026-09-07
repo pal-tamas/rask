@@ -120,15 +120,28 @@ public sealed class WriteExternalPropTypesTask : Task
         try
         {
             var constants = GeneratedTypeScript.Read(AssemblyPath, GeneratedNamespace, GeneratedTypeName);
-            if (constants.Count == 0)
-            {
-                Log.LogMessage(
-                    MessageImportance.Low,
-                    $"Rask.External: '{Path.GetFileName(AssemblyPath)}' declares no external components.");
-                return true;
-            }
 
+            // No early return when the assembly declares nothing (#943), but no check either — and the
+            // difference between those two is the whole of this change.
+            //
+            // The original defect: returning here wrote no tsconfig.check.json, no tsconfig.vue.json and
+            // no tsconfig.svelte.json, every checker in _RaskExternalTypeCheck is gated on its config
+            // existing, so tsgo, vue-tsc and svelte-check ALL did nothing — while none of the three
+            // "skipping…" messages fired, because each is gated on a different cause. Silent.
+            //
+            // The obvious repair, checking the discovered files anyway, was tried and is WRONG. The file
+            // list cannot identify island code on its own, and two things in this repository prove it:
+            // a scoped-TypeScript Gantt.ts (#938), and the entire client/ tree of each Rask.Example.Meta.*
+            // sample — a meta framework's own front end, which type-checks under ITS toolchain and not
+            // under an island config. Checking them reported TS2304 on Next's generated globals and
+            // TS2307 on @rask/client, in files that are perfectly correct.
+            //
+            // So the skip stays, and becomes loud and specific instead. Stale configs are deleted on the
+            // way out, which the early return also skipped: a tsconfig.vue.json left by a previous build
+            // is a checker that runs next time against a file list that may no longer exist.
+            var declared = constants.Count > 0;
             var written = wroteConfig ? 1 : 0;
+
             foreach (var pair in constants)
             {
                 var path = Path.Combine(OutputDirectory, pair.Key + ".props.d.ts");
@@ -143,12 +156,28 @@ public sealed class WriteExternalPropTypesTask : Task
             // no longer renders.
             Prune(constants.Keys);
 
-            if (WriteCheckConfig())
+            if (WriteCheckConfig(declared))
             {
                 written++;
             }
 
-            if (written > 0)
+            if (!declared)
+            {
+                // High when there ARE front-end files, because that is the case that used to look like a
+                // passing check and was not one. The message names what was found and why it is not
+                // being checked, so the reader can tell "nothing to do" from "your islands are not
+                // being verified" — which is the distinction the silence destroyed.
+                Log.LogMessage(
+                    FrontEndFiles.Length > 0 ? MessageImportance.High : MessageImportance.Low,
+                    $"Rask.External: '{Path.GetFileName(AssemblyPath)}' declares no external components, "
+                    + $"so the prop type-check is skipped for the {FrontEndFiles.Length} front-end file(s) "
+                    + "beside it. Without a declaration nothing distinguishes an island from scoped "
+                    + "TypeScript or from a meta framework's own front end, and checking those reports "
+                    + "errors that are not in your code. If you expected islands here, check that the "
+                    + "component derives from ReactComponent/LitComponent/… and that "
+                    + "RaskExternalPropTypes is not false.");
+            }
+            else if (written > 0)
             {
                 Log.LogMessage(
                     MessageImportance.High,
@@ -234,9 +263,14 @@ public sealed class WriteExternalPropTypesTask : Task
     ///         written a tsconfig at all.
     ///     </para>
     /// </remarks>
-    private bool WriteCheckConfig()
+    /// <param name="declared">
+    ///     Whether the assembly declared any island at all. When it did not, every checker's file list is
+    ///     empty, which DELETES a stale config rather than leaving it to run next build — see the note in
+    ///     <see cref="Execute" /> for why checking the discovered files instead is wrong.
+    /// </param>
+    private bool WriteCheckConfig(bool declared)
     {
-        if (CheckConfigPath.Length == 0 || FrontEndFiles.Length == 0)
+        if (CheckConfigPath.Length == 0)
         {
             HasCheckConfig = false;
             return false;
@@ -260,27 +294,42 @@ public sealed class WriteExternalPropTypesTask : Task
         var runtimes = Runtimes();
 
         HasSolidConfig = WriteConfigFor(
-            SolidConfigPath, directory, p => Is(runtimes, p, "solid"), ref written,
+            SolidConfigPath, directory, p => declared && Is(runtimes, p, "solid"), ref written,
             // "preserve" hands the JSX to the Solid plugin rather than compiling it here, and
             // jsxImportSource is what points the TYPES at solid-js instead of React.
             ["\"jsx\": \"preserve\"", "\"jsxImportSource\": \"solid-js\""]);
 
         HasPreactConfig = WriteConfigFor(
-            PreactConfigPath, directory, p => Is(runtimes, p, "preact"), ref written,
+            PreactConfigPath, directory, p => declared && Is(runtimes, p, "preact"), ref written,
             ["\"jsx\": \"react-jsx\"", "\"jsxImportSource\": \"preact\""]);
 
         HasAngularConfig = WriteConfigFor(
-            AngularConfigPath, directory, p => Is(runtimes, p, "angular"), ref written,
+            AngularConfigPath, directory, p => declared && Is(runtimes, p, "angular"), ref written,
             // Angular's decorators are the TypeScript 4 form. Lit 3's are the standard ones and need
             // this OFF, which is exactly why the two cannot share a config.
             ["\"experimentalDecorators\": true", "\"emitDecoratorMetadata\": true"]);
 
-        // Everything else tsgo can read: React, Lit, and any file no component has claimed yet.
+        // Everything else tsgo can read: React, Lit, and any JSX file no component has claimed yet.
+        //
+        // A bare .ts or .js is the exception, and it has to be: `Name.ts` is claimed by filename for a
+        // Lit or Angular island AND by Rask.Core for scoped TypeScript, which is #938. Nothing in the
+        // extension separates them — but this task runs AFTER the compile, so the assembly can. A .ts
+        // that no declared island claims is scoped TypeScript, and checking it here fails for a reason
+        // that has nothing to do with the author's code: it is compiled by a different pipeline, with
+        // different lib and ambient declarations, so its globals resolve to nothing. Rask's own showcase
+        // has one (Features/Gantt/Gantt.ts, whose types come from a third-party global), and it reported
+        // four TS2304 on names that are perfectly well defined where that file is actually compiled.
+        //
+        // .tsx, .jsx, .vue and .svelte need no such test: scoped TypeScript is never any of them.
+        //
+        // The narrowing costs one case — a real Lit island in a project whose generator is suppressed is
+        // no longer checked — and that case could not be checked correctly anyway, for the same reason.
         HasCheckConfig = WriteConfigFor(
             CheckConfigPath,
             directory,
-            p => IsTypeScript(p) && !Is(runtimes, p, "solid") && !Is(runtimes, p, "preact")
-                 && !Is(runtimes, p, "angular"),
+            p => declared && IsTypeScript(p) && !Is(runtimes, p, "solid") && !Is(runtimes, p, "preact")
+                 && !Is(runtimes, p, "angular")
+                 && (!IsAmbiguouslyPaired(p) || ExternalIslandMetadata.RuntimeFor(runtimes, p) is not null),
             ref written,
             ReactJsx);
 
@@ -289,9 +338,9 @@ public sealed class WriteExternalPropTypesTask : Task
         // program pulls in a TSX helper, would otherwise be checked under TypeScript's default `jsx`
         // and fail on code that checked cleanly before.
         HasVueConfig = WriteConfigFor(
-            VueConfigPath, directory, p => HasExtension(p, ".vue"), ref written, ReactJsx);
+            VueConfigPath, directory, p => declared && HasExtension(p, ".vue"), ref written, ReactJsx);
         HasSvelteConfig = WriteConfigFor(
-            SvelteConfigPath, directory, p => HasExtension(p, ".svelte"), ref written, ReactJsx);
+            SvelteConfigPath, directory, p => declared && HasExtension(p, ".svelte"), ref written, ReactJsx);
 
         return written;
     }
@@ -414,6 +463,13 @@ public sealed class WriteExternalPropTypesTask : Task
     }
 
     /// <summary>Whether tsgo can read this file at all.</summary>
+    /// <summary>
+    ///     Whether an extension is claimed by both an island and Rask.Core's scoped TypeScript, so the
+    ///     file's own name cannot say which it is (#938).
+    /// </summary>
+    internal static bool IsAmbiguouslyPaired(string path) =>
+        HasExtension(path, ".ts") || HasExtension(path, ".js");
+
     private static bool IsTypeScript(string path) =>
         HasExtension(path, ".ts") || HasExtension(path, ".tsx") || HasExtension(path, ".js")
         || HasExtension(path, ".jsx");

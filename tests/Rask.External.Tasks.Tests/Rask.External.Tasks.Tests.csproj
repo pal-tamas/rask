@@ -18,7 +18,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime"/>
+    <!--
+      Runtime assets INCLUDED here, unlike in the task project itself. A task assembly must never
+      ship MSBuild alongside it — it is loaded INTO MSBuild — but this project instantiates the task
+      and calls Execute(), so it needs the base class and TaskItem at run time. Without them the
+      tests fail with FileNotFoundException on Microsoft.Build.Utilities.Core before reaching an
+      assertion, which is a red that says nothing about the code under test.
+    -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
