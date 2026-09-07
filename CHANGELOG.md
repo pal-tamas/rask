@@ -11,9 +11,9 @@ them until tagged releases begin.
 
 - **The playground compiles against reference assemblies shipped as data, not against its own bundle.**
   The in-browser compiler used to download this app's own implementation assemblies out of `_framework/`,
-  read off the runtime's boot config, and hand them to Roslyn. That worked, and it is the reason the whole
-  app had to be `PublishTrimmed=false`: trimming strips members Roslyn must see, so the app could not be
-  trimmed without breaking the one thing it exists to do.
+  read off the runtime's boot config, and hand them to Roslyn. That worked, and it was believed to be the
+  reason the whole app had to be `PublishTrimmed=false` — trimming strips members Roslyn must see. It was
+  only one of the reasons, and not the binding one.
 
   The build now stages `@(ReferencePathWithRefAssemblies)` — exactly what the C# compiler saw when it
   built the project, metadata only — and the loader reads those. It is the more correct set as well as
@@ -24,8 +24,8 @@ them until tagged releases begin.
   reference assemblies against 53 MB of untrimmed implementation assemblies** — 31 MB staged, 22 MB of it
   Roslyn.
 
-  This is the enabler rather than the payoff: it removes the reason the app cannot be trimmed. Trimming
-  is still off until Roslyn's reflection is rooted, which is the next step.
+  Trimming stays off, and the follow-up settled that it always will — see below. The staging still earns
+  its keep on payload and correctness; it just is not the trimming enabler it was written up as.
 
   One ordering trap worth recording. The staging target first carried both `AfterTargets="ResolveReferences"`
   and `BeforeTargets="GenerateComputedBuildStaticWebAssets"`; MSBuild runs a target at whichever hook
@@ -34,6 +34,27 @@ them until tagged releases begin.
   item is the only ordering that guarantees it is populated.
 
 ### Fixed
+
+- **The playground cannot be trimmed, and the reason it could not was never the one written down.**
+  Acting on the note above, trimming was turned back on with Roslyn rooted as a `TrimmerRootAssembly`.
+  Roslyn survived that perfectly — snippets still compiled. They then failed to **run**, because the
+  blocker is the execute side, not the compile side: a snippet is compiled against the full reference
+  assemblies in `refs/`, but the assembly Roslyn emits is loaded into the app's own runtime, where
+  everything the playground does not itself statically reference has been trimmed away. The failure
+  arrives after a clean compile, with no editor error and a green publish.
+
+  Two layers, each fix exposing the next: `TypeLoadException` on `Rask.Html.Components.RaskSeed_Input`
+  (the chain seed behind `Input`), fixable by rooting the Rask assemblies; then `MissingMethodException`
+  on `FieldInfo.GetFieldFromHandle`, a BCL method the C# compiler itself emits. That one is not fixable —
+  user code may touch any of the 167 `System.*` assemblies in `refs.txt`, so the only sound root set is
+  the whole BCL. Trimming bought ~5 MB brotli and produced a playground that boots, compiles and throws
+  on Run.
+
+  Both of the app's opt-outs were justified in comments by the same now-dead reason ("Roslyn reads the
+  shipped `_framework` assemblies"), and both are still required for reasons nobody had recorded. The
+  comments now carry what was measured rather than a theory, because a comment that is right about the
+  setting and wrong about why is an argument for making the change that breaks things.
+
 
 - **Prerendering broke deep links to the routes it could not prerender**
   ([#974](https://github.com/pal-tamas/rask/issues/974)), and did it by building the very thing meant to

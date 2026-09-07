@@ -14,21 +14,48 @@
          (cache-safe static-host redeploys), exactly like the showcase. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
 
-    <!-- The playground compiles user C# in the browser with Roslyn, which reads the shipped
-         _framework/*.wasm assemblies as metadata references. Trimming would strip members Roslyn needs to
-         see, so this app is deliberately UNTRIMMED — the one place in the repo that opts out. This also
-         keeps Roslyn's reflection-heavy code off the trim/AOT analysers, so those stay disabled here (the
-         showcase remains trim-full + zero-IL; this isolation is exactly why the playground is a separate
-         sub-app). ICU is still dropped: Roslyn and the playground format nothing culture-sensitive. -->
+    <!-- Deliberately UNTRIMMED — the one place in the repo that opts out. This also keeps Roslyn's
+         reflection-heavy code off the trim/AOT analysers, so those stay disabled here (the showcase
+         remains trim-full + zero-IL; this isolation is exactly why the playground is a separate sub-app).
+
+         The reason is the EXECUTE side, not the compile side. It used to be written down the other way
+         round — "Roslyn reads the shipped _framework assemblies as metadata references, and trimming
+         would strip members it needs to see" — and that reason is now dead: since the compile references
+         are staged as data under refs/, Roslyn never reads _framework at all. Acting on that, trimming
+         was turned back on, and the app still cannot be trimmed, for a reason nobody had recorded:
+
+           The snippet is compiled against the FULL reference assemblies in refs/, but the assembly
+           Roslyn emits is loaded into THIS runtime. Anything the playground app does not itself
+           statically reference has been trimmed out of that runtime, so the snippet dies at load —
+           after a clean compile, with no error in the editor and nothing wrong in the build.
+
+         Measured, in this order, each fix exposing the next layer:
+           * TypeLoadException on Rask.Html.Components.RaskSeed_Input (the chain seed behind `Input`).
+             Fixable — root Rask.Core/Rask.Html/Rask.Wasm as TrimmerRootAssembly.
+           * then MissingMethodException on FieldInfo.GetFieldFromHandle, a BCL method emitted by the
+             C# compiler itself. NOT fixable: user code may touch any of the 167 System.* assemblies in
+             refs.txt, so the only sound root set is the whole BCL, which is this setting.
+
+         So this is intrinsic to compiling and running arbitrary user code in the browser, not something
+         a staging or packaging change can lift. Trimming saved ~5 MB brotli and produced a playground
+         that boots, compiles, and throws on Run. Leave it off. -->
     <PublishTrimmed>false</PublishTrimmed>
     <!-- ICU is dropped: this app formats nothing culture-sensitive, so the ~2.6 MB of icudt*.dat is
          pure payload. Owned by Rask.Wasm.targets now rather than set here — RaskGlobalization is the
          one property, and it also handles PredefinedCulturesOnly, which defaults to true under
          invariant globalization and makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall
          back. Set <RaskGlobalization>true</RaskGlobalization> to ship ICU. -->
-    <!-- Ship managed assemblies as plain PE, not WebCIL. The in-browser compiler downloads the shipped
-         _framework assemblies and hands them to Roslyn as MetadataReferences, and Roslyn can only read a
-         PE/COFF image — it cannot parse the WebCIL wrapper the WASM SDK emits by default. -->
+    <!-- Ship managed assemblies as plain PE, not WebCIL.
+
+         The original reason — Roslyn cannot parse the WebCIL wrapper, and it was handed the shipped
+         _framework assemblies as MetadataReferences — died with the move to refs/, same as the trimming
+         comment above. The setting still has to stay, on evidence rather than on that reason: turning
+         WebCIL on makes this app fail to BOOT, with "The .NET runtime could not be loaded", on a plain
+         static host. Isolated as a single-variable A/B on an otherwise identical untrimmed publish
+         (PlaygroundExampleTests: webcil on = boot failure, webcil off = green), so the attribution is
+         solid even though the mechanism is not understood. The importmap, integrity hashes and asset
+         names in the failing publish all looked correct and matched the showcase's working shape, which
+         is why this is recorded as an observation and not as an explanation. Tracked in #1026. -->
     <WasmEnableWebcil>false</WasmEnableWebcil>
 
     <!-- Full WASM AOT is pointless here: user code is Assembly.Load-ed at runtime and always runs
