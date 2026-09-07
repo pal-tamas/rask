@@ -8,8 +8,8 @@ internal sealed record DevHostResult(string Hostname, string Url, IReadOnlyDicti
 
 /// <summary>
 ///     Puts <c>rask dev</c> on <c>https://appname.test</c> instead of <c>http://localhost:5000</c>:
-///     resolves the name, trusts a local authority once, issues a certificate for it, and redirects
-///     ports 443 and 80 at the running app.
+///     resolves the name, trusts a local authority once, issues a certificate for it, and makes sure
+///     the app can answer on port 443.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -21,33 +21,19 @@ internal sealed record DevHostResult(string Hostname, string Url, IReadOnlyDicti
 ///         privileged happens without showing exactly what will change and waiting for a yes.
 ///     </para>
 ///     <para>
-///         macOS only, for now. The shape is portable but the three mechanisms are not: the system
-///         keychain, <c>/etc/hosts</c> and pf are all platform-specific, and Linux alone has several
-///         competing trust stores. Elsewhere this is simply inert and <c>rask dev</c> behaves exactly as
-///         it always has.
+///         Everything in this class is the same on every platform. The parts that genuinely differ —
+///         where an authority is trusted, how a privileged file is written, and what it takes to answer
+///         on 443 — live behind <see cref="DevHostPlatform" />.
 ///     </para>
 /// </remarks>
 internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunner, DevHostStore store)
 {
     /// <summary>
-    ///     Where Kestrel actually listens; pf maps port 443 onto it.
+    ///     Whether the dev host is implemented for this platform. Everywhere else it is absent rather
+    ///     than broken, and <c>rask dev</c> behaves exactly as it always has.
     /// </summary>
-    /// <remarks>
-    ///     The dev host is HTTPS only. No plaintext listener is bound at all, so there is nothing on
-    ///     this machine that will serve the app unencrypted — which keeps the browser, the live
-    ///     WebSocket (<c>wss://</c>, picked from the page's own scheme) and any cookie marked
-    ///     <c>Secure</c> behaving in development exactly as they will in production.
-    /// </remarks>
-    public const int HttpsPort = 5001;
-
-    private const string HostsPath = "/etc/hosts";
-    private const string SystemKeychain = "/Library/Keychains/System.keychain";
-
-    /// <summary>
-    ///     Whether this platform is one the setup knows how to carry out. Everywhere else the feature is
-    ///     absent rather than broken.
-    /// </summary>
-    public static bool IsSupported => OperatingSystem.IsMacOS();
+    public static bool IsSupported =>
+        OperatingSystem.IsMacOS() || OperatingSystem.IsWindows() || OperatingSystem.IsLinux();
 
     /// <summary>
     ///     Prepares the machine and returns what the app needs to serve on its <c>.test</c> name, or
@@ -58,7 +44,7 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
         bool interactive,
         CancellationToken cancellationToken)
     {
-        if (!IsSupported)
+        if (DevHostPlatform.Create(processRunner, console, store) is not { } platform)
         {
             return null;
         }
@@ -70,14 +56,22 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
 
         try
         {
-            var plan = await BuildPlanAsync(hostname, cancellationToken).ConfigureAwait(false);
+            var plan = await BuildPlanAsync(platform, hostname, cancellationToken).ConfigureAwait(false);
 
-            if (!plan.IsSatisfied && !await ApplyAsync(plan, interactive, cancellationToken).ConfigureAwait(false))
+            if (!plan.IsSatisfied)
             {
-                return null;
+                if (!await ApplyAsync(platform, plan, interactive, cancellationToken).ConfigureAwait(false))
+                {
+                    return null;
+                }
+
+                if (plan.TrustAuthority)
+                {
+                    await platform.WriteFollowUpAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
 
-            return Result(hostname);
+            return Result(platform, hostname);
         }
         catch (OperationCanceledException)
         {
@@ -97,25 +91,22 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
     ///     Works out what is missing. Reads only — nothing here changes the machine, and nothing here
     ///     needs a password.
     /// </summary>
-    internal async Task<DevHostPlan> BuildPlanAsync(string hostname, CancellationToken cancellationToken)
+    internal async Task<DevHostPlan> BuildPlanAsync(
+        DevHostPlatform platform,
+        string hostname,
+        CancellationToken cancellationToken)
     {
         var authority = store.ReadAuthority();
         var mintAuthority = authority is null || DevCertificates.NeedsReissue(authority, hostname: null, DateTimeOffset.Now);
 
-        // A freshly minted authority is by definition not trusted yet; otherwise ask the keychain.
-        var trustAuthority = mintAuthority
-                             || !await IsAuthorityTrustedAsync(authority!.Value, cancellationToken).ConfigureAwait(false);
+        // A freshly minted authority is by definition not trusted yet; otherwise ask the platform.
+        var trustAuthority = mintAuthority || !await IsTrustedAsync(platform, authority!.Value, cancellationToken).ConfigureAwait(false);
 
         // A certificate signed by an authority we are about to replace is worthless, whatever its dates.
         var issueCertificate = mintAuthority
                                || DevCertificates.NeedsReissue(store.ReadCertificate(hostname), hostname, DateTimeOffset.Now);
 
-        var hosts = ReadHosts() is { } current ? DevHostFiles.AddHost(current, hostname) : null;
-
-        var rules = DevHostFiles.PfRules(HttpsPort);
-        var pfRules = rules is not null && !await IsPfLoadedAsync(rules, cancellationToken).ConfigureAwait(false)
-            ? rules
-            : null;
+        var hosts = ReadHosts(platform) is { } current ? DevHostFiles.AddHost(current, hostname) : null;
 
         return new DevHostPlan
         {
@@ -124,12 +115,19 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
             TrustAuthority = trustAuthority,
             IssueCertificate = issueCertificate,
             Hosts = hosts,
-            PfRules = pfRules,
+            PortSetup = await platform.RequiredPortSetupAsync(cancellationToken).ConfigureAwait(false),
+            TrustChange = platform.TrustChange,
+            PortChange = platform.PortChange,
+            HostsPath = platform.HostsPath,
         };
     }
 
     /// <summary>Carries out <paramref name="plan" />. Returns false when the app should fall back to localhost.</summary>
-    private async Task<bool> ApplyAsync(DevHostPlan plan, bool interactive, CancellationToken cancellationToken)
+    private async Task<bool> ApplyAsync(
+        DevHostPlatform platform,
+        DevHostPlan plan,
+        bool interactive,
+        CancellationToken cancellationToken)
     {
         if (plan.NeedsPrivilege)
         {
@@ -138,7 +136,7 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
                 // A CI job, a piped run, an editor's run window with no terminal. Prompting would block
                 // forever on something nobody can answer.
                 console.WriteLine(
-                    $"Serving on localhost — setting up https://{plan.Hostname} needs a password, and this run has no terminal to ask on.",
+                    $"Serving on localhost — setting up https://{plan.Hostname} needs permission, and this run has no terminal to ask on.",
                     ConsoleStyle.Dim);
                 return false;
             }
@@ -149,18 +147,16 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
                 return false;
             }
 
-            // One prompt for the whole batch: prime sudo's credential cache up front so the individual
-            // steps below never stop to ask again mid-way.
-            if (await RunAsync("sudo", ["-v"], cancellationToken).ConfigureAwait(false) != 0)
+            // One prompt for the whole batch where the platform has such a thing, so the individual steps
+            // below never stop to ask again mid-way and leave the machine half configured.
+            if (!await platform.PrimePrivilegeAsync(cancellationToken).ConfigureAwait(false))
             {
                 console.WriteErrorLine("Couldn't get permission. Serving on localhost.", ConsoleStyle.Warning);
                 return false;
             }
         }
 
-        var authority = plan.MintAuthority
-            ? Mint()
-            : store.ReadAuthority()!.Value;
+        var authority = plan.MintAuthority ? Mint() : store.ReadAuthority()!.Value;
 
         if (plan.IssueCertificate)
         {
@@ -169,9 +165,9 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
                 DevCertificates.IssueServerCertificate(authority, plan.Hostname, DateTimeOffset.Now));
         }
 
-        return await TrustAsync(plan, cancellationToken).ConfigureAwait(false)
-               && await WriteHostsAsync(plan, cancellationToken).ConfigureAwait(false)
-               && await LoadPfAsync(plan, cancellationToken).ConfigureAwait(false);
+        return await TrustAsync(platform, plan, cancellationToken).ConfigureAwait(false)
+               && await WriteHostsAsync(platform, plan, cancellationToken).ConfigureAwait(false)
+               && await ApplyPortAsync(platform, plan, cancellationToken).ConfigureAwait(false);
 
         DevCertificate Mint()
         {
@@ -184,7 +180,7 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
     private bool Confirm(DevHostPlan plan)
     {
         console.Out.WriteLine();
-        console.WriteLine($"To serve this app on https://{plan.Hostname}, Rask needs your password once to:", ConsoleStyle.Heading);
+        console.WriteLine($"To serve this app on https://{plan.Hostname}, Rask needs permission once to:", ConsoleStyle.Heading);
 
         foreach (var change in plan.PrivilegedChanges)
         {
@@ -196,24 +192,18 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
         return new Prompt(console).Confirm("Set that up now?", @default: true);
     }
 
-    private async Task<bool> TrustAsync(DevHostPlan plan, CancellationToken cancellationToken)
+    private async Task<bool> TrustAsync(DevHostPlatform platform, DevHostPlan plan, CancellationToken cancellationToken)
     {
         if (!plan.TrustAuthority)
         {
             return true;
         }
 
-        // -d installs into the admin (system) domain so every browser and every tool on the machine
-        // agrees; a login-keychain trust would leave Safari and curl disagreeing about the same name.
-        var exit = await RunAsync(
-            "sudo",
-            ["-n", "/usr/bin/security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", SystemKeychain, store.AuthorityCertificatePath],
-            cancellationToken).ConfigureAwait(false);
-
-        return exit == 0 || Fallback("trust the local certificate authority");
+        return await platform.TrustAsync(store.AuthorityCertificatePath, cancellationToken).ConfigureAwait(false)
+               || Fallback("trust the local certificate authority");
     }
 
-    private async Task<bool> WriteHostsAsync(DevHostPlan plan, CancellationToken cancellationToken)
+    private async Task<bool> WriteHostsAsync(DevHostPlatform platform, DevHostPlan plan, CancellationToken cancellationToken)
     {
         if (plan.Hosts is null)
         {
@@ -221,20 +211,15 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
         }
 
         // Staged in a file we own and then installed, because there is no way to redirect a privileged
-        // write through this process's own file handle. `install` sets the destination's mode and
-        // ownership explicitly rather than inheriting whatever the staging file had.
+        // write through this process's own file handle.
         var staged = Path.Combine(Path.GetTempPath(), "rask-hosts-" + Guid.NewGuid().ToString("N"));
 
         try
         {
             await File.WriteAllTextAsync(staged, plan.Hosts, cancellationToken).ConfigureAwait(false);
 
-            var exit = await RunAsync(
-                "sudo",
-                ["-n", "/usr/bin/install", "-m", "0644", "-o", "root", "-g", "wheel", staged, HostsPath],
-                cancellationToken).ConfigureAwait(false);
-
-            return exit == 0 || Fallback($"add {plan.Hostname} to {HostsPath}");
+            return await platform.InstallHostsAsync(staged, cancellationToken).ConfigureAwait(false)
+                   || Fallback($"add {plan.Hostname} to {platform.HostsPath}");
         }
         finally
         {
@@ -249,51 +234,15 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
         }
     }
 
-    private async Task<bool> LoadPfAsync(DevHostPlan plan, CancellationToken cancellationToken)
+    private async Task<bool> ApplyPortAsync(DevHostPlatform platform, DevHostPlan plan, CancellationToken cancellationToken)
     {
-        if (plan.PfRules is null)
+        if (plan.PortSetup is null)
         {
             return true;
         }
 
-        var staged = Path.Combine(Path.GetTempPath(), "rask-pf-" + Guid.NewGuid().ToString("N"));
-
-        try
-        {
-            await File.WriteAllTextAsync(staged, plan.PfRules, cancellationToken).ConfigureAwait(false);
-
-            var loaded = await RunAsync(
-                "sudo",
-                ["-n", "/sbin/pfctl", "-a", DevHostFiles.PfAnchor, "-f", staged],
-                cancellationToken).ConfigureAwait(false);
-
-            if (loaded != 0)
-            {
-                return Fallback("redirect port 443");
-            }
-
-            // Rules in an anchor do nothing while pf itself is disabled, which is the macOS default.
-            // Only enabled when it is actually off: `pfctl -E` bumps a reference count that is only
-            // released by a matching -X, so enabling something already enabled slowly leaks tokens.
-            if (!await IsPfEnabledAsync(cancellationToken).ConfigureAwait(false)
-                && await RunAsync("sudo", ["-n", "/sbin/pfctl", "-E"], cancellationToken).ConfigureAwait(false) != 0)
-            {
-                return Fallback("enable the packet filter");
-            }
-
-            store.WritePfState(plan.PfRules, await BootIdAsync(cancellationToken).ConfigureAwait(false));
-            return true;
-        }
-        finally
-        {
-            try
-            {
-                File.Delete(staged);
-            }
-            catch (IOException)
-            {
-            }
-        }
+        return await platform.ApplyPortSetupAsync(plan.PortSetup, cancellationToken).ConfigureAwait(false)
+               || Fallback($"let this app answer on port {platform.HttpsPort.ToString(CultureInfo.InvariantCulture)}");
     }
 
     private bool Fallback(string what)
@@ -303,15 +252,15 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
     }
 
     /// <summary>What the child process needs in order to serve the name.</summary>
-    private DevHostResult Result(string hostname) =>
+    private DevHostResult Result(DevHostPlatform platform, string hostname) =>
         new(
             hostname,
             $"https://{hostname}",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                // HTTPS only, and bound to loopback: the name resolves to 127.0.0.1 and pf redirects
-                // within lo0, so a listener on any wider address would only widen who can reach it.
-                ["ASPNETCORE_URLS"] = $"https://127.0.0.1:{HttpsPort.ToString(CultureInfo.InvariantCulture)}",
+                // HTTPS only, and bound to loopback: the name resolves to 127.0.0.1, so a listener on
+                // any wider address would only widen who can reach it.
+                ["ASPNETCORE_URLS"] = $"https://127.0.0.1:{platform.HttpsPort.ToString(CultureInfo.InvariantCulture)}",
 
                 // Kestrel reads a PEM pair straight from configuration, so the certificate never has to
                 // be installed anywhere or carry a password — the file mode is the whole boundary.
@@ -319,67 +268,27 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
                 ["ASPNETCORE_Kestrel__Certificates__Default__KeyPath"] = store.KeyPath(hostname),
             });
 
-    /// <summary>True when the system keychain already holds exactly this authority.</summary>
-    private async Task<bool> IsAuthorityTrustedAsync(DevCertificate authority, CancellationToken cancellationToken)
+    private static async Task<bool> IsTrustedAsync(
+        DevHostPlatform platform,
+        DevCertificate authority,
+        CancellationToken cancellationToken)
     {
-        string thumbprint;
         try
         {
             using var certificate = DevCertificates.Load(authority);
-            thumbprint = certificate.Thumbprint;
+            return await platform.IsTrustedAsync(certificate.Thumbprint, cancellationToken).ConfigureAwait(false);
         }
         catch (CryptographicException)
         {
             return false;
         }
-
-        // Reading the system keychain needs no privilege, which is what lets the common case — already
-        // set up, nothing to do — cost nothing at all.
-        var found = await CaptureAsync(
-            "/usr/bin/security",
-            ["find-certificate", "-c", DevCertificates.AuthorityName, "-Z", SystemKeychain],
-            cancellationToken).ConfigureAwait(false);
-
-        // Compared by fingerprint, not by name: a stale authority from a previous install has the same
-        // subject and would otherwise look like a match while signing nothing the browser accepts.
-        return found.ExitCode == 0
-               && found.StandardOutput.Contains(thumbprint, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>True when these exact rules were loaded and the machine has not rebooted since.</summary>
-    private async Task<bool> IsPfLoadedAsync(string rules, CancellationToken cancellationToken)
-    {
-        if (store.ReadPfState() is not { } state || !string.Equals(state.Rules, rules, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        return string.Equals(state.BootId, await BootIdAsync(cancellationToken).ConfigureAwait(false), StringComparison.Ordinal);
-    }
-
-    private async Task<bool> IsPfEnabledAsync(CancellationToken cancellationToken)
-    {
-        var info = await CaptureAsync("sudo", ["-n", "/sbin/pfctl", "-s", "info"], cancellationToken).ConfigureAwait(false);
-        return info.ExitCode == 0 && info.StandardOutput.Contains("Status: Enabled", StringComparison.Ordinal);
-    }
-
-    private async Task<string> BootIdAsync(CancellationToken cancellationToken)
-    {
-        var boot = await CaptureAsync("/usr/sbin/sysctl", ["-n", "kern.boottime"], cancellationToken).ConfigureAwait(false);
-        return DevHostStore.BootId(boot.ExitCode == 0 ? boot.StandardOutput : null);
-    }
-
-    private Task<int> RunAsync(string file, IReadOnlyList<string> arguments, CancellationToken cancellationToken) =>
-        processRunner.RunAsync(file, arguments, workingDirectory: null, cancellationToken);
-
-    private Task<ProcessResult> CaptureAsync(string file, IReadOnlyList<string> arguments, CancellationToken cancellationToken) =>
-        processRunner.CaptureAsync(file, arguments, workingDirectory: null, cancellationToken);
-
-    private static string? ReadHosts()
+    private static string? ReadHosts(DevHostPlatform platform)
     {
         try
         {
-            return File.Exists(HostsPath) ? File.ReadAllText(HostsPath) : null;
+            return File.Exists(platform.HostsPath) ? File.ReadAllText(platform.HostsPath) : null;
         }
         catch (IOException)
         {

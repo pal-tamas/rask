@@ -26,18 +26,33 @@ internal sealed record DevHostPlan
     /// <summary>No usable certificate for <see cref="Hostname" />, or it is near expiry.</summary>
     public bool IssueCertificate { get; init; }
 
-    /// <summary>The full new contents of <c>/etc/hosts</c>, or null when it already resolves the name.</summary>
+    /// <summary>The full new contents of the hosts file, or null when it already resolves the name.</summary>
     public string? Hosts { get; init; }
 
-    /// <summary>The pf ruleset to load, or null when the kernel already has these redirects.</summary>
-    public string? PfRules { get; init; }
+    /// <summary>
+    ///     The platform's own description of the port work still needed, or null when none is — which is
+    ///     always the answer on Windows, where an ordinary process may bind 443.
+    /// </summary>
+    public string? PortSetup { get; init; }
+
+    /// <summary>
+    ///     How this platform phrases its machine changes. Kept on the plan so the confirmation prompt can
+    ///     be rendered — and asserted — without a platform to run on.
+    /// </summary>
+    public string? TrustChange { get; init; }
+
+    /// <summary>How this platform phrases its port work.</summary>
+    public string? PortChange { get; init; }
+
+    /// <summary>The platform's hosts file, named in the prompt so the change is unambiguous.</summary>
+    public string? HostsPath { get; init; }
 
     /// <summary>True when carrying it out needs the developer's password.</summary>
-    public bool NeedsPrivilege => TrustAuthority || Hosts is not null || PfRules is not null;
+    public bool NeedsPrivilege => TrustAuthority || Hosts is not null || PortSetup is not null;
 
     /// <summary>True when the machine is already set up and there is nothing to do.</summary>
     public bool IsSatisfied =>
-        !MintAuthority && !TrustAuthority && !IssueCertificate && Hosts is null && PfRules is null;
+        !MintAuthority && !TrustAuthority && !IssueCertificate && Hosts is null && PortSetup is null;
 
     /// <summary>
     ///     The changes, phrased for the confirmation prompt. Only the privileged ones: minting and
@@ -50,19 +65,19 @@ internal sealed record DevHostPlan
         {
             var changes = new List<string>();
 
-            if (TrustAuthority)
+            if (TrustAuthority && TrustChange is not null)
             {
-                changes.Add($"trust '{DevCertificates.AuthorityName}' as a local certificate authority (System keychain)");
+                changes.Add(TrustChange);
             }
 
             if (Hosts is not null)
             {
-                changes.Add($"add '127.0.0.1 {Hostname}' to /etc/hosts");
+                changes.Add($"add '127.0.0.1 {Hostname}' to {HostsPath ?? "the hosts file"}");
             }
 
-            if (PfRules is not null)
+            if (PortSetup is not null && PortChange is not null)
             {
-                changes.Add($"redirect port 443 to this app (pf anchor '{DevHostFiles.PfAnchor}')");
+                changes.Add(PortChange);
             }
 
             return changes;

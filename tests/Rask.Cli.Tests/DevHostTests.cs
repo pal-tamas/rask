@@ -416,18 +416,106 @@ public sealed class DevHostTests
     [InlineData(true, false, false)]
     [InlineData(false, true, false)]
     [InlineData(false, false, true)]
-    public void Every_machine_change_is_named_before_it_is_made(bool trust, bool hosts, bool pf)
+    public void Every_machine_change_is_named_before_it_is_made(bool trust, bool hosts, bool port)
     {
         var plan = new DevHostPlan
         {
             Hostname = "appname.test",
             TrustAuthority = trust,
             Hosts = hosts ? "..." : null,
-            PfRules = pf ? "..." : null,
+            PortSetup = port ? "..." : null,
+            TrustChange = "trust the authority",
+            PortChange = "open the port",
+            HostsPath = "/etc/hosts",
         };
 
         Assert.True(plan.NeedsPrivilege);
         Assert.Single(plan.PrivilegedChanges);
+    }
+
+    // ---- the platforms ----
+
+    /// <summary>
+    ///     The port decision per platform, which is the one that surprises people: only macOS reserves
+    ///     ports below 1024 from an ordinary process, so it alone needs a redirect. Asserted on every
+    ///     platform, because these are pure properties and getting one wrong would mean Kestrel binding
+    ///     a port nothing routes to.
+    /// </summary>
+    [Fact]
+    public void Only_macos_needs_a_port_redirect()
+    {
+        var (mac, windows, linux) = Platforms();
+
+        // macOS: a high port plus a pf anchor mapping 443 onto it.
+        Assert.Equal(5001, mac.HttpsPort);
+        Assert.NotNull(mac.PortChange);
+
+        // Windows: binds 443 outright. Nothing to set up, nothing to undo, nothing lost at reboot.
+        Assert.Equal(443, windows.HttpsPort);
+        Assert.Null(windows.PortChange);
+
+        // Linux: binds 443 too, once one sysctl allows it.
+        Assert.Equal(443, linux.HttpsPort);
+        Assert.NotNull(linux.PortChange);
+    }
+
+    [Fact]
+    public async Task Windows_never_asks_for_port_setup()
+    {
+        var (_, windows, _) = Platforms();
+
+        Assert.Null(await windows.RequiredPortSetupAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public void Each_platform_names_its_own_trust_store()
+    {
+        var (mac, windows, linux) = Platforms();
+
+        Assert.Contains("keychain", mac.TrustChange, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Trusted Roots", windows.TrustChange, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("anchors", linux.TrustChange, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void The_current_platform_is_the_one_we_are_running_on()
+    {
+        var platform = DevHostPlatform.Create(new FakeProcessRunner(), new StringConsole(), new DevHostStore(Path.GetTempPath()));
+
+        if (OperatingSystem.IsMacOS())
+        {
+            Assert.IsType<MacDevHostPlatform>(platform);
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            Assert.IsType<WindowsDevHostPlatform>(platform);
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            Assert.IsType<LinuxDevHostPlatform>(platform);
+        }
+        else
+        {
+            // Not a failure: the dev host is absent there, and rask dev serves localhost as before.
+            Assert.Null(platform);
+        }
+    }
+
+    /// <summary>
+    ///     All three platforms, constructed on whichever one the suite happens to be running on. Their
+    ///     port and trust-store decisions are pure properties, so every platform's answer is asserted
+    ///     everywhere rather than only on the machine that would use it.
+    /// </summary>
+    private static (MacDevHostPlatform Mac, WindowsDevHostPlatform Windows, LinuxDevHostPlatform Linux) Platforms()
+    {
+        var process = new FakeProcessRunner();
+        var console = new StringConsole();
+        var store = new DevHostStore(Path.GetTempPath());
+
+        return (
+            new MacDevHostPlatform(process, console, store),
+            new WindowsDevHostPlatform(process, console),
+            new LinuxDevHostPlatform(process, console));
     }
 
     private static DevCertificate Issue(string hostname) =>

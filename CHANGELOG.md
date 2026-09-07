@@ -11,8 +11,19 @@ them until tagged releases begin.
 
 - **`rask dev` serves an app on `https://appname.test` — a real name, real HTTPS, no port, no installs.**
   The name is derived from the project, so there is no flag and nothing to configure. The first run asks
-  for a password once, listing exactly what it will change; every run after that is silent, because the
-  plan is recomputed from the machine each time and comes back empty. macOS for now.
+  for permission once, listing exactly what it will change; every run after that is silent, because the
+  plan is recomputed from the machine each time and comes back empty. **macOS, Windows and Linux.**
+
+  The three steps are the same everywhere; what carries them out is not, and the port differs more than
+  expected. **Only macOS needs a redirect at all** — it alone reserves ports below 1024 from an ordinary
+  process, so it gets a pf anchor mapping 443 onto Kestrel's 5001. Windows binds 443 outright and needs
+  no port work whatsoever; Linux binds it too after one sysctl. Trust follows the same pattern: Windows
+  is the least invasive of the three, writing `CurrentUser\Root` through .NET's own API with no elevation
+  at all (Windows raises its own consent dialog), while Linux is the most awkward, needing the
+  distribution's CA anchors *and* NSS via `certutil` for Chrome and Firefox, which ignore those anchors
+  entirely. Linux opens port 443 with a sysctl rather than a firewall rule deliberately: nftables and
+  iptables are actively managed by docker, ufw and firewalld, so injecting a redirect there is far
+  likelier to collide with something the developer depends on.
 
   Three machine changes, each the least invasive form available. The hosts entry goes in a marked
   `# >>> rask dev >>>` block and nothing outside it is ever rewritten. The port-443 redirect is loaded
@@ -30,9 +41,13 @@ them until tagged releases begin.
   the way they will in production. Keys live in `~/.rask/certs`, readable only by their owner.
 
   It never fails a dev loop over a URL: every failure path falls back to `http://localhost:5000` with a
-  note. Skipped by design for `--urls`, `--no-host`/`RASK_DEV_NO_HOST`, non-macOS, a run with no terminal,
-  and the react/meta/islands lanes — those serve the page from a bundler's own HTTP dev server, so a
-  certificate on the ASP.NET host behind it is not the one the browser would see.
+  note. Skipped by design for `--urls`, `--no-host`/`RASK_DEV_NO_HOST`, an unsupported platform, a run
+  with no terminal, and the react/meta/islands lanes — those serve the page from a bundler's own HTTP dev
+  server, so a certificate on the ASP.NET host behind it is not the one the browser would see.
+
+  One caveat worth stating plainly: **Firefox keeps its own certificate store** and never reads the
+  operating system's. On Linux `certutil` covers it; on macOS and Windows it has to be imported by hand,
+  and `rask dev` says so rather than leaving a warning page to explain it.
 
 ### Changed
 
