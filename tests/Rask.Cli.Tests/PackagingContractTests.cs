@@ -95,13 +95,33 @@ public sealed class PackagingContractTests
         //
         // Only literal Includes are checked. A glob that matches nothing is a different (and quieter)
         // failure, already guarded for the analyzer payload by the _RaskVerify…Packed targets.
+        //
+        // A file absent from disk is NOT on its own a defect: four packages name an MSBuild task
+        // assembly that no glob may match (#852 — a Pack glob is expanded at project EVALUATION, so on a
+        // tree where the DLL is not yet built it silently packs nothing), and that DLL is dropped into
+        // the source tree by a build-order-only ProjectReference. It therefore exists only after the
+        // producing project has been built, and `dotnet test tests/Rask.Cli.Tests` alone never builds it.
+        //
+        // Reporting that as "`dotnet pack` fails NU5019" named a real project and a real file and read
+        // as "the meta package is broken", when the actual cause was building one project instead of the
+        // solution (#1006). So the two cases are now separated by the only thing that distinguishes them:
+        // whether anything in the project PRODUCES the file. `Foo.Tasks.dll` alongside a ProjectReference
+        // to `Foo.Tasks.csproj` is an unbuilt tree; anything else is the NU5019 trap this test exists for.
         var offenders = new SortedSet<string>(StringComparer.Ordinal);
+        var unbuilt = new SortedSet<string>(StringComparer.Ordinal);
 
         foreach (var (name, path) in SourceProjects())
         {
             var directory = Path.GetDirectoryName(path)!;
+            var project = XDocument.Load(path);
 
-            foreach (var none in XDocument.Load(path).Descendants("None"))
+            var produced = project.Descendants("ProjectReference")
+                .Select(r => r.Attribute("Include")?.Value)
+                .Where(i => i is not null)
+                .Select(i => Path.GetFileNameWithoutExtension(i!.Replace('\\', '/')))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var none in project.Descendants("None"))
             {
                 var include = none.Attribute("Include")?.Value;
 
@@ -113,17 +133,35 @@ public sealed class PackagingContractTests
                     continue;
                 }
 
-                if (!File.Exists(Path.Combine(directory, include.Replace('\\', Path.DirectorySeparatorChar))))
+                if (File.Exists(Path.Combine(directory, include.Replace('\\', Path.DirectorySeparatorChar))))
                 {
-                    offenders.Add($"{name} packs '{include}', which does not exist");
+                    continue;
+                }
+
+                var assembly = Path.GetFileName(include.Replace('\\', '/'));
+
+                if (assembly.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) &&
+                    produced.Contains(Path.GetFileNameWithoutExtension(assembly)))
+                {
+                    unbuilt.Add($"{name} packs '{include}', produced by its ProjectReference to "
+                        + $"{Path.GetFileNameWithoutExtension(assembly)}");
+                }
+                else
+                {
+                    offenders.Add($"{name} packs '{include}', which does not exist and nothing produces");
                 }
             }
         }
 
         Assert.True(
             offenders.Count == 0,
-            "These projects name a file to pack that is not on disk, so `dotnet pack` fails NU5019 — "
-            + "invisible to build and test:\n  " + string.Join("\n  ", offenders));
+            "These projects name a file to pack that is not on disk and that no ProjectReference "
+            + "produces, so `dotnet pack` fails NU5019 — invisible to build and test:\n  "
+            + string.Join("\n  ", offenders)
+            + (unbuilt.Count == 0
+                ? string.Empty
+                : "\n\nSeparately, and NOT a defect: these are produced by a build that has not run "
+                    + "here yet (`dotnet build Rask.slnx`):\n  " + string.Join("\n  ", unbuilt)));
     }
 
     [Fact]
