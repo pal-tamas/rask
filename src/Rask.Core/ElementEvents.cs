@@ -34,7 +34,10 @@ public abstract partial class Element
         "drag", "dragenter", "dragleave",
         "copy", "cut", "paste",
         "beforeinput", "select", "invalid", "reset",
-        "scroll"
+        "scroll",
+        // Appended, so no existing attribute's position moves — the serialized order is asserted by
+        // tests. Chronological within the pair, as the drag and keyboard groups above are.
+        "beforetoggle", "toggle"
     };
 
     // Unified backing store for the WHOLE event surface — drag, keyboard, click, scroll, mouse, pointer,
@@ -203,6 +206,49 @@ public abstract partial class Element
     ///     </para>
     /// </summary>
     public Func<KeyboardEventArgs, Task>? OnKeyUpAsync { get => AsyncHandler<KeyboardEventArgs>("keyup"); set => SetDomEventAsync("keyup", value); }
+
+    // ---- Open state (ToggleEventArgs: the platform's oldState/newState) ----
+
+    /// <summary>
+    ///     A popover or <c>&lt;details&gt;</c> finished opening or closing.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/toggle_event">MDN</see>
+    ///     <para>
+    ///         The event that closes the gap between the browser owning dismissal and C# owning the state. A
+    ///         <c>[popover]</c> closes itself on Escape and on a click outside, and without this nothing says
+    ///         so — a component tracking its own open flag goes on believing the panel is open, and its
+    ///         <c>aria-expanded</c> goes on saying so over a closed panel.
+    ///     </para>
+    /// </summary>
+    public Action<ToggleEventArgs>? OnToggle { get => SyncHandler<ToggleEventArgs>("toggle"); set => SetDomEventSync("toggle", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnToggle"/>, awaited by the renderer before it
+    ///     re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and this is
+    ///         silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
+    public Func<ToggleEventArgs, Task>? OnToggleAsync { get => AsyncHandler<ToggleEventArgs>("toggle"); set => SetDomEventAsync("toggle", value); }
+
+    /// <summary>
+    ///     The same transition, just before it happens. Use it to prepare what is about to be shown — loading
+    ///     a panel's contents as it opens — rather than to react to what already did.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/beforetoggle_event">MDN</see>
+    ///     <para>
+    ///         It cannot cancel the transition: the client never <c>preventDefault</c>s, so this is a
+    ///         notification and not a veto.
+    ///     </para>
+    /// </summary>
+    public Action<ToggleEventArgs>? OnBeforeToggle { get => SyncHandler<ToggleEventArgs>("beforetoggle"); set => SetDomEventSync("beforetoggle", value); }
+    /// <summary>
+    ///     The <see langword="async"/> form of <see cref="OnBeforeToggle"/>, awaited by the renderer before it
+    ///     re-renders.
+    ///     <para>
+    ///         Wire one or the other, never both: if both are set the synchronous one wins and this is
+    ///         silently dropped. RASK027 reports it.
+    ///     </para>
+    /// </summary>
+    public Func<ToggleEventArgs, Task>? OnBeforeToggleAsync { get => AsyncHandler<ToggleEventArgs>("beforetoggle"); set => SetDomEventAsync("beforetoggle", value); }
 
     // ---- Mouse events (MouseEventArgs: button/buttons, client/screen/page/offset/movement coords, modifiers) ----
 

@@ -43,7 +43,8 @@ internal static class HandlerFrameShape
         Pointer,
         Touch,
         Clipboard,
-        Media
+        Media,
+        Toggle
     }
 
     // The frame types that legitimately feed each shape, indexed by (int)Shape. Rows overlap on purpose:
@@ -111,7 +112,9 @@ internal static class HandlerFrameShape
             "timeupdate"u8.ToArray(), "volumechange"u8.ToArray(), "ratechange"u8.ToArray(),
             "durationchange"u8.ToArray(), "loadedmetadata"u8.ToArray(), "seeked"u8.ToArray(),
             "seeking"u8.ToArray(), "waiting"u8.ToArray()
-        }
+        },
+        // Toggle — ToggleEventArgs.
+        new[] { "toggle"u8.ToArray(), "beforetoggle"u8.ToArray() }
     };
 
     /// <summary>
@@ -183,6 +186,7 @@ internal static class HandlerFrameShape
         Action<TouchEventArgs> or Func<TouchEventArgs, Task> => Shape.Touch,
         Action<ClipboardEventArgs> or Func<ClipboardEventArgs, Task> => Shape.Clipboard,
         Action<MediaEventArgs> or Func<MediaEventArgs, Task> => Shape.Media,
+        Action<ToggleEventArgs> or Func<ToggleEventArgs, Task> => Shape.Toggle,
         // Last on purpose. This switch is a linear sequence of type tests, so an arm's position is a
         // cost paid by every arm below it — and measurably: placed next to its Shape.Value sibling, the
         // four patterns here cost the scroll path ~1.7ns (+6%) on every frame. A multi-select change

@@ -58,24 +58,22 @@ Input.Value<string>(null).Placeholder("Anything")
 
 ## Two things to settle
 
-A few components need more than one fact before they exist. `BsSelect` binds a value *and* offers options,
-and the options need not be the values:
+A few components need more than one fact before they exist. `UiSelect` binds a value *and* offers
+options:
 
 ```csharp
-BsSelect.Bind(() => _m.TeamId)      // TValue — what the model holds
-        .Options(Teams)              // TItem  — what the list contains
-        .OptionValue(t => t.Id)      // how one becomes the other
-        .Label("Team")
+UiSelect.Bind(() => _m.Country)                       // T — what the model holds, and the mode
+        .Options([("hu", "Hungary"), ("gb", "UK")])   // the values and the words shown
+        .Label("Country")
 ```
 
-When the option **is** the value, say so by passing a matching list and the projection is filled in:
+**The opening step is the one that pins the type argument**, and for a form control it fixes the mode
+with it: `Bind` opens the bound chain, `Value` the controlled one, and the two are mutually exclusive
+because a control with both would have two sources of truth for one field. Everything else — `Label`,
+`Options`, `Placeholder` — follows in any order, because none of them says anything about `T`.
 
-```csharp
-BsSelect.Bind(() => _m.Plan).Options(Plans)
-```
-
-The order here is fixed, and by the language rather than by us: `OptionValue` is a `Func<TItem, TValue>`,
-so it cannot be written before the `Options` that says what `TItem` is.
+That is a language constraint rather than a house rule: a step whose type mentions `T` cannot be
+written before something has said what `T` is.
 
 ## What the IDE shows you
 

@@ -269,7 +269,13 @@ public sealed partial class Input<T> : Element, IFormControl<T>
             resolvedType = BindingHelpers.DefaultInputType(typeof(T));
         }
 
-        var isCheckbox = resolvedType == "checkbox";
+        // A RADIO bound over a bool is the same control as a checkbox as far as the model is concerned:
+        // it asks whether THIS option is the chosen one, and its state is `checked`. Without this it fell
+        // through to the value branch and rendered `value="True"` with no checked at all — a bound radio
+        // that draws the model correctly in C# and comes out unset in the markup, on every frame. A radio
+        // bound over anything else is carrying the group's value and still writes it.
+        var isCheckbox = resolvedType == "checkbox"
+                         || (resolvedType == "radio" && typeof(T) == typeof(bool));
         var name = Name ?? acc?.PropertyName;
 
         // Value / checked state. Bound mode derives one from the model (checkbox → checked, else → value);

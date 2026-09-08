@@ -480,4 +480,161 @@ internal static class UiClassNames
         UiSize.Xl => "rating-xl",
         _ => "",
     };
+
+    /// <remarks>
+    ///     daisyUI has no <c>dropdown-center</c>: a dropdown is placed against its trigger, and centring
+    ///     it there is what <c>dropdown-start</c>/<c>-end</c> already choose between. The member returns
+    ///     nothing rather than a class that styles nothing.
+    /// </remarks>
+    internal static string DropdownPlacement(UiPlacement value) => value switch
+    {
+        UiPlacement.Start => "dropdown-start",
+        UiPlacement.Center => "dropdown-center",
+        UiPlacement.End => "dropdown-end",
+        UiPlacement.Top => "dropdown-top",
+        UiPlacement.Bottom => "dropdown-bottom",
+        UiPlacement.Left => "dropdown-left",
+        UiPlacement.Right => "dropdown-right",
+        _ => "",
+    };
+
+    internal static string ModalPlacement(UiModalPlacement value) => value switch
+    {
+        UiModalPlacement.Top => "modal-top",
+        UiModalPlacement.Middle => "modal-middle",
+        UiModalPlacement.Bottom => "modal-bottom",
+        UiModalPlacement.Start => "modal-start",
+        UiModalPlacement.End => "modal-end",
+        _ => "",
+    };
+
+    internal static string SwapAnimation(UiSwapAnimation value) => value switch
+    {
+        UiSwapAnimation.Rotate => "swap-rotate",
+        UiSwapAnimation.Flip => "swap-flip",
+        _ => "",
+    };
+
+    internal static string AuraStyle(UiAuraStyle value) => value switch
+    {
+        UiAuraStyle.Glow => "aura-glow",
+        UiAuraStyle.Dual => "aura-dual",
+        UiAuraStyle.Holo => "aura-holo",
+        UiAuraStyle.Rainbow => "aura-rainbow",
+        UiAuraStyle.Gold => "aura-gold",
+        UiAuraStyle.Silver => "aura-silver",
+        _ => "",
+    };
+
+    internal static string AuraSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "aura-xs",
+        UiSize.Sm => "aura-sm",
+        UiSize.Md => "aura-md",
+        UiSize.Lg => "aura-lg",
+        UiSize.Xl => "aura-xl",
+        _ => "",
+    };
+
+    internal static string Marker(UiMarker value) => value switch
+    {
+        UiMarker.Arrow => "collapse-arrow",
+        UiMarker.Plus => "collapse-plus",
+        _ => "",
+    };
+
+    internal static string TabsStyle(UiTabStyle value) => value switch
+    {
+        UiTabStyle.Box => "tabs-box",
+        UiTabStyle.Border => "tabs-border",
+        UiTabStyle.Lift => "tabs-lift",
+        _ => "",
+    };
+
+    /// <remarks>
+    ///     A row of tabs sits above or below its panel and nowhere else, so the horizontal members of
+    ///     <see cref="UiPlacement" /> return nothing rather than a class daisyUI never defined.
+    /// </remarks>
+    internal static string TabsPlacement(UiPlacement value) => value switch
+    {
+        UiPlacement.Top => "tabs-top",
+        UiPlacement.Bottom => "tabs-bottom",
+        _ => "",
+    };
+
+    internal static string MaskShape(UiMaskShape value) => value switch
+    {
+        UiMaskShape.Squircle => "mask-squircle",
+        UiMaskShape.Star => "mask-star",
+        UiMaskShape.Star2 => "mask-star-2",
+        UiMaskShape.Heart => "mask-heart",
+        UiMaskShape.Hexagon => "mask-hexagon",
+        UiMaskShape.Hexagon2 => "mask-hexagon-2",
+        UiMaskShape.Pentagon => "mask-pentagon",
+        UiMaskShape.Decagon => "mask-decagon",
+        UiMaskShape.Diamond => "mask-diamond",
+        UiMaskShape.Triangle => "mask-triangle",
+        UiMaskShape.Triangle2 => "mask-triangle-2",
+        UiMaskShape.Triangle3 => "mask-triangle-3",
+        UiMaskShape.Triangle4 => "mask-triangle-4",
+        UiMaskShape.Half1 => "mask-half-1",
+        UiMaskShape.Half2 => "mask-half-2",
+        _ => "mask-circle",
+    };
+
+    internal static string OtpTone(UiTone value) => value switch
+    {
+        UiTone.Neutral => "otp-neutral",
+        UiTone.Primary => "otp-primary",
+        UiTone.Secondary => "otp-secondary",
+        UiTone.Accent => "otp-accent",
+        UiTone.Info => "otp-info",
+        UiTone.Success => "otp-success",
+        UiTone.Warning => "otp-warning",
+        UiTone.Error => "otp-error",
+        _ => "",
+    };
+
+    internal static string OtpSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "otp-xs",
+        UiSize.Sm => "otp-sm",
+        UiSize.Md => "otp-md",
+        UiSize.Lg => "otp-lg",
+        UiSize.Xl => "otp-xl",
+        _ => "",
+    };
+
+    internal static string LoadingShape(UiLoadingShape value) => value switch
+    {
+        UiLoadingShape.Dots => "loading-dots",
+        UiLoadingShape.Ring => "loading-ring",
+        UiLoadingShape.Ball => "loading-ball",
+        UiLoadingShape.Bars => "loading-bars",
+        UiLoadingShape.Infinity => "loading-infinity",
+        _ => "loading-spinner",
+    };
+
+    /// <remarks>A tooltip is the one component daisyUI defines all seven placements for.</remarks>
+    internal static string TooltipPlacement(UiPlacement value) => value switch
+    {
+        UiPlacement.Start => "tooltip-start",
+        UiPlacement.Center => "tooltip-center",
+        UiPlacement.End => "tooltip-end",
+        UiPlacement.Top => "tooltip-top",
+        UiPlacement.Bottom => "tooltip-bottom",
+        UiPlacement.Left => "tooltip-left",
+        UiPlacement.Right => "tooltip-right",
+        _ => "",
+    };
+
+    internal static string MegamenuSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "megamenu-xs",
+        UiSize.Sm => "megamenu-sm",
+        UiSize.Md => "megamenu-md",
+        UiSize.Lg => "megamenu-lg",
+        UiSize.Xl => "megamenu-xl",
+        _ => "",
+    };
 }

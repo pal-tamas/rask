@@ -108,6 +108,16 @@ function raskBeforeInput(ev: Event): EventPayload { const e = ev as InputEvent; 
 /** Parameterless events (focus/blur, drag/dragenter/dragleave, select/invalid/reset). */
 function raskNone(): EventPayload { return {}; }
 
+/**
+ * The open-state transition of a popover or <details>, passed through in the platform's own words
+ * ("closed" -> "open"). This is how C# learns that the BROWSER closed a popover — on Escape, or on a
+ * click outside — which nothing else reports.
+ */
+function raskToggle(ev: Event): EventPayload {
+    var e = ev as Event & { oldState?: string, newState?: string };
+    return { oldState: e.oldState == null ? "" : e.oldState, newState: e.newState == null ? "" : e.newState };
+}
+
 // --- The registration table. Each row is [eventName, payloadBuilder, preventDefault]. ---
 var raskDomEvents: [string, (e: Event) => EventPayload, boolean][] = [
     ["dblclick", raskMouse, false], ["mousedown", raskMouse, false], ["mouseup", raskMouse, false],
@@ -124,7 +134,11 @@ var raskDomEvents: [string, (e: Event) => EventPayload, boolean][] = [
     ["play", raskMedia, false], ["pause", raskMedia, false], ["playing", raskMedia, false], ["ended", raskMedia, false],
     ["timeupdate", raskMedia, false], ["volumechange", raskMedia, false], ["ratechange", raskMedia, false],
     ["durationchange", raskMedia, false], ["loadedmetadata", raskMedia, false],
-    ["seeked", raskMedia, false], ["seeking", raskMedia, false], ["waiting", raskMedia, false]
+    ["seeked", raskMedia, false], ["seeking", raskMedia, false], ["waiting", raskMedia, false],
+    // toggle/beforetoggle do NOT bubble. They are caught anyway because this table registers with
+    // { capture: true }, and the capture phase reaches every ancestor on the way DOWN to the target
+    // whether or not the event bubbles back up.
+    ["toggle", raskToggle, false], ["beforetoggle", raskToggle, false]
 ];
 
 raskDomEvents.forEach(function (spec) {

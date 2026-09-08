@@ -96,6 +96,274 @@ them until tagged releases begin.
 
 ### Added
 
+- **Every control in the kit is a form control.** All twelve of `Rask.Ui`'s data-input components now
+  implement `IFormControl<T>`, so each takes `Bind(() => model.Field)` with per-field `Validate`,
+  `ValidateAsync` and `AfterBind` and the validation display that comes with a bound control, or
+  `Value` with `OnChange`/`OnChangeAsync` and leaves the value with the parent. **The opening step
+  fixes the value type and the mode together**, and the two are mutually exclusive at the call site
+  rather than at render time.
+
+  Generic where the value type genuinely varies — `UiInput<T>`, `UiTextarea<T>`, `UiSelect<T>`,
+  `UiFilter<T>` — and closed where it does not: `UiCheckbox`/`UiToggle`/`UiRadio` over `bool`,
+  `UiRange` over `double`, `UiRating` over `int`, `UiOtp`/`UiFileInput` over `string`, `UiCalendar`
+  over `DateOnly`. A checkbox's value is a `bool` and nothing else, so a type parameter there would
+  have exactly one legal argument.
+
+  Three read differently from their old shapes and are worth naming. `UiRadio` binds **its own**
+  checked state, not the group's value — choosing an option fires no change on the one it deselected,
+  so a handler waiting for `false` waits forever; `UiFilter<T>` is the control that binds a whole
+  group. `UiCalendar`'s `Month`/`OnMonth` stay outside the binding because they are the view: paging
+  through months changes nothing a form would submit. And `UiFileInput`'s bound mode is **write-only** —
+  a browser refuses to have a file input's value set, so binding fills the model from the reader's
+  choice and never draws a filename back into the box; the bytes come through `OnFiles`.
+
+  `UiInput<T>` also stopped forcing `type="text"`. It passes its nullable `Type` through, so
+  `Rask.Html`'s `Input<T>` derives one from `T` — a bound `int` is a number field with nothing said at
+  the call site.
+
+  **Breaking, at every call site.** A form control's chain opens on `Bind`, `Value` or `Of<T>()`, so
+  `UiInput.Label("Email")` no longer compiles; write `UiInput.Value(_email).Label("Email")` or
+  `UiInput.Of<string>().Label("Email")`. `UiCheckbox`/`UiToggle`/`UiRadio` lose `Checked` — the state
+  is the control's `Value` — and `UiRadio` loses `OnSelected`, `UiFilter` `Selected`/`OnSelect`,
+  `UiCalendar` `Selected`/`OnSelect`, each replaced by `Value`/`OnChange`. `UiFilter.Options` is now
+  `(T Value, string Text)` pairs rather than strings, which is what pins `T`.
+
+  The binding plumbing a control drawing its own markup has to write by hand — resolve at the top of a
+  render, commit at the bottom — lives once in `UiFormCommit` rather than five times over.
+
+- **`Of<T>()` reaches a generic form control that has required props.** It was withheld from any
+  component with a required step, on the reasoning that the step already pins the type. For a form
+  control that reasoning does not hold: its openings are the mode pins, so a required step of its own
+  is never one and never gets to pin `T`. `UiInput<T>` requires a `Label`, which says nothing about
+  `T` — so a controlled field with no starting value had no way in at all, and `UiInput.Value("")` was
+  a value invented to satisfy the compiler rather than the field.
+
+- **`UiSelect` is a form control, and can draw its own list.** It implements `IFormControl<T>`, so it
+  binds — `UiSelect.Bind(() => _order.Country).Options(countries).Label("Country")` — with per-field
+  `Validate`, `AfterBind`, and the validation display that comes with a bound control; or takes
+  `Value`/`OnChange` and leaves the value with the parent. **The opening step fixes the type argument
+  and the mode together**: `Bind` opens the bound chain, `Value` the controlled one, and they are
+  mutually exclusive because a control with both would have two sources of truth for one field.
+
+  **`Native: false`** draws the list instead of handing it to the platform: a `[popover]`
+  `role="listbox"` under a `role="combobox"` box, with the arrow keys, Home/End, Enter, options that
+  can be grouped or marked unavailable, and a roving `aria-activedescendant` cursor that skips the
+  unavailable ones. Focus never leaves the box, which is what keeps the whole control free of
+  `IJSRuntime` — the kit depends on no host. Closed, the arrows move the selection directly, as a
+  native select does on a desktop.
+
+  Both modes take the same properties and mean the same thing by them; the flag chooses how the list is
+  drawn, not what the control is. What differs is that the drawn list **needs the runtime** — it is
+  inert on a prerendered page and does nothing with scripting off, where the native control is
+  completely working. That is why the default is native. Its placement uses CSS anchor positioning,
+  which not every engine ships; where it is missing the list still opens and is usable, centred rather
+  than under its box — the same trade `UiMegamenu` already makes.
+
+  `Name` renders a hidden input so a plain `<form>` still posts the field: a listbox built from buttons
+  submits nothing on its own, and that failure is invisible until the data is wrong.
+
+  Three things about mixing a `[popover]` with daisyUI's own dropdown had to be got right, and each was
+  invisible in markup. The list carries **neither** `dropdown` nor `dropdown-content`: that pair is
+  daisyUI's CSS dropdown, which reveals itself on the wrapper's `:focus-within` — so the list appeared
+  over the box the instant the box took focus, and the mousedown that focused it was followed by a click
+  that landed on the list instead of the invoker, leaving a control that could be opened by keyboard and
+  never by mouse. The popover element is a **panel around** the list rather than the list itself,
+  because the browser hides a closed popover with a UA rule and an author rule beats the UA sheet
+  whatever its specificity — daisyUI's `menu` sets `display`, so a `menu` on the popover element left it
+  on screen while closed. And **only the toggle event writes the open state**: the click handler used to
+  mirror what the browser was about to do, which gave one field two writers that both fire from one
+  click and arrive in whichever order the frames land.
+
+  The roving-cursor arithmetic lives in `UiSelectNav`, ported from the select helper of the Bootstrap
+  package deleted in `b349db4d`. Nothing of that package came with it — no markup, no element type, no
+  class name; the whole surface is integers and one id string — and it is tested directly, because an
+  off-by-one in a flat index is not visible in rendered markup.
+
+  `docs/forms.md`, `docs/forms-advanced.md`, `docs/accessibility.md` and `docs/building-components.md`
+  described that deleted control, in one case as the worked example of the very chain shape this now
+  has. All four are repointed.
+
+- **`OnToggle` and `OnBeforeToggle` on every element, and key containment for an open listbox.** Two
+  small framework additions that close the same gap: a popover's open state belongs to the browser,
+  and C# could neither hear about it nor keep the keyboard out of the page while it was open.
+
+  **The toggle event.** A `[popover]` closes itself on Escape and on a click outside, and nothing told
+  C# — so a component tracking its own open flag went on believing the panel was open, and its
+  `aria-expanded` went on saying so over a closed panel. **Every C#-driven popover in this framework
+  had that hole**; `UiModal`'s popover path and `UiMegamenu` both do, they simply never tracked state
+  to notice. `ToggleEventArgs` carries the platform's own `OldState`/`NewState` — "closed", "open" —
+  rather than a bool, because those are the words the DOM event uses and a caller comparing against
+  `"open"` is comparing against the spec; `IsOpen` is derived, so it cannot disagree with them.
+
+  The pair is appended to `GlobalEventOrder`, so no existing attribute's serialized position moves,
+  and ordered chronologically within itself as the drag and keyboard groups are.
+
+  **Key containment.** The live client never calls `preventDefault`, so with a custom listbox open
+  ArrowDown scrolled the page behind it and Enter submitted the surrounding form. `rask-dom.ts` gains
+  a handler for that, kept deliberately separate from the Bootstrap-era popover engine beside it —
+  that one is gated on its own state and keyed on `[data-rask-popover]`/`.dropdown-menu.show`, hooks
+  nothing emits any more. The new one is keyed on the ARIA contract instead: it contains the
+  navigation keys exactly while the closest `[role=combobox]` reports `aria-expanded="true"`, which
+  the toggle event above is what keeps truthful. **Escape is deliberately not contained** — its
+  default *is* the dismissal.
+
+  Measured: `RenderTenTimes` and the keyed-list and deep-component benches are byte-identical
+  (158.02 KB, 100.34 KB, 76.34 KB); `RenderOnce` moves 85.27 KB → 87.15 KB, which is one-time static
+  initialisation rather than a per-render cost — a per-render cost would show as ten times that on
+  `RenderTenTimes`, and it shows as nothing.
+
+- **The UI kit's Actions components are driven by Rask, not by CSS tricks — and `UiFab` is new.**
+  daisyUI's Actions category, complete, with the open state where a page can reach it.
+
+  **`UiButton` covers daisyUI's whole button API.** `Wide`, `Square`, `Circle` and `Active` join the
+  existing colour/fill/size axes. A square or a circle is sized to hold one glyph, so it renders the
+  icon alone and the required `Label` becomes the accessible name — a button whose only content is a
+  decorative icon is otherwise announced as "button", with nothing saying what it does. `Disabled`
+  stays the *attribute*: daisyUI's `btn-disabled` styles without disabling, so a button carrying only
+  that class still takes the click and still reaches its handler.
+
+  **`UiDropdown` has three open states, not two.** Left unset it is uncontrolled and the browser opens
+  it on `:focus-within`, exactly as before. Set, the page owns it — and closed writes `dropdown-close`
+  rather than merely omitting `dropdown-open`, because daisyUI ranks that class above the focus rule.
+  Without it, tabbing into the panel re-opened a dropdown the page had just closed, and the state in C#
+  and the state on screen disagreed with nothing reporting it. `Placement` and `OpenOn` are enums now:
+  a misspelled class name is not a compile error, and a class daisyUI never defined styles nothing.
+
+  A controlled trigger also carries **no** `tabindex`, and that is load-bearing rather than tidy.
+  daisyUI scopes `pointer-events: none` to `[tabindex]:first-child` while a dropdown is open, so the
+  trigger stops taking clicks — right for the uncontrolled one, where you close it by clicking away,
+  and fatal for a controlled one, whose only way to close is a callback that only a click can fire. It
+  opened once and stuck. A `<button>` is focusable either way, so dropping the attribute costs the
+  uncontrolled behaviour nothing. Found by a browser test, as a click Playwright reported the container
+  was intercepting; no markup assertion could have seen it.
+
+  **`UiFab`** — daisyUI's floating action button, with `MainAction`, `Close` and the `Flower` arc.
+  Deliberately *not* state-driven: its actions are `visibility: hidden` until `:focus-within`, and
+  daisyUI defines no `fab-open` class, so there is nothing a page could write to force it. Rendering
+  the actions conditionally would not work either — they would still be hidden until focus arrived.
+  Opening on focus is reachable by keyboard and by touch, which is why that is where the kit stops;
+  where programmatic control matters, `UiDropdown` is the controllable shape.
+
+  **Unit tests for every component in the category.** The kit rendered exactly one of its components in
+  a test before this (`UiIcon`); everything else was covered only indirectly, by reflecting class-name
+  tables against the compiled sheet. Alongside them, browser tests that assert the two things markup
+  assertions cannot: that a component has a real size — an unstyled kit component passes every markup
+  assertion and is a zero box only in a browser — and that pressing it changes the state.
+
+  **A live showcase at `/ui/actions`.** The kit had no page anywhere; the only surface was the prose
+  guide at `/guides/ui-kit`.
+
+- **The UI kit's Data display category gains the five components daisyUI has and it did not.**
+  `UiAura`, `UiHover3d`, `UiHoverGallery`, `UiTextRotate` and `UiAccordion`, with a showcase at
+  `/ui/data-display`.
+
+  **`UiAccordion` holds the open section in C#.** `Open` is the key of the section showing and `null`
+  is all of them closed, so a page can open one in response to something that happened elsewhere and
+  can say which is open. A run of `UiCollapse` sharing a `Group` could not: the browser closed the
+  others without telling anyone which one won, which is why `Group` is gone. A section outside an
+  accordion throws a message naming the two components the caller actually typed, rather than the
+  context machinery underneath.
+
+  **`UiTextRotate` has no `Interval` property, deliberately.** daisyUI reads the cycle length from
+  `--tw-duration`, which a `duration-*` utility sets; a `TimeSpan` would have to become a class name at
+  run time, and a name built that way is invisible to Tailwind's scan and absent from the sheet. Pass
+  `duration-[3s]` through `Class`, where it is written down and therefore compiled. Every word stays in
+  the markup, so a reader who never sees the animation reads the list — and the phrase has to make
+  sense with all of them.
+
+  **The decorative three carry no role and no label.** `UiAura`, `UiHover3d` and `UiHoverGallery` say
+  nothing a reader who cannot see them would miss, and `UiHoverGallery`'s first child is the one that
+  has to work alone — on a touch screen it is the only one anybody sees.
+
+  **`UiCollapse` moves onto C# state**, with the same three-setting `Open` and the same
+  `collapse-close` reasoning as the dropdown. `Marker` becomes the `UiMarker` enum.
+
+- **`UiMegamenu`, and the tab row is daisyUI's — still made of links.** Showcase at `/ui/navigation`.
+
+  **`UiMegamenu` is opened by the browser, and that is the right answer here rather than a concession.**
+  daisyUI builds it on the native popover API: each trigger is a `popovertarget` and each panel a
+  `[popover]`, so the top layer, Escape and light-dismiss are the browser's and the whole thing works
+  on a prerendered page with no runtime booted. For a site's main navigation — the first thing a reader
+  touches and the last thing that should wait for a bundle — that is worth more than programmatic
+  control. The panels are positioned by CSS anchor positioning keyed on `:nth-of-type`, so the
+  component renders the triggers as siblings and the panels as siblings and the highlight last; a
+  wrapper around either would misnumber them.
+
+  **`UiTabs`/`UiTab` gain daisyUI's `tabs` API** — `tabs-box`, `tabs-border`, `tabs-lift`, the five
+  sizes, top/bottom placement, `tab-active` and `tab-disabled` — and **stay links**. This is the one
+  component in the kit that deliberately did not move onto C# state: a tab that is a URL is
+  bookmarkable, survives a refresh, answers the back button and works before boot, and a tab that is an
+  index in a field is none of those. daisyUI's own tab supports the link form, so nothing was traded
+  for it. The row carries `role="tablist"` and each tab `aria-selected`.
+
+  A placement a tab row has no class for — `Start`, `Left` — writes nothing rather than inventing
+  `tabs-start`, which would sit in the markup looking as though it styled something.
+
+- **The Data input category is at daisyUI class parity, with five components added and a slider that
+  can finally be read.** Showcase at `/ui/data-input`.
+
+  **`UiRange` had no `OnChange` at all** — it drew a value and reported nothing, which is a slider you
+  can push and cannot read. It has one now, and `Vertical` for daisyUI's upright track.
+  `UiTextarea` and `UiFileInput` gain `Variant`; both class tables already existed in `UiClassNames`
+  with nothing calling them. A variant daisyUI has no text-control class for writes nothing rather than
+  inventing `input-outline`.
+
+  **`UiOtp`** is a one-time code field, and it is **one input drawn as several**. The obvious build —
+  an `<input>` per digit — needs script to move focus, defeats the browser's SMS autofill, and drops a
+  pasted code entirely into the first box. daisyUI's `otp` draws the separators over a single field, so
+  paste, autofill, backspace and select-all stay the platform's. `autocomplete="one-time-code"` and
+  `inputmode="numeric"` are what make a phone offer the code it just received.
+
+  **`UiCalendar`** is a month grid built in C#. daisyUI styles the third-party `cally` web component
+  for this, which is JavaScript the kit does not ship — so the grid is laid out here and paging months
+  is an ordinary re-render. Every day is a `<button>` in a `<table>`, carrying its **full date** as its
+  accessible name: "14" is not something you can act on once the month has scrolled out of earshot.
+  Days outside `Min`/`Max` are disabled rather than hidden, so the shape of the month does not change.
+
+  **`UiFilter`** is a radio group, not a row of buttons — which is what lets daisyUI hide the unpicked
+  options and show the reset in their place in CSS, and gives a keyboard its arrow keys for free. It
+  renders a `<div>` rather than daisyUI's `<form>`, because a form nested in somebody else's form is
+  invalid HTML and the reset here is a radio carrying `filter-reset`.
+
+  **`UiLabel` and `UiFloatingLabel`** are captions attached to a control. Both are decoration, not
+  names: a `<label>` element names a control for assistive technology, and these style text beside one,
+  so the control keeps its own required label. The floating one is worth preferring over
+  placeholder-as-label, which vanishes the moment typing starts.
+
+  **`UiMask.Shape`** becomes the `UiMaskShape` enum — sixteen shapes, none of them spellable wrongly.
+
+- **The Feedback category's last two free-form strings become closed enums, and a tooltip can be
+  opened.** `UiLoading.Shape` is now `UiLoadingShape` (all six of daisyUI's) and `UiTooltip.Placement`
+  is `UiPlacement` — the one component daisyUI defines all seven placements for. A misspelled class
+  name was never a compile error, and the failure it caused was silent.
+
+  `UiTooltip.Open` shows a tip without waiting for a hover. That is not only for a guided tour: there
+  is no hover on a touch screen, so it is the only way a touch user ever sees one.
+
+  A loading indicator with no shape now falls back to `loading-spinner` rather than to nothing —
+  `loading` alone is an unstyled span, so the old default rendered an indicator that indicated nothing.
+
+  Showcase at `/ui/feedback`, and unit tests for all seven. Most of them assert what gets ANNOUNCED,
+  which is the half of feedback a visual check never sees: the spinner is `aria-hidden` with its words
+  beside it, the toast is a `role="status"` read politely rather than interrupting, and a failed toast
+  changes its icon and not only its colour.
+
+- **`UiModal` is a real `<dialog>`, and a popover by default.** Set `Id` and `Trigger` and the browser
+  owns the whole interaction: the top layer, so nothing on the page can paint over the dialog or trap
+  it inside an `overflow: hidden` ancestor; Escape; light-dismiss; and a native `::backdrop`, which
+  daisyUI styles. None of it is implemented in the kit, none of it costs a line of script, and all of
+  it works on a prerendered page before any runtime has booted.
+
+  Setting `Open` takes it off that path and hands the state to the page, for when something in C#
+  decides the dialog should appear — a row was selected, an action failed — which the declarative path
+  cannot express, because nothing in C# can press a button. The two are mutually exclusive in the
+  markup and have to be: a `[popover]` element is `display: none` until the browser shows it, so a
+  `modal-open` class on one would be a class that changes nothing.
+
+  What the state-driven path gives up is exactly what the popover buys — no top layer, and no focus
+  containment, because a focus trap needs `showModal()` and that is script. So the popover is the
+  default, and the state path is the exception.
+
 - **rask.sh was deployed entirely unstyled, and had been since the kit shipped.** The published site
   404'd on `/css/rask-ui.css`, so the base colours and the whole daisyUI palette were missing and every
   `--color-ui-*` token resolved to nothing: a page that is structurally perfect, fully interactive, and
@@ -250,7 +518,86 @@ them until tagged releases begin.
   ownership alone instead of having a dev tool impose `0644 root:root` on a file that already existed.
   The same fix applies on macOS, where the same call would have failed the same way.
 
+### Fixed
+
+- **A `popovertarget` button with an `OnClick` did nothing when pressed.** Both transports delegate
+  `click` from `document` and `preventDefault()` it, so that an `<a href>` or a bare `<button>` carrying
+  a C# handler does not also navigate or submit. Opening a popover is a button's default action too, so
+  cancelling it left an element that said `popovertarget` in the markup and was inert — on both hosts,
+  with nothing reported anywhere and the markup looking exactly right. A popover invoker is now the same
+  carve-out a submit button already had: the C# handler still runs, the cancel does not. That is what
+  lets one control have both a C# state and the browser's top layer, which is what any listbox or menu
+  built on `[popover]` needs. `PopoverInvokerClientContractTests` holds both copies of the listener to
+  it, and the shipped WASM bundle with them.
+
+- **A radio bound over a `bool` rendered `value="True"` and was never checked.** `Input<T>` derived the
+  checked state from the model only for `type="checkbox"`; a radio fell through to the value branch, so
+  a bound radio read correctly in C# and came out unset in the markup on every frame — the same shape
+  as the `.Value(Checked == true)` bug already in this log, one layer down. A radio bound over a `bool`
+  is asking whether **this** option is the chosen one, which is the question a checkbox asks, so its
+  state is now `checked`. A radio bound over anything else is carrying the group's value and still
+  writes it.
+
+- **A bound chain over a value-type form control could never be completed.** `IFormControl<T>` declares
+  `T? Value`, where `?` over an unconstrained `T` is a nullability annotation — so `IFormControl<bool>`
+  has a plain `bool Value`, which RASK001's rule reads as a required property and the chain generator
+  turned into an outstanding step. Bound mode withdraws `Value` on purpose, so
+  `UiCheckbox.Bind(() => m.Agreed).Text("…")` sat forever in a pending state waiting for a step its own
+  mode does not offer. The only symptom was that the chain had no `ToHtml` and no `[…]` indexer, with
+  nothing said about why. A form control's `Value` is its opening, never a step outstanding after one.
+
+- **`UiValidator` could never be seen.** daisyUI reveals `.validator-hint` only next to a `.validator`
+  control that is invalid — `:user-invalid`, or carrying `aria-invalid`. No kit control wrote either,
+  so the hint was `visibility: hidden` forever: a component with a **required** message that no reader
+  could ever read. `UiInput`, `UiTextarea`, `UiSelect` and `UiFileInput` now carry `validator`, and
+  add `aria-invalid` when their `Tone` is `Error`.
+
+  `.validator` on its own is inert — it only sets a colour variable under `:user-valid`/`:user-invalid`
+  — so a field nobody has touched looks exactly as it did. The `aria-invalid` half is worth having for
+  its own sake: a field that is visibly red and says nothing to a screen reader is half a message. It
+  is **omitted** rather than set to null, because a null renders the attribute valueless and a
+  valueless `aria-invalid` reads as *true*, which would have marked every field in the kit invalid.
+
+  Found by a browser test, as an element that existed, contained the right text, and was invisible.
+  No markup assertion could have seen it.
+
+- **Every checked control in the kit rendered unchecked.** `UiCheckbox`, `UiToggle`, `UiRadio`,
+  `UiRating`, `UiFilter`, `UiThemePicker` and `UiDrawer` set their state with `.Value(Checked == true)`
+  — and on an `<input>` that is the **value attribute**, not the checked state. The markup came out as
+  `value="True"` with no `checked` at all, so a control the page said was on arrived off: on every
+  prerendered page, in every static render, and in every test that did not name the attribute. The
+  checked state comes from `.Checked(...)`.
+
+  Two of them were worse. `UiFilter` and `UiThemePicker` also set a real value through the escape
+  hatch — daisyUI reads it, for the option's text and for the theme — so with the type pinned as well
+  the attribute was written **twice**: `value="bug" … value="False"`. Invalid HTML that happened to
+  work because a browser takes the first one.
+
+  Guarded now by tests that name `checked` directly, and by a browser test that asks the DOM whether
+  the box is checked rather than what its markup says.
+
+  **Known and left alone:** the four controls with no value of their own still emit a meaningless
+  `value="False"`. They keep `Of<bool>()` because the type argument is what makes `OnChange` an
+  `Action<bool>`, and pinning it seeds the value — so the attribute is inherited from the chain
+  generator rather than written by the kit. It wrote an equally meaningless `value="True"` before this
+  work, nothing submits these controls natively, and removing it means changing what the generator
+  emits for a pinned type argument. Recorded here rather than fixed sideways.
+
 ### Removed
+
+- **The CSS-only state of `UiSwap` and `UiThemeController`.**
+  `UiSwap` drops its hidden checkbox for a `<button>` and
+  daisyUI's `swap-active` (a `<label>` with no input would have been an unreachable control), and
+  `UiThemeController` drops `input.theme-controller` for a button that reports the choice.
+
+  **What that costs.** These components no longer work on a prerendered page before the runtime boots,
+  or with JavaScript off. In exchange the state is a value the page can read, set and persist — the
+  theme choice in particular used to reset on every navigation, because nothing in C# knew which theme
+  was showing. `UiThemeController` reports a choice and cannot apply it: the palette is set by
+  `data-theme` on the element carrying the theme scope, which is an ancestor, so the page puts it there.
+
+  `UiDropdown.Placement`, `UiSwap.Animation` and `UiThemeController.Theme` change type from `string?`
+  to closed enums (`UiPlacement`, `UiSwapAnimation`, `UiThemeName`).
 
 - **`samples/` is gone. The whole site — landing page, guides and every live demo — is one browser-WASM
   app at `site/Rask.Site`, published to <https://rask.sh>.** It was two separately-published apps — a

@@ -783,6 +783,46 @@ export function applyFrameInvokes(
     hasOpen = reposition() > 0; // a menu already open at load
 })();
 
+// While a combobox's listbox is open, suppress the NATIVE side-effects of the navigation and commit
+// keys so they act only inside the list: ArrowUp/Down would scroll the page behind it, Home/End would
+// jump the document, and Enter would fire the surrounding <form>'s implicit submit instead of picking
+// the highlighted option.
+//
+// SEPARATE from the popover engine above, deliberately. That one is guarded by its own `hasOpen` and
+// keyed on [data-rask-popover] + .dropdown-menu.show — Bootstrap-era hooks that nothing emits any more.
+// Entangling a new control with its state would make the containment depend on an engine the control
+// does not use.
+//
+// The condition is the ARIA contract rather than :popover-open, and that is the point: the control
+// keeps aria-expanded truthful (it hears the browser's own dismissal through the toggle event), so
+// containment is on exactly while the control says its list is open. It also needs no feature test for
+// a pseudo-class an older browser may not know.
+//
+// preventDefault only, never stopPropagation — the C# keydown handler still has to receive the event to
+// move the cursor, pick or close. Capture phase, so this runs before the browser commits the default.
+(function () {
+    // This module is loaded in Node by the morph fixtures, where there is no DOM at all — so the guard
+    // is not defensiveness, it is the difference between the test suite running and the module throwing
+    // at import. Every other block in this file opens the same way.
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function") {
+        return;
+    }
+
+    // No "Escape", unlike the list above. Escape's default here IS the behaviour we want: it is what
+    // light-dismisses the popover, and the control hears about that through the toggle event. Containing
+    // it would leave the list open with nothing to close it.
+    const CONTAIN = ["Enter", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
+    document.addEventListener("keydown", function (e) {
+        if (CONTAIN.indexOf(e.key) < 0) {
+            return;
+        }
+        const box = e.target instanceof Element ? e.target.closest("[role=combobox]") : null;
+        if (box && box.getAttribute("aria-expanded") === "true") {
+            e.preventDefault();
+        }
+    }, true);
+})();
+
 // ----- Recovery affordance (data-rask-reload) ----------------------------
 // A click on any element carrying data-rask-reload reloads the page. Used by the default error page so a
 // user stranded on an uncaught fault has an in-app way back without hunting for the browser's reload.

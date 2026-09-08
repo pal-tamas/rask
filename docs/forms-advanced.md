@@ -142,11 +142,12 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
 
 `RadioGroup` (single value) and `CheckboxGroup` (a collection), live:
 
-**Multi-select.** `MultiSelect<TItem>` binds an
-`ICollection<TItem>` through a dropdown of chips — bound and controlled, with checkbox and radio
-option renderings. The single-value twin is `BsSelect<T>`: same data-driven API (`Options` +
-`OptionLabel`) and custom `.dropdown-menu` listbox (zero-JS, keyboard + ARIA `combobox`/`listbox`),
-binding one `TItem`; `Native: true` falls back to the plain OS `<select>`.
+**A drawn single-select.** [`UiSelect<T>`](ui-kit.md) binds one `T` and renders the platform's
+`<select>` by default; `Native: false` draws the list itself instead — a `[popover]` `role="listbox"`
+under a `role="combobox"` box, with the arrow keys, Home/End, Enter and a roving
+`aria-activedescendant` cursor that skips unavailable options. Reach for it when the list has to carry
+more than the platform will show (groups, options that are visibly unavailable) or has to escape an
+`overflow: hidden` ancestor. The drawn list needs the runtime; the native one does not.
 
 **A plain `<select multiple>` bound to a collection.** `Select(() => …).Multiple(true)` binds the
 whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the
