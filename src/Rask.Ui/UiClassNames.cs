@@ -562,6 +562,49 @@ internal static class UiClassNames
         _ => "",
     };
 
+    internal static string MaskShape(UiMaskShape value) => value switch
+    {
+        UiMaskShape.Squircle => "mask-squircle",
+        UiMaskShape.Star => "mask-star",
+        UiMaskShape.Star2 => "mask-star-2",
+        UiMaskShape.Heart => "mask-heart",
+        UiMaskShape.Hexagon => "mask-hexagon",
+        UiMaskShape.Hexagon2 => "mask-hexagon-2",
+        UiMaskShape.Pentagon => "mask-pentagon",
+        UiMaskShape.Decagon => "mask-decagon",
+        UiMaskShape.Diamond => "mask-diamond",
+        UiMaskShape.Triangle => "mask-triangle",
+        UiMaskShape.Triangle2 => "mask-triangle-2",
+        UiMaskShape.Triangle3 => "mask-triangle-3",
+        UiMaskShape.Triangle4 => "mask-triangle-4",
+        UiMaskShape.Half1 => "mask-half-1",
+        UiMaskShape.Half2 => "mask-half-2",
+        _ => "mask-circle",
+    };
+
+    internal static string OtpTone(UiTone value) => value switch
+    {
+        UiTone.Neutral => "otp-neutral",
+        UiTone.Primary => "otp-primary",
+        UiTone.Secondary => "otp-secondary",
+        UiTone.Accent => "otp-accent",
+        UiTone.Info => "otp-info",
+        UiTone.Success => "otp-success",
+        UiTone.Warning => "otp-warning",
+        UiTone.Error => "otp-error",
+        _ => "",
+    };
+
+    internal static string OtpSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "otp-xs",
+        UiSize.Sm => "otp-sm",
+        UiSize.Md => "otp-md",
+        UiSize.Lg => "otp-lg",
+        UiSize.Xl => "otp-xl",
+        _ => "",
+    };
+
     internal static string LoadingShape(UiLoadingShape value) => value switch
     {
         UiLoadingShape.Dots => "loading-dots",

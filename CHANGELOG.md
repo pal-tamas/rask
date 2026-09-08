@@ -96,6 +96,39 @@ them until tagged releases begin.
   A placement a tab row has no class for — `Start`, `Left` — writes nothing rather than inventing
   `tabs-start`, which would sit in the markup looking as though it styled something.
 
+- **The Data input category is at daisyUI class parity, with five components added and a slider that
+  can finally be read.** Showcase at `/ui/data-input`.
+
+  **`UiRange` had no `OnChange` at all** — it drew a value and reported nothing, which is a slider you
+  can push and cannot read. It has one now, and `Vertical` for daisyUI's upright track.
+  `UiTextarea` and `UiFileInput` gain `Variant`; both class tables already existed in `UiClassNames`
+  with nothing calling them. A variant daisyUI has no text-control class for writes nothing rather than
+  inventing `input-outline`.
+
+  **`UiOtp`** is a one-time code field, and it is **one input drawn as several**. The obvious build —
+  an `<input>` per digit — needs script to move focus, defeats the browser's SMS autofill, and drops a
+  pasted code entirely into the first box. daisyUI's `otp` draws the separators over a single field, so
+  paste, autofill, backspace and select-all stay the platform's. `autocomplete="one-time-code"` and
+  `inputmode="numeric"` are what make a phone offer the code it just received.
+
+  **`UiCalendar`** is a month grid built in C#. daisyUI styles the third-party `cally` web component
+  for this, which is JavaScript the kit does not ship — so the grid is laid out here and paging months
+  is an ordinary re-render. Every day is a `<button>` in a `<table>`, carrying its **full date** as its
+  accessible name: "14" is not something you can act on once the month has scrolled out of earshot.
+  Days outside `Min`/`Max` are disabled rather than hidden, so the shape of the month does not change.
+
+  **`UiFilter`** is a radio group, not a row of buttons — which is what lets daisyUI hide the unpicked
+  options and show the reset in their place in CSS, and gives a keyboard its arrow keys for free. It
+  renders a `<div>` rather than daisyUI's `<form>`, because a form nested in somebody else's form is
+  invalid HTML and the reset here is a radio carrying `filter-reset`.
+
+  **`UiLabel` and `UiFloatingLabel`** are captions attached to a control. Both are decoration, not
+  names: a `<label>` element names a control for assistive technology, and these style text beside one,
+  so the control keeps its own required label. The floating one is worth preferring over
+  placeholder-as-label, which vanishes the moment typing starts.
+
+  **`UiMask.Shape`** becomes the `UiMaskShape` enum — sixteen shapes, none of them spellable wrongly.
+
 - **The Feedback category's last two free-form strings become closed enums, and a tooltip can be
   opened.** `UiLoading.Shape` is now `UiLoadingShape` (all six of daisyUI's) and `UiTooltip.Placement`
   is `UiPlacement` — the one component daisyUI defines all seven placements for. A misspelled class
