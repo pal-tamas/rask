@@ -1612,7 +1612,14 @@ import "../../Rask.Core/Resources/rask-events.js";
         // ancestor (t !== btn) is what keeps a plain Button(OnClick:) working here.
         const btn = closestFrom(e.target, "button, input") as HTMLButtonElement | HTMLInputElement | null;
         if (btn && btn !== t && (btn.type === "submit" || btn.type === "reset")) return;
-        e.preventDefault();
+        // A POPOVER INVOKER is the same case as a submit button, and for the same reason: opening the
+        // popover IS the button's default action, so cancelling it leaves an element that says
+        // `popovertarget` in the markup and does nothing when pressed. The C# handler still runs — this
+        // only declines to cancel — so a control can have both a C# state and the browser's top layer,
+        // which is exactly what a listbox or a menu built on [popover] needs. Handled here rather than
+        // at the call site because nothing at the call site can reach this listener.
+        const invoker = closestFrom(e.target, "[popovertarget]");
+        if (!invoker) { e.preventDefault(); }
         flushInputsNow();
         send({
             id: t.getAttribute("data-rask-on-click"), type: "click",

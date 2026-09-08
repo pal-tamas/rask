@@ -75,6 +75,18 @@ them until tagged releases begin.
   `Name` renders a hidden input so a plain `<form>` still posts the field: a listbox built from buttons
   submits nothing on its own, and that failure is invisible until the data is wrong.
 
+  Three things about mixing a `[popover]` with daisyUI's own dropdown had to be got right, and each was
+  invisible in markup. The list carries **neither** `dropdown` nor `dropdown-content`: that pair is
+  daisyUI's CSS dropdown, which reveals itself on the wrapper's `:focus-within` — so the list appeared
+  over the box the instant the box took focus, and the mousedown that focused it was followed by a click
+  that landed on the list instead of the invoker, leaving a control that could be opened by keyboard and
+  never by mouse. The popover element is a **panel around** the list rather than the list itself,
+  because the browser hides a closed popover with a UA rule and an author rule beats the UA sheet
+  whatever its specificity — daisyUI's `menu` sets `display`, so a `menu` on the popover element left it
+  on screen while closed. And **only the toggle event writes the open state**: the click handler used to
+  mirror what the browser was about to do, which gave one field two writers that both fire from one
+  click and arrive in whichever order the frames land.
+
   The roving-cursor arithmetic lives in `UiSelectNav`, ported from the select helper of the Bootstrap
   package deleted in `b349db4d`. Nothing of that package came with it — no markup, no element type, no
   class name; the whole surface is integers and one id string — and it is tested directly, because an
@@ -362,6 +374,16 @@ them until tagged releases begin.
   The same fix applies on macOS, where the same call would have failed the same way.
 
 ### Fixed
+
+- **A `popovertarget` button with an `OnClick` did nothing when pressed.** Both transports delegate
+  `click` from `document` and `preventDefault()` it, so that an `<a href>` or a bare `<button>` carrying
+  a C# handler does not also navigate or submit. Opening a popover is a button's default action too, so
+  cancelling it left an element that said `popovertarget` in the markup and was inert — on both hosts,
+  with nothing reported anywhere and the markup looking exactly right. A popover invoker is now the same
+  carve-out a submit button already had: the C# handler still runs, the cancel does not. That is what
+  lets one control have both a C# state and the browser's top layer, which is what any listbox or menu
+  built on `[popover]` needs. `PopoverInvokerClientContractTests` holds both copies of the listener to
+  it, and the shipped WASM bundle with them.
 
 - **A radio bound over a `bool` rendered `value="True"` and was never checked.** `Input<T>` derived the
   checked state from the model only for `type="checkbox"`; a radio fell through to the value branch, so

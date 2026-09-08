@@ -23,7 +23,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         foreach (var id in new[]
                  {
                      "ui-text-controls", "ui-labels", "ui-choices", "ui-range", "ui-otp", "ui-filter",
-                     "ui-calendar", "ui-mask",
+                     "ui-calendar", "ui-bound", "ui-mask",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -109,6 +109,37 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         await scope.Locator("table button:not([disabled])").First.ClickAsync();
         await Expect(state).ToContainTextAsync("Chosen:");
+    });
+
+    [Fact]
+    public Task ABoundControlWritesStraightToTheModel() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-bound']");
+        var state = Page.Locator("[data-testid='ui-bound-state']");
+
+        // No OnChange anywhere in this section: every one of these writes back through Bind. The
+        // markup assertions in Rask.Ui.Tests can only see what a control DRAWS — this is the half that
+        // proves the write-back reaches the model over a live session.
+        await scope.Locator("input[type='email']").FillAsync("ada@example.com");
+        await scope.Locator("input[type='email']").BlurAsync();
+        await Expect(state).ToContainTextAsync("ada@example.com");
+
+        // T comes off the model, so a bound int is a number field with nothing said at the call site.
+        var seats = scope.Locator("input[type='number']");
+        await Expect(seats).ToHaveCountAsync(1);
+        await seats.FillAsync("4");
+        await seats.BlurAsync();
+        await Expect(state).ToContainTextAsync("4 seats");
+
+        await scope.Locator("input.checkbox").CheckAsync();
+        await Expect(state).ToContainTextAsync("agreed yes");
+
+        // A rating is radios sharing a name, and a bound radio's state is `checked` rather than a
+        // value attribute — which is exactly what used to be wrong.
+        await scope.Locator("input.mask-star-2").Nth(2).CheckAsync();
+        await Expect(state).ToContainTextAsync("3 stars");
     });
 
     [Fact]

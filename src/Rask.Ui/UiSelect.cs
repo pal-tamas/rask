@@ -142,6 +142,9 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
 
     private string ListId => Prefix + "-list";
 
+    // The popover element, which is the panel around the list rather than the list itself — see Custom.
+    private string PanelId => Prefix + "-panel";
+
     /// <inheritdoc />
     protected override Component? Render() => Native == false ? Custom() : NativeSelect();
 
@@ -224,43 +227,70 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
                 ? UiSelectNav.OptId(Prefix, cursor)
                 : null))
             .Attributes(
-                ("popovertarget", ListId),
+                // The POPOVER is the panel, not the list inside it — see below. aria-controls still
+                // names the listbox, which is the thing a reader is being told about.
+                ("popovertarget", PanelId),
                 // The anchor the list positions against. A custom property in a style attribute, not a
                 // class — nothing here is scanned by Tailwind, so building the name is safe.
                 ("style", "anchor-name:--" + Prefix))
-            .OnClick(() =>
-            {
-                // Mirrors what the browser is about to do. Enter and Space reach this too, through the
-                // button's own activation, which is how the keyboard opens the list.
-                _open = !_open;
-                _cursor = _open ? UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled) : -1;
-            })
+            // Deliberately does NOT touch _open. `popovertarget` means the browser is opening or
+            // closing the list either way, and its toggle event below is what says which — so mirroring
+            // the guess here gave the same field two writers. They race: both fire from one click, they
+            // arrive over the socket in whichever order the frames land, and a click that arrived after
+            // its own toggle flipped `aria-expanded` back to false over a list that was plainly open.
+            // All this does is have a cursor ready for the frame that opens.
+            .OnClick(() => _cursor = UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled))
             .OnKeyDownAsync(e => OnKeyAsync(e, acc, ctx, flat, disabled, current));
 
-        var list = Ul
-            .Id(ListId)
-            .Role("listbox")
+        // The popover is a PANEL around the list, and the extra element is load-bearing twice over.
+        //
+        // The browser hides a closed popover with a UA rule, `[popover]:not(:popover-open) { display:
+        // none }`, and an author rule beats the UA sheet whatever its specificity — so putting a class
+        // that sets `display` on the popover element leaves it on screen while closed. daisyUI's `menu`
+        // is exactly such a class. Keeping `menu` on the inner <ul> lets the panel keep the UA's own
+        // display, which is the whole mechanism.
+        //
+        // It is also NOT `dropdown-content`, and the wrapper below is not `dropdown`. That pair is
+        // daisyUI's CSS dropdown, which reveals itself on the wrapper's :focus-within — a list that
+        // appears the instant the box takes focus appears OVER the box, so the mousedown that focused it
+        // is followed by a click that lands on the list instead of the invoker and the popover never
+        // opens at all. One of those rules also puts `pointer-events: none` on the wrapper's first
+        // child. A control cannot be a CSS dropdown and a popover at once; this one is a popover.
+        var panel = Div
+            .Id(PanelId)
             .Popover("auto")
-            .Class("dropdown-content menu z-1 max-h-64 w-full flex-nowrap overflow-y-auto rounded-box "
-                + "bg-base-100 p-2 shadow-sm")
-            .Attributes(("style", "position-anchor:--" + Prefix))
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
-            // The half that only the browser knows: it closes itself on Escape and on a click outside,
-            // and without hearing that, aria-expanded above would go on claiming the list is open.
+            .Class("z-1 max-h-64 overflow-y-auto rounded-box border border-base-300 bg-base-100 "
+                + "p-2 shadow-sm")
+            // Placement, which `dropdown-content` used to supply. `position-area` puts the panel under
+            // its anchor and `anchor-size` matches the box's width; an engine that ships neither
+            // ignores both and the popover keeps its own default, which is centred — the list still
+            // opens and is still usable, and it is the same trade UiMegamenu already makes.
+            .Attributes(("style", "position-anchor:--" + Prefix
+                                  + ";position-area:block-end span-inline-end"
+                                  + ";width:anchor-size(width);margin:0"))
+            // The SOLE writer of _open, and that is the point rather than an implementation detail: the
+            // browser owns whether a popover is open — it opens one from `popovertarget` and closes it
+            // on Escape and on a click outside — so anything else keeping its own copy is a second
+            // answer to a question with one. Hearing this is what keeps aria-expanded truthful.
             .OnToggle(e =>
             {
                 _open = e.IsOpen;
-                if (!_open)
-                {
-                    _cursor = -1;
-                }
+                _cursor = _open
+                    ? UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled)
+                    : -1;
             })[
-            Rows(layout, acc, ctx, current, cursor)
+            Ul
+                .Id(ListId)
+                .Role("listbox")
+                .Class("menu w-full flex-nowrap p-0")
+                .Aria(new Dictionary<string, string?> { ["label"] = Label })[
+                Rows(layout, acc, ctx, current, cursor)
+            ]
         ];
 
-        return Div.Class(UiClass.Compose("dropdown w-full", Class))[
+        return Div.Class(UiClass.Compose("w-full", Class))[
             box[Span.Class("truncate")[Display(current)]],
-            list,
+            panel,
             // A listbox of buttons submits nothing. Without this a control inside a plain <form> would
             // silently drop its field, which is the kind of failure nobody sees until the data is wrong.
             Name is { } name
@@ -320,7 +350,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
                 : new Dictionary<string, string?> { ["selected"] = selected ? "true" : "false" })
             // Closes the list declaratively as well as through the callback, so the dismissal does not
             // depend on the runtime having attached anything.
-            .Attributes(("popovertarget", ListId), ("popovertargetaction", "hide"));
+            .Attributes(("popovertarget", PanelId), ("popovertargetaction", "hide"));
 
         if (!off)
         {
@@ -392,6 +422,11 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
 
     // Writes the chosen value back to the model (bound) or notifies the parent (controlled), then
     // closes. No StateHasChanged: Rask re-renders the callback's owner already (RASK026).
+    //
+    // The browser closes the list here too — a chosen option carries `popovertargetaction="hide"`, and
+    // committing from the keyboard means Enter on the focused box, which fires the box's own click and
+    // toggles it shut. So this is a second writer of _open like the click handler was, and unlike that
+    // one it cannot disagree: both say closed, whichever order the frames land in.
     private async Task CommitAsync(ExpressionAccessor.Accessor? acc, EditContext? ctx, T value)
     {
         _open = false;

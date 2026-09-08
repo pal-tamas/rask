@@ -23,6 +23,7 @@ public sealed partial class UiKitDataInputDemo : Component
     private int _stars = 4;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly? _date;
+    private readonly Signup _signup = new();
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -172,6 +173,31 @@ public sealed partial class UiKitDataInputDemo : Component
             ]),
 
         Section(
+            "Bound to a model",
+            "The same controls, with no OnChange between them and the model. Bind is the other opening "
+            + "of the same chain: it two-way binds, drives the surrounding Form's per-field validation, "
+            + "and the control writes back itself.",
+            Div.Data(Testid("ui-bound")).Class("space-y-3")[
+                Form.Model(_signup)[
+                    Div.Class("grid gap-3 sm:grid-cols-2")[
+                        UiInput.Bind(() => _signup.Email).Label("Email").Type(InputType.Email)
+                            .Placeholder("you@example.com"),
+                        // T is the model's, so this is a number field with nothing said here.
+                        UiInput.Bind(() => _signup.Seats).Label("Seats")
+                    ],
+                    Div.Class("mt-3 flex flex-wrap items-center gap-4")[
+                        UiCheckbox.Bind(() => _signup.Agreed).Text("I agree to the terms"),
+                        UiRating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Max(5)
+                    ]
+                ],
+                P.Class("text-sm text-ui-muted").Data(Testid("ui-bound-state"))[
+                    $"{_signup.Email} · {_signup.Seats.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+                    + $" seats · agreed {(_signup.Agreed ? "yes" : "no")}"
+                    + $" · {_signup.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)} stars"
+                ]
+            ]),
+
+        Section(
             "Mask",
             "A closed set of shapes. Whatever is masked has to survive losing its corners.",
             Div.Data(Testid("ui-mask")).Class("flex flex-wrap gap-3")[
@@ -194,4 +220,16 @@ public sealed partial class UiKitDataInputDemo : Component
             P.Class("mt-1 mb-3 text-sm text-ui-muted")[blurb],
             body
         ];
+
+    // An ordinary model, which is the point: nothing on it knows it is being edited by a UI kit.
+    private sealed class Signup
+    {
+        public string Email { get; set; } = "";
+
+        public int Seats { get; set; } = 1;
+
+        public bool Agreed { get; set; }
+
+        public int Score { get; set; }
+    }
 }
