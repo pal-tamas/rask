@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Rask.Ui.Tests.Components;
 
 /// <summary>
@@ -41,6 +43,33 @@ public partial class UiMockupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Each_line_is_a_pre_holding_a_code() =>
         Assert.Contains("<pre", UiMockupCode.Lines([("$", "ls")]).ToHtml());
+
+    [Fact]
+    public void The_prompt_is_never_written_into_the_text()
+    {
+        // The reason this component exists rather than a hand-rolled <pre>. The prompt is drawn by CSS
+        // from the attribute, so a reader who selects the command copies the command — a prompt that
+        // comes along with it is a broken paste, and `$ dotnet run` in a shell answers "command not
+        // found". Asserted on the text with the tags stripped, because the attribute above proves the
+        // prefix arrived and this proves it arrived as decoration.
+        var html = UiMockupCode.Lines([("$", "dotnet run"), ("#", "a comment")]).ToHtml();
+        var text = Regex.Replace(html, "<[^>]*>", "");
+
+        Assert.DoesNotContain("$", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("#", text, StringComparison.Ordinal);
+        Assert.Contains("dotnet run", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_call_site_class_is_added_to_the_daisyui_one_rather_than_replacing_it()
+    {
+        // mockup-code is what every rule in the kit's sheet keys on, so losing it to a call-site class
+        // renders an unstyled stack of <pre> that still contains all the right text.
+        var html = UiMockupCode.Lines([("$", "ls")]).Class("term text-left").ToHtml();
+
+        Assert.Contains("mockup-code", html, StringComparison.Ordinal);
+        Assert.Contains("term", html, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void The_phone_and_window_mockups_wrap_their_children()
