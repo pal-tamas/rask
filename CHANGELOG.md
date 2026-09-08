@@ -96,6 +96,22 @@ them until tagged releases begin.
   A placement a tab row has no class for — `Start`, `Left` — writes nothing rather than inventing
   `tabs-start`, which would sit in the markup looking as though it styled something.
 
+- **The Feedback category's last two free-form strings become closed enums, and a tooltip can be
+  opened.** `UiLoading.Shape` is now `UiLoadingShape` (all six of daisyUI's) and `UiTooltip.Placement`
+  is `UiPlacement` — the one component daisyUI defines all seven placements for. A misspelled class
+  name was never a compile error, and the failure it caused was silent.
+
+  `UiTooltip.Open` shows a tip without waiting for a hover. That is not only for a guided tour: there
+  is no hover on a touch screen, so it is the only way a touch user ever sees one.
+
+  A loading indicator with no shape now falls back to `loading-spinner` rather than to nothing —
+  `loading` alone is an unstyled span, so the old default rendered an indicator that indicated nothing.
+
+  Showcase at `/ui/feedback`, and unit tests for all seven. Most of them assert what gets ANNOUNCED,
+  which is the half of feedback a visual check never sees: the spinner is `aria-hidden` with its words
+  beside it, the toast is a `role="status"` read politely rather than interrupting, and a failed toast
+  changes its icon and not only its colour.
+
 - **`UiModal` is a real `<dialog>`, and a popover by default.** Set `Id` and `Trigger` and the browser
   owns the whole interaction: the top layer, so nothing on the page can paint over the dialog or trap
   it inside an `overflow: hidden` ancestor; Escape; light-dismiss; and a native `::backdrop`, which

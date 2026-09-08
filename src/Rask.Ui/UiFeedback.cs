@@ -48,8 +48,8 @@ public sealed partial class UiLoading : Component
     /// <summary>What is being waited for. Announced; the spinner itself is decorative.</summary>
     public new required string Text { get; set; }
 
-    /// <summary>daisyUI's shape: <c>loading-spinner</c>, <c>loading-dots</c>, <c>loading-ring</c>…</summary>
-    public string? Shape { get; set; }
+    /// <summary>What it looks like while it spins. Cosmetic; every shape says the same thing.</summary>
+    public UiLoadingShape? Shape { get; set; }
 
     public UiSize? Size { get; set; }
 
@@ -61,7 +61,7 @@ public sealed partial class UiLoading : Component
             Span
                 .Class(UiClass.Compose(
                     "loading",
-                    Shape ?? "loading-spinner",
+                    UiClassNames.LoadingShape(Shape ?? UiLoadingShape.Spinner),
                     Size is { } size ? UiClassNames.LoadingSize(size) : ""))
                 .Attributes(("aria-hidden", "true")),
             Span[Text]
@@ -166,11 +166,17 @@ public sealed partial class UiTooltip : Component
 {
     public required string Tip { get; set; }
 
-    /// <summary>daisyUI's placement: <c>tooltip-top</c>, <c>tooltip-right</c>…</summary>
-    public string? Placement { get; set; }
+    /// <summary>Which side of the thing it points at. All seven are defined for a tooltip.</summary>
+    public UiPlacement? Placement { get; set; }
 
     /// <summary>Anything but <see cref="UiTone.Neutral" />, which daisyUI does not define for a tooltip.</summary>
     public UiTone? Tone { get; set; }
+
+    /// <summary>
+    ///     Shows it without waiting for a hover. For walking someone through a screen — and the only way
+    ///     a touch user ever sees one, since there is no hover on a touch screen.
+    /// </summary>
+    public bool? Open { get; set; }
 
     public string? Class { get; set; }
 
@@ -179,8 +185,9 @@ public sealed partial class UiTooltip : Component
         Div
             .Class(UiClass.Compose(
                 "tooltip",
-                Placement,
+                Placement is { } placement ? UiClassNames.TooltipPlacement(placement) : "",
                 Tone is { } tone ? UiClassNames.TooltipTone(tone) : "",
+                Open == true ? "tooltip-open" : "",
                 Class))
             .Attributes(("data-tip", Tip))[Children ?? []];
 }

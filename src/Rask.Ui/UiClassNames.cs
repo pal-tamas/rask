@@ -562,6 +562,29 @@ internal static class UiClassNames
         _ => "",
     };
 
+    internal static string LoadingShape(UiLoadingShape value) => value switch
+    {
+        UiLoadingShape.Dots => "loading-dots",
+        UiLoadingShape.Ring => "loading-ring",
+        UiLoadingShape.Ball => "loading-ball",
+        UiLoadingShape.Bars => "loading-bars",
+        UiLoadingShape.Infinity => "loading-infinity",
+        _ => "loading-spinner",
+    };
+
+    /// <remarks>A tooltip is the one component daisyUI defines all seven placements for.</remarks>
+    internal static string TooltipPlacement(UiPlacement value) => value switch
+    {
+        UiPlacement.Start => "tooltip-start",
+        UiPlacement.Center => "tooltip-center",
+        UiPlacement.End => "tooltip-end",
+        UiPlacement.Top => "tooltip-top",
+        UiPlacement.Bottom => "tooltip-bottom",
+        UiPlacement.Left => "tooltip-left",
+        UiPlacement.Right => "tooltip-right",
+        _ => "",
+    };
+
     internal static string MegamenuSize(UiSize value) => value switch
     {
         UiSize.Xs => "megamenu-xs",

@@ -956,13 +956,20 @@ Rask.Ui.UiListRow.UiListRow() -> void
 Rask.Ui.UiLoading
 Rask.Ui.UiLoading.Class.get -> string?
 Rask.Ui.UiLoading.Class.set -> void
-Rask.Ui.UiLoading.Shape.get -> string?
+Rask.Ui.UiLoading.Shape.get -> Rask.Ui.UiLoadingShape?
 Rask.Ui.UiLoading.Shape.set -> void
 Rask.Ui.UiLoading.Size.get -> Rask.Ui.UiSize?
 Rask.Ui.UiLoading.Size.set -> void
 Rask.Ui.UiLoading.Text.get -> string!
 Rask.Ui.UiLoading.Text.set -> void
 Rask.Ui.UiLoading.UiLoading() -> void
+Rask.Ui.UiLoadingShape
+Rask.Ui.UiLoadingShape.Ball = 3 -> Rask.Ui.UiLoadingShape
+Rask.Ui.UiLoadingShape.Bars = 4 -> Rask.Ui.UiLoadingShape
+Rask.Ui.UiLoadingShape.Dots = 1 -> Rask.Ui.UiLoadingShape
+Rask.Ui.UiLoadingShape.Infinity = 5 -> Rask.Ui.UiLoadingShape
+Rask.Ui.UiLoadingShape.Ring = 2 -> Rask.Ui.UiLoadingShape
+Rask.Ui.UiLoadingShape.Spinner = 0 -> Rask.Ui.UiLoadingShape
 Rask.Ui.UiMain
 Rask.Ui.UiMain.UiMain() -> void
 Rask.Ui.UiMarker
@@ -1487,7 +1494,9 @@ Rask.Ui.UiTone.Warning = 6 -> Rask.Ui.UiTone
 Rask.Ui.UiTooltip
 Rask.Ui.UiTooltip.Class.get -> string?
 Rask.Ui.UiTooltip.Class.set -> void
-Rask.Ui.UiTooltip.Placement.get -> string?
+Rask.Ui.UiTooltip.Open.get -> bool?
+Rask.Ui.UiTooltip.Open.set -> void
+Rask.Ui.UiTooltip.Placement.get -> Rask.Ui.UiPlacement?
 Rask.Ui.UiTooltip.Placement.set -> void
 Rask.Ui.UiTooltip.Tip.get -> string!
 Rask.Ui.UiTooltip.Tip.set -> void
@@ -1758,6 +1767,7 @@ static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiAccordion!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiModal!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
+static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiTooltip!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiTooltip!>
 static RaskBuilderSettersRask_Ui.OpenOn(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, Rask.Ui.UiOpenOn? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.Options(this Rask.Core.Build<Rask.Ui.UiSelect!> __b, System.Collections.Generic.IReadOnlyList<(string! Value, string! Text)>! value) -> Rask.Core.Build<Rask.Ui.UiSelect!>
 static RaskBuilderSettersRask_Ui.Pages(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, int value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
@@ -1770,10 +1780,10 @@ static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiDropdo
 static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiModal!> __b, Rask.Ui.UiModalPlacement? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
 static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiTabs!> __b, Rask.Ui.UiPlacement? value) -> Rask.Core.Build<Rask.Ui.UiTabs!>
 static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiThemeDropdown!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiThemeDropdown!>
-static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiTooltip!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiTooltip!>
+static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiTooltip!> __b, Rask.Ui.UiPlacement? value) -> Rask.Core.Build<Rask.Ui.UiTooltip!>
 static RaskBuilderSettersRask_Ui.Round(this Rask.Core.Build<Rask.Ui.UiAvatar!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiAvatar!>
 static RaskBuilderSettersRask_Ui.Rows(this Rask.Core.Build<Rask.Ui.UiTextarea!> __b, int? value) -> Rask.Core.Build<Rask.Ui.UiTextarea!>
-static RaskBuilderSettersRask_Ui.Shape(this Rask.Core.Build<Rask.Ui.UiLoading!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiLoading!>
+static RaskBuilderSettersRask_Ui.Shape(this Rask.Core.Build<Rask.Ui.UiLoading!> __b, Rask.Ui.UiLoadingShape? value) -> Rask.Core.Build<Rask.Ui.UiLoading!>
 static RaskBuilderSettersRask_Ui.Shape(this Rask.Core.Build<Rask.Ui.UiMask!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiMask!>
 static RaskBuilderSettersRask_Ui.Side(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, Rask.Core.Component! value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiAura!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiAura!>
