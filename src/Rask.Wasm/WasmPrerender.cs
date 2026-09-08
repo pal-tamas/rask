@@ -70,6 +70,29 @@ public static class WasmPrerender
     public const string SiteUrlVariable = "RASK_PRERENDER_SITE_URL";
 
     /// <summary>
+    ///     Whether the published URLs end in a slash, set by the build from
+    ///     <c>$(RaskSiteTrailingSlash)</c>. Defaults to <c>true</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The pass writes <c>{route}/index.html</c>, and which URL serves that file WITHOUT a
+    ///         redirect is the host's decision, not the build's. GitHub Pages answers <c>/docs</c> with a
+    ///         301 to <c>/docs/</c>; Netlify and Cloudflare Pages do the opposite and strip the slash.
+    ///         Whichever way the host goes, naming the other form in a canonical or a sitemap points
+    ///         every URL at a redirect — which Search Console reports as "page with redirect", and which
+    ///         is worse than it sounds when the page it redirects to declares the redirecting URL as its
+    ///         canonical. That is a contradiction, not a hop.
+    ///     </para>
+    ///     <para>
+    ///         The default follows the file the pass actually wrote: a directory with an index in it is
+    ///         served at the trailing-slash URL, which is what GitHub Pages, Jekyll, Hugo and an nginx
+    ///         <c>try_files $uri $uri/</c> all do. Set the property to <c>false</c> on a host that
+    ///         normalises the other way.
+    ///     </para>
+    /// </remarks>
+    public const string TrailingSlashVariable = "RASK_PRERENDER_TRAILING_SLASH";
+
+    /// <summary>
     ///     Renders every prerenderable route into <paramref name="outputDirectory" />.
     /// </summary>
     /// <returns>How many pages were written.</returns>
@@ -499,11 +522,17 @@ public static class WasmPrerender
         var builder = new StringBuilder();
         builder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         builder.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+        // Off only when the app says its host strips the slash; see TrailingSlashVariable.
+        var trailingSlash = !string.Equals(
+            Environment.GetEnvironmentVariable(TrailingSlashVariable)?.Trim(),
+            "false",
+            StringComparison.OrdinalIgnoreCase);
+
         foreach (var path in paths)
         {
             // LiveOptions.PathBase is already on every rendered link; it belongs here too, or a
             // sub-path deploy publishes a sitemap pointing at the origin root.
-            var url = origin + LiveOptions.PathBase + (path == "/" ? "/" : path);
+            var url = origin + LiveOptions.PathBase + SiteUrlPath(path, trailingSlash);
             builder.Append("  <url><loc>").Append(XmlEscape(url)).AppendLine("</loc></url>");
         }
 
@@ -527,6 +556,24 @@ public static class WasmPrerender
         File.WriteAllText(robots, $"User-agent: *\nAllow: /\nSitemap: {sitemapUrl}\n");
         writtenFiles.Add(robots);
         Console.WriteLine($"[Rask.Prerender] wrote {RobotsFileName}");
+    }
+
+    /// <summary>
+    ///     A route path in the form the host serves without redirecting.
+    /// </summary>
+    /// <remarks>
+    ///     The root is always <c>/</c> — it is already a directory URL, and doubling the slash would
+    ///     name a different resource.
+    /// </remarks>
+    internal static string SiteUrlPath(string path, bool trailingSlash)
+    {
+        var trimmed = path.TrimEnd('/');
+        if (trimmed.Length == 0)
+        {
+            return "/";
+        }
+
+        return trailingSlash ? trimmed + "/" : trimmed;
     }
 
     /// <summary>Escapes the five XML entities. A route template cannot contain them today; a route is

@@ -173,8 +173,8 @@ public class WasmPrerenderTests
 
             var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
 
-            Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/about</loc>"));
-            Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/extra</loc>"));
+            Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/about/</loc>"));
+            Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/extra/</loc>"));
         }
         finally
         {
@@ -212,7 +212,10 @@ public class WasmPrerenderTests
             var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
 
             Assert.Contains("<loc>https://example.com/</loc>", sitemap, StringComparison.Ordinal);
-            Assert.Contains("<loc>https://example.com/about</loc>", sitemap, StringComparison.Ordinal);
+
+            // With the slash, because that is the URL a host serving {route}/index.html answers with
+            // 200 — GitHub Pages 301s the bare one. A sitemap of redirects is reported as such.
+            Assert.Contains("<loc>https://example.com/about/</loc>", sitemap, StringComparison.Ordinal);
 
             // The trailing slash on the configured origin must not survive into the URLs, or every
             // entry is a double slash that redirects — which a crawler treats as a different URL.
@@ -221,6 +224,54 @@ public class WasmPrerenderTests
         finally
         {
             Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Theory]
+    // The root is already a directory URL; doubling the slash names something else.
+    [InlineData("/", true, "/")]
+    [InlineData("/", false, "/")]
+    // Everything below it takes the host's shape.
+    [InlineData("/about", true, "/about/")]
+    [InlineData("/about", false, "/about")]
+    // Idempotent, so a supplied path that already carries one does not gain a second.
+    [InlineData("/about/", true, "/about/")]
+    [InlineData("/about/", false, "/about")]
+    public void ASitemapUrlTakesTheShapeTheHostServes(string path, bool trailingSlash, string expected) =>
+        Assert.Equal(expected, WasmPrerender.SiteUrlPath(path, trailingSlash));
+
+    [Fact]
+    public async Task AHostThatStripsTheSlashGetsUrlsWithoutOne()
+    {
+        // Netlify and Cloudflare Pages normalise the other way. Whichever way a host goes, naming the
+        // other form points every URL in the sitemap at a redirect — so this is a stated choice rather
+        // than a convention the build guesses at.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(AHostThatStripsTheSlashGetsUrlsWithoutOne), [
+            new RouteRegistration(typeof(Home), "/about", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://example.com");
+        Environment.SetEnvironmentVariable(WasmPrerender.TrailingSlashVariable, "false");
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+
+            Assert.Contains("<loc>https://example.com/about</loc>", sitemap, StringComparison.Ordinal);
+            Assert.DoesNotContain("/about/</loc>", sitemap, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            Environment.SetEnvironmentVariable(WasmPrerender.TrailingSlashVariable, null);
             try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
         }
     }

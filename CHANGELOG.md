@@ -9,6 +9,32 @@ them until tagged releases begin.
 
 ### Added
 
+- **rask.sh was deployed entirely unstyled, and had been since the kit shipped.** The published site
+  404'd on `/css/rask-ui.css`, so the base colours and the whole daisyUI palette were missing and every
+  `--color-ui-*` token resolved to nothing: a page that is structurally perfect, fully interactive, and
+  completely grey.
+
+  `Rask.Ui.targets` resolved the kit's compiled sheet from the literal path
+  `obj/net10.0/ui.generated.css`. `Rask.Ui` multi-targets `net10.0;net10.0-browser`, so that file
+  exists only where something has built the `net10.0` face — which a developer's machine always has,
+  and a clean CI checkout publishing a browser-WASM app never does. It now resolves against the
+  consumer's own `$(TargetFramework)` first and falls back to whichever face the kit has built.
+
+  **And it warned instead of failing.** The warning ran green through CI and deployed the broken site;
+  the only trace was one line in a build log. The target only runs when a project sets
+  `RaskUiWriteStylesheet=true` — an explicit request for the file — so "asked for it and it is not
+  there" has no benign reading, and it is an error now. Every local build, every local publish and the
+  whole browser suite were green throughout, because the file was already on disk from an earlier
+  build; the browser suite does assert that no stylesheet 404s, and could not see a CI-only path.
+
+- **The canonical URLs and the sitemap named URLs that redirect.** GitHub Pages serves a directory
+  index at its trailing-slash URL and answers the bare one with a 301 — `/docs` → `/docs/`, verified
+  against the live site. Every canonical and all 151 sitemap entries used the bare form, so each page
+  served at `/docs/pwa/` declared that the real URL was one that redirects straight back to it. That is
+  a contradiction rather than a hop, and Search Console reports it across the whole site. Both now
+  name what the host serves, held in step by `PageMetaTests`. `<RaskSiteTrailingSlash>` states the
+  choice, for hosts like Netlify and Cloudflare Pages that normalise the other way.
+
 - **A prerendered page is now actually served, and actually paints.** Turning prerendering on wrote 154
   real pages; three separate defects meant almost nobody would have seen them.
 
