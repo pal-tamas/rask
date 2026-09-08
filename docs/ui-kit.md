@@ -1,95 +1,188 @@
 # The UI kit (`Rask.Ui`)
 
-The components the framework's own surfaces are drawn with — the operator console at `/_rask`, the
-landing site, and the docs showcase. It exists so those three look like one product without copying
-utility strings between them.
+**Every daisyUI component, as a typed Rask component.** The kit wraps
+[daisyUI](https://daisyui.com) 5 — vendored, compiled at the kit's own build, and shipped inside the
+package — so a Rask app gets the whole component vocabulary without a single utility string, an npm
+install, or a Tailwind configuration of its own.
 
-It is **markup and nothing else**: no data access, no host dependency, no JavaScript. It runs on the
-ASP.NET host and in browser-WebAssembly, which is the one place it differs from `Rask.Dashboard` — the
-console is deliberately server-only because its panels read a `DbContext`.
+It is **markup and nothing else**: no data access, no host dependency, and no JavaScript. It runs on
+the ASP.NET host and in browser-WebAssembly, which is the one place it differs from `Rask.Dashboard` —
+the console is deliberately server-only because its panels read a `DbContext`.
 
 ```bash
 dotnet add package Rask.Ui
 ```
 
-## The stylesheet comes with the package
+Live, on this site: [Actions](/docs/ui/actions) · [Data display](/docs/ui/data-display) ·
+[Navigation](/docs/ui/navigation) · [Feedback](/docs/ui/feedback) ·
+[Data input](/docs/ui/data-input) · [Layout & mockups](/docs/ui/layout).
 
-Tailwind is a compiler: it scans the project it runs in for the class names actually written, and emits
-only those utilities. A compiled library's class names are **invisible** to your Tailwind build, so a
-kit that left styling to its consumer would render as unstyled HTML with nothing reporting it.
+## Wiring it up
 
-So the kit compiles its own sheet at its own build, embeds it, and hands it over:
+Two things, and forgetting either produces a page that renders structurally correct components with
+**no colour at all** — so both are worth doing before anything else.
+
+**1. Link the stylesheet.** Opt into the build writing it, then link it:
+
+```xml
+<PropertyGroup>
+  <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+</PropertyGroup>
+```
 
 ```csharp
 protected override Component? HeadAssets =>
 [
-    Style[Raw.Value(UiStylesheet.Css)],   // the kit's, FIRST
+    Link.Rel("stylesheet").Href(UiStylesheet.Href(LiveOptions.PathBase)),   // the kit's, FIRST
     Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css"),
 ];
 ```
 
-**Order is the contract.** Two properties of that sheet depend on it:
+`UiStylesheet.Href()` carries a content hash, so the file can be cached hard and still change when the
+kit does. A library that renders kit components into somebody else's host wants no file in a `wwwroot`
+it does not own; that case keeps `UiStylesheet.Css` and inlines it in a `<style>`, which is what
+`Rask.Dashboard` does.
 
-- It declares the `--color-ui-*` palette. Redefining any of those in your own `@theme` re-skins every
-  component without overriding a single rule — which only works while your copy is what the cascade
-  reads last.
-- It carries **no preflight** and no `html`/`body` rules. Your application owns its document. A reset
-  arriving from a library restyles pages that never asked for it; that is not hypothetical, it is what
-  happened to host applications while the console still rendered inside their document.
+**2. Turn the theme on.** Nothing in the kit has a colour until an ancestor carries the theme scope:
 
-There is nothing to serve: no static web assets, no Razor SDK, no `_content/` path to map. For a
-stylesheet this size a `<style>` is smaller than the machinery.
-
-## Re-skinning
-
-Redefine the tokens you want and leave the rest:
-
-```css
-@import "tailwindcss";
-
-@theme {
-  --color-ui-brand: oklch(0.62 0.19 292);
-  --color-ui-ink: oklch(0.94 0.01 285);
-}
+```csharp
+protected override Component Shell(Component head, Component body) =>
+    Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
 ```
 
-| Token | What it is |
+The scope exists so that *referencing* this package cannot repaint an application that only wanted a
+button. daisyUI paints `:root` by default; the kit confines it to `[data-rask-ui]` instead, and the
+same reasoning is why it ships no preflight.
+
+**Order is the contract.** The kit's sheet declares the palette, so redefining a token in your own
+`@theme` re-skins every component without overriding a single rule — which only works while your copy
+is what the cascade reads last.
+
+> **CSS layers do not merge across `<link>` elements.** If you find a kit rule beating one of your
+> utilities, or the reverse, that is why — and it is not something either sheet's source order can
+> settle.
+
+## Themes
+
+daisyUI's 35 themes all ship, as the `UiThemeName` enum. Light is the default and dark follows the
+operating system; to choose one, put `data-theme` on the element carrying the theme scope — or on any
+container, to re-theme just that subtree.
+
+```csharp
+UiThemeController.Label("Dark").Theme(UiThemeName.Dark).Active(_theme is UiThemeName.Dark)
+                 .OnChange(theme => _theme = theme)
+```
+
+The control **reports** a choice and cannot apply it: the palette is set by an ancestor, and no
+component can write an attribute onto something above it. The page holds the value and writes
+`UiTheme.Value(theme)` there — which is also what lets it be persisted, something daisyUI's CSS-only
+`theme-controller` could not offer, since nothing in C# knew which theme was showing.
+
+`UiThemePicker` and `UiThemeDropdown` are ready-made pickers over the whole set.
+
+## The three axes
+
+Colour, fill and size are independent and compose, so an outlined error button needs no member of its
+own:
+
+```csharp
+UiButton.Label("Delete").Tone(UiTone.Error).Variant(UiVariant.Outline).Size(UiSize.Lg)
+```
+
+| Enum | Members |
 | --- | --- |
-| `--color-ui-bg` `--color-ui-panel` `--color-ui-well` | the surface ladder, deliberately close together — depth comes from hairlines, not contrast |
-| `--color-ui-line` | every hairline |
-| `--color-ui-ink` `--color-ui-muted` | primary and secondary text |
-| `--color-ui-brand` | links, focus rings, the active tab |
-| `--color-ui-ok` `--color-ui-warn` `--color-ui-danger` | status **fills** — dots, tinted grounds, text on a dark toast |
-| `--color-ui-ok-ink` `--color-ui-warn-ink` | the same two statuses as **text on a light ground**, which the fills fail 4.5:1 for |
+| `UiTone` | `Neutral` `Primary` `Secondary` `Accent` `Info` `Success` `Warning` `Error` |
+| `UiVariant` | `Solid` `Outline` `Soft` `Dash` `Ghost` `Link` |
+| `UiSize` | `Default` `Xs` `Sm` `Md` `Lg` `Xl` |
+
+These are daisyUI's own words, deliberately. Translating them into a private vocabulary was the first
+thing this kit did and the first thing it stopped doing: daisyUI's documentation is the documentation
+for everything the components render, and a second set of words made every example a translation.
+
+Not every component honours every member — daisyUI defines no `input-outline`, and no `tooltip-neutral`
+— and **a member a component has no class for writes nothing**, rather than a class that would sit in
+the markup looking as though it styled something.
+
+Other axes follow the same rule: `UiPlacement`, `UiModalPlacement`, `UiMaskShape`, `UiLoadingShape`,
+`UiSwapAnimation`, `UiAuraStyle`, `UiTabStyle`, `UiMarker`, `UiOpenOn`.
 
 ## What is in it
 
+Grouped as daisyUI groups them, so its documentation reads straight across.
+
 | | |
 | --- | --- |
-| **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` |
-| **Controls** | `UiButton` `UiSearch` `UiStatusDot` |
-| **Data** | `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` |
-| **Overlays** | `UiModal` `UiToast` |
-| **Support** | `UiIcon` / `UiIconName`, `UiTone`, `UiStylesheet` |
+| **Actions** | `UiButton` `UiDropdown` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
+| **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiTextRotate` `UiTimeline` |
+| **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
+| **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
+| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiFloatingLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
+| **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
+| **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiNotice` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
+| **Support** | `UiIcon` / `UiIconName`, `UiTheme` / `UiThemeName`, `UiStyles`, `UiStylesheet` |
 
-`UiTone` is the vocabulary each component colours by — `Neutral` `Primary` `Quiet` `Ok` `Warn`
-`Danger` `Busy`. Not every component honours every member (a status dot has no `Primary`, a button no
-`Busy`); anything a component has no meaning for reads as `Neutral`.
+## Who owns the state
+
+The kit ships no JavaScript, and that constraint decides the shape of every interactive component. It
+resolves three ways, and which one a component takes is a property of what the platform can do rather
+than of anyone's preference.
+
+**The browser owns it, declaratively.** `UiModal` with an `Id` and a `Trigger` is a real
+`<dialog popover>`: the browser supplies the top layer, Escape, light-dismiss and a native
+`::backdrop`. `UiMegamenu` is built the same way. `UiFab` opens on `:focus-within` because daisyUI
+defines no class to force it. All of these work on a prerendered page with no runtime booted, and with
+scripting off entirely.
+
+```csharp
+UiModal.Title("Shortcuts").Id("shortcuts").Trigger("Show shortcuts")[ … ]
+```
+
+**The page owns it, in C#.** `UiDropdown`, `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and
+`UiModal`'s `Open` path hold their state in a field and redraw through the live diff — which is what
+lets a dropdown close itself when the action inside it completes.
+
+```csharp
+UiDropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
+```
+
+`Open` is nullable and the three settings mean three things: unset is uncontrolled and the browser
+decides; `true` and `false` hand it to the page. Closed writes `dropdown-close` rather than merely
+omitting `dropdown-open`, because daisyUI also opens on `:focus-within` — without it, tabbing into
+the panel would re-open a dropdown the page had just closed.
+
+**The markup owns it.** `UiTab` is a real link with a real URL, so a tab is bookmarkable, survives a
+refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are written
+against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+
+## The rule the whole kit rests on
+
+daisyUI emits a component's CSS only where Tailwind can **see** its class name in the scanned source.
+A name built by concatenation — `"btn-" + tone` — is a name no scanner ever reads, so the class is
+absent from the compiled sheet and the component renders **with no styling whatsoever**. Not
+misaligned, not the wrong colour: unstyled. The build stays green and the markup carries exactly the
+class the call site asked for.
+
+That is why every class the kit can write is spelled out as a complete literal in `UiClassNames.cs`,
+why the axes above are closed enums rather than strings, and why `UiTextRotate` has no `Interval`
+property — daisyUI reads its speed from a `duration-*` utility, and turning a `TimeSpan` into a class
+name at run time is exactly the failure this rule prevents.
+
+If you write your own `ui-*` classes, the same applies to you: copy the kit's `@theme` block into your
+own stylesheet, because Tailwind emits a utility only where it can see the token.
 
 ## Two rules it holds itself to
 
 **Mobile-first, which is a different claim from responsive.** Every control takes a 44px touch target
-below `sm`. The tab bar scrolls sideways rather than wrapping, so the header is exactly one row tall
-however many tabs there are — a wrapping bar changes the page's header height between deployments and
-moves the content under a thumb. A detail sheet is a bottom sheet on a phone and a centred card above
-it, because a centred dialog at 360px either overflows or shrinks its content past reading.
+below `sm`. A dialog is a bottom sheet on a phone and a centred card above it, because a centred
+dialog at 360px either overflows or shrinks its content past reading. The tab bar scrolls sideways
+rather than wrapping, so the header is exactly one row tall however many tabs there are.
 
-**It ships no JavaScript.** `UiCrumbSwitcher` is a real `<select>` with the chrome stripped off rather
-than a custom menu, because a menu is a popover, and a popover is a key listener and an outside click.
-The `<select>` is keyboard-navigable for free, announces itself correctly, and opens the platform's own
-picker on a phone. Overlays are a state flip on the owning page, so they behave identically on the
-Server transport and in WebAssembly. What that does *not* buy is a focus trap: closing is reachable by
-keyboard, but focus is free to leave the sheet.
+**Every control has a name.** A label is required, not optional, and it becomes the accessible name
+rather than a placeholder — a placeholder disappears the moment typing starts, so the one thing saying
+what a field is for vanishes exactly when a reader might check it. An icon-only button puts its label
+in `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed toast changes its
+**icon** and not only its colour.
 
 ## Names
 
@@ -102,6 +195,8 @@ compilation.
 The same rule applies to the namespace. `Rask.Ui` is an enclosing namespace of every `Rask.*`
 compilation, so a type of your own named `Ui` inside a `Rask.`-rooted namespace will be shadowed by it
 — C# resolves a simple name against enclosing namespaces before it looks at imports.
+
+Each component lives in a file named after it, so the file list in `src/Rask.Ui` is the component list.
 
 ## See also
 
