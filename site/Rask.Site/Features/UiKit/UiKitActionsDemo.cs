@@ -59,8 +59,23 @@ public sealed partial class UiKitActionsDemo : Component
             ]),
 
         Section(
-            "Modal",
-            "The page renders it when its own state says so, and Close flips that state back.",
+            "Modal — the popover path (the default)",
+            "A real <dialog> with the popover attribute. The browser gives it the top layer, Escape, "
+            + "light-dismiss and a native ::backdrop, none of it implemented here and none of it "
+            + "needing a runtime — this one works with scripting off entirely.",
+            Div.Data(Testid("ui-modal-popover"))[
+                UiModal
+                    .Title("Keyboard shortcuts")
+                    .Id("demo-shortcuts")
+                    .Trigger("Show shortcuts")[
+                    P["Press Escape, or click outside, and the browser closes this. No handler ran."]
+                ]
+            ]),
+
+        Section(
+            "Modal — the state-driven path",
+            "For when something in C# decides the dialog should appear, which the declarative path "
+            + "cannot express: nothing in C# can press a button.",
             Div.Data(Testid("ui-modal"))[
                 UiButton
                     .Label("Delete order")

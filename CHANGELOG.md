@@ -96,6 +96,22 @@ them until tagged releases begin.
   A placement a tab row has no class for — `Start`, `Left` — writes nothing rather than inventing
   `tabs-start`, which would sit in the markup looking as though it styled something.
 
+- **`UiModal` is a real `<dialog>`, and a popover by default.** Set `Id` and `Trigger` and the browser
+  owns the whole interaction: the top layer, so nothing on the page can paint over the dialog or trap
+  it inside an `overflow: hidden` ancestor; Escape; light-dismiss; and a native `::backdrop`, which
+  daisyUI styles. None of it is implemented in the kit, none of it costs a line of script, and all of
+  it works on a prerendered page before any runtime has booted.
+
+  Setting `Open` takes it off that path and hands the state to the page, for when something in C#
+  decides the dialog should appear — a row was selected, an action failed — which the declarative path
+  cannot express, because nothing in C# can press a button. The two are mutually exclusive in the
+  markup and have to be: a `[popover]` element is `display: none` until the browser shows it, so a
+  `modal-open` class on one would be a class that changes nothing.
+
+  What the state-driven path gives up is exactly what the popover buys — no top layer, and no focus
+  containment, because a focus trap needs `showModal()` and that is script. So the popover is the
+  default, and the state path is the exception.
+
 - **The site at [rask.sh](https://rask.sh) is prerendered, and a Rask app can now be indexed at all.**
   Four framework pieces, each of which was a hole a real site falls into.
 
@@ -194,14 +210,8 @@ them until tagged releases begin.
 
 ### Removed
 
-- **`UiModal`'s native-popover path, and the CSS-only state of `UiSwap` and `UiThemeController`.**
-  Setting `UiModal.Id` used to switch it to a `popover` dialog opened by a button through
-  `popovertarget`, so the browser supplied the top layer, Escape, light-dismiss and focus containment
-  with no script at all. That was better on every axis except the one that removed it: nothing in C#
-  can press a button, so a dialog opened that way could not be opened, closed or observed by the page
-  that owned it — and two paths with different capabilities meant two sets of behaviour to document
-  and to test, distinguished only by whether a property happened to be set. `Id` and `Trigger` are
-  gone; `Open` and `Placement` replace them. `UiSwap` drops its hidden checkbox for a `<button>` and
+- **The CSS-only state of `UiSwap` and `UiThemeController`.**
+  `UiSwap` drops its hidden checkbox for a `<button>` and
   daisyUI's `swap-active` (a `<label>` with no input would have been an unreachable control), and
   `UiThemeController` drops `input.theme-controller` for a button that reports the choice.
 

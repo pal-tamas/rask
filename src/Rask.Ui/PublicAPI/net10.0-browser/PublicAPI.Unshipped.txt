@@ -1062,12 +1062,16 @@ Rask.Ui.UiModal.Close.get -> System.Action?
 Rask.Ui.UiModal.Close.set -> void
 Rask.Ui.UiModal.Footer.get -> Rask.Core.Component?
 Rask.Ui.UiModal.Footer.set -> void
+Rask.Ui.UiModal.Id.get -> string?
+Rask.Ui.UiModal.Id.set -> void
 Rask.Ui.UiModal.Open.get -> bool?
 Rask.Ui.UiModal.Open.set -> void
 Rask.Ui.UiModal.Placement.get -> Rask.Ui.UiModalPlacement?
 Rask.Ui.UiModal.Placement.set -> void
 Rask.Ui.UiModal.Title.get -> string!
 Rask.Ui.UiModal.Title.set -> void
+Rask.Ui.UiModal.Trigger.get -> string?
+Rask.Ui.UiModal.Trigger.set -> void
 Rask.Ui.UiModal.UiModal() -> void
 Rask.Ui.UiModalPlacement
 Rask.Ui.UiModalPlacement.Bottom = 3 -> Rask.Ui.UiModalPlacement
@@ -1687,6 +1691,7 @@ static RaskBuilderSettersRask_Ui.Icon(this Rask.Core.Build<Rask.Ui.UiMenuItem!> 
 static RaskBuilderSettersRask_Ui.Icon(this Rask.Core.Build<Rask.Ui.UiStat!> __b, Rask.Ui.UiIconName? value) -> Rask.Core.Build<Rask.Ui.UiStat!>
 static RaskBuilderSettersRask_Ui.Id(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
 static RaskBuilderSettersRask_Ui.Id(this Rask.Core.Build<Rask.Ui.UiMegamenuPanel!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiMegamenuPanel!>
+static RaskBuilderSettersRask_Ui.Id(this Rask.Core.Build<Rask.Ui.UiModal!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
 static RaskBuilderSettersRask_Ui.Items(this Rask.Core.Build<Rask.Ui.UiBreadcrumbs!> __b, System.Collections.Generic.IReadOnlyList<(string! Text, string? Href)>! value) -> Rask.Core.Build<Rask.Ui.UiBreadcrumbs!>
 static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiBadge!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiBadge!>
 static RaskBuilderSettersRask_Ui.Label(this Rask.Core.Build<Rask.Ui.UiBrand!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiBrand!>
@@ -1843,6 +1848,7 @@ static RaskBuilderSettersRask_Ui.Trailing(this Rask.Core.Build<Rask.Ui.UiListRow
 static RaskBuilderSettersRask_Ui.Trailing(this Rask.Core.Build<Rask.Ui.UiTopBar!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiTopBar!>
 static RaskBuilderSettersRask_Ui.Trigger(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.Trigger(this Rask.Core.Build<Rask.Ui.UiMegamenuPanel!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiMegamenuPanel!>
+static RaskBuilderSettersRask_Ui.Trigger(this Rask.Core.Build<Rask.Ui.UiModal!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
 static RaskBuilderSettersRask_Ui.Trigger(this Rask.Core.Build<Rask.Ui.UiThemeDropdown!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiThemeDropdown!>
 static RaskBuilderSettersRask_Ui.Type(this Rask.Core.Build<Rask.Ui.UiInput!> __b, Rask.Core.InputType? value) -> Rask.Core.Build<Rask.Ui.UiInput!>
 static RaskBuilderSettersRask_Ui.Underline(this Rask.Core.Build<Rask.Ui.UiLink!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiLink!>

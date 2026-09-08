@@ -31,15 +31,17 @@ public sealed class QueueDetailSheetTests
 
         var page = await RenderQueueAsync(h);
 
-        // Open the sheet.
+        // Open the sheet. Selected as the ELEMENT rather than [role="dialog"]: UiModal renders a real
+        // <dialog>, which carries that role implicitly, and stating it again in the markup would be the
+        // redundant ARIA that guidance warns against.
         await ClickAsync(page, "Details");
-        Assert.True(page.Exists("[role=\"dialog\"]"), "the detail sheet did not open");
+        Assert.True(page.Exists("dialog"), "the detail sheet did not open");
 
         // Ask to delete. This raises a confirmation rather than acting.
         await ClickAsync(page, "Delete");
 
         // The sheet must be gone, or the prompt below is rendered underneath a full-viewport overlay.
-        Assert.False(page.Exists("[role=\"dialog\"]"),
+        Assert.False(page.Exists("dialog"),
             "the sheet stayed open over its own confirmation — Delete looks like a button that does nothing");
         Assert.Contains("cannot be recovered", page.Html, StringComparison.Ordinal);
     }
@@ -60,7 +62,7 @@ public sealed class QueueDetailSheetTests
         var page = await RenderQueueAsync(h);
         await ClickAsync(page, "Details");
 
-        Assert.True(page.Exists("[role=\"dialog\"]"));
+        Assert.True(page.Exists("dialog"));
         Assert.DoesNotContain("cannot be recovered", page.Html, StringComparison.Ordinal);
     }
 

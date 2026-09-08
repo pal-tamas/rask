@@ -39,7 +39,8 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         // below, on the floating element itself.
         foreach (var id in new[]
                  {
-                     "ui-button", "ui-dropdown", "ui-modal", "ui-swap", "ui-theme-controller",
+                     "ui-button", "ui-dropdown", "ui-modal", "ui-modal-popover", "ui-swap",
+                     "ui-theme-controller",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -118,6 +119,39 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel" }).ClickAsync();
         await Expect(scope.Locator(".modal")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task ThePopoverDialogOpensAndEscapeClosesIt() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-modal-popover']");
+        var dialog = Page.Locator("#demo-shortcuts");
+
+        await Expect(dialog).ToBeHiddenAsync();
+
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Show shortcuts" })
+            .ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Nothing in C# ran and no class was written: the button names the dialog with popovertarget
+        // and the browser puts it in the top layer. Escape closing it is the same mechanism — which is
+        // the whole reason this is the default path rather than the state-driven one.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task ThePopoverDialogIsARealDialogElement() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        // A <dialog> rather than a div wearing role=dialog, which is what lets the popover path get a
+        // native ::backdrop instead of one the kit paints.
+        var tag = await Page.Locator("#demo-shortcuts").EvaluateAsync<string>("el => el.tagName");
+
+        Assert.Equal("DIALOG", tag);
     });
 
     [Fact]

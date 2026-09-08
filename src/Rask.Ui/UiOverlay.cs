@@ -5,30 +5,29 @@ namespace Rask.Ui;
 /// </summary>
 /// <remarks>
 /// <para>
-/// daisyUI's <c>modal</c>, as a bottom sheet on a phone and a centred card from <c>sm</c> up unless
-/// <see cref="Placement" /> says otherwise. The sheet shape is not a stylistic default: a centred dialog
-/// on a 360px screen either overflows or shrinks its content to unreadable, and a stack trace is the one
-/// thing here that must stay readable.
+/// A real <c>&lt;dialog&gt;</c>, and by default a <b>popover</b>. Set <see cref="Id" /> and give it a
+/// <see cref="Trigger" /> and the browser owns the whole interaction: the top layer, so nothing on the
+/// page can paint over it or trap it inside an <c>overflow: hidden</c> ancestor; Escape; light-dismiss;
+/// and a real <c>::backdrop</c>, which daisyUI styles. None of that is implemented here, none of it
+/// costs a line of script, and all of it works on a prerendered page before any runtime has booted.
 /// </para>
 /// <para>
-/// <b>The page owns whether it is showing.</b> Render it when your state says so and let
-/// <see cref="Close" /> flip that state back, or keep it rendered and drive <see cref="Open" />. Left
-/// unset, <see cref="Open" /> means open — rendering a dialog at all is the ordinary way to ask for one,
-/// and a component that rendered nothing visible by default would be a trap.
+/// <b>The state-driven path is the exception, not the default.</b> Set <see cref="Open" /> and the
+/// dialog stops being a popover and becomes an ordinary <c>&lt;dialog open&gt;</c> that the page
+/// renders when its own state says so. Reach for it when something in C# decides the dialog should
+/// appear — a row was selected, an action failed — which the declarative path cannot express, because
+/// nothing in C# can press a button.
 /// </para>
 /// <para>
-/// <b>This used to have a second, native path</b>, chosen by setting an <c>Id</c>: the dialog carried the
-/// <c>popover</c> attribute and a button opened it through <c>popovertarget</c>, so the browser supplied
-/// the top layer, Escape, light-dismiss and focus containment with no script at all. That was genuinely
-/// better on every axis except one, and the exception is what removed it: nothing in C# can press a
-/// button, so a dialog opened that way could not be opened, closed or even observed by the page that
-/// owned it. Two paths with different capabilities also meant two sets of behaviour to document and to
-/// test, distinguished only by whether a property happened to be set.
+/// The two are mutually exclusive in the markup and have to be: a <c>[popover]</c> element is
+/// <c>display: none</c> until the browser shows it, so a <c>modal-open</c> class on one would set a
+/// class that changes nothing. Setting <see cref="Open" /> is therefore what chooses the path.
 /// </para>
 /// <para>
-/// What the state-driven path does not buy is a focus trap. Closing is reachable by keyboard through the
-/// header button and the footer, but focus is free to leave the dialog. A trap needs a key listener, and
-/// this kit ships no JavaScript of its own.
+/// What the state-driven path gives up is exactly what the popover buys: no top layer, and no focus
+/// containment. Closing stays reachable by keyboard through the header button and the footer, but focus
+/// is free to leave the dialog. A trap needs <c>showModal()</c>, which is script, and this kit ships
+/// none — so where it matters, use the popover.
 /// </para>
 /// </remarks>
 public sealed partial class UiModal : Component
@@ -37,16 +36,31 @@ public sealed partial class UiModal : Component
     public new required string Title { get; set; }
 
     /// <summary>
-    ///     Whether the dialog is showing. Unset means showing — see the remarks. Set it to <c>false</c> to
-    ///     keep the dialog rendered but hidden, which is what you want when its content is expensive to
-    ///     rebuild or must not lose its scroll position.
+    ///     Names the dialog so a button can open it. Required for the popover path — it is what
+    ///     <c>popovertarget</c> refers to — and must be unique on the page: two dialogs sharing one
+    ///     would give the first two openers and the second none.
+    /// </summary>
+    public string? Id { get; set; }
+
+    /// <summary>
+    ///     The label on the button that opens it. Needs <see cref="Id" />; with no id there is nothing
+    ///     for a button to name.
+    /// </summary>
+    public string? Trigger { get; set; }
+
+    /// <summary>
+    ///     Takes the dialog off the popover path and hands the open state to the page. Leave it unset to
+    ///     let the browser own it, which is the better default — see the remarks.
     /// </summary>
     public bool? Open { get; set; }
 
     /// <summary>Where it sits in the viewport.</summary>
     public UiModalPlacement? Placement { get; set; }
 
-    /// <summary>Runs on the close button and on a click outside the dialog.</summary>
+    /// <summary>
+    ///     Runs on the close button and on a click outside. State-driven path only — on the popover path
+    ///     the browser closes it and no callback is involved.
+    /// </summary>
     public Action? Close { get; set; }
 
     /// <summary>The actions, trailing-aligned on a pointer and stacked on a phone.</summary>
@@ -55,29 +69,75 @@ public sealed partial class UiModal : Component
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class(UiClass.Compose(
+    protected override Component? Render() => Open is null && Id is { } id ? Popover(id) : StateDriven();
+
+    private Component Popover(string id) =>
+        // Two roots and no wrapper: the opener is a sibling of the dialog it names, so a caller can put
+        // the trigger where it belongs in their own layout.
+        [
+            Trigger is { } trigger
+                ? Button.Type("button").Class("btn").Attributes(("popovertarget", id))[trigger]
+                : null,
+            Shell(
+                Dialog.Id(id).Class(Classes()).Popover("auto"),
+                // The browser closes a popover from a button naming it, so the close control is markup
+                // rather than a handler — and works with no runtime at all.
+                Button
+                    .Type("button")
+                    .Class("btn btn-ghost btn-sm btn-square")
+                    .Attributes(("popovertarget", id), ("popovertargetaction", "hide"))
+                    .Aria(new Dictionary<string, string?> { ["label"] = "Close" })[
+                    UiIcon.Name(UiIconName.Close).Class("size-4 shrink-0")
+                ],
+                backdrop: null)
+        ];
+
+    private Component StateDriven() =>
+        Shell(
+            // `open` on a <dialog> shows it non-modally; daisyUI's `.modal[open]` rule is what makes it
+            // cover the viewport anyway. `modal-open` alongside it drives the transition.
+            Dialog.Class(UiClass.Compose(Classes(), Open == false ? "" : "modal-open")).Open(Open != false),
+            UiButton
+                .Label("Close")
+                .Variant(UiVariant.Ghost)
+                .Size(UiSize.Sm)
+                .Square(true)
+                .Icon(UiIconName.Close)
+                .OnClick(() => Close?.Invoke()),
+            // A pointer convenience, not the only way out: the header's close button is the keyboard
+            // path, which is why this carries no role and no label of its own.
+            backdrop: Close is null
+                ? null
+                : Button
+                    .Type("button")
+                    .Class("modal-backdrop")
+                    .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
+                    .TabIndex(-1)
+                    .OnClick(() => Close.Invoke())["close"]);
+
+    private string Classes() =>
+        UiClass.Compose(
             "modal",
-            Open == false ? "" : "modal-open",
-            // The responsive default, and only when the caller has not chosen: a stated placement that
-            // then had `sm:modal-middle` appended would be overridden at every width above a phone.
+            // The responsive default, and only where the caller has not chosen: a stated placement with
+            // `sm:modal-middle` appended would be overridden at every width above a phone.
             Placement is { } placement
                 ? UiClassNames.ModalPlacement(placement)
                 : "modal-bottom sm:modal-middle",
-            Class))[
-            Div
-                .Role("dialog")
-                .Aria(new Dictionary<string, string?> { ["modal"] = "true", ["label"] = Title })
-                .Class("modal-box flex max-h-[88vh] flex-col p-0 sm:max-h-[85vh] sm:max-w-2xl")[
+            Class);
+
+    // Takes the half-built chain rather than a finished component: only Build<T> carries the indexer
+    // that adds children, and the two paths differ in how the dialog OPENS, not in what is inside it.
+    private Component Shell(
+        global::Rask.Core.Build<Dialog> dialog, Component closeControl, Component? backdrop) =>
+        // No `role="dialog"`: the element IS a dialog and carries that role implicitly, so stating it
+        // again is the redundant-ARIA that guidance tells you not to write. The NAME is not implicit,
+        // though — a dialog with a heading inside is still an unnamed dialog to a screen reader, which
+        // announces "dialog" and nothing else — so the title goes on as aria-label.
+        dialog.Aria(new Dictionary<string, string?> { ["label"] = Title })[
+            Div.Class("modal-box flex max-h-[88vh] flex-col p-0 sm:max-h-[85vh] sm:max-w-2xl")[
                 Div.Class("flex items-start gap-3 border-b border-base-300 px-4 py-3 sm:px-5")[
                     H2.Class("min-w-0 grow break-words text-base font-semibold tracking-tight")[Title],
-                    UiButton
-                        .Label("Close")
-                        .Variant(UiVariant.Ghost)
-                        .Size(UiSize.Sm)
-                        .Square(true)
-                        .Icon(UiIconName.Close)
-                        .OnClick(() => Close?.Invoke())
+                    closeControl
                 ],
                 // The only scrolling region: the header and footer stay put while a stack trace moves.
                 Div.Class("min-h-0 grow overflow-y-auto px-4 py-4 sm:px-5")[Children ?? []],
@@ -89,19 +149,9 @@ public sealed partial class UiModal : Component
                         Footer
                     ]
             ],
-            // A pointer convenience, not the only way out: the header's close button is the keyboard path,
-            // which is why this carries no role and no label of its own. daisyUI draws it as the backdrop.
-            Close is null
-                ? null
-                : Button
-                    .Type("button")
-                    .Class("modal-backdrop")
-                    .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
-                    .TabIndex(-1)
-                    .OnClick(() => Close.Invoke())["close"]
+            backdrop
         ];
 }
-
 /// <summary>
 /// The result of an action just taken, and the way to acknowledge it.
 /// </summary>
