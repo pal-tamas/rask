@@ -12,7 +12,14 @@ public sealed class MetaHostingOptions
     ///     The directory holding the framework's build output. Relative paths resolve against the
     ///     content root.
     /// </summary>
-    public string AppDirectory { get; set; } = "Client";
+    /// <remarks>
+    ///     Lower case, matching <c>RaskMetaAppDir</c>'s own default and what <c>rask new</c> creates. The
+    ///     build normally overrides this from assembly metadata, so the default is only reached by a host
+    ///     that was written by hand — which is exactly the case that used to break, and only on Linux: a
+    ///     case-insensitive filesystem resolves <c>Client</c> against a <c>client</c> directory quite
+    ///     happily, so the mismatch was invisible everywhere except the container it was deployed to.
+    /// </remarks>
+    public string AppDirectory { get; set; } = "client";
 
     /// <summary>The <c>node</c> executable, resolved on <c>PATH</c> unless given a full path.</summary>
     public string NodeExecutable { get; set; } = "node";

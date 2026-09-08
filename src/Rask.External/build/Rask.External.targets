@@ -656,8 +656,12 @@
 
       An Error for the serve-from-disk case was written and then removed rather than shipped: it could
       not be made to fire in this repository under any configuration that builds, and a guard nobody has
-      watched fail is the thing this repository keeps a casebook about. What remains genuinely open is
-      the browser half — no E2E exercises islands on the WASM host.
+      watched fail is the thing this repository keeps a casebook about.
+
+      The browser half is now covered: WasmIslandsExampleTests drives the published WASM host and asserts
+      every runtime mounts, takes its C# props, re-enters C# through a callback, and reconciles a prop
+      change rather than remounting. So #944 is closed — what is left here is the note above about why
+      the StaticWebAssetsEnabled=false branch is unreachable rather than unguarded, which is still true.
     -->
   </Target>
 

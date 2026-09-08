@@ -27,6 +27,20 @@ them until tagged releases begin.
   and the browser suite reads the computed `::before` margin off the rendered page — a stylesheet
   containing both rules and a stylesheet with the gap are textually indistinguishable. (#1032)
 
+- **The meta lane's two front-end-directory defaults disagreed, and only Linux noticed.**
+  `RaskMetaAppDir` defaults to `client`; `MetaHostingOptions.AppDirectory` still defaulted to `Client`.
+  The build normally hides that by writing the MSBuild value into assembly metadata and reading it
+  back, so only a **hand-written** host reached the C# default — and there a case-insensitive
+  filesystem resolves `Client` against a `client` directory perfectly happily. Develop on macOS, break
+  in the container, with the build's own error (`RaskMetaFramework is set but '<dir>' has no
+  package.json`) pointing at a directory sitting right there under a different case.
+
+  The runtime default is lower case now, and a test compares it against the value parsed out of the
+  shipped props file rather than against a second copy of the string — two literals that are supposed
+  to be equal being unequal is the entire defect, so a test naming `"client"` twice would have passed
+  throughout. `docs/meta.md` stated the old default in its property table; four comments in the props
+  and targets still described a PascalCase folder. (#994)
+
 ### Added
 
 - **rask.sh was deployed entirely unstyled, and had been since the kit shipped.** The published site

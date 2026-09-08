@@ -9,7 +9,7 @@
 
     Nothing below happens without it. That is deliberate — this file is imported into every project of
     every consumer, and a package that started probing for node because a directory happened to be
-    called `Client` would be intolerable. Naming the framework is also what lets `AddRaskMeta()` take
+    called `client` would be intolerable. Naming the framework is also what lets `AddRaskMeta()` take
     no arguments: the name is baked into the assembly, so the build and the running host cannot
     disagree about which framework was built.
 
@@ -25,8 +25,11 @@
     <RaskMetaBuild Condition="'$(RaskMetaBuild)' == ''">true</RaskMetaBuild>
 
     <!--
-      Where the front end lives, relative to the host project: a `Client` FOLDER inside the host,
-      rather than a sibling `.Client` PROJECT. One project owns both halves, because a meta framework
+      Where the front end lives, relative to the host project: a `client` FOLDER inside the host,
+      rather than a sibling `.Client` PROJECT. Lower case, and it has to be: half the frameworks'
+      own scaffolders derive an npm package name from this directory and refuse one with capitals.
+      A capital `Client` belongs to the WASM lane, whose `{name}.Client` is a C# project and takes
+      .NET's convention instead. One project owns both halves, because a meta framework
       app has no separate client artifact for a host to reference — it has a server of its own — so a
       second project would buy nothing and cost a reference nobody uses.
     -->
@@ -46,7 +49,7 @@
     <!--
       Where the built front end is copied inside the publish output, and the directory the host looks
       in at runtime. It matches RaskMetaAppDir on purpose: in development the content root is the
-      project directory and the build output sits under `Client/`, and in a published app the same
+      project directory and the build output sits under `client/`, and in a published app the same
       relative path holds. One default that is correct in both places is worth more than two that have
       to be kept in step.
     -->

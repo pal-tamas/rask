@@ -158,7 +158,7 @@ because it is the expensive one.
 | Property | Default | |
 |---|---|---|
 | `RaskMetaFramework` | — | **Required.** Nothing happens without it. |
-| `RaskMetaAppDir` | `Client` | Where the front end lives, relative to the project. |
+| `RaskMetaAppDir` | `client` | Where the front end lives, relative to the project. Lower case — see above. |
 | `RaskMetaBuild` | `true` | `false` skips node entirely — the app still compiles and its API still works. |
 | `RaskMetaPublishDir` | `$(RaskMetaAppDir)` | Where the built front end lands in the publish output. |
 | `RaskMetaMinimumNode` | `22.12.0` | The floor the build enforces, rather than letting the toolchain fail later. |

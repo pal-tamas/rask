@@ -288,7 +288,7 @@
 
   <!--
     Publish-time only. Copying a framework's whole build output into bin on every F5 would be pure
-    waste — at runtime the app finds it under `Client/` on the developer's own disk, which is exactly
+    waste — at runtime the app finds it under `client/` on the developer's own disk, which is exactly
     where the source tree already has it. It is the published app that needs its own copy.
 
     ResolvedFileToPublish, added AFTER ComputeFilesToPublish. Contributing ContentWithTargetPath before
