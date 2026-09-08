@@ -16,7 +16,7 @@ public sealed class NotFoundPageTests
 
         Assert.Contains("Page not found", html);
         Assert.Contains("/__unknown", html);
-        Assert.Contains(">Back to the guides<", html);
+        Assert.Contains(">Back to guides<", html);
     }
 
     [Fact]

@@ -11,14 +11,18 @@ public sealed partial class NotFoundPage(Navigator nav, RouteState route) : Comp
 {
     protected override Component? HeadAssets => Title["Not found — Rask"];
 
+    // Its own <main>, because it no longer has a layout to provide one. Every other page renders inside
+    // ShowcaseLayout's; this one answers URLs anywhere on the site, including outside /docs, so it has to
+    // carry its own landmark — a document with no <main> is an accessibility failure as well as a page
+    // with nothing for a reader's "skip to content" to reach.
     protected override Component? Render() =>
-    [
-        PageHeader
-            .Title("Page not found")
-            .Lead($"No route is registered for {route.Path}."),
-        Div.Class("flex gap-2 flex-wrap items-center mt-3")[
-            Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => nav.NavigateTo(Routes.GuidesIndexPage()))[
-                UiIcon.Name(UiIconName.Home).Class("me-2"), "Back to the guides"]
-        ]
-    ];
+        Main.Class("mx-auto max-w-3xl px-4 py-16")[
+            PageHeader
+                .Title("Page not found")
+                .Lead($"No route is registered for {route.Path}."),
+            Div.Class("flex gap-2 flex-wrap items-center mt-3")[
+                Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => nav.NavigateTo(Routes.GuidesIndexPage()))[
+                    UiIcon.Name(UiIconName.Home).Class("me-2"), "Back to guides"]
+            ]
+        ];
 }

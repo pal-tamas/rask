@@ -100,15 +100,16 @@ public sealed class SiteExampleTests
                 Assert.StartsWith("docs/guides/", href, StringComparison.Ordinal);
             }
 
-            // The front door links into the nested docs sub-app and names it for what it is — calling
-            // /docs/ "the live demo" left the docs themselves unnamed.
-            await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", "docs/");
+            // The front door links to the showcase and names it for what it is — calling /docs "the
+            // live demo" left the docs themselves unnamed. An in-app route now (one app, two areas),
+            // where it used to be a relative link from one published app to another.
+            await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", SharedSmokeTests.Docs);
             await Expect(page.Locator("#cta-docs")).ToHaveTextAsync("Docs");
 
             // The nav "Docs" entry points at the on-site showcase (/docs/), and the old external
             // GitHub-docs link is gone — no nav link targets the repo's markdown folder anymore.
             await Expect(page.Locator("nav a", new PageLocatorOptions { HasTextString = "Docs" }).First)
-                .ToHaveAttributeAsync("href", "docs/");
+                .ToHaveAttributeAsync("href", SharedSmokeTests.Docs);
             await Expect(page.Locator("a[href*='tree/main/docs']")).ToHaveCountAsync(0);
         }
         finally

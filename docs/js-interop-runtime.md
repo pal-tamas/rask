@@ -199,7 +199,7 @@ There is no `node_modules` in a Rask app, so a library's own typings are not the
 compiled alongside your scoped files, and a narrow declaration that is true is worth more than a
 complete one copied from upstream that drifts, because the compiler believes either equally.
 
-`samples/Rask.Example.Shared/Features/Gantt/frappe-gantt.d.ts` is a worked example: about fifty lines
+A hand-written `.d.ts` beside the scoped file is a worked example: about fifty lines
 covering one constructor, two methods and three callbacks. Rask's own globals (`window.DotNet`,
 `window.Rask`) are already declared for you and need no work.
 
@@ -267,12 +267,6 @@ delegates for auto-re-render, so a two-arg callback silently leaves the caller r
 Finally, tear down from `OnUnmount` **without awaiting** the interop call. An `IAsyncDisposable`
 component is awaited by the framework's dispose walk, and that walk also runs for a session whose socket
 has already closed — where an interop call has nobody to answer it and never completes.
-
-A Gantt chart wrapping [frappe-gantt](https://github.com/frappe/gantt), start to finish — drag or resize
-a bar and the C# table below it updates; add or remove one and the chart follows. That it is on screen at
-all is the marker above doing its job:
-
-<!-- demo:js-interop-thirdparty -->
 
 > A scoped `{Component}.css` **cannot** style the library's internals: scoping works by stamping
 > `data-{scopeId}` on the elements your component renders, and the library's nodes never get it. Size the

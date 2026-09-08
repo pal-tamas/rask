@@ -46,12 +46,17 @@ public sealed partial class TodosPage : Component
     // so typing in the dialog input won't clobber what the user just typed.
     protected override void OnPropsChanged() => _form.Title = EditingItem?.Title ?? "";
 
-    // The list route has a generated type-safe URL (Routes.TodosPage() → "/todos"); the /new and
-    // /{id}/edit dialog routes are secondary [Route] templates on this same page, which the generator
-    // doesn't emit a formatter for, so those two stay as string paths.
-    private void OpenAdd() => _nav.NavigateTo("/todos/new");
+    // The list route has a generated type-safe URL; the /new and /{id}/edit dialog routes are secondary
+    // [Route] templates on this same page, and the generator emits no formatter for those — so they are
+    // built by appending to the generated one rather than written out.
+    //
+    // They used to be the literals "/todos/new" and "/todos/{id}/edit", which was fine while this page
+    // sat at the app root. Under a [ParentRoute] the real URL is /docs/todos/new, so the literals
+    // navigated to a path with no route behind it: the dialog never opened and the page rendered the
+    // 404. Deriving them from Routes.TodosPage() keeps the secondary templates pinned to the primary.
+    private void OpenAdd() => _nav.NavigateTo($"{Routes.TodosPage()}/new");
 
-    private void OpenEdit(TodoItem item) => _nav.NavigateTo($"/todos/{item.Id}/edit");
+    private void OpenEdit(TodoItem item) => _nav.NavigateTo($"{Routes.TodosPage()}/{item.Id}/edit");
 
     private void Cancel() => _nav.NavigateTo(Routes.TodosPage());
 

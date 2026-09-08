@@ -25,6 +25,18 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     protected SharedSmokeTests(PlaywrightFixture pw) => _pw = pw;
 
     protected abstract string BaseUrl { get; }
+
+    /// <summary>
+    ///     Where the showcase is mounted inside the one site app: the landing page owns "/", and
+    ///     everything these journeys drive — the guides, the demos, the islands — hangs off here.
+    /// </summary>
+    /// <remarks>
+    ///     A named prefix rather than twelve literals. The showcase has moved once already (it was a
+    ///     separate app published under /docs/, then a layout at "/", now a layout at /docs), and each
+    ///     time the cost was every hard-coded path in this suite quietly addressing a URL that no longer
+    ///     existed — which a browser test reports as "element not found", never as "wrong page".
+    /// </remarks>
+    public const string Docs = "/docs";
     protected abstract string FixtureName { get; }
     protected abstract string ServerLog { get; }
 
@@ -146,7 +158,12 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         var any = Page.Locator($".side-nav a.side-nav-link:has-text(\"{escaped}\")");
         await any.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
         await Page.WaitForTimeoutAsync(200);
-        var example = Page.Locator($".side-nav a.side-nav-link:has-text(\"{escaped}\"):not([href^=\"/guides/\"])");
+        // The guide-href prefix is built from Docs, not written out. It was the literal "/guides/", and
+        // when the showcase moved under /docs the selector stopped excluding anything — so every label
+        // that names both a guide and a demo clicked the GUIDE, and the test failed looking for a
+        // control on a page it was never on.
+        var example = Page.Locator(
+            $".side-nav a.side-nav-link:has-text(\"{escaped}\"):not([href^=\"{Docs}/guides/\"])");
         var link = await example.CountAsync() > 0 ? example.First : any.First;
         await link.ClickAsync();
     }

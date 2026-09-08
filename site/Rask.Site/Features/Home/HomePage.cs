@@ -85,7 +85,7 @@ public sealed partial class HomePage : Component
                 Nav.Class("flex items-center gap-1 text-sm sm:gap-2")[
                     // Hidden on a narrow viewport rather than wrapped: the bar is chrome, and links
                     // stacking over two lines push the hero below the fold on a phone.
-                    NavItem("Docs", "docs/", hideOnPhone: true),
+                    NavItem("Docs", Rask.Site.Features.Routes.GuidesIndexPage(), hideOnPhone: true),
                     NavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false),
 
                     // Every theme the kit ships, switched in CSS. It works on this page precisely
@@ -122,7 +122,7 @@ public sealed partial class HomePage : Component
                         P.Class(Lede)["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
                         P.Class(Sub)["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
-                            A.Id("cta-docs").Class(BtnPrimary).Href("docs/").Target("_blank").Rel("noopener")["Docs"],
+                            A.Id("cta-docs").Class(BtnPrimary).Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
                             A
                                 .Class(BtnGhost)
                                 .Href("https://github.com/pal-tamas/rask")
@@ -383,7 +383,7 @@ public sealed partial class HomePage : Component
                         // "Docs", not "Open the live demo". The hero's CTA was renamed when calling the
                         // docs "the live demo" left the docs themselves with no name; this one was
                         // missed, so the same page called the same destination two different things.
-                        A.Class(BtnPrimary).Href("docs/").Target("_blank").Rel("noopener")["Docs"],
+                        A.Class(BtnPrimary).Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
                         A
                             .Class(BtnGhost)
                             .Href("https://github.com/pal-tamas/rask")
@@ -393,7 +393,7 @@ public sealed partial class HomePage : Component
                         ]
                     ],
                     Div.Class("mt-10 flex flex-wrap justify-center gap-5 text-sm text-ui-muted [&>a]:no-underline hover:[&>a]:text-ui-ink")[
-                        A.Href("docs/").Target("_blank").Rel("noopener")["Docs"],
+                        A.Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],

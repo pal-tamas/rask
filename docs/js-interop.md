@@ -108,7 +108,7 @@ in your test gate, where a failure is loud and attributable. Rask's own gate run
 Rask ships ambient declarations for its own browser globals (`window.DotNet`, `window.Rask`), so
 calling a `[JSInvokable]` needs no declaration of your own. For a third-party library, write a narrow
 `.d.ts` beside your code describing what you actually call — any `.d.ts` in the project is compiled
-alongside your scoped files. `samples/Rask.Example.Shared/Features/Gantt/frappe-gantt.d.ts` is a
+alongside your scoped files. A hand-written `.d.ts` for a vendored UMD bundle is a
 worked example.
 
 ### What your editor reads

@@ -41,21 +41,28 @@ host.UsePwa(new WebAppManifest
             Description: "Jump straight to the Browser APIs showcase")
     ]
 });
-// WASM-only example pages — contribute their sidebar entries to the shared ShowcaseLayout. These APIs
-// can't run on the Server transport, so they live in the WASM host rather than the shared showcase.
-host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", UiIconName.Phone, "PWA"));
+// These pages contribute their sidebar entries here rather than in ShowcaseLayout's own table.
+//
+// The paths are the GENERATED route URLs, not literals. They WERE literals — "/pwa", "/islands" — and
+// the day the showcase moved from / to /docs every one of them became a dead sidebar link pointing at a
+// URL with no route behind it. Nothing failed to build; the entries rendered, the links looked right,
+// and clicking one landed on "No route is registered for /pwa".
+//
+// ShowcaseLayout's own link table already had this right, and says so in a comment: a renamed or removed
+// [Route] is a compile error there rather than a dead link. These entries simply bypassed it.
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PwaPage(), "PWA demo", UiIconName.Phone, "PWA"));
 // The islands showcase: the same .vue/.tsx/.svelte the Server host builds, mounted client-side.
-host.Services.AddSingleton(new ShowcaseNavEntry("/islands", "Islands", UiIconName.Overview, "Islands"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/install", "Install prompt", UiIconName.Download, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", UiIconName.Desktop, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", UiIconName.Phone, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", UiIconName.Fullscreen, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/picture-in-picture", "Picture-in-Picture", UiIconName.Desktop, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/eyedropper", "EyeDropper", UiIconName.EyeDropper, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/idle", "Idle detection", UiIconName.Clock, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/media-devices", "Camera & mic", UiIconName.VideoCamera, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/serial", "Serial port", UiIconName.Cube, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/usb", "USB device", UiIconName.Cube, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/hid", "HID device", UiIconName.Cube, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry("/bluetooth", "Bluetooth", UiIconName.Signal, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Islands.Routes.IslandsPage(), "Islands", UiIconName.Overview, "Islands"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.InstallPromptPage(), "Install prompt", UiIconName.Download, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.WakeLockPage(), "Wake lock", UiIconName.Desktop, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.OrientationPage(), "Orientation", UiIconName.Phone, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.FullscreenPage(), "Fullscreen", UiIconName.Fullscreen, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PictureInPicturePage(), "Picture-in-Picture", UiIconName.Desktop, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.EyeDropperPage(), "EyeDropper", UiIconName.EyeDropper, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.IdleDetectorPage(), "Idle detection", UiIconName.Clock, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.MediaDevicesPage(), "Camera & mic", UiIconName.VideoCamera, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.SerialPage(), "Serial port", UiIconName.Cube, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.UsbPage(), "USB device", UiIconName.Cube, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.HidPage(), "HID device", UiIconName.Cube, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.BluetoothPage(), "Bluetooth", UiIconName.Signal, "PWA"));
 await host.RunAsync<App>();

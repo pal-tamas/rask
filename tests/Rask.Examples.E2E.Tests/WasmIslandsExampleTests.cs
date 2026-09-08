@@ -26,7 +26,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     [Fact]
     public Task EveryRuntimeMountsAndTakesItsCSharpProps() => RunAsync(async () =>
     {
-        await Page.GotoAsync("/islands");
+        await Page.GotoAsync(Docs + "/islands");
 
         // Four runtimes on this page, not the Server showcase's six: Lit and Angular are not part of
         // the WASM pair, because both pair with a plain .ts and this app genuinely uses Rask's scoped
@@ -63,7 +63,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         // The assertion this suite exists for. On the Server host the same click travels over the live
         // WebSocket; here there is no socket at all, and the handler id has to come back through
         // [JSExport] into the runtime running in this tab. Identical markup, entirely different path.
-        await Page.GotoAsync("/islands");
+        await Page.GotoAsync(Docs + "/islands");
         await Expect(Page.GetByTestId("vue-chart")).ToBeVisibleAsync();
 
         await Expect(Page.Locator("#island-last-clicked")).ToHaveTextAsync("(none)");
@@ -78,7 +78,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     [Fact]
     public Task APropChangeReconcilesRatherThanRemounting() => RunAsync(async () =>
     {
-        await Page.GotoAsync("/islands");
+        await Page.GotoAsync(Docs + "/islands");
         await Expect(Page.GetByTestId("svelte-meter")).ToBeVisibleAsync();
 
         // State that belongs to the front-end component and that C# has never seen. If a prop change

@@ -23,7 +23,12 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             DeepLink = true,
             OfflineReconnect = false,
             Slow3g = true,
-            SignalingRelay = true,
+            // False now, and this is a real change in what the site can do rather than a test
+            // concession. The relay is ASP.NET-side (Rask.Signaling), and this app used to be booted
+            // behind Rask.Example.Wasm.Host — an ASP.NET host that mapped it. There is one app now and
+            // GitHub Pages serves it as static files, so nothing maps the relay in production either.
+            // The demo says so in its own UI on a host without one.
+            SignalingRelay = false,
         }));
 
     // The WASM-only PWA example page (PwaDemo) lives in the WASM host and is surfaced in the shared
@@ -31,7 +36,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task PwaExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -56,7 +61,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task WakeLockExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -72,7 +77,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task OrientationExample_RoutesAndReads() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -106,7 +111,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task FullscreenExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -126,7 +131,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task InstallPromptExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -146,7 +151,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task PictureInPictureExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -164,7 +169,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task EyeDropperExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -182,7 +187,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task IdleDetectionExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -201,7 +206,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     [Fact]
     public Task MediaDevicesExample_RoutesAndRenders() => RunAsync(async () =>
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -214,48 +219,4 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
-    // A real Blazor component (samples/Rask.Example.Razor's PriceTicker.razor, compiled by the Razor
-    // SDK in a referenced class library) hosted as a Rask island — on browser-WebAssembly.
-    //
-    // This test exists because of a failure with NO build warning, NO console error and NO exception:
-    // the showcase publishes TRIMMED, and a hosted component's parameters are assigned by reflection
-    // inside Microsoft.AspNetCore.Components, on a type Rask does not own. Without the
-    // DynamicallyAccessedMembers annotation on BlazorComponent<TComponent> the trimmer removes those
-    // property setters and the island renders EMPTY — <rask-blazor></rask-blazor> and nothing else.
-    // So every assertion below is on the hosted component's own OUTPUT: an empty island is exactly
-    // what a presence check would pass on.
-    [Fact]
-    public Task BlazorIslandExample_RendersHostedComponentAndRoundTripsItsOwnEvents() => RunAsync(async () =>
-    {
-        await Page.GotoAsync(BaseUrl);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Blazor island");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Blazor island",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-
-        // The parameters crossed: Symbol and Price are C# values the island handed the hosted
-        // component, and they only appear if the trimmer left its setters alone.
-        await Expect(Page.Locator("[data-testid=ticker-symbol]")).ToHaveTextAsync("RASK",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-        await Expect(Page.Locator("[data-testid=ticker-price]")).ToContainTextAsync("12.50",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // The HOSTED component's own @onclick, with no Blazor circuit: Blazor mints the handler id
-        // during the static render and the island writes Rask's data-rask-on-click in its place, so
-        // the click travels the same channel every other event on this page uses.
-        await Page.ClickAsync("[data-testid=ticker-watch]");
-        await Expect(Page.Locator("[data-testid=ticker-watches]")).ToContainTextAsync("watching: 1",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // ...and its @bind, which travels the INPUT channel instead — the one that carries a value.
-        await Page.FillAsync("[data-testid=ticker-note]", "live bind");
-        await Expect(Page.Locator("[data-testid=ticker-note-echo]")).ToContainTextAsync("live bind",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // The page's Rask half is still Rask's: the island owns its own subtree and nothing more.
-        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("BlazorComponent",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-    });
 }
