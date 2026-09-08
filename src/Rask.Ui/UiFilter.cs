@@ -37,7 +37,8 @@ public sealed partial class UiFilter : Component
     protected override Component? Render()
     {
         var reset = Input
-            .Value(Selected is null)
+            .Value("")
+            .Checked(Selected is null)
             .Type(InputType.Radio)
             .Name(Group)
             .Class("btn btn-square filter-reset")
@@ -55,15 +56,15 @@ public sealed partial class UiFilter : Component
             reset,
             Options.Select(option =>
             {
+                // daisyUI draws the option's TEXT from the input's own value, so opening the
+                // chain here is not only tidier than the escape hatch — it is the label as well.
                 var choice = Input
-                    .Value(Selected == option)
+                    .Value(option)
+                    .Checked(Selected == option)
                     .Key(option)
                     .Type(InputType.Radio)
                     .Name(Group)
                     .Class("btn")
-                    // daisyUI draws the option's text from the input's own value, so this is the label
-                    // as well as the value.
-                    .Attributes(("value", option))
                     .Aria(new Dictionary<string, string?> { ["label"] = option });
 
                 return OnSelect is { } select ? choice.OnChange(_ => select(option)) : choice;

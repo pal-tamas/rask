@@ -35,8 +35,8 @@ public sealed partial class UiRadio : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var box = Input
-            .Value(Checked == true)
+        var box = Input.Of<bool>()
+            .Checked(Checked == true)
             .Type(InputType.Radio)
             .Name(Group)
             .Disabled(Disabled == true)

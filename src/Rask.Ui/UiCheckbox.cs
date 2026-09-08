@@ -33,8 +33,10 @@ public sealed partial class UiCheckbox : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var box = Input
-            .Value(Checked == true)
+        // Of<bool>() rather than a value: the type argument is what makes OnChange an
+        // Action<bool>, and this control reports a bool.
+        var box = Input.Of<bool>()
+            .Checked(Checked == true)
             .Disabled(Disabled == true)
             .Class(UiClass.Compose(
                 "checkbox",

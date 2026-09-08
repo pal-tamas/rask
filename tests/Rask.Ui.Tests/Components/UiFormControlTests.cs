@@ -73,6 +73,54 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     public void A_horizontal_range_writes_no_direction_class() =>
         Assert.DoesNotContain("range-vertical", UiRange.Label("Volume").ToHtml());
 
+    [Theory]
+    [InlineData("checkbox")]
+    [InlineData("toggle")]
+    [InlineData("radio")]
+    public void A_control_the_page_says_is_on_renders_as_checked(string kind)
+    {
+        // These wrote `.Value(Checked == true)`, and on an <input> that is the VALUE attribute — so
+        // every checked control in the kit rendered `value="True"` with no `checked` at all. It looked
+        // right in C#, passed every markup assertion that did not name the attribute, and came out off
+        // on a prerendered page. The checked state comes from `.Checked(...)`.
+        var html = kind switch
+        {
+            "checkbox" => UiCheckbox.Text("Remember").Checked(true).ToHtml(),
+            "toggle" => UiToggle.Text("Alerts").Checked(true).ToHtml(),
+            _ => UiRadio.Text("Standard").Group("shipping").Checked(true).ToHtml(),
+        };
+
+        Assert.Contains("checked", html);
+    }
+
+    [Theory]
+    [InlineData("checkbox")]
+    [InlineData("toggle")]
+    [InlineData("radio")]
+    public void A_control_the_page_says_is_off_does_not(string kind)
+    {
+        var html = kind switch
+        {
+            "checkbox" => UiCheckbox.Text("Remember").Checked(false).ToHtml(),
+            "toggle" => UiToggle.Text("Alerts").Checked(false).ToHtml(),
+            _ => UiRadio.Text("Standard").Group("shipping").Checked(false).ToHtml(),
+        };
+
+        Assert.DoesNotContain("checked", html);
+    }
+
+    [Fact]
+    public void A_filter_option_carries_its_value_exactly_once()
+    {
+        // It set the value through the escape hatch while the chain's Value was believed to carry the
+        // checked state. With the type pinned as well, the attribute was written TWICE —
+        // `value="bug" ... value="False"` — which is invalid HTML that happens to work.
+        var html = Filter(selected: "bug");
+
+        Assert.Equal(1, Occurrences(html, "value=\"bug\""));
+        Assert.DoesNotContain("value=\"False\"", html);
+    }
+
     [Fact]
     public void A_checkbox_wraps_its_words_in_the_hit_target()
     {

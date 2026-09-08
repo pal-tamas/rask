@@ -770,6 +770,10 @@ Rask.Ui.UiDrawer.CloseLabel.get -> string?
 Rask.Ui.UiDrawer.CloseLabel.set -> void
 Rask.Ui.UiDrawer.Id.get -> string!
 Rask.Ui.UiDrawer.Id.set -> void
+Rask.Ui.UiDrawer.OnToggle.get -> System.Action<bool>?
+Rask.Ui.UiDrawer.OnToggle.set -> void
+Rask.Ui.UiDrawer.Open.get -> bool?
+Rask.Ui.UiDrawer.Open.set -> void
 Rask.Ui.UiDrawer.Side.get -> Rask.Core.Component!
 Rask.Ui.UiDrawer.Side.set -> void
 Rask.Ui.UiDrawer.UiDrawer() -> void
@@ -1909,9 +1913,11 @@ static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiFilter!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, System.Action<int>? value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
 static RaskBuilderSettersRask_Ui.OnSelected(this Rask.Core.Build<Rask.Ui.UiRadio!> __b, System.Action? value) -> Rask.Core.Build<Rask.Ui.UiRadio!>
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiAccordion!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiAccordion!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
+static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiModal!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiTooltip!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiTooltip!>

@@ -257,6 +257,23 @@ them until tagged releases begin.
   ownership alone instead of having a dev tool impose `0644 root:root` on a file that already existed.
   The same fix applies on macOS, where the same call would have failed the same way.
 
+### Fixed
+
+- **Every checked control in the kit rendered unchecked.** `UiCheckbox`, `UiToggle`, `UiRadio`,
+  `UiRating`, `UiFilter`, `UiThemePicker` and `UiDrawer` set their state with `.Value(Checked == true)`
+  — and on an `<input>` that is the **value attribute**, not the checked state. The markup came out as
+  `value="True"` with no `checked` at all, so a control the page said was on arrived off: on every
+  prerendered page, in every static render, and in every test that did not name the attribute. The
+  checked state comes from `.Checked(...)`.
+
+  Two of them were worse. `UiFilter` and `UiThemePicker` also set a real value through the escape
+  hatch — daisyUI reads it, for the option's text and for the theme — so with the type pinned as well
+  the attribute was written **twice**: `value="bug" … value="False"`. Invalid HTML that happened to
+  work because a browser takes the first one.
+
+  Guarded now by tests that name `checked` directly, and by a browser test that asks the DOM whether
+  the box is checked rather than what its markup says.
+
 ### Removed
 
 - **The CSS-only state of `UiSwap` and `UiThemeController`.**

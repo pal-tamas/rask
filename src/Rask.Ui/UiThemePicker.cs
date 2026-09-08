@@ -52,15 +52,15 @@ public sealed partial class UiThemePicker : Component
                 // identity rather than position, and the name is the identity here.
                 return Li.Key(value)[
                     Label.Class("flex cursor-pointer items-center gap-2")[
+                        // daisyUI keys the palette off the input's `value`, so the chain opens
+                        // on it. It used to go through the escape hatch, on the belief that Value
+                        // carried the checked state; Checked does, and Value is the attribute.
                         Input
-                            .Value(false)
+                            .Value(value)
+                            .Checked(false)
                             .Type(InputType.Radio)
                             .Name(GroupName)
                             .Class("radio radio-sm theme-controller")
-                            // daisyUI keys the palette off the input's `value`, which is a plain
-                            // attribute here rather than the chain's Value — that one carries the
-                            // checked state.
-                            .Attributes(("value", value))
                             .Aria(new Dictionary<string, string?> { ["label"] = value }),
                         Span[value]
                     ]

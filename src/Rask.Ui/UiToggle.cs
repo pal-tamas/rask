@@ -33,8 +33,8 @@ public sealed partial class UiToggle : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var box = Input
-            .Value(Checked == true)
+        var box = Input.Of<bool>()
+            .Checked(Checked == true)
             .Disabled(Disabled == true)
             .Class(UiClass.Compose(
                 "toggle",

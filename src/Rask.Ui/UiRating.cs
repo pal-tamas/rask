@@ -40,7 +40,8 @@ public sealed partial class UiRating : Component
                 Size is { } size ? UiClassNames.RatingSize(size) : "",
                 Class))[
             Input
-                .Value(Value is null or 0)
+                .Value("0")
+                .Checked(Value is null or 0)
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Class("rating-hidden")
@@ -48,7 +49,8 @@ public sealed partial class UiRating : Component
             Enumerable.Range(1, Math.Max(Max ?? 5, 0)).Select(star =>
             {
                 var input = Input
-                    .Value(star == Value)
+                    .Value(star.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    .Checked(star == Value)
                     .Key(star)
                     .Type(InputType.Radio)
                     .Name(Group)
