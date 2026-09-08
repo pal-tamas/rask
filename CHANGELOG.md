@@ -75,6 +75,27 @@ them until tagged releases begin.
   **`UiCollapse` moves onto C# state**, with the same three-setting `Open` and the same
   `collapse-close` reasoning as the dropdown. `Marker` becomes the `UiMarker` enum.
 
+- **`UiMegamenu`, and the tab row is daisyUI's — still made of links.** Showcase at `/ui/navigation`.
+
+  **`UiMegamenu` is opened by the browser, and that is the right answer here rather than a concession.**
+  daisyUI builds it on the native popover API: each trigger is a `popovertarget` and each panel a
+  `[popover]`, so the top layer, Escape and light-dismiss are the browser's and the whole thing works
+  on a prerendered page with no runtime booted. For a site's main navigation — the first thing a reader
+  touches and the last thing that should wait for a bundle — that is worth more than programmatic
+  control. The panels are positioned by CSS anchor positioning keyed on `:nth-of-type`, so the
+  component renders the triggers as siblings and the panels as siblings and the highlight last; a
+  wrapper around either would misnumber them.
+
+  **`UiTabs`/`UiTab` gain daisyUI's `tabs` API** — `tabs-box`, `tabs-border`, `tabs-lift`, the five
+  sizes, top/bottom placement, `tab-active` and `tab-disabled` — and **stay links**. This is the one
+  component in the kit that deliberately did not move onto C# state: a tab that is a URL is
+  bookmarkable, survives a refresh, answers the back button and works before boot, and a tab that is an
+  index in a field is none of those. daisyUI's own tab supports the link form, so nothing was traded
+  for it. The row carries `role="tablist"` and each tab `aria-selected`.
+
+  A placement a tab row has no class for — `Start`, `Left` — writes nothing rather than inventing
+  `tabs-start`, which would sit in the markup looking as though it styled something.
+
 - **The site at [rask.sh](https://rask.sh) is prerendered, and a Rask app can now be indexed at all.**
   Four framework pieces, each of which was a hole a real site falls into.
 

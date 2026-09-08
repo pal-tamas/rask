@@ -542,4 +542,33 @@ internal static class UiClassNames
         UiMarker.Plus => "collapse-plus",
         _ => "",
     };
+
+    internal static string TabsStyle(UiTabStyle value) => value switch
+    {
+        UiTabStyle.Box => "tabs-box",
+        UiTabStyle.Border => "tabs-border",
+        UiTabStyle.Lift => "tabs-lift",
+        _ => "",
+    };
+
+    /// <remarks>
+    ///     A row of tabs sits above or below its panel and nowhere else, so the horizontal members of
+    ///     <see cref="UiPlacement" /> return nothing rather than a class daisyUI never defined.
+    /// </remarks>
+    internal static string TabsPlacement(UiPlacement value) => value switch
+    {
+        UiPlacement.Top => "tabs-top",
+        UiPlacement.Bottom => "tabs-bottom",
+        _ => "",
+    };
+
+    internal static string MegamenuSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "megamenu-xs",
+        UiSize.Sm => "megamenu-sm",
+        UiSize.Md => "megamenu-md",
+        UiSize.Lg => "megamenu-lg",
+        UiSize.Xl => "megamenu-xl",
+        _ => "",
+    };
 }

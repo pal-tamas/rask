@@ -161,16 +161,46 @@ public sealed partial class UiHeader : Component
 
 /// <summary>A row of link-shaped tabs. Navigation, so each one is a real link with a real URL.</summary>
 /// <remarks>
-/// Scrolls rather than wraps: these carry counts that change as a queue drains, and a wrapping row would
-/// change height underneath an operator mid-read.
+/// <para>
+/// daisyUI's <c>tabs</c>, and <b>links rather than a selected index</b> — which is the one place this
+/// category deliberately did not move onto C# state. A tab that is a URL is bookmarkable, survives a
+/// refresh, answers the back button and works before the runtime boots; a tab that is an index in a
+/// field is none of those. Where a page genuinely has no URL for a view, put the state in the page and
+/// render the panel yourself.
+/// </para>
+/// <para>
+/// Scrolls rather than wraps: these carry counts that change as a queue drains, and a wrapping row
+/// would change height underneath an operator mid-read.
+/// </para>
 /// </remarks>
 public sealed partial class UiTabs : Component
 {
+    /// <summary>How the row is drawn.</summary>
+    public UiTabStyle? Style { get; set; }
+
+    public UiSize? Size { get; set; }
+
+    /// <summary>
+    ///     Which side of its panel the row sits on. Only <see cref="UiPlacement.Top" /> and
+    ///     <see cref="UiPlacement.Bottom" /> mean anything here; anything else draws the default.
+    /// </summary>
+    public UiPlacement? Placement { get; set; }
+
+    public string? Class { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render() =>
-        Nav.Class(
-            "-mx-3 flex items-center gap-1 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0 "
-            + "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden")[
+        // role=tablist on a <nav> of links: daisyUI's own markup for the link form, and what tells
+        // assistive technology these are alternatives rather than an arbitrary run of links.
+        Nav.Role("tablist")
+            .Class(UiClass.Compose(
+                "tabs",
+                Style is { } style ? UiClassNames.TabsStyle(style) : "",
+                Size is { } size ? UiClassNames.TabsSize(size) : "",
+                Placement is { } placement ? UiClassNames.TabsPlacement(placement) : "",
+                "-mx-3 flex-nowrap overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0 "
+                + "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                Class))[
             Children ?? []
         ];
 }
@@ -190,16 +220,25 @@ public sealed partial class UiTab : Component
     /// <summary>Colours the count when it is a number worth acting on.</summary>
     public bool? Alarm { get; set; }
 
+    /// <summary>Draws it as unavailable. Still a link — use it for a view that exists but has nothing in it.</summary>
+    public bool? Disabled { get; set; }
+
+    public string? Class { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render() =>
         NavLink
             .Href(Href)
-            .Class(Active == true
-                ? "flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-base-300 "
-                  + "bg-base-200 px-3 text-sm font-medium text-base-content no-underline sm:min-h-0 sm:py-1.5"
-                : "flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-transparent "
-                  + "px-3 text-sm opacity-60 no-underline hover:bg-base-200 hover:text-base-content sm:min-h-0 "
-                  + "sm:py-1.5")[
+            .Role("tab")
+            .Aria(new Dictionary<string, string?> { ["selected"] = Active == true ? "true" : "false" })
+            .Class(UiClass.Compose(
+                "tab gap-2 whitespace-nowrap",
+                Active == true ? "tab-active" : "",
+                Disabled == true ? "tab-disabled" : "",
+                // 44px is the smallest reliable touch target and daisyUI's tab is shorter than that on
+                // a phone; the height relaxes from sm up, where there is a pointer.
+                "min-h-11 sm:min-h-0",
+                Class))[
             Span[Label],
             Count is null
                 ? null
