@@ -9,6 +9,48 @@ them until tagged releases begin.
 
 ### Added
 
+- **Every control in the kit is a form control.** All twelve of `Rask.Ui`'s data-input components now
+  implement `IFormControl<T>`, so each takes `Bind(() => model.Field)` with per-field `Validate`,
+  `ValidateAsync` and `AfterBind` and the validation display that comes with a bound control, or
+  `Value` with `OnChange`/`OnChangeAsync` and leaves the value with the parent. **The opening step
+  fixes the value type and the mode together**, and the two are mutually exclusive at the call site
+  rather than at render time.
+
+  Generic where the value type genuinely varies — `UiInput<T>`, `UiTextarea<T>`, `UiSelect<T>`,
+  `UiFilter<T>` — and closed where it does not: `UiCheckbox`/`UiToggle`/`UiRadio` over `bool`,
+  `UiRange` over `double`, `UiRating` over `int`, `UiOtp`/`UiFileInput` over `string`, `UiCalendar`
+  over `DateOnly`. A checkbox's value is a `bool` and nothing else, so a type parameter there would
+  have exactly one legal argument.
+
+  Three read differently from their old shapes and are worth naming. `UiRadio` binds **its own**
+  checked state, not the group's value — choosing an option fires no change on the one it deselected,
+  so a handler waiting for `false` waits forever; `UiFilter<T>` is the control that binds a whole
+  group. `UiCalendar`'s `Month`/`OnMonth` stay outside the binding because they are the view: paging
+  through months changes nothing a form would submit. And `UiFileInput`'s bound mode is **write-only** —
+  a browser refuses to have a file input's value set, so binding fills the model from the reader's
+  choice and never draws a filename back into the box; the bytes come through `OnFiles`.
+
+  `UiInput<T>` also stopped forcing `type="text"`. It passes its nullable `Type` through, so
+  `Rask.Html`'s `Input<T>` derives one from `T` — a bound `int` is a number field with nothing said at
+  the call site.
+
+  **Breaking, at every call site.** A form control's chain opens on `Bind`, `Value` or `Of<T>()`, so
+  `UiInput.Label("Email")` no longer compiles; write `UiInput.Value(_email).Label("Email")` or
+  `UiInput.Of<string>().Label("Email")`. `UiCheckbox`/`UiToggle`/`UiRadio` lose `Checked` — the state
+  is the control's `Value` — and `UiRadio` loses `OnSelected`, `UiFilter` `Selected`/`OnSelect`,
+  `UiCalendar` `Selected`/`OnSelect`, each replaced by `Value`/`OnChange`. `UiFilter.Options` is now
+  `(T Value, string Text)` pairs rather than strings, which is what pins `T`.
+
+  The binding plumbing a control drawing its own markup has to write by hand — resolve at the top of a
+  render, commit at the bottom — lives once in `UiFormCommit` rather than five times over.
+
+- **`Of<T>()` reaches a generic form control that has required props.** It was withheld from any
+  component with a required step, on the reasoning that the step already pins the type. For a form
+  control that reasoning does not hold: its openings are the mode pins, so a required step of its own
+  is never one and never gets to pin `T`. `UiInput<T>` requires a `Label`, which says nothing about
+  `T` — so a controlled field with no starting value had no way in at all, and `UiInput.Value("")` was
+  a value invented to satisfy the compiler rather than the field.
+
 - **`UiSelect` is a form control, and can draw its own list.** It implements `IFormControl<T>`, so it
   binds — `UiSelect.Bind(() => _order.Country).Options(countries).Label("Country")` — with per-field
   `Validate`, `AfterBind`, and the validation display that comes with a bound control; or takes
@@ -320,6 +362,22 @@ them until tagged releases begin.
   The same fix applies on macOS, where the same call would have failed the same way.
 
 ### Fixed
+
+- **A radio bound over a `bool` rendered `value="True"` and was never checked.** `Input<T>` derived the
+  checked state from the model only for `type="checkbox"`; a radio fell through to the value branch, so
+  a bound radio read correctly in C# and came out unset in the markup on every frame — the same shape
+  as the `.Value(Checked == true)` bug already in this log, one layer down. A radio bound over a `bool`
+  is asking whether **this** option is the chosen one, which is the question a checkbox asks, so its
+  state is now `checked`. A radio bound over anything else is carrying the group's value and still
+  writes it.
+
+- **A bound chain over a value-type form control could never be completed.** `IFormControl<T>` declares
+  `T? Value`, where `?` over an unconstrained `T` is a nullability annotation — so `IFormControl<bool>`
+  has a plain `bool Value`, which RASK001's rule reads as a required property and the chain generator
+  turned into an outstanding step. Bound mode withdraws `Value` on purpose, so
+  `UiCheckbox.Bind(() => m.Agreed).Text("…")` sat forever in a pending state waiting for a step its own
+  mode does not offer. The only symptom was that the chain had no `ToHtml` and no `[…]` indexer, with
+  nothing said about why. A form control's `Value` is its opening, never a step outstanding after one.
 
 - **`UiValidator` could never be seen.** daisyUI reveals `.validator-hint` only next to a `.validator`
   control that is invalid — `:user-invalid`, or carrying `aria-invalid`. No kit control wrote either,

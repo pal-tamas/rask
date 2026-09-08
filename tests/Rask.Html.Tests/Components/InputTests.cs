@@ -38,11 +38,44 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
         Assert.Contains("step=\"0.01\"", Input.Bind(() => model.Price).Step("0.01").ToHtml(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(true, "<input type=\"radio\" name=\"Express\" checked />")]
+    [InlineData(false, "<input type=\"radio\" name=\"Express\" />")]
+    public void Render_BoolBoundRadio_WritesCheckedRatherThanAValue(bool express, string expected)
+    {
+        // A radio bound over a bool is asking whether THIS option is the chosen one, which is the same
+        // question a checkbox asks — so the model's value is its `checked` state. It used to fall
+        // through to the value branch and render `value="True"` with no checked at all: a bound radio
+        // that reads correctly in C# and comes out unset in the markup on every frame.
+        var model = new ShippingModel { Express = express };
+
+        Assert.Equal(expected, Input.Bind(() => model.Express).Type(InputType.Radio).ToHtml());
+    }
+
+    [Fact]
+    public void Render_NonBoolBoundRadio_StillCarriesTheGroupValue()
+    {
+        // Only a bool means "this option". A radio bound over anything else is carrying the group's
+        // value, and that has to reach the markup as a value.
+        var model = new ShippingModel { Choice = "express" };
+
+        Assert.Equal(
+            "<input type=\"radio\" name=\"Choice\" value=\"express\" />",
+            Input.Bind(() => model.Choice).Type(InputType.Radio).ToHtml());
+    }
+
     private sealed class PriceModel
     {
         public decimal Price { get; set; }
 
         public int Quantity { get; set; }
+    }
+
+    private sealed class ShippingModel
+    {
+        public bool Express { get; set; }
+
+        public string Choice { get; set; } = "";
     }
 
     [Fact]

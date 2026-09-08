@@ -52,7 +52,7 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_selected_day_is_marked_for_CSS_and_for_a_screen_reader()
     {
-        var html = UiCalendar.Label("Delivery date").Month(March).Selected(new DateOnly(2026, 3, 14))
+        var html = UiCalendar.Value(new DateOnly(2026, 3, 14)).Label("Delivery date").Month(March)
             .ToHtml();
 
         Assert.Contains("btn-active", html);
@@ -64,7 +64,7 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     {
         // Hiding them would change the shape of the grid and leave a reader wondering whether the month
         // is short or the date is unavailable.
-        var html = UiCalendar.Label("Delivery date").Month(March).Min(new DateOnly(2026, 3, 10))
+        var html = UiCalendar.Value(default(DateOnly)).Label("Delivery date").Month(March).Min(new DateOnly(2026, 3, 10))
             .ToHtml();
 
         Assert.Equal(31, Occurrences(html, "aria-pressed"));
@@ -88,8 +88,8 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public void The_week_starts_where_it_is_told_to()
     {
         // The lead-in blanks depend on it, so getting this wrong shifts every day by a column.
-        var monday = UiCalendar.Label("d").Month(March).FirstDay(DayOfWeek.Monday).ToHtml();
-        var sunday = UiCalendar.Label("d").Month(March).FirstDay(DayOfWeek.Sunday).ToHtml();
+        var monday = UiCalendar.Value(default(DateOnly)).Label("d").Month(March).FirstDay(DayOfWeek.Monday).ToHtml();
+        var sunday = UiCalendar.Value(default(DateOnly)).Label("d").Month(March).FirstDay(DayOfWeek.Sunday).ToHtml();
 
         Assert.NotEqual(monday, sunday);
     }
@@ -120,5 +120,5 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     }
 
     private static string Calendar(DateOnly month) =>
-        UiCalendar.Label("Delivery date").Month(month).ToHtml();
+        UiCalendar.Value(default(DateOnly)).Label("Delivery date").Month(month).ToHtml();
 }

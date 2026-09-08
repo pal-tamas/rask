@@ -1834,11 +1834,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // is the opening and that step already pins the type — `Form.Model(m)` reads TModel off the model —
     // so `Of` would be a second spelling of the same move, and a chain that took it would owe the
     // required step anyway.
+    //
+    // A generic FORM CONTROL is the exception, and it is not a special case so much as the same rule
+    // read properly: a form control's openings are its MODE pins, `Bind` and `Value`, so a required step
+    // of its own is never one and never gets to pin the type. `UiInput<T>` requires a `Label` — which
+    // says nothing about T — so without this a controlled call site with no starting value has no way in
+    // at all, and `UiInput.Value("")` is a value invented to satisfy the compiler rather than the field.
     private static void EmitExplicitTypeOpening(
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
         List<EntryInference> required)
     {
-        if (c.TypeParameters.Length == 0 || required.Count != 0)
+        if (c.TypeParameters.Length == 0 || (required.Count != 0 && c.FormControl is null))
         {
             return;
         }
@@ -2014,6 +2020,21 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         foreach (var p in c.Properties)
         {
             if (!IsRequiredFactoryParam(p) || p.IsInitOnly || p.Name == "Children" || p.IsSharedSurfaceProp)
+            {
+                continue;
+            }
+
+            // A form control's Value is its OPENING, never a step outstanding after one.
+            //
+            // It only ever looks required on a control closed over a value type — `IFormControl<T>`
+            // declares `T? Value`, where `?` over an unconstrained T is a nullability annotation, so
+            // `IFormControl<bool>` has a plain non-nullable `bool Value` and RASK001's rule reads it as
+            // required. Left in the required set it is unsatisfiable in BOUND mode, which withdraws
+            // Value on purpose: `UiCheckbox.Bind(() => m.Agreed).Text("…")` would sit forever in a
+            // pending state waiting for a step its own mode does not offer, and the only symptom is
+            // that the chain has no ToHtml. Controlled mode loses nothing — opening on `Value(…)` is
+            // how the value arrives there, and it is still the only way in.
+            if (c.FormControl is not null && p.Name is "Bind" or "Value")
             {
                 continue;
             }

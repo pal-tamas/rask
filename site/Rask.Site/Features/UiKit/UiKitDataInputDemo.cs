@@ -33,21 +33,25 @@ public sealed partial class UiKitDataInputDemo : Component
             + "element — and Ghost is the borderless form. daisyUI defines no outline, soft or dash for "
             + "a text control, so those draw the default rather than a class that does nothing.",
             Div.Data(Testid("ui-text-controls")).Class("grid gap-3 sm:grid-cols-2")[
-                UiInput.Key("email").Label("Email").Type(InputType.Email).Value(_email)
+                // Value opens the chain on every control in the kit now: they are all
+                // IFormControl<T>, so the opening step fixes the value type and the mode at once, and
+                // Label, Type and the rest follow it. Of<T>() is the opening for a field with no value
+                // to start from.
+                UiInput.Value(_email).Key("email").Label("Email").Type(InputType.Email)
                     .Placeholder("you@example.com")
-                    .Tone(_email.Length > 0 && !_email.Contains('@') ? UiTone.Error : null)
+                    .Tone(_email.Length > 0 && !_email.Contains('@') ? UiTone.Error : (UiTone?)null)
                     .OnChange(v => { _email = v; }),
-                UiInput.Key("ghost").Label("Search").Variant(UiVariant.Ghost).Placeholder("Ghost"),
-                UiTextarea.Key("notes").Label("Notes").Rows(3).Value(_notes).Placeholder("Anything else?")
+                UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost)
+                    .Placeholder("Ghost"),
+                UiTextarea.Value(_notes).Key("notes").Label("Notes").Rows(3)
+                    .Placeholder("Anything else?")
                     .OnChange(v => { _notes = v; }),
-                // Value opens the chain: for a form control the opening step fixes the type argument
-                // and the mode at once, so Label and Options follow it.
                 UiSelect.Value(_country).Key("country")
                     .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
                     .Label("Country")
                     .Placeholder("Choose…")
                     .OnChange(v => { _country = v; }),
-                UiFileInput.Key("avatar").Label("Avatar").Size(UiSize.Sm),
+                UiFileInput.Value("").Key("avatar").Label("Avatar").Size(UiSize.Sm),
                 _email.Length > 0 && !_email.Contains('@')
                     ? UiValidator.Key("v").Message("That does not look like an email address.")
                     : null
@@ -83,10 +87,10 @@ public sealed partial class UiKitDataInputDemo : Component
             + "content. Both are decoration: the control keeps its own accessible name.",
             Div.Data(Testid("ui-labels")).Class("grid gap-3 sm:grid-cols-2")[
                 UiLabel.Key("price").Text("€").Trailing("per month")[
-                    UiInput.Label("Price").Placeholder("29")
+                    UiInput.Of<string>().Label("Price").Placeholder("29")
                 ],
                 UiFloatingLabel.Key("float").Text("Company")[
-                    UiInput.Label("Company").Placeholder("Company")
+                    UiInput.Of<string>().Label("Company").Placeholder("Company")
                 ]
             ]),
 
@@ -95,14 +99,16 @@ public sealed partial class UiKitDataInputDemo : Component
             "The words are part of the hit target: on a phone a 16px box on its own is the difference "
             + "between a control and a dare.",
             Div.Data(Testid("ui-choices")).Class("flex flex-wrap items-center gap-4")[
-                UiCheckbox.Key("remember").Text("Remember me").Checked(_remember).Tone(UiTone.Primary)
+                UiCheckbox.Value(_remember).Key("remember").Text("Remember me").Tone(UiTone.Primary)
                     .OnChange(v => { _remember = v; }),
-                UiToggle.Key("alerts").Text("Email alerts").Checked(_alerts).Tone(UiTone.Success)
+                UiToggle.Value(_alerts).Key("alerts").Text("Email alerts").Tone(UiTone.Success)
                     .OnChange(v => { _alerts = v; }),
-                UiRadio.Key("std").Text("Standard").Group("shipping").Checked(_shipping == "standard")
-                    .OnSelected(() => { _shipping = "standard"; }),
-                UiRadio.Key("exp").Text("Express").Group("shipping").Checked(_shipping == "express")
-                    .OnSelected(() => { _shipping = "express"; })
+                // A radio binds its OWN checked state, so it only ever reports true — choosing one
+                // fires nothing on the option it deselected. The group's value belongs to the group.
+                UiRadio.Value(_shipping == "standard").Key("std").Text("Standard").Group("shipping")
+                    .OnChange(_ => { _shipping = "standard"; }),
+                UiRadio.Value(_shipping == "express").Key("exp").Text("Express").Group("shipping")
+                    .OnChange(_ => { _shipping = "express"; })
             ]),
 
         Section(
@@ -110,12 +116,12 @@ public sealed partial class UiKitDataInputDemo : Component
             "A range can stand on end, and daisyUI puts the low value at the bottom — which is what a "
             + "volume wants and what a rank does not.",
             Div.Data(Testid("ui-range")).Class("grid max-w-sm gap-4")[
-                UiRange.Key("vol").Label("Volume").Value(_volume).Min(0).Max(100).Step(5)
+                UiRange.Value(_volume).Key("vol").Label("Volume").Min(0).Max(100).Step(5)
                     .Tone(UiTone.Accent).OnChange(v => { _volume = v; }),
                 Span.Class("text-sm text-ui-muted")[
                     $"Volume: {_volume.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}"
                 ],
-                UiRating.Key("stars").Group("score").Label("Rate this").Value(_stars).Max(5)
+                UiRating.Value(_stars).Key("stars").Group("score").Label("Rate this").Max(5)
                     .OnChange(v => { _stars = v; })
             ]),
 
@@ -124,7 +130,7 @@ public sealed partial class UiKitDataInputDemo : Component
             "One input drawn as several. Per-digit boxes need script to move focus, defeat the "
             + "browser's SMS autofill, and drop a pasted code entirely into the first box.",
             Div.Data(Testid("ui-otp")).Class("space-y-2")[
-                UiOtp.Key("otp").Label("Verification code").Length(6).Value(_code).Joined(true)
+                UiOtp.Value(_code).Key("otp").Label("Verification code").Length(6).Joined(true)
                     .Tone(UiTone.Primary).OnChange(v => { _code = v; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
                     _code.Length == 6 ? "Code complete." : $"{_code.Length} of 6 entered."
@@ -136,8 +142,9 @@ public sealed partial class UiKitDataInputDemo : Component
             "Radios rather than buttons: daisyUI hides the unpicked options and shows the reset in "
             + "their place, in CSS, and the group gives a keyboard its arrow keys for free.",
             Div.Data(Testid("ui-filter")).Class("space-y-2")[
-                UiFilter.Key("tags").Group("demo-tags").Options(["bug", "feature", "docs"])
-                    .Selected(_tag).ResetLabel("All").OnSelect(tag => { _tag = tag; }),
+                UiFilter.Value(_tag).Key("tags").Group("demo-tags")
+                    .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
+                    .ResetLabel("All").OnChange(tag => { _tag = tag; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-filter-state"))[
                     _tag is null ? "Showing everything." : $"Filtered to {_tag}."
                 ]
@@ -148,12 +155,14 @@ public sealed partial class UiKitDataInputDemo : Component
             "Built in C#, because the element daisyUI styles for this is a JavaScript web component the "
             + "kit does not ship. Every day is a button carrying its full date as its name.",
             Div.Data(Testid("ui-calendar")).Class("space-y-2")[
+                // Month and OnMonth are the VIEW, not the value: paging through months changes nothing
+                // a form would submit, which is why they are not part of the binding.
                 UiCalendar
+                    .Value(_date ?? default)
                     .Label("Delivery date")
                     .Month(_month)
                     .OnMonth(m => { _month = m; })
-                    .Selected(_date)
-                    .OnSelect(d => { _date = d; })
+                    .OnChange(d => { _date = d; })
                     .Class("max-w-xs"),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-calendar-state"))[
                     _date is { } picked

@@ -1,3 +1,7 @@
+using System.Globalization;
+using System.Linq.Expressions;
+using Rask.Core.Forms;
+
 namespace Rask.Ui;
 
 /// <summary>
@@ -15,27 +19,28 @@ namespace Rask.Ui;
 /// on its own is not something you can act on when the month has scrolled out of earshot.
 /// </para>
 /// <para>
+/// A form control over a <c>DateOnly</c>, concretely rather than generically — a day grid picks a day.
+/// <c>.Bind(() =&gt; model.Delivery)</c> two-way binds and drives the surrounding <c>Form</c>'s
+/// validation; <see cref="Value" /> with <see cref="OnChange" /> leaves it with the parent. Note the
+/// pair that is NOT the value: <see cref="Month" /> and <see cref="OnMonth" /> are the view, and paging
+/// through months changes nothing a form would submit.
+/// </para>
+/// <para>
 /// It has no text field of its own. Pair it with one where a date can also be typed — typing is faster
 /// than paging through months for anything more than a few weeks away, and it is the only route for
 /// somebody who cannot use a pointer comfortably.
 /// </para>
 /// </remarks>
-public sealed partial class UiCalendar : Component
+public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
 {
     /// <summary>The accessible name — what the date is for.</summary>
     public required string Label { get; set; }
 
-    /// <summary>Any day in the month being shown. Defaults to the month of the selected day, or today.</summary>
+    /// <summary>Any day in the month being shown. Defaults to the month of the chosen day, or today.</summary>
     public DateOnly? Month { get; set; }
 
     /// <summary>Runs with the first day of the month the reader asked for.</summary>
     public Action<DateOnly>? OnMonth { get; set; }
-
-    /// <summary>The chosen day.</summary>
-    public DateOnly? Selected { get; set; }
-
-    /// <summary>Runs with the day the reader picked.</summary>
-    public Action<DateOnly>? OnSelect { get; set; }
 
     /// <summary>The earliest selectable day. Days before it are disabled rather than hidden.</summary>
     public DateOnly? Min { get; set; }
@@ -49,9 +54,42 @@ public sealed partial class UiCalendar : Component
     public string? Class { get; set; }
 
     /// <inheritdoc />
+    /// <remarks>
+    ///     The chosen day. Not nullable — see <see cref="UiCheckbox.Value" /> — so "nothing chosen" is
+    ///     <c>default(DateOnly)</c>, which is 1 January year 1 and lands in no month a reader will ever
+    ///     page to. Bind a <c>DateOnly?</c> where the difference between unset and a real date matters.
+    /// </remarks>
+    public DateOnly Value { get; set; }
+
+    /// <inheritdoc />
+    public Action<DateOnly>? OnChange { get; set; }
+
+    /// <inheritdoc />
+    public Func<DateOnly, Task>? OnChangeAsync { get; set; }
+
+    /// <inheritdoc />
+    public Expression<Func<DateOnly>>? Bind { get; set; }
+
+    /// <inheritdoc />
+    public Validate<DateOnly>? Validate { get; set; }
+
+    /// <inheritdoc />
+    public ValidateAsync<DateOnly>? ValidateAsync { get; set; }
+
+    /// <inheritdoc />
+    public Action<DateOnly>? AfterBind { get; set; }
+
+    /// <inheritdoc />
+    public Func<DateOnly, Task>? AfterBindAsync { get; set; }
+
+    /// <inheritdoc />
     protected override Component? Render()
     {
-        var shown = Month ?? Selected ?? DateOnly.FromDateTime(DateTime.Today);
+        var (acc, ctx, chosen) = UiFormCommit.Resolve<DateOnly>(this);
+
+        // default(DateOnly) is year 1, which is not a month anybody meant to look at, so it does not get
+        // to choose the view the way a real chosen day does.
+        var shown = Month ?? (chosen == default ? DateOnly.FromDateTime(DateTime.Today) : chosen);
         var first = new DateOnly(shown.Year, shown.Month, 1);
         var firstDay = FirstDay ?? DayOfWeek.Monday;
 
@@ -66,7 +104,7 @@ public sealed partial class UiCalendar : Component
             Div.Class("mb-2 flex items-center justify-between gap-2")[
                 MonthStep("prev", first.AddMonths(-1), "Previous month", UiIconName.ArrowLeft),
                 Div.Class("text-sm font-semibold")[
-                    first.ToString("MMMM yyyy", System.Globalization.CultureInfo.CurrentCulture)
+                    first.ToString("MMMM yyyy", CultureInfo.CurrentCulture)
                 ],
                 MonthStep("next", first.AddMonths(1), "Next month", UiIconName.ArrowRight)
             ],
@@ -76,8 +114,7 @@ public sealed partial class UiCalendar : Component
                         Enumerable.Range(0, 7).Select(i =>
                         {
                             var day = (DayOfWeek)(((int)firstDay + i) % 7);
-                            var name = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat
-                                .GetShortestDayName(day);
+                            var name = CultureInfo.CurrentCulture.DateTimeFormat.GetShortestDayName(day);
 
                             return Th.Key(day).Class("text-xs font-normal opacity-60")[name];
                         })
@@ -92,7 +129,9 @@ public sealed partial class UiCalendar : Component
 
                                 return number < 1 || number > days
                                     ? Td.Key(slot)
-                                    : Td.Key(slot)[Day(new DateOnly(first.Year, first.Month, number))];
+                                    : Td.Key(slot)[
+                                        Day(new DateOnly(first.Year, first.Month, number), chosen, acc, ctx)
+                                    ];
                             })
                         ])
                 ]
@@ -116,29 +155,33 @@ public sealed partial class UiCalendar : Component
         return button[UiIcon.Name(icon).Class("size-4 shrink-0")];
     }
 
-    private Component Day(DateOnly date)
+    private Component Day(
+        DateOnly date,
+        DateOnly chosen,
+        ExpressionAccessor.Accessor? accessor,
+        EditContext? context)
     {
-        var chosen = Selected == date;
+        var picked = chosen == date;
         var blocked = (Min is { } min && date < min) || (Max is { } max && date > max);
 
         var button = Button
             .Key(date.Day)
             .Type("button")
-            .Class(UiClass.Compose("btn btn-ghost btn-sm btn-square", chosen ? "btn-active" : ""))
+            .Class(UiClass.Compose("btn btn-ghost btn-sm btn-square", picked ? "btn-active" : ""))
             .Disabled(blocked)
             .Aria(new Dictionary<string, string?>
             {
                 // The full date, not the number: "14" is not something you can act on once the month
                 // has scrolled out of earshot.
-                ["label"] = date.ToString("D", System.Globalization.CultureInfo.CurrentCulture),
-                ["pressed"] = chosen ? "true" : "false",
+                ["label"] = date.ToString("D", CultureInfo.CurrentCulture),
+                ["pressed"] = picked ? "true" : "false",
             });
 
-        if (OnSelect is { } onSelect && !blocked)
+        if (!blocked)
         {
-            button = button.OnClick(() => onSelect(date));
+            button = button.OnClickAsync(() => UiFormCommit.CommitAsync(this, accessor, context, date));
         }
 
-        return button[date.Day.ToString(System.Globalization.CultureInfo.CurrentCulture)];
+        return button[date.Day.ToString(CultureInfo.CurrentCulture)];
     }
 }

@@ -169,7 +169,8 @@ dismissed.
 
 ## Form controls
 
-The kit's controls implement `IFormControl<T>`, so each works in the two shapes every Rask input does:
+**All twelve** of the kit's data-input controls implement `IFormControl<T>`, so each works in the two
+shapes every Rask input does:
 
 ```csharp
 Form.Model(_order)[
@@ -184,6 +185,32 @@ sources of truth for one field. `Label`, `Options` and the rest follow in any or
 them says anything about `T`. Bound mode drives the surrounding `Form`'s validation — per-field
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
+
+**Generic where the value type varies, concrete where it does not.** `UiInput<T>`, `UiTextarea<T>`,
+`UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `UiInput` even
+takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
+site. The rest are closed over the one type they can have: `UiCheckbox`, `UiToggle` and `UiRadio` over
+`bool`, `UiRange` over `double`, `UiRating` over `int`, `UiOtp` and `UiFileInput` over `string`,
+`UiCalendar` over `DateOnly`. A checkbox's value is a `bool` and nothing else; a type parameter there
+would have exactly one legal argument.
+
+| | Binds |
+|---|---|
+| `UiInput<T>` `UiTextarea<T>` `UiSelect<T>` | what the field holds |
+| `UiFilter<T>` | the chosen option of a whole radio group |
+| `UiRadio` | whether **this** option is the chosen one — the group's value belongs to `UiFilter<T>` |
+| `UiCheckbox` `UiToggle` | on or off |
+| `UiRange` `UiRating` `UiCalendar` | the position, the star count, the day |
+| `UiOtp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
+| `UiFileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
+
+**A field with no value yet opens on its type alone**: `UiInput.Of<string>().Label("Search")`. A form
+control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without
+`Of` a controlled field with nothing in it would have to invent a value to compile. `Of` is the
+controlled mode: the parent still owns whatever the field ends up with.
+
+`UiCalendar` is the one to read twice. `Month` and `OnMonth` are the **view**, not the value — paging
+through months changes nothing a form would submit, which is why they sit outside the binding.
 
 ## The rule the whole kit rests on
 

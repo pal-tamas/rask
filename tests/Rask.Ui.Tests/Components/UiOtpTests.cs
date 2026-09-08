@@ -45,24 +45,24 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
     {
         Assert.DoesNotContain("otp-joined", Otp());
         Assert.Contains("otp-joined",
-            UiOtp.Label("Verification code").Length(6).Joined(true).ToHtml());
+            UiOtp.Value("").Label("Verification code").Length(6).Joined(true).ToHtml());
     }
 
     [Theory]
     [InlineData(UiTone.Primary, "otp-primary")]
     [InlineData(UiTone.Error, "otp-error")]
     public void Every_tone_writes_its_own_class(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiOtp.Label("Code").Length(6).Tone(tone).ToHtml());
+        Assert.Contains(expected, UiOtp.Value("").Label("Code").Length(6).Tone(tone).ToHtml());
 
     [Theory]
     [InlineData(UiSize.Xs, "otp-xs")]
     [InlineData(UiSize.Xl, "otp-xl")]
     public void Every_size_writes_its_own_class(UiSize size, string expected) =>
-        Assert.Contains(expected, UiOtp.Label("Code").Length(6).Size(size).ToHtml());
+        Assert.Contains(expected, UiOtp.Value("").Label("Code").Length(6).Size(size).ToHtml());
 
     [Fact]
     public void The_current_value_is_rendered() =>
-        Assert.Contains("1234", UiOtp.Label("Code").Length(6).Value("1234").ToHtml());
+        Assert.Contains("1234", UiOtp.Value("1234").Label("Code").Length(6).ToHtml());
 
     private static int Occurrences(string haystack, string needle)
     {
@@ -77,5 +77,5 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         return count;
     }
 
-    private static string Otp() => UiOtp.Label("Verification code").Length(6).ToHtml();
+    private static string Otp() => UiOtp.Value("").Label("Verification code").Length(6).ToHtml();
 }

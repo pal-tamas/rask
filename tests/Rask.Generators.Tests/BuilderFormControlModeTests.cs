@@ -60,6 +60,51 @@ public class BuilderFormControlModeTests
                                 }
                                 """;
 
+    // A control over a VALUE TYPE with a required step of its own — the kit's UiCheckbox/UiRating
+    // shape. `bool Value` has no initializer, so RASK001's rule reads it as required.
+    private const string Ticked = """
+                                  using System;
+                                  using System.Linq.Expressions;
+                                  using System.Threading.Tasks;
+                                  using Rask.Core;
+                                  using Rask.Core.Forms;
+                                  namespace Demo;
+                                  public partial class Ticked : Component, IFormControl<bool>
+                                  {
+                                      public required string Label { get; set; }
+                                      public bool Value { get; set; }
+                                      public Action<bool>? OnChange { get; set; }
+                                      public Func<bool, Task>? OnChangeAsync { get; set; }
+                                      public Expression<Func<bool>>? Bind { get; set; }
+                                      public Validate<bool>? Validate { get; set; }
+                                      public ValidateAsync<bool>? ValidateAsync { get; set; }
+                                      public Action<bool>? AfterBind { get; set; }
+                                      public Func<bool, Task>? AfterBindAsync { get; set; }
+                                  }
+                                  """;
+
+    // …and the generic version of the same shape, whose required step pins nothing.
+    private const string Named = """
+                                 using System;
+                                 using System.Linq.Expressions;
+                                 using System.Threading.Tasks;
+                                 using Rask.Core;
+                                 using Rask.Core.Forms;
+                                 namespace Demo;
+                                 public partial class Named<T> : Component, IFormControl<T>
+                                 {
+                                     public required string Label { get; set; }
+                                     public T? Value { get; set; }
+                                     public Action<T>? OnChange { get; set; }
+                                     public Func<T, Task>? OnChangeAsync { get; set; }
+                                     public Expression<Func<T>>? Bind { get; set; }
+                                     public Validate<T>? Validate { get; set; }
+                                     public ValidateAsync<T>? ValidateAsync { get; set; }
+                                     public Action<T>? AfterBind { get; set; }
+                                     public Func<T, Task>? AfterBindAsync { get; set; }
+                                 }
+                                 """;
+
     [Theory]
     [InlineData("Checked")]
     [InlineData("OnChange")]
@@ -204,6 +249,45 @@ public class BuilderFormControlModeTests
 
         Assert.Contains("global::Rask.Core.Build<global::Demo.Card> Title(this global::Rask.Core.Build<global::Demo.Card> __b",
             output, StringComparison.Ordinal);
+    }
+
+    // A form control's Value is its OPENING, never a step still outstanding after one.
+    //
+    // It only looks required on a control closed over a VALUE TYPE: `IFormControl<T>` declares `T?
+    // Value`, where `?` over an unconstrained T is a nullability annotation, so `IFormControl<bool>`
+    // has a plain `bool Value` and RASK001's rule reads it as required. Left in the required set it is
+    // unsatisfiable in bound mode, which withdraws Value on purpose — the chain sits in a pending state
+    // waiting for a step its own mode does not offer, and the only symptom is that it has no ToHtml.
+    [Fact]
+    public void A_value_types_Value_is_the_opening_rather_than_an_outstanding_step()
+    {
+        var output = Entries(Ticked);
+
+        // One required step is left (Label), so there is no state named for Value at all.
+        Assert.DoesNotContain("RaskPending_Ticked_Value", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("RaskPending_Ticked_Label", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_bound_chain_over_a_value_type_can_still_be_completed()
+    {
+        // The assertion the previous one exists for: taking the ONE outstanding step hands back the
+        // finished chain rather than another pending state.
+        Assert.Contains(
+            "global::Rask.Core.Build<global::Demo.Ticked, TMode> Label(string Label)",
+            Entries(Ticked), StringComparison.Ordinal);
+    }
+
+    // `Of` is offered to a generic form control even though it has a required step, and that is the
+    // same rule read properly rather than an exception to it: a form control's openings are its MODE
+    // pins, so a required step of its own is never one and never gets to pin the type. `Label` says
+    // nothing about T, so without this a controlled call site with no starting value has no way in.
+    [Fact]
+    public void A_generic_control_with_a_required_step_still_opens_on_its_type_alone()
+    {
+        Assert.Contains(
+            "global::Rask.Core.Build<global::Demo.Named<T>, global::Rask.Core.Forms.Controlled> Of<T>(",
+            Entries(Named), StringComparison.Ordinal);
     }
 
     // The emitter writes each signature on one line, so a signature IS a line.

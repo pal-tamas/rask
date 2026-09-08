@@ -58,6 +58,19 @@ Each mode's members are excluded from the other mode automatically, on both surf
 are not parameters of the bound factory and not steps on a bound chain; controlled mode parses no
 expression, so `Bind` / `Validate` / `AfterBind` are absent from its factory and its chain.
 
+`Of<T>()` is emitted for **every** generic form control, including one with required props of its own.
+That is not an exception to the ordinary rule (which withholds `Of` where a required step already pins
+the type) but the same rule read properly: a form control's openings are its *mode* pins, so a required
+step of its own is never one and never gets to pin `T`. A control requiring a `Label` — which says
+nothing about `T` — would otherwise have no controlled way in at all until the caller invented a value.
+
+**A control closed over a value type gets a non-nullable `Value`.** `IFormControl<T>` declares
+`T? Value`, where `?` over an unconstrained `T` is a nullability *annotation* — so `IFormControl<bool>`
+has a plain `bool Value`. It is still the opening of the controlled chain and never a step outstanding
+after one, in either mode: bound mode withdraws `Value` on purpose, so treating it as required would
+leave `MyCheck.Bind(…).Label(…)` pending forever on a step its own mode does not offer, with no symptom
+beyond the chain having no `ToHtml`.
+
 The rule is by **name**, which is what lets it reach a prop the interface does not declare. If your
 control has its own `Checked`, `OnInput` or `OnInputAsync` — as the core `Input` and `Textarea` do —
 those are recognized as controlled-mode members too, because bound mode derives the checked state from

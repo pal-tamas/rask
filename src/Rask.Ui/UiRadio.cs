@@ -1,26 +1,33 @@
+using System.Linq.Expressions;
+using Rask.Core.Forms;
+
 namespace Rask.Ui;
 
 /// <summary>
-/// One option in a radio group.
+/// One option of a set where exactly one may be chosen.
 /// </summary>
 /// <remarks>
-/// <see cref="Group" /> is required and is the browser's own grouping mechanism: radios with the same
-/// <c>name</c> are mutually exclusive, and radios without one are not a group at all — they are several
-/// independent controls that happen to look alike.
+/// <para>
+/// A form control over its OWN <c>bool</c> — whether this option is the chosen one — rather than over
+/// the group's value. That is what a single radio is: the group's value belongs to the group, and the
+/// kit's control for a whole group is <see cref="UiFilter{T}" />, which binds the chosen option
+/// itself.
+/// </para>
+/// <para>
+/// <see cref="Group" /> is what makes a set of them exclusive, and it is the browser doing that rather
+/// than anything here.
+/// </para>
 /// </remarks>
-public sealed partial class UiRadio : Component
+public sealed partial class UiRadio : Component, IFormControl<bool>
 {
     /// <summary>
-    ///     The words beside the control, daisyUI's <c>label-text</c>. Not <c>Label</c>, which MaryUI uses:
-    ///     this renders a &lt;label&gt; element and a property of that name would shadow its chain entry.
-    ///     <c>new</c> because the base type has a markup entry called <c>Text</c>, which this does not use.
+    ///     The words beside the control, daisyUI's <c>label-text</c>. Not <c>Label</c>: this renders a
+    ///     &lt;label&gt; element and a property of that name would shadow its chain entry.
     /// </summary>
     public new required string Text { get; set; }
 
-    /// <summary>The <c>name</c> every option in the group shares. Without it there is no group.</summary>
+    /// <summary>The name that makes a set of these mutually exclusive.</summary>
     public required string Group { get; set; }
-
-    public bool? Checked { get; set; }
 
     public UiTone? Tone { get; set; }
 
@@ -28,31 +35,74 @@ public sealed partial class UiRadio : Component
 
     public bool? Disabled { get; set; }
 
-    public Action? OnSelected { get; set; }
-
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render()
+    /// <remarks>
+    ///     Whether THIS option is the chosen one. Not nullable — see <see cref="UiCheckbox.Value" />.
+    /// </remarks>
+    public bool Value { get; set; }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     A radio only ever reports <see langword="true" />: choosing one fires no change on the option
+    ///     it deselected, so the browser never tells that one it was turned off. A handler that treats
+    ///     <see langword="false" /> as meaningful will wait forever for it.
+    /// </remarks>
+    public Action<bool>? OnChange { get; set; }
+
+    /// <inheritdoc />
+    public Func<bool, Task>? OnChangeAsync { get; set; }
+
+    /// <inheritdoc />
+    public Expression<Func<bool>>? Bind { get; set; }
+
+    /// <inheritdoc />
+    public Validate<bool>? Validate { get; set; }
+
+    /// <inheritdoc />
+    public ValidateAsync<bool>? ValidateAsync { get; set; }
+
+    /// <inheritdoc />
+    public Action<bool>? AfterBind { get; set; }
+
+    /// <inheritdoc />
+    public Func<bool, Task>? AfterBindAsync { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Label.Class(UiClass.Compose("label cursor-pointer gap-2", Class))[Box(), Span[Text]];
+
+    private Component Box()
     {
-        var box = Input.Of<bool>()
-            .Checked(Checked == true)
+        if (Bind is { } bind)
+        {
+            return Input
+                .Bind(bind)
+                .Validate(Validate)
+                .ValidateAsync(ValidateAsync)
+                .AfterBind(AfterBind)
+                .AfterBindAsync(AfterBindAsync)
+                .Type(InputType.Radio)
+                .Name(Group)
+                .Disabled(Disabled == true)
+                .Class(BoxClass());
+        }
+
+        return Input
+            .Of<bool>()
+            .Checked(Value)
+            .OnChange(OnChange)
+            .OnChangeAsync(OnChangeAsync)
             .Type(InputType.Radio)
             .Name(Group)
             .Disabled(Disabled == true)
-            .Class(UiClass.Compose(
-                "radio",
-                Tone is { } tone ? UiClassNames.RadioTone(tone) : "",
-                Size is { } size ? UiClassNames.RadioSize(size) : ""));
-
-        if (OnSelected is { } selected)
-        {
-            // The bool is the input's own checked state, and a radio only ever reports true — selecting
-            // one does not fire a change on the option it deselected. So the callback takes nothing:
-            // "this option was chosen" is the whole event.
-            box = box.OnChange(_ => selected());
-        }
-
-        return Label.Class(UiClass.Compose("label cursor-pointer gap-2", Class))[box, Span[Text]];
+            .Class(BoxClass());
     }
+
+    private string BoxClass() =>
+        UiClass.Compose(
+            "radio",
+            Tone is { } tone ? UiClassNames.RadioTone(tone) : "",
+            Size is { } size ? UiClassNames.RadioSize(size) : "");
 }

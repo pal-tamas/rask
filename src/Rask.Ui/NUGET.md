@@ -61,7 +61,9 @@ protected override Component? Render() =>
         P["This cannot be undone."]
     ],
 
-    UiInput.Label("Email").Type(InputType.Email).Value(_email)
+    // Every data-input control is an IFormControl<T>: Value opens the controlled chain and Bind the
+    // bound one, and the opening step fixes the value type and the mode together.
+    UiInput.Value(_email).Label("Email").Type(InputType.Email)
            .Tone(_email.Contains('@') ? null : UiTone.Error)
            .OnChange(value => _email = value),
 
