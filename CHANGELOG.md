@@ -227,6 +227,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The landing page's install block is the kit's own terminal.** It was a hand-rolled `<pre>` whose
+  prompt was a `<span class="select-none">` — which stops a drag-select in most browsers and does
+  nothing about "select all", a screen reader, or anything reading `textContent`. `UiMockupCode` draws
+  the prompt from `data-prefix` as a CSS pseudo-element, so it is not in the document at all and a
+  copied command is a command. That matters more here than anywhere else on the site: the block exists
+  to be pasted into a shell, and `$ curl …` is not a valid one. (The gap between prompt and command is
+  worked around in the site's stylesheet — daisyUI's nested `[data-prefix]` rule overrides its own
+  `margin-right`, see [#1032](https://github.com/pal-tamas/rask/issues/1032).)
+
 - **`Rask.Auth` owns the cookie scheme instead of standing down.** The battery used to skip its own
   `AddAuthentication().AddCookie(...)` entirely when it found an `IAuthenticationSchemeProvider`
   already in the collection — a whole-or-nothing deferral, so an app that registered any scheme for any

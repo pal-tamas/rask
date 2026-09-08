@@ -31,10 +31,9 @@ public sealed partial class InstallTabs : Component
             ],
             // .term and .install-foot are TEST contracts: SiteExampleTests reads the rendered command and
             // the Windows one-liner out of them, and a locator that resolves to nothing fails by timing
-            // out rather than by naming what moved.
-            Div.Class("term overflow-x-auto rounded-2xl border border-ui-line bg-ui-well p-5 text-left")[
-                Terminal()
-            ],
+            // out rather than by naming what moved. The class rides on the mockup itself now — the
+            // wrapper it used to sit on drew a second frame around a component that has its own.
+            Terminal(),
             P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
                 "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
                 ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
@@ -49,9 +48,6 @@ public sealed partial class InstallTabs : Component
             ]
         ];
 
-    private static Component Line(string prompt, string rest) =>
-        [Span.Class("select-none text-ui-brand-ink")[prompt], rest + "\n"];
-
     private Component Tab(int i) =>
         Button
             .Key(i)
@@ -64,19 +60,40 @@ public sealed partial class InstallTabs : Component
             .Aria(new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" })
             .OnClick(() => _active = i)[Labels[i]];
 
-    private Component Terminal() => _active switch
-    {
-        1 => Pre.Class("font-mono text-xs leading-relaxed text-ui-ink")[Code[
-            Span.Class("text-ui-muted")["# standalone browser-WASM SPA, installable and offline\n"],
-            Line("$", " " + InstallCommand),
-            Line("$", " rask new MyApp --template wasm"),
-            Span.Class("select-none text-ui-brand-ink")["$"], " cd MyApp && rask dev"
-        ]],
-        _ => Pre.Class("font-mono text-xs leading-relaxed text-ui-ink")[Code[
-            Span.Class("text-ui-muted")["# ASP.NET live-server app, batteries included\n"],
-            Line("$", " " + InstallCommand),
-            Line("$", " rask new MyApp"),
-            Span.Class("select-none text-ui-brand-ink")["$"], " cd MyApp && rask dev"
-        ]]
-    };
+    /// <summary>
+    ///     The kit's own terminal, rather than a hand-rolled one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The prompt is what makes this worth the component. It used to be a
+    ///         <c>&lt;span class="select-none"&gt;</c>, which stops a drag-select picking it up in most
+    ///         browsers and does nothing about "select all", a screen reader, or anything that reads
+    ///         <c>textContent</c>. <c>UiMockupCode</c> draws it from <c>data-prefix</c> as a CSS
+    ///         pseudo-element — it is not in the document at all, so a copied command is a command.
+    ///         That matters here more than anywhere else on the site: this block exists to be pasted
+    ///         into a shell, and <c>$ curl …</c> is not a valid one.
+    ///     </para>
+    ///     <para>
+    ///         Both terminals lead with the installer. The tabs pick a TEMPLATE, not an install method,
+    ///         and a visitor who lands on the WASM tab still needs the CLI first.
+    ///     </para>
+    /// </remarks>
+    private Component Terminal() =>
+        UiMockupCode.Lines(_active == 1 ? WasmLines : ServerLines).Class("term text-left");
+
+    private static readonly (string Prefix, string Text)[] ServerLines =
+    [
+        ("#", "ASP.NET live-server app, batteries included"),
+        ("$", InstallCommand),
+        ("$", "rask new MyApp"),
+        ("$", "cd MyApp && rask dev"),
+    ];
+
+    private static readonly (string Prefix, string Text)[] WasmLines =
+    [
+        ("#", "standalone browser-WASM SPA, installable and offline"),
+        ("$", InstallCommand),
+        ("$", "rask new MyApp --template wasm"),
+        ("$", "cd MyApp && rask dev"),
+    ];
 }
