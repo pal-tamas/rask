@@ -30,6 +30,12 @@ namespace Rask.Wasm;
 internal static class PrerenderShell
 {
     /// <summary>
+    ///     Marks a document whose body was spliced in by this pass, so the boot script can tell a page
+    ///     that already has its content from a shell that has none.
+    /// </summary>
+    internal const string PrerenderedAttribute = "data-rask-prerendered";
+
+    /// <summary>
     ///     Returns <paramref name="shell" /> carrying <paramref name="document" />'s head contributions
     ///     and body, or <paramref name="document" /> unchanged when the two cannot be spliced.
     /// </summary>
@@ -104,24 +110,6 @@ internal static class PrerenderShell
     /// </remarks>
     private static string MergeHtmlAttributes(string shellPrefix, string document)
     {
-        var documentOpen = IndexOfTag(document, "html");
-        if (documentOpen < 0)
-        {
-            return shellPrefix;
-        }
-
-        var documentGt = document.AsSpan(documentOpen).IndexOf('>');
-        if (documentGt <= 0)
-        {
-            return shellPrefix;
-        }
-
-        var documentAttrs = document.Substring(documentOpen + 5, documentGt - 5).Trim().TrimEnd('/').Trim();
-        if (documentAttrs.Length == 0)
-        {
-            return shellPrefix;
-        }
-
         var shellOpen = IndexOfTag(shellPrefix, "html");
         if (shellOpen < 0)
         {
@@ -137,15 +125,41 @@ internal static class PrerenderShell
         var shellAttrs = shellPrefix.Substring(shellOpen + 5, shellGt - 5).Trim().TrimEnd('/').Trim();
 
         var added = new StringBuilder();
-        foreach (var attribute in SplitAttributes(documentAttrs))
-        {
-            var name = AttributeName(attribute);
-            if (name.Length == 0 || HasAttribute(shellAttrs, name))
-            {
-                continue;
-            }
 
-            added.Append(' ').Append(attribute);
+        // The marker that tells the boot script this page already has its content.
+        //
+        // It changes what booting IS. On a shell, the runtime is the only thing between the visitor and
+        // a page, so it starts the moment the module script runs. On a prerendered page the content is
+        // already on screen, and starting there means the runtime monopolises the main thread BEFORE the
+        // browser has taken a frame — measured on this site as a largest-contentful-paint of 37.8s whose
+        // element was in the HTML all along, with 37.4s of it recorded as render delay.
+        //
+        // Stamped here rather than inferred by the client, because the two cases have to be told apart
+        // exactly. "Is the boot spinner missing" is the same question most of the time and not always:
+        // a hand-written shell need not have one, and would then defer a boot nobody is looking at
+        // content during.
+        if (!HasAttribute(shellAttrs, PrerenderedAttribute))
+        {
+            added.Append(' ').Append(PrerenderedAttribute);
+        }
+
+        var documentOpen = IndexOfTag(document, "html");
+        var documentGt = documentOpen < 0 ? -1 : document.AsSpan(documentOpen).IndexOf('>');
+        if (documentOpen >= 0 && documentGt > 0)
+        {
+            var documentAttrs = document
+                .Substring(documentOpen + 5, documentGt - 5).Trim().TrimEnd('/').Trim();
+
+            foreach (var attribute in SplitAttributes(documentAttrs))
+            {
+                var name = AttributeName(attribute);
+                if (name.Length == 0 || HasAttribute(shellAttrs, name))
+                {
+                    continue;
+                }
+
+                added.Append(' ').Append(attribute);
+            }
         }
 
         if (added.Length == 0)
@@ -348,22 +362,54 @@ internal static class PrerenderShell
     }
 
     /// <summary>
-    ///     Finds <c>&lt;name</c> as a real tag rather than as a prefix of a longer one.
+    ///     Finds <c>&lt;name</c> as a real tag — not as a prefix of a longer one, and not inside a
+    ///     comment.
     /// </summary>
     /// <remarks>
-    ///     Without the delimiter check, looking for <c>&lt;base</c> also matches a hypothetical
-    ///     <c>&lt;basefont&gt;</c>, and looking for <c>&lt;script</c> would match <c>&lt;scripts&gt;</c>.
-    ///     A tag name ends at whitespace, <c>/</c>, or <c>&gt;</c>.
+    ///     <para>
+    ///         Without the delimiter check, looking for <c>&lt;base</c> also matches a hypothetical
+    ///         <c>&lt;basefont&gt;</c>, and looking for <c>&lt;script</c> would match
+    ///         <c>&lt;scripts&gt;</c>. A tag name ends at whitespace, <c>/</c>, or <c>&gt;</c>.
+    ///     </para>
+    ///     <para>
+    ///         <b>Comments are skipped, and that was missing.</b> A shell that opens with a comment
+    ///         explaining itself — which this repo's own does, and which is the natural thing to write
+    ///         at the top of a file the build rewrites — mentions <c>&lt;head&gt;</c> in prose, and the
+    ///         search locked onto that. Everything downstream then measured from inside the comment:
+    ///         the prefix handed to <see cref="MergeHtmlAttributes" /> contained no <c>&lt;html&gt;</c>
+    ///         at all, so it returned unchanged and every attribute a <c>Shell</c> override put on
+    ///         <c>&lt;html&gt;</c> was dropped — which is the exact failure that method was written to
+    ///         fix. It read as working because the site had already moved <c>data-rask-ui</c> into the
+    ///         shell's own literal tag after being bitten by it once, so the one attribute anyone was
+    ///         watching survived for a different reason.
+    ///     </para>
     /// </remarks>
     private static int IndexOfTag(ReadOnlySpan<char> html, string name)
     {
         var cursor = 0;
         while (cursor < html.Length)
         {
-            var hit = html[cursor..].IndexOf($"<{name}", StringComparison.OrdinalIgnoreCase);
+            var rest = html[cursor..];
+            var hit = rest.IndexOf($"<{name}", StringComparison.OrdinalIgnoreCase);
             if (hit < 0)
             {
                 return -1;
+            }
+
+            // A comment that opens before the hit swallows it. Jump past the comment and look again —
+            // rather than past the hit, since the tag may legitimately appear after the comment closes.
+            var comment = rest.IndexOf("<!--", StringComparison.Ordinal);
+            if (comment >= 0 && comment < hit)
+            {
+                var close = rest[comment..].IndexOf("-->", StringComparison.Ordinal);
+                if (close < 0)
+                {
+                    // Unterminated: everything after it is comment, so there is no tag to find.
+                    return -1;
+                }
+
+                cursor += comment + close + 3;
+                continue;
             }
 
             hit += cursor;

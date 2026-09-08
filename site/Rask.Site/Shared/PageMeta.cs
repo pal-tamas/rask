@@ -50,6 +50,35 @@ public static partial class PageMeta
     public const string Origin = "https://rask.sh";
 
     /// <summary>
+    ///     A route path in the form GitHub Pages serves without redirecting: with a trailing slash.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The prerender pass writes <c>{route}/index.html</c>, and GitHub Pages answers
+    ///         <c>/docs/pwa</c> with a <b>301 to <c>/docs/pwa/</c></b> — verified against the live site,
+    ///         not assumed. Naming the bare form in a canonical therefore has the page served at
+    ///         <c>/docs/pwa/</c> declaring that the real URL is one that redirects straight back to it.
+    ///         That is a contradiction rather than a hop, and Search Console reports it as "page with
+    ///         redirect" across every URL on the site.
+    ///     </para>
+    ///     <para>
+    ///         In-app links stay bare: the router never issues a request for them, so the slash would be
+    ///         noise in the address bar. Only the URLs a crawler resolves — canonical, <c>og:url</c> and
+    ///         the sitemap — have to name what the host actually serves.
+    ///     </para>
+    ///     <para>
+    ///         Held in step with <c>&lt;RaskSiteTrailingSlash&gt;</c>, which is what the pass builds
+    ///         <c>sitemap.xml</c> from, by <c>PageMetaTests</c>. A site whose sitemap and canonicals
+    ///         disagree about the shape of its own URLs is telling a crawler two different things.
+    ///     </para>
+    /// </remarks>
+    public static string CanonicalPath(string path)
+    {
+        var trimmed = path.TrimEnd('/');
+        return trimmed.Length == 0 ? "/" : trimmed + "/";
+    }
+
+    /// <summary>
     ///     The head block for one page: its title, its description, its canonical, and the Open Graph
     ///     and Twitter tags built from the same three values.
     /// </summary>
@@ -69,7 +98,7 @@ public static partial class PageMeta
     /// </param>
     public static Component For(string title, string description, string path)
     {
-        var url = Origin + LiveOptions.PathBase + path;
+        var url = Origin + LiveOptions.PathBase + CanonicalPath(path);
 
         return
         [

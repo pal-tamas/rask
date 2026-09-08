@@ -39,6 +39,16 @@
       Set it wrong and every URL in the sitemap points at someone else's site.
     -->
     <RaskSiteUrl>https://rask.sh</RaskSiteUrl>
+    <!--
+      GitHub Pages serves a directory index at its trailing-slash URL and 301s the bare one: /docs is a
+      redirect to /docs/, verified against the live site. So the sitemap names the slashed form, which
+      is also what PageMeta puts in every canonical — the two are held in step by PageMetaTests.
+
+      Set this false on a host that normalises the other way (Netlify and Cloudflare Pages strip the
+      trailing slash). Either way the cost of getting it wrong is the same: every URL in the sitemap
+      points at a redirect, and every page declares a canonical that redirects back to the page.
+    -->
+    <RaskSiteTrailingSlash>true</RaskSiteTrailingSlash>
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders
          at publish (Microsoft.NET.Sdk.WebAssembly). Makes static-host redeploys cache-safe. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>

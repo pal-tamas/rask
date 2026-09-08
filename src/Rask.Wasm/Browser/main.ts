@@ -176,6 +176,72 @@ async function step<T>(what: string, run: () => Promise<T>): Promise<T> {
     }
 }
 
+// ---------------------------------------------------------------------------
+// WHEN to boot.
+//
+// On a shell, immediately: the runtime is the only thing between the visitor and a page, and every
+// millisecond of it is spent looking at a spinner.
+//
+// On a PRERENDERED page the content is already on screen, and booting immediately is actively wrong.
+// A module script runs after parsing and before the first paint, so `dotnet.create()` takes the main
+// thread while the browser still has nothing rendered — and then holds it for as long as several
+// megabytes of runtime take to instantiate. Measured on rask.sh: a largest-contentful-paint of 37.8s
+// whose element was in the served HTML the whole time, 37.4s of it recorded as RENDER DELAY. The page
+// was complete and the browser was not allowed to draw it.
+//
+// So on a prerendered page, wait for the page to finish painting first: `load`, then two rAFs — the
+// first fires BEFORE the paint it belongs to, the second after that frame is composited.
+//
+// `load` rather than a single frame, and that is measured rather than assumed. Deferring by one frame
+// scores WORSE than not deferring the boot at all: the runtime takes the thread while the stylesheets
+// and the webfont are still arriving, so the text's final paint lands behind the boot's long tasks.
+// Largest-contentful-paint went 1.2s -> 8.4s and the score 74 -> 49 on exactly that change.
+//
+// Bounded twice, because "wait for the page to settle" is how a page ends up never becoming
+// interactive at all — and every millisecond of this wait is a millisecond the page looks finished and
+// answers nothing:
+//
+//   * ANY user input boots at once. A visitor who reaches for something has stopped reading, and a
+//     page that looks ready and does nothing is worse than one that took a moment longer to paint.
+//   * A ceiling, so a slow image, or a backgrounded tab where rAF never fires, cannot hold
+//     interactivity behind it.
+// Optional, because this runs at module top level in whatever document the host provides. A real
+// browser always has a documentElement; the framework's own Node fixture did not, and the throw took
+// the whole boot with it — before the failure reporter below could say why.
+const PRERENDERED = document.documentElement?.hasAttribute("data-rask-prerendered") === true;
+
+// Not a delay — a ceiling on one that normally ends at `load`. It only matters when something on the
+// page never finishes, or when the tab is backgrounded and rAF does not fire.
+const BOOT_DEFER_CEILING_MS = 2000;
+
+// Capture-phase so a handler on the page cannot swallow the signal before it is seen.
+const INPUT_EVENTS = ["pointerdown", "keydown", "touchstart", "wheel"] as const;
+
+function whenPainted(): Promise<void> {
+    return new Promise<void>(resolve => {
+        let settled = false;
+        const go = () => {
+            if (settled) return;
+            settled = true;
+            for (const event of INPUT_EVENTS) window.removeEventListener(event, go, true);
+            resolve();
+        };
+
+        // Any sign of a visitor wanting the app, before anything else.
+        for (const event of INPUT_EVENTS) window.addEventListener(event, go, {capture: true, once: true});
+
+        // The ceiling, for a page that never finishes loading or a tab that never gets a frame.
+        setTimeout(go, BOOT_DEFER_CEILING_MS);
+
+        const afterPaint = () => requestAnimationFrame(() => requestAnimationFrame(() => go()));
+
+        if (document.readyState === "complete") afterPaint();
+        else window.addEventListener("load", afterPaint, {once: true});
+    });
+}
+
+if (PRERENDERED) await whenPainted();
+
 const {getAssemblyExports, runMain} = await step(
     "The .NET runtime could not be loaded. Check that the _framework assets are being served, "
     + "with the correct application/wasm content type.",

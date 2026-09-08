@@ -41,6 +41,104 @@ public class PrerenderShellTests
         <body><h1>Ship a whole product.</h1><p>Just you, and C#.</p></body></html>
         """;
 
+    [Fact]
+    public void AShellThatEXPLAINSItselfIsStillSplicedCorrectly()
+    {
+        // The shape that broke it: a comment at the top of the shell — the natural thing to write in a
+        // file the build rewrites — mentioning <head> and <html> in prose. The tag search had no notion
+        // of comments, locked onto the one in the sentence, and measured everything from inside it. The
+        // prefix handed to the attribute merge then contained no <html> at all, so every attribute a
+        // Shell override set on it was silently dropped.
+        //
+        // It read as working for years because the site had already moved data-rask-ui into the shell's
+        // own literal tag after being bitten once, so the one attribute anyone watched survived for an
+        // unrelated reason.
+        const string Commented =
+            """
+            <!--
+              This shell is the TEMPLATE the prerendered page is spliced into: the pass keeps this <head>
+              and replaces the body below. Keep it minimal; the App component owns the real <html> tag.
+            -->
+            <!doctype html>
+            <html lang="en" data-shell="yes">
+            <head><title>Shell</title></head>
+            <body><div class="rask-boot">Loading</div><script src="main.js" type="module"></script></body>
+            </html>
+            """;
+
+        var merged = PrerenderShell.Merge(
+            Commented,
+            "<!doctype html><html lang=\"en\" data-theme=\"dark\"><head><title>Real</title></head>"
+            + "<body><p>real</p></body></html>");
+
+        var tag = merged[merged.IndexOf("<html lang", StringComparison.Ordinal)..];
+        tag = tag[..tag.IndexOf('>')];
+
+        // The document's own <html> attribute survived the splice...
+        Assert.Contains("data-theme=\"dark\"", tag, StringComparison.Ordinal);
+        // ...alongside the shell's, which wins on conflict and is why lang is still the shell's.
+        Assert.Contains("data-shell=\"yes\"", tag, StringComparison.Ordinal);
+        Assert.Contains(PrerenderShell.PrerenderedAttribute, tag, StringComparison.Ordinal);
+
+        // And the rest of the splice still happened: the page's body replaced the boot placeholder,
+        // the page's title replaced the shell's, and the boot script came along.
+        Assert.Contains("<p>real</p>", merged, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask-boot", merged, StringComparison.Ordinal);
+        Assert.Contains("<title>Real</title>", merged, StringComparison.Ordinal);
+        Assert.DoesNotContain("<title>Shell</title>", merged, StringComparison.Ordinal);
+        Assert.Contains("main.js", merged, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ASplicedPageIsMarkedAsPrerendered()
+    {
+        // The boot script needs to tell a page that already has its content from a shell that has none,
+        // because it changes what booting is FOR: on a shell the runtime is all there is, and on a
+        // prerendered page starting it before the browser has taken a frame is what turned a
+        // largest-contentful-paint of ~5s into 37.8s, on an element that was in the HTML all along.
+        //
+        // Stamped by the splice rather than inferred by the client. "Is the boot spinner missing" is the
+        // same question most of the time and not always — a hand-written shell need not have one.
+        var merged = PrerenderShell.Merge(
+            Shell,
+            "<!doctype html><html lang=\"en\"><head><title>T</title></head><body><p>real</p></body></html>");
+
+        var tag = merged[merged.IndexOf("<html", StringComparison.Ordinal)..];
+        tag = tag[..tag.IndexOf('>')];
+
+        Assert.Contains(PrerenderShell.PrerenderedAttribute, tag, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheMarkerIsNotAddedTwiceWhenTheShellAlreadyCarriesIt()
+    {
+        // A republish over an already-prerendered wwwroot reads its own previous output as the shell.
+        // Two copies of an attribute is not fatal, but it is the kind of thing that grows one per
+        // publish until someone notices a line of them.
+        var once = PrerenderShell.Merge(
+            Shell.Replace("<html lang=\"en\">", $"<html lang=\"en\" {PrerenderShell.PrerenderedAttribute}>",
+                StringComparison.Ordinal),
+            "<!doctype html><html lang=\"en\"><head></head><body><p>real</p></body></html>");
+
+        var tag = once[once.IndexOf("<html", StringComparison.Ordinal)..];
+        tag = tag[..tag.IndexOf('>')];
+
+        Assert.Equal(1, Occurrences(tag, PrerenderShell.PrerenderedAttribute));
+    }
+
+    private static int Occurrences(string haystack, string needle)
+    {
+        var count = 0;
+        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal);
+             i >= 0;
+             i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
     // Regression: the landing site set data-rask-ui on <html> through its Shell override to turn the
     // component kit's theme on, and shipped to production with every colour computing to nothing —
     // structurally perfect, entirely grey — because the merge kept the SDK's opening tag and dropped

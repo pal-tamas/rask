@@ -216,7 +216,7 @@
     -->
     <Exec Command="dotnet &quot;$(RaskPrerenderCompanionOutput)$(RaskPrerenderCompanionName).dll&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
-          EnvironmentVariables="RASK_PRERENDER_OUT=$(PublishDir)wwwroot;RASK_PRERENDER_PATH_BASE=$(RaskPathBase);RASK_PRERENDER_SITE_URL=$(RaskSiteUrl)"
+          EnvironmentVariables="RASK_PRERENDER_OUT=$(PublishDir)wwwroot;RASK_PRERENDER_PATH_BASE=$(RaskPathBase);RASK_PRERENDER_SITE_URL=$(RaskSiteUrl);RASK_PRERENDER_TRAILING_SLASH=$(RaskSiteTrailingSlash)"
           ConsoleToMSBuild="true"
           StandardOutputImportance="high">
       <Output TaskParameter="ConsoleOutput" ItemName="_RaskPrerenderLog"/>

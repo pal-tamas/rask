@@ -72,6 +72,51 @@ anything already covered by a literal route is ignored rather than rendered twic
 Without this the publish still succeeds and still reports a healthy count — of the pages *around* the
 content. The only symptom is a small sitemap.
 
+## What the pass does to the rest of the publish
+
+Prerendering runs **after** publish — the only point at which the fingerprinted import map exists — so
+by then the SDK has already compressed the boot shell and written a manifest describing it. Overwriting
+`index.html` leaves both behind. The pass therefore refreshes what it invalidated:
+
+- **`.br` / `.gz` siblings are regenerated** from the new page. Left stale, they still hold the SHELL —
+  and any host that prefers a precompressed sibling (nginx `brotli_static`, Netlify, Cloudflare Pages,
+  S3 behind a CDN, Rask's own `Rask.Wasm.Hosting`) serves the spinner to every visitor and every
+  crawler while a perfectly good prerendered page sits on disk beside it. A file with no sibling gains
+  none: which assets are worth compressing is the SDK's decision.
+- **The endpoint manifest's `Content-Length`, `ETag`, `Last-Modified` and `integrity` are corrected.**
+  Measured here before the fix: a manifest promising `Content-Length: 7292` for a 76,579-byte file,
+  which is a wrong response rather than a stale one.
+
+Pages the pass creates in NEW directories have no manifest entry to repair. A manifest-driven host
+reaches those through its SPA fallback exactly as it did before prerendering, so they are no worse off.
+
+## The runtime boots after the page has painted
+
+A module script runs after parsing and **before the first paint**, so `dotnet.create()` takes the main
+thread while the browser still has nothing on screen — and holds it for as long as several megabytes of
+runtime take to instantiate. On a prerendered page that is the wrong trade: the content is already
+there.
+
+So when the pass has spliced a page, it marks the document `data-rask-prerendered`, and the boot script
+waits for `load` plus two animation frames before starting the runtime. Measured on
+[rask.sh](https://rask.sh), Lighthouse mobile profile:
+
+| | before | after |
+|---|---|---|
+| Largest contentful paint | 37.8 s | 1.4 s |
+| Time to interactive | 37.8 s | 5.4 s |
+
+The wait is bounded two ways, because a page that looks finished and answers nothing is its own kind of
+broken: **any user input starts the boot immediately**, and a ceiling covers a backgrounded tab (where
+`requestAnimationFrame` never fires) or a page with a request that hangs.
+
+Waiting for one frame instead of `load` was tried and is worse than not deferring at all — the runtime
+takes the thread while the stylesheets and webfont are still arriving, so the text's final paint lands
+behind the boot's long tasks. That measured 8.4 s.
+
+An app that is **not** prerendered boots immediately, unchanged: there the runtime is the only thing
+between the visitor and any content at all.
+
 ## Which routes get written
 
 A route is prerenderable when **every one of its segments is a literal** — decided on the parsed

@@ -277,6 +277,64 @@ them until tagged releases begin.
   containment, because a focus trap needs `showModal()` and that is script. So the popover is the
   default, and the state path is the exception.
 
+- **rask.sh was deployed entirely unstyled, and had been since the kit shipped.** The published site
+  404'd on `/css/rask-ui.css`, so the base colours and the whole daisyUI palette were missing and every
+  `--color-ui-*` token resolved to nothing: a page that is structurally perfect, fully interactive, and
+  completely grey.
+
+  `Rask.Ui.targets` resolved the kit's compiled sheet from the literal path
+  `obj/net10.0/ui.generated.css`. `Rask.Ui` multi-targets `net10.0;net10.0-browser`, so that file
+  exists only where something has built the `net10.0` face — which a developer's machine always has,
+  and a clean CI checkout publishing a browser-WASM app never does. It now resolves against the
+  consumer's own `$(TargetFramework)` first and falls back to whichever face the kit has built.
+
+  **And it warned instead of failing.** The warning ran green through CI and deployed the broken site;
+  the only trace was one line in a build log. The target only runs when a project sets
+  `RaskUiWriteStylesheet=true` — an explicit request for the file — so "asked for it and it is not
+  there" has no benign reading, and it is an error now. Every local build, every local publish and the
+  whole browser suite were green throughout, because the file was already on disk from an earlier
+  build; the browser suite does assert that no stylesheet 404s, and could not see a CI-only path.
+
+- **The canonical URLs and the sitemap named URLs that redirect.** GitHub Pages serves a directory
+  index at its trailing-slash URL and answers the bare one with a 301 — `/docs` → `/docs/`, verified
+  against the live site. Every canonical and all 151 sitemap entries used the bare form, so each page
+  served at `/docs/pwa/` declared that the real URL was one that redirects straight back to it. That is
+  a contradiction rather than a hop, and Search Console reports it across the whole site. Both now
+  name what the host serves, held in step by `PageMetaTests`. `<RaskSiteTrailingSlash>` states the
+  choice, for hosts like Netlify and Cloudflare Pages that normalise the other way.
+
+- **A prerendered page is now actually served, and actually paints.** Turning prerendering on wrote 154
+  real pages; three separate defects meant almost nobody would have seen them.
+
+  **The compressed siblings held the boot shell.** The pass runs after publish — the only point at
+  which the fingerprinted import map exists — so the SDK has already compressed `index.html` and
+  written a manifest describing it. Overwriting the page left `index.html.br` at 2.3 KB of spinner
+  beside a 76 KB rendered page, and a manifest promising `Content-Length: 7292` for a 76,579-byte
+  file, which is a wrong response rather than a stale one. **Any host that prefers a precompressed
+  sibling served the spinner** — nginx `brotli_static`, Netlify, Cloudflare Pages, S3 behind a CDN, and
+  Rask's own `Rask.Wasm.Hosting`. The pass now regenerates the siblings and corrects the manifest's
+  length, ETag, `Last-Modified` and integrity.
+
+  **The runtime booted before the browser could paint.** A module script runs after parsing and before
+  first paint, so `dotnet.create()` took the main thread while the screen was still empty. The splice
+  now marks the document `data-rask-prerendered` and the boot waits for `load` plus two frames — with
+  any user input starting it at once, and a ceiling for a backgrounded tab. **Largest contentful paint
+  37.8 s → 1.4 s**, time to interactive 37.8 s → 5.4 s.
+
+  **And the tag search could not see comments.** `IndexOfTag` matched `<head>` inside the shell's own
+  explanatory comment, so everything downstream measured from inside it: the prefix handed to the
+  attribute merge contained no `<html>` at all, and **every attribute a `Shell` override set on
+  `<html>` was silently dropped** — the exact failure that merge was written to fix. It read as working
+  because the site had already moved `data-rask-ui` into the shell's literal tag after being bitten
+  once, so the one attribute anyone watched survived for an unrelated reason.
+
+  Lighthouse on the published bundle, mobile profile, served with compression as a static host serves
+  it: **performance 37 → 74, accessibility 100, best practices 100, SEO 100**. First contentful paint,
+  largest contentful paint and speed index all 1.4 s. What remains is total blocking time (~1.4 s) —
+  the runtime's own startup CPU. Publishing with `-p:RaskWasmAot=true` takes it to 870 ms and the score
+  to 80, at 5,638 KiB instead of 2,225 KiB; AOT stays opt-in, because for a site people read and leave
+  the bytes matter more than the milliseconds.
+
 - **The site at [rask.sh](https://rask.sh) is prerendered, and a Rask app can now be indexed at all.**
   Four framework pieces, each of which was a hole a real site falls into.
 
@@ -515,6 +573,15 @@ them until tagged releases begin.
   `docs/authentication-providers.md` documents.
 
 ### Changed
+
+- **The landing page's install block is the kit's own terminal.** It was a hand-rolled `<pre>` whose
+  prompt was a `<span class="select-none">` — which stops a drag-select in most browsers and does
+  nothing about "select all", a screen reader, or anything reading `textContent`. `UiMockupCode` draws
+  the prompt from `data-prefix` as a CSS pseudo-element, so it is not in the document at all and a
+  copied command is a command. That matters more here than anywhere else on the site: the block exists
+  to be pasted into a shell, and `$ curl …` is not a valid one. (The gap between prompt and command is
+  worked around in the site's stylesheet — daisyUI's nested `[data-prefix]` rule overrides its own
+  `margin-right`, see [#1032](https://github.com/pal-tamas/rask/issues/1032).)
 
 - **`Rask.Auth` owns the cookie scheme instead of standing down.** The battery used to skip its own
   `AddAuthentication().AddCookie(...)` entirely when it found an `IAuthenticationSchemeProvider`

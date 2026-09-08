@@ -525,3 +525,4 @@ static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
 static Rask.Wasm.WasmHostBuilder.CreateDefault() -> Rask.Wasm.WasmHostBuilder!
 static Rask.Wasm.WasmHostBuilder.CreateDefault(System.Action<Rask.Core.Live.RaskLiveOptions!>? configureLive) -> Rask.Wasm.WasmHostBuilder!
 const Rask.Wasm.WasmPrerender.SiteUrlVariable = "RASK_PRERENDER_SITE_URL" -> string!
+const Rask.Wasm.WasmPrerender.TrailingSlashVariable = "RASK_PRERENDER_TRAILING_SLASH" -> string!

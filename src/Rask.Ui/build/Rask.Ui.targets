@@ -65,15 +65,43 @@
     </ItemGroup>
 
     <!--
-      In-repo there is no package, so the file above does not exist: a sample references the PROJECT,
+      In-repo there is no package, so the file above does not exist: a consumer references the PROJECT,
       and the sheet is still in Rask.Ui's own obj/. Conditioned on the packed item being empty so a
-      consumer never evaluates this path — the same shape as Rask.Meta.Hosting's in-repo fallback, and
-      for the same reason: without it the in-repo build silently writes nothing and every page links a
-      stylesheet that was never produced.
+      package consumer never evaluates this path — the same shape as Rask.Meta.Hosting's in-repo
+      fallback, and for the same reason: without it the in-repo build silently writes nothing and every
+      page links a stylesheet that was never produced.
+
+      NOT A HARD-CODED TFM, and that is the whole point of the two steps below.
+
+      It was `obj/net10.0/ui.generated.css`. Rask.Ui multi-targets net10.0;net10.0-browser, so that
+      path exists only if something built the net10.0 face — which a developer's machine always has,
+      and a clean CI checkout building a browser-WASM app never does. The published site at rask.sh
+      shipped ENTIRELY UNSTYLED for exactly this reason: the base colours and the whole daisyUI palette
+      live in this sheet, so with it missing every colour token resolved to nothing. The page was
+      structurally perfect and completely grey, and the only trace was one warning in a build log.
+
+      So: the consumer's own TFM first, because that is the matching sheet, and any TFM the kit has
+      built as the fallback — the generated CSS is Tailwind's scan of Rask.Ui's own sources and does
+      not vary by target.
     -->
     <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiStylesheetSource)' == ''">
-      <_RaskUiStylesheetSource Include="$(MSBuildThisFileDirectory)../obj/net10.0/ui.generated.css"
-                               Condition="Exists('$(MSBuildThisFileDirectory)../obj/net10.0/ui.generated.css')"/>
+      <_RaskUiStylesheetSource
+          Include="$(MSBuildThisFileDirectory)../obj/$(TargetFramework)/ui.generated.css"
+          Condition="Exists('$(MSBuildThisFileDirectory)../obj/$(TargetFramework)/ui.generated.css')"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiStylesheetSource)' == ''">
+      <_RaskUiStylesheetCandidate Include="$(MSBuildThisFileDirectory)../obj/*/ui.generated.css"/>
+    </ItemGroup>
+
+    <!-- Batches to ONE value, because Copy pairs SourceFiles with a single DestinationFiles and two
+         matches would fail the build on an argument-count mismatch rather than on anything real. -->
+    <PropertyGroup Condition="'@(_RaskUiStylesheetCandidate)' != ''">
+      <_RaskUiStylesheetFallback>%(_RaskUiStylesheetCandidate.FullPath)</_RaskUiStylesheetFallback>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(_RaskUiStylesheetFallback)' != ''">
+      <_RaskUiStylesheetSource Include="$(_RaskUiStylesheetFallback)"/>
     </ItemGroup>
   </Target>
 
@@ -83,12 +111,19 @@
           BeforeTargets="BeforeBuild">
 
     <!--
-      Warns rather than fails. A missing sheet renders the app unstyled, which is bad; failing the
-      build of an app for it would be worse, and this cannot tell a kit consumer that lost its
-      stylesheet from one that never had a wwwroot.
+      FAILS rather than warns, and that is a change made after the warning shipped a broken site.
+
+      This target only runs when the project set <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet> —
+      an explicit request for this file. There is no ambiguity left for a warning to be kind about: the
+      project asked for the sheet, the sheet is not there, and continuing produces an app whose every
+      colour resolves to nothing. That is not a degraded build, it is a broken one that looks fine
+      until someone loads it.
+
+      The warning form of this ran green through CI and deployed rask.sh entirely unstyled. A warning
+      in a build log is not a gate.
     -->
-    <Warning Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiStylesheetSource)' == ''"
-             Text="Rask.Ui: the kit's stylesheet could not be found, so $(RaskUiStylesheetOutput) was not written and every kit component will render unstyled."/>
+    <Error Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiStylesheetSource)' == ''"
+           Text="Rask.Ui: this project set RaskUiWriteStylesheet=true but the kit's stylesheet could not be found, so $(RaskUiStylesheetOutput) cannot be written and every kit colour would resolve to nothing. In this repository, build src/Rask.Ui first (it writes obj/&lt;tfm&gt;/ui.generated.css); from the package, the sheet ships beside these targets as build/ui.css."/>
 
     <MakeDir Condition="'@(_RaskUiStylesheetSource)' != ''"
              Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)'))"/>

@@ -97,11 +97,16 @@ public sealed class PageMetaTests
 
         Assert.True(target.Success, $"{path}'s canonical does not point at {PageMeta.Origin}: {canonical}");
 
+        // The form GitHub Pages serves without redirecting. The bare URL 301s to this one, so naming it
+        // would have the page declare a canonical that redirects straight back to the page.
+        Assert.EndsWith("/", target.Groups[1].Value, StringComparison.Ordinal);
+
         // It may point at ANOTHER route — /docs/todos/new canonicalises to /docs/todos, because the add
         // form is a state of the list rather than a page of its own, and consolidating them is exactly
         // what a canonical is for. What it may not do is point at a URL with no route behind it, which
         // is the mistake that costs more than having no canonical at all.
-        Assert.Contains(target.Groups[1].Value, AllRoutes());
+        Assert.Contains(target.Groups[1].Value.TrimEnd('/') is { Length: 0 } ? "/" : target.Groups[1].Value.TrimEnd('/'),
+            AllRoutes());
     }
 
     [Fact]
@@ -180,6 +185,30 @@ public sealed class PageMetaTests
 
         Assert.True(declared.Success, "the csproj declares no <RaskSiteUrl>, so the publish writes no sitemap");
         Assert.Equal(PageMeta.Origin, declared.Groups[1].Value.TrimEnd('/'));
+
+        // And the URL SHAPE, for the same reason. <RaskSiteTrailingSlash> is what the pass builds
+        // sitemap.xml from; PageMeta.CanonicalPath is what goes in every canonical and og:url. A site
+        // whose sitemap and canonicals disagree about the shape of its own URLs is telling a crawler two
+        // different things about every page it has.
+        var slash = Regex.Match(csproj, "<RaskSiteTrailingSlash>([^<]+)</RaskSiteTrailingSlash>");
+
+        Assert.True(slash.Success, "the csproj does not say which URL form its host serves");
+        Assert.Equal(
+            bool.Parse(slash.Groups[1].Value),
+            PageMeta.CanonicalPath("/docs/pwa").EndsWith('/'));
+    }
+
+    [Theory]
+    [InlineData("/", "/")]
+    [InlineData("/docs", "/docs/")]
+    [InlineData("/docs/", "/docs/")]
+    [InlineData("/docs/pwa", "/docs/pwa/")]
+    public void ACanonicalPathNamesWhatTheHostServes(string route, string expected)
+    {
+        // The root stays a single slash: it is already a directory URL, and doubling it names something
+        // else. Everything below it gains one, because that is the URL GitHub Pages answers with 200 —
+        // the bare form is a 301, checked against the live site rather than assumed.
+        Assert.Equal(expected, PageMeta.CanonicalPath(route));
     }
 
     /// <summary>

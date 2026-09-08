@@ -77,7 +77,15 @@ const boot = makeStubElement("div");
 boot.className = "rask-boot";
 
 const head = makeStubElement("head");
+
+// A document HAS a <html>. Leaving it off could not be told apart from the boot script crashing on it:
+// main.ts reads an attribute from documentElement to decide whether the page is prerendered, and
+// against a document without one that read threw at module top level and killed the boot — reported
+// here as "the app never painted", which is true and says nothing about why.
+const documentElement = makeStubElement("html");
+
 globals.document = {
+    documentElement,
     head,
     body: makeStubElement("body"),
     createElement: (tag: string) => makeStubElement(tag),
