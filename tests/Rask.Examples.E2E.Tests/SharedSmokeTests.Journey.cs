@@ -548,13 +548,9 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".cancel-log")).ToContainTextAsync("cancelled",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Background service: an app-wide singleton's loop pushes updates to two decoupled subscribers.
-        // The tick badge must climb with NO user interaction — proof the background producer (not a
-        // click handler) drives the render.
-        var firstTick = await ReadMetricsTickAsync();
-        await Expect(Page.Locator("#metrics-tick")).Not.ToContainTextAsync($"tick {firstTick}",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        Assert.True(await ReadMetricsTickAsync() > firstTick, "the background feed did not advance on its own");
+        // A background-service walk sat here, asserting a tick badge climbed with no user interaction.
+        // Its demo went with the live ticker (#1030) — the guide teaches ongoing work as prose now, and
+        // no demo on this page runs a timer.
     }
 
     // Routing guide: the Routing / Route+query / Navigator example pages folded into docs/routing.md.
@@ -1570,10 +1566,6 @@ public abstract partial class SharedSmokeTests
 
     private static int ExtractRenderCount(string? text) =>
         int.Parse(Regex.Match(text ?? "0", @"\d+").Value);
-
-    // The #metrics-tick badge reads "tick N" — N is the background feed's tick count.
-    private async Task<int> ReadMetricsTickAsync() =>
-        ExtractRenderCount(await Page.Locator("#metrics-tick").TextContentAsync());
 
     protected async Task HtmlDragDropAsync(string sourceSelector, string targetSelector)
     {

@@ -80,18 +80,27 @@ public sealed class SiteExampleTests
             await Expect(page.Locator(".term")).ToContainTextAsync(installer);
 
             // The prompt has a gap after it (#1032). Measured on the rendered page, because that is the
-            // only place this is decided: daisyUI's base rule gives the pseudo-element `margin-right: 2ch`
-            // and its own nested [data-prefix] rule REPLACES that declaration block, so a sheet containing
-            // both rules reads as correct while the terminal renders `$curl`. The correction is a rule with
-            // the identical selector, winning on cascade layer alone, and nothing short of asking the
-            // browser for the computed value can tell the two outcomes apart.
-            var promptGap = await page.Locator(".term pre[data-prefix]").First.EvaluateAsync<string>(
-                "el => getComputedStyle(el, '::before').marginRight");
+            // only place this is decided and because the obvious reading of the stylesheet is wrong: a
+            // sheet that contains a correcting rule and a page that shows the gap are different claims.
+            //
+            // The gap is made of WIDTH, not margin. daisyUI right-aligns the prompt inside a fixed 2rem
+            // box, and the kit widens that box; a margin cannot work here at all, because a consuming
+            // app's Tailwind preflight resets margin on ::before from its own <link> and layers do not
+            // merge across sheets. So this asserts the box is wider than the 2rem daisyUI sets — which
+            // is exactly the difference between the prompt sitting on the command and clear of it.
+            var prompt = await page.Locator(".term pre[data-prefix]").First.EvaluateAsync<string>(
+                @"el => {
+                    const s = getComputedStyle(el, '::before');
+                    return JSON.stringify({ width: s.width, content: s.content, textAlign: s.textAlign });
+                }");
+
+            var width = System.Text.Json.JsonDocument.Parse(prompt).RootElement
+                .GetProperty("width").GetString() ?? "";
 
             Assert.True(
-                double.TryParse(promptGap.Replace("px", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var gapPx)
-                && gapPx > 0,
-                $"the install command is flush against its prompt: computed ::before margin-right was '{promptGap}'");
+                double.TryParse(width.Replace("px", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var widthPx)
+                && widthPx > 32,
+                $"the install command is flush against its prompt: computed ::before was {prompt}");
 
             // Windows can't run a .sh, and rask.sh refuses under MINGW/MSYS and points here.
             await Expect(page.Locator(".install-foot").First)

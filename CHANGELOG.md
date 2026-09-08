@@ -42,17 +42,23 @@ them until tagged releases begin.
   *replaces* that whole declaration block in the nested `[data-prefix]` rule that supplies the content,
   so the gap is lost. Both rules being present is why the sheet reads as correct.
 
-  Corrected in the kit's own stylesheet, so every consumer gets it rather than each rediscovering it.
-  The rule carries the identical selector and the identical specificity — it wins on **cascade layer**
-  alone: daisyUI compiles into `@layer utilities { @layer daisyui.… }`, and within a layer the
-  declarations that are not in a sublayer outrank the ones that are. That is what lets the correction
-  stay layered; going unlayered would have outranked every utility a consuming app writes, which is the
-  failure `@layer` was adopted here to prevent in the first place.
+  Corrected in the kit's own stylesheet, so every consumer gets it rather than each rediscovering it —
+  but **not by restoring the margin**, which cannot work from a library stylesheet at all. Putting
+  `margin-right` back was tried at two specificities and in two cascade layers, and the browser computed
+  `0px` every time: a consuming app's Tailwind preflight resets `margin` and `padding` on `::before`
+  from its *own* `<link>`, and cascade layers do not merge across separate sheets, so that reset
+  outranks anything layered here however specific. It is also why daisyUI's own `margin-right: 2ch`
+  never lands in a Tailwind app, and why the showcase's earlier workaround had to sit in its own
+  unlayered sheet to work.
 
-  The showcase's `.term`-scoped workaround is gone. Pinned in two places, because neither alone is
-  enough: a unit test asserts the correction is present *and* that it sits outside daisyUI's sublayer,
-  and the browser suite reads the computed `::before` margin off the rendered page — a stylesheet
-  containing both rules and a stylesheet with the gap are textually indistinguishable. (#1032)
+  The gap is made from a property the reset does not touch. daisyUI already right-aligns the prompt
+  inside a fixed `2rem` box, so the kit widens that box — same mechanism, one property further along.
+  The showcase's `.term`-scoped workaround is gone.
+
+  Pinned in two places, because neither alone is enough: a unit test asserts the correction sets width
+  and does *not* set a margin (a margin here reads as a fix and is not one), and the browser suite
+  measures the computed box on the rendered page. Only the browser could tell these apart — every
+  failed attempt produced a stylesheet that read as correct. (#1032)
 
 - **The meta lane's two front-end-directory defaults disagreed, and only Linux noticed.**
   `RaskMetaAppDir` defaults to `client`; `MetaHostingOptions.AppDirectory` still defaulted to `Client`.

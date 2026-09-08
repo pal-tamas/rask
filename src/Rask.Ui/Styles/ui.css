@@ -147,15 +147,33 @@
   the command. Measured on the rendered page rather than read off the source —
   getComputedStyle(pre, '::before').marginRight was "0px".
 
-  LAYERED, and specifically in `utilities` rather than in a sublayer of it. daisyUI compiles to
-  `@layer utilities { @layer daisyui.l1.l2.l3 { … } }`, and within a layer the declarations that are
-  NOT in a sublayer win over the ones that are — so this beats daisyUI without going unlayered, which
-  the header above explains would outrank every utility a consuming app writes. Same selector, same
-  specificity; the layer is doing the work.
+  WIDTH, not margin, and that is the whole point of this rule.
+
+  The obvious correction is to put the margin back — `margin-right: 2ch` on the pseudo-element, the
+  exact declaration daisyUI's own base rule sets and its nested rule drops. It does not work, from this
+  sheet, at any specificity and in any layer. Measured in a browser three times before the reason was
+  found:
+
+    getComputedStyle(pre, '::before') -> { marginRight: "0px", width: "32px", content: '"#"' }
+
+  A CONSUMING APP'S PREFLIGHT is why. Tailwind's reset carries
+
+      *, ::after, ::before, ::backdrop { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid }
+
+  and it arrives in the APP's stylesheet, a separate <link>. Cascade layers do not merge across
+  separate sheets, so that reset outranks everything layered in this one however specific it is — which
+  is also why daisyUI's own `margin-right: 2ch` never lands in a Tailwind app, and why the showcase's
+  earlier workaround had to live in its own unlayered sheet to work at all. Going unlayered here to beat
+  it is exactly what the header above forbids: it would outrank every utility the app wrote.
+
+  So the gap is made from a property the reset does not touch. daisyUI already right-aligns the prompt
+  inside a fixed 2rem box (`width: 2rem; text-align: right`), so widening that box puts the space
+  between the prompt and the command and leaves the prompt where it was. Same mechanism daisyUI is
+  already using, one property further along, and nothing outside this sheet resets it.
 */
-@layer utilities {
+@layer rask-ui-corrections {
   .mockup-code pre[data-prefix]::before {
-    margin-right: 2ch;
+    width: calc(2rem + 2ch);
   }
 }
 

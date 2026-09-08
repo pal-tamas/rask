@@ -125,21 +125,28 @@ public sealed class UiStylesheetTests
         // REPLACES that declaration block in the nested rule that supplies the content, so the gap is
         // lost and a terminal renders `$curl` with the prompt flush against the command.
         //
-        // The correction is a rule with the same selector and the same specificity, so neither the
-        // selector text nor its position in the file decides the outcome — the LAYER does. daisyUI
-        // compiles into a sublayer (`@layer utilities { @layer daisyui.… }`), and within a layer the
-        // declarations that are not in a sublayer win over the ones that are. That is the entire
-        // mechanism, so that is what this asserts: a test that only checked the rule was present would
-        // pass just as happily with it sitting somewhere the cascade ignores.
-        var corrections = LayersOf(UiStylesheet.Css, ".mockup-code pre[data-prefix]:before")
-            .Where(r => r.Body.Contains("margin-right", StringComparison.Ordinal))
-            .ToList();
-
-        var correction = Assert.Single(corrections);
+        // WIDTH, and this test exists mostly to say why it is not margin. The correcting rule went in
+        // three times as `margin-right: 2ch` — the exact declaration daisyUI's own base rule sets and its
+        // nested rule drops — at two different specificities and in two different layers, and the browser
+        // computed 0px every time. A consuming app's Tailwind preflight resets margin and padding on
+        // ::before from its own <link>, and layers do not merge across separate sheets, so nothing layered
+        // in this sheet can win that. Widening the box daisyUI already right-aligns the prompt inside
+        // uses a property the reset does not touch.
+        //
+        // So the assertion is: the correction sets width, and it does NOT set margin — because a margin
+        // here reads as a fix and is not one.
+        var correction = Assert.Single(
+            LayersOf(UiStylesheet.Css, ".mockup-code pre[data-prefix]:before")
+                .Where(r => r.Body.Contains("width", StringComparison.Ordinal)
+                            && !r.Body.Contains("content", StringComparison.Ordinal))
+                .ToList());
 
         Assert.Contains("2ch", correction.Body, StringComparison.Ordinal);
-        Assert.Contains("@layer utilities", correction.Layers);
-        Assert.DoesNotContain(correction.Layers, l => l.Contains("daisyui", StringComparison.Ordinal));
+        Assert.DoesNotContain("margin", correction.Body, StringComparison.Ordinal);
+
+        // Outside daisyUI's own sublayer, so it is a correction rather than part of what it corrects.
+        var layer = Assert.Single(correction.Layers);
+        Assert.DoesNotContain("daisyui", layer, StringComparison.Ordinal);
     }
 
     /// <summary>
