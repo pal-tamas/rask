@@ -105,13 +105,21 @@ the component but does **not** re-fire `OnPropsChanged*` — nothing the compone
 reconciliation identity, not a reactive prop, so a key change doesn't fire `OnPropsChanged` either; it mounts a fresh
 instance.)
 
-The live-ticker demo puts the hooks together: a poll loop started in `OnMountAsync` streams a synthetic price
-into a **zero-JS, server-rendered SVG chart**, and the **BTC / ETH / SOL** switcher hands the ticker a new
-`Symbol` — a changed prop — so `OnPropsChanged*` refires (watch the *Hook activity* log), clears
-the buffer, and wakes the loop to poll the new asset immediately. `CancellationToken` tears the loop down on
-unmount:
+### Do not run an unbounded loop in `OnMountAsync`
 
-<!-- demo:lifecycle-ticker -->
+The first render waits on the task a lifecycle hook hands back. That is right for *load the data this page
+shows* and wrong for *run until this component goes away* — a `while (!ct.IsCancellationRequested)` loop
+awaited inside `OnMountAsync` never returns, so the render never settles. It waits out its whole budget and
+is then reported as timed out; under [prerendering](prerendering.md) the page is skipped entirely and ships
+to a crawler as a boot shell.
+
+Splitting the loop does not rescue it either. Letting the hook return before the first tick paints an empty
+widget, and starting the loop detached lets it outlive the render pass and re-render against a session scope
+that has already been disposed.
+
+Put ongoing work in a **service with its own lifetime** and have the component subscribe to it — which is what
+[Background service](#background-service) below shows. The component's own hooks then do what they are for:
+subscribe on mount, unsubscribe on unmount.
 
 ## Sync vs async rules
 
@@ -257,17 +265,23 @@ cancel — the probe records what happened into the log:
 
 ## Background service
 
-An app-wide background process can push updates into the UI. A single `IMetricsFeed` singleton runs its own loop and
-raises an event each tick; the two widgets below each subscribe independently (`feed.Updated += StateHasChanged`) and
-repaint themselves. Unlike a poll loop that lives inside one component, this producer is **decoupled from the component
-tree** — it keeps ticking across navigations (and, on the Server, across every session):
+An app-wide background process can push updates into the UI, and this is where ongoing work belongs — not in a
+lifecycle hook. Register the producer as a singleton with a lifetime of its own, have it raise an event each tick,
+and let components subscribe:
 
-<!-- demo:background-metrics -->
+```csharp
+protected override void OnMount()   => feed.Updated += StateHasChanged;
+protected override void OnUnmount() => feed.Updated -= StateHasChanged;
+```
 
-The producer is a DI `AddSingleton<IMetricsFeed, MetricsFeed>()` — one instance for the whole app. Each consumer is a
-tiny component that subscribes on mount and **unsubscribes on unmount** so it stops repainting (and can be collected)
-once it leaves the tree. The loop runs on a background thread, so `StateHasChanged()` crosses threads — safe here: it
-schedules a render under the subscriber's own session lock and is a no-op once the component unmounts.
+Unlike a poll loop inside one component, this producer is **decoupled from the component tree** — it keeps ticking
+across navigations (and, on the Server, across every session), and no first render is ever waiting on it.
+
+Each consumer subscribes on mount and **unsubscribes on unmount** so it stops repainting (and can be collected) once
+it leaves the tree. The loop runs on a background thread, so `StateHasChanged()` crosses threads — safe here: it
+schedules a render under the subscriber's own session lock and is a no-op once the component unmounts. Publish the
+producer's state as a single immutable snapshot swapped by reference, so a reader on the render thread cannot catch
+a half-built one.
 
 ### Hosted services
 

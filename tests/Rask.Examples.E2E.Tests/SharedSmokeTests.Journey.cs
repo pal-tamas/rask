@@ -494,35 +494,22 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkLifecycleGuideAsync()
     {
         await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
-        await AssertGuideDemosAsync(8, "lifecycle");
+        await AssertGuideDemosAsync(6, "lifecycle");
         // Guide prose code fences are syntax-highlighted server-side (runs on every host, including
         // StandaloneWasm which can't deep-link): the ```csharp blocks carry ColorCode token spans.
         await Expect(Page.Locator("main .markdown-body pre code span[class]").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        // The guide co-mounts every lifecycle demo on one page; wait for the LAST demo's control (the
-        // background-service chart, near the end) before driving any interaction so clicks never race
-        // hydration on the slower transports.
-        await Expect(Page.Locator("#metrics-chart svg")).ToBeVisibleAsync(
+        // The guide co-mounts every lifecycle demo on one page; wait for the LAST demo's control before
+        // driving any interaction so clicks never race hydration on the slower transports. That used to
+        // be the background-service chart at the end of the page; both it and the live ticker have been
+        // removed (#1030), so the cancellation demo is now last and its mount button is the signal.
+        await Expect(Page.Locator("#cancel-mount")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        // Live ticker (its standalone /realtime/{Symbol} page folded in): the poll loop started in
-        // OnMountAsync draws a zero-JS server-rendered SVG chart, and the switcher hands the ticker a new
-        // Symbol (via internal state now, not a route param) so OnPropsChanged refires without a remount.
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // The <svg> is now emitted from the first render (Sparkline draws its own empty frame, so the
-        // chart no longer swaps a <p> placeholder for an <svg> when data arrives — #618), which means the
-        // assertion above no longer proves a tick landed. The price does: it reads "Waiting for first
-        // tick…" until one has, and "$…" after.
-        await Expect(Page.Locator("#ticker-price")).ToContainTextAsync("$",
-            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
-        await Page.Locator("#ticker-switch-ETH").ClickAsync();
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // A live-ticker walk sat here — a poll loop in OnMountAsync, plus a symbol switch to prove
+        // OnPropsChanged refired. Removed with the demo: an unbounded loop awaited by a lifecycle hook is
+        // a first render that never settles, which cost this page its prerendered HTML entirely. The
+        // OnPropsChanged contract it also exercised is asserted by the mount/unmount cycle below.
 
         // Lifecycle hooks: the awaited OnMountAsync continuation must run, and "Trigger re-render" bumps
         // the render counter (an event-handler render — it does not re-fire OnMount / OnPropsChanged).

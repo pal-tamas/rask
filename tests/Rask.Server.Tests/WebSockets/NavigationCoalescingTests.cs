@@ -9,7 +9,7 @@ namespace Rask.Server.Tests.WebSockets;
 // outbound WS payloads per dispatch — an intermediate one fired by RouteState
 // .Changed's StateHasChanged subscriber on the layout, plus the final one from
 // EnforceAuthAndRenderAsync carrying history.url. Each payload morphs <head>
-// on the client; LiveTicker's chart.js head asset removal forces the keyed
+// on the client; a charting page's chart.js head asset removal forces the keyed
 // morph to move the scoped-CSS link past it, which under Chromium briefly
 // invalidates the cascade. With two morphs in rapid succession the .nav-item
 // -btn rules disappear long enough for the sidebar to render with default

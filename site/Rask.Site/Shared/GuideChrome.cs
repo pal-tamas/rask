@@ -47,6 +47,22 @@ public sealed partial class GuideChrome : Component
         {
             // The circuit went away before the guide finished mounting — nothing to spy on.
         }
+        catch (InvalidOperationException)
+        {
+            // NO SESSION, which is what a PRERENDER is: a render with no browser attached, so IJSRuntime
+            // has nothing to queue onto and says so. A scroll-spy is pure progressive enhancement — there
+            // is no viewport to observe and no scrolling to follow — so this is a no-op there, not a
+            // failure.
+            //
+            // It has to be caught rather than reasoned around, and it cost a page to learn that. Every
+            // guide hits this; it only became visible on one. The prerender pass reports a page as faulted
+            // when it observes the exception, and it only observes this one if the page runs enough render
+            // waves for the hook's task to be awaited — so on 134 guides the fault was swallowed as an
+            // unobserved task exception and the page was written anyway, while the one guide with async
+            // demos on it was skipped and shipped to crawlers as a boot shell. A latent fault that
+            // presents as a single unrelated-looking page is the worst shape this repo keeps a casebook
+            // about. (#1030)
+        }
     }
 
     protected override async Task OnUnmountAsync()
@@ -58,6 +74,10 @@ public sealed partial class GuideChrome : Component
         catch (JSDisconnectedException)
         {
             // Teardown during disconnect — the observer dies with the page anyway.
+        }
+        catch (InvalidOperationException)
+        {
+            // Same as above: nothing was ever wired, so there is nothing to tear down.
         }
     }
 

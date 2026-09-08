@@ -9,6 +9,33 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The lifecycle guide shipped to crawlers as an empty boot shell, and it was two defects, not one.**
+  Every publish logged `/docs/guides/lifecycle did not settle in 30s — not written`, so that URL was the
+  one page on rask.sh with no prerendered HTML.
+
+  The stall was a demo. A live ticker ran `while (!ct.IsCancellationRequested)` **inside**
+  `OnMountAsync`, and the first render waits on the task a lifecycle hook returns — right for "load the
+  data this page shows", wrong for "run until this component goes away". The hook never returned, so the
+  render never settled. The ticker, an SVG chart component, and a background metrics feed with its gauge
+  have all been removed rather than reshaped: the alternatives either paint an empty widget or leave a
+  loop running against a render pass that has already finished. What the guide teaches about ongoing work
+  is prose now, and nothing on the page runs a timer.
+
+  Removing the stall then exposed the second defect, which the timeout had been hiding for as long as it
+  existed. `GuideChrome.OnRenderedAsync` wires a scroll-spy over `IJSRuntime`, and a prerender is a render
+  with **no session** — so the call throws. That component is on **every** guide, so all 135 were throwing;
+  the pass only reports a page as faulted when it actually observes the exception, and it only observes it
+  on a page that runs enough render waves for the hook's task to be awaited. On 134 guides the fault was
+  swallowed as an unobserved task exception and the page was written regardless. A scroll-spy is
+  progressive enhancement with no viewport to observe, so it is now a no-op without a session.
+
+  The publish writes **155** pages, up from 154, with nothing skipped and nothing thrown.
+
+  The unit suite could not have caught either one: `PageMetaTests` walked only the routes
+  `RaskPrerender.PlanRoutes()` can enumerate — the twenty whose segments are all literals — while the
+  ~135 guides reach the pass through `IPrerenderPaths`. It now covers both, which took the settle
+  assertion from 20 pages to 155. (#1030)
+
 - **`UiMockupCode` rendered its prompt flush against the command** — `$curl -sSL …` rather than
   `$ curl -sSL …`, on the landing page's install block, which is the first line of code a visitor to
   rask.sh reads. daisyUI gives the prompt pseudo-element `margin-right: 2ch` in its base rule and then

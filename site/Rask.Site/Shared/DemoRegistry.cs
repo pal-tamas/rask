@@ -185,30 +185,22 @@ public static partial class DemoRegistry
             ["boom-render"] = () => CodeSample.Files(["BoomRenderDemo.cs"]).Result(BoomRenderDemo),
             ["boom-nested"] = () => CodeSample.Files(["BoomNestedDemo.cs"]).Result(BoomNestedDemo),
 
-            // --- Lifecycle guide: hooks, mount/unmount cycle, disposal, cancellation, background
-            //     service (their standalone example pages folded into docs/lifecycle.md). The demos
-            //     embed the probe source — the teaching artifact — while Result mounts the live widget. ---
+            // --- Lifecycle guide: hooks, mount/unmount cycle, disposal, cancellation (their standalone
+            //     example pages folded into docs/lifecycle.md). The demos embed the probe source — the
+            //     teaching artifact — while Result mounts the live widget. ---
+            //
+            // Two demos that ran a CONTINUOUS loop have been removed: a live ticker whose poll loop was
+            // awaited inside OnMountAsync, and a background metrics feed with its chart and gauge. The
+            // ticker was the defect — a hook that never returns is a first render that never settles, so
+            // this one page spent the whole prerender budget and then shipped to crawlers as a boot shell
+            // (#1030) — and the rest went with it rather than leaving a page whose demos all tick. What
+            // the guide teaches about ongoing work is now prose; nothing on this page runs a timer.
             ["lifecycle-hooks"] = () => CodeSample.Files(["LifecycleProbe.cs"]).Result(LifecycleProbe),
             ["lifecycle-cycle"] = () => CodeSample.Files(["LifecycleCycleProbe.cs"]).Result(LifecycleCycleDemo),
-            // Live ticker (its standalone /realtime/{Symbol} page folded in): a poll loop in OnMountAsync
-            // + a symbol switch that fires OnPropsChanged, drawing a zero-JS server-rendered SVG chart.
-            ["lifecycle-ticker"] = () => CodeSample
-                .Files(["LiveTicker.cs"])
-                .Notes("OnMountAsync runs a long-lived poll loop; every await uses ConfigureAwait(false) so it "
-                + "calls StateHasChanged() once per real data change (one render per tick). Switching the "
-                + "symbol fires OnPropsChanged/OnPropsChangedAsync, which clears the buffer and wakes the loop "
-                + "so the new asset polls immediately; CancellationToken cancels the loop on unmount. The chart "
-                + "is a server-rendered SVG (Sparkline) emitted straight from Render() — no canvas, no JS. The "
-                + "feed is a local random-walk (offline-safe); swapping in a real HTTP source is a one-line "
-                + "change in PollOnceAsync.")
-                .Result(LiveTickerDemo),
             ["disposal-sync"] = () => CodeSample.Files(["DisposableTimerProbe.cs"]).Result(DisposalSyncDemo),
             ["disposal-async"] = () => CodeSample.Files(["DisposableAsyncProbe.cs"]).Result(DisposalAsyncDemo),
             ["disposal-unmount"] = () => CodeSample.Files(["UnmountTimerProbe.cs"]).Result(DisposalUnmountDemo),
             ["cancellation"] = () => CodeSample.Files(["CancellationProbe.cs"]).Result(CancellationDemo),
-            ["background-metrics"] = () => CodeSample
-                .Files(["MetricsFeed.cs", "MetricsGauge.cs", "MetricsChart.cs"])
-                .Result(BackgroundMetricsDemo),
 
             // --- JS-interop guide: element refs, scoped CSS, scoped JS / IJSRuntime, and the asset-
             //     loading story (their standalone example pages folded into docs/js-interop.md). ---

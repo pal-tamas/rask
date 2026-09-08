@@ -5,7 +5,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Wasm.Tests.Infrastructure;
 
-// Reproduces the LiveTicker shape: a click handler calls Navigator.NavigateTo
+// Reproduces the live-ticker shape: a click handler calls Navigator.NavigateTo
 // AND a child component's render calls StateHasChanged() inside the dispatch.
 // That second call lands in WasmLiveSession.RequestRenderInternalAsync while
 // InHandlerScope=true, sets _pendingRenderInScope, and forces
@@ -29,7 +29,7 @@ internal sealed partial class NavigateWithPublishRenderApp : Component
     {
         // Always request a render — RequestRenderInternalAsync short-circuits
         // via InHandlerScope by setting _pendingRenderInScope=true, exactly
-        // the shape LiveTicker.OnRenderedAsync's auto-rerender continuation
+        // the shape a ticker's OnRenderedAsync auto-rerender continuation
         // produces under the framework's "publish render after every awaited
         // OnRenderedAsync" mechanism. The rebuild loop in
         // BuildPayloadCoalescingRerendersAsync is budgeted at 2 retries, so

@@ -9,7 +9,7 @@ namespace Rask.Site.Tests.Infrastructure;
 // only stub the leaf services (HttpClient, IJSRuntime, Navigator/RouteState).
 //
 // [SkipFactory] keeps the generator from emitting a Generated.LiveHost() factory in the
-// test assembly that would collide with the LiveTicker static-import.
+// test assembly that would collide with a static import.
 //
 // Flip Mounted to false and re-render to drive the child through its OnUnmount path.
 [SkipFactory]

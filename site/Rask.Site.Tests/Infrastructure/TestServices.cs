@@ -26,8 +26,7 @@ internal static class TestServices
         // The app's own registration, exactly as both real hosts call it, rather than a hand-maintained
         // copy that drifts — a demo ctor-injecting DemoUserProvider/IDispatcher/ITodoStore can't be
         // constructed without it. It goes FIRST so every override below re-registers over it and wins
-        // (last registration wins for a single resolve): notably the inert FakeMetricsFeed, which must
-        // beat the real MetricsFeed's background loop. The base address is replaced below too, so the
+        // (last registration wins for a single resolve). The base address is replaced below too, so the
         // resolver here is never invoked.
         sc.AddExampleServices(_ => new Uri("https://example.test/"));
 
@@ -55,11 +54,6 @@ internal static class TestServices
         sc.AddSingleton<IJSRuntime>(js ?? new FakeJsRuntime());
         sc.AddSingleton(downloadSink ?? new CapturingDownloadSink());
         sc.AddSingleton(bannedWords ?? new BannedWordService());
-        // Inert feed — no background loop — so the /background page baseline renders
-        // deterministically without starting timers. Behavioural coverage of the real
-        // MetricsFeed loop lives in MetricsFeedTests.
-        sc.AddSingleton<IMetricsFeed>(new FakeMetricsFeed());
-
         return sc.BuildServiceProvider();
     }
 }

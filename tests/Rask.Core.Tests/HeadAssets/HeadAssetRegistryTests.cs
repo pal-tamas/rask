@@ -193,7 +193,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-rask-key=\"tag:meta:description\"", result);
     }
 
-    // Regression: when the LiveTicker page unmounted, its Chart.js head contribution
+    // Regression: when a charting page unmounted, its Chart.js head contribution
     // dropped out of the registry. The client morph walked head children positionally,
     // hit a tag-name mismatch at the shifted slot, and REPLACED the scoped-css <link>
     // — which dropped its stylesheet rules and produced a visible flicker. Emitting a

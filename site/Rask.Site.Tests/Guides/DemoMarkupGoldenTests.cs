@@ -51,18 +51,6 @@ public sealed class DemoMarkupGoldenTests
         "(<code[^>]*class=\"[^\"]*language-[^\"]*\"[^>]*>).*?</code>",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
-    // The second legitimate exception, and the counterpart to the one below: a chart's *contents* are its
-    // data. LiveTicker polls on a 50 ms simulated latency, so the Sparkline it draws holds no points on the
-    // first render and one shortly after — and an empty series renders a labelled <text>No data</text>
-    // frame where a populated one renders <line>/<polyline>/<circle>. That is a tag-name change on a timer,
-    // which no snapshot can hold; it made this golden a race against machine load and failed unrelated PRs
-    // (#618). The <svg> element itself is kept — LiveTicker always emits it, so "is the chart there, in the
-    // right place, with the right classes" is still asserted — and only its body is dropped. What the chart
-    // draws is Sparkline's contract and has its own tests in Rask.Site.Tests.
-    private static readonly Regex LiveChartBody = new(
-        "(<svg[^>]*class=\"[^\"]*ticker-chart-svg[^\"]*\"[^>]*>).*?</svg>",
-        RegexOptions.Compiled | RegexOptions.Singleline);
-
     [Fact]
     public void EveryDemo_RendersToItsGoldenMarkupSkeleton()
     {
@@ -99,9 +87,9 @@ public sealed class DemoMarkupGoldenTests
 
     // The half the pair above cannot see, and the half #618 actually needed. Two back-to-back renders each
     // mount a FRESH instance and capture it immediately, so both land on the same side of any mount-time
-    // timer and agree — which is exactly why LiveTicker's 50 ms simulated poll latency walked straight
-    // through that check and failed the golden instead, on whichever unrelated PR happened to run on a busy
-    // machine.
+    // timer and agree. That is exactly how a demo with a ~50 ms mount-time poll walked straight through the
+    // check above and failed the golden instead, on whichever unrelated PR happened to run on a busy
+    // machine (#618).
     //
     // So hold one instance and read it again after its timers have had time to fire. A demo may of course
     // CHANGE when it ticks — that is the point of a live demo — but the change has to live in text, an id
@@ -117,8 +105,10 @@ public sealed class DemoMarkupGoldenTests
             var page = RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default());
             var before = SkeletonOf(page.Html);
 
-            // Comfortably past LiveTicker's 50 ms poll and LiveTickerDemo's 50 ms deferred re-render — the
-            // two mount-time timers in the set — without waiting on the 1 s inter-tick interval.
+            // Comfortably past a mount-time timer of the scale demos have used (~50 ms) without waiting on
+            // a slow inter-tick interval. No demo in the set ticks today — the two that did were removed
+            // with the live ticker (#1030) — but the guard is what keeps the next one from being added
+            // silently.
             await Task.Delay(250);
 
             var after = SkeletonOf(page.Render());
@@ -148,7 +138,7 @@ public sealed class DemoMarkupGoldenTests
         return sb.ToString();
     }
 
-    // "lifecycle-ticker" on its own sends you reading a 300-line component; naming the line that moved
+    // A demo key on its own sends you reading a 300-line component; naming the line that moved
     // sends you to the element.
     private static string FirstDifference(string before, string after)
     {
@@ -173,7 +163,7 @@ public sealed class DemoMarkupGoldenTests
 
     private static string SkeletonOf(string rendered)
     {
-        var html = LiveChartBody.Replace(HighlightedSource.Replace(rendered, "$1</code>"), "$1</svg>");
+        var html = HighlightedSource.Replace(rendered, "$1</code>");
 
         var sb = new StringBuilder();
 

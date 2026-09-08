@@ -6,7 +6,7 @@ using Rask.Wasm.Tests.Infrastructure;
 namespace Rask.Wasm.Tests.Session;
 
 // Regression: when a handler that calls Navigator.NavigateTo(...) also triggers
-// a publish-render rebuild within the same dispatch (LiveTicker's
+// a publish-render rebuild within the same dispatch (a live ticker's
 // OnRenderedAsync → Chart.js-draw continuation is the canonical case), the
 // final payload must still carry the history.url. The prior
 // BuildPayloadCoalescingRerendersAsync implementation dropped historyUrl on

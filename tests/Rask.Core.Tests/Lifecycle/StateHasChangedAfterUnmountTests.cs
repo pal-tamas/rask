@@ -5,7 +5,7 @@ using Rask.Core.Live;
 namespace Rask.Core.Tests.Lifecycle;
 
 // Regression: an unmounted component's StateHasChanged must be a no-op. Pre-fix,
-// a long-running OnMountAsync (e.g. LiveTicker's poll loop) left in-flight
+// a long-running OnMountAsync (a poll loop, say) left in-flight
 // LifecycleSyncContext continuations that, on cancellation, still called
 // StateHasChanged on the disposed component — queuing ghost session renders
 // against the newly-mounted page. The visible symptom was 11+ spurious
@@ -57,7 +57,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
     [Fact]
     public async Task LateLifecycleSyncContextPost_AfterUnmount_DoesNotQueueRender()
     {
-        // Models the exact LiveTicker-→-Lifecycle regression: an OnMountAsync
+        // Models the exact ticker-→-Lifecycle regression: an OnMountAsync
         // captures its continuation via LifecycleSyncContext; the component is
         // unmounted while the gate is still pending; the gate then resolves.
         // The settling continuation must NOT queue a session render against the

@@ -43,7 +43,17 @@ public sealed class PageMetaTests
     {
         // Touching a page type is what runs the generated [Route] module initializers.
         _ = typeof(PwaPage);
-        return RaskPrerender.PlanRoutes().Paths.OrderBy(path => path, StringComparer.Ordinal);
+
+        // The SUPPLIED paths as well as the planned ones, and the difference is most of the site.
+        // PlanRoutes keeps the routes whose every segment is a literal, which is twenty pages; the
+        // guides live behind one parameterised route and are supplied by GuidePrerenderPaths, which is
+        // the other ~130. Leaving them out meant this file — and in particular the "did it settle"
+        // assertion in HeadAt — never rendered the pages the publish actually has trouble with. A guide
+        // that stalls or faults was visible only as a line in a publish log.
+        return RaskPrerender.PlanRoutes().Paths
+            .Concat(new GuidePrerenderPaths().Paths())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal);
     }
 
     [Theory]
