@@ -50,6 +50,31 @@ them until tagged releases begin.
   **A live showcase at `/ui/actions`.** The kit had no page anywhere; the only surface was the prose
   guide at `/guides/ui-kit`.
 
+- **The UI kit's Data display category gains the five components daisyUI has and it did not.**
+  `UiAura`, `UiHover3d`, `UiHoverGallery`, `UiTextRotate` and `UiAccordion`, with a showcase at
+  `/ui/data-display`.
+
+  **`UiAccordion` holds the open section in C#.** `Open` is the key of the section showing and `null`
+  is all of them closed, so a page can open one in response to something that happened elsewhere and
+  can say which is open. A run of `UiCollapse` sharing a `Group` could not: the browser closed the
+  others without telling anyone which one won, which is why `Group` is gone. A section outside an
+  accordion throws a message naming the two components the caller actually typed, rather than the
+  context machinery underneath.
+
+  **`UiTextRotate` has no `Interval` property, deliberately.** daisyUI reads the cycle length from
+  `--tw-duration`, which a `duration-*` utility sets; a `TimeSpan` would have to become a class name at
+  run time, and a name built that way is invisible to Tailwind's scan and absent from the sheet. Pass
+  `duration-[3s]` through `Class`, where it is written down and therefore compiled. Every word stays in
+  the markup, so a reader who never sees the animation reads the list — and the phrase has to make
+  sense with all of them.
+
+  **The decorative three carry no role and no label.** `UiAura`, `UiHover3d` and `UiHoverGallery` say
+  nothing a reader who cannot see them would miss, and `UiHoverGallery`'s first child is the one that
+  has to work alone — on a touch screen it is the only one anybody sees.
+
+  **`UiCollapse` moves onto C# state**, with the same three-setting `Open` and the same
+  `collapse-close` reasoning as the dropdown. `Marker` becomes the `UiMarker` enum.
+
 - **The site at [rask.sh](https://rask.sh) is prerendered, and a Rask app can now be indexed at all.**
   Four framework pieces, each of which was a hole a real site falls into.
 

@@ -61,6 +61,7 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Islands.Route
 // The UI kit, one page per daisyUI category. The guide at /guides/ui-kit is the prose; these are the
 // components themselves, live, which is the half a paragraph cannot do.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitActionsPage(), "Actions", UiIconName.Check, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataDisplayPage(), "Data display", UiIconName.Overview, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.InstallPromptPage(), "Install prompt", UiIconName.Download, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.WakeLockPage(), "Wake lock", UiIconName.Desktop, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.OrientationPage(), "Orientation", UiIconName.Phone, "PWA"));

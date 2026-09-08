@@ -302,9 +302,17 @@ public sealed partial class UiFab : Component
 /// A titled section that opens and closes.
 /// </summary>
 /// <remarks>
-/// <c>&lt;details&gt;</c>, so opening and closing is the browser's, not a script's. Give several the same
-/// <see cref="Group" /> and the browser closes the others when one opens — an accordion with no state to
-/// manage and no script to manage it.
+/// <para>
+/// <see cref="Open" /> works exactly as <see cref="UiDropdown.Open" /> does, for the same reason: unset
+/// is uncontrolled, and closed writes <c>collapse-close</c> rather than merely omitting
+/// <c>collapse-open</c>, because daisyUI also opens on <c>:focus-within</c>.
+/// </para>
+/// <para>
+/// This used to be a <c>&lt;details&gt;</c> with a <c>name</c>, which made a set of them mutually
+/// exclusive with no state at all — the browser closed the others when one opened. What it could not do
+/// is say WHICH one is open, so a page could neither restore that nor react to it. For a set that
+/// behaves as one, <see cref="UiAccordion" /> holds the open key in C#; this is the standalone section.
+/// </para>
 /// </remarks>
 public sealed partial class UiCollapse : Component
 {
@@ -312,36 +320,37 @@ public sealed partial class UiCollapse : Component
     /// markup entry of that name; this component renders no &lt;title&gt; element, so nothing is lost.</summary>
     public new required string Title { get; set; }
 
-    /// <summary>
-    ///     The accordion this belongs to. Sections sharing a name are mutually exclusive; omit it and each
-    ///     one opens and closes on its own.
-    /// </summary>
-    public string? Group { get; set; }
-
+    /// <summary>Whether it is open. Leave it unset to let the browser open it on focus.</summary>
     public bool? Open { get; set; }
 
-    /// <summary>Draws the arrow or plus marker, as daisyUI's <c>collapse-arrow</c>/<c>collapse-plus</c>.</summary>
-    public string? Marker { get; set; }
+    /// <summary>Runs when the heading is activated, with the state the reader is asking for.</summary>
+    public Action<bool>? OnToggle { get; set; }
+
+    /// <summary>Draws the arrow or plus marker.</summary>
+    public UiMarker? Marker { get; set; }
 
     public string? Class { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var details = Details
-            .Class(UiClass.Compose("collapse border border-base-300 bg-base-100", Marker, Class))
-            .Open(Open == true);
+        var title = Button
+            .Type("button")
+            .Class("collapse-title flex w-full items-center text-left font-semibold")
+            .Aria(new Dictionary<string, string?> { ["expanded"] = Open == true ? "true" : "false" });
 
-        if (Group is { } group)
+        if (OnToggle is { } toggle)
         {
-            // `name` on <details> is the newer exclusive-accordion attribute and Rask.Html does not model
-            // it yet, so it goes through the verbatim escape hatch. It is what makes sections with the
-            // same name close each other — the accordion behaviour, from the browser, with no state.
-            details = details.Attributes(("name", group));
+            var next = Open != true;
+            title = title.OnClick(() => toggle(next));
         }
 
-        return details[
-            Summary.Class("collapse-title font-semibold")[Title],
+        return Div.Class(UiClass.Compose(
+            "collapse border border-base-300 bg-base-100",
+            Marker is { } marker ? UiClassNames.Marker(marker) : "",
+            Open switch { true => "collapse-open", false => "collapse-close", null => "" },
+            Class))[
+            title[Title],
             Div.Class("collapse-content text-sm")[Children ?? []]
         ];
     }

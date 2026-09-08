@@ -514,4 +514,32 @@ internal static class UiClassNames
         UiSwapAnimation.Flip => "swap-flip",
         _ => "",
     };
+
+    internal static string AuraStyle(UiAuraStyle value) => value switch
+    {
+        UiAuraStyle.Glow => "aura-glow",
+        UiAuraStyle.Dual => "aura-dual",
+        UiAuraStyle.Holo => "aura-holo",
+        UiAuraStyle.Rainbow => "aura-rainbow",
+        UiAuraStyle.Gold => "aura-gold",
+        UiAuraStyle.Silver => "aura-silver",
+        _ => "",
+    };
+
+    internal static string AuraSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "aura-xs",
+        UiSize.Sm => "aura-sm",
+        UiSize.Md => "aura-md",
+        UiSize.Lg => "aura-lg",
+        UiSize.Xl => "aura-xl",
+        _ => "",
+    };
+
+    internal static string Marker(UiMarker value) => value switch
+    {
+        UiMarker.Arrow => "collapse-arrow",
+        UiMarker.Plus => "collapse-plus",
+        _ => "",
+    };
 }
