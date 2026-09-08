@@ -335,9 +335,8 @@ write yourself, and every one of them is documented as code you can copy:
 | A cached read | [Tutorial ch.6](tutorial/06-cache.md), [Cache](cache.md) |
 | Domain events through the outbox | [Tutorial ch.7](tutorial/07-outbox-events.md), [Outbox](outbox.md) |
 
-The [tutorial](tutorial/00-overview.md) builds all of it in order, and the finished result is committed
-as [`samples/Rask.Example.Shop`](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop) —
-a working app to read whenever a snippet needs its surroundings.
+The [tutorial](tutorial/00-overview.md) builds all of it in order, one chapter per pillar, so a snippet
+that needs its surroundings has them by the time you reach it.
 
 > **Why no generator?** Scaffolded code is read far more often than it is written, and a generator's
 > output has to be understood line by line the first time you meet it anyway. Teaching the same code in

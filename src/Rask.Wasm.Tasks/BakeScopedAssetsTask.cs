@@ -15,7 +15,7 @@ namespace Rask.Wasm.Tasks;
 ///     materialises every registered entry as a <c>{BundleDir}/_rask/a/{hash}.{ext}</c> file.
 ///     <para>
 ///         Why this exists: the in-WASM-browser runtime computes per-component asset
-///         hashes from <c>Rask.Example.Shared.dll</c> loaded into the .NET-in-Wasm
+///         hashes from the component assembly loaded into the .NET-in-Wasm
 ///         runtime. Without baking, the only thing that can serve those URLs is a
 ///         <c>Rask.Wasm.Hosting</c> host whose process also loaded the same assembly
 ///         (the <c>UseRask&lt;TApp&gt;()</c> generic forces that load). Standalone WASM
@@ -118,7 +118,7 @@ public sealed class BakeScopedAssetsTask : Task
             // broken build. Failing here is what stops that shipping.
             //
             // !registryResolved is load-bearing, and was missing. Without it this fires on a project that
-            // legitimately has NO scoped assets (Rask.Example.Wasm.Jobs is one) the moment ANY assembly is
+            // legitimately has NO scoped assets the moment ANY assembly is
             // skipped — and the skip need not be one that could ever hold a scoped asset. A Microsoft
             // .Extensions bump was enough: the app then carries a DependencyModel newer than the one MSBuild
             // already has loaded, LoadFrom throws on identity, and a build that was entirely correct failed

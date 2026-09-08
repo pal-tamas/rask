@@ -24,11 +24,14 @@ it under a real `dotnet watch`, edits a file, and asserts the change reached the
 without it being torn down. It's opt-in (`RASK_WATCH_E2E=1`); run it when you touch the hot-reload
 coordinator, the scoped-asset registry, the generated registries, or `rask dev`.
 
-`scripts/run-wasm-watch-e2e.sh` is the browser half of the same thing, opt-in on `RASK_WASM_WATCH_E2E=1`.
-Both are run by `.githooks/pre-push` when a push touches the hot-reload path (bypass with
-`RASK_SKIP_WATCH_E2E=1`). The WASM one used to be invoked by nothing at all: its tests live in the E2E
-project, so the browser gate's namespace-wide filter *selected* them and they then reported **SKIPPED**,
-because only this script sets the variable that enables them. Green on every push, never once run.
+`.githooks/pre-push` runs it when a push touches the hot-reload path (bypass with
+`RASK_SKIP_WATCH_E2E=1`).
+
+There used to be a browser half, `scripts/run-wasm-watch-e2e.sh`, driving a WASM sample under
+`dotnet watch`. It is gone with the app it edited, so **Mono applying a metadata delta to a live WASM
+runtime is covered by nothing**. Its last run demonstrated the failure mode it was written to fix: with
+its tests deleted, `dotnet test --filter` matched nothing, printed "No test matches the given testcase
+filter", exited 0, and the hook announced the gate had passed.
 
 ## The definition-of-done gate
 
@@ -44,7 +47,7 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    until it is recorded in `src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt`. That diff is the
    API review — read it against [api-style.md](api-style.md) before you commit.
 3. **Tests** — unit-test every feature/fix (`tests/Rask.*.Tests`); add E2E only when a unit test
-   can't reach the path. **Every `samples/` change gets an E2E** journey update
+   can't reach the path. **Every `site/` change gets an E2E** journey update
    (`tests/Rask.Examples.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
    each run doesn't rebuild the whole solution (test execution itself is fast; the build dominates):
    ```bash
@@ -59,13 +62,13 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    `Directory.Build.rsp` turns **MSBuild node reuse off** for every build started from the repository
    root. That is deliberate and load-bearing: the scoped-asset bake is not safe across reused workers
    ([#650](https://github.com/pal-tamas/rask/issues/650)), so with reuse on, publishing two different
-   WASM samples in a row fails the second one. It costs about a fifth of a second per incremental
+   WASM apps in a row fails the second one. It costs about a fifth of a second per incremental
    build. If you are working on `Rask.Wasm.Tasks` itself, note that a reused node also pins the **task**
    assembly — run `dotnet build-server shutdown` before judging any change to it, or you are measuring
    the previous build's DLL.
 4. **Benchmarks** — any render/live-runtime hot-path change runs `benchmarks/Rask.Benchmarks`
    before/after and quotes the `Allocated` delta in the PR.
-5. **Docs & examples** — user-facing changes update a `samples/` app, the relevant `docs/*.md`,
+5. **Docs & the site** — user-facing changes update `site/Rask.Site`, the relevant `docs/*.md`,
    `README.md`, `NUGET.md`, `llms.txt`, and the template `AGENTS.md`. Add a `CHANGELOG.md`
    `[Unreleased]` entry (Keep a Changelog).
 6. **Review** — security, performance, and memory held together with UX; prefer standard .NET

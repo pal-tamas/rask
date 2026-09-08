@@ -173,9 +173,10 @@ public sealed class DevTargetTests
 
     /// <summary>
     ///     A wasm-hosted host is recognised by what it <em>references</em>, not by what it is called.
-    ///     The <c>.Client</c> naming convention is what <c>rask new</c> emits, but the repo's own
-    ///     <c>Rask.Example.Wasm.Host</c> references <c>Rask.Example.Wasm</c> — so a name-only check reads
-    ///     it as a plain Server and it never gets the WASM dev bundle (and therefore never hot-reloads).
+    ///     The <c>.Client</c> naming convention is what <c>rask new</c> emits, but nothing obliges a
+    ///     hand-written host to follow it — this repo's own WASM host did not — and a name-only check
+    ///     reads such a host as a plain Server, so it never gets the WASM dev bundle and therefore never
+    ///     hot-reloads.
     /// </summary>
     [Fact]
     public void A_host_referencing_a_wasm_client_is_wasm_hosted_even_without_the_Client_suffix()

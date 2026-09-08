@@ -191,7 +191,7 @@ fi
 # collects @(Compile), @(EmbeddedResource), the project file and Razor content and never @(None), so a
 # scoped asset reaches the watcher only through the items that file adds. A change to the watch list
 # itself was the one hot-reload change this filter did not select (found while fixing #862).
-watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing|Resources|build)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.ts|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.ts|Browser/main\.ts)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs|tests/Rask\.Examples\.E2E\.Tests/WasmWatchHotReloadTests\.cs)'
+watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing|Resources|build)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.ts|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.ts|Browser/main\.ts)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs)'
 
 if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_WATCH_E2E=1 set — skipping the watch hot-reload gate."
@@ -207,13 +207,18 @@ else
     "The hot-reload path doesn't compile." \
     "An edit no longer reaches a running app."
 
-  # And the browser half. scripts/run-wasm-watch-e2e.sh existed but nothing invoked it, so WASM hot
-  # reload was covered by no gate at all: WasmWatchHotReloadTests lives in the E2E project, so the
-  # browser gate's namespace-wide filter DOES select it — and then it reports SKIPPED, because it is
-  # opt-in on RASK_WASM_WATCH_E2E=1 and nothing set that. Green, never run. Only this script sets it.
-  run_gate "WASM watch hot-reload gate" scripts/run-wasm-watch-e2e.sh \
-    "The WASM hot-reload path doesn't compile." \
-    "An edit no longer reaches a running WASM app."
+  # The browser half is GONE, not merely unrun. It drove samples/Rask.Example.Wasm — writing a probe
+  # source file into it for the duration of the run — and that app no longer exists. Its last act was
+  # to demonstrate the failure mode it was itself written to fix: with WasmWatchHotReloadTests deleted,
+  # `dotnet test --filter` matched nothing, printed "No test matches the given testcase filter",
+  # exited 0, and this hook announced "WASM watch hot-reload gate passed."
+  #
+  # So Mono applying a metadata delta to a live WASM runtime is now covered by nothing. The rest of the
+  # WASM channel still is — StaticWebAssetsManifestFileProviderTests for serving the bundle,
+  # WasmHotReloadBridgeTests for the announcement, HotReloadClientContractTests for the shared
+  # indicator, DevCommandTests for the dev-bundle switch — but the final hop into the runtime is not.
+  # Restoring it needs a browser app to edit, which is what site/Rask.Site could become; tracked so the
+  # loss is a decision rather than a discovery.
 fi
 
 # The deploy gate boots a privileged container, so it runs only when this push actually touches the

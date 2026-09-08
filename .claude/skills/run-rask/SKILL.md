@@ -1,119 +1,118 @@
 ---
 name: run-rask
-description: Build, launch, and drive the Rask Server showcase app (samples/Rask.Example.Server) — the server-rendered, live-over-WebSocket demo of the framework. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node. Also drives the built-in operator console (Rask.Dashboard at /_rask) out of samples/Rask.Example.Shop, at desktop and phone widths, via dashboard-driver.cs.
+description: Build, launch, and drive the Rask site (site/Rask.Site) — the one browser-WASM app behind rask.sh, with the landing page at / and the showcase plus guides at /docs. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node. Also drives the built-in operator console (Rask.Dashboard at /_rask) out of a throwaway scaffolded app, at desktop and phone widths, via dashboard-driver.cs.
 ---
 
-# Run the Rask showcase
+# Run the Rask site
 
-`samples/Rask.Example.Server` is the framework's showcase: plain-C# components, **server-rendered
-and live-updated over a WebSocket** (the browser posts `data-rask-on-*` events, the server
-re-renders and streams back a DOM diff). It's the app to launch when you want to *see* a change.
+`site/Rask.Site` is the framework's showcase and its published front door: the landing page at `/`,
+the guides and every live demo at `/docs`. It is **browser-WASM** — the browser downloads
+`dotnet.wasm` plus the assemblies, boots the Mono runtime, and renders and handles events locally via
+JSImport/JSExport. There is no server and no WebSocket. It's the app to launch when you want to *see*
+a change.
 
-**`curl` can only see the first server-rendered HTML — it can never observe the live loop.** To
-prove interactivity you need a real browser. The committed driver `.claude/skills/run-rask/driver.cs`
-does that with the repo's existing **Microsoft.Playwright** (.NET) dependency — the same version the
-E2E suite uses, browsers already in the `ms-playwright` cache. It's a .NET 10 *file-based app*: **no
-Node, no npm, no csproj** — just `dotnet run driver.cs`.
+**`curl` is useless here.** It sees the boot shell and nothing else, and the framework assets are
+fingerprinted and resolved through the page's import map, so `/_framework/dotnet.js` even **404s on a
+direct GET**. The app only exists once a real browser boots the runtime. The committed driver
+`.claude/skills/run-rask/driver.cs` does that with the repo's existing **Microsoft.Playwright** (.NET)
+dependency — the same version the E2E suite uses, browsers already in the `ms-playwright` cache. It's
+a .NET 10 *file-based app*: **no Node, no npm, no csproj** — just `dotnet run driver.cs`.
 
 All paths below are relative to the repo root (the unit). Run everything from there unless told
 otherwise.
 
 ## Prerequisites
 
-- **.NET 10 SDK** — `dotnet --version` → `10.0.302` here. That's the whole toolchain; the driver
-  pulls `Microsoft.Playwright` via NuGet (version comes from `Directory.Packages.props`, so the
-  `#:package` directive is intentionally unversioned — Central Package Management supplies it).
+- **.NET 10 SDK** — that's the whole toolchain; the driver pulls `Microsoft.Playwright` via NuGet
+  (version comes from `Directory.Packages.props`, so the `#:package` directive is intentionally
+  unversioned — Central Package Management supplies it).
 - **Playwright browsers** — already present in `~/Library/Caches/ms-playwright` (installed for the
   E2E suite). If missing, the driver errors with a "browser not found" message; build the E2E project
   once, then `scripts/playwright.sh install chromium`. That wrapper drives the node CLI bundled with
   `Microsoft.Playwright`, so it needs no PowerShell and always installs the browser revisions the
   pinned binding expects — unlike `npx playwright install`.
+- **No `wasm-tools` workload needed**: the default build uses the Mono **interpreter**. AOT is opt-in
+  via `-p:RaskWasmAot=true`, which this skill does not use.
 
 ## Build
 
 ```bash
-dotnet build samples/Rask.Example.Server -c Debug -m:1
+dotnet build site/Rask.Site -c Debug -m:1
 ```
 
-~3–8s. Pulls in Rask.Core, Rask.Server, Rask.Bootstrap, the generators, and the shared sample
-assembly. Clean build = 0 warnings.
+Serially (`-m:1`): the WASM asset pipeline races under parallel builds. Clean build = 0 warnings.
 
 ## Run (agent path)
 
-1. **Launch the server in the background** (override the port explicitly; check it's free first):
+1. **Launch it in the background** (check the port is free first):
 
    ```bash
-   lsof -ti :5099 && echo "BUSY — see Gotchas" || echo "free"
-   ASPNETCORE_ENVIRONMENT=Development \
-     dotnet run --project samples/Rask.Example.Server -c Debug --no-build \
-     --urls http://localhost:5099 > /tmp/rask-server.log 2>&1 &
+   lsof -ti :5050 && echo "BUSY — see Gotchas" || echo "free"
+   dotnet run --project site/Rask.Site -c Debug --no-build \
+     -- --urls http://localhost:5050 > /tmp/rask-site.log 2>&1 &
    ```
 
-2. **Wait for it, smoke it with curl** (initial HTML only):
+2. **Wait for it** — the shell only, which is all a static host serves:
 
    ```bash
-   for i in $(seq 1 30); do curl -sf http://localhost:5099/ -o /dev/null && { echo "UP (${i}s)"; break; }; sleep 1; done
-   curl -s http://localhost:5099/ | grep -o '<title>[^<]*</title>'   # → <title>Rask</title>
+   for i in $(seq 1 30); do curl -sf http://localhost:5050/ -o /dev/null && { echo "UP (${i}s)"; break; }; sleep 1; done
    ```
 
-3. **Drive it with the C# Playwright driver** — screenshots + the live WebSocket round-trip. Run it
-   **from the skill directory** so screenshots land in `./screenshots/`:
+   Do **not** read anything into the HTML this returns. It is the boot shell; the page does not exist
+   until the runtime mounts.
+
+3. **Drive it with the C# Playwright driver.** Run it **from the skill directory** so screenshots land
+   in `./screenshots/`:
 
    ```bash
    cd .claude/skills/run-rask
-   dotnet run driver.cs all          # screenshots home/todos/table/routing + toggles a todo over WS
+   dotnet run driver.cs all          # screenshots landing/todos/routing + toggles a todo client-side
    ```
 
-   Expected output (this is what it printed here):
+   Screenshots land in `.claude/skills/run-rask/screenshots/`. **Open one** (e.g.
+   `todos-toggled.png` shows the flipped checkbox) to confirm the render is real.
 
-   ```
-   Driving http://localhost:5099  (all)
-     OK /                      200  "Guides — Rask"  -> home.png
-     OK /todos                 200  "Todos — Rask"  -> todos.png
-     OK /table                 200  "Data table — Rask"  -> table.png
-     OK /routing-demo/about    200  "Rask — feature showcase"  -> routing-about.png
-     OK /todos checkbox toggled over WS: False -> True  -> todos-toggled.png
-   done.
-   ```
+   Driver commands: `shots` (screenshots only, the default), `todos` (interactive proof only), `all`.
+   Point it at another port with a second arg: `dotnet run driver.cs all http://localhost:5051`.
 
-   Screenshots land in `.claude/skills/run-rask/screenshots/`. **Open one** (e.g. `todos-toggled.png`
-   shows the flipped checkbox) to confirm the render is real.
-
-   Driver commands: `shots` (screenshots only, the default), `todos` (interactive WS proof only),
-   `all`. Point it at another port with a second arg: `dotnet run driver.cs all http://localhost:5199`.
-
-4. **Stop the server** when done:
+4. **Stop it** when done:
 
    ```bash
-   lsof -ti :5099 | xargs kill
+   lsof -ti :5050 | xargs kill
    ```
 
 ## Run (human path)
 
 ```bash
-dotnet run --project samples/Rask.Example.Server
+dotnet run --project site/Rask.Site
 ```
 
-Serves on http://localhost:5099 (from `Properties/launchSettings.json`); open it in a browser.
-Useless for automation — it blocks the terminal and opens nothing headlessly. Ctrl-C to stop.
+Open the printed URL in a browser. Useless for automation — it blocks the terminal and opens nothing
+headlessly. Ctrl-C to stop.
 
 ## The operator console (`dashboard-driver.cs`)
 
-The Server showcase does not mount `Rask.Dashboard`. The sample that does is
-**`samples/Rask.Example.Shop`**, and its console is behind a policy, so a driver has to sign in before it
-can see anything.
+The site does not mount `Rask.Dashboard`, and no app in the repo does since `samples/` was deleted. So
+the console needs a throwaway app to live in — which is also the honest test, since a scaffolded app
+is what a user actually mounts it in:
 
 ```bash
-dotnet build samples/Rask.Example.Shop -c Debug -m:1
+tmp="$(mktemp -d)"
+dotnet run --project src/Rask.Cli -- new Shop --output "$tmp/Shop"
 ASPNETCORE_ENVIRONMENT=Development \
-  dotnet run --project samples/Rask.Example.Shop --no-build -c Debug --urls http://localhost:5123 &
-cd .claude/skills/run-rask && dotnet run dashboard-driver.cs http://localhost:5123
+  dotnet run --project "$tmp/Shop" --urls http://localhost:5123 > /tmp/rask-ops.log 2>&1 &
+for i in $(seq 1 60); do curl -sf http://localhost:5123/ -o /dev/null && break; sleep 1; done
+# The accounts battery gates the FIRST registration on a one-time token it logs at startup.
+token="$(grep -o 'one-time token: [^.]*' /tmp/rask-ops.log | head -1 | cut -d' ' -f4)"
+cd .claude/skills/run-rask && dotnet run dashboard-driver.cs http://localhost:5123 "$token"
 ```
 
-Signs in as `alice`/`password`, then shoots all five console pages at **1280 and 390** into
-`screenshots/` (gitignored). The console is built mobile-first, and the two widths are genuinely
-different markup — columns collapse, the leader rules disappear — so one width proves nothing about the
-other.
+The console is behind a policy, so the driver registers the first account (which becomes the
+administrator) and signs in, then shoots all five console pages at **1280 and 390** into `screenshots/`
+(gitignored). The console is built mobile-first, and the two widths are genuinely different markup —
+columns collapse, the leader rules disappear — so one width proves nothing about the other.
+
+Drop the token argument to re-run against an app that already has the account.
 
 Each shot is checked for two kinds of overflow, and the second is the one that matters:
 
@@ -126,20 +125,25 @@ Both must read `ok` on every mobile row.
 
 ## Gotchas
 
-- **`curl` sees a dead page.** The showcase only becomes interactive once the browser opens the
-  WebSocket. Any "does clicking work?" question must go through `driver.cs`, not curl.
-- **`/counter` from the README is NOT a live route.** It's a doc snippet. The showcase's real routes
-  come from the sidebar: `/` (guides), `/todos`, `/table`, `/routing-demo/about`, `/server-pwa`, and
-  the device-API demos (`/serial`, `/usb`, `/bluetooth`, `/wake-lock`, …). Hitting a bogus path
-  returns a styled 200 "Page not found" — don't mistake it for a working page.
-- **Port 5099 is shared and hardcoded.** It's the same port the E2E gate (`scripts/run-e2e-local.sh`)
-  and every other worktree use. If `lsof -ti :5099` shows it busy, a *different* build is answering
-  your requests and your driver will silently test the wrong app. Launch on another port
-  (`--urls http://localhost:5199`) and pass `dotnet run driver.cs all http://localhost:5199`. The
-  pre-push hook also runs E2E on 5099, so a server you left running there will block a push.
+- **`curl` sees a dead page.** The site only becomes a page once the WASM runtime boots. Any "does
+  this render / does clicking work?" question must go through `driver.cs`, not curl.
+- **A deep link 404s under `dotnet run`.** `WasmAppHost` serves files and installs no SPA fallback, so
+  `http://localhost:5050/docs/todos` is a 404 — the route exists only inside the booted app. The
+  driver therefore loads `/docs` and navigates through the sidebar, and so must you. The *published*
+  bundle behaves differently: GitHub Pages answers an unknown path with `404.html`, which is the boot
+  shell, and the app then routes on its own.
+- **First load is slow.** A cold boot downloads the whole runtime; the driver's timeouts are 60s for
+  that reason. A "timed out waiting for the sidebar" almost always means the boot failed, not that it
+  was slow — check `/tmp/rask-site.log` and the browser console.
+- **`/counter` from the README is NOT a live route.** It's a doc snippet. Real routes come from the
+  sidebar under `/docs`. Hitting a bogus path renders the app's own "Page not found" — don't mistake
+  it for a working page.
+- **Port 5050 is shared.** If `lsof -ti :5050` shows it busy, a *different* build may be answering
+  your requests and your driver will silently test the wrong app. Launch on another port and pass it
+  to the driver.
 - **The driver is a file-based app, so two `#:property` lines are load-bearing.** `#:package
   Microsoft.Playwright` is deliberately **unversioned** — the repo enforces Central Package
-  Management, which *forbids* a version on the reference and supplies 1.61.0 itself; adding `@1.61.0`
+  Management, which *forbids* a version on the reference and supplies it itself; adding `@1.61.0`
   fails with NU1008. And `JsonSerializerIsReflectionEnabledByDefault=true` is required because
   file-based apps disable reflection-based System.Text.Json by default, which Playwright's transport
   needs (without it: `Reflection-based serialization has been disabled`).
@@ -150,7 +154,8 @@ Both must read `ok` on every mobile row.
   the `#:package` directive; remove it (CPM owns the version — see Gotchas).
 - `Reflection-based serialization has been disabled` on `Playwright.CreateAsync()` → the
   `#:property JsonSerializerIsReflectionEnabledByDefault=true` line is missing from `driver.cs`.
-- Driver hangs on `WaitForFunctionAsync` / times out → the server isn't up on the base URL's port, or
-  another worktree grabbed 5099. Re-check step 1's `lsof` and `curl`.
-- `dotnet run --project …` exits immediately with an address-in-use bind error → 5099 is taken; pick
-  another port (see Gotchas) or kill the holder with `lsof -ti :5099 | xargs kill`.
+- Driver times out waiting for `.side-nav a.side-nav-link` → the app isn't up on the base URL's port,
+  or the runtime failed to boot. Re-check step 1's `lsof` and step 2's `curl`, then load the URL in a
+  real browser and read the console.
+- `dotnet run --project …` exits immediately with an address-in-use bind error → 5050 is taken; pick
+  another port or kill the holder with `lsof -ti :5050 | xargs kill`.

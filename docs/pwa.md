@@ -322,9 +322,7 @@ public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
 ```
 
 `VapidKeys.Generate()` mints a fresh pair (base64url) for first-time setup. The sender is transport-
-neutral and stores nothing — persisting `PushSubscription`s is your app's job. See the full
-subscribe → send → notify loop wired up in `samples/Rask.Example.Wasm.Host` (WASM) and
-`samples/Rask.Example.Server` (Server).
+neutral and stores nothing — persisting `PushSubscription`s is your app's job.
 
 ---
 
@@ -359,8 +357,7 @@ builder.Services.AddRaskPwa(new WebAppManifest
   `INotifications`, `IBadge`, `IWakeLock`.
 
 Then ship a static **`wwwroot/offline.html`** (the SW serves it on failed navigations) and, to send
-push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Server showcase
-(`samples/Rask.Example.Server`, the **Server PWA** page) wires the whole loop.
+push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 
 > **What you don't get on Server.** A Server app renders over a live WebSocket, so it is **not an
 > offline app**: the service worker deliberately does **not** cache the server-rendered shell (it

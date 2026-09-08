@@ -97,9 +97,6 @@ Now the list is served from cache until it expires *or* someone edits the catalo
   factory to see it fire only on a miss).
 - Create or delete a product and reload — the list reflects the change immediately (the `InvalidateAsync`
   dropped the key), then is served from cache again.
-- **See it running:** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop)'s `/ops` page has a
-  "Load cached value" button that reports `Computed fresh` on the first click and `Served from cache` on the
-  second.
 
 **Learn more:** [cache](../cache.md)
 

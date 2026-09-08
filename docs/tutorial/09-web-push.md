@@ -124,8 +124,7 @@ service was slow.
   rather than failing.
 - Clicking the subscribe button prompts, then `POST /_push/subscribe` stores the subscription.
 - Shipping an order shows a system notification, with the app closed.
-- **See it running:** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop) has the endpoints and
-  the store wired; real delivery needs a browser push service, so the sample stops at the subscription.
+- Real delivery needs a browser push service, so a local run can only take you as far as the subscription.
 
 **Learn more:** [Web Push](../webpush.md) · [PWA](../pwa.md) · [browser APIs](../apis/web-push.md)
 

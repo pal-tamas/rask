@@ -9,9 +9,7 @@ migrate**. Do it once here and the rest of the tutorial is variations on it.
 
 Everything below is code you write. It's longer than the chapters that follow because it's the only one
 that shows a slice end to end; once you've typed it, the shape is yours and later chapters only show
-what's new. The finished version of this app is committed as
-[`samples/Rask.Example.Shop`](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop) if
-you'd rather read it whole.
+what's new.
 
 > **You don't name a database.** Chapter 1's `rask new` already wired one — `AppDbContext` in
 > `Features/Shared/`. Everything here maps through it, so an app keeps **one** database and one set of

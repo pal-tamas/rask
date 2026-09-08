@@ -294,9 +294,7 @@ nothing. For a class library, pick one:
 
 **The library compiles its own stylesheet.** Give it a `Styles/app.css` with `@import "tailwindcss";`
 and it compiles on its own build, shipping the result as a static web asset at
-`_content/<PackageId>/css/app.css` — which the app links once. This is how
-`samples/Rask.Example.Shared` already works, so the path is exercised on every build of this
-repository rather than only described here.
+`_content/<PackageId>/css/app.css` — which the app links once.
 
 ```csharp
 services.AddRaskBlazor(o => o.HeadAssets.Add(
@@ -398,11 +396,14 @@ library renders wrong only after publishing, confirm it by publishing once with:
 and, if that is the difference, root the library with a `TrimmerRootAssembly` rather than turning
 trimming off for the whole app.
 
-The trimmed path is gated rather than asserted: `samples/Rask.Example.Wasm` hosts a real `.razor` from
-`samples/Rask.Example.Razor` on its **Blazor island** page, the showcase publishes trimmed on every
-build, and the browser E2E over that page checks the hosted component's *output* — its parameters,
-its own `@onclick`, its `@bind` — because an empty island is exactly what a "the element is there"
-check would pass on.
+**The trimmed path has no gate in this repository.** It used to: the WASM showcase hosted a real
+`.razor` from a Razor Class Library on a **Blazor island** page, published trimmed on every build, and
+a browser E2E checked the hosted component's *output* — its parameters, its own `@onclick`, its
+`@bind` — because an empty island is exactly what a "the element is there" check would pass on. Both
+projects were deleted with the rest of the samples, and RASK066 blocks a `.razor` in the same project
+as the app that hosts it, so the site cannot carry a replacement without a second project. If you host
+a Blazor component in a trimmed publish, verify it renders content yourself; a green build proves
+nothing here.
 
 It is deliberately **not** in the `Rask` meta-package on either framework. Everything there is
 referenced by every app on that framework, and an app that wants nothing to do with Blazor should not

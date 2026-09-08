@@ -2,8 +2,7 @@
 
 Rask has no data layer of its own — you use whatever .NET gives you. This guide shows the
 idiomatic way to wire **EF Core + SQLite** into a Rask **Server** app: register the context, load
-data in the component lifecycle, and run forms against persisted state. The runnable reference is
-[`samples/Rask.Example.EfCore`](../samples/Rask.Example.EfCore).
+data in the component lifecycle, and run forms against persisted state.
 
 > WASM note: this is a Server-side pattern. EF Core's SQLite provider isn't a fit for the trimmed
 > browser runtime — keep data access behind the server (a Server host, or an API the WASM app calls).
@@ -196,12 +195,7 @@ Data-access logic is testable without a browser:
 - **Integration-test** the EF mapping against a real SQLite file: create the context, save a
   `Product`, reload it in a new context, and assert the round-trip (and the storage shape).
 
-See `tests/Rask.Example.EfCore.Tests`. The end-to-end CRUD flow over the live connection is covered
-by a Playwright smoke test in `tests/Rask.Examples.E2E.Tests/EfCoreCrudTests.cs`.
-
 ## Run it
 
-```bash
-dotnet run --project samples/Rask.Example.EfCore
-# then open the printed URL at /products
-```
+Scaffold an app with `rask new Shop`, follow [chapter 2](tutorial/02-first-feature.md), and
+`dotnet run` it.

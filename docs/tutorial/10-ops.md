@@ -91,8 +91,6 @@ ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys"),   // → 1
   processed — the chain from Chapter 7 moving through three pillars.
 - Outbox failed stays at `0`.
 - `journal_mode` reads `wal` and `foreign_keys` reads `1`.
-- **See it running:** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop)'s `/ops` is exactly this
-  page, and its browser tests assert each of those counters moves.
 
 > **Beyond counters.** Rask also exposes a live-session health check
 > (`AddHealthChecks().AddRaskLiveSessions()`) that `rask deploy` probes to gate a zero-downtime swap, and

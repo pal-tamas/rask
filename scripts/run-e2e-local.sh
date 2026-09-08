@@ -189,29 +189,17 @@ fi
 # shellcheck source=lib/playwright.sh
 . "$root/scripts/lib/playwright.sh"
 
-# The Rask.Example.Wasm.Jobs publish below needs the native relink (see the note there), which needs the
-# wasm-tools workload + emscripten. Check up front: without it the publish fails several minutes in, with
-# an error about a missing runtime pack rather than about a missing workload.
+# There is no wasm-tools check here any more, and its absence is deliberate. It existed because one
+# sample published with a native relink so it could run SQLite in the browser; that app is gone, every
+# build and publish below passes -p:WasmBuildNative=false, and nothing in the E2E path relinks. Left in,
+# it would refuse to run the gate on a machine that can run it perfectly well.
 #
-# This catches wasm-tools never having been installed. It does NOT catch the case in #718 — a concurrent
-# workload install elsewhere on the machine making it transiently unresolvable — because `dotnet workload
-# list` keeps listing it as installed throughout. That one surfaces as NETSDK1147 during the build below
-# and is classified there.
-if ! dotnet workload list 2>/dev/null | grep -q '^wasm-tools'; then
-  echo "run-e2e-local: the 'wasm-tools' workload is not installed." >&2
-  echo "  Rask.Example.Wasm.Jobs publishes with a native relink so it can run SQLite in the browser." >&2
-  echo "  Install it once with:  sudo dotnet workload install wasm-tools" >&2
-  exit 1
-fi
-
-# WasmBuildNative=false: build every WASM sample against the prebuilt .NET-WASM runtime, the same mode
-# the fixtures serve (Site/Standalone both publish with it below) and the CI unit gate uses.
-# Without it, the slnx build compiles Rask.Example.Wasm with the native relink (unset WasmBuildNative →
-# InvariantGlobalization forces it) while the other WASM builds stay no-native — two modes writing the
-# same obj/, so the fingerprinted _framework assets can drift out of sync with the SRI hashes the boot
-# import map pins. The browser then blocks the mismatched asset and the runtime hangs at "Loading… 96%"
-# (WasmExampleAppFixture boots this build with `dotnet run --no-build`). One consistent mode = no drift,
-# and it skips the slow, flaky relink. Serial (-m:1): the nested WASM publish double-builds Rask.Core.dll.
+# WasmBuildNative=false: build against the prebuilt .NET-WASM runtime — the same mode the fixture serves
+# and the CI unit gate uses. Unset, InvariantGlobalization forces the relink, and the build below and the
+# publish further down would disagree about the mode while writing the same obj/: the fingerprinted
+# _framework assets drift out of sync with the SRI hashes the boot import map pins, the browser blocks the
+# mismatched asset, and the runtime hangs at "Loading… 96%". One consistent mode = no drift, and it skips
+# the slow, flaky relink. Serial (-m:1): the nested WASM publish double-builds Rask.Core.dll.
 echo "==> Build the E2E graph once (Release, serial, prebuilt WASM runtime)"
 # Teed and classified by error kind: this build is the first thing to fail when the machine cannot build
 # browser targets, and reporting that as a broken journey sends people to debug a test that is fine
@@ -239,7 +227,7 @@ if [ "$build_status" -ne 0 ]; then
   exit "$build_status"
 fi
 
-echo "==> Publish the samples the E2E fixtures boot"
+echo "==> Publish the site the E2E fixtures boot"
 # The one app the browser suite drives: the published site bundle, served by a plain static host the
 # way GitHub Pages serves it. It used to be eight publishes across eight samples; there is one site now.
 dotnet publish site/Rask.Site -c Release --no-restore -p:WasmBuildNative=false --nologo

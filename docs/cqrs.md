@@ -182,10 +182,10 @@ duplicating it, and there is still exactly one declaration:
 <Compile Include="..\MyApp.Browser\Shared\RemoteMessages.cs" Link="Shared\RemoteMessages.cs"/>
 ```
 
-[`samples/Rask.Example.Auth.WasmCookie`](../samples/Rask.Example.Auth.WasmCookie) and its host are that
-arrangement end to end, over cookie auth: the members page asks the server who is calling, and the
-answer is the identity the *server* sees — proof the session cookie rode the dispatch, since the message
-carries no name at all.
+A pair of sample projects held that arrangement end to end over cookie auth: the members page asked the
+server who was calling, and the answer was the identity the *server* saw — proof the session cookie rode
+the dispatch, since the message carries no name at all. They are gone, so the shape above is documented
+rather than exercised.
 
 ### Two endpoints, not one per message
 

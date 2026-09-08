@@ -51,10 +51,6 @@ One command in Chapter 1 wires every pillar in; each chapter then teaches you wh
 how to use it. If you'd rather add them one at a time, every flag works on its own —
 `rask new Shop --no-push --no-ops` gives you everything except those two.
 
-**Want to read ahead?** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop) is the finished app,
-committed and runnable — the output of this tutorial's commands, with browser tests that prove each pillar
-actually runs.
-
 ## Before you start
 
 You need the **.NET 10 SDK** and the **`rask` CLI**. One command gets you both:

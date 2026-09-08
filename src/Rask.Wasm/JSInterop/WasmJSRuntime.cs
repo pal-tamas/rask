@@ -36,7 +36,7 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
     {
         // The base JSRuntime's JsonSerializerOptions ships with no TypeInfoResolver,
         // so Serialize / Deserialize<T> falls back to the runtime default. PublishTrimmed
-        // apps (this includes Rask.Example.Wasm) flip
+        // apps (site/Rask.Site among them) flip
         // JsonSerializer.IsReflectionEnabledByDefault to false, and that fallback then
         // throws "JsonSerializerIsReflectionDisabled" on the very first
         // InvokeAsync<string> — including the built-in primitive case. Explicitly

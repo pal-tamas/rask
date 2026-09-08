@@ -28,14 +28,13 @@ dotnet test Rask.slnx --filter FullyQualifiedName~SessionUploadStoreTests
 
 # The two gates, as the hooks run them (see "Commits & pull requests" below):
 scripts/run-unit-local.sh      # format + everything except the browser E2E
-scripts/run-e2e-local.sh       # build, publish the samples, then the browser journeys
+scripts/run-e2e-local.sh       # build, publish the site, then the browser journeys
 
-# Run a sample app:
-dotnet run --project samples/Rask.Example.Server
-dotnet run --project samples/Rask.Example.Wasm.Host
+# Run the site (the app behind rask.sh — landing page, guides and every demo):
+dotnet run --project site/Rask.Site
 ```
 
-The WASM trimming path is load-bearing: `samples/Rask.Example.Wasm` must
+The WASM trimming path is load-bearing: `site/Rask.Site` must
 `dotnet publish -c Release` with **zero IL trim warnings**. Any new reflection there needs
 a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppressMessage]`.
 
@@ -55,7 +54,7 @@ a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppre
 | `src/Rask.Generators/` | Roslyn factory/route generators and analyzers (RASK001–034 and RASK036–042; RASK035 is in `src/Rask.Generators.Shared/`). |
 | `src/Rask.Server/`, `src/Rask.Wasm/`, `src/Rask.Wasm.Hosting/` | The host packages. |
 | `src/Rask.Cli/` | The `rask` CLI — scaffolds every project via `rask new` (server, wasm). |
-| `samples/` | Runnable feature showcases. | 
+| `site/` | The app published to rask.sh: landing page, guides and every runnable demo. |
 | `tests/`, `benchmarks/` | Test suites and render hot-path baselines. |
 
 Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
@@ -121,6 +120,6 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   you on `git push`; bypass a docs-only push with `git push --no-verify` or `RASK_SKIP_E2E=1`).
 - **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR descriptions.
 - Add a note to [`CHANGELOG.md`](../CHANGELOG.md) under `[Unreleased]` for user-visible changes.
-- User-facing changes must update a sample under `samples/` and the relevant docs
+- User-facing changes must update `site/Rask.Site` and the relevant docs
   (`docs/`, `README.md`, `NUGET.md`). See the [development workflow](../docs/development-workflow.md).
 - The maintainer merges (squash); the branch is deleted afterwards.

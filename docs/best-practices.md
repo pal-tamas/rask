@@ -269,7 +269,7 @@ mistake, the rule notes the ID.
   `StubComponent` and call `RenderAsLiveRoot()` for anything needing a live context (handlers, forms,
   DI). Drive handlers via the `data-rask-on-*` id + `TryInvokeHandlerAsync`, and assert exact
   attribute order. See [testing](testing.md).
-- **Every `samples/` change gets an E2E test.** Add a Playwright journey to
+- **Every `site/` change gets an E2E test.** Add a Playwright journey to
   `tests/Rask.Examples.E2E.Tests`.
 
 ## Common pitfalls

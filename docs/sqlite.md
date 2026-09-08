@@ -9,7 +9,6 @@ connection uses the rollback journal (not WAL), does **not** enforce foreign key
 pragma set to every connection. **`Rask.SQLite`** does exactly that, applied to every connection you
 open, so you get correct, concurrent, production-ready SQLite by default.
 
-The runnable reference is [`samples/Rask.Example.Sqlite`](../samples/Rask.Example.Sqlite).
 
 ## Why one server, no PaaS
 
@@ -715,8 +714,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlit
 ```
 
 Everything above that line — including [`AddRaskJobs<AppDbContext>()`](jobs.md) — is then the same code you
-would write on a server. A worked example, with background jobs running against it and an E2E test that
-queues a job and reloads the page: [`samples/Rask.Example.Wasm.Jobs`](../samples/Rask.Example.Wasm.Jobs).
+would write on a server.
 
 Three limits, stated plainly because each one is a silent failure rather than an error:
 
@@ -850,9 +848,3 @@ same-run ratios — never absolute milliseconds, which are unusable on shared ha
 scripts/run-sqlite-load-local.sh          # the gate; run it for any change under src/Rask.SQLite*
 ```
 
-## Run the sample
-
-```bash
-dotnet run --project samples/Rask.Example.Sqlite
-# then open the printed URL — the page shows the live pragma values and a concurrent-writes demo
-```

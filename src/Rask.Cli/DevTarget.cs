@@ -477,9 +477,10 @@ internal sealed record DevTarget(
 
             // A Server host that references a sibling .Client project is the wasm-hosted shape. The
             // name check is what `rask new` produces, and it costs no I/O — but it is only a naming
-            // convention, so fall back to actually reading the referenced projects. Without that,
-            // a host whose client is not called *.Client (the repo's own Rask.Example.Wasm.Host among
-            // them) is misread as a plain Server and never gets the WASM dev bundle.
+            // convention, so fall back to actually reading the referenced projects. Without that, a
+            // host whose client is not called *.Client — which nothing stops a user doing, and which
+            // this repo's own WASM host did — is misread as a plain Server and never gets the WASM
+            // dev bundle.
             return text.Contains(".Client", StringComparison.Ordinal) || ReferencesWasmProject(fileSystem, csproj, text)
                 ? DevTemplateKind.WasmHosted
                 : DevTemplateKind.Server;

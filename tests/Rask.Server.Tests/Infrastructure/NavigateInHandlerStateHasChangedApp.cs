@@ -7,7 +7,7 @@ using Rask.Html.Components;
 
 namespace Rask.Server.Tests.Infrastructure;
 
-// Mirrors the Rask.Example.Shared ShowcaseLayout shape: a layout component above the
+// Mirrors the showcase's ShowcaseLayout shape: a layout component above the
 // Router subscribes to RouteState.Changed in OnMount and calls StateHasChanged on
 // itself when the route flips. That subscription lands inside the WS-handler
 // dispatch — RouteState.Path's setter invokes Changed synchronously, which fires

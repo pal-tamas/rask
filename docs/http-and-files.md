@@ -33,9 +33,9 @@ unmount, so navigating away mid-fetch aborts the in-flight request instead of wr
 
 <!-- demo:data-http-fetch -->
 
-> **Same demo, two hosts.** Under `Rask.Example.Server` the request is a loopback call to the server's own
-> static file; under `Rask.Example.Wasm` (and the GitHub Pages deploy) the browser fetches the same file
-> from the AppBundle. The page code is identical — only the `BaseAddress` differs per host.
+> **Same demo, two hosts.** On a Server host the request is a loopback call to the server's own static
+> file; on the browser-WASM host (which is what <https://rask.sh> serves) the browser fetches the same
+> file from the AppBundle. The page code is identical — only the `BaseAddress` differs per host.
 
 ---
 

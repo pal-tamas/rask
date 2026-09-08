@@ -13,8 +13,7 @@ never reaches JavaScript.
 > [accounts battery](authentication.md) registers the scheme, backs it with ASP.NET Core Identity, and
 > routes `/login`, `/register` and `/logout` for you. What follows is how to wire the same thing by hand
 > against **your own** credential store — an existing users table, an internal directory, anything that
-> can answer "is this password right" and hand back claims. A runnable reference lives in
-> `samples/Rask.Example.Auth`.
+> can answer "is this password right" and hand back claims.
 >
 > **Turn the battery off first.** `Rask.Auth` owns the cookie scheme and configures it last, so with
 > the battery still on, the `AddCookie(...)` below is overwritten by `AuthOptions` and your cookie
@@ -146,15 +145,14 @@ Sign out from any event handler: `await auth.SignOutAsync(returnUrl: "/");`
 ## Cookie + WASM
 
 The WASM client has no server pipeline of its own, so the **API host** owns the cookie. The client hydrates
-its principal from `/api/me`. Runnable: **`samples/Rask.Example.Auth.WasmCookie(.Host)`** (with a browser E2E).
+its principal from `/api/me`.
 
-> **By hand:** no template scaffolds this two-project shape — the `wasm-hosted` template that did was
-> removed — so the pieces below are yours to write: the host's `/api/login` + `/api/me` + `/auth/logout`,
-> and the browser client's `ApiUserProvider`, login page and protected `/members` page.
->
-> **The samples are the working copy.** `samples/Rask.Example.Auth.WasmCookie` (the client) and
-> `samples/Rask.Example.Auth.WasmCookie.Host` (the host) are exactly this arrangement, kept building and
-> covered by a browser E2E — start from those two projects rather than from this page alone.
+> **By hand, and unexercised.** No template scaffolds this two-project shape — the `wasm-hosted` template
+> that did was removed — so the pieces below are yours to write: the host's `/api/login` + `/api/me` +
+> `/auth/logout`, and the browser client's `ApiUserProvider`, login page and protected `/members` page.
+> A pair of sample projects used to hold exactly this arrangement, kept building and covered by a browser
+> E2E; they are gone, so this page is now the whole of it and nothing verifies it end to end. Read it as
+> a design, not as tested code.
 >
 > Building something new? A server app with `--wasm` needs none of this: one project, one pipeline, and
 > the cookie is simply the host's, as in the section above.

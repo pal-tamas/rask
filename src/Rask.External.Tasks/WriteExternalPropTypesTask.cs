@@ -130,9 +130,9 @@ public sealed class WriteExternalPropTypesTask : Task
             // "skipping…" messages fired, because each is gated on a different cause. Silent.
             //
             // The obvious repair, checking the discovered files anyway, was tried and is WRONG. The file
-            // list cannot identify island code on its own, and two things in this repository prove it:
-            // a scoped-TypeScript Gantt.ts (#938), and the entire client/ tree of each Rask.Example.Meta.*
-            // sample — a meta framework's own front end, which type-checks under ITS toolchain and not
+            // list cannot identify island code on its own, and two kinds of file proved it: Rask's own
+            // scoped TypeScript, which is a plain .ts beside a component (#938), and the whole client/
+            // tree of a meta-framework host — a front end that type-checks under ITS toolchain and not
             // under an island config. Checking them reported TS2304 on Next's generated globals and
             // TS2307 on @rask/client, in files that are perfectly correct.
             //

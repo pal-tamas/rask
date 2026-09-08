@@ -125,8 +125,7 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   peers sharing a queue — they have their own, unpersisted database. Durability is bounded by the snapshot
   interval rather than by `SaveChangesAsync`, so a force-closed tab loses jobs queued since the last one.
   And shutdown is best-effort: the browser does not wait for `pagehide`, so `StopAsync`'s lease hand-back
-  often does not land and the lease expiry is what recovers the batch. Working app:
-  [`samples/Rask.Example.Wasm.Jobs`](../samples/Rask.Example.Wasm.Jobs).
+  often does not land and the lease expiry is what recovers the batch.
 - **A job type must be a concrete, non-generic type the generated registry can name** — that is how a stored
   job is rehydrated without reflection. Skipped shapes: generic (or nested inside a generic), `file`-local,
   and `private`/`protected` at any level of its containing chain. Each is reported at build time as

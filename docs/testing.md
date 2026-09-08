@@ -216,8 +216,8 @@ handler-dispatch seam it covers. Plain attribute lookups are `Markup.Attr(html, 
   render so a test can assert against what a form/validator pushed).
 
 The internal render entry points (`RenderAsLiveRoot`, `TryInvokeHandlerAsync`) are exposed to test
-projects through `[InternalsVisibleTo]` on `Rask.Core` (`Rask.Core.Tests`,
-`Rask.Example.Shared.Tests`, the validation test projects, …).
+projects through `[InternalsVisibleTo]` on `Rask.Core` (`Rask.Core.Tests`, `Rask.Site.Tests`, the
+validation test projects, …).
 
 The `Rask.Core.Tests` project is a markup host, so the generator injects the chain entries into it and
 tag entries (`Button`, `Div`), form entries (`Form`, `Input`), and
@@ -400,8 +400,7 @@ var html = RaskTest.RenderDocument(new App, TestServiceProvider.Default(routeSta
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 
-`tests/Rask.Example.Shared.Tests/Pages/` shows page tests for routing, lifecycle, forms, uploads, and
-more.
+`site/Rask.Site.Tests/` shows page tests for routing, lifecycle, forms, uploads, and more.
 
 ---
 

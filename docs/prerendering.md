@@ -191,9 +191,10 @@ before writing anything to disk** — for the reason above, both return ordinary
 
 ## In this repo
 
-`samples/Rask.Example.Site` — the landing page at [rask.sh](https://rask.sh) — is the in-repo
-consumer, and `SiteWasmAppFixture` asserts on its published output that the page carries both the
-rendered markup and the boot script before the browser journeys run.
+`site/Rask.Site` — the app behind [rask.sh](https://rask.sh) — is the in-repo consumer, and it currently
+publishes with prerendering **off**. Fifteen of its routes reach a browser API during render, throw
+during the pass and are skipped; a skipped route ships the boot shell, which is correct for a visitor and
+blank for a crawler. Turning it on is tracked, and the csproj carries the measurement.
 
 ## Limits
 

@@ -23,9 +23,9 @@ Apply the matching playbook automatically:
    The same build runs the **public-API gate**: a public member you added, renamed or removed is an
    error until it is recorded in `src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt`. Names obey
    [`docs/api-style.md`](docs/api-style.md); that file's diff is the API review.
-3. **Unit test every feature**; **E2E test every `samples/` change**.
+3. **Unit test every feature**; **E2E test every `site/` change**.
 4. **Benchmark every framework/render-hotpath change** (quote the Allocated delta).
-5. **User-facing change → add/update a sample + docs/README** (keep `docs/`, `README.md`, `NUGET.md`,
+5. **User-facing change → update `site/Rask.Site` + docs/README** (keep `docs/`, `README.md`, `NUGET.md`,
    `llms.txt`, and template `AGENTS.md` current). Add a `CHANGELOG.md` `[Unreleased]` entry.
 6. Review (security + performance + UX together; prefer standard .NET APIs; refactor duplication).
 7. Open a PR (`type(scope): subject`, Conventional Commits — enforced by commitlint); delete the

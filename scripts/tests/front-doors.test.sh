@@ -114,7 +114,7 @@ matches_front_doors() {
 check "a README-only commit runs this guard"   yes "$(matches_front_doors README.md)"
 check "a NUGET.md-only commit runs this guard" yes "$(matches_front_doors NUGET.md)"
 
-# The hero needs no entry of its own: it lives under samples/, which the ordinary filter already
+# The hero needs no entry of its own: it lives under site/, which the ordinary filter already
 # matches, so its commits run the full gate — and that runs this file via run-unit-local.sh.
 check "the site hero is under site/" yes \
     "$([ -f site/Rask.Site/Features/Home/HomePage.cs ] && printf yes || printf no)"

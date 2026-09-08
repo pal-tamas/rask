@@ -96,7 +96,7 @@ A nested graph with **async** validators and live totals rolling up from the row
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an
 `ICollection<TItem>`. Build a typed version of your own as
 a radio group, a checkbox group or a multi-select of your own. The versions below are
-a **copyable worked example** of the binding API of §9 (`samples/Rask.Example.Shared/Shared/`) — `IFormControl<T>`
+a **copyable worked example** of the binding API of §9 — `IFormControl<T>`
 is the framework primitive; the control is yours to build or take from the package. They're structured exactly like
 `MultiSelect<TItem>`, with **bound** and **controlled** modes (so the generator emits both chains):
 
@@ -166,7 +166,7 @@ Two limits worth knowing:
 
 - **The element type is `string`.** The reflective version that would accept any parsable element needs
   `MakeGenericType` and `Array.CreateInstance`, both of which are AOT-hostile — and
-  `samples/Rask.Example.Wasm` has to publish with zero trim warnings. Bind `string[]` and convert.
+  `site/Rask.Site` has to publish with zero trim warnings. Bind `string[]` and convert.
 - **`Multiple: true` over a scalar property keeps the single-value binding.** That is a model which can
   only hold one answer; widening it silently would be the more surprising behaviour.
 

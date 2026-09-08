@@ -101,8 +101,8 @@ sticky routing; sessions no longer do).
 
 ---
 
-Every pillar above is wired together in [`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop), and
-built up one chapter at a time in the [tutorial](tutorial/00-overview.md).
+Every pillar above is built up one chapter at a time in the [tutorial](tutorial/00-overview.md), into a
+single app you scaffold with `rask new`.
 
 Want to shape the direction? The framework is developed in the open — see
 [the development workflow](development-workflow.md).

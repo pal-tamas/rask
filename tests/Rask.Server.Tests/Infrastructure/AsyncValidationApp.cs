@@ -7,7 +7,7 @@ using Rask.Html.Components;
 
 namespace Rask.Server.Tests.Infrastructure;
 
-// Mirrors the Rask.Example.Shared AsyncValidationDemo + ValidationPage structure
+// Mirrors the showcase's AsyncValidationDemo + ValidationPage structure
 // without the showcase layout. Used by the WS dispatcher tests to verify that the
 // post-handler render emitted after a per-field IAsyncFieldValidator completes shows
 // the validator's terminal message and removes the in-flight indicator.

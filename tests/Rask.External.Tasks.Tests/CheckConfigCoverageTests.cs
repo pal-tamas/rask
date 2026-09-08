@@ -11,8 +11,8 @@ namespace Rask.External.Tasks.Tests;
 //
 // What these pin is the CORRECTED rule, which is not the one the issue first proposed. Checking the
 // discovered files regardless of what the assembly declared was tried and is wrong: the file list cannot
-// identify island code by itself, and this repository holds two counter-examples — a scoped-TypeScript
-// Gantt.ts (#938) and the whole client/ tree of each Rask.Example.Meta.* sample. So the skip stays; what
+// identify island code by itself, and two kinds of file proved it — Rask's own scoped TypeScript, a plain
+// .ts beside a component (#938), and the whole client/ tree of a meta-framework host. So the skip stays; what
 // changes is that it is loud, and that it no longer leaves a stale config behind for a checker to run
 // against next build.
 public sealed class CheckConfigCoverageTests : IDisposable

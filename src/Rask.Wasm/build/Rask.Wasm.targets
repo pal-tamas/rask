@@ -44,8 +44,8 @@
     /rask.wasm.js without copying framework files into its own tree (no drift). main.js
     imports './_framework/dotnet.js' (resolved through the SDK import map) and dynamically
     imports './rask.wasm.js' — both resolve from the root. The page shell wwwroot/index.html
-    is NOT contributed here: it must be a real file in the consumer's wwwroot (committed in
-    the samples/templates) so the wwwroot/** glob sees it at evaluation and the SDK's
+    is NOT contributed here: it must be a real file in the consumer's wwwroot (which is what
+    `rask new` writes) so the wwwroot/** glob sees it at evaluation and the SDK's
     <OverrideHtmlAssetPlaceholders> pass fills its import map / preload placeholders.
   -->
   <Target Name="_RaskAddFrameworkBootAssets"

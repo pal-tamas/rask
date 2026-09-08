@@ -141,9 +141,9 @@ helper (and `__raskEl`) lives in `src/Rask.Core/Resources/rask-api.ts` and is im
 client runtimes at build time, so the two transports never drift. `GeolocationPosition` is rooted
 for the WASM trimmer by the framework, so it deserializes correctly in a `PublishTrimmed` app.
 
-Runnable demos: the **Browser APIs** section of the showcase — one page per wrapper under
-[`samples/Rask.Example.Shared/Features/Browser/`](../samples/Rask.Example.Shared/Features/Browser/)
-(e.g. `StorageDemo.cs`, `CookiesDemo.cs`, `PermissionsDemo.cs`, `ShareDemo.cs`).
+Runnable demos: the **Browser APIs** section of the showcase at
+[rask.sh/docs](https://rask.sh/docs) — one page per wrapper, from
+[`site/Rask.Site/Features/Browser/`](../site/Rask.Site/Features/Browser/).
 
 ---
 

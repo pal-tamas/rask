@@ -139,12 +139,11 @@ Four correctness fixes were essential:
 
 - **Framework default:** `LiveOptions.DiffMode = LiveDiffMode.DisabledFull`. Bit-for-bit
   unchanged behaviour for any app that uses `AddRask()` today.
-- **Example apps:** `Rask.Example.Server` and `Rask.Example.Wasm` both explicitly opt
-  in to `LiveDiffMode.Auto` in their `Program.cs` so the showcase apps demonstrate
-  the byte-savings to anyone running them locally or visiting the deployed pages.
+- **The published site:** `site/Rask.Site` explicitly opts in to `LiveDiffMode.Auto` in its
+  `Program.cs`, so the showcase demonstrates the byte-savings to anyone running it locally
+  or visiting <https://rask.sh>.
 - **Opt-in:** consumer apps flip the static field at startup, or set
-  `RASK_DIFF_MODE=Auto|Forced` in the environment when launching `Rask.Example.Server`
-  to override the example's default.
+  `RASK_DIFF_MODE=Auto|Forced` in the environment on a server host to override the default.
 
 ### What's NOT yet shipping
 

@@ -36,17 +36,15 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # The Pages site is two Rask WASM apps served from the apex custom domain https://rask.sh:
-      # the marketing landing page (Rask.Example.Site) at the root /, and the live feature showcase
-      # (Rask.Example.Wasm) at /docs/. The custom domain serves the site at the ORIGIN root, so the
-      # landing app needs no RaskPathBase at all (its <base href="/"> is already correct, and
-      # _RaskRewriteBaseHref no-ops on '' and '/'); only the nested app sets one so the target
-      # rewrites its <base href> to the sub-path. Publishing
-      # the landing app under /<repo>/ here — as this workflow did while the site lived at
-      # pal-tamas.github.io/rask/ — would 404 every asset on the apex. Every other asset URL +
-      # the SRI-pinned import map stays document-relative, so the corrected base resolves them all
-      # under the sub-path. (Microsoft.NET.Sdk.WebAssembly fingerprints the framework assets and fills
-      # the import map with integrity at publish, keeping static-host redeploys SRI-safe.)
+      # The Pages site is ONE Rask WASM app served from the apex custom domain https://rask.sh: the
+      # landing page at /, the showcase and guides at /docs. It used to be three separately-published
+      # apps stitched together here, each needing its own RaskPathBase to have its <base href> rewritten
+      # to its sub-path; one app at the origin root needs none at all (its <base href="/"> is already
+      # correct, and _RaskRewriteBaseHref no-ops on '' and '/'). Publishing under /<repo>/ — as this
+      # workflow did while the site lived at pal-tamas.github.io/rask/ — would 404 every asset on the
+      # apex. Every asset URL and the SRI-pinned import map stays document-relative.
+      # (Microsoft.NET.Sdk.WebAssembly fingerprints the framework assets and fills the import map with
+      # integrity at publish, keeping static-host redeploys SRI-safe.)
       # The landing app sets <RaskPrerender>true</RaskPrerender> in its csproj, so this publish also
       # renders its route to real HTML and splices it into the boot shell — no flag needed here. Look
       # for the "[Rask.Prerender] result written=N" line in this step's log: it is the only thing that

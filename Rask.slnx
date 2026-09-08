@@ -4,8 +4,6 @@
         <Project Path="benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj" />
         <Project Path="benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj" />
     </Folder>
-    <Folder Name="/samples/">
-    </Folder>
     <Folder Name="/src/">
         <Project Path="src/Rask.Auth.Client/Rask.Auth.Client.csproj" />
         <Project Path="src/Rask.Auth/Rask.Auth.csproj" />

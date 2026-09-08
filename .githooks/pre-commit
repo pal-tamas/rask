@@ -20,23 +20,17 @@ fi
 # pipeline reports failure — so a large staged change reads as "no code changes" and sails through
 # unchecked, while a small one gates normally. It let a 421-file commit touching all of src/ past.
 #
-# site/ is the published rask.sh app — the landing page, the guides and every live demo. It is the
-# newest prefix here and the one most likely to be forgotten: a tree that matches none of these is not
-# rejected, it is silently waved through with "no code changes staged". Adding the prefix BEFORE the
-# tree exists is deliberate, so there is never a window where site/ commits are ungated.
+# site/ and docs/ are in here for the same reason src/ is: the suite genuinely gates them. A tree that
+# matches none of these prefixes is not rejected — it is silently waved through with "no code changes
+# staged", which is how a whole feature once landed ungated.
 #
-# samples/ and docs/ are in here for the same reason src/ is: the suite genuinely gates them.
-#
-#   samples/ is compiled, analyzer-checked, warnings-as-errors code with its own test projects. More than
-#   that, Rask.Example.Shared.Tests compiles samples/Rask.Example.Shared and owns DemoMarkup.golden.txt —
-#   so a samples-only commit could break a committed golden with nothing objecting.
+#   site/ is the published rask.sh app: the landing page, the guides and every live demo. It is
+#   compiled, analyzer-checked, warnings-as-errors code, and Rask.Site.Tests links its sources and owns
+#   DemoMarkup.golden.txt — so a site-only commit could break a committed golden with nothing objecting.
 #
 #   docs/ is an input to the tests, not just prose: DocsIndexTests walks docs/**/*.md on disk for
 #   reachability from docs/README.md, and GuidesTests holds the GuideCatalog parity guard in both
 #   directions. A new page committed on its own skipped exactly the checks written to catch it.
-#
-# Leaving these out meant a whole feature could land ungated — the playground tutorial was largely a
-# samples/ + docs/ change, and reported "no code changes staged".
 #   scripts/ and .githooks/ are in here because the gates are themselves code with tests now:
 #   scripts/run-unit-local.sh runs scripts/tests/*.test.sh, which covers the failure classification
 #   that decides whether a red gate blames your branch or your machine (#718). Without these prefixes a
@@ -66,7 +60,7 @@ if git diff --cached --name-only | grep -E "$front_doors" >/dev/null; then
   fi
 fi
 
-if ! git diff --cached --name-only | grep -E '^(src/|site/|samples/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
+if ! git diff --cached --name-only | grep -E '^(src/|site/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi

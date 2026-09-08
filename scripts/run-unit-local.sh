@@ -93,10 +93,10 @@ echo "==> Build once (Release; no WASM bundle, no sample front ends)"
 # RaskMetaBuild / RaskSpaBuild off: this gate runs UNIT tests, and not one of them exercises a
 # meta framework's or a SPA's compiled front end — the browser E2E gate builds those, which is where
 # a broken Nuxt config should surface. Left on, `dotnet build Rask.slnx` runs npm plus a PRODUCTION
-# front-end build for each of the six Rask.Example.Meta.* samples.
+# front-end build for every project that declares one.
 #
 # Measured on this machine rather than assumed, because the saving is much smaller than it looks:
-# warm, 12.7s -> 10.7s for the whole solution; with one sample's front end invalidated, 4.5s -> 1.4s
+# warm, 12.7s -> 10.7s for the whole solution; with one project's front end invalidated, 4.5s -> 1.4s
 # for that project. It is minutes only on a genuinely cold tree. The gate's real cost is elsewhere —
 # the test run is ~146s and `dotnet format --verify-no-changes` ~57s, together about 90% of a warm
 # run — so do not read this line as the thing that makes the gate fast.

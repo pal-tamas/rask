@@ -45,9 +45,9 @@ echo "==> Packing the working tree"
 tarball="$(mktemp -t rask-devhost-XXXXXX).tar.gz"
 trap 'rm -f "$tarball"' EXIT
 
-# samples/ and benchmarks/ are dropped: nothing under tests/Rask.Cli.Tests references them, and the meta
-# samples commit their own build output — hashed filenames that a later rebuild renames, so `git
-# ls-files` routinely names files that are no longer on disk and tar stops on the first one.
+# site/ and benchmarks/ are dropped: nothing under tests/Rask.Cli.Tests references them, and site/ is a
+# published WASM app whose front-end build writes hashed filenames that a later rebuild renames, so
+# `git ls-files` routinely names files that are no longer on disk and tar stops on the first one.
 #
 # Names git knows about are then filtered down to files that actually exist. A tracked-but-absent file
 # is not a reason to fail a gate about certificates, and this is the portable way to skip them:
@@ -57,7 +57,7 @@ trap 'rm -f "$tarball"' EXIT
 # land in the archive as siblings of real sources, and Linux has no idea they are metadata — the C#
 # compiler picks up ._Foo.cs alongside Foo.cs and fails with "is a binary file instead of a text file".
 git -C "$repo_root" ls-files --cached --others --exclude-standard -z \
-  | grep -zv '^samples/' \
+  | grep -zv '^site/' \
   | grep -zv '^benchmarks/' \
   | while IFS= read -r -d '' file; do
       [ -e "$repo_root/$file" ] && printf '%s\0' "$file"

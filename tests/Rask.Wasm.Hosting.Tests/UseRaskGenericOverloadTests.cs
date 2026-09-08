@@ -6,14 +6,14 @@ namespace Rask.Wasm.Hosting.Tests;
 /// <summary>
 ///     Reproduces the root cause of ~25 E2E failures across the WASM and StandaloneWasm
 ///     fixtures after the per-component asset migration. The Wasm.Host subprocess never
-///     touched any type in the consumer's component assembly (<c>Rask.Example.Shared</c>
-///     for the example app) — only <c>Rask.Wasm.Hosting</c> — so the <c>[ModuleInitializer]</c>
+///     touched any type in the consumer's component assembly — only <c>Rask.Wasm.Hosting</c>
+///     — so the <c>[ModuleInitializer]</c>
 ///     attribute on the generator-emitted <c>__RaskScopedCssRegistration</c> /
 ///     <c>__RaskScopedJsRegistration</c> classes never fired, the host's
 ///     <see cref="Rask.Core.ScopedAssets.ScopedAssetRegistry" /> stayed empty, and every
 ///     <c>GET /_rask/a/{hash}.{ext}</c> request from the browser returned 404. The
 ///     in-browser ScopedAssetRegistry was populated normally because the WASM bundle's
-///     own runtime loaded Shared.dll on App instantiation — hence the hash mismatch
+///     own runtime loaded the component assembly on App instantiation — hence the hash mismatch
 ///     between what the browser asks for and what the host has.
 ///     <para>
 ///         The fix mirrors how Rask.Server has always worked: a generic
@@ -30,8 +30,8 @@ public sealed class UseRaskGenericOverloadTests
     {
         // Reflection-walk: the public API of Rask.Wasm.Hosting must expose
         //   IEndpointRouteBuilder UseRask<TApp>(this IEndpointRouteBuilder, string?)
-        // alongside the existing non-generic UseRask. Consumers like Rask.Example.Wasm.Host
-        // call the generic form so the component assembly loads.
+        // alongside the existing non-generic UseRask. An ASP.NET host in front of a WASM client
+        // calls the generic form so the component assembly loads.
         var method = typeof(RaskWasmEndpointExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .FirstOrDefault(m => m.Name == nameof(RaskWasmEndpointExtensions.UseRask)

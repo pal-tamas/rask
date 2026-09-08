@@ -83,21 +83,16 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-# EF Core SQLite sample database (created at runtime by samples/Rask.Example.EfCore)
-raskExampleCatalog.db
-raskExampleCatalog.db-shm
-raskExampleCatalog.db-wal
-
 # What a Rask app leaves beside itself when it runs. Every battery is on by default now, so ANY app
-# that starts — a sample, a scaffolded project under test — creates its database, its log store, its
+# that starts — the site, a scaffolded project under test — creates its database, its log store, its
 # mail pickup directory and its snapshot directory.
 #
 # A GLOB, because the per-name list this replaces claimed not to be one and was: it named app.db and
-# logs.db, so samples/Rask.Example.Auth/auth-sample.db and the WasmCookie host's own database were
-# never ignored and got COMMITTED. That is worse than clutter — those samples build their schema with
-# EnsureCreated, which does nothing to a database that already exists, so the committed file froze the
-# schema and every battery table added afterwards was silently missing. It surfaced as a browser
-# journey dying on "Cannot create a DbSet for 'QueuedMail'" long after the table was added.
+# logs.db, so an auth example's auth-sample.db and a WASM host's own database were never ignored and
+# got COMMITTED. That is worse than clutter — those apps built their schema with EnsureCreated, which
+# does nothing to a database that already exists, so the committed file froze the schema and every
+# battery table added afterwards was silently missing. It surfaced as a browser journey dying on
+# "Cannot create a DbSet for 'QueuedMail'" long after the table was added.
 #
 # Verified against `git ls-files` that this swallows nothing else tracked.
 *.db
@@ -138,10 +133,6 @@ publish/
 PublishProfiles/
 *.[Pp]ublish.xml
 
-# Derived favicon — copied from assets/favicon.svg by example csproj targets.
-Rask.Example.Server/wwwroot/favicon.svg
-Rask.Example.Wasm.Host/wwwroot/
-
 # Generated MSBuild task assembly — built by Rask.Wasm.Tasks and copied here on every
 # build (see CopyTaskAssemblyToRaskWasmBuild). Its MVID/timestamp/PDB-hash differ per
 # build environment, so committing it made it perpetually dirty in git.
@@ -181,6 +172,3 @@ src/Rask.Wasm/Browser/rask-sw.js
 # The tsconfig fragment Rask writes for the @rask/* prop-type mapping. Generated, never committed.
 **/obj/rask-external/
 
-# Written by WasmWatchAppFixture during the WASM hot-reload E2E and deleted afterwards. Tracking it
-# makes every gate run delete a tracked file and leaves the sample with a permanent probe route.
-samples/Rask.Example.Wasm/Features/HotReloadProbePage.cs

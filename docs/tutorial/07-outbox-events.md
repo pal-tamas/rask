@@ -163,9 +163,8 @@ safe to repeat — it can run twice if the process dies between the work and the
   while `Error` stays null and `Attempts` stays `0` — that combination is what "delivered cleanly" means. A
   message that can't be deserialized doesn't throw; it records an error and retries until `MaxAttempts`.
 - Kill the app immediately after placing an order, restart it — the handler still runs.
-- **See it running:** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop) does exactly this, and
-  its handler goes further — queueing the confirmation email and scheduling a follow-up job. Watch the
-  outbox, mail and job counters move on `/ops`.
+- **Go further:** have the handler queue the confirmation email and schedule a follow-up job, then watch
+  the outbox, mail and job counters move on `/ops`.
 
 **Learn more:** [outbox](../outbox.md) · [Rask.Data](../data.md) · [background jobs](../jobs.md)
 

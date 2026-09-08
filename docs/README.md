@@ -14,7 +14,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | Guide | What it covers |
 |-------|----------------|
 | [**The .NET One Person Framework**](one-person-framework.md) | The doctrine: one developer, a whole product, one C# codebase, one server, SQLite-first — and the batteries that make it real. |
-| [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → push → ops → deploy to one box. One chapter per pillar, and the finished app is committed as [`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop). |
+| [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → push → ops → deploy to one box. One chapter per pillar; you build the app as you go, starting from `rask new Shop`. |
 | [**Cheat sheet**](cheatsheet.md) | The one page to keep open — every CLI command, feature field token, wiring one-liner (`AddRask…`), and code idiom, dense and scannable. |
 | [**Recipes**](recipes.md) | Task-first "how do I do X?" — add a feature to an existing database, gate a page, run a job, cache a query, deploy an update — the command, the wiring line, and where to go deeper. |
 | [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache) and what's next (broadcast). |
@@ -104,5 +104,6 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 ---
 
-The in-repo map for contributors lives in [CLAUDE.md](../CLAUDE.md). Runnable feature demos are
-under [`samples/`](../samples).
+The in-repo map for contributors lives in [CLAUDE.md](../CLAUDE.md). Every feature demo runs live at
+[rask.sh/docs](https://rask.sh/docs), out of [`site/Rask.Site`](../site/Rask.Site) — one app, published
+to the domain, so a demo you read here is the one you can click.

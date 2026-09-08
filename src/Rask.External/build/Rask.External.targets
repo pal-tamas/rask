@@ -644,16 +644,15 @@
       by skipping there — #884's own failure shape wearing the opposite sign.
 
       That case turns out to be unreachable for the WASM lane rather than merely unguarded, which is
-      worth writing down because the issue assumed otherwise. The islands live in the app project
-      (Rask.Example.Wasm), not the host (Rask.Example.Wasm.Host) — and the host, which is what sets the
-      property, owns no island files, so this target's own condition excludes it. Setting the property on
-      the app project instead is refused by the WASM SDK itself: `error MSB4057: The target
+      worth writing down because the issue assumed otherwise. The islands live in the browser-WASM app
+      project, not in an ASP.NET host in front of it — and the host, which is what sets the property,
+      owns no island files, so this target's own condition excludes it. Setting the property on the app
+      project instead is refused by the WASM SDK itself: `error MSB4057: The target
       "LoadStaticWebAssetsBuildManifest" does not exist in the project`.
 
       So for the WASM lane the endpoints manifest IS written into PublishDir and the check above is live.
-      Verified by publishing Rask.Example.Wasm and finding both
-      publish/Rask.Example.Wasm.staticwebassets.endpoints.json and
-      publish/wwwroot/_rask/external/manifest.json.
+      Verified by publishing the repo's browser-WASM app and finding both
+      publish/{App}.staticwebassets.endpoints.json and publish/wwwroot/_rask/external/manifest.json.
 
       An Error for the serve-from-disk case was written and then removed rather than shipped: it could
       not be made to fire in this repository under any configuration that builds, and a guard nobody has

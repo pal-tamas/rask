@@ -63,9 +63,9 @@
       has no business in. (That was already true on a case-insensitive filesystem, where the meta
       lane's `client` and this convention's `Client` were the same directory; it is simply true
       everywhere now.) The two are mutually exclusive by construction: a project either serves a
-      static bundle or fronts a framework's own node server. In this repo the six Rask.Example.Meta.*
-      samples are exactly that case, and they are why this condition exists rather than being a
-      hypothetical.
+      static bundle or fronts a framework's own node server. Six meta-framework hosts in this repo were
+      exactly that case, and they are why this condition exists rather than being a hypothetical; the
+      lane it protects is still shipped, so the condition outlives the apps that found it.
     -->
     <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == '' AND '$(RaskMetaFramework)' == ''"
     >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/client'))</_RaskSpaConventionDir>

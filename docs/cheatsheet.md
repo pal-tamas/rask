@@ -38,8 +38,7 @@ probably meant.
 
 > **Code inside the project is code you write.** `rask` scaffolds the project; pages, components, CRUD
 > slices, jobs, emails and caches are shown as copyable code in the [tutorial](tutorial/00-overview.md)
-> and the guides, and the finished app is committed as
-> [`samples/Rask.Example.Shop`](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop).
+> and the guides.
 
 ## A CRUD slice, in one place
 

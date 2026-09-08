@@ -43,9 +43,8 @@ public sealed class Order : Entity<Guid>
 ```
 
 Then the same four companions as before — `OrderRequest`, `OrderConfiguration`, the command/handler/page
-files, and the list page. They're the chapter 2 files with `Product` swapped for `Order`; copy them and
-change the type, or read them in the
-[sample](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop/Features/Orders).
+files, and the list page. They're the chapter 2 files with `Product` swapped for `Order` — copy them and
+change the type.
 
 What ties it to the existing database goes in `Features/Shared/AppDbContext.cs`, next to `Products` —
 the slice's namespace, and the set:

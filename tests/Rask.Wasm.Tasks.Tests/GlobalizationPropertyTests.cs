@@ -16,7 +16,7 @@ namespace Rask.Wasm.Tasks.Tests;
 ///         Following this project's existing convention, these assert the <i>shape</i> of the targets
 ///         rather than executing them. The behaviour itself was verified by real evaluation
 ///         (<c>dotnet msbuild -getProperty:InvariantGlobalization -getProperty:PredefinedCulturesOnly</c>)
-///         against <c>samples/Rask.Example.Wasm</c> in all three states:
+///         against the repo's browser-WASM app in all three states:
 ///         default → <c>true</c>/<c>true</c> (ICU dropped);
 ///         <c>-p:RaskGlobalization=true</c> → <c>false</c>/<c>false</c> (ICU shipped, any culture allowed);
 ///         <c>-p:WasmBuildNative=false</c> → <c>false</c> (no invariant flag, so no native relink is

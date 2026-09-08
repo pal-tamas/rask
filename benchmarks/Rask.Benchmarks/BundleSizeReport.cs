@@ -9,7 +9,7 @@ namespace Rask.Benchmarks;
 // (pre-compressed asset serving) can both cite hard numbers.
 //
 // Invoke:
-//   dotnet publish -c Release Rask.Example.Wasm.Host
+//   dotnet publish -c Release site/Rask.Site
 //   dotnet run -c Release --project Rask.Benchmarks -- bundle-size [path-to-_framework]
 //
 // If no path is given, looks in the standard publish locations.
@@ -36,7 +36,7 @@ internal static class BundleSizeReport
                 "  dotnet run -c Release --project Rask.Benchmarks -- bundle-size <path-to-_framework>");
             Console.Error.WriteLine();
             Console.Error.WriteLine(
-                "Run `dotnet publish -c Release Rask.Example.Wasm.Host` first to generate the bundle.");
+                "Run `dotnet publish -c Release site/Rask.Site` first to generate the bundle.");
             return 1;
         }
 
@@ -137,16 +137,14 @@ internal static class BundleSizeReport
             return null;
         }
 
+        // The one published WASM bundle in the repo. Two shapes, because the SDK's publish path
+        // depends on whether the project builds native: browser-wasm/ appears only on the relink path.
         string[] candidates =
         [
-            Path.Combine(root, "samples", "Rask.Example.Wasm.Host", "bin", "Release", "net10.0", "publish", "wwwroot",
-                "_framework"),
-            Path.Combine(root, "samples", "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "publish",
-                "wwwroot",
-                "_framework"),
-            Path.Combine(root, "samples", "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "browser-wasm",
-                "publish",
-                "wwwroot", "_framework")
+            Path.Combine(root, "site", "Rask.Site", "bin", "Release", "net10.0-browser", "publish",
+                "wwwroot", "_framework"),
+            Path.Combine(root, "site", "Rask.Site", "bin", "Release", "net10.0-browser", "browser-wasm",
+                "publish", "wwwroot", "_framework")
         ];
 
         return candidates.FirstOrDefault(Directory.Exists);

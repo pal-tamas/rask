@@ -65,6 +65,45 @@ them until tagged releases begin.
 
 ### Removed
 
+- **`samples/` is gone. The whole site — landing page, guides and every live demo — is one browser-WASM
+  app at `site/Rask.Site`, published to <https://rask.sh>.** It was two separately-published apps — a
+  landing page at `/` and a showcase at `/docs/` (three, until the playground went above) — stitched
+  together by `pages.yml`, surrounded by 22 sample projects that mostly existed to be driven by the
+  browser suite. There is one publish now, at the apex root, with no `RaskPathBase` anywhere.
+
+  **What that costs, stated rather than discovered.** The browser E2E suite drops from 20 app
+  collections to the site's three. The Server host, four auth apps, six meta-framework apps, Shop,
+  EfCore, Sqlite and browser-SQLite-plus-jobs lose all browser coverage — and this repository's casebook
+  records seven "E2E flakes" that turned out to be real bugs. `ShopProvenanceTests`, which diffed the
+  committed Shop against `ProjectGenerator` output, is deleted: the CLI build gate still proves the
+  scaffolder's output *builds* (29/29), not that its content is unchanged. The Blazor island loses its
+  real-Razor-Class-Library fixture, so the trimmed hosted-component path is no longer exercised at all
+  — `docs/blazor-components.md` says so where it used to claim a gate. Nothing in the repository
+  demonstrates server-side live rendering over a WebSocket to a visitor any more, and the WebRTC
+  signalling demo cannot work on the deployed site, because the relay is ASP.NET-side and GitHub Pages
+  serves static files; the demo says so in its own UI.
+
+  **The WASM hot-reload gate is retired, and its last act was to demonstrate its own failure mode.**
+  `scripts/run-wasm-watch-e2e.sh` drove a WASM sample under a real `dotnet watch`, writing a probe
+  source file into it for the duration of the run. With that app and its tests deleted, the script's
+  `dotnet test --filter` matched nothing, printed "No test matches the given testcase filter", exited 0,
+  and `pre-push` announced **"WASM watch hot-reload gate passed."** So Mono applying a metadata delta to
+  a live WASM runtime is now covered by nothing; the script and its `pre-push` invocation are deleted
+  rather than left to keep reporting green.
+
+  Six sample *test* projects survived the first deletion pass as tracked files that nothing built — they
+  had already been dropped from `Rask.slnx`, so no gate would ever have noticed. They are gone too, with
+  the dead machinery they had left behind: `Directory.Build.props`'s per-sample implicit-usings
+  conditions (and `_RaskExampleOpfUsings`, whose six imports could no longer fire), the empty `/samples/`
+  solution folder, `.gitignore` rules for deleted projects, and a `NoBootstrapClassesTests` allowlist
+  entry keyed to a file that no longer exists.
+
+  Everything that pointed at `samples/` now points at `site/` or says plainly that the thing it named is
+  gone: `CLAUDE.md`, `AGENTS.md`, `README.md`, `llms.txt`, `CONTRIBUTING.md`, the PR template, 30 pages
+  under `docs/`, the `rask-ship` and `open-pr` skills, and `run-rask` — which now drives the site, with
+  `run-rask-wasm` deleted because the two skills had become the same app. `benchmarks`' bundle-size
+  report pointed at three publish directories that no longer exist and now finds the site's.
+
 - **JWT/bearer authentication is gone; the session is always a cookie.** Rask authenticated one kind
   of session in practice and documented two, and the second one cost more than it carried: a token in
   browser storage that XSS can read, a token on the WebSocket URL that leaks through proxy logs and

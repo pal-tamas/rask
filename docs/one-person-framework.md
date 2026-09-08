@@ -79,11 +79,11 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 
 ## See it running
 
-[`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop) wires **every battery above into one app** —
-and it is the CLI's own output, not a hand-written showcase: `rask new Shop`
-plus the slices from the tutorial. Place an order and watch `/ops`: the domain event commits with
-the order through the outbox, the relay queues the confirmation email and schedules a follow-up job, and
-every pillar's state sits in the same SQLite file.
+The [tutorial](tutorial/00-overview.md) wires **every battery above into one app**, starting from the
+CLI's own output rather than a hand-written showcase: `rask new Shop` plus one slice per chapter. Place
+an order and watch `/ops`: the domain event commits with the order through the outbox, the relay queues
+the confirmation email and schedules a follow-up job, and every pillar's state sits in the same SQLite
+file.
 
 ## What isn't in the box
 

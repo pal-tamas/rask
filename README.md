@@ -121,8 +121,8 @@ their password with no auth code written. Run `rask` with no arguments for a wiz
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | Day-to-day differences side by side; every RASK build error and its fix |
 
 The full index is **[`docs/`](docs/)**, and the other packages are listed in
-**[NUGET.md](NUGET.md)**. To read a real app, **[`samples/`](samples/)** runs locally
-(`dotnet run --project samples/Rask.Example.Server`).
+**[NUGET.md](NUGET.md)**. To see it running, [rask.sh](https://rask.sh) *is* a Rask app — landing page,
+guides and every live demo — built from [`site/Rask.Site`](site/Rask.Site).
 
 *Rask* is the Norwegian/Danish/Swedish word for **fast**, and the engine earns it: after first paint a
 counter tick on a 24 KB page goes out as ~41 bytes. It ships fewer bytes on the wire than Blazor on

@@ -82,11 +82,12 @@ public sealed class NoBootstrapClassesTests
         "|AddAttribute\\(\\d+,\\s*\"class\",\\s*)\\$?\"([^\"]*)\"",
         RegexOptions.Compiled);
 
-    // `text-muted` is Bootstrap's, but Tailwind also generates it wherever a project's @theme declares
-    // `--color-muted` — the landing site does exactly that. Keyed by the file so the exemption cannot
-    // quietly spread to a project that has no such token.
-    private static readonly HashSet<string> ThemeGenerated =
-        new(StringComparer.Ordinal) { "samples/Rask.Example.Site/App.cs:text-muted" };
+    // A class name Bootstrap also defines is not always Bootstrap's: Tailwind generates `text-muted`
+    // wherever a project's @theme declares `--color-muted`, which the landing page used to do. Entries
+    // are keyed by FILE as well as token, so an exemption cannot quietly spread to a project that has
+    // no such token. Empty today — the site's theme no longer declares one — and kept because the next
+    // @theme token that collides with Bootstrap needs somewhere to go that is not "delete the check".
+    private static readonly HashSet<string> ThemeGenerated = new(StringComparer.Ordinal);
 
     /// <summary>
     ///     The class names daisyUI actually defines, read from the stylesheet the kit ships.

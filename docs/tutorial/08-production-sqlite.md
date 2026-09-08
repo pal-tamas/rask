@@ -104,8 +104,8 @@ machine.
 - A `.db` file lands in the snapshot directory on the configured interval.
 - With Litestream configured against a real bucket, deleting `app.db` and restarting restores it from the
   replica (watch the startup log).
-- **See it running:** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop)'s `/ops` page reads
-  `journal_mode` and `foreign_keys` back from the live connection and counts the snapshots on disk.
+- Your `/ops` page (chapter 10) reads `journal_mode` and `foreign_keys` back from the live connection and
+  counts the snapshots on disk.
 
 **Learn more:** [production SQLite](../sqlite.md) · [Rask.Data](../data.md)
 

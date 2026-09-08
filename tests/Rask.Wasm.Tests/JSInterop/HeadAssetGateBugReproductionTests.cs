@@ -25,10 +25,10 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 //     timeout. Drain still happens — otherwise queued invokes hang
 //     forever on real-world asset failures — but error/timeout paths
 //     log a console.warn naming the failed asset URL so the developer
-//     can trace the un-highlighted DOM back to its cause.
-//   * User code (CodeSample.js): defensive guard against undefined
-//     `window.hljs` before dereferencing. The component now degrades
-//     gracefully to un-highlighted code blocks instead of throwing.
+//     can trace the inert DOM back to its cause.
+//   * User code: a defensive guard against the undefined global before
+//     dereferencing it, so the component degrades gracefully instead of
+//     throwing.
 //
 // This test exercises the production rask.wasm.js bundle in a Node
 // subprocess with a stub DOM, parks a Rask.CodeSample.rendered invoke
@@ -36,9 +36,11 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 // tracked <script>, and asserts the framework contract: drain proceeds,
 // warning logged, user-code-equivalent does not throw.
 //
-// Pairs with the E2E coverage in Rask.Examples.E2E.Tests/
-// ExampleSmokeTests.HighlightJs.cs (Highlight_HljsScriptFails_* and
-// Highlight_BrowserRefreshOnCodeSamplePage_*).
+// The half of this that lived in the showcase is gone — the site renders
+// highlighted code from C# now and contributes no CDN <script> at all —
+// so what remains is the framework contract, which is the part any
+// consumer's Head asset depends on. The user-code stub below stands in
+// for that consumer; it is not a copy of anything in this repo.
 public sealed class HeadAssetGateBugReproductionTests
 {
     [Fact]
@@ -149,10 +151,10 @@ public sealed class HeadAssetGateBugReproductionTests
             : null;
         Assert.True(invokeThrew is null,
             $"User-equivalent JS threw despite the gate's contract: '{invokeThrew}'. " +
-            "Restore the `typeof window.hljs === 'undefined'` guard in " +
-            "samples/Rask.Example.Shared/Demos/CodeSample.js — gracefully degrading " +
-            "to un-highlighted code is the contract any component dispatching " +
-            "through the head-asset gate must honour.");
+            "Scoped JS dispatched through the head-asset gate must guard the global its " +
+            "<script> was supposed to define (`typeof window.X === 'undefined'`) before " +
+            "dereferencing it: the gate drains on error and timeout as well as load, so " +
+            "degrading gracefully is the contract, not an optimisation.");
     }
 
     private static string? ResolveNode()
