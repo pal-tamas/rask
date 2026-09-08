@@ -28,6 +28,12 @@ public static class RaskJobsServiceCollectionExtensions
         services.TryAddSingleton<JobMetrics>();
         services.TryAddSingleton<IJob, JobQueue<TContext>>();
 
+        // Before the processor, so an app whose model never mapped Job fails the boot with the line to
+        // type rather than on the first enqueue. The processor itself tolerates a missing table — it has
+        // to, because a freshly scaffolded app boots before its first migration has run — so it is the
+        // wrong place to notice. See BatteryModelCheck: this reads the MODEL, never the database.
+        services.AddHostedService<JobsModelCheck<TContext>>();
+
         // AddHostedService uses TryAddEnumerable, so a repeated call registers only one processor.
         services.AddHostedService<JobProcessor<TContext>>();
         return services;

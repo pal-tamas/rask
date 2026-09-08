@@ -9,6 +9,42 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An enabled battery whose tables were never mapped failed only at first use, never at boot.** Every
+  battery is on by default, and a battery that is on needs its tables in the application's
+  `DbContext`. An app that forgets one compiles, boots, serves pages and signs people in — then dies on
+  the first request that touches it, with `Cannot create a DbSet for 'QueuedMail' because this type is
+  not included in the model for the context`. In practice that is the first password reset anybody asks
+  for. A sample shipped in exactly that state and it took a browser journey to find.
+
+  The background half never complains, and cannot: a worker has to tolerate a table that is not there
+  yet, because a freshly scaffolded app boots before its first migration has run and a hosted service
+  that threw on a missing table would stop the host from starting at all. So the failure surfaces in a
+  request path, in production, long after the mistake was made.
+
+  `AddRaskAuth<TContext>()`, `AddRaskMail`, `AddRaskJobs`, `AddRaskCache` and `AddRaskOutbox` now each
+  register a startup check that looks its own entity up in the model once, before that battery's worker
+  starts. A missing one fails the boot with the line to type:
+
+      The Mail battery is on, but QueuedMail is not in AppDbContext's model, so the first
+      request that uses it would fail with "Cannot create a DbSet for 'QueuedMail'".
+      Add it to OnModelCreating:
+          modelBuilder.AddRaskMail();
+
+  **The MODEL, not the database**, and that distinction is what lets this fail the boot where the
+  workers cannot. The model is built from `OnModelCreating` and needs no connection, so "the type is
+  not mapped" is a code mistake and always wrong, while "the table does not exist yet" is normal for an
+  app that has not run `rask db update` and is not checked at all. An app with no migrations still
+  starts, and there is a test that says so.
+
+  The check belongs to `AddRaskX<TContext>()` rather than to the meta-package's battery wiring, and
+  that placement is the fix rather than a detail of it. A scaffolded app references `Rask.Server` and
+  writes `builder.Services.AddRaskMail<AppDbContext>()` into its own `Program.cs`; it never goes through
+  `RaskApp`. A guard living there would have passed its own tests while firing for nothing any real app
+  does — so the tests for this go through a bare `ServiceCollection`, the way `rask new` wires it.
+  Because the batteries share no assembly (`Rask.Cache` has no Rask reference at all, and keeping it
+  that way is #1014's concern), the check is source-linked into each package and reports one battery at
+  a time. (#1015)
+
 - **A prerendered page looked interactive before it was, and clicks in that window were lost.**
   Prerendering serves real HTML, so a page's buttons and links are present and look clickable from the
   first paint — but no handler is attached until the bundle downloads, starts and takes the page over,
