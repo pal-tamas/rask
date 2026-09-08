@@ -480,4 +480,38 @@ internal static class UiClassNames
         UiSize.Xl => "rating-xl",
         _ => "",
     };
+
+    /// <remarks>
+    ///     daisyUI has no <c>dropdown-center</c>: a dropdown is placed against its trigger, and centring
+    ///     it there is what <c>dropdown-start</c>/<c>-end</c> already choose between. The member returns
+    ///     nothing rather than a class that styles nothing.
+    /// </remarks>
+    internal static string DropdownPlacement(UiPlacement value) => value switch
+    {
+        UiPlacement.Start => "dropdown-start",
+        UiPlacement.Center => "dropdown-center",
+        UiPlacement.End => "dropdown-end",
+        UiPlacement.Top => "dropdown-top",
+        UiPlacement.Bottom => "dropdown-bottom",
+        UiPlacement.Left => "dropdown-left",
+        UiPlacement.Right => "dropdown-right",
+        _ => "",
+    };
+
+    internal static string ModalPlacement(UiModalPlacement value) => value switch
+    {
+        UiModalPlacement.Top => "modal-top",
+        UiModalPlacement.Middle => "modal-middle",
+        UiModalPlacement.Bottom => "modal-bottom",
+        UiModalPlacement.Start => "modal-start",
+        UiModalPlacement.End => "modal-end",
+        _ => "",
+    };
+
+    internal static string SwapAnimation(UiSwapAnimation value) => value switch
+    {
+        UiSwapAnimation.Rotate => "swap-rotate",
+        UiSwapAnimation.Flip => "swap-flip",
+        _ => "",
+    };
 }

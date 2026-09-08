@@ -9,6 +9,47 @@ them until tagged releases begin.
 
 ### Added
 
+- **The UI kit's Actions components are driven by Rask, not by CSS tricks — and `UiFab` is new.**
+  daisyUI's Actions category, complete, with the open state where a page can reach it.
+
+  **`UiButton` covers daisyUI's whole button API.** `Wide`, `Square`, `Circle` and `Active` join the
+  existing colour/fill/size axes. A square or a circle is sized to hold one glyph, so it renders the
+  icon alone and the required `Label` becomes the accessible name — a button whose only content is a
+  decorative icon is otherwise announced as "button", with nothing saying what it does. `Disabled`
+  stays the *attribute*: daisyUI's `btn-disabled` styles without disabling, so a button carrying only
+  that class still takes the click and still reaches its handler.
+
+  **`UiDropdown` has three open states, not two.** Left unset it is uncontrolled and the browser opens
+  it on `:focus-within`, exactly as before. Set, the page owns it — and closed writes `dropdown-close`
+  rather than merely omitting `dropdown-open`, because daisyUI ranks that class above the focus rule.
+  Without it, tabbing into the panel re-opened a dropdown the page had just closed, and the state in C#
+  and the state on screen disagreed with nothing reporting it. `Placement` and `OpenOn` are enums now:
+  a misspelled class name is not a compile error, and a class daisyUI never defined styles nothing.
+
+  A controlled trigger also carries **no** `tabindex`, and that is load-bearing rather than tidy.
+  daisyUI scopes `pointer-events: none` to `[tabindex]:first-child` while a dropdown is open, so the
+  trigger stops taking clicks — right for the uncontrolled one, where you close it by clicking away,
+  and fatal for a controlled one, whose only way to close is a callback that only a click can fire. It
+  opened once and stuck. A `<button>` is focusable either way, so dropping the attribute costs the
+  uncontrolled behaviour nothing. Found by a browser test, as a click Playwright reported the container
+  was intercepting; no markup assertion could have seen it.
+
+  **`UiFab`** — daisyUI's floating action button, with `MainAction`, `Close` and the `Flower` arc.
+  Deliberately *not* state-driven: its actions are `visibility: hidden` until `:focus-within`, and
+  daisyUI defines no `fab-open` class, so there is nothing a page could write to force it. Rendering
+  the actions conditionally would not work either — they would still be hidden until focus arrived.
+  Opening on focus is reachable by keyboard and by touch, which is why that is where the kit stops;
+  where programmatic control matters, `UiDropdown` is the controllable shape.
+
+  **Unit tests for every component in the category.** The kit rendered exactly one of its components in
+  a test before this (`UiIcon`); everything else was covered only indirectly, by reflecting class-name
+  tables against the compiled sheet. Alongside them, browser tests that assert the two things markup
+  assertions cannot: that a component has a real size — an unstyled kit component passes every markup
+  assertion and is a zero box only in a browser — and that pressing it changes the state.
+
+  **A live showcase at `/ui/actions`.** The kit had no page anywhere; the only surface was the prose
+  guide at `/guides/ui-kit`.
+
 - **The site at [rask.sh](https://rask.sh) is prerendered, and a Rask app can now be indexed at all.**
   Four framework pieces, each of which was a hole a real site falls into.
 
@@ -106,6 +147,26 @@ them until tagged releases begin.
   The same fix applies on macOS, where the same call would have failed the same way.
 
 ### Removed
+
+- **`UiModal`'s native-popover path, and the CSS-only state of `UiSwap` and `UiThemeController`.**
+  Setting `UiModal.Id` used to switch it to a `popover` dialog opened by a button through
+  `popovertarget`, so the browser supplied the top layer, Escape, light-dismiss and focus containment
+  with no script at all. That was better on every axis except the one that removed it: nothing in C#
+  can press a button, so a dialog opened that way could not be opened, closed or observed by the page
+  that owned it — and two paths with different capabilities meant two sets of behaviour to document
+  and to test, distinguished only by whether a property happened to be set. `Id` and `Trigger` are
+  gone; `Open` and `Placement` replace them. `UiSwap` drops its hidden checkbox for a `<button>` and
+  daisyUI's `swap-active` (a `<label>` with no input would have been an unreachable control), and
+  `UiThemeController` drops `input.theme-controller` for a button that reports the choice.
+
+  **What that costs.** These components no longer work on a prerendered page before the runtime boots,
+  or with JavaScript off. In exchange the state is a value the page can read, set and persist — the
+  theme choice in particular used to reset on every navigation, because nothing in C# knew which theme
+  was showing. `UiThemeController` reports a choice and cannot apply it: the palette is set by
+  `data-theme` on the element carrying the theme scope, which is an ancestor, so the page puts it there.
+
+  `UiDropdown.Placement`, `UiSwap.Animation` and `UiThemeController.Theme` change type from `string?`
+  to closed enums (`UiPlacement`, `UiSwapAnimation`, `UiThemeName`).
 
 - **`samples/` is gone. The whole site — landing page, guides and every live demo — is one browser-WASM
   app at `site/Rask.Site`, published to <https://rask.sh>.** It was two separately-published apps — a

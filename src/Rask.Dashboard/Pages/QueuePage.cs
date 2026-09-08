@@ -227,9 +227,9 @@ public sealed partial class QueuePage(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
 
-        // No Id, so this takes the modal's STATE-DRIVEN path: the page renders the sheet when a row is
-        // selected and Close flips that back. The native popover path cannot express it — nothing in C#
-        // can press the button that would open it.
+        // Rendered only while a row is selected, and Close flips that back — which is the whole of the
+        // dialog's open state. UiModal.Open is for a sheet kept mounted while hidden; this one has
+        // nothing to preserve between openings, so not rendering it at all is cheaper and simpler.
         return UiModal
             .Title(row.Type)
             .Close(Close)

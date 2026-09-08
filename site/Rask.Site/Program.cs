@@ -58,6 +58,9 @@ host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.Gu
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PwaPage(), "PWA demo", UiIconName.Phone, "PWA"));
 // The islands showcase: the same .vue/.tsx/.svelte the Server host builds, mounted client-side.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Islands.Routes.IslandsPage(), "Islands", UiIconName.Overview, "Islands"));
+// The UI kit, one page per daisyUI category. The guide at /guides/ui-kit is the prose; these are the
+// components themselves, live, which is the half a paragraph cannot do.
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitActionsPage(), "Actions", UiIconName.Check, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.InstallPromptPage(), "Install prompt", UiIconName.Download, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.WakeLockPage(), "Wake lock", UiIconName.Desktop, "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.OrientationPage(), "Orientation", UiIconName.Phone, "PWA"));
