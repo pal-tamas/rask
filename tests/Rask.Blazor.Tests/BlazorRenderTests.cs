@@ -108,6 +108,24 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
         Assert.Equal(2, Occurrences(html, "data-rask-on-click="));
     }
 
+    [Fact]
+    public void An_onclick_modifier_does_not_leak_its_lowering_marker_into_the_html()
+    {
+        // @onclick:preventDefault / :stopPropagation are not attributes — the Razor compiler lowers each
+        // to a boolean frame named __internal_preventDefault_onclick / __internal_stopPropagation_onclick
+        // with no handler id. Those missed the handler branch and fell through to the boolean arm, which
+        // writes a true boolean attribute bare, so the page shipped a stray marker that means nothing to
+        // any browser (#951).
+        var html = RaskTest.Render(PreventingLinkIsland.OnPick(() => { }), Services()).Html;
+
+        Assert.DoesNotContain("__internal_", html, StringComparison.Ordinal);
+
+        // Dropping the marker must not drop the handler with it: the link is still wired to Rask's
+        // channel, and its ordinary attributes still render.
+        Assert.Contains("data-rask-on-click=", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/somewhere\"", html, StringComparison.Ordinal);
+    }
+
     private static int Occurrences(string haystack, string needle)
     {
         var count = 0;

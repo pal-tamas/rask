@@ -180,6 +180,32 @@ internal static class BlazorFrameWriter
     {
         var name = frame.AttributeName;
 
+        // `@onclick:preventDefault` / `@onclick:stopPropagation` are not attributes. The Razor compiler
+        // lowers each to a boolean frame named __internal_preventDefault_onclick /
+        // __internal_stopPropagation_onclick, carrying no AttributeEventHandlerId — so they miss the
+        // handler branch below and used to fall through to the `case bool` arm, which writes a true
+        // boolean attribute bare. The page then shipped a stray `__internal_preventDefault_onclick`
+        // that means nothing to any browser (#951).
+        //
+        // Dropped rather than translated, because Rask's delegated listeners already give both
+        // directives what they ask for — this is a naming mismatch, not a missing feature:
+        //
+        //   preventDefault  — the client's click listener cancels the default for ANY element carrying
+        //                     data-rask-on-click (it declines only for a popover invoker, whose default
+        //                     action is the point of the control). So a hosted <a href> with a handler
+        //                     does not navigate.
+        //   stopPropagation — the listener resolves the target with closestFrom(), i.e. the NEAREST
+        //                     ancestor carrying the attribute, and dispatches that one id. An ancestor's
+        //                     handler therefore never sees a click already claimed by a descendant,
+        //                     which is the propagation this directive exists to stop.
+        //
+        // What is NOT covered is propagation to non-Rask listeners the page installed itself; a hosted
+        // component that needs that has to call stopPropagation from its own JS.
+        if (name.StartsWith("__internal_", StringComparison.Ordinal))
+        {
+            return;
+        }
+
         if (frame.AttributeEventHandlerId != 0)
         {
             // "onclick" -> "click", so it lands on Rask's own data-rask-on-{event} convention and the

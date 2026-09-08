@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`@onclick:preventDefault` on a hosted Blazor component leaked a `__internal_*` attribute into the
+  page.** Those directives are not attributes: the Razor compiler lowers each to a boolean frame named
+  `__internal_preventDefault_onclick` / `__internal_stopPropagation_onclick`, carrying no handler id.
+  They therefore missed `BlazorFrameWriter`'s handler branch and fell through to its boolean arm, which
+  writes a true boolean attribute bare — so `<a href="/x" @onclick:preventDefault="Pick">` shipped a
+  stray `__internal_preventDefault_onclick` that means nothing to any browser. They are now dropped.
+
+  Dropped rather than translated, because Rask's delegated listeners already give both directives what
+  they ask for — this was a naming mismatch, not a missing feature. The client cancels the default for
+  any element carrying `data-rask-on-click` (declining only for a popover invoker, whose default action
+  is the point of the control), so a hosted `<a href>` with a handler does not navigate. And the
+  listener resolves its target with `closestFrom`, the NEAREST ancestor carrying the attribute, so an
+  ancestor's handler never sees a click a descendant already claimed — which is the propagation
+  `:stopPropagation` exists to stop. What is still not covered is propagation to non-Rask listeners the
+  page installed itself. (#951)
+
 - **An enabled battery whose tables were never mapped failed only at first use, never at boot.** Every
   battery is on by default, and a battery that is on needs its tables in the application's
   `DbContext`. An app that forgets one compiles, boots, serves pages and signs people in — then dies on
