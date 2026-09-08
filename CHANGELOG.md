@@ -289,6 +289,13 @@ them until tagged releases begin.
   Guarded now by tests that name `checked` directly, and by a browser test that asks the DOM whether
   the box is checked rather than what its markup says.
 
+  **Known and left alone:** the four controls with no value of their own still emit a meaningless
+  `value="False"`. They keep `Of<bool>()` because the type argument is what makes `OnChange` an
+  `Action<bool>`, and pinning it seeds the value — so the attribute is inherited from the chain
+  generator rather than written by the kit. It wrote an equally meaningless `value="True"` before this
+  work, nothing submits these controls natively, and removing it means changing what the generator
+  emits for a pinned type argument. Recorded here rather than fixed sideways.
+
 ### Removed
 
 - **The CSS-only state of `UiSwap` and `UiThemeController`.**
