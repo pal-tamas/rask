@@ -17,6 +17,8 @@ public sealed partial class UiKitDataInputDemo : Component
     private bool _remember = true;
     private bool _alerts;
     private string _shipping = "standard";
+    private string? _country;
+    private string? _framework;
     private double _volume = 40;
     private int _stars = 4;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
@@ -38,15 +40,41 @@ public sealed partial class UiKitDataInputDemo : Component
                 UiInput.Key("ghost").Label("Search").Variant(UiVariant.Ghost).Placeholder("Ghost"),
                 UiTextarea.Key("notes").Label("Notes").Rows(3).Value(_notes).Placeholder("Anything else?")
                     .OnChange(v => { _notes = v; }),
-                // Data-shaped rather than children: the options are (value, text) pairs, so the
-                // component owns the <option> markup and the empty placeholder row.
-                UiSelect.Key("country").Label("Country")
+                // Value opens the chain: for a form control the opening step fixes the type argument
+                // and the mode at once, so Label and Options follow it.
+                UiSelect.Value(_country).Key("country")
                     .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
-                    .Placeholder("Choose…"),
+                    .Label("Country")
+                    .Placeholder("Choose…")
+                    .OnChange(v => { _country = v; }),
                 UiFileInput.Key("avatar").Label("Avatar").Size(UiSize.Sm),
                 _email.Length > 0 && !_email.Contains('@')
                     ? UiValidator.Key("v").Message("That does not look like an email address.")
                     : null
+            ]),
+
+        Section(
+            "Select — the platform's, and the drawn one",
+            "Native is the default and the one to reach for. Turn it off when the list has to carry "
+            + "more than the platform will show — groups, unavailable options — or has to escape an "
+            + "overflow:hidden ancestor, which the box below is. The drawn list needs the runtime.",
+            Div.Data(Testid("ui-select")).Class("grid gap-3 sm:grid-cols-2")[
+                Div.Class("h-24 overflow-hidden rounded-xl border border-base-300 p-3")[
+                    UiSelect.Value(_framework).Key("fw")
+                        .Options([
+                            ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
+                            ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
+                        ])
+                        .Label("Framework")
+                        .Placeholder("Choose a package")
+                        .Native(false)
+                        .OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling")
+                        .OptionDisabled(v => v == "blazor")
+                        .OnChange(v => { _framework = v; })
+                ],
+                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-select-state"))[
+                    _framework is null ? "Nothing chosen." : $"Chosen: {_framework}."
+                ]
             ]),
 
         Section(

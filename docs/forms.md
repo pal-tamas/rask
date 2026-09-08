@@ -322,8 +322,8 @@ ValidationSummary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field],
 
 Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and
 **bound** (`Bind: () => model.X`, two-way). A derived readout rendered *outside* the control updates
-live either way. The matrix below covers text, textarea, select, and the component
-controls (`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect`).
+live either way. The matrix below covers text, textarea and select; the [UI kit](ui-kit.md)'s controls
+take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-input -->
 
@@ -340,18 +340,21 @@ floating-label field with the label derived from the bound property, and surface
 ### Accessible validation
 
 A control of your own (see [building form controls](building-form-controls.md)),
-`BsRadioGroup`, `BsCheckboxGroup`) expose validation to assistive tech automatically — no extra props.
+and the [UI kit](ui-kit.md)'s controls) expose validation to assistive tech automatically — no extra props.
 When a bound field has messages, the control renders `aria-invalid="true"`, an `aria-describedby` that
 points at the error message's `id` (and the help-text `id` when `HelpText:` is set), and the
 `.invalid-feedback` as a `role="alert"` live region so screen readers announce the error the moment it
 appears, associated with the field rather than detached from it. Valid fields with `HelpText:` still get
 `aria-describedby` to the help text.
 
-The combobox controls (`BsSelect`'s custom dropdown, `BsMultiSelect`) are a `<div role="combobox">`,
-which is not a labelable element — so their visible label is tied to them with `aria-labelledby` (not a
-void `<label for>`), alongside the `aria-haspopup`/`aria-expanded`/`aria-controls` popup contract. Give
-`BsRadioGroup`/`BsCheckboxGroup` a `Label:` and the options are wrapped in a `<fieldset>` named by a
-`<legend>` — the correct grouping semantics and accessible name for a set of related radios/checkboxes.
+A combobox control — [`UiSelect<T>`](ui-kit.md) with `Native: false` — carries `role="combobox"`,
+which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`
+pointing at a visible label) rather than through a `<label for>` that would bind to nothing. Alongside
+it goes the popup contract: `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` naming the
+list, and `aria-activedescendant` naming the option the keyboard cursor is on while focus stays on the
+box. Options are `role="option"` carrying `aria-selected`, and an unavailable one carries
+`aria-disabled` — **present only when it is true**, since a valueless `aria-disabled` reads as `true`
+and would mark every option unavailable.
 
 If you build your own control from the core `Input`/`ValidationMessage` primitives (§9), mirror the same
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from

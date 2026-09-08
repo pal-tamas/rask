@@ -145,10 +145,16 @@ its title, or `aria-label` from the title text), and dismisses on `Escape` (exce
 which keeps `Escape` inert). Build your own overlay the same way — add `data-rask-focus-trap`
 (via the `Data` dictionary) and mark your close control with `data-rask-dismiss`.
 
-A sibling runtime helper keys off `data-rask-popover` to place the Bs dropdown-family menus (the
-date/time pickers, `BsDropdown`, `BsMultiSelect`, `BsSelect`) with `position: fixed` while open, so the menu escapes
-any `overflow: hidden/auto` ancestor instead of being clipped. It is placement only — the components'
-keyboard navigation, ARIA roles, and focus behavior are unchanged.
+A menu that must escape an `overflow: hidden/auto` ancestor uses the platform's own answer instead:
+a `[popover]`, which the browser lifts into the top layer, dismisses on Escape and on a click outside,
+and gives a real `::backdrop`. `UiSelect` with `Native: false`, `UiMegamenu` and `UiModal` are all
+built that way. C# hears the browser's own dismissal through `OnToggle`, which is what lets a control
+keep `aria-expanded` truthful rather than drifting the moment Escape is pressed.
+
+A second runtime helper contains the navigation keys while such a list is open — the live client never
+calls `preventDefault`, so without it ArrowDown would scroll the document behind the list and Enter
+would submit the surrounding form. It keys off `aria-expanded` on the closest `[role=combobox]`, and
+deliberately leaves Escape alone, since Escape's default *is* the dismissal.
 
 ## Navigation
 
@@ -168,7 +174,7 @@ host today; the WASM navigation path is a follow-up.)
 ## What's not covered yet
 
 This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`
-keyboard widgets (roving tabindex for `BsTabs`/`BsDropdown`), and automated axe-core scans in the sample
+keyboard widgets (the roving cursor in `UiSelect`'s drawn listbox), and automated axe-core scans in the sample
 E2E suite — are tracked as follow-up work. Today you build those from the `Aria`/`Role`/`TabIndex`
 primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label(For:)`,
 `Th(Scope:)`, …).

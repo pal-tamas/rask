@@ -9,6 +9,39 @@ them until tagged releases begin.
 
 ### Added
 
+- **`UiSelect` is a form control, and can draw its own list.** It implements `IFormControl<T>`, so it
+  binds — `UiSelect.Bind(() => _order.Country).Options(countries).Label("Country")` — with per-field
+  `Validate`, `AfterBind`, and the validation display that comes with a bound control; or takes
+  `Value`/`OnChange` and leaves the value with the parent. **The opening step fixes the type argument
+  and the mode together**: `Bind` opens the bound chain, `Value` the controlled one, and they are
+  mutually exclusive because a control with both would have two sources of truth for one field.
+
+  **`Native: false`** draws the list instead of handing it to the platform: a `[popover]`
+  `role="listbox"` under a `role="combobox"` box, with the arrow keys, Home/End, Enter, options that
+  can be grouped or marked unavailable, and a roving `aria-activedescendant` cursor that skips the
+  unavailable ones. Focus never leaves the box, which is what keeps the whole control free of
+  `IJSRuntime` — the kit depends on no host. Closed, the arrows move the selection directly, as a
+  native select does on a desktop.
+
+  Both modes take the same properties and mean the same thing by them; the flag chooses how the list is
+  drawn, not what the control is. What differs is that the drawn list **needs the runtime** — it is
+  inert on a prerendered page and does nothing with scripting off, where the native control is
+  completely working. That is why the default is native. Its placement uses CSS anchor positioning,
+  which not every engine ships; where it is missing the list still opens and is usable, centred rather
+  than under its box — the same trade `UiMegamenu` already makes.
+
+  `Name` renders a hidden input so a plain `<form>` still posts the field: a listbox built from buttons
+  submits nothing on its own, and that failure is invisible until the data is wrong.
+
+  The roving-cursor arithmetic lives in `UiSelectNav`, ported from the select helper of the Bootstrap
+  package deleted in `b349db4d`. Nothing of that package came with it — no markup, no element type, no
+  class name; the whole surface is integers and one id string — and it is tested directly, because an
+  off-by-one in a flat index is not visible in rendered markup.
+
+  `docs/forms.md`, `docs/forms-advanced.md`, `docs/accessibility.md` and `docs/building-components.md`
+  described that deleted control, in one case as the worked example of the very chain shape this now
+  has. All four are repointed.
+
 - **`OnToggle` and `OnBeforeToggle` on every element, and key containment for an open listbox.** Two
   small framework additions that close the same gap: a popover's open state belongs to the browser,
   and C# could neither hear about it nor keep the keyboard out of the page while it was open.

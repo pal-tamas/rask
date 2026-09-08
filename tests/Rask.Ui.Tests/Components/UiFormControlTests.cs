@@ -256,7 +256,10 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     {
         "input" => UiInput.Label("Email").Tone(tone).ToHtml(),
         "textarea" => UiTextarea.Label("Notes").Tone(tone).ToHtml(),
-        "select" => UiSelect.Label("Country").Options([("hu", "Hungary")]).Tone(tone).ToHtml(),
+        // Value opens it: for a form control the opening step fixes both the type argument and the
+        // MODE (controlled here, bound if it opened on Bind), so Label and Options follow it.
+        "select" => UiSelect.Value<string>(null).Options([("hu", "Hungary")]).Label("Country")
+            .Tone(tone).ToHtml(),
         _ => UiFileInput.Label("Avatar").Tone(tone).ToHtml(),
     };
 

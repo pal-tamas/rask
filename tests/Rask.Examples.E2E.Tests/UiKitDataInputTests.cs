@@ -126,6 +126,92 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(scope).ToContainTextAsync("Volume: 75");
     });
 
+    [Fact]
+    public Task TheDrawnSelectIsAFullKeyboardCombobox() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-select']");
+        var box = scope.GetByRole(AriaRole.Combobox);
+        var list = scope.Locator("[role='listbox']");
+
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(list).ToBeHiddenAsync();
+
+        // Enter opens it through the button's own activation — that is the keyboard's way in, and it
+        // costs no script.
+        await box.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(list).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
+
+        // The roving cursor: focus stays on the box and aria-activedescendant names the option, which
+        // is what keeps this free of any focus-moving JS interop.
+        await Page.Keyboard.PressAsync("ArrowDown");
+        var active = await box.GetAttributeAsync("aria-activedescendant");
+        Assert.False(string.IsNullOrEmpty(active), "the cursor did not move");
+
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(Page.Locator("[data-testid='ui-select-state']")).ToContainTextAsync("Chosen:");
+    });
+
+    [Fact]
+    public Task EscapeClosesTheDrawnSelectAndCSharpHearsIt() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-select']");
+        var box = scope.GetByRole(AriaRole.Combobox);
+
+        await box.ClickAsync();
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
+
+        // The assertion the whole toggle event exists for. The BROWSER closes the popover here; without
+        // hearing that, aria-expanded would go on claiming the list is open over a closed one.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(scope.Locator("[role='listbox']")).ToBeHiddenAsync();
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
+    });
+
+    [Fact]
+    public Task ArrowKeysInTheDrawnSelectDoNotScrollThePage() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var box = Page.Locator("[data-testid='ui-select']").GetByRole(AriaRole.Combobox);
+        await box.ClickAsync();
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
+
+        var before = await Page.EvaluateAsync<int>("() => window.scrollY");
+        for (var i = 0; i < 5; i++)
+        {
+            await Page.Keyboard.PressAsync("ArrowDown");
+        }
+
+        // The client never preventDefaults on its own, so without the containment added to rask-dom.ts
+        // every ArrowDown would scroll the document behind the open list.
+        var after = await Page.EvaluateAsync<int>("() => window.scrollY");
+        Assert.Equal(before, after);
+    });
+
+    [Fact]
+    public Task TheDrawnListEscapesAnOverflowHiddenAncestor() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-select']");
+        var box = scope.GetByRole(AriaRole.Combobox);
+        await box.ClickAsync();
+
+        var list = scope.Locator("[role='listbox']");
+        await Expect(list).ToBeVisibleAsync();
+
+        // The reason the popover is worth its cost: the box sits in a 96px overflow:hidden container, so
+        // a list positioned inside the flow would be clipped to nothing. In the top layer it is not.
+        var height = (await list.BoundingBoxAsync())!.Height;
+        Assert.True(height > 96, $"the list was clipped to {height}px by its overflow-hidden ancestor.");
+    });
+
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);

@@ -155,6 +155,36 @@ the panel would re-open a dropdown the page had just closed.
 refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are written
 against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
 
+**And one that lets you choose.** `UiSelect` is the platform's `<select>` by default and draws its own
+list when `Native` is `false` — a `[popover]` `role="listbox"` under a `role="combobox"` box, with the
+arrow keys, Home/End, Enter, and a roving `aria-activedescendant` cursor that skips unavailable
+options. Reach for it when the list must carry more than the platform will show, or must escape an
+`overflow: hidden` ancestor. Both modes take the same properties and mean the same thing by them; what
+differs is that the drawn list **needs the runtime**, where the native control works on a prerendered
+page and with scripting off. That is why the default is native.
+
+The browser still owns dismissal there — Escape and click-outside — and C# hears it through
+`OnToggle`, which is what keeps `aria-expanded` truthful rather than drifting the moment the list is
+dismissed.
+
+## Form controls
+
+The kit's controls implement `IFormControl<T>`, so each works in the two shapes every Rask input does:
+
+```csharp
+Form.Model(_order)[
+    UiSelect.Bind(() => _order.Country).Options(countries).Label("Country"),
+    UiSelect.Value(_country).Options(countries).Label("Country").OnChange(v => _country = v)
+]
+```
+
+**The opening step fixes the type argument and the mode together.** `Bind` opens the bound chain and
+`Value` the controlled one; they are mutually exclusive because a control with both would have two
+sources of truth for one field. `Label`, `Options` and the rest follow in any order, since none of
+them says anything about `T`. Bound mode drives the surrounding `Form`'s validation — per-field
+`Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
+the value with the parent. See [building form controls](building-form-controls.md).
+
 ## The rule the whole kit rests on
 
 daisyUI emits a component's CSS only where Tailwind can **see** its class name in the scanned source.
