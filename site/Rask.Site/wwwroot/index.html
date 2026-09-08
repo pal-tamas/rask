@@ -1,22 +1,25 @@
-<!--
-  Rask.Site — the marketing landing page, built as a Rask WASM app and served at the
-  GitHub Pages root.
-
-  This shell is the boot document, and since <RaskPrerender>true</RaskPrerender> it is also the
-  TEMPLATE the prerendered page is spliced into: at publish the pass keeps this <head> — the
-  fingerprinted import map, the preload, the <base href> — replaces the body below with the rendered
-  page, and carries the script at the end over. So what a visitor is served has the real markup AND
-  still boots. Keep it minimal; the App component is the source of truth for the page's real <head>.
--->
 <!doctype html>
-<!-- data-rask-ui turns the component kit's theme on for the whole document. It lives HERE, in the
-     boot shell, rather than only in App.Shell: prerendering splices the render into this shell and
-     this shell's opening tag is what survives, so an attribute set only in managed code never
-     reaches the published page. Without it every --color-ui-* token resolves to nothing and the
-     site ships structurally perfect and entirely grey. -->
 <html lang="en" data-rask-ui>
 <head>
     <meta charset="utf-8"/>
+    <!--
+      NOTHING ABOVE THIS LINE. The charset has to fall inside the document's first 1024 bytes to count
+      at all, and the explanation that used to sit above the doctype pushed it to byte 1143 — so the
+      browser guessed the encoding and Lighthouse reported it, on a file whose second line declared it
+      correctly. Comments belong here, under it.
+
+      Rask.Site — the app published to rask.sh. This shell is the boot document, and since
+      <RaskPrerender>true</RaskPrerender> it is also the TEMPLATE the prerendered page is spliced into:
+      at publish the pass keeps this <head> — the fingerprinted import map, the preload, the
+      <base href> — replaces the body below with the rendered page, and carries the script at the end
+      over. So what a visitor is served has the real markup AND still boots. Keep it minimal; the App
+      component is the source of truth for the page's real <head>.
+
+      data-rask-ui on <html> turns the component kit's theme on for the whole document. It lives HERE
+      rather than only in App.Shell because this shell's opening tag is what survives the splice.
+      Without it every --color-ui-* token resolves to nothing and the site ships structurally perfect
+      and entirely grey.
+    -->
     <!-- <base href> is rewritten to /<prefix>/ by the framework's _RaskRewriteBaseHref target when
          published with -p:RaskPathBase=/<prefix>. This app is served from the origin root, so it is
          published without one and this default is already correct. -->

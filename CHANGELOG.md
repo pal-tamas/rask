@@ -9,6 +9,38 @@ them until tagged releases begin.
 
 ### Added
 
+- **A prerendered page is now actually served, and actually paints.** Turning prerendering on wrote 154
+  real pages; three separate defects meant almost nobody would have seen them.
+
+  **The compressed siblings held the boot shell.** The pass runs after publish — the only point at
+  which the fingerprinted import map exists — so the SDK has already compressed `index.html` and
+  written a manifest describing it. Overwriting the page left `index.html.br` at 2.3 KB of spinner
+  beside a 76 KB rendered page, and a manifest promising `Content-Length: 7292` for a 76,579-byte
+  file, which is a wrong response rather than a stale one. **Any host that prefers a precompressed
+  sibling served the spinner** — nginx `brotli_static`, Netlify, Cloudflare Pages, S3 behind a CDN, and
+  Rask's own `Rask.Wasm.Hosting`. The pass now regenerates the siblings and corrects the manifest's
+  length, ETag, `Last-Modified` and integrity.
+
+  **The runtime booted before the browser could paint.** A module script runs after parsing and before
+  first paint, so `dotnet.create()` took the main thread while the screen was still empty. The splice
+  now marks the document `data-rask-prerendered` and the boot waits for `load` plus two frames — with
+  any user input starting it at once, and a ceiling for a backgrounded tab. **Largest contentful paint
+  37.8 s → 1.4 s**, time to interactive 37.8 s → 5.4 s.
+
+  **And the tag search could not see comments.** `IndexOfTag` matched `<head>` inside the shell's own
+  explanatory comment, so everything downstream measured from inside it: the prefix handed to the
+  attribute merge contained no `<html>` at all, and **every attribute a `Shell` override set on
+  `<html>` was silently dropped** — the exact failure that merge was written to fix. It read as working
+  because the site had already moved `data-rask-ui` into the shell's literal tag after being bitten
+  once, so the one attribute anyone watched survived for an unrelated reason.
+
+  Lighthouse on the published bundle, mobile profile, served with compression as a static host serves
+  it: **performance 37 → 74, accessibility 100, best practices 100, SEO 100**. First contentful paint,
+  largest contentful paint and speed index all 1.4 s. What remains is total blocking time (~1.4 s) —
+  the runtime's own startup CPU. Publishing with `-p:RaskWasmAot=true` takes it to 870 ms and the score
+  to 80, at 5,638 KiB instead of 2,225 KiB; AOT stays opt-in, because for a site people read and leave
+  the bytes matter more than the milliseconds.
+
 - **The site at [rask.sh](https://rask.sh) is prerendered, and a Rask app can now be indexed at all.**
   Four framework pieces, each of which was a hole a real site falls into.
 

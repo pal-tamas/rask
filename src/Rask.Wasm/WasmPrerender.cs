@@ -1,4 +1,9 @@
+using System.Globalization;
+using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Live;
@@ -80,6 +85,10 @@ public static class WasmPrerender
 
         var plan = RaskPrerender.PlanRoutes();
 
+        // The FILES, as opposed to the routes: what the refresh step at the end has to bring the
+        // compressed siblings and the endpoint manifest back into agreement with.
+        var writtenFiles = new List<string>();
+
         // The literal routes, plus whatever the app says its parameterised ones expand to. A docs site's
         // /guides/{slug} is one route and eighty pages, and the pass cannot know the slugs — so without
         // this the whole of a site's actual content ships as an empty boot shell while the publish
@@ -133,6 +142,7 @@ public static class WasmPrerender
         {
             var fallback = Path.Combine(outputDirectory, FallbackFileName);
             await File.WriteAllTextAsync(fallback, shell).ConfigureAwait(false);
+            writtenFiles.Add(fallback);
             Console.WriteLine($"[Rask.Prerender] wrote the neutral boot shell to {FallbackFileName}");
         }
 
@@ -182,6 +192,7 @@ public static class WasmPrerender
             var file = OutputPathFor(outputDirectory, path);
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
             await File.WriteAllTextAsync(file, html).ConfigureAwait(false);
+            writtenFiles.Add(file);
             written++;
 
             // Written, but not necessarily LISTED. Both reasons are read off the page's own rendered
@@ -206,11 +217,245 @@ public static class WasmPrerender
         // shell already occupies, so "a page exists" is true before the pass runs and stays true when
         // it writes nothing. Only the pass knows the count, so it says so in a form that survives a
         // grep and carries no punctuation an MSBuild condition has to escape.
-        WriteSitemap(outputDirectory, writtenPaths);
+        WriteSitemap(outputDirectory, writtenPaths, writtenFiles);
+
+        // Last, because it reads back every file the pass wrote — including the sitemap and robots.txt
+        // above, which a static host compresses just like a page.
+        RefreshPublishedArtifacts(outputDirectory, writtenFiles);
 
         Console.WriteLine($"{SummaryPrefix}written={written} skipped={plan.Skipped.Count}");
 
         return written;
+    }
+
+    /// <summary>
+    ///     Brings the published artifacts that DESCRIBE a page back into agreement with the page.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The pass runs after publish, which is the only time the fingerprinted import map exists —
+    ///         and by then the SDK has already compressed the boot shell and written a manifest
+    ///         describing it. Overwriting <c>index.html</c> leaves both behind: <c>index.html.br</c> and
+    ///         <c>index.html.gz</c> still hold the SHELL, and the manifest still records the shell's
+    ///         length, ETag and integrity.
+    ///     </para>
+    ///     <para>
+    ///         <b>That is not cosmetic drift, it is prerendering not happening.</b> Any host that prefers
+    ///         a precompressed sibling — nginx <c>brotli_static</c>, Netlify, Cloudflare Pages, S3 behind
+    ///         a CDN, and Rask's own <c>Rask.Wasm.Hosting</c> — serves the spinner to every visitor and
+    ///         every crawler while a perfectly good prerendered page sits on disk beside it. Measured
+    ///         here: a 76 KB rendered <c>index.html</c> next to a 2.3 KB <c>.br</c> of the shell, and a
+    ///         manifest promising <c>Content-Length: 7292</c> for a 76,579-byte file, which is a wrong
+    ///         response rather than a stale one.
+    ///     </para>
+    ///     <para>
+    ///         Siblings are REGENERATED rather than deleted, so the bytes saved stay saved; a file with
+    ///         no sibling gains none, because which assets are worth compressing is the SDK's decision
+    ///         and not this pass's. Pages the pass created in new directories have no manifest entry to
+    ///         repair — a manifest-driven host reaches those through its SPA fallback exactly as it did
+    ///         before, so they are no worse off than un-prerendered, and adding entries for them is a
+    ///         separate job from making the existing ones true.
+    ///     </para>
+    /// </remarks>
+    private static void RefreshPublishedArtifacts(string outputDirectory, IReadOnlyList<string> files)
+    {
+        var root = Path.GetFullPath(outputDirectory);
+        var refreshed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in files)
+        {
+            if (!File.Exists(file))
+            {
+                continue;
+            }
+
+            Track(root, file, refreshed);
+
+            // Guarded on the platform rather than suppressed: BrotliStream does not exist in a
+            // browser, and neither does a publish directory, so this is desktop-only in fact as well
+            // as in the analyzer's model.
+            if (!OperatingSystem.IsBrowser())
+            {
+                foreach (var sibling in RefreshSiblings(file))
+                {
+                    Track(root, sibling, refreshed);
+                }
+            }
+        }
+
+        if (refreshed.Count == 0)
+        {
+            return;
+        }
+
+        Console.WriteLine($"[Rask.Prerender] refreshed {refreshed.Count} published artifact(s)");
+        RepairEndpointManifest(root, refreshed);
+    }
+
+    /// <summary>
+    ///     Rewrites the <c>.br</c> and <c>.gz</c> siblings a file already has, and returns which ones.
+    /// </summary>
+    /// <remarks>
+    ///     A file with no sibling gains none: which assets are worth compressing is the SDK's decision,
+    ///     and inventing one here would ship a variant nothing knows about.
+    /// </remarks>
+    [System.Runtime.Versioning.UnsupportedOSPlatform("browser")]
+    private static IEnumerable<string> RefreshSiblings(string file)
+    {
+        var bytes = File.ReadAllBytes(file);
+
+        foreach (var suffix in new[] { ".br", ".gz" })
+        {
+            var sibling = file + suffix;
+            if (!File.Exists(sibling))
+            {
+                continue;
+            }
+
+            using var output = new MemoryStream();
+            using (Stream compressor = suffix == ".br"
+                       ? new BrotliStream(output, CompressionLevel.SmallestSize, leaveOpen: true)
+                       : new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+            {
+                compressor.Write(bytes, 0, bytes.Length);
+            }
+
+            File.WriteAllBytes(sibling, output.ToArray());
+            yield return sibling;
+        }
+    }
+
+    private static void Track(string root, string file, Dictionary<string, string> refreshed)
+    {
+        var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
+        refreshed[relative] = file;
+    }
+
+    /// <summary>
+    ///     Rewrites the length, ETag, Last-Modified and integrity the endpoint manifest records for each
+    ///     refreshed file.
+    /// </summary>
+    /// <remarks>
+    ///     Best effort by design. A publish that ships no manifest is the ordinary static case and must
+    ///     not fail here, and a manifest whose shape the SDK has changed is a reason to leave it alone
+    ///     rather than to corrupt it — but a silent no-op is how this class of bug lives for years, so
+    ///     every path that gives up says so.
+    /// </remarks>
+    private static void RepairEndpointManifest(string root, Dictionary<string, string> refreshed)
+    {
+        var publishDirectory = Path.GetDirectoryName(root);
+        if (publishDirectory is null)
+        {
+            return;
+        }
+
+        var manifests = Directory.GetFiles(publishDirectory, "*.staticwebassets.endpoints.json");
+        if (manifests.Length == 0)
+        {
+            return;
+        }
+
+        foreach (var manifest in manifests)
+        {
+            int patched;
+            try
+            {
+                patched = PatchManifest(manifest, refreshed);
+            }
+            catch (JsonException error)
+            {
+                Console.WriteLine(
+                    $"[Rask.Prerender] could not read {Path.GetFileName(manifest)} ({error.Message}) — "
+                    + "a host that serves from it will describe the pre-render shell");
+                continue;
+            }
+
+            Console.WriteLine(
+                $"[Rask.Prerender] repaired {patched} endpoint(s) in {Path.GetFileName(manifest)}");
+        }
+    }
+
+    private static int PatchManifest(string manifest, Dictionary<string, string> refreshed)
+    {
+        var document = JsonNode.Parse(File.ReadAllText(manifest));
+        if (document?["Endpoints"] is not JsonArray endpoints)
+        {
+            return 0;
+        }
+
+        var described = new Dictionary<string, (string Length, string ETag, string Modified, string Integrity)>(
+            StringComparer.OrdinalIgnoreCase);
+
+        var patched = 0;
+        foreach (var endpoint in endpoints)
+        {
+            var asset = endpoint?["AssetFile"]?.GetValue<string>()?.Replace('\\', '/');
+            if (asset is null || !refreshed.TryGetValue(asset, out var path))
+            {
+                continue;
+            }
+
+            if (!described.TryGetValue(asset, out var facts))
+            {
+                var bytes = File.ReadAllBytes(path);
+                var hash = Convert.ToBase64String(SHA256.HashData(bytes));
+                facts = (
+                    bytes.Length.ToString(CultureInfo.InvariantCulture),
+                    $"\"{hash}\"",
+                    File.GetLastWriteTimeUtc(path).ToString("R", CultureInfo.InvariantCulture),
+                    $"sha256-{hash}");
+                described[asset] = facts;
+            }
+
+            if (endpoint?["ResponseHeaders"] is JsonArray headers)
+            {
+                foreach (var header in headers)
+                {
+                    var value = header?["Name"]?.GetValue<string>() switch
+                    {
+                        "Content-Length" => facts.Length,
+                        "ETag" => facts.ETag,
+                        "Last-Modified" => facts.Modified,
+                        _ => null,
+                    };
+
+                    if (value is not null && header is not null)
+                    {
+                        header["Value"] = value;
+                    }
+                }
+            }
+
+            // The integrity an endpoint advertises is the UNCOMPRESSED asset's, so a compressed variant
+            // carries the hash of the file it decompresses to rather than its own bytes.
+            if (endpoint?["EndpointProperties"] is JsonArray properties)
+            {
+                var source = asset.EndsWith(".br", StringComparison.OrdinalIgnoreCase)
+                             || asset.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
+                    ? asset[..^3]
+                    : asset;
+
+                if (described.TryGetValue(source, out var origin))
+                {
+                    foreach (var property in properties)
+                    {
+                        if (property?["Name"]?.GetValue<string>() == "integrity" && property is not null)
+                        {
+                            property["Value"] = origin.Integrity;
+                        }
+                    }
+                }
+            }
+
+            patched++;
+        }
+
+        if (patched > 0)
+        {
+            File.WriteAllText(manifest, document!.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        return patched;
     }
 
     /// <summary>
@@ -229,7 +474,8 @@ public static class WasmPrerender
     ///         no business editing, and it says how to add the sitemap line instead.
     ///     </para>
     /// </remarks>
-    private static void WriteSitemap(string outputDirectory, IReadOnlyList<string> paths)
+    private static void WriteSitemap(
+        string outputDirectory, IReadOnlyList<string> paths, List<string> writtenFiles)
     {
         var origin = Environment.GetEnvironmentVariable(SiteUrlVariable)?.Trim().TrimEnd('/');
         if (string.IsNullOrEmpty(origin))
@@ -263,7 +509,9 @@ public static class WasmPrerender
 
         builder.AppendLine("</urlset>");
 
-        File.WriteAllText(Path.Combine(outputDirectory, SitemapFileName), builder.ToString());
+        var sitemap = Path.Combine(outputDirectory, SitemapFileName);
+        File.WriteAllText(sitemap, builder.ToString());
+        writtenFiles.Add(sitemap);
         Console.WriteLine($"[Rask.Prerender] wrote {SitemapFileName} with {paths.Count} URL(s)");
 
         var sitemapUrl = $"{origin}{LiveOptions.PathBase}/{SitemapFileName}";
@@ -277,6 +525,7 @@ public static class WasmPrerender
         }
 
         File.WriteAllText(robots, $"User-agent: *\nAllow: /\nSitemap: {sitemapUrl}\n");
+        writtenFiles.Add(robots);
         Console.WriteLine($"[Rask.Prerender] wrote {RobotsFileName}");
     }
 
