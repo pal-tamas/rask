@@ -167,7 +167,12 @@ const globals = globalThis as unknown as {
 globals.document = {
     head,
     body,
-    documentElement: {tagName: "HTML"},
+    // removeAttribute, because the runtime clears `data-rask-prerendered` off <html> on its first
+    // frame (#973) and every frame in this fixture goes through that line. A stub element that a
+    // standard DOM call faults on is a fixture that reports a bug in whatever touches it next, which
+    // is exactly what it did: this file's own scenarios failed on a change that has nothing to do
+    // with head assets.
+    documentElement: {tagName: "HTML", removeAttribute: () => { }},
     getElementById: (id: string) => head._children.find(c => c.getAttribute("id") === id) || null,
     createElement: (tag: string) => makeStubElement(tag),
     querySelector: (sel: string) => {

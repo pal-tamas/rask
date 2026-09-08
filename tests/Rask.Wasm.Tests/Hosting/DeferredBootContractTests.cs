@@ -70,7 +70,35 @@ public sealed class DeferredBootContractTests
         Assert.Contains("setTimeout(go, BOOT_DEFER_CEILING_MS)", _source, StringComparison.Ordinal);
     }
 
-    private static string ReadBootScript()
+    [Fact]
+    public void TheRuntimeClearsTheMarkerWhenItTakesThePageOver()
+    {
+        // The third half of the same contract, and the one #973 was about. The attribute says two things
+        // at once: "defer the boot" (read by main.ts) and "these controls are not live yet" — a
+        // prerendered page's buttons are present and look clickable from the first paint, and anything
+        // clicked before the runtime attaches its handlers is silently lost.
+        //
+        // An app styles that state by selecting on the attribute, so the attribute has to STOP being
+        // true at the moment it stops being true. Cleared in handle(), which is where __raskPainted is
+        // set, because that is the one place both render paths pass through: a diff-mode first frame
+        // never morphs, and the morph that does happen drops the attribute only as a side effect of
+        // replacing <html>'s attributes — which is not the same as clearing it, and is not the kind of
+        // thing to leave a visible contract resting on.
+        var runtime = ReadClientRuntime();
+
+        Assert.Contains(
+            $"document.documentElement?.removeAttribute(\"{PrerenderShell.PrerenderedAttribute}\")",
+            runtime,
+            StringComparison.Ordinal);
+    }
+
+    private static string ReadClientRuntime() =>
+        ReadRepoFile(Path.Combine("src", "Rask.Wasm", "Resources", "rask.wasm.ts"), "the client runtime");
+
+    private static string ReadBootScript() =>
+        ReadRepoFile(Path.Combine("src", "Rask.Wasm", "Browser", "main.ts"), "the boot script");
+
+    private static string ReadRepoFile(string relativePath, string what)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
@@ -79,8 +107,8 @@ public sealed class DeferredBootContractTests
         }
 
         Assert.NotNull(dir);
-        var path = Path.Combine(dir!.FullName, "src", "Rask.Wasm", "Browser", "main.ts");
-        Assert.True(File.Exists(path), $"the boot script moved: {path}");
+        var path = Path.Combine(dir!.FullName, relativePath);
+        Assert.True(File.Exists(path), $"{what} moved: {path}");
         return File.ReadAllText(path);
     }
 }

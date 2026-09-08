@@ -40,6 +40,12 @@ public sealed class SiteExampleTests
             await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
             await Expect(page.Locator("h1")).ToContainTextAsync("C#");
 
+            // Note there is deliberately no "the marker is present" assertion here. It is true only
+            // until the runtime takes over, and the runtime may well have taken over by the time this
+            // line runs — asserting it in a live journey is a race that would pass on a slow machine and
+            // fail on a fast one. That the publish writes it is pinned where it is deterministic, in
+            // PrerenderShellTests; what this journey adds is the half no unit test can see. (#973)
+
             // PHASE TWO — the bundle takes the page over.
             //
             // This wait is load-bearing, and it is new. It used to be enough to wait for the <h1>,
@@ -54,6 +60,12 @@ public sealed class SiteExampleTests
             // signal rather than a sleep.
             await Expect(page.Locator("body[data-rask-root='wasm']"))
                 .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
+
+            // …and the prerendered marker is gone, because the page IS interactive now. The pair is the
+            // contract: an app styling `[data-rask-prerendered]` gets that styling removed at exactly the
+            // moment its controls start working. Asserting only that the attribute appears would pass
+            // just as well if nothing ever cleared it, which is the state this fixed. (#973)
+            await Expect(page.Locator("html[data-rask-prerendered]")).ToHaveCountAsync(0);
 
             // The live counter is a real stateful Rask component: each click ships a diff and re-renders.
             var count = page.Locator(".count");

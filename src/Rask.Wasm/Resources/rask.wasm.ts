@@ -576,6 +576,20 @@ function handle(reply: RaskFrameReply | null): void {
     // be read as "did we render". Inferring it from that element instead is what made every WASM journey
     // report a boot failure over an app that had rendered perfectly well.
     window.__raskPainted = true;
+    // And the page is no longer merely prerendered. A prerendered document is served as real HTML, so
+    // its controls are present and look clickable from the first paint — but no handler is attached
+    // until the bundle downloads, starts and takes over, and anything clicked in that window is
+    // silently lost. The window is short on a fast connection and seconds on a slow one, and it is
+    // worst exactly where prerendering is most valuable: a first-time visitor on mobile data.
+    //
+    // `data-rask-prerendered` is on <html> from the moment the pass writes the page, so an app can
+    // style the not-yet-live state — a cursor, a dimmed control, `inert` — with no script of its own,
+    // and this is where that state ends. Cleared HERE for the same reason __raskPainted is set here:
+    // it is the one place both render paths pass through. Doing it in the full-frame path alone would
+    // look right and be wrong twice over — a diff-mode first frame never morphs, and the morph that
+    // does happen removes the attribute as a side effect of replacing <html>'s attributes, which is
+    // not the same as clearing it and would not survive an app that re-adds it. (#973)
+    document.documentElement?.removeAttribute("data-rask-prerendered");
     // A development fault the app survived, riding the render payload (see the Server runtime for why
     // it is a field rather than a frame). Applied before either render path: the panel is a sibling of
     // the app, so it must not wait on the render queue.

@@ -9,6 +9,26 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A prerendered page looked interactive before it was, and clicks in that window were lost.**
+  Prerendering serves real HTML, so a page's buttons and links are present and look clickable from the
+  first paint — but no handler is attached until the bundle downloads, starts and takes the page over,
+  and anything clicked before that is silently dropped: no visual response, no queue, no replay. The
+  window is short on a fast connection and seconds on a slow one, and it is widest exactly where
+  prerendering is most valuable — a first-time visitor on mobile data. It is also *wider* than it was,
+  because the boot is now deliberately deferred until after the first paint.
+
+  The document says which state it is in. `data-rask-prerendered` was already written onto `<html>` by
+  the publish (the boot script reads it to decide whether to defer), and the runtime now **removes it on
+  its first frame**, so an app can style not-yet-live controls — a cursor, a dimmed state, `inert` —
+  with no script of its own. Cleared in `handle()`, alongside `__raskPainted`, because that is the one
+  place both render paths pass through: a diff-mode first frame never morphs, and the morph that does
+  happen drops the attribute only as a side effect of replacing `<html>`'s attributes, which is not the
+  same as clearing it.
+
+  Marking the state rather than replaying the events is the deliberate choice: a replay has to decide
+  which events are safe to re-fire, and re-firing the wrong one is worse than dropping it. Documented in
+  `docs/prerendering.md`. (#973)
+
 - **The lifecycle guide shipped to crawlers as an empty boot shell, and it was two defects, not one.**
   Every publish logged `/docs/guides/lifecycle did not settle in 30s — not written`, so that URL was the
   one page on rask.sh with no prerendered HTML.

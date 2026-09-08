@@ -117,6 +117,35 @@ behind the boot's long tasks. That measured 8.4 s.
 An app that is **not** prerendered boots immediately, unchanged: there the runtime is the only thing
 between the visitor and any content at all.
 
+### The page is not interactive until it boots — and you can style that
+
+This is the cost of the trade above, and it is worth stating plainly. A prerendered page is served as
+real HTML, so its buttons and links are **present and look clickable from the first paint**. No handler
+is attached until the runtime has taken the page over, and **anything clicked in that window is silently
+lost** — no visual response, no queue, no replay. The window is short on a fast connection and seconds
+on a slow one, and it is widest exactly where prerendering is most valuable: a first-time visitor on
+mobile data, on the page trying to convince them.
+
+The document says which state it is in. `data-rask-prerendered` is on `<html>` from the moment the pass
+writes the page, and the runtime **removes it on its first frame**, so an app can style the not-yet-live
+state with no script of its own:
+
+```css
+/* Controls are real but inert until the bundle boots. */
+[data-rask-prerendered] .btn {
+    cursor: progress;
+    opacity: 0.7;
+}
+```
+
+Marking the state rather than replaying the clicks is deliberate: a replay has to decide which events
+are safe to re-fire, and re-firing the wrong one is worse than dropping it. This turns an invisible
+failure into something you can address on purpose — and if a control genuinely must not be pressed
+early, `[data-rask-prerendered] .btn { pointer-events: none }` says so honestly.
+
+Note the same attribute drives the boot deferral above, so an app that removes it early gets an
+immediate boot and loses the paint win.
+
 ## Which routes get written
 
 A route is prerenderable when **every one of its segments is a literal** — decided on the parsed
