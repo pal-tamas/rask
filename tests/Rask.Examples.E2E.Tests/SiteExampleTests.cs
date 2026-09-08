@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -77,6 +78,20 @@ public sealed class SiteExampleTests
             await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "Server" }).ClickAsync();
             await Expect(page.Locator(".term")).ToContainTextAsync("rask new MyApp");
             await Expect(page.Locator(".term")).ToContainTextAsync(installer);
+
+            // The prompt has a gap after it (#1032). Measured on the rendered page, because that is the
+            // only place this is decided: daisyUI's base rule gives the pseudo-element `margin-right: 2ch`
+            // and its own nested [data-prefix] rule REPLACES that declaration block, so a sheet containing
+            // both rules reads as correct while the terminal renders `$curl`. The correction is a rule with
+            // the identical selector, winning on cascade layer alone, and nothing short of asking the
+            // browser for the computed value can tell the two outcomes apart.
+            var promptGap = await page.Locator(".term pre[data-prefix]").First.EvaluateAsync<string>(
+                "el => getComputedStyle(el, '::before').marginRight");
+
+            Assert.True(
+                double.TryParse(promptGap.Replace("px", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var gapPx)
+                && gapPx > 0,
+                $"the install command is flush against its prompt: computed ::before margin-right was '{promptGap}'");
 
             // Windows can't run a .sh, and rask.sh refuses under MINGW/MSYS and points here.
             await Expect(page.Locator(".install-foot").First)

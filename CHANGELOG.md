@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`UiMockupCode` rendered its prompt flush against the command** — `$curl -sSL …` rather than
+  `$ curl -sSL …`, on the landing page's install block, which is the first line of code a visitor to
+  rask.sh reads. daisyUI gives the prompt pseudo-element `margin-right: 2ch` in its base rule and then
+  *replaces* that whole declaration block in the nested `[data-prefix]` rule that supplies the content,
+  so the gap is lost. Both rules being present is why the sheet reads as correct.
+
+  Corrected in the kit's own stylesheet, so every consumer gets it rather than each rediscovering it.
+  The rule carries the identical selector and the identical specificity — it wins on **cascade layer**
+  alone: daisyUI compiles into `@layer utilities { @layer daisyui.… }`, and within a layer the
+  declarations that are not in a sublayer outrank the ones that are. That is what lets the correction
+  stay layered; going unlayered would have outranked every utility a consuming app writes, which is the
+  failure `@layer` was adopted here to prevent in the first place.
+
+  The showcase's `.term`-scoped workaround is gone. Pinned in two places, because neither alone is
+  enough: a unit test asserts the correction is present *and* that it sits outside daisyUI's sublayer,
+  and the browser suite reads the computed `::before` margin off the rendered page — a stylesheet
+  containing both rules and a stylesheet with the gap are textually indistinguishable. (#1032)
+
 ### Added
 
 - **rask.sh was deployed entirely unstyled, and had been since the kit shipped.** The published site

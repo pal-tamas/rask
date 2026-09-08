@@ -134,3 +134,28 @@
   --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 62%, black);
 }
 
+/*
+  CORRECTIONS to daisyUI's own rules. Kept last, and deliberately small: a rule here is a claim that
+  the library is wrong, so each one names what it measured.
+
+  UiMockupCode's prompt has no gap. daisyUI gives the pseudo-element a margin in its base rule:
+
+      .mockup-code pre:before { content: ""; margin-right: 2ch }
+
+  and then the nested rule that supplies the content REPLACES that declaration block rather than
+  adding to it, so the margin is lost and the terminal renders `$curl` with the prompt flush against
+  the command. Measured on the rendered page rather than read off the source —
+  getComputedStyle(pre, '::before').marginRight was "0px".
+
+  LAYERED, and specifically in `utilities` rather than in a sublayer of it. daisyUI compiles to
+  `@layer utilities { @layer daisyui.l1.l2.l3 { … } }`, and within a layer the declarations that are
+  NOT in a sublayer win over the ones that are — so this beats daisyUI without going unlayered, which
+  the header above explains would outrank every utility a consuming app writes. Same selector, same
+  specificity; the layer is doing the work.
+*/
+@layer utilities {
+  .mockup-code pre[data-prefix]::before {
+    margin-right: 2ch;
+  }
+}
+

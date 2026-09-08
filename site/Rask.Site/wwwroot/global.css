@@ -64,20 +64,6 @@ h1, h2, h3, h4, h5, h6,
    links (nav, cards, buttons) carry their own utilities, and prose links are styled by their CONTAINER
    below, which is a class and therefore something a utility can be reasoned about against. */
 
-/* A gap between the prompt and the command in UiMockupCode.
-
-   daisyUI draws the prompt from `data-prefix` as a ::before, and its own base rule gives that
-   pseudo-element `margin-right: 2ch` — but the nested `[data-prefix]` rule that supplies the content
-   overrides the whole declaration block, so the computed margin is 0 and the terminal reads `$curl`.
-   Measured, not guessed: getComputedStyle(pre, '::before').marginRight is "0px".
-
-   Fixed here rather than in the kit because src/Rask.Ui is being worked on in another worktree, and
-   the right home is UiMockupCode itself so every consumer gets it — #1032. Scoped to .term so it
-   cannot change a mockup on another page. */
-.term pre[data-prefix]::before {
-    margin-right: 1ch;
-}
-
 code, pre, .font-monospace {
     font-family: var(--font-mono);
 }

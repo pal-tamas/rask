@@ -118,6 +118,80 @@ public sealed class UiStylesheetTests
         }
     }
 
+    [Fact]
+    public void The_mockup_prompt_keeps_its_gap_from_the_command()
+    {
+        // #1032. daisyUI gives the prompt pseudo-element `margin-right: 2ch` in its base rule and then
+        // REPLACES that declaration block in the nested rule that supplies the content, so the gap is
+        // lost and a terminal renders `$curl` with the prompt flush against the command.
+        //
+        // The correction is a rule with the same selector and the same specificity, so neither the
+        // selector text nor its position in the file decides the outcome — the LAYER does. daisyUI
+        // compiles into a sublayer (`@layer utilities { @layer daisyui.… }`), and within a layer the
+        // declarations that are not in a sublayer win over the ones that are. That is the entire
+        // mechanism, so that is what this asserts: a test that only checked the rule was present would
+        // pass just as happily with it sitting somewhere the cascade ignores.
+        var corrections = LayersOf(UiStylesheet.Css, ".mockup-code pre[data-prefix]:before")
+            .Where(r => r.Body.Contains("margin-right", StringComparison.Ordinal))
+            .ToList();
+
+        var correction = Assert.Single(corrections);
+
+        Assert.Contains("2ch", correction.Body, StringComparison.Ordinal);
+        Assert.Contains("@layer utilities", correction.Layers);
+        Assert.DoesNotContain(correction.Layers, l => l.Contains("daisyui", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    ///     Every rule in <paramref name="css" /> whose selector is <paramref name="selector" />, with the
+    ///     stack of at-rules enclosing it. The stack is what decides which of two identical selectors wins.
+    /// </summary>
+    private static IEnumerable<(IReadOnlyList<string> Layers, string Body)> LayersOf(string css, string selector)
+    {
+        var stripped = Regex.Replace(css, @"/\*.*?\*/", "", RegexOptions.Singleline);
+        var stack = new List<string>();
+        var found = new List<(IReadOnlyList<string>, string)>();
+
+        foreach (Match m in Regex.Matches(stripped, @"@[a-zA-Z-]+[^{;]*[{;]|[^{}@;]+\{|\}"))
+        {
+            var token = m.Value.Trim();
+
+            if (token == "}")
+            {
+                if (stack.Count > 0)
+                {
+                    stack.RemoveAt(stack.Count - 1);
+                }
+
+                continue;
+            }
+
+            if (token.EndsWith(';'))
+            {
+                continue;
+            }
+
+            var head = token[..^1].Trim();
+
+            if (head.StartsWith('@'))
+            {
+                stack.Add(head);
+                continue;
+            }
+
+            if (head == selector)
+            {
+                var end = stripped.IndexOf('}', m.Index + m.Length);
+                found.Add((stack.ToArray(), end < 0 ? "" : stripped[(m.Index + m.Length)..end]));
+            }
+
+            // A plain selector opens a block that has to be closed before the stack is read again.
+            stack.Add(head);
+        }
+
+        return found;
+    }
+
     private static string Head(string s) => s.Length <= 80 ? s : s[..80] + "…";
 
 }
