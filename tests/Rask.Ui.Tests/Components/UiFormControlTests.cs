@@ -121,6 +121,47 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("value=\"False\"", html);
     }
 
+    [Theory]
+    [InlineData("input")]
+    [InlineData("textarea")]
+    [InlineData("select")]
+    [InlineData("file")]
+    public void A_text_control_carries_the_class_the_hint_reads(string kind)
+    {
+        // daisyUI shows `.validator-hint` only next to a `.validator` control that is invalid. No kit
+        // control wrote the class, so the hint was `visibility: hidden` forever — a component with a
+        // REQUIRED message that could not be read. `.validator` alone is inert: it only sets a colour
+        // variable under :user-valid/:user-invalid, so an untouched field looks exactly as before.
+        Assert.Contains("validator", Control(kind, UiTone.Neutral));
+    }
+
+    [Theory]
+    [InlineData("input")]
+    [InlineData("textarea")]
+    [InlineData("select")]
+    [InlineData("file")]
+    public void An_errored_control_says_so_to_a_screen_reader_as_well_as_in_colour(string kind)
+    {
+        // Also what makes daisyUI reveal the hint from the KIT's own tone rather than only from the
+        // browser's native validity. A field that is visibly red and announces nothing is half a
+        // message.
+        Assert.Contains("aria-invalid=\"true\"", Control(kind, UiTone.Error));
+    }
+
+    [Theory]
+    [InlineData("input")]
+    [InlineData("select")]
+    public void A_control_with_no_error_does_not_claim_one(string kind) =>
+        Assert.DoesNotContain("aria-invalid", Control(kind, UiTone.Neutral));
+
+    [Fact]
+    public void The_hint_keeps_its_space_whether_or_not_it_is_showing()
+    {
+        // daisyUI hides it with `visibility`, not `display`, so a form does not jump as the reader
+        // types. That is the reason the hint is rendered rather than conditionally omitted.
+        Assert.Contains("validator-hint", UiValidator.Message("Enter a valid email").ToHtml());
+    }
+
     [Fact]
     public void A_checkbox_wraps_its_words_in_the_hit_target()
     {
@@ -210,6 +251,14 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 
         return count;
     }
+
+    private static string Control(string kind, UiTone tone) => kind switch
+    {
+        "input" => UiInput.Label("Email").Tone(tone).ToHtml(),
+        "textarea" => UiTextarea.Label("Notes").Tone(tone).ToHtml(),
+        "select" => UiSelect.Label("Country").Options([("hu", "Hungary")]).Tone(tone).ToHtml(),
+        _ => UiFileInput.Label("Avatar").Tone(tone).ToHtml(),
+    };
 
     private static string Filter(string? selected) =>
         UiFilter.Group("tags").Options(["bug", "feature", "docs"]).Selected(selected).ToHtml();

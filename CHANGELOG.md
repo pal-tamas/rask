@@ -259,6 +259,21 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`UiValidator` could never be seen.** daisyUI reveals `.validator-hint` only next to a `.validator`
+  control that is invalid — `:user-invalid`, or carrying `aria-invalid`. No kit control wrote either,
+  so the hint was `visibility: hidden` forever: a component with a **required** message that no reader
+  could ever read. `UiInput`, `UiTextarea`, `UiSelect` and `UiFileInput` now carry `validator`, and
+  add `aria-invalid` when their `Tone` is `Error`.
+
+  `.validator` on its own is inert — it only sets a colour variable under `:user-valid`/`:user-invalid`
+  — so a field nobody has touched looks exactly as it did. The `aria-invalid` half is worth having for
+  its own sake: a field that is visibly red and says nothing to a screen reader is half a message. It
+  is **omitted** rather than set to null, because a null renders the attribute valueless and a
+  valueless `aria-invalid` reads as *true*, which would have marked every field in the kit invalid.
+
+  Found by a browser test, as an element that existed, contained the right text, and was invisible.
+  No markup assertion could have seen it.
+
 - **Every checked control in the kit rendered unchecked.** `UiCheckbox`, `UiToggle`, `UiRadio`,
   `UiRating`, `UiFilter`, `UiThemePicker` and `UiDrawer` set their state with `.Value(Checked == true)`
   — and on an `<input>` that is the **value attribute**, not the checked state. The markup came out as

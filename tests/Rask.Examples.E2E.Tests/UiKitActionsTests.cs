@@ -113,7 +113,10 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" })
             .First.ClickAsync();
 
-        var dialog = scope.Locator("[role='dialog']");
+        // The ELEMENT, not [role='dialog']: UiModal renders a real <dialog>, which carries that role
+        // implicitly, so stating it again in the markup would be the redundant ARIA guidance warns
+        // against — and this selector silently matched nothing once it stopped being a div.
+        var dialog = scope.Locator("dialog");
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(dialog).ToContainTextAsync("This cannot be undone.");
 

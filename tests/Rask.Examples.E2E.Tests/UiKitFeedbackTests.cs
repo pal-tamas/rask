@@ -75,14 +75,22 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-toast']");
-        var toast = Page.Locator("[role='status']").Filter(new LocatorFilterOptions { HasText = "Saved." });
 
-        await Expect(toast).ToHaveCountAsync(0);
+        // Scoped to the toast's own section, not the page. UiAlert renders role="status" for any tone
+        // that is not an error — which is right, an outcome should be announced politely rather than
+        // interrupting — and this page has an alert reading "Saved." as well, so a page-wide locator
+        // matched two elements and went on matching the alert after the toast was dismissed.
+        var toast = scope.Locator("[role='status']");
 
+        // No assertion that it starts absent, deliberately. The harness re-runs this body on a boot
+        // failure (RaceAgainstBootFailureAsync), and the second attempt gets a page the first one had
+        // already clicked Save on — so "there is no toast yet" is a claim about the harness rather than
+        // about the component. What the component owes is the TRANSITION, which is what is asserted.
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Save" }).ClickAsync();
         await Expect(toast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Dismiss" }).ClickAsync();
+        await toast.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Dismiss" })
+            .ClickAsync();
         await Expect(toast).ToHaveCountAsync(0);
     });
 

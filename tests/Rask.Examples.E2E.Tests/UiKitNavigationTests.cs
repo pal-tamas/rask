@@ -47,7 +47,11 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         // No class was written and no C# state changed — the browser put it in the top layer because
         // the button names it with popovertarget. This is the assertion that proves the mechanism.
         await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(panel).ToContainTextAsync("Everything we sell.");
+
+        // And its contents are reachable, not merely present: a panel in the top layer with its links
+        // still inert would satisfy the visibility check above and be useless.
+        await Expect(panel).ToContainTextAsync("Scaffolding and deploys.");
+        await Expect(panel.GetByRole(AriaRole.Link)).ToHaveCountAsync(4);
     });
 
     [Fact]

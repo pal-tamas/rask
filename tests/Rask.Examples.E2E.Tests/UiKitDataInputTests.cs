@@ -43,6 +43,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         var email = Page.Locator("[data-testid='ui-text-controls'] input[type='email']");
         await email.FillAsync("not-an-address");
+        await email.BlurAsync();
 
         // The validator only exists while the value is bad, so its appearance is the proof the value
         // reached C#, was judged there, and came back as different markup.
@@ -51,6 +52,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(email).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("input-error"));
 
         await email.FillAsync("ada@example.com");
+        await email.BlurAsync();
         await Expect(Page.Locator(".validator-hint")).ToHaveCountAsync(0);
     });
 
@@ -67,6 +69,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(scope.Locator("input")).ToHaveCountAsync(1);
 
         await field.FillAsync("123456");
+        await field.BlurAsync();
         await Expect(Page.Locator("[data-testid='ui-otp-state']")).ToContainTextAsync("Code complete");
     });
 

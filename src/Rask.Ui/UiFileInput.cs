@@ -30,10 +30,16 @@ public sealed partial class UiFileInput : Component
         Input
             .Value(string.Empty)
             .Type(InputType.File)
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen
+            // reader needs: a field that is visibly red and says nothing is half a message. It is
+            // OMITTED rather than nulled — a null renders the attribute valueless, and a valueless
+            // aria-invalid reads as "true", which would mark every field in the kit invalid.
+            .Aria(Tone == UiTone.Error
+                ? new Dictionary<string, string?> { ["label"] = Label, ["invalid"] = "true" }
+                : new Dictionary<string, string?> { ["label"] = Label })
             .Disabled(Disabled == true)
             .Class(UiClass.Compose(
-                "file-input",
+                "file-input validator",
                 Tone is { } tone ? UiClassNames.FileInputTone(tone) : "",
                 Variant is { } variant ? UiClassNames.FileInputVariant(variant) : "",
                 Size is { } size ? UiClassNames.FileInputSize(size) : "",
