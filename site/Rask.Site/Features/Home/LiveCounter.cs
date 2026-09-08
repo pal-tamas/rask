@@ -25,7 +25,11 @@ public sealed partial class LiveCounter : Component
                 UiStatusDot.Label("running · /counter").Tone(UiTone.Success)
             ],
             Div.Class("flex flex-col items-center gap-3 px-6 py-8")[
-                H3.Class("text-sm font-medium text-ui-muted")["Current count"],
+                // A <p>, not an <h3>. It is a field label inside a demo card, and the page's only other
+                // headings are the section <h2>s below the hero — so as a heading it jumped from <h1>
+                // straight to <h3> and broke the document outline a screen reader navigates by. Nothing
+                // about it is a section of the page.
+                P.Class("text-sm font-medium text-ui-muted")["Current count"],
                 // .count and .count-btn are a TEST contract, not styling: SiteExampleTests reads the
                 // value and clicks the button by these names, and a Playwright locator that resolves to
                 // nothing fails by timing out rather than by naming what moved.

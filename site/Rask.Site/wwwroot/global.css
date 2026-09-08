@@ -48,13 +48,21 @@ h1, h2, h3, h4, h5, h6,
     font-weight: 700;
 }
 
-a {
-    color: var(--rask-accent);
-}
+/* THERE IS NO GLOBAL `a { color }` RULE, and that is deliberate.
 
-a:hover {
-    color: var(--rask-accent-strong);
-}
+   There was one, and it silently defeated every Tailwind text-colour utility on every link in the
+   site. The landing page's primary call to action reads `bg-ui-ink text-ui-bg` and rendered as brand
+   violet on near-black — a contrast ratio of 2.12:1, found by Lighthouse rather than by eye. The class
+   was there, the token was right, and the rule never applied.
+
+   Neither obvious repair works. Unlayered, a tag rule beats every layered utility outright. Moved into
+   `@layer base` here, it becomes a NEW layer after everything the kit and app sheets declared, because
+   layer names do not merge across separate <link> stylesheets. Even written into the app's own Tailwind
+   entry — same sheet, base emitted before utilities — the browser still ranked it above them.
+
+   So the rule is gone. In a utility-first codebase a tag is the wrong place to put a colour: chrome
+   links (nav, cards, buttons) carry their own utilities, and prose links are styled by their CONTAINER
+   below, which is a class and therefore something a utility can be reasoned about against. */
 
 code, pre, .font-monospace {
     font-family: var(--font-mono);
@@ -390,9 +398,14 @@ button, a, [role="button"] {
     margin-bottom: 0.25rem;
 }
 
+/* Underlined at rest, not on hover. A link inside a paragraph that is distinguished only by colour
+   fails WCAG 1.4.1 unless it also clears 3:1 against the surrounding text, and accent-on-ink is
+   2.39:1 here — so the underline is what makes these links links, for a reader who cannot separate
+   the two colours and for one who never hovers because they are using a touch screen. */
 .markdown-body a {
     color: var(--rask-accent);
-    text-decoration: none;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
 }
 
 .markdown-body a:hover {

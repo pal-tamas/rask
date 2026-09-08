@@ -115,7 +115,22 @@
   --color-ui-warn: var(--color-warning);
   --color-ui-danger: var(--color-error);
 
-  --color-ui-ok-ink: var(--color-success);
-  --color-ui-warn-ink: var(--color-warning);
+  /*
+    The -ink pair are TEXT colours, and daisyUI's success/warning are not.
+
+    They are surface colours — the ones you set as a background and pair with success-content on top —
+    and read as text on base-100 they fail WCAG badly: success is oklch(76% .177 163), which is 1.95:1
+    against white. Aliasing them straight across shipped unreadable status text everywhere the kit is
+    used, and it is the kind of defect that looks fine to anyone who already knows what the label says.
+
+    Darkened toward black in oklab, which keeps the hue and only moves lightness, so a status green
+    still reads as the same green. Measured rather than guessed: 70% lands near oklch(0.53), about
+    4.6:1 on white, which clears AA for normal text with room for the theme to shift.
+
+    danger is left alone: --color-error is already dark enough to pass, and moving a colour that works
+    would be change for its own sake.
+  */
+  --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 70%, black);
+  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 62%, black);
 }
 

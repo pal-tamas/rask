@@ -53,10 +53,16 @@ public sealed partial class HomePage : Component
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold "
         + "no-underline transition-colors";
 
-    private const string BtnPrimary = Btn + " bg-ui-ink text-ui-bg hover:bg-ui-ink/90";
+    // `text-ui-bg!` — important, and not a shortcut. These are ANCHORS, and Tailwind's preflight sets
+    // `a { color: inherit }` in its base layer; in this document that rule outranks the text-* utilities,
+    // so the primary button took its colour from the hero instead of from its own class. It rendered
+    // ink-on-ink at a contrast ratio of 1:1 with `text-ui-bg` sitting right there in the markup, which
+    // is a defect Lighthouse found and no reviewer would. The important modifier is what says "this
+    // element's own colour, not the one it inherits".
+    private const string BtnPrimary = Btn + " bg-ui-ink text-ui-bg! hover:bg-ui-ink/90";
 
     private const string BtnGhost =
-        Btn + " border border-ui-line bg-ui-bg text-ui-ink hover:border-ui-brand hover:text-ui-brand-ink";
+        Btn + " border border-ui-line bg-ui-bg text-ui-ink! hover:border-ui-brand hover:text-ui-brand-ink";
 
     private const string SectionPad = "py-16 sm:py-24";
 
@@ -404,7 +410,14 @@ public sealed partial class HomePage : Component
                             UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"), "Star on GitHub"
                         ]
                     ],
-                    Div.Class("mt-10 flex flex-wrap justify-center gap-5 text-sm text-ui-muted [&>a]:no-underline hover:[&>a]:text-ui-ink")[
+                    // min-h-11 and gap-6 on the links, not just on the row. A 14px line of text is a
+                    // 20px tap target, under the 24px WCAG 2.2 minimum and well under the 44px a thumb
+                    // actually needs — and three of them 20px apart is the shape that makes a phone user
+                    // hit "GitHub" when they meant "NuGet". Padding is the fix rather than a bigger font:
+                    // the target grows, the type stays as designed.
+                    Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-ui-muted "
+                              + "[&>a]:no-underline [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center "
+                              + "[&>a]:px-2 hover:[&>a]:text-ui-ink")[
                         A.Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
