@@ -39,6 +39,18 @@ internal sealed class RootErrorBoundary : Component
     /// </remarks>
     internal bool RenderedFallback { get; private set; }
 
+    /// <summary>
+    ///     The exception that tripped the fallback, or <c>null</c> when the app rendered.
+    /// </summary>
+    /// <remarks>
+    ///     <see cref="RenderedFallback" /> is enough to REFUSE a faulted render — which is what the
+    ///     hosts and the prerender pass do — but not enough to fix it. A build-time pass in particular
+    ///     has no browser console and no request log to fall back on: without this, a page it declined
+    ///     to write is a URL that ships as an empty boot shell to crawlers for a reason nobody can
+    ///     name. Held alongside the flag and cleared with it.
+    /// </remarks>
+    internal Exception? FallbackError { get; private set; }
+
     protected override bool BypassRenderCache => true;
 
     private static LiveRenderContext? Current => LiveRenderContext.Current;
@@ -82,6 +94,7 @@ internal sealed class RootErrorBoundary : Component
         var boundary = (ErrorBoundary)ctx.GetOrCreate(typeof(ErrorBoundary), static _ => new ErrorBoundary());
 
         RenderedFallback = false;
+        FallbackError = null;
         boundary.SetProps([inner], (ex, recover) =>
         {
             // In development, a fault the tree survived is shown OVER the app instead of replacing it.
@@ -109,6 +122,7 @@ internal sealed class RootErrorBoundary : Component
             }
 
             RenderedFallback = true;
+            FallbackError = ex;
 
             // Body content only — the document around it is this component's, and it is already built
             // by the time the boundary trips. OwnsDocument lets the page contribute its own <title> and

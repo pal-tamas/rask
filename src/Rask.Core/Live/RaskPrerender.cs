@@ -14,7 +14,18 @@ namespace Rask.Core.Live;
 ///     Whether the render threw and the root boundary rendered its fallback instead of the app.
 /// </param>
 /// <param name="Waves">How many extra waves ran after the first render.</param>
-public readonly record struct PrerenderResult(string Html, bool TimedOut, bool Faulted, int Waves);
+/// <param name="Error">
+///     What threw, when <paramref name="Faulted" /> is true; <c>null</c> otherwise. The flag is enough
+///     to REFUSE the render — which is what every caller does — but not to fix it, and a build-time
+///     pass has no browser console and no request log to fall back on. Report this, or a page the pass
+///     declined to write is a URL that ships as an empty boot shell for a reason nobody can name.
+/// </param>
+public readonly record struct PrerenderResult(
+    string Html,
+    bool TimedOut,
+    bool Faulted,
+    int Waves,
+    Exception? Error = null);
 
 /// <summary>
 ///     Which routes can be prerendered, and which cannot.
@@ -89,7 +100,8 @@ public static class RaskPrerender
             budget,
             maxWaves: maxWaves).ConfigureAwait(false);
 
-        return new PrerenderResult(render.Html, render.TimedOut, root.RenderedFallback, render.Waves);
+        return new PrerenderResult(
+            render.Html, render.TimedOut, root.RenderedFallback, render.Waves, root.FallbackError);
     }
     /// <summary>
     ///     Reads the registered route table and splits it into what a prerender pass can and cannot do.

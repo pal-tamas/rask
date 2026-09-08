@@ -2430,14 +2430,16 @@ Rask.Core.Live.PrerenderPlan.PrerenderPlan(System.Collections.Generic.IReadOnlyL
 Rask.Core.Live.PrerenderPlan.Skipped.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Core.Live.PrerenderPlan.Skipped.init -> void
 Rask.Core.Live.PrerenderResult
-Rask.Core.Live.PrerenderResult.Deconstruct(out string! Html, out bool TimedOut, out bool Faulted, out int Waves) -> void
+Rask.Core.Live.PrerenderResult.Deconstruct(out string! Html, out bool TimedOut, out bool Faulted, out int Waves, out System.Exception? Error) -> void
 Rask.Core.Live.PrerenderResult.Equals(Rask.Core.Live.PrerenderResult other) -> bool
+Rask.Core.Live.PrerenderResult.Error.get -> System.Exception?
+Rask.Core.Live.PrerenderResult.Error.init -> void
 Rask.Core.Live.PrerenderResult.Faulted.get -> bool
 Rask.Core.Live.PrerenderResult.Faulted.init -> void
 Rask.Core.Live.PrerenderResult.Html.get -> string!
 Rask.Core.Live.PrerenderResult.Html.init -> void
 Rask.Core.Live.PrerenderResult.PrerenderResult() -> void
-Rask.Core.Live.PrerenderResult.PrerenderResult(string! Html, bool TimedOut, bool Faulted, int Waves) -> void
+Rask.Core.Live.PrerenderResult.PrerenderResult(string! Html, bool TimedOut, bool Faulted, int Waves, System.Exception? Error = null) -> void
 Rask.Core.Live.PrerenderResult.TimedOut.get -> bool
 Rask.Core.Live.PrerenderResult.TimedOut.init -> void
 Rask.Core.Live.PrerenderResult.Waves.get -> int

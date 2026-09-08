@@ -52,6 +52,26 @@
                        Condition=" '%(PackageReference.IsImplicitlyDefined)' != 'true' "/>
     </ItemGroup>
 
+    <!--
+      THE APP'S OWN EMBEDDED RESOURCES, split by how each one names itself in the manifest.
+
+      A resource is looked up by NAME at runtime, and the companion is a different assembly in a
+      different directory — so re-globbing the files is not enough. An item that already carries a
+      LogicalName can simply keep it. One that does not gets its name computed by the SDK from its path
+      relative to the project, which for a file included from the companion's obj\ directory is a
+      different string; Link is what pins it back to the app's own layout, and the companion inherits the
+      app's RootNamespace so the two halves of the computed name agree.
+    -->
+    <ItemGroup>
+      <_RaskAppResourceNamed Include="@(EmbeddedResource)"
+                             Condition=" '%(EmbeddedResource.LogicalName)' != '' "/>
+      <_RaskAppResourceLinked Include="@(EmbeddedResource)"
+                              Condition=" '%(EmbeddedResource.LogicalName)' == '' "/>
+      <_RaskAppResourceLinked Condition=" '%(_RaskAppResourceLinked.Link)' == '' ">
+        <Link>$([MSBuild]::MakeRelative($(MSBuildProjectDirectory), %(_RaskAppResourceLinked.FullPath)))</Link>
+      </_RaskAppResourceLinked>
+    </ItemGroup>
+
     <ItemGroup>
       <!--
         %2A is '*' and %3B is ';', escaped. These lines are DATA, but MSBuild reads an item Include as a
@@ -69,6 +89,10 @@
       <_RaskPrerenderLine Include="    &lt;RootNamespace&gt;$(RootNamespace)&lt;/RootNamespace&gt;"/>
       <_RaskPrerenderLine Include="    &lt;AssemblyName&gt;$(RaskPrerenderCompanionName)&lt;/AssemblyName&gt;"/>
       <_RaskPrerenderLine Include="    &lt;EnableDefaultCompileItems&gt;false&lt;/EnableDefaultCompileItems&gt;"/>
+      <!-- The app's EmbeddedResource items are carried over explicitly below. The SDK's default glob is
+           relative to the COMPANION's directory, which is inside the app's obj\ — so leaving it on would
+           sweep up whatever the build has left there. -->
+      <_RaskPrerenderLine Include="    &lt;EnableDefaultEmbeddedResourceItems&gt;false&lt;/EnableDefaultEmbeddedResourceItems&gt;"/>
       <!-- The app's own analyzers would re-report what the real build already reported. -->
       <_RaskPrerenderLine Include="    &lt;RunAnalyzers&gt;false&lt;/RunAnalyzers&gt;"/>
       <!--
@@ -131,6 +155,21 @@
       <_RaskPrerenderLine Include="@(Using->WithMetadataValue('Static', 'true')->'    &lt;Using Include=&quot;%(Identity)&quot; Static=&quot;true&quot; /&gt;')"/>
       <_RaskPrerenderLine Include="@(Using->'    &lt;Using Include=&quot;%(Identity)&quot; Alias=&quot;%(Alias)&quot; /&gt;')"
                           Condition=" '%(Using.Alias)' != '' "/>
+
+      <!--
+        THE APP'S OWN EMBEDDED RESOURCES, and the third item type to be found missing here for the same
+        reason as references (#941) and global usings: the companion compiles the app's sources, so
+        anything those sources READ has to travel with them.
+
+        This one does not fail at compile time. It builds clean, runs, and then throws at RENDER time on
+        the first page that reads a resource — which the pass catches, declines to write, and reports as
+        a skip. So the symptom is not an error but a smaller sitemap: on this repo's own site, sixteen of
+        twenty routes were skipped with "Embedded source 'raksrc/…' was not found in any registered
+        assembly", every one of them a page whose CodeSample reads its own source out of the manifest.
+        A site can lose most of its prerendered pages this way with a green publish.
+      -->
+      <_RaskPrerenderLine Include="@(_RaskAppResourceNamed->'    &lt;EmbeddedResource Include=&quot;%(FullPath)&quot; LogicalName=&quot;%(LogicalName)&quot; /&gt;')"/>
+      <_RaskPrerenderLine Include="@(_RaskAppResourceLinked->'    &lt;EmbeddedResource Include=&quot;%(FullPath)&quot; Link=&quot;%(Link)&quot; /&gt;')"/>
       <_RaskPrerenderLine Include="  &lt;/ItemGroup&gt;"/>
       <_RaskPrerenderLine Include="&lt;/Project&gt;"/>
     </ItemGroup>

@@ -18,6 +18,12 @@ namespace Rask.Wasm.Tests.Build;
 ///         list, which reads as the app being broken rather than as a missing using — and it is invisible
 ///         until someone turns prerendering on.
 ///     </para>
+///     <para>
+///         Embedded resources were the same omission again, and quieter still: they cost no compile
+///         error at all. The companion built, ran, and threw at RENDER time on every page that reads a
+///         resource — which the pass catches and reports as a skip, so the only symptom is a smaller
+///         sitemap. Sixteen of this repo's own twenty routes were skipped that way, with a green publish.
+///     </para>
 /// </remarks>
 public class PrerenderCompanionGenerationTests : IDisposable
 {
@@ -28,6 +34,9 @@ public class PrerenderCompanionGenerationTests : IDisposable
         _dir = Path.Combine(Path.GetTempPath(), "rask-prerender-companion-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(_dir);
         File.WriteAllText(Path.Combine(_dir, "App.cs"), "namespace Fixture; public sealed class App { }");
+        Directory.CreateDirectory(Path.Combine(_dir, "Features"));
+        File.WriteAllText(Path.Combine(_dir, "Features", "Demo.cs"), "// read back at render time");
+        File.WriteAllText(Path.Combine(_dir, "Features", "Notes.txt"), "no LogicalName of its own");
         File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -39,6 +48,12 @@ public class PrerenderCompanionGenerationTests : IDisposable
                 <Using Include="Fixture.Widgets"/>
                 <Using Include="Fixture.Helpers" Static="true"/>
                 <Using Include="System.Collections.Generic" Alias="Coll"/>
+              </ItemGroup>
+              <ItemGroup>
+                <EmbeddedResource Include="Features/Demo.cs">
+                  <LogicalName>raksrc/Demo.cs</LogicalName>
+                </EmbeddedResource>
+                <EmbeddedResource Include="Features/Notes.txt"/>
               </ItemGroup>
               <Import Project="{Path.Combine(SrcDir, "Rask.Wasm", "build", "Rask.Wasm.Prerender.targets")}"/>
             </Project>
@@ -91,6 +106,50 @@ public class PrerenderCompanionGenerationTests : IDisposable
         Assert.Equal(1, Occurrences(project, "Include=\"Fixture.Widgets\""));
         Assert.Equal(1, Occurrences(project, "Include=\"Fixture.Helpers\""));
         Assert.Equal(1, Occurrences(project, "Include=\"System.Collections.Generic\""));
+    }
+
+    [Fact]
+    public void AnEmbeddedResourceKeepsItsLogicalName()
+    {
+        // A resource is found by NAME at runtime. The companion is a different assembly in a different
+        // directory, so re-globbing the file is not enough — the name has to travel with it, or the
+        // lookup fails with "not found in any registered assembly" on a file that is plainly embedded.
+        var project = Generate();
+
+        Assert.Contains("<EmbeddedResource Include=\"", project, StringComparison.Ordinal);
+        Assert.Contains("LogicalName=\"raksrc/Demo.cs\"", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AResourceWithNoLogicalNameIsLinkedBackToTheAppsLayout()
+    {
+        // Without a LogicalName the SDK computes the manifest name from RootNamespace plus the path
+        // RELATIVE TO THE PROJECT — and the companion's project directory is the app's obj/, so the
+        // computed name would differ. Link pins it back to where the app has the file.
+        Assert.Contains("Link=\"Features/Notes.txt\"", Generate().Replace('\\', '/'), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheSdksOwnResourceGlobIsOff()
+    {
+        // The companion's project directory sits inside the app's obj/. Left on, the SDK's default
+        // EmbeddedResource glob would sweep up whatever a previous build left there and embed it.
+        Assert.Contains(
+            "<EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>",
+            Generate(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EachResourceIsEmittedExactlyOnce()
+    {
+        // Two emission lines partition the set on whether the item names itself. A condition wrong the
+        // other way emits both twice, which the companion then fails to build on — naming the generated
+        // file rather than the app.
+        var project = Generate();
+
+        Assert.Equal(1, Occurrences(project, "Demo.cs\" LogicalName="));
+        Assert.Equal(1, Occurrences(project.Replace('\\', '/'), "Link=\"Features/Notes.txt\""));
     }
 
     private static int Occurrences(string haystack, string needle)

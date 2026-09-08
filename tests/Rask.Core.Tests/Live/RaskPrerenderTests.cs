@@ -53,6 +53,33 @@ public class RaskPrerenderTests
     }
 
     [Fact]
+    public async Task AFaultedPageSaysWhatThrew()
+    {
+        // Faulted alone is enough to REFUSE the render and not enough to fix it. A build-time pass has
+        // no browser console and no request log, so without the exception a page the pass declined to
+        // write is a URL that ships as an empty boot shell for a reason nobody can name — which is
+        // exactly how sixteen of this repo's own twenty routes went unwritten while the publish stayed
+        // green.
+        var result = await RaskPrerender.RenderDocumentAsync(
+            new ThrowingPage(), Services(), TimeSpan.FromSeconds(5));
+
+        Assert.NotNull(result.Error);
+        Assert.IsType<InvalidOperationException>(result.Error);
+        Assert.Equal("boom", result.Error!.Message);
+    }
+
+    [Fact]
+    public async Task APageThatRendersCarriesNoError()
+    {
+        // The other half, so Error cannot become "always populated" and quietly stop meaning anything.
+        var result = await RaskPrerender.RenderDocumentAsync(
+            new PlainPage(), Services(), TimeSpan.FromSeconds(5));
+
+        Assert.False(result.Faulted);
+        Assert.Null(result.Error);
+    }
+
+    [Fact]
     public async Task WorkThatNeverSettles_IsReportedRatherThanWaitedForForever()
     {
         // Same trap: the markup that comes back is the placeholder. Baking that is worse than not

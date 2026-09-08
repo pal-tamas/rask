@@ -218,6 +218,29 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Prerendering silently dropped every page that reads an embedded resource — and never said why.**
+  Two defects, and the second is what made the first invisible.
+
+  The companion project the pass generates carried the app's references and (since the fix below) its
+  global usings, but not its **`EmbeddedResource`** items. Unlike a missing reference or a missing
+  using, that costs no compile error: the companion builds, runs, and throws at *render* time on the
+  first page that reads a resource. The pass catches the throw, declines to write the page, and reports
+  a skip — so the only symptom is a smaller sitemap. On this repository's own site, **16 of 20 routes
+  were skipped** with `Embedded source 'raksrc/…' was not found in any registered assembly`, every one
+  of them a page whose code samples read their own source out of the manifest, and the publish was
+  green throughout. Resources now travel with their `LogicalName`; one that has none is emitted with a
+  `Link` pinning it back to the app's own layout, because the SDK computes the name from the path
+  relative to the project and the companion's project directory is the app's `obj/`. The SDK's default
+  resource glob is turned off in the companion for the same reason — left on, it would sweep up
+  whatever a previous build left there.
+
+  And the reason it took a publish-by-publish bisect to find: **`[Rask.Prerender] {path} threw — not
+  written` did not say what threw.** `PrerenderResult` reported the *fact* of a fault and not the
+  exception, which is enough to refuse a render and useless for fixing one — a build-time pass has no
+  browser console and no request log to fall back on, and a skipped route ships as an empty boot shell
+  to crawlers. `PrerenderResult.Error` now carries it, and the pass prints the type, the message and
+  the innermost cause. All 20 routes prerender.
+
 - **Prerendering could not compile any app that declares a global `using` in its csproj.** The pass
   compiles the app's sources a second time for `net10.0`, out of a companion project generated into
   `obj/`. That companion carried the app's `ProjectReference`s and `PackageReference`s — under a comment

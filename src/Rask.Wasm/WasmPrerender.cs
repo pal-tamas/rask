@@ -125,7 +125,11 @@ public static class WasmPrerender
             // it looks prerendered. Skip and say so; the bundle still serves the route at runtime.
             if (result.Faulted)
             {
-                Console.WriteLine($"[Rask.Prerender]   {path} threw — not written");
+                // WHAT threw, not merely that something did. A skipped page is a URL that ships as the
+                // boot shell — correct for a visitor, blank for a crawler — so this line is the only
+                // notice anyone gets, and "threw" on its own sends the reader to guess. Type and
+                // message, plus the innermost cause, which for a DI failure is where the name is.
+                Console.WriteLine($"[Rask.Prerender]   {path} threw — not written: {Describe(result.Error)}");
                 continue;
             }
 
@@ -156,6 +160,27 @@ public static class WasmPrerender
         Console.WriteLine($"{SummaryPrefix}written={written} skipped={plan.Skipped.Count}");
 
         return written;
+    }
+
+    /// <summary>One line naming an exception and its innermost cause.</summary>
+    private static string Describe(Exception? error)
+    {
+        if (error is null)
+        {
+            // The boundary reported a fault without an exception. Not reachable today, and said out
+            // loud rather than printed as an empty string, which would read like a truncated line.
+            return "(the root boundary reported a fault but carried no exception)";
+        }
+
+        var text = $"{error.GetType().Name}: {error.Message}";
+
+        var inner = error;
+        while (inner.InnerException is { } next)
+        {
+            inner = next;
+        }
+
+        return ReferenceEquals(inner, error) ? text : $"{text} -> {inner.GetType().Name}: {inner.Message}";
     }
 
     /// <summary>

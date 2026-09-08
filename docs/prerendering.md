@@ -85,7 +85,7 @@ that had covered all of it.
 Two more lines you may see:
 
 ```
-[Rask.Prerender]   /media-devices threw — not written
+[Rask.Prerender]   /media-devices threw — not written: JSException: no browser here
 [Rask.Prerender]   /fullscreen did not settle in 30s — not written
 ```
 
@@ -96,9 +96,17 @@ route's own name with nothing saying so, and **a baked spinner is worse than no 
 because it looks prerendered**. The route is skipped and the bundle still serves it at runtime, so
 this costs an optimisation rather than breaking the page.
 
-The common cause is a page that injects a browser-only API — a media-device or fullscreen demo has
-nothing to bind to off a browser. Guard such work behind a lifecycle hook that only runs in the
-browser if you want the route prerendered.
+**Read the exception on the `threw` line.** It is the only notice you get: the route ships as the boot
+shell, which is correct for a visitor and blank for a crawler, so a skip is invisible in a browser and
+visible only to search. The two causes worth knowing apart:
+
+- *A browser-only API during render.* A media-device or fullscreen demo has nothing to bind to off a
+  browser. Guard the work behind a lifecycle hook that only runs in the browser if you want the route
+  prerendered.
+- *Something the companion does not have.* The companion is a second compilation of your sources, and
+  anything they READ at render time has to travel with them — an `EmbeddedResource` most often. Those
+  are carried automatically; a `<Content>` file read off disk at render time is not, and reports here
+  as a `FileNotFoundException` rather than as a build error.
 
 If the pass writes **no** pages at all, the build raises a warning — because the pass reports what it
 skipped and carries on, so "it ran" and "it produced something" are different questions.
@@ -156,8 +164,9 @@ so. That page will not boot, which is the right outcome for a caller driving
 
 A browser-wasm assembly cannot execute on the desktop, so the app's own sources are compiled a
 **second time for `net10.0`** into a companion project under `obj/rask-prerender/`, and that is
-what renders. The companion carries the app's own `ProjectReference`s and `PackageReference`s, so
-it reaches the framework exactly the way the app does.
+what renders. The companion carries the app's own `ProjectReference`s, `PackageReference`s, `<Using>` items and
+`EmbeddedResource` items, so it reaches the framework exactly the way the app does and reads the same
+resources at render time.
 
 It compiles **`Program.cs` too**, deliberately: that file is where the app registers its services,
 and a page that injects anything would otherwise find nothing registered.
@@ -187,14 +196,19 @@ var result = await RaskPrerender.RenderDocumentAsync(app, services, TimeSpan.Fro
 
 `RenderDocumentAsync` deliberately takes no route: which page it renders is the caller's decision,
 because the caller is what holds the route table. **Check `result.Faulted` and `result.TimedOut`
-before writing anything to disk** — for the reason above, both return ordinary-looking HTML.
+before writing anything to disk** — for the reason above, both return ordinary-looking HTML — and
+**report `result.Error`**, which carries what threw. Refusing a page is a decision the pass can make on
+its own; explaining it is not, and a skipped route is invisible until someone checks the sitemap.
 
 ## In this repo
 
-`site/Rask.Site` — the app behind [rask.sh](https://rask.sh) — is the in-repo consumer, and it currently
-publishes with prerendering **off**. Fifteen of its routes reach a browser API during render, throw
-during the pass and are skipped; a skipped route ships the boot shell, which is correct for a visitor and
-blank for a crawler. Turning it on is tracked, and the csproj carries the measurement.
+`site/Rask.Site` — the app behind [rask.sh](https://rask.sh) — is the in-repo consumer. All 20 of its
+prerenderable routes are written; the three it skips are the two parameterised ones and the catch-all.
+
+It is also where the resource bug above was found, and worth repeating as a shape: **16 of those 20
+routes were being skipped**, on a green publish, because the companion did not carry the app's embedded
+sources. Nothing in a browser looked wrong. The count on the `result written=` line was the only
+symptom.
 
 ## Limits
 
