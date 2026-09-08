@@ -113,11 +113,28 @@ internal sealed class HeadAssetRegistry
         }
     }
 
-    // Singleton tags whose presence in <head> must be unique per the HTML spec. <title>
-    // and <base> are the canonical ones — duplicating either is a spec violation
-    // (browsers tolerate, validators / crawlers do not). meta tags aren't included
-    // here: their uniqueness rules vary by attribute and accidental dedup would
-    // lose legitimately-repeated entries (og:image, etc.).
+    // Tags that must appear at most once, keyed so the LATEST contributor wins. <title> and <base>
+    // are the obvious ones — duplicating either is a spec violation, which browsers tolerate and
+    // validators and crawlers do not.
+    //
+    // Metadata is the case that matters for a real site, and it used to be excluded here on the
+    // grounds that "uniqueness rules vary by attribute". They do, but not unknowably: a <meta> is a
+    // name/value pair, so two of them naming the same thing with different values is a contradiction
+    // rather than a list, and the last one is the one the page meant. Without this a page that
+    // declares its own description gets TWO — the app's site-wide one and its own — and which one a
+    // crawler takes is not the page's decision. The same for a canonical link, where two is worse
+    // than none.
+    //
+    // Two exclusions, both deliberate:
+    //
+    //   * A <meta> carrying `media` is NOT a singleton. Light/dark theme-color pairs are exactly two
+    //     tags with the same name and different values, and they are correct.
+    //   * The Open Graph properties whose spec says they are LISTS keep repeating: og:image and its
+    //     sub-properties, og:video, og:audio, og:locale:alternate, article:tag and article:author. A
+    //     page with three images means three images.
+    //
+    // http-equiv is left alone for the same reason as the list properties: repeated CSP headers
+    // intersect rather than override, so collapsing them would loosen a policy.
     private static string? SingletonKey(string html)
     {
         if (StartsWithOpenTag(html, "title"))
@@ -130,7 +147,76 @@ internal sealed class HeadAssetRegistry
             return "tag:base";
         }
 
+        if (StartsWithOpenTag(html, "meta"))
+        {
+            return MetaSingletonKey(html);
+        }
+
+        if (StartsWithOpenTag(html, "link")
+            && TryReadAttribute(html, "rel") is { } rel
+            && rel.Equals("canonical", StringComparison.OrdinalIgnoreCase))
+        {
+            return "tag:link:canonical";
+        }
+
         return null;
+    }
+
+    /// <summary>Open Graph properties the spec defines as repeatable lists.</summary>
+    private static readonly string[] _repeatableMetaPrefixes =
+    {
+        "og:image", "og:video", "og:audio", "og:locale:alternate", "article:tag", "article:author",
+    };
+
+    private static string? MetaSingletonKey(string html)
+    {
+        // A media-scoped meta is a set, not a value: `theme-color` light and dark are two correct tags.
+        if (TryReadAttribute(html, "media") is not null)
+        {
+            return null;
+        }
+
+        var name = TryReadAttribute(html, "name") ?? TryReadAttribute(html, "property");
+        if (name is null)
+        {
+            // charset, http-equiv, and anything else that names itself some other way. Falls back to
+            // dedup on the verbatim HTML, which is what it did before.
+            return null;
+        }
+
+        foreach (var repeatable in _repeatableMetaPrefixes)
+        {
+            if (name.StartsWith(repeatable, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+        }
+
+        return "tag:meta:" + name.ToLowerInvariant();
+    }
+
+    /// <summary>
+    ///     Reads one double-quoted attribute value out of a serialized start tag, or <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately a reader for THIS serializer's output rather than an HTML parser. Every string
+    ///     it sees was produced by <see cref="HtmlSerializer" /> moments earlier: attributes are always
+    ///     double-quoted, always separated by a single space, and their values are already escaped, so
+    ///     a quote cannot appear inside one. Matching on <c>" name="</c> is therefore exact — the
+    ///     leading space is what stops <c>property=</c> matching a request for <c>name</c>.
+    /// </remarks>
+    private static string? TryReadAttribute(string html, string attribute)
+    {
+        var needle = " " + attribute + "=\"";
+        var start = html.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
+        if (start < 0)
+        {
+            return null;
+        }
+
+        start += needle.Length;
+        var end = html.IndexOf('"', start);
+        return end < 0 ? null : html[start..end];
     }
 
     private static bool StartsWithOpenTag(string html, string tag)

@@ -41,6 +41,11 @@ host.UsePwa(new WebAppManifest
             Description: "Jump straight to the Browser APIs showcase")
     ]
 });
+// What /docs/guides/{slug} expands to at publish. A parameterised route has no path without data, so
+// the prerender pass skips it — and the guides are the site, so skipping it means ~80 documents ship to
+// crawlers as an empty boot shell while the publish reports every page it knew about as written.
+host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.GuidePrerenderPaths>();
+
 // These pages contribute their sidebar entries here rather than in ShowcaseLayout's own table.
 //
 // The paths are the GENERATED route URLs, not literals. They WERE literals — "/pwa", "/islands" — and

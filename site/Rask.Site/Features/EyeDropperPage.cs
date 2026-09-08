@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class EyeDropperPage : Component
 {
-    protected override Component? HeadAssets => Title["EyeDropper — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "EyeDropper — Rask",
+            "Pick a colour from anywhere on screen with the system magnifier loupe, from C#, through Rask's IEyeDropper wrapper over the EyeDropper API.",
+            Routes.EyeDropperPage());
 
     protected override Component? Render() =>
     [

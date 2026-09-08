@@ -9,6 +9,48 @@ them until tagged releases begin.
 
 ### Added
 
+- **The site at [rask.sh](https://rask.sh) is prerendered, and a Rask app can now be indexed at all.**
+  Four framework pieces, each of which was a hole a real site falls into.
+
+  **`IPrerenderPaths` — what a parameterised route expands to.** A pass keeps the routes whose every
+  segment is a literal, because the others have no path without data. On a real site that is where the
+  content lives: `/guides/{slug}` is one route and 135 pages. Register an implementation and the pass
+  renders its paths alongside the literal ones, same waves, same skip rules, same sitemap. Without it
+  the publish still succeeds and still reports a healthy count — of the pages *around* the content.
+
+  **`sitemap.xml` and `robots.txt` at publish.** Set `<RaskSiteUrl>` and the pass writes both; leave it
+  unset and it writes neither and prints why, rather than guessing a domain into a published file (a
+  sitemap carries absolute URLs, and the same static bundle is correct on a preview host, a staging
+  domain and production). An existing `robots.txt` is never overwritten — a wrong one delists a site.
+  The sitemap lists what claims to be a page, which is narrower than what was written: a route the pass
+  skipped answers with the boot shell; a page declaring `noindex` has asked not to be indexed; a page
+  whose canonical points elsewhere has said another URL is the real one. All three are read off the
+  page's own rendered markup, so a page and the sitemap cannot disagree.
+
+  **Head singletons for metadata.** `<title>` and `<base>` collapsed to one, last-contributor-wins;
+  every `<meta>` did not, on the reasoning that "uniqueness rules vary by attribute". They do, but not
+  unknowably — a meta is a name/value pair, so two naming the same thing is a contradiction rather than
+  a list. A page declaring its own description used to get **two**: the app's and its own, with the
+  choice left to the crawler. Now `meta[name]`, `meta[property]` and `link[rel=canonical]` are keyed by
+  what they name. Two exclusions, both deliberate: a `<meta>` carrying `media` (a light/dark
+  `theme-color` pair is two correct tags), and the Open Graph properties the spec defines as lists
+  (`og:image`, `og:video`, `og:audio`, `og:locale:alternate`, `article:tag`, `article:author`).
+
+  **`Meta.Property` and `Meta.Media`.** Open Graph names itself with `property`, not `name`, and a
+  crawler reading it does not fall back — so an `og:` value written into `name` produces a tag that
+  validates, renders, and is ignored by every consumer it was written for. It was not expressible
+  without the `Attributes` escape hatch.
+
+  On the site itself: 154 pages prerendered, 151 in the sitemap, each with its own title, description
+  and canonical, plus Open Graph and Twitter tags. `PageMetaTests` asserts all of it per route — that
+  no two pages share a title or a description, that every canonical points at a URL with a route behind
+  it, and that the 404 is `noindex` with no canonical of its own.
+
+  One page does not settle: `/docs/guides/lifecycle` embeds two demos whose `OnMountAsync` runs an
+  unbounded poll loop, so the hook's task never completes and the wave loop waits out the whole budget.
+  It still serves at runtime. There is no way today for a component to declare ongoing background work
+  as *not* something the first render is waiting for — [#1030](https://github.com/pal-tamas/rask/issues/1030).
+
 - **`rask dev` serves an app on `https://appname.test` — a real name, real HTTPS, no port, no installs.**
   The name is derived from the project, so there is no flag and nothing to configure. The first run asks
   for permission once, listing exactly what it will change; every run after that is silent, because the

@@ -12,7 +12,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class WakeLockPage : Component
 {
-    protected override Component? HeadAssets => Title["Wake lock — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Wake lock — Rask",
+            "Keep the screen awake while something is running, and release it cleanly, from C#, through Rask's IWakeLock wrapper over the Screen Wake Lock API.",
+            Routes.WakeLockPage());
 
     protected override Component? Render() =>
     [

@@ -31,7 +31,11 @@ public sealed partial class TodosPage : Component
 
     [RouteParam] public Guid? Id { get; set; }
 
-    protected override Component? HeadAssets => Title["Todos — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Todos — Rask",
+            "A full CRUD slice built from Rask components — list, add, edit and complete — with routing, forms and validation, running entirely in the browser on WebAssembly.",
+            Routes.TodosPage());
 
     private bool IsAdding => _route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
 

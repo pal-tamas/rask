@@ -9,7 +9,15 @@ namespace Rask.Site.Features;
 [NotFound]
 public sealed partial class NotFoundPage(Navigator nav, RouteState route) : Component
 {
-    protected override Component? HeadAssets => Title["Not found — Rask"];
+    // No canonical, and noindex. This one component answers EVERY unknown URL on the site, so a
+    // canonical would point thousands of addresses at one page — and a 404 that a crawler indexes is a
+    // page competing in search results with the content the visitor was looking for. Deliberately not
+    // PageMeta.For, whose whole job is the canonical this page must not have.
+    protected override Component? HeadAssets =>
+    [
+        Title["Not found — Rask"],
+        Meta.Name("robots").Content("noindex, follow"),
+    ];
 
     // Its own <main>, because it no longer has a layout to provide one. Every other page renders inside
     // ShowcaseLayout's; this one answers URLs anywhere on the site, including outside /docs, so it has to

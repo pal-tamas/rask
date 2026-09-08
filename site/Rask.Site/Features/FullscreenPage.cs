@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class FullscreenPage : Component
 {
-    protected override Component? HeadAssets => Title["Fullscreen — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Fullscreen — Rask",
+            "Take an element fullscreen and follow the browser back out of it, from C#, through Rask's IFullscreen wrapper over the Fullscreen API.",
+            Routes.FullscreenPage());
 
     protected override Component? Render() =>
     [

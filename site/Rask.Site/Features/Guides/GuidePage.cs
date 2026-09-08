@@ -14,7 +14,15 @@ public sealed partial class GuidePage : Component
 {
     [RouteParam] public string Slug { get; set; } = string.Empty;
 
-    protected override Component? HeadAssets => Title[$"{GuideCatalog.TitleFor(Slug)} — Guides — Rask"];
+    // Built from the SLUG rather than from a constant, so each of the ~80 guides carries its own title,
+    // description and canonical. The canonical matters more here than anywhere else on the site: a guide
+    // is the page most likely to be linked with a fragment or a tracking parameter, and without one a
+    // crawler treats every variant as a separate page competing with the others.
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            $"{GuideCatalog.TitleFor(Slug)} — Guides — Rask",
+            GuideCatalog.BlurbFor(Slug),
+            Routes.GuidePage(Slug));
 
     protected override Component? Render() => GuideChrome.Slug(Slug);
 }

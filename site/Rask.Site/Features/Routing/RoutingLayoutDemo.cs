@@ -23,6 +23,14 @@ public sealed partial class RoutingLayoutDemo : Component
 [ParentRoute(typeof(RoutingLayoutDemo))]
 public sealed partial class RoutingNestedProfile : Component
 {
+    // noindex for the same reason as RoutingAboutPage: this is the routing guide's navigation target,
+    // not a page anyone should reach from a search result.
+    protected override Component? HeadAssets =>
+    [
+        Title["Routing demo: profile — Rask"],
+        Meta.Name("robots").Content("noindex, follow"),
+    ];
+
     protected override Component? Render() =>
         H1["Profile"];
 }

@@ -524,3 +524,4 @@ static Rask.Wasm.RaskWasmBatteryRegistry.Use(System.Action<Rask.Wasm.WasmHostBui
 static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
 static Rask.Wasm.WasmHostBuilder.CreateDefault() -> Rask.Wasm.WasmHostBuilder!
 static Rask.Wasm.WasmHostBuilder.CreateDefault(System.Action<Rask.Core.Live.RaskLiveOptions!>? configureLive) -> Rask.Wasm.WasmHostBuilder!
+const Rask.Wasm.WasmPrerender.SiteUrlVariable = "RASK_PRERENDER_SITE_URL" -> string!

@@ -12,40 +12,33 @@
          scoped-asset bake). Replaces the old WasmGenerateAppBundle marker. -->
     <RaskWasm>true</RaskWasm>
     <!--
-      NOT prerendered yet — but the reason recorded here is no longer the reason, and the blocker it
-      named is fixed. Read this before either turning it on or repeating the analysis.
+      Prerendered. Every one of the 20 prerenderable routes is written to real HTML at publish; the
+      three that are not are the two parameterised routes and the catch-all, which have no path without
+      data. Without this the first thing a visitor and every crawler receives is the boot shell — a
+      spinner and the word "Loading" — until several megabytes of runtime have downloaded.
 
-      The objection was the MIXTURE. Only 5 of this app's 20 routes can be prerendered: the browser-API
-      demos (media devices, fullscreen, serial, USB, HID, Bluetooth…) have nothing to bind to off a
-      browser, throw during the pass, and are skipped by design. A static host answers an un-prerendered
-      deep link with its SPA fallback, which is the root index.html — and once the root is prerendered
-      that fallback stops being a neutral boot shell and becomes a fully rendered guides index, so
-      deep-linking into one of the fifteen misroutes.
+      Two things had to be true first, and both are now.
 
-      That objection closed with its own stated prerequisite: "a fallback document that is still the boot
-      shell rather than any one rendered page". #974 is exactly that — the pass now writes the untouched
-      shell to 404.html before the page loop, so the fallback is neutral no matter what the root becomes.
+      The MIXTURE is safe: a static host answers an un-prerendered deep link with its SPA fallback, and
+      once the root is prerendered that fallback would be a fully rendered guides index rather than a
+      neutral shell. #974 fixed that — the pass writes the untouched boot shell to 404.html before the
+      page loop, so the fallback stays neutral no matter what the root becomes.
 
-      Measured on this app, publishing with -p:RaskPrerender=true:
+      And the pass had to reach every page. It did not: the companion project it generates carried the
+      app's references and global usings but not its EmbeddedResource items, so every page whose
+      CodeSample reads its own source out of the manifest threw at render time and was skipped. That is
+      16 of 20 routes, on a green publish, with a smaller sitemap as the only symptom.
 
-        [Rask.Prerender] 20 route(s) to render, 3 skipped
-        [Rask.Prerender] wrote the neutral boot shell to 404.html
-        [Rask.Prerender] result written=5 skipped=3        (and 15 threw, as predicted)
-
-      404.html came out at 8.7 KB with no guides markup in it; index.html at 239 KB fully rendered. So
-      the mixture is safe now.
-
-      Turning it on is therefore a judgement call about this sample rather than a blocked one, and it is
-      left off here only because flipping it deserves its own browser-E2E run against a prerendered
-      bundle — a prerendered document that the WASM runtime then morphs is a different first paint from
-      the one every journey currently asserts.
-
-      One real framework bug surfaced on the way and IS fixed: the prerender companion carried the app's
-      references but not its global usings, so this app could not compile for net10.0 at all — sixty
-      CS0103s on UiIconName, in files that build perfectly for the browser. See
-      Rask.Wasm.Prerender.targets and PrerenderCompanionGenerationTests.
+      Measured on this app: 404.html at 8.7 KB with no page markup in it; index.html fully rendered.
     -->
-    <!-- <RaskPrerender>true</RaskPrerender> -->
+    <RaskPrerender>true</RaskPrerender>
+    <!--
+      Where this bundle is served from. Read by the prerender pass, which writes sitemap.xml and
+      robots.txt from it — a sitemap carries ABSOLUTE URLs, and the same published files are correct on
+      a preview host, a staging domain and production, so nothing in the build can infer the origin.
+      Set it wrong and every URL in the sitemap points at someone else's site.
+    -->
+    <RaskSiteUrl>https://rask.sh</RaskSiteUrl>
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders
          at publish (Microsoft.NET.Sdk.WebAssembly). Makes static-host redeploys cache-safe. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>

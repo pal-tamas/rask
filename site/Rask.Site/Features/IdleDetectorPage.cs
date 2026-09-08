@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class IdleDetectorPage : Component
 {
-    protected override Component? HeadAssets => Title["Idle detection — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Idle detection — Rask",
+            "Know when the user has stepped away or locked the screen, from C#, through Rask's IIdleDetector wrapper over the Idle Detection API.",
+            Routes.IdleDetectorPage());
 
     protected override Component? Render() =>
     [

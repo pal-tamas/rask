@@ -45,6 +45,35 @@ injecting something scoped never sees the previous page's instance.
 
 ## What is skipped, and why you are told
 
+### Parameterised routes: tell the pass what they expand to
+
+A route with a parameter has no path without data, so the pass skips it — and on a real site that is
+usually where the content lives. `/guides/{slug}` is one route and eighty pages.
+
+Register an `IPrerenderPaths` and the pass renders them alongside the literal routes, through the same
+waves, with the same skip rules, into the same sitemap:
+
+```csharp
+public sealed class GuidePaths : IPrerenderPaths
+{
+    public IEnumerable<string> Paths() =>
+        GuideCatalog.All.Select(guide => (string)Routes.GuidePage(guide.Slug));
+}
+
+// Program.cs
+host.Services.AddSingleton<IPrerenderPaths, GuidePaths>();
+```
+
+Return **route paths** — rooted, no `PathBase`, exactly as `RouteState.Path` holds them — and prefer a
+generated `Routes.X(value)` helper to an interpolated string, so a renamed route is a compile error
+rather than a page written under a URL nothing serves. Several implementations may be registered;
+anything already covered by a literal route is ignored rather than rendered twice.
+
+Without this the publish still succeeds and still reports a healthy count — of the pages *around* the
+content. The only symptom is a small sitemap.
+
+## Which routes get written
+
 A route is prerenderable when **every one of its segments is a literal** — decided on the parsed
 segments, not by looking for a brace in the template. Anything else is skipped and **named in the
 build log**:
@@ -107,6 +136,33 @@ visible only to search. The two causes worth knowing apart:
   anything they READ at render time has to travel with them — an `EmbeddedResource` most often. Those
   are carried automatically; a `<Content>` file read off disk at render time is not, and reports here
   as a `FileNotFoundException` rather than as a build error.
+
+### sitemap.xml and robots.txt
+
+Set the origin the bundle will be served from and the pass writes both:
+
+```xml
+<RaskSiteUrl>https://example.com</RaskSiteUrl>
+```
+
+A sitemap carries **absolute** URLs — a crawler discards one made of relative paths — and nothing in a
+static publish knows the origin: the same files are correct on a preview host, a staging domain and
+production. So the app has to say. Without it the pass writes no sitemap and prints a line saying why,
+rather than guessing a domain into a published file.
+
+`robots.txt` is written only when the app ships none of its own; yours is never overwritten, and the
+pass prints the `Sitemap:` line to add to it. A wrong `robots.txt` delists a site, so an author who
+wrote one has said something the build has no business editing.
+
+**The sitemap lists the pages that claim to be a page**, which is narrower than "everything written",
+and each exclusion is read off the page's own rendered markup so the two can never disagree:
+
+- a route the pass **skipped** — it still answers, but with the boot shell, and a sitemap is a promise
+  that the URL has content;
+- a page that declares **`<meta name="robots" content="noindex">`** — a sitemap is a request to index,
+  so listing one is a contradiction Search Console reports against the whole file;
+- a page whose **canonical points elsewhere** — an add form that canonicalises to its list is saying
+  another URL is the real one, and a sitemap lists canonical URLs.
 
 If the pass writes **no** pages at all, the build raises a warning — because the pass reports what it
 skipped and carries on, so "it ran" and "it produced something" are different questions.
@@ -202,13 +258,29 @@ its own; explaining it is not, and a skipped route is invisible until someone ch
 
 ## In this repo
 
-`site/Rask.Site` — the app behind [rask.sh](https://rask.sh) — is the in-repo consumer. All 20 of its
-prerenderable routes are written; the three it skips are the two parameterised ones and the catch-all.
+`site/Rask.Site` — the app behind [rask.sh](https://rask.sh) — is the in-repo consumer:
 
-It is also where the resource bug above was found, and worth repeating as a shape: **16 of those 20
-routes were being skipped**, on a green publish, because the companion did not carry the app's embedded
-sources. Nothing in a browser looked wrong. The count on the `result written=` line was the only
-symptom.
+```
+[Rask.Prerender] 155 route(s) to render, 3 skipped
+[Rask.Prerender]   135 of them supplied by IPrerenderPaths
+[Rask.Prerender] wrote 154 page(s)
+[Rask.Prerender] wrote sitemap.xml with 151 URL(s)
+```
+
+Twenty literal routes plus 135 guides; 151 in the sitemap, the other three being two `noindex` demo
+targets and an add form that canonicalises to its list.
+
+Two things worth repeating as shapes, both found here:
+
+- **16 of the first 20 routes were being skipped**, on a green publish, because the companion did not
+  carry the app's embedded sources. Nothing in a browser looked wrong; the count on the
+  `result written=` line was the only symptom.
+- **`/docs/guides/lifecycle` is the one page that does not settle.** It embeds two demos whose
+  `OnMountAsync` runs an unbounded poll loop, so the hook's task never completes and the wave loop
+  waits out the whole budget. The page still serves at runtime. There is currently no way for a
+  component to declare ongoing background work as *not* something the first render is waiting for,
+  which is a framework gap rather than a fact about this page
+  ([#1030](https://github.com/pal-tamas/rask/issues/1030)).
 
 ## Limits
 

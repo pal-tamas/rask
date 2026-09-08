@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Live;
@@ -51,6 +52,19 @@ public static class WasmPrerender
     public const string PathBaseVariable = "RASK_PRERENDER_PATH_BASE";
 
     /// <summary>
+    ///     The absolute origin the bundle will be served from, set by the build from
+    ///     <c>$(RaskSiteUrl)</c>. Absent unless the app says so.
+    /// </summary>
+    /// <remarks>
+    ///     A sitemap lists <b>absolute</b> URLs — that is not a style choice, it is what the protocol
+    ///     says, and a crawler discards a sitemap of relative paths. Nothing else in a publish knows the
+    ///     origin: the bundle is static files, and the same files are correct on a preview host, a
+    ///     staging domain and production. So the app has to name it, and when it does not, this pass
+    ///     writes no sitemap and says why rather than guessing a domain into a published file.
+    /// </remarks>
+    public const string SiteUrlVariable = "RASK_PRERENDER_SITE_URL";
+
+    /// <summary>
     ///     Renders every prerenderable route into <paramref name="outputDirectory" />.
     /// </summary>
     /// <returns>How many pages were written.</returns>
@@ -66,13 +80,29 @@ public static class WasmPrerender
 
         var plan = RaskPrerender.PlanRoutes();
 
+        // The literal routes, plus whatever the app says its parameterised ones expand to. A docs site's
+        // /guides/{slug} is one route and eighty pages, and the pass cannot know the slugs — so without
+        // this the whole of a site's actual content ships as an empty boot shell while the publish
+        // reports a healthy count of the pages around it.
+        var supplied = SuppliedPaths(services, plan);
+        var paths = supplied.Count == 0 ? plan.Paths : [.. plan.Paths, .. supplied];
+
         // Said out loud rather than logged at debug, and said even when the list is empty. A pass that
         // covered a site's static half while its parameterised routes went unmentioned would read as
         // though it had covered everything.
-        Console.WriteLine($"[Rask.Prerender] {plan.Paths.Count} route(s) to render, {plan.Skipped.Count} skipped");
+        Console.WriteLine(
+            $"[Rask.Prerender] {paths.Count} route(s) to render, {plan.Skipped.Count} skipped");
+        if (supplied.Count > 0)
+        {
+            Console.WriteLine(
+                $"[Rask.Prerender]   {supplied.Count} of them supplied by IPrerenderPaths");
+        }
+
         foreach (var skipped in plan.Skipped)
         {
-            Console.WriteLine($"[Rask.Prerender]   skipped {skipped} — its path is not known without data");
+            Console.WriteLine(
+                $"[Rask.Prerender]   skipped {skipped} — its path is not known without data"
+                + " (register an IPrerenderPaths to supply them)");
         }
 
         // Read ONCE, before the first page is written — the shell being read is index.html, and the
@@ -106,8 +136,13 @@ public static class WasmPrerender
             Console.WriteLine($"[Rask.Prerender] wrote the neutral boot shell to {FallbackFileName}");
         }
 
+        // The paths the SITEMAP should list, which is neither plan.Paths nor "everything written". A
+        // route that threw or timed out is not written at all, and listing it would send a crawler to a
+        // URL answering with the boot shell — the thing prerendering exists to stop it seeing. A route
+        // that renders a noindex page IS written, and must still not be listed.
+        var writtenPaths = new List<string>(paths.Count);
         var written = 0;
-        foreach (var path in plan.Paths)
+        foreach (var path in paths)
         {
             // A scope per page, as a request would get: a page that injects something scoped must not
             // see the previous page's instance.
@@ -148,6 +183,20 @@ public static class WasmPrerender
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
             await File.WriteAllTextAsync(file, html).ConfigureAwait(false);
             written++;
+
+            // Written, but not necessarily LISTED. Both reasons are read off the page's own rendered
+            // markup rather than from a second declaration, so the page and the sitemap cannot disagree.
+            //
+            //   * noindex — the page has asked not to be in search results, and a sitemap is a request
+            //     to index. Listing it submits a contradiction, which Search Console reports as an error
+            //     against the whole file rather than against the one URL.
+            //   * a canonical pointing SOMEWHERE ELSE — the page has said another URL is the real one.
+            //     An add form that canonicalises to its list is the ordinary case, and a sitemap lists
+            //     canonical URLs; listing both asks a crawler to index a page that disclaims itself.
+            if (ListedInSitemap(html, path))
+            {
+                writtenPaths.Add(path);
+            }
         }
 
         Console.WriteLine($"[Rask.Prerender] wrote {written} page(s) to {outputDirectory}");
@@ -157,9 +206,192 @@ public static class WasmPrerender
         // shell already occupies, so "a page exists" is true before the pass runs and stays true when
         // it writes nothing. Only the pass knows the count, so it says so in a form that survives a
         // grep and carries no punctuation an MSBuild condition has to escape.
+        WriteSitemap(outputDirectory, writtenPaths);
+
         Console.WriteLine($"{SummaryPrefix}written={written} skipped={plan.Skipped.Count}");
 
         return written;
+    }
+
+    /// <summary>
+    ///     Writes <c>sitemap.xml</c> for the pages that reached disk, and a <c>robots.txt</c> pointing at
+    ///     it, when the app has named the origin it will be served from.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Built from what was WRITTEN rather than from the route table, because those are different
+    ///         lists and the difference is the whole point: a route the pass skipped still answers, but
+    ///         with the boot shell, and a sitemap is a promise that the URL has content.
+    ///     </para>
+    ///     <para>
+    ///         An existing <c>robots.txt</c> is never overwritten. It is a file with real consequences —
+    ///         a wrong one delists a site — so an author who shipped one has said something this pass has
+    ///         no business editing, and it says how to add the sitemap line instead.
+    ///     </para>
+    /// </remarks>
+    private static void WriteSitemap(string outputDirectory, IReadOnlyList<string> paths)
+    {
+        var origin = Environment.GetEnvironmentVariable(SiteUrlVariable)?.Trim().TrimEnd('/');
+        if (string.IsNullOrEmpty(origin))
+        {
+            // Said out loud. A missing sitemap is invisible in a browser and would be invisible in the
+            // build output too, and "we shipped for months without one" is how that ends. Not a warning:
+            // an app with no fixed origin is a legitimate configuration, and guessing a domain into a
+            // published file is worse than shipping no sitemap.
+            Console.WriteLine(
+                "[Rask.Prerender] no sitemap — set <RaskSiteUrl>https://example.com</RaskSiteUrl> to "
+                + "publish one (a sitemap carries absolute URLs, so the origin cannot be inferred)");
+            return;
+        }
+
+        if (paths.Count == 0)
+        {
+            Console.WriteLine("[Rask.Prerender] no sitemap — no page was written");
+            return;
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        builder.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+        foreach (var path in paths)
+        {
+            // LiveOptions.PathBase is already on every rendered link; it belongs here too, or a
+            // sub-path deploy publishes a sitemap pointing at the origin root.
+            var url = origin + LiveOptions.PathBase + (path == "/" ? "/" : path);
+            builder.Append("  <url><loc>").Append(XmlEscape(url)).AppendLine("</loc></url>");
+        }
+
+        builder.AppendLine("</urlset>");
+
+        File.WriteAllText(Path.Combine(outputDirectory, SitemapFileName), builder.ToString());
+        Console.WriteLine($"[Rask.Prerender] wrote {SitemapFileName} with {paths.Count} URL(s)");
+
+        var sitemapUrl = $"{origin}{LiveOptions.PathBase}/{SitemapFileName}";
+        var robots = Path.Combine(outputDirectory, RobotsFileName);
+        if (File.Exists(robots))
+        {
+            Console.WriteLine(
+                $"[Rask.Prerender] kept the app's own {RobotsFileName} — add "
+                + $"\"Sitemap: {sitemapUrl}\" to it yourself");
+            return;
+        }
+
+        File.WriteAllText(robots, $"User-agent: *\nAllow: /\nSitemap: {sitemapUrl}\n");
+        Console.WriteLine($"[Rask.Prerender] wrote {RobotsFileName}");
+    }
+
+    /// <summary>Escapes the five XML entities. A route template cannot contain them today; a route is
+    /// author-written text, and a sitemap that silently stops parsing is not worth the assumption.</summary>
+    private static string XmlEscape(string value) =>
+        value.Replace("&", "&amp;", StringComparison.Ordinal)
+            .Replace("<", "&lt;", StringComparison.Ordinal)
+            .Replace(">", "&gt;", StringComparison.Ordinal)
+            .Replace("\"", "&quot;", StringComparison.Ordinal)
+            .Replace("'", "&apos;", StringComparison.Ordinal);
+
+    /// <summary>
+    ///     The extra paths the app's <see cref="IPrerenderPaths" /> registrations name, minus anything
+    ///     the route plan already covers.
+    /// </summary>
+    /// <remarks>
+    ///     Deduped against the literal plan AND against itself, because two registrations naming the
+    ///     same page is a mistake with no error attached: the second render simply overwrites the first,
+    ///     and the only trace is a route counted twice in the log and listed twice in the sitemap.
+    /// </remarks>
+    private static List<string> SuppliedPaths(IServiceProvider services, PrerenderPlan plan)
+    {
+        var sources = services.GetServices<IPrerenderPaths>().ToList();
+        if (sources.Count == 0)
+        {
+            return [];
+        }
+
+        var seen = new HashSet<string>(plan.Paths, StringComparer.Ordinal);
+        var extra = new List<string>();
+
+        foreach (var source in sources)
+        {
+            foreach (var path in source.Paths())
+            {
+                if (!string.IsNullOrEmpty(path) && seen.Add(path))
+                {
+                    extra.Add(path);
+                }
+            }
+        }
+
+        return extra;
+    }
+
+    /// <summary>Whether a written page belongs in the sitemap.</summary>
+    internal static bool ListedInSitemap(string html, string routePath) =>
+        !IsNoIndex(html) && (CanonicalTarget(html) is not { } canonical || SamePage(canonical, routePath));
+
+    /// <summary>The <c>href</c> of the document's canonical link, or <c>null</c> when it declares none.</summary>
+    internal static string? CanonicalTarget(string html)
+    {
+        var rel = html.IndexOf("rel=\"canonical\"", StringComparison.OrdinalIgnoreCase);
+        if (rel < 0)
+        {
+            return null;
+        }
+
+        // The tag's bounds, so an href from a NEIGHBOURING link cannot be read as this one's. `rel` may
+        // come before or after `href` — Link writes href first today, and that is the serializer's
+        // business, not this reader's.
+        var open = html.LastIndexOf('<', rel);
+        var close = html.IndexOf('>', rel);
+        if (open < 0 || close < 0)
+        {
+            return null;
+        }
+
+        var tag = html[open..close];
+        const string Needle = "href=\"";
+        var href = tag.IndexOf(Needle, StringComparison.OrdinalIgnoreCase);
+        if (href < 0)
+        {
+            return null;
+        }
+
+        href += Needle.Length;
+        var end = tag.IndexOf('"', href);
+        return end < 0 ? null : tag[href..end];
+    }
+
+    /// <summary>Whether a canonical URL names the route it was rendered for.</summary>
+    /// <remarks>
+    ///     Compared on the PATH, because the canonical is absolute and the route is not, and the origin
+    ///     is the app's to choose. A trailing slash is not a difference: a static host serves
+    ///     <c>/docs/</c> and <c>/docs</c> as the same document, and a page that spells its canonical the
+    ///     other way has not said anything about a different page.
+    /// </remarks>
+    private static bool SamePage(string canonical, string routePath)
+    {
+        var path = Uri.TryCreate(canonical, UriKind.Absolute, out var uri) ? uri.AbsolutePath : canonical;
+        var expected = LiveOptions.PathBase + routePath;
+
+        return string.Equals(path.TrimEnd('/'), expected.TrimEnd('/'), StringComparison.Ordinal);
+    }
+
+    /// <summary>Whether the rendered document asks robots not to index it.</summary>
+    /// <remarks>
+    ///     A deliberately narrow reader: the <c>content</c> of a <c>&lt;meta name="robots"&gt;</c>, looked
+    ///     at for the word <c>noindex</c>. It is checked against the DOCUMENT rather than against a
+    ///     separate declaration because a page that says one thing in its head and another in a build
+    ///     configuration is the failure this avoids, not one it should be able to express.
+    /// </remarks>
+    internal static bool IsNoIndex(string html)
+    {
+        var robots = html.IndexOf("name=\"robots\"", StringComparison.OrdinalIgnoreCase);
+        if (robots < 0)
+        {
+            return false;
+        }
+
+        var tagEnd = html.IndexOf('>', robots);
+        var tag = tagEnd < 0 ? html[robots..] : html[robots..tagEnd];
+        return tag.Contains("noindex", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>One line naming an exception and its innermost cause.</summary>
@@ -229,6 +461,12 @@ public static class WasmPrerender
     ///     still gets a neutral document to boot into rather than the home page's markup (#974).
     /// </summary>
     internal const string FallbackFileName = "404.html";
+
+    /// <summary>The sitemap the pass writes beside the pages, when the app names its origin.</summary>
+    internal const string SitemapFileName = "sitemap.xml";
+
+    /// <summary>Written only when the app ships none of its own.</summary>
+    internal const string RobotsFileName = "robots.txt";
 
     private static async Task<string?> ReadShellAsync(string outputDirectory)
     {

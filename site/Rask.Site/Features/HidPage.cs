@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class HidPage : Component
 {
-    protected override Component? HeadAssets => Title["WebHID — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "WebHID — Rask",
+            "Drive a human-interface device no higher-level API covers — custom gamepad reports, simulation controls, point-of-sale hardware — from C#, through Rask's IHid wrapper over the WebHID API.",
+            Routes.HidPage());
 
     protected override Component? Render() =>
     [

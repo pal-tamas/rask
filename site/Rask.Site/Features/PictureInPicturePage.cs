@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class PictureInPicturePage : Component
 {
-    protected override Component? HeadAssets => Title["Picture-in-Picture — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Picture-in-Picture — Rask",
+            "Pop a video out into the browser's floating window and follow it back, from C#, through Rask's IPictureInPicture wrapper over the Picture-in-Picture API.",
+            Routes.PictureInPicturePage());
 
     protected override Component? Render() =>
     [

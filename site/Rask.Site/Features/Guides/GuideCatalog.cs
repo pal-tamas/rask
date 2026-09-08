@@ -206,6 +206,26 @@ public static class GuideCatalog
         ["Start here", "Tutorial", "One Person Framework", "Core", "Integration",
          "Mobile & devices", "Browser API reference", "Advanced", "Contributing & internals"];
 
+    /// <summary>The guide's one-line blurb — its <c>&lt;meta name="description"&gt;</c> on the page.</summary>
+    /// <remarks>
+    ///     The same string the index card and the sidebar show, so a guide cannot end up described one
+    ///     way to a reader and another to a crawler. An unknown slug falls back to a sentence that is at
+    ///     least true, rather than to the raw slug: a description is what a search result SHOWS, and
+    ///     "webrtc-signalling" as a page's summary is worse than nothing.
+    /// </remarks>
+    public static string BlurbFor(string slug)
+    {
+        foreach (var g in All)
+        {
+            if (g.Slug == slug)
+            {
+                return g.Blurb;
+            }
+        }
+
+        return "A guide to the Rask component framework.";
+    }
+
     public static string TitleFor(string slug)
     {
         foreach (var g in All)

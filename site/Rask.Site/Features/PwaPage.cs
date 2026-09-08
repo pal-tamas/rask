@@ -12,7 +12,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class PwaPage : Component
 {
-    protected override Component? HeadAssets => Title["PWA — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "PWA — Rask",
+            "Local notifications, Web Push readiness and the installed-app badge, running live in a Rask WebAssembly app that is itself an installable, offline PWA.",
+            Routes.PwaPage());
 
     protected override Component? Render() =>
     [

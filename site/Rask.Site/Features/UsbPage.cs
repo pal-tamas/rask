@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UsbPage : Component
 {
-    protected override Component? HeadAssets => Title["WebUSB — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "WebUSB — Rask",
+            "Pair with and drive a USB device from C# — read its descriptor, claim an interface, run bulk, interrupt and control transfers — through Rask's IUsb wrapper over the WebUSB API.",
+            Routes.UsbPage());
 
     protected override Component? Render() =>
     [

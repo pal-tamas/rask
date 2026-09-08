@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class InstallPromptPage : Component
 {
-    protected override Component? HeadAssets => Title["Install prompt — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Install prompt — Rask",
+            "Capture the browser's install prompt and replay it from your own button, from C#, through Rask's IInstallPrompt wrapper — the piece a PWA needs to be installable on its own terms.",
+            Routes.InstallPromptPage());
 
     protected override Component? Render() =>
     [

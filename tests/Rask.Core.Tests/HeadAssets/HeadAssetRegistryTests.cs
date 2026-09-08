@@ -81,6 +81,118 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("/old/", result);
     }
 
+    [Fact]
+    public void Add_DescriptionIsSingleton_ThePageBeatsTheApp()
+    {
+        // The shape every real site has: one site-wide description on the root component, and a page
+        // that says something more specific. Without a singleton key the page gets BOTH, and which one
+        // a crawler reads is not the page's decision — which is a silent SEO defect, since the markup
+        // renders and validates either way.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Meta.Name("description").Content("the whole site"));
+        registry.Add(Meta.Name("description").Content("this one page"));
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Equal(1, CountOccurrences(result, "name=\"description\""));
+        Assert.Contains("this one page", result);
+        Assert.DoesNotContain("the whole site", result);
+    }
+
+    [Fact]
+    public void Add_TwoDifferentMetaNames_BothSurvive()
+    {
+        // The key is per NAME, not "one meta per head". Getting that wrong would collapse the viewport
+        // and the theme-color into one tag.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Meta.Name("description").Content("d"));
+        registry.Add(Meta.Name("theme-color").Content("#000"));
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Equal(1, CountOccurrences(result, "name=\"description\""));
+        Assert.Equal(1, CountOccurrences(result, "name=\"theme-color\""));
+    }
+
+    [Fact]
+    public void Add_OpenGraphPropertyIsSingleton_ByProperty()
+    {
+        // og:* names itself with `property`, not `name`. Reading only `name` would leave every Open
+        // Graph tag duplicating, which is the half of a social card a page most wants to override.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Meta.Property("og:title").Content("site"));
+        registry.Add(Meta.Property("og:title").Content("page"));
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Equal(1, CountOccurrences(result, "property=\"og:title\""));
+        Assert.Contains("page", result);
+    }
+
+    [Fact]
+    public void Add_OgImageRepeats_BecauseTheSpecSaysItIsAList()
+    {
+        // The exclusion that keeps this from being a lossy rule. A page with three images means three
+        // images; collapsing them to the last one would silently drop two.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Meta.Property("og:image").Content("/a.png"));
+        registry.Add(Meta.Property("og:image").Content("/b.png"));
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Equal(2, CountOccurrences(result, "property=\"og:image\""));
+        Assert.Contains("/a.png", result);
+        Assert.Contains("/b.png", result);
+    }
+
+    [Fact]
+    public void Add_AMediaScopedMetaIsNotASingleton()
+    {
+        // A light/dark theme-color pair is two tags with the same name and different values, and both
+        // are correct. `media` is what tells them apart, so its presence takes the tag out of the rule.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Meta.Name("theme-color").Content("#fff").Media("(prefers-color-scheme: light)"));
+        registry.Add(Meta.Name("theme-color").Content("#000").Media("(prefers-color-scheme: dark)"));
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Equal(2, CountOccurrences(result, "name=\"theme-color\""));
+    }
+
+    [Fact]
+    public void Add_CanonicalIsSingleton_ButOtherLinksAreNot()
+    {
+        // Two canonicals is worse than none — a crawler that sees a contradiction ignores both. Every
+        // other rel repeats legitimately (stylesheets, preloads, icons), so only this one is keyed.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Link.Rel("canonical").Href("https://example.com/old"));
+        registry.Add(Link.Rel("canonical").Href("https://example.com/new"));
+        registry.Add(Link.Rel("stylesheet").Href("/a.css"));
+        registry.Add(Link.Rel("stylesheet").Href("/b.css"));
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Equal(1, CountOccurrences(result, "rel=\"canonical\""));
+        Assert.Contains("/new", result);
+        Assert.DoesNotContain("/old", result);
+        Assert.Equal(2, CountOccurrences(result, "rel=\"stylesheet\""));
+    }
+
+    [Fact]
+    public void ASingletonMetaKeepsOneMorphIdentityAcrossRenders()
+    {
+        // Why the key matters beyond dedup: it becomes the data-rask-key, and the client morph matches
+        // head children by that. A content-derived hash would change with the text, so navigating from
+        // one page to another would DESTROY the description node and create a new one rather than
+        // updating it — which is what already trips the head morph into replacing its neighbours.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Meta.Name("description").Content("anything"));
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Contains("data-rask-key=\"tag:meta:description\"", result);
+    }
+
     // Regression: when the LiveTicker page unmounted, its Chart.js head contribution
     // dropped out of the registry. The client morph walked head children positionally,
     // hit a tag-name mismatch at the shifted slot, and REPLACED the scoped-css <link>

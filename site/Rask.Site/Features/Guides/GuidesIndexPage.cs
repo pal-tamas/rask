@@ -15,7 +15,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class GuidesIndexPage : Component
 {
-    protected override Component? HeadAssets => Title["Guides — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Guides — Rask",
+            "Every Rask guide in one place: components and the chain, routing, forms and validation, data, auth, background work, browser APIs, deployment — the whole framework, page by page.",
+            Routes.GuidesIndexPage());
 
     protected override Component? Render() =>
     [

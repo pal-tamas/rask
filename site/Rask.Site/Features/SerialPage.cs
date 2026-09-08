@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class SerialPage : Component
 {
-    protected override Component? HeadAssets => Title["Web Serial — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Web Serial — Rask",
+            "Talk to an Arduino, a GPS or a USB-to-serial adapter straight from C# — pick a port, write a line, stream inbound bytes — through Rask's ISerial wrapper over the Web Serial API.",
+            Routes.SerialPage());
 
     protected override Component? Render() =>
     [

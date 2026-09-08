@@ -4078,3 +4078,11 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
+Rask.Core.Components.Meta.Media.get -> string?
+Rask.Core.Components.Meta.Media.set -> void
+Rask.Core.Components.Meta.Property.get -> string?
+Rask.Core.Components.Meta.Property.set -> void
+static RaskBuilderSettersRask_Core.Media(this Rask.Core.Build<Rask.Core.Components.Meta!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Meta!>
+static RaskBuilderSettersRask_Core.Property(this Rask.Core.Build<Rask.Core.Components.Meta!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Meta!>
+Rask.Core.Live.IPrerenderPaths
+Rask.Core.Live.IPrerenderPaths.Paths() -> System.Collections.Generic.IEnumerable<string!>!

@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class OrientationPage : Component
 {
-    protected override Component? HeadAssets => Title["Orientation — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Orientation — Rask",
+            "Read and lock screen orientation from C#, through Rask's IScreenOrientation wrapper over the Screen Orientation API.",
+            Routes.OrientationPage());
 
     protected override Component? Render() =>
     [

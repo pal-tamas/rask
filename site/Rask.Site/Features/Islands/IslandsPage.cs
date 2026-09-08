@@ -17,7 +17,11 @@ namespace Rask.Site.Features.Islands;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class IslandsPage : Component
 {
-    protected override Component? HeadAssets => Title["Islands — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Islands — Rask",
+            "React, Preact, Solid, Vue, Svelte, Angular and Lit components hosted inside a Rask page as ordinary C# components — props declared in C#, callbacks re-entering C#, each island a diff boundary.",
+            Routes.IslandsPage());
 
     protected override Component? Render() =>
     [

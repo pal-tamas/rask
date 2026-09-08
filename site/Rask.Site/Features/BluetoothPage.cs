@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class BluetoothPage : Component
 {
-    protected override Component? HeadAssets => Title["Web Bluetooth — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Web Bluetooth — Rask",
+            "Pair with a Bluetooth Low Energy device and talk to its GATT services from C# — connect, read and write characteristics, and subscribe to notifications — through Rask's IBluetooth wrapper over the Web Bluetooth API.",
+            Routes.BluetoothPage());
 
     protected override Component? Render() =>
     [

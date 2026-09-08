@@ -116,6 +116,262 @@ public class WasmPrerenderTests
     }
 
     [Fact]
+    public async Task AnAppCanSupplyThePathsAParameterisedRouteExpandsTo()
+    {
+        // The gap this closes: a docs site's /guides/{slug} is ONE route and eighty pages, and the pass
+        // cannot know the slugs. Without a way to say, the whole of a site's content ships to a crawler
+        // as a boot shell while the publish reports every page it knew about as written — a green build
+        // whose only symptom is a small sitemap.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(AnAppCanSupplyThePathsAParameterisedRouteExpandsTo), [
+            new RouteRegistration(typeof(Home), "/", null),
+            new RouteRegistration(typeof(Home), "/guides/{slug}", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+        services.AddSingleton<IPrerenderPaths>(new FixedPaths("/guides/intro", "/guides/routing"));
+
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            Assert.True(File.Exists(Path.Combine(dir, "guides", "intro", "index.html")));
+            Assert.True(File.Exists(Path.Combine(dir, "guides", "routing", "index.html")));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ASuppliedPathThatIsAlreadyALiteralRouteIsNotRenderedTwice()
+    {
+        // Two registrations naming the same page is a mistake with no error attached: the second render
+        // simply overwrites the first, and the only trace is a URL listed twice in the sitemap — which a
+        // crawler reads as a malformed file rather than as a duplicate.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(ASuppliedPathThatIsAlreadyALiteralRouteIsNotRenderedTwice), [
+            new RouteRegistration(typeof(Home), "/about", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+        // The same path twice over, once from each of two sources, and once already in the plan.
+        services.AddSingleton<IPrerenderPaths>(new FixedPaths("/about", "/extra"));
+        services.AddSingleton<IPrerenderPaths>(new FixedPaths("/extra"));
+
+        Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://example.com");
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+
+            Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/about</loc>"));
+            Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/extra</loc>"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    private sealed class FixedPaths(params string[] paths) : IPrerenderPaths
+    {
+        public IEnumerable<string> Paths() => paths;
+    }
+
+    [Fact]
+    public async Task ASitemapListsEveryPageThatWasWritten()
+    {
+        // Absolute URLs, because that is what the sitemap protocol says and a crawler discards a
+        // sitemap of relative paths. Nothing in a static publish knows the origin, so the app names it.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(ASitemapListsEveryPageThatWasWritten), [
+            new RouteRegistration(typeof(Home), "/", null),
+            new RouteRegistration(typeof(Home), "/about", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://example.com/");
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+
+            Assert.Contains("<loc>https://example.com/</loc>", sitemap, StringComparison.Ordinal);
+            Assert.Contains("<loc>https://example.com/about</loc>", sitemap, StringComparison.Ordinal);
+
+            // The trailing slash on the configured origin must not survive into the URLs, or every
+            // entry is a double slash that redirects — which a crawler treats as a different URL.
+            Assert.DoesNotContain("https://example.com//", sitemap, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ARouteThatWasNotWrittenStaysOutOfTheSitemap()
+    {
+        // The claim that makes the sitemap worth having: it is built from what reached disk, not from
+        // the route table. A skipped route still ANSWERS — with the boot shell — so listing it points a
+        // crawler at exactly the blank page prerendering exists to stop it seeing.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(ARouteThatWasNotWrittenStaysOutOfTheSitemap), [
+            new RouteRegistration(typeof(BrokenOnOneRoute), "/fine", null),
+            new RouteRegistration(typeof(BrokenOnOneRoute), "/broken", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://example.com");
+        try
+        {
+            await WasmPrerender.RunAsync<BrokenOnOneRoute>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            // The premise: one of the two really did fail. Without this the assertion below would pass
+            // just as well on a sitemap that listed neither.
+            Assert.True(File.Exists(Path.Combine(dir, "fine", "index.html")), "/fine was not written");
+            Assert.False(File.Exists(Path.Combine(dir, "broken", "index.html")), "/broken WAS written");
+
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+
+            Assert.Contains("/fine", sitemap, StringComparison.Ordinal);
+            Assert.DoesNotContain("/broken", sitemap, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Theory]
+    // Nothing to say about indexing: listed.
+    [InlineData("<html><head><title>x</title></head><body/></html>", "/a", true)]
+    // Asked not to be indexed: written, but a sitemap is a request to INDEX, so listing it submits a
+    // contradiction — which Search Console reports against the whole file, not the one URL.
+    [InlineData("<head><meta name=\"robots\" content=\"noindex, follow\"></head>", "/a", false)]
+    // Says another URL is the real one. An add form canonicalising to its list is the ordinary case.
+    [InlineData("<head><link href=\"https://x.test/list\" rel=\"canonical\"></head>", "/list/new", false)]
+    // Says THIS is the real one, which is the common case and must not be excluded by the rule above.
+    [InlineData("<head><link href=\"https://x.test/list\" rel=\"canonical\"></head>", "/list", true)]
+    // A trailing slash is not a different page: a static host serves both from the same file.
+    [InlineData("<head><link href=\"https://x.test/list/\" rel=\"canonical\"></head>", "/list", true)]
+    public void ASitemapListsOnlyTheUrlsThatClaimToBeAPage(string html, string path, bool listed) =>
+        Assert.Equal(listed, WasmPrerender.ListedInSitemap(html, path));
+
+    [Fact]
+    public void ACanonicalIsReadFromItsOwnTagAndNotANeighbours()
+    {
+        // The bug a looser reader has: scanning for rel="canonical" and then for the next href="…"
+        // picks up the FOLLOWING link, so a page whose canonical is written rel-first silently
+        // canonicalises to its stylesheet.
+        const string Head =
+            "<head><link rel=\"canonical\" href=\"https://x.test/page\">"
+            + "<link rel=\"stylesheet\" href=\"/a.css\"></head>";
+
+        Assert.Equal("https://x.test/page", WasmPrerender.CanonicalTarget(Head));
+    }
+
+    [Fact]
+    public void APageWithNoRobotsMetaIsIndexable()
+    {
+        // The negative control for IsNoIndex. A reader that matched too loosely — on the word "noindex"
+        // anywhere in the document, say — would drop every page that DOCUMENTS the tag, which on this
+        // repo's own site is a guide.
+        Assert.False(WasmPrerender.IsNoIndex("<head><title>Using noindex</title></head>"));
+        Assert.False(WasmPrerender.IsNoIndex("<head><meta name=\"robots\" content=\"index, follow\"></head>"));
+        Assert.True(WasmPrerender.IsNoIndex("<head><meta name=\"robots\" content=\"noindex\"></head>"));
+    }
+
+    [Fact]
+    public async Task NoOriginMeansNoSitemapRatherThanAGuessedOne()
+    {
+        // A domain guessed into a published file is worse than no sitemap: it is wrong on every host
+        // but one, and nothing about the output says it was invented.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(NoOriginMeansNoSitemapRatherThanAGuessedOne), [
+            new RouteRegistration(typeof(Home), "/", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            Assert.False(File.Exists(Path.Combine(dir, "sitemap.xml")));
+            Assert.False(File.Exists(Path.Combine(dir, "robots.txt")));
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task RobotsPointsAtTheSitemap_ButNeverOverwritesTheAppsOwn()
+    {
+        // robots.txt has real consequences — a wrong one delists a site — so an author who shipped one
+        // has said something this pass has no business editing.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(RobotsPointsAtTheSitemap_ButNeverOverwritesTheAppsOwn), [
+            new RouteRegistration(typeof(Home), "/", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://example.com");
+        try
+        {
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var written = await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt"));
+            Assert.Contains("Sitemap: https://example.com/sitemap.xml", written, StringComparison.Ordinal);
+
+            // Now the app's own, on a second pass over the same directory.
+            await File.WriteAllTextAsync(Path.Combine(dir, "robots.txt"), "User-agent: *\nDisallow: /\n");
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            Assert.Equal(
+                "User-agent: *\nDisallow: /\n",
+                await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt")));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
     public void APathBaseFromTheBuildReachesTheRenderedUrls()
     {
         // A browser boot reads the prefix off the document's <base href>. A prerender pass has no
@@ -373,5 +629,17 @@ public class WasmPrerenderTests
     private sealed class Broken : Component
     {
         protected override Component? Render() => throw new InvalidOperationException("boom");
+    }
+
+    /// <summary>Renders for every route but one, which it throws on.</summary>
+    /// <remarks>
+    ///     RunAsync&lt;TApp&gt; instantiates the SAME app for every path — the app's own router is what
+    ///     picks the page — so a fixture cannot make one route throw by registering a throwing component
+    ///     against it. It has to read the route itself, which is what this does.
+    /// </remarks>
+    private sealed class BrokenOnOneRoute(RouteState route) : Component
+    {
+        protected override Component? Render() =>
+            route.Path == "/broken" ? throw new InvalidOperationException("boom") : Div["home-page"];
     }
 }

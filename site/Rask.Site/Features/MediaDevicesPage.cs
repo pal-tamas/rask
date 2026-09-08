@@ -11,7 +11,11 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class MediaDevicesPage : Component
 {
-    protected override Component? HeadAssets => Title["Camera & microphone — Rask"];
+    protected override Component? HeadAssets =>
+        PageMeta.For(
+            "Camera & microphone — Rask",
+            "Enumerate cameras and microphones, ask for permission and preview a live stream, from C#, through Rask's IMediaDevices wrapper over the MediaDevices API.",
+            Routes.MediaDevicesPage());
 
     protected override Component? Render() =>
     [
