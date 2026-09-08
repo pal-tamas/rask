@@ -9,6 +9,35 @@ them until tagged releases begin.
 
 ### Added
 
+- **`OnToggle` and `OnBeforeToggle` on every element, and key containment for an open listbox.** Two
+  small framework additions that close the same gap: a popover's open state belongs to the browser,
+  and C# could neither hear about it nor keep the keyboard out of the page while it was open.
+
+  **The toggle event.** A `[popover]` closes itself on Escape and on a click outside, and nothing told
+  C# — so a component tracking its own open flag went on believing the panel was open, and its
+  `aria-expanded` went on saying so over a closed panel. **Every C#-driven popover in this framework
+  had that hole**; `UiModal`'s popover path and `UiMegamenu` both do, they simply never tracked state
+  to notice. `ToggleEventArgs` carries the platform's own `OldState`/`NewState` — "closed", "open" —
+  rather than a bool, because those are the words the DOM event uses and a caller comparing against
+  `"open"` is comparing against the spec; `IsOpen` is derived, so it cannot disagree with them.
+
+  The pair is appended to `GlobalEventOrder`, so no existing attribute's serialized position moves,
+  and ordered chronologically within itself as the drag and keyboard groups are.
+
+  **Key containment.** The live client never calls `preventDefault`, so with a custom listbox open
+  ArrowDown scrolled the page behind it and Enter submitted the surrounding form. `rask-dom.ts` gains
+  a handler for that, kept deliberately separate from the Bootstrap-era popover engine beside it —
+  that one is gated on its own state and keyed on `[data-rask-popover]`/`.dropdown-menu.show`, hooks
+  nothing emits any more. The new one is keyed on the ARIA contract instead: it contains the
+  navigation keys exactly while the closest `[role=combobox]` reports `aria-expanded="true"`, which
+  the toggle event above is what keeps truthful. **Escape is deliberately not contained** — its
+  default *is* the dismissal.
+
+  Measured: `RenderTenTimes` and the keyed-list and deep-component benches are byte-identical
+  (158.02 KB, 100.34 KB, 76.34 KB); `RenderOnce` moves 85.27 KB → 87.15 KB, which is one-time static
+  initialisation rather than a per-render cost — a per-render cost would show as ten times that on
+  `RenderTenTimes`, and it shows as nothing.
+
 - **The UI kit's Actions components are driven by Rask, not by CSS tricks — and `UiFab` is new.**
   daisyUI's Actions category, complete, with the open state where a page can reach it.
 

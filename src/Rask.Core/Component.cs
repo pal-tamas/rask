@@ -2209,6 +2209,14 @@ public abstract partial class Component : RaskMarkup
                     await InvokeWithRenderingAsync(() => f(key)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
+                case Action<ToggleEventArgs> a:
+                    a(ToggleEventArgs.FromJson(payload));
+                    return true;
+                case Func<ToggleEventArgs, Task> f:
+                    var toggle = ToggleEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => f(toggle)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
                 case Action<IReadOnlyList<RaskFile>> a:
                 {
                     var files = FileListReader.Read(payload);
