@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Rask.Core.Authentication;
 
 namespace Rask.Auth;
@@ -18,7 +19,7 @@ internal sealed class ServerAuth<TUser>(
     AccountService<TUser> accounts,
     IAuthSignIn signIn,
     AuthOptions options) : IAuth
-    where TUser : RaskUser, new()
+    where TUser : IdentityUser, new()
 {
     public async Task<AuthResult> RegisterAsync(
         string email, string password, string? returnUrl = null, string? firstRunToken = null)
