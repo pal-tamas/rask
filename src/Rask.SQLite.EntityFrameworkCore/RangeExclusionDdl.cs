@@ -109,7 +109,7 @@ internal static class RangeExclusionDdl
 
         // Only a soft-deletable entity has the column; the builder already refuses the flag otherwise.
         var deletedAt = spec.IgnoreSoftDeleted
-            ? Column(entityType, nameof(ISoftDeletable.DeletedAt), store)
+            ? Column(entityType, Columns.DeletedAt, store)
             : null;
 
         var indexName = $"IX_{table}_Range";
