@@ -125,6 +125,76 @@ public sealed class CheckConfigCoverageTests : IDisposable
         Assert.Empty(engine.Warnings);
     }
 
+    [Fact]
+    public void An_island_whose_module_is_missing_is_named_AND_carries_a_code()
+    {
+        // The positive half of the rule above, and the half #1042 is about.
+        //
+        // The message was right from the start; it just had no CODE. A task warning logged without one
+        // cannot be reached by MSBuildWarningsAsMessages, MSBuildWarningsNotAsErrors or anything else,
+        // so the only way to quiet it was RaskExternalPropTypes=false — which also turns off the
+        // prop-types WRITE, and in tests/Rask.External.Tests that write is what type-checks Dial.ts.
+        // "Suppress the warning" and "disable the guarantee a test asserts" were the same switch.
+        var engine = new StubEngine();
+        var task = NewTask(Front("Panel.tsx"));
+        task.BuildEngine = engine;
+
+        task.ReportUnbuiltIslands(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Gauge"] = "./Gauge.ts",
+        });
+
+        var warning = Assert.Single(engine.Warnings);
+        Assert.Equal(WriteExternalPropTypesTask.UnbuiltIslandCode, warning.Code);
+        Assert.Contains("Gauge", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_island_whose_module_IS_being_built_is_not_reported()
+    {
+        // Dial's shape: the one fixture in tests/Rask.External.Tests that has a module. It must stay
+        // silent, or the demotion there would be hiding a real report rather than an expected one —
+        // and this is the #938 cross-check, so a false positive here would train someone to ignore it.
+        var engine = new StubEngine();
+        var task = NewTask(Front("Dial.ts"));
+        task.BuildEngine = engine;
+
+        task.ReportUnbuiltIslands(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Dial"] = "./Dial.ts",
+        });
+
+        Assert.Empty(engine.Warnings);
+    }
+
+    [Fact]
+    public void The_fixture_project_demotes_exactly_the_code_the_task_logs()
+    {
+        // The drift this repository keeps paying for: a suppression naming a code, and a code free to
+        // move without it. Renaming the constant would leave that project silently un-suppressed, and
+        // nothing would say so until someone built it with -warnaserror — which no gate here does.
+        var csproj = File.ReadAllText(Path.Combine(
+            RepoRoot(), "tests", "Rask.External.Tests", "Rask.External.Tests.csproj"));
+
+        Assert.Contains(
+            $"<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);{WriteExternalPropTypesTask.UnbuiltIslandCode}</MSBuildWarningsAsMessages>",
+            csproj,
+            StringComparison.Ordinal);
+    }
+
+    private static string RepoRoot()
+    {
+        for (var dir = AppContext.BaseDirectory; dir is not null; dir = Path.GetDirectoryName(dir))
+        {
+            if (File.Exists(Path.Combine(dir, "Rask.slnx")))
+            {
+                return dir;
+            }
+        }
+
+        throw new InvalidOperationException("Could not locate the repo root (Rask.slnx).");
+    }
+
     private ITaskItem Front(string name)
     {
         var path = Path.Combine(_root, name);

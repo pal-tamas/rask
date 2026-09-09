@@ -33,6 +33,21 @@ public sealed class WriteExternalPropTypesTask : Task
     private const string GeneratedNamespace = "Rask.External.Generated";
     private const string GeneratedTypeName = "RaskExternalGeneratedTypeScript";
 
+    /// <summary>The diagnostic code the unbuilt-island warning carries, so it can be suppressed.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         A PREFIXED id rather than a <c>RASK0xx</c> number, deliberately. Five assemblies allocate
+    ///         in that space and RS1019 only checks one compilation, so a number claimed there goes stale
+    ///         on the next merge from main; the island BUILD diagnostics have their own sequence
+    ///         (<c>RASKISLAND001</c>–<c>003</c>, in Rask.External.targets) and this joins it as 004.
+    ///     </para>
+    ///     <para>
+    ///         Grep before reusing: this is the only place the sequence is allocated from C#, and the
+    ///         rest of it lives in a .targets file that no analyzer reads.
+    ///     </para>
+    /// </remarks>
+    internal const string UnbuiltIslandCode = "RASKISLAND004";
+
     /// <summary>The just-compiled assembly to read the constants out of.</summary>
     [Required]
     public string AssemblyPath { get; set; } = string.Empty;
@@ -218,10 +233,25 @@ public sealed class WriteExternalPropTypesTask : Task
     ///     </para>
     ///     <para>
     ///         A warning rather than an error, so a consumer mid-refactor — a <c>.cs</c> written before
-    ///         the <c>.ts</c> beside it — is told rather than stopped. Worth being plain about what that
-    ///         means HERE though: this repository builds with <c>-warnaserror</c>, so in its own gate
-    ///         this does stop the build. That is the right outcome for a repo whose samples are the
-    ///         documentation, and it is the consumer who gets the softer treatment.
+    ///         the <c>.ts</c> beside it — is told rather than stopped. It is a warning HERE as well, and
+    ///         this paragraph used to claim otherwise: it said the repository's own gate promotes it,
+    ///         which is false. <c>Directory.Build.props</c> sets <c>TreatWarningsAsErrors</c>, and that
+    ///         is the ROSLYN switch — it says nothing about a warning an MSBuild TASK logs. Promoting
+    ///         one of those needs <c>-warnaserror</c> on the command line or
+    ///         <c>MSBuildTreatWarningsAsErrors</c>, and <c>scripts/run-unit-local.sh</c> passes neither.
+    ///         So the gate has always been green on this, and it stops only the build that asks for
+    ///         <c>-warnaserror</c> explicitly (#1042).
+    ///     </para>
+    ///     <para>
+    ///         It carries the code <c>RASKISLAND004</c>, and that is what makes it suppressible at all.
+    ///         A task warning logged with NO code cannot be reached by <c>MSBuildWarningsAsMessages</c>,
+    ///         by <c>MSBuildWarningsNotAsErrors</c>, or by anything else — not by a consumer with one
+    ///         island mid-refactor, and not by this repository, whose <c>tests/Rask.External.Tests</c>
+    ///         declares fourteen islands as inline fixtures and gives exactly one of them a module on
+    ///         purpose. That project demotes this code to a message and says why; every other project,
+    ///         <c>site/Rask.Site</c> included, keeps it at full strength. Suppressing it wholesale
+    ///         through <c>RaskExternalPropTypes=false</c> is what the alternative would have cost, and
+    ///         that switch also turns off the prop-types write one of those very tests asserts.
     ///     </para>
     ///     <para>
     ///         Since #938 it carries a second load. Island discovery now separates a Lit island's
@@ -232,12 +262,23 @@ public sealed class WriteExternalPropTypesTask : Task
     ///         reported here.
     ///     </para>
     /// </remarks>
-    private void ReportUnbuiltIslands()
-    {
-        var modules = ExternalIslandMetadata.Modules(
-            string.IsNullOrEmpty(IslandAssemblyPath) ? AssemblyPath : IslandAssemblyPath);
+    private void ReportUnbuiltIslands() =>
+        ReportUnbuiltIslands(ExternalIslandMetadata.Modules(
+            string.IsNullOrEmpty(IslandAssemblyPath) ? AssemblyPath : IslandAssemblyPath));
 
-        if (modules.Count == 0)
+    /// <summary>
+    ///     The comparison itself, over an already-read module map.
+    /// </summary>
+    /// <remarks>
+    ///     Split from the reader above so it can be driven from a test. The map otherwise comes out of
+    ///     PE metadata, and producing an assembly that declares islands is a compile — far more
+    ///     apparatus than the rule being pinned, which is that an island with no file is named and that
+    ///     the naming carries <see cref="UnbuiltIslandCode" />. Without the code the warning cannot be
+    ///     suppressed by anybody, which is the whole of #1042.
+    /// </remarks>
+    internal void ReportUnbuiltIslands(IReadOnlyDictionary<string, string> modules)
+    {
+        if (modules is null || modules.Count == 0)
         {
             return;
         }
@@ -260,12 +301,27 @@ public sealed class WriteExternalPropTypesTask : Task
                 continue;
             }
 
+            // The long overload purely to carry the CODE. Everything else is what the short one passes
+            // for itself — no subcategory, no file, no position — so the warning is still attributed to
+            // the target that invoked this task, exactly as before.
             Log.LogWarning(
-                $"Rask.External: '{pair.Key}' declares the front-end file '{file}', which is not among "
+                subcategory: null,
+                warningCode: UnbuiltIslandCode,
+                helpKeyword: null,
+                file: null,
+                lineNumber: 0,
+                columnNumber: 0,
+                endLineNumber: 0,
+                endColumnNumber: 0,
+                message: $"Rask.External: '{pair.Key}' declares the front-end file '{file}', which is not among "
                 + "the files this project will bundle. Its markup will render and its chunk will not "
                 + "exist, so the browser reports \"'" + pair.Key + "' is not in the manifest\" and the "
                 + "island never mounts. Either put the file where the island globs reach it, or declare "
-                + "it explicitly with a <RaskExternal Include=\"…\"/> item.");
+                + "it explicitly with a <RaskExternal Include=\"…\"/> item. A project whose islands are "
+                + "test fixtures with no module on purpose can demote this code with "
+                + "<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);" + UnbuiltIslandCode
+                + "</MSBuildWarningsAsMessages>.",
+                messageArgs: null);
         }
     }
 
