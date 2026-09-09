@@ -4,7 +4,30 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
 {
     private readonly Component _component;
 
-    public LifecycleSyncContext(Component component) => _component = component;
+    // The quiescence pass this hook belongs to, CAPTURED BY THE RENDER WALK that started it —
+    // never resolved from inside Post.
+    //
+    // Post cannot resolve it. The runtime restores the awaiter's captured ExecutionContext around
+    // the CONTINUATION, not around the SynchronizationContext.Post that schedules it, so an
+    // AsyncLocal read here sees whatever the completing thread happened to carry — which is the
+    // timer or pool thread that finished the awaited task, not the render. What that produced:
+    //
+    //   * usually null, so the paint gate below was never registered at all and the wave loop was
+    //     free to snapshot in the one-line window the gate exists to close (#932); or
+    //   * a STRANGER — QuiescenceScope's thread-static fallback holding another request's scope on
+    //     that pool thread — so this render's work was registered against someone else's pass.
+    //
+    // Both are silent: the page answers 200 carrying its placeholder, nothing is marked timed out
+    // and no fault is raised anywhere. Handing the scope in from the walk, where it is a fact
+    // rather than an inference, is what makes the gate reliable. The field is the eight bytes that
+    // buys it.
+    private readonly QuiescenceScope? _quiescence;
+
+    public LifecycleSyncContext(Component component, QuiescenceScope? quiescence)
+    {
+        _component = component;
+        _quiescence = quiescence;
+    }
 
     // Set the first time Post runs. InvokeAsyncLifecycleWithRendering's terminal
     // ContinueWith reads this to suppress its own StateHasChanged when Post already
@@ -15,8 +38,10 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
 
     // CreateCopy is invoked along ExecutionContext capture paths; our Post explicitly
     // SuppressFlow()s ExecutionContext propagation, so the runtime never reaches this
-    // along the await chains we care about. A fresh copy with PostFired=false is safe.
-    public override SynchronizationContext CreateCopy() => new LifecycleSyncContext(_component);
+    // along the await chains we care about. A fresh copy with PostFired=false is safe —
+    // but it must carry the same pass, or a copy would lose the gate exactly as Post used to.
+    public override SynchronizationContext CreateCopy() =>
+        new LifecycleSyncContext(_component, _quiescence);
 
     public override void Post(SendOrPostCallback d, object? state)
     {
@@ -27,13 +52,8 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
         // be true by the time d(state) runs.
         PostFired = true;
 
-        // Read HERE rather than caching it in a field. This type is allocated for every component's
-        // OnMountAsync/OnPropsChangedAsync, no-op overrides included, so a field would cost eight
-        // bytes on every component in the tree — measurably (+3.1 KB on the render-once pin) to
-        // serve a path most components never take. Post runs under the hook's captured
-        // ExecutionContext, so the AsyncLocal is still correct on this side of the suppression
-        // below; only the Task.Run body needs it restored explicitly.
-        var quiescence = QuiescenceScope.Current;
+        // Handed in by the walk. Never QuiescenceScope.Current — see the field.
+        var quiescence = _quiescence;
 
         // A gate the quiescence loop can wait on, registered HERE — before anything can complete.
         //
