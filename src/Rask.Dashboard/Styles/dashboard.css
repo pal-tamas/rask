@@ -14,49 +14,95 @@
   global reset landed on the host's own pages too — for as long as an operator had the console open, with
   nothing reporting it, because from the app's side one route simply looked wrong. The fix was to stop
   sharing the document, not to hand-maintain a scoped copy of somebody else's reset.
+
+  LAYER ORDER is not this sheet's to state, and deliberately so. A browser orders layers by FIRST
+  APPEARANCE across every sheet in link order, and nothing later can reorder a name already placed —
+  DashboardLayout inlines the KIT's sheet before this one, and that sheet opens by declaring the order for
+  the whole document (UiLayerOrderTests pins it). Adding a competing statement here could only either
+  agree with it or be ignored. What matters is that the kit's order puts `base` below `utilities`, so the
+  preflight above cannot outrank the utilities these pages write.
 */
 @import "tailwindcss";
 
 /*
-  Light, and not negotiable from outside: this is an operator surface, and the host application's theme
-  has no business deciding what it looks like. The console is read on a phone as often as at a desk, so
-  the palette is built for a bright screen and every layout in it is built mobile-first.
+  THE PALETTE IS daisyUI'S, NAMED THROUGH THE KIT'S TOKENS.
+
+  Every value below is an alias for one of daisyUI's semantic variables. That is the whole point: the
+  console draws with `text-ui-muted` and the kit's components draw with `text-base-content`, on the same
+  page, and those two vocabularies have to resolve to the same palette or the console is two designs at
+  once. It used to be exactly that — this block carried its own near-white ladder in literal oklch(), so
+  the console's own surfaces stayed light while UiShell's `bg-base-200`/`bg-base-100` followed daisyUI. On
+  an operator whose OS was in dark mode the shell painted dark and every label on it stayed near-black.
+  Nothing reported it: the tokens were valid, the class names were correct, and the unit suite reads
+  markup.
+
+  Light, and not negotiable from outside: this is an operator surface, and neither the host application's
+  theme nor the reader's OS has any business deciding what a console full of hand-checked contrast
+  ratios looks like. That is now enforced where daisyUI enforces it — `data-theme="light"` on the element
+  carrying the theme scope, written by RaskDashboardShell on <html> and by UiShell on its own div. A
+  comment claiming it was not enough; `[data-rask-ui]:not([data-theme])` is a real rule and it was
+  winning. Every ratio quoted below is therefore measured against daisyUI's LIGHT theme.
+
+  These aliases resolve only inside the theme scope, because that is where daisyUI defines
+  --color-base-* — and Tailwind emits this block at `:root`, so the scope has to reach `:root` too.
+  RaskDashboardShell puts it on <html> for that reason; on a document that only scoped a container, every
+  colour here would compute to nothing while the layout stayed perfect.
 
   Every name below is load-bearing beyond this file: DashboardStylesheetTests asserts the compiled output
   still contains each one, because a rename here is the kind of change whose only symptom is an unstyled
   page nobody notices. Tailwind only emits a token something references, so that test is also the check
   that no token here is decorative — add one and it fails until a utility uses it.
+
+  DashboardPaletteTests holds the rest: a literal colour anywhere in this block is a failure, and so is
+  handing a daisyUI SURFACE colour straight to a token the pages write as text.
 */
 @theme {
-  /* Neutrals — a near-white ladder, not a grey one. The steps are deliberately close together: the
-     console's depth comes from hairlines, not from contrast between surfaces. */
-  --color-ui-bg: oklch(1 0 0);
-  --color-ui-well: oklch(0.979 0 0);
-  --color-ui-line: oklch(0.909 0 0);
-  --color-ui-ink: oklch(0.22 0 0);
-  /* 0.52, not lighter: this is body text on white and has to clear 4.5:1, which a true grey-500 does
-     not. Secondary does not mean unreadable. */
-  --color-ui-muted: oklch(0.52 0 0);
+  /* Neutrals. daisyUI's base ladder is a near-white one — 100%, 98%, 95% — which is the same shape the
+     console's own ladder had: its depth comes from hairlines, not from contrast between surfaces. */
+  --color-ui-bg: var(--color-base-100);
+  --color-ui-well: var(--color-base-200);
+  --color-ui-line: var(--color-base-300);
+  --color-ui-ink: var(--color-base-content);
+
+  /* NOT --color-neutral, which is what the kit's transitional alias table maps this to. In daisyUI's
+     light theme neutral is oklch(14%) — DARKER than base-content's oklch(21%) — so aliasing it straight
+     would render thirty-four secondary labels heavier than the text they sit under. It is a surface
+     colour, meant to be a background with neutral-content on top, and reading it as body text is the
+     same category error the -ink pair below exists to correct.
+
+     Mixed toward the page instead, which is what "muted" actually means and which keeps the tier
+     derived from the theme rather than pinned to a number. 62% lands on oklch(0.510) — the ladder's old
+     literal was oklch(0.52) — and measures 5.75:1 on base-100 and 5.43:1 on base-200. Secondary does not
+     mean unreadable: this is body text and it has to clear 4.5:1, which a true grey-500 does not. */
+  --color-ui-muted: color-mix(in oklab, var(--color-base-content) 62%, var(--color-base-100));
 
   /* Accent — links, focus rings, the active tab. */
-  --color-ui-brand: oklch(0.55 0.2 265);
+  --color-ui-brand: var(--color-primary);
 
-  /* Status FILLS — dots, tinted badge grounds, and text on the dark toast. Amber is teal-leaning's
-     opposite number here: the two have to stay distinguishable at the size of a 6px status dot.
+  /* Status FILLS — dots and tinted badge grounds, always behind something else.
 
      The success pair (--color-ui-ok, --color-ui-ok-ink) and --color-ui-panel used to sit here and are
      gone: nothing references them since the kit's components moved onto daisyUI's own colour utilities,
      and this block is pinned by a test that fails on a token no utility reaches. Success now arrives as
      daisyUI's `text-success`, from the kit's sheet. */
-  --color-ui-warn: oklch(0.77 0.16 70);
-  --color-ui-danger: oklch(0.55 0.2 20);
+  --color-ui-warn: var(--color-warning);
 
-  /* Status TEXT on a light ground. A separate token rather than a darker one, because the same colour is
-     read on two different grounds: the fill above is correct on the near-black toast and fails as text on
-     white (amber measures 2.13:1 — nowhere near the 4.5:1 this file demands two comments up), while this
-     clears it and would in turn be too dark on the toast. Rose already passes at 5.39:1 and needs no
-     twin. Verified by computing the ratios, not by eye. */
-  --color-ui-warn-ink: oklch(0.57 0.13 70);
+  /* Status TEXT, and the reason the -ink twins exist at all: daisyUI's warning and error are SURFACE
+     colours, sized to be a background with warning-content on top, and they fail badly read as text on
+     a light ground. --color-warning is oklch(82% .189 84) — 1.76:1 on white. --color-error is
+     oklch(71% .194 13) — 2.87:1. Aliasing either straight across would ship unreadable status text,
+     which is the kind of defect that looks fine to anyone who already knows what the label says.
+
+     Darkened toward black in oklab, which keeps the hue and only moves lightness, so a warning still
+     reads as the same amber. Measured, not guessed: 62% puts warning at oklch(0.508), 5.83:1 on
+     base-100; 70% puts error at oklch(0.497), 6.54:1.
+
+     Danger has no separate fill token because it needs none — the console writes it as text
+     (text-ui-danger) and as a tint (bg-ui-danger/5, border-ui-danger/30) from the same value, and a
+     colour dark enough to read is still a rose at 5% alpha. Warning is the one that needed splitting:
+     it is written ONLY as a fill except for a single line of text. */
+  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 62%, black);
+  --color-ui-danger: color-mix(in oklab, var(--color-error) 70%, black);
 }
 
 @layer base {

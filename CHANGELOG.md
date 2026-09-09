@@ -36,7 +36,39 @@ them until tagged releases begin.
   reading a problem document, so a 400 arrived with nothing to show the user and nothing anywhere
   said why. (#988)
 
+- **A Lit island on the showcase.** `LitBadge.ts` is a plain custom element that imports nothing at
+  all — no framework, no npm package — and it takes the same generated props, the same build-time
+  type-check and the same C# callback every other island does. It could not be shown before: the site
+  has scoped TypeScript, and until the collision below was fixed a project could only have one of the
+  two. (#938)
+
 ### Fixed
+
+- **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
+  `Name.ts` beside `Name.cs`, and the only thing separating them is whether the class derives from
+  `LitComponent` — which Roslyn knows and a glob does not. So in a project with both, island discovery
+  offered every scoped file to the bundler as a Lit module that never default-exported a tag name, and
+  the scoped glob compiled every island's module as a component asset: registered as
+  `window.Rask["Gauge"]`, injected as a `<script>` the component never asked for, and type-checked
+  against a `@rask/Gauge.props` mapping that exists only in the island's own tsconfig.
+
+  The build now reads the base list out of the C# source and sends each `.ts` down exactly one
+  pipeline. It has to be the SOURCE and not the compiled assembly, which knows exactly: the
+  scoped-TypeScript list is compiled and handed to the C# compiler, so it cannot wait for the assembly
+  that compile produces, and reusing the previous build's would make a clean build differ from the one
+  after it. The approximation is checked against the real answer on the same build — an island whose
+  declared module is not among the files being built is already reported by name.
+
+  `RaskExternalLitAutoPair` is **retired**. It existed only to say which one of the two features a
+  project had; a project can now have both, which is what the knob could never deliver. Delete it
+  wherever it appears — the showcase carried it, and now carries a Lit island instead.
+  `RaskScopedTsAutoInclude` stays: it is Rask.Core's own switch for a `.ts` that is not a component
+  asset at all. (#938)
+
+- **The repository-wide scoped-TypeScript type-check never looked at `site/`.** The one app in the
+  repo — the app whose scoped TypeScript the feature exists for — was the only tree the sweep skipped,
+  and nothing said so. It sweeps `site` now, and skips island modules, which are not scoped assets.
+  (#938)
 
 - **The showcase's top bar was near-black text on a near-black bar, on markup whose class names were
   entirely correct.** `wwwroot/global.css` still carried `.app-navbar { background: rgba(20, 16, 31,
@@ -571,6 +603,41 @@ them until tagged releases begin.
 - **The mobile nav drawer covers the phone.** It was a 288px rail pinned to the left edge, leaving a
   strip of page behind the backdrop and giving eighty guides half a screen to lay out in; it is the
   full viewport now (measured 390x844 on a 390x844 phone), with the list scrolling inside it.
+
+- **The operator console's palette is daisyUI's, and the console is invisible in dark mode no longer.**
+  `Rask.Dashboard`'s own stylesheet carried a near-white ladder in literal `oklch()` while `UiShell`
+  painted the surface under it with daisyUI's `bg-base-200` / `bg-base-100` / `text-base-content`. Those
+  two palettes agreed only by coincidence, and only in light: daisyUI's theme scope follows
+  `prefers-color-scheme`, so on an operator's dark-mode machine the chrome and the cards went dark while
+  every `text-ui-ink` label on them stayed near-black. Measured in a browser, the queue titles on the
+  overview came out at **1.09:1** and the log table's headers at 2.88:1. Nothing could see it — the
+  tokens were valid, every class name in the markup was correct, and the 88-test unit suite was green,
+  because the whole defect is a question of what the tokens *resolve to*.
+
+  Every `--color-ui-*` in `dashboard.css` is now an alias for a daisyUI semantic variable, and the theme
+  is named rather than inherited: `data-theme="light"` rides with the theme scope on `<html>`
+  (`RaskDashboardShell`) and on the shell div (`UiShell`), which is where daisyUI actually reads it. In
+  light the console is pixel-identical to before — `--color-base-100/200/300/content` are the ladder it
+  had — and in dark it is now identical to light rather than half-repainted.
+
+  Two aliases are derived rather than taken, and each says what it measured. `--color-ui-muted` is
+  `color-mix(in oklab, var(--color-base-content) 62%, var(--color-base-100))`, **not** `--color-neutral`
+  as the kit's transitional table maps it: neutral is oklch(14%) in daisyUI's light theme, *darker* than
+  base-content, and it would have rendered thirty-four secondary labels heavier than the text above them.
+  `--color-ui-danger` is `--color-error` darkened 70% toward black, because daisyUI's error is a surface
+  colour and measures 2.87:1 read as text on white — the same trap `--color-ui-warn-ink` already existed
+  to avoid.
+
+  New `UiShell.Theme` in `Rask.Ui`, because until now a surface built on the shell had no way to name a
+  theme at all: `data-theme` on an ancestor does not settle it, since the rule that follows the OS is
+  `[data-rask-ui]:not([data-theme])` and it matches the shell's own element.
+
+  Four new gates in `DashboardPaletteTests`, because class-name assertions demonstrably cannot see any of
+  this: the `@theme` block may declare no literal colour, no token written as `text-ui-*` may be a bare
+  alias of a daisyUI *surface* colour (scanned from the pages, so a new one is covered the day it is
+  written), and both scope-carrying elements must name a theme. Verified in a real browser at 1280x900
+  and 390x844, light and dark: no page overflow and no over-wide table at either width, and the console's
+  worst measured text contrast is 16.68:1 in both colour schemes. (#1017)
 
 - **The showcase's chrome is daisyUI's now, following the sidebar.** The top bar is `navbar` with its
   `navbar-start` / `navbar-end` halves, the hamburger is `btn btn-ghost btn-square`, the two brand pills

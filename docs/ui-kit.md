@@ -84,6 +84,18 @@ daisyUI's 35 themes all ship, as the `UiThemeName` enum. Light is the default an
 operating system; to choose one, put `data-theme` on the element carrying the theme scope — or on any
 container, to re-theme just that subtree.
 
+`UiShell` carries the scope itself, so it names its own theme:
+
+```csharp
+UiShell.Theme(UiThemeName.Light)[ /* … */ ]
+```
+
+Leave it off and that subtree follows the OS. Writing `data-theme` on an ancestor does **not** settle
+it, because the rule that follows the OS is `[data-rask-ui]:not([data-theme])` and it matches the
+shell's own element — which is how a surface with its own fixed palette can render its chrome dark and
+its content light on the same screen. `Rask.Dashboard` pins `Light` for exactly that reason; see
+[the dashboard](dashboard.md).
+
 ```csharp
 UiThemeController.Label("Dark").Theme(UiThemeName.Dark).Active(_theme is UiThemeName.Dark)
                  .OnChange(theme => _theme = theme)

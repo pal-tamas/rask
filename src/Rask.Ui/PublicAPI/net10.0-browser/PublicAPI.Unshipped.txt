@@ -1560,6 +1560,8 @@ Rask.Ui.UiSelect<T>.Value.set -> void
 Rask.Ui.UiSelect<T>.Variant.get -> Rask.Ui.UiVariant?
 Rask.Ui.UiSelect<T>.Variant.set -> void
 Rask.Ui.UiShell
+Rask.Ui.UiShell.Theme.get -> Rask.Ui.UiThemeName?
+Rask.Ui.UiShell.Theme.set -> void
 Rask.Ui.UiShell.UiShell() -> void
 Rask.Ui.UiSize
 Rask.Ui.UiSize.Default = 0 -> Rask.Ui.UiSize
@@ -2221,6 +2223,7 @@ static RaskBuilderSettersRask_Ui.Text(this Rask.Core.Build<Rask.Ui.UiStep!> __b,
 static RaskBuilderSettersRask_Ui.Text<TMode>(this Rask.Core.Build<Rask.Ui.UiCheckbox!, TMode> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiCheckbox!, TMode>
 static RaskBuilderSettersRask_Ui.Text<TMode>(this Rask.Core.Build<Rask.Ui.UiRadio!, TMode> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiRadio!, TMode>
 static RaskBuilderSettersRask_Ui.Text<TMode>(this Rask.Core.Build<Rask.Ui.UiToggle!, TMode> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiToggle!, TMode>
+static RaskBuilderSettersRask_Ui.Theme(this Rask.Core.Build<Rask.Ui.UiShell!> __b, Rask.Ui.UiThemeName? value) -> Rask.Core.Build<Rask.Ui.UiShell!>
 static RaskBuilderSettersRask_Ui.Theme(this Rask.Core.Build<Rask.Ui.UiThemeController!> __b, Rask.Ui.UiThemeName value) -> Rask.Core.Build<Rask.Ui.UiThemeController!>
 static RaskBuilderSettersRask_Ui.Themes(this Rask.Core.Build<Rask.Ui.UiThemeDropdown!> __b, System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>? value) -> Rask.Core.Build<Rask.Ui.UiThemeDropdown!>
 static RaskBuilderSettersRask_Ui.Themes(this Rask.Core.Build<Rask.Ui.UiThemePicker!> __b, System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>? value) -> Rask.Core.Build<Rask.Ui.UiThemePicker!>
@@ -2378,6 +2381,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiRange(Rask.Core.Comp
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiRating(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiSearch(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiSelect_1<T>(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiShell(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiStat(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiStatusDot(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiStep(Rask.Core.Component! __c0) -> void
@@ -2462,6 +2466,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiRange(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiRating(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiSearch(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiSelect_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiShell(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiStat(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiStatusDot(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiStep(Rask.Core.Component! __c0, ulong __p) -> void

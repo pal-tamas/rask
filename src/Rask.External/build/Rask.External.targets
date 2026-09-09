@@ -126,15 +126,12 @@
     </_RaskExternalFile>
 
     <!-- .d.ts carries no code, and its %(Filename) still ends in '.d' — so it would pair with nothing
-         and name a component nobody declared. Filtered to the .cs-paired ones in
-         _RaskExternalPairLitFiles below, which is a TARGET because the filter needs metadata
-         batching: %(Item.Metadata) in an item Condition is illegal outside one (MSB4191), and the
-         failure is not a warning — the whole project stops being a valid project file, so every
-         `dotnet run` of it dies before Main. -->
+         and name a component nobody declared. Narrowed to the files a component actually declares as
+         its module by _RaskExternalPairLitFiles below, which reads the C# rather than the file name:
+         `Name.ts` beside `Name.cs` is ALSO how scoped TypeScript is spelled, and only the base class
+         separates them (#938). -->
     <_RaskExternalLitCandidate Include="$(MSBuildProjectDirectory)/**/*.ts"
-                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*;$(MSBuildProjectDirectory)/**/*.d.ts">
-      <Sibling>%(RootDir)%(Directory)%(Filename).cs</Sibling>
-    </_RaskExternalLitCandidate>
+                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*;$(MSBuildProjectDirectory)/**/*.d.ts"/>
 
     <!-- Still available for a file convention cannot reach — the build-side counterpart of overriding
          Module in C#. The two have to agree; nothing checks that they do. -->
@@ -252,13 +249,6 @@
     The adapters, vendored into obj/ rather than into the author's source tree. They are refreshed
     from the package on every build, which is what keeps the client half wire-locked to the C# half:
     upgrading Rask.External upgrades both together or the pair drifts.
-  -->
-  <!--
-    Pairs each candidate .ts with a .cs of the same name, which is what makes a LitComponent's module
-    discoverable by convention rather than by hand.
-
-    A target rather than an ItemGroup because the filter reads %(Sibling) per item, and metadata
-    batching is only legal inside one.
   -->
   <!--
     Type-checks each front-end file against the props its C# declares. This is what makes the
@@ -463,19 +453,67 @@
           IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
+  <UsingTask TaskName="Rask.External.Tasks.FindExternalIslandsTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.External.Tasks.dll"/>
+
   <!--
-    Pairs each candidate .ts with a .cs of the same name. This is the discovery path for BOTH runtimes
-    that write a plain .ts — Lit and Angular — even though the fallback metadata says lit: the C# base
-    class is what decides, and the assembly read in _RaskExternalWriteInputs overrides this. So a
-    project that turns RaskExternalLitAutoPair off loses its Angular islands too, and has to declare
-    them with <RaskExternal Include="…" Runtime="angular"/>.
+    Which `.ts` files are island modules, and which are scoped TypeScript (#938).
+
+    This is the discovery path for BOTH runtimes that write a plain .ts — Lit and Angular — and it is
+    also the one place that can tell either of them from an ordinary scoped asset, because `Name.ts`
+    beside `Name.cs` is exactly how BOTH features are spelled. The task reads the C# base list out of
+    the source, which is where the difference is written; the assembly read in _RaskExternalWriteInputs
+    still overrides the runtime, and _RaskExternalWritePropTypes warns about any island the scan missed.
+
+    Runs BEFORE the compile, not after it, because _RaskExternalExcludeIslandsFromScopedTs needs the
+    answer while the scoped-TypeScript list is still being decided — that list is compiled and handed
+    to csc, so it cannot wait for the assembly csc produces.
+
+    Guarded like _RaskExternalWritePropTypes: an in-repo tree whose task assembly has not been built
+    yet, or was built against a different targets file, pairs NOTHING rather than pairing everything.
+    That degrades to "the islands are not discovered on this build", which the ProjectReference fixes
+    on the next one — where pairing everything is the defect this target exists to remove.
   -->
-  <Target Name="_RaskExternalPairLitFiles" Condition="'$(RaskExternalLitAutoPair)' != 'false'">
+  <Target Name="_RaskExternalPairLitFiles"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalCheckTaskStamp"
+          Condition="'@(_RaskExternalLitCandidate)' != '' AND '$(DesignTimeBuild)' != 'true'
+                     AND '$(_RaskExternalTaskStale)' != 'true'
+                     AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')">
+    <FindExternalIslandsTask Sources="@(Compile)"
+                             Candidates="@(_RaskExternalLitCandidate)"
+                             ScopedFiles="@(_RaskScopedTs)">
+      <Output TaskParameter="Islands" ItemName="_RaskExternalTsIsland"/>
+      <Output TaskParameter="ScopedIslands" ItemName="_RaskExternalScopedIsland"/>
+    </FindExternalIslandsTask>
+
     <ItemGroup>
-      <_RaskExternalFile Include="@(_RaskExternalLitCandidate)" Condition="Exists('%(_RaskExternalLitCandidate.Sibling)')">
-        <IslandName>%(Filename)</IslandName>
-        <Runtime>lit</Runtime>
-      </_RaskExternalFile>
+      <_RaskExternalFile Include="@(_RaskExternalTsIsland)"/>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    The other direction of the same collision: an island's module is not a scoped asset.
+
+    Left in @(_RaskScopedTs) it is compiled into obj/ and registered against its own component as a
+    scoped script — so `window.Rask["Gauge"]` is the island's module, the component gains a <script>
+    it never asked for, and a no-emit `tsgo` pass over the scoped files reports `@rask/Gauge.props`, a
+    mapping that exists only in the island's own generated tsconfig.
+
+    BeforeTargets names all three scoped-TypeScript entry points rather than only the compile: one
+    resolves the compiler, one compiles, and one turns the outputs into AdditionalFiles, and each is
+    reachable without the others. A target named here that does not exist — a project without
+    Rask.Core's build integration — is simply ignored.
+
+    Removing by the item identity the scoped glob produced is load-bearing. Rebuilding the list would
+    drop %(RecursiveDir), which is populated only by the ** in that Include and which both the compile's
+    Outputs and the AdditionalFiles transform resolve through.
+  -->
+  <Target Name="_RaskExternalExcludeIslandsFromScopedTs"
+          BeforeTargets="_RaskResolveTsgo;_RaskCompileScopedTs;_RaskAddCompiledScopedTs"
+          DependsOnTargets="_RaskExternalPairLitFiles"
+          Condition="'@(_RaskExternalLitCandidate)' != '' AND '$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <_RaskScopedTs Remove="@(_RaskExternalScopedIsland)"/>
     </ItemGroup>
   </Target>
 

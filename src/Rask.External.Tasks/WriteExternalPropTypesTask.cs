@@ -217,12 +217,19 @@ public sealed class WriteExternalPropTypesTask : Task
     ///         neither.
     ///     </para>
     ///     <para>
-    ///         A warning rather than an error, so a consumer mid-refactor is told rather than stopped —
-    ///         <c>RaskExternalLitAutoPair=false</c> makes an unpaired island a SUPPORTED configuration
-    ///         rather than a typo. Worth being plain about what that means HERE though: this repository
-    ///         builds with <c>-warnaserror</c>, so in its own gate this does stop the build. That is the
-    ///         right outcome for a repo whose samples are the documentation, and it is the consumer who
-    ///         gets the softer treatment.
+    ///         A warning rather than an error, so a consumer mid-refactor — a <c>.cs</c> written before
+    ///         the <c>.ts</c> beside it — is told rather than stopped. Worth being plain about what that
+    ///         means HERE though: this repository builds with <c>-warnaserror</c>, so in its own gate
+    ///         this does stop the build. That is the right outcome for a repo whose samples are the
+    ///         documentation, and it is the consumer who gets the softer treatment.
+    ///     </para>
+    ///     <para>
+    ///         Since #938 it carries a second load. Island discovery now separates a Lit island's
+    ///         <c>.ts</c> from a scoped one by reading the C# base list out of the SOURCE — the compiled
+    ///         assembly, which knows exactly, arrives too late for the scoped pipeline. This is the
+    ///         check that holds that approximation to what Roslyn actually decided: an island the scan
+    ///         missed is one whose declared module is not among the files being built, and it is
+    ///         reported here.
     ///     </para>
     /// </remarks>
     private void ReportUnbuiltIslands()

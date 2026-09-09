@@ -37,6 +37,38 @@ public sealed partial class RaskDashboardShell : Component
         Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
     ];
 
+    /// <summary>
+    /// Puts the kit's theme scope, pinned to daisyUI's light theme, on <c>&lt;html&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Not chrome, and so not the layout's: this is the document element, and the layout renders inside
+    /// the body. Two separate things ride on it.
+    /// </para>
+    /// <para>
+    /// <b>The scope has to reach <c>:root</c>.</b> The console's stylesheet expresses every
+    /// <c>--color-ui-*</c> token as an alias for one of daisyUI's semantic variables, and Tailwind emits
+    /// that <c>@theme</c> block at <c>:root</c>. A custom property's <c>var()</c> is substituted where the
+    /// declaration applies, so <c>--color-base-100</c> has to be defined at <c>:root</c> as well or every
+    /// alias computes to nothing and inherits nothing — a fully laid-out console with no colour in it.
+    /// <c>UiShell</c> carrying the scope on a div inside the body is not enough for that.
+    /// </para>
+    /// <para>
+    /// <b>And the theme has to be named.</b> daisyUI follows <c>prefers-color-scheme</c> through
+    /// <c>[data-rask-ui]:not([data-theme])</c>, so a scope with no theme repaints the console dark on an
+    /// operator's dark-mode laptop while the contrast ratios its stylesheet is built on are all measured
+    /// against a white ground. An operator surface is not the host's, nor the OS's, to re-theme.
+    /// </para>
+    /// </remarks>
+    protected override Component Shell(Component head, Component body) =>
+        Html.Lang(HtmlLang).Dir(HtmlDir)
+            .Attributes(
+                (UiStylesheet.ThemeScopeAttribute, ""),
+                ("data-theme", UiTheme.Value(DashboardTheme.Name)))[
+            head,
+            Body.Class(BodyClass)[body]
+        ];
+
     /// <inheritdoc />
     protected override Component? Render() => Router;
 }

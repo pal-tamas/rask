@@ -91,6 +91,32 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
     public void A_footer_can_run_horizontally() =>
         Assert.Contains("footer-horizontal", UiFooter.Horizontal(true)[Span["x"]].ToHtml());
 
+    [Fact]
+    public void The_shell_carries_the_theme_scope_and_follows_the_OS_by_default()
+    {
+        var html = UiShell[Span["x"]].ToHtml();
+
+        // Without the attribute nothing inside has a colour at all — daisyUI's palette is confined to it
+        // so that referencing this package cannot repaint an app that only wanted a button.
+        Assert.Contains(UiStylesheet.ThemeScopeAttribute, html, StringComparison.Ordinal);
+
+        // And NO data-theme, which is not the same as an empty one: daisyUI's OS-following rule is
+        // `[data-rask-ui]:not([data-theme])`, so an attribute present with an unmatched value would
+        // leave the subtree with no palette rather than with the system's.
+        Assert.DoesNotContain("data-theme", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_shell_can_name_its_theme()
+    {
+        // The shell IS the element carrying the scope, so this is the only place a surface built on it
+        // can say so — writing data-theme on an ancestor loses to the rule above, which matches here.
+        Assert.Contains(
+            "data-theme=\"dark\"",
+            UiShell.Theme(UiThemeName.Dark)[Span["x"]].ToHtml(),
+            StringComparison.Ordinal);
+    }
+
     private static string Drawer(bool? open) =>
         UiDrawer
             .Id("nav")

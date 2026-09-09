@@ -15,9 +15,12 @@ namespace Rask.Site.Features.Islands;
 ///         queue-while-reconnecting for free.
 ///     </para>
 ///     <para>
-///         Lit and Angular are absent here, and that is deliberate rather than an omission: both pair
-///         with a plain <c>.ts</c>, which collides with Rask's scoped TypeScript — and this app
-///         genuinely uses it. The Server showcase, which has no scoped TypeScript at all, carries both.
+///         <see cref="LitBadge" /> is here BECAUSE this app has scoped TypeScript, not despite it. A
+///         Lit island is spelled <c>Name.ts</c> beside <c>Name.cs</c>, which is exactly how a scoped
+///         asset is spelled, and until #938 the build could only be told which ONE of the two
+///         conventions a project used — so this page could show every runtime but the one with no
+///         dependencies. Angular is still absent, for a reason of its own: its toolchain is three npm
+///         packages this bundle does not carry.
 ///     </para>
 ///     <para>
 ///         React and Solid sit in folders of their own because they both compile <c>.tsx</c>, so their
@@ -43,6 +46,7 @@ public sealed partial class IslandsDemo : Component
     private int _step = 1;
     private int _reactTotal;
     private int _hoveredPoint = -1;
+    private int _badgeNudges;
 
     protected override Component? Render() =>
     [
@@ -97,6 +101,26 @@ public sealed partial class IslandsDemo : Component
 
         Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
             Div.Class(Tw.CardBody)[
+                H6.Class("font-bold")["A Lit island, beside this app's own scoped TypeScript"],
+                P.Class("text-sm text-ui-muted")[
+                    Code["LitBadge.ts"], " imports nothing at all — a custom element needs no ",
+                    "framework and no npm package. It sits in a project that also has scoped ",
+                    "TypeScript, which is spelled identically; the build tells them apart by reading ",
+                    "the C# base class."
+                ],
+
+                LitBadge.Label("Capacity").Value(_reading).OnNudged(BadgeNudged),
+
+                P.Class("text-sm mt-3 mb-0")[
+                    "The badge reported ",
+                    Code.Id("island-badge-nudges")[_badgeNudges.ToString()],
+                    Span[" nudge(s) back to C#."]
+                ]
+            ]
+        ],
+
+        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
+            Div.Class(Tw.CardBody)[
                 H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
                 P.Class("text-sm text-ui-muted")[
                     "Byte-identical to ", Code["SolidSpark.tsx"], " on the Server host. Its hover count ",
@@ -124,6 +148,8 @@ public sealed partial class IslandsDemo : Component
 
     private void PointHovered(int index) => _hoveredPoint = index;
 
+    private void BadgeNudged(int nudges) => _badgeNudges = nudges;
+
     private void Raise()
     {
         _reading = Math.Min(100, _reading + 15);
@@ -148,6 +174,7 @@ public sealed partial class IslandsDemo : Component
         _step = 1;
         _reactTotal = 0;
         _hoveredPoint = -1;
+        _badgeNudges = 0;
 
         _readings.Clear();
         _readings.AddRange([12, 30, 22, 48, 35, 61]);
