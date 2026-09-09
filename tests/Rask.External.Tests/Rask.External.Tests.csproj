@@ -42,13 +42,11 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Core"/>
     <Using Include="Rask.Core.Components"/>
-    <Using Include="Rask.Html.Components"/>
     <Using Include="Rask.External"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- For NodeFixture: the client runtime is exercised as the JavaScript it ships, in node. -->
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
@@ -65,7 +63,9 @@
     fixture that no longer compiles fails the BUILD instead of failing a test with node's message.
   -->
   <ItemGroup>
-    <_RaskNodeFixture Include="*Fixture.ts"/>
+    <!-- PreactAdapterFixture is excluded because it needs npm packages and therefore its own target
+         below; everything else here bundles with nothing installed. -->
+    <_RaskNodeFixture Include="*Fixture.ts" Exclude="PreactAdapterFixture.ts"/>
   </ItemGroup>
 
   <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
@@ -90,5 +90,109 @@
   <ItemGroup>
     <_RaskNodeFixtureDependency Include="..\..\src\Rask.External\wwwroot\*.js"/>
   </ItemGroup>
+
+  <!--
+    ==========================================================================================
+    The Preact adapter fixture (#963).
+    ==========================================================================================
+
+    PreactAdapterFixture.ts drives src/Rask.External/client/preact.ts against the REAL preact and a
+    real DOM, so it needs two npm packages that no other fixture here does.
+
+    They are installed under obj/, NOT into a shared per-user cache. A cache keyed by version would be
+    installed once for the whole machine and is what the esbuild/tsgo resolver does — but that resolver
+    unpacks into a temp directory and moves it into place, and `npm install` has no equivalent. Two
+    worktrees running their gates at once would then install into the same tree concurrently. obj/ is
+    per worktree, costs one 2-second install per checkout, and cannot be raced.
+
+    `obj/preact-fixture` rather than $(IntermediateOutputPath): the install is configuration-neutral,
+    and Debug and Release should not each pay for their own copy. Same reasoning as
+    _RaskExternalStableObj in Rask.External.targets.
+
+    Note the location: a package.json here would NOT make this project bundlable — _RaskExternalBundlable
+    probes $(MSBuildProjectDirectory)/package.json exactly, and obj/ is excluded from every island glob.
+    A package.json at the project root would turn this test project into an island app and run vite
+    over its 13 fixture components.
+  -->
+  <PropertyGroup>
+    <!-- Pinned, and the only copy of either number. Listed in the check-dependency-updates skill. -->
+    <RaskPreactFixtureVersion Condition="'$(RaskPreactFixtureVersion)' == ''">10.29.8</RaskPreactFixtureVersion>
+    <RaskHappyDomFixtureVersion Condition="'$(RaskHappyDomFixtureVersion)' == ''">20.14.0</RaskHappyDomFixtureVersion>
+
+    <!-- The one switch that turns the whole thing off, for a build with no npm and no network. The
+         test then reports SKIPPED rather than passing, so a machine that never runs it says so. -->
+    <RaskPreactFixture Condition="'$(RaskPreactFixture)' == ''">true</RaskPreactFixture>
+
+    <_PreactFixtureRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/obj/preact-fixture'))</_PreactFixtureRoot>
+    <_PreactFixtureModules>$(_PreactFixtureRoot)/node_modules</_PreactFixtureModules>
+    <_PreactFixtureStamp>$(_PreactFixtureRoot)/.installed</_PreactFixtureStamp>
+  </PropertyGroup>
+
+  <!--
+    IgnoreExitCode, and a stamp written only when the packages actually arrived.
+
+    A missing npm, a proxy, an offline machine: none of those should fail a build of the C# framework,
+    and none of them should look like success either. So the install is allowed to fail quietly, the
+    stamp is conditioned on the installed trees being THERE rather than on the exit code, and the
+    bundle below is conditioned on the stamp. What reaches a person is a SKIPPED test naming the
+    reason — the one outcome that is neither a red build nor a silent pass.
+
+    Failure therefore costs a retry on every build rather than being remembered. That is deliberate:
+    the alternative caches "this machine cannot" past the moment it can again.
+  -->
+  <Target Name="_RaskRestorePreactFixture" AfterTargets="Build"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true'"
+          Inputs="$(MSBuildProjectFullPath)" Outputs="$(_PreactFixtureStamp)">
+    <MakeDir Directories="$(_PreactFixtureRoot)"/>
+
+    <!-- Exact versions, no ranges: a fixture that quietly moved to a new preact minor would be
+         reporting on a version nobody chose. -->
+    <WriteLinesToFile File="$(_PreactFixtureRoot)/package.json" Overwrite="true" WriteOnlyWhenDifferent="true"
+                      Lines="{&quot;name&quot;:&quot;rask-preact-fixture&quot;,&quot;private&quot;:true,&quot;type&quot;:&quot;module&quot;,&quot;dependencies&quot;:{&quot;preact&quot;:&quot;$(RaskPreactFixtureVersion)&quot;,&quot;happy-dom&quot;:&quot;$(RaskHappyDomFixtureVersion)&quot;}}"/>
+
+    <Exec Command="npm install --no-audit --no-fund --loglevel=error"
+          WorkingDirectory="$(_PreactFixtureRoot)"
+          IgnoreExitCode="true"
+          StandardOutputImportance="low"
+          ContinueOnError="true"/>
+
+    <Touch Files="$(_PreactFixtureStamp)" AlwaysCreate="true"
+           Condition="Exists('$(_PreactFixtureModules)/preact/package.json') AND Exists('$(_PreactFixtureModules)/happy-dom/package.json')"/>
+
+    <Message Importance="high" Text="Rask.External.Tests: npm could not install preact@$(RaskPreactFixtureVersion) + happy-dom@$(RaskHappyDomFixtureVersion) into '$(_PreactFixtureRoot)', so PreactAdapterTests will report SKIPPED."
+             Condition="!Exists('$(_PreactFixtureStamp)')"/>
+  </Target>
+
+  <!--
+    The aliases are what let the adapter — which lives in src/Rask.External/client, nowhere near this
+    node_modules — resolve `preact` at all: esbuild walks up from the IMPORTING file, and no ancestor
+    of the adapter has a node_modules. esbuild has no NODE_PATH equivalent on its command line either,
+    so an alias per package is the whole mechanism.
+
+    The banner is for happy-dom, which pulls in `ws` and requires `events` at load. Bundled to ESM
+    there is no `require` in scope, and esbuild's shim throws "Dynamic require of ... is not
+    supported" before the fixture's first line runs.
+  -->
+  <!-- ResolveProjectReferences for the reason the sibling target states: ResolveTypeScriptToolTask is
+       loaded from a generated Rask.TypeScript.Tasks.dll that exactly that reference edge produces
+       (#878). Inert at AfterTargets="Build", stated so the invariant holds without an exemption. -->
+  <Target Name="_RaskBundlePreactFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_PreactFixtureStamp)')"
+          Inputs="PreactAdapterFixture.ts;$(_PreactFixtureStamp);@(_RaskNodeFixtureDependency);..\..\src\Rask.External\client\preact.ts;..\..\src\Rask.External\client\adapter.ts"
+          Outputs="$(OutDir)node-fixtures/PreactAdapterFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;PreactAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:preact=&quot;$(_PreactFixtureModules)/preact&quot; --alias:preact/hooks=&quot;$(_PreactFixtureModules)/preact/hooks&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; &quot;--banner:js=import{createRequire as __raskRequire}from 'node:module';const require=__raskRequire(import.meta.url);&quot; --outfile=&quot;$(OutDir)node-fixtures/PreactAdapterFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
 
 </Project>

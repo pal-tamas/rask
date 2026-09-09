@@ -35,7 +35,7 @@ filter", exited 0, and the hook announced the gate had passed.
 
 ## The definition-of-done gate
 
-Every change passes this gate before a PR (the `rask-ship` skill):
+Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 
 1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. The `pre-commit` gate
    runs the verify for you, so this is a fast pre-check rather than the last line of defence.
@@ -67,14 +67,17 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    assembly — run `dotnet build-server shutdown` before judging any change to it, or you are measuring
    the previous build's DLL.
 4. **Benchmarks** — any render/live-runtime hot-path change runs `benchmarks/Rask.Benchmarks`
-   before/after and quotes the `Allocated` delta in the PR.
+   before/after and quotes the `Allocated` delta in the commit body.
 5. **Docs & the site** — user-facing changes update `site/Rask.Site`, the relevant `docs/*.md`,
    `README.md`, `NUGET.md`, `llms.txt`, and the template `AGENTS.md`. Add a `CHANGELOG.md`
    `[Unreleased]` entry (Keep a Changelog).
 6. **Review** — security, performance, and memory held together with UX; prefer standard .NET
    APIs over hand-rolled code; refactor duplication you touch (the `rask-review` skill).
-7. **PR** — Conventional Commit `type(scope): subject` (enforced by commitlint), structured body,
-   no AI-attribution footers; delete the branch after squash-merge.
+7. **Land on `main`** — Conventional Commit `type(scope): subject` (enforced by commitlint), then
+   merge `origin/main` in with `git merge --no-commit` (a *clean* merge auto-commits and runs
+   `pre-merge-commit`, a hook this repo does not have, so it lands ungated) and
+   `git push origin HEAD:main`. **Own work never goes through a pull request** — PRs are reserved
+   for external contributions, which arrive from forks. See the `land-on-main` skill.
 
 ## Versioning & releases
 

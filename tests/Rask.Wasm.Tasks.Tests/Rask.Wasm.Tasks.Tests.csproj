@@ -42,7 +42,6 @@
     <ProjectReference Include="..\..\src\Rask.Wasm.Tasks\Rask.Wasm.Tasks.csproj" />
     <ProjectReference Include="..\Rask.ScopedAssets.Fixture\Rask.ScopedAssets.Fixture.csproj" />
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj" />
-    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj" />
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 

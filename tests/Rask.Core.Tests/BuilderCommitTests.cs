@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Core.Components;
-using Rask.Html.Components;
 
 #pragma warning disable RASK014 // the tests render the very instance they hand to the root
 

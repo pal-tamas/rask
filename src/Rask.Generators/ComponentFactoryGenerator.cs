@@ -172,10 +172,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // It turns off only the half of the consumer path that injects a forwarder per entry into every
         // local host partial, while still publishing this assembly's `RaskEntries{Assembly}` class so a
         // REFERENCING compilation keeps seeing the entries. A component LIBRARY wants exactly that split:
-        // Rask.Html declares ~155 tags, and injecting every one of them into every other one is O(n²)
-        // generated members whose names collide with the props those hosts inherit from Element
-        // (`Style`, `Data`, `Title`, `Cite`, …) — CS0108 with nothing able to hide it, because the entries
-        // land ABOVE Element rather than below it the way Rask.Core's do on RaskMarkup.
+        // a library that IS a large entry set would inject every one of its components into every other,
+        // which is O(n²) generated members whose names collide with the props those hosts inherit from
+        // Element (`Style`, `Data`, `Title`, `Cite`, …). Rask.Core itself needs none of this: its entries
+        // land on RaskMarkup and are INHERITED, which emits nothing per host.
         //
         // There is no switch for the surface itself. There used to be, back when a generated factory was
         // the other way to write markup; turning the chain off now would leave a project with no way to
@@ -299,8 +299,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // The universal surface — Component.Key plus Element's attributes and its ~88 GlobalEventHandlers —
         // as constrained generic extensions over Build<T>. Being generic they already cover every component
         // in the graph, so an assembly that is only a component LIBRARY re-emits an identical set into the
-        // same global namespace and makes `.Key(id)` ambiguous to infer (CS0411). Rask.Html is that shape,
-        // and opts out through the same switch that stops it injecting its own entries.
+        // same global namespace and makes `.Key(id)` ambiguous to infer (CS0411). A component LIBRARY is
+        // that shape, and opts out through the same switch that stops it injecting its own entries.
         var sharedBits = SharedPendingBits(host);
         if (emitSharedSurface)
         {
@@ -2986,6 +2986,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var frameworkRefs = hosts.Any(static h => h.Delivery == Delivery.Injected)
             ? FrameworkEntriesFor(external.Framework, refs)
             : new List<EntryRef>();
+
+        // The framework entry names, for the hosts that INHERIT them — every component, and every
+        // `[RaskMarkup]` host whose generated partial writes `: RaskMarkup`. An own or referenced entry
+        // of the same name is emitted with `new` rather than skipped, so the nearer component keeps the
+        // simple name. Read off the entry set rather than off the host symbol on purpose: a Delivery.Base
+        // host does not derive from RaskMarkup yet — the partial being generated is what adds it — so the
+        // symbol would answer "inherits nothing" for exactly the case that needs the modifier most.
+        var frameworkNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var e in external.Framework)
+        {
+            frameworkNames.Add(e.Name);
+        }
         if (refs.Count == 0 && frameworkRefs.Count == 0
                             && !hosts.Any(static h => h.Delivery == Delivery.Base))
         {
@@ -2999,11 +3011,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             // A nested host CAN be injected into — the generated file just has to re-open every enclosing
             // type as a partial around it. That is only possible if the author declared them partial, and
-            // it stopped being optional when the tag family moved to Rask.Html: entries used to reach a
-            // nested component by INHERITANCE from RaskMarkup, where nesting is irrelevant, and a
-            // referenced library's can only be injected. Silently skipping now means a nested component
-            // silently loses the chain, so the skip reports instead — the same RASK036 a non-partial
-            // top-level host gets, naming the enclosing type that has to change.
+            // it is not optional for a REFERENCED library: the framework's own entries reach a nested
+            // component by INHERITANCE from RaskMarkup, where nesting is irrelevant, but a referenced
+            // library's can only be injected. Skipping would cost that nested component the chain with
+            // nothing said, so the skip reports instead — the same RASK036 a non-partial top-level host
+            // gets, naming the enclosing type that has to change.
             if (host2.IsNested && !host2.EnclosingAllPartial)
             {
                 // Names the ENCLOSING type as the thing to change, which the comment above has always
@@ -3057,6 +3069,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .AppendLine(host2.Delivery == Delivery.Base ? " : global::Rask.Core.RaskMarkup" : string.Empty);
             sb.AppendLine("{");
             var declared = new HashSet<string>(host2.MemberNames, StringComparer.Ordinal);
+            // An Injected host inherits nothing: its framework entries are emitted as SIBLINGS just above,
+            // and FrameworkEntriesFor has already dropped the ones an own entry claims.
+            var inherits = host2.Delivery != Delivery.Injected;
             if (host2.Delivery == Delivery.Injected)
             {
                 foreach (var e in frameworkRefs)
@@ -3081,7 +3096,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                EmitEntryForwarder(sb, e, host2.TypeParameters);
+                EmitEntryForwarder(sb, e, host2.TypeParameters, inherits && frameworkNames.Contains(e.Name));
             }
 
             sb.AppendLine("}");
@@ -3344,7 +3359,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     // One injected member: the entry's own signature, delegating to the canonical one.
-    private static void EmitEntryForwarder(StringBuilder sb, EntryRef e, string hostTypeParameters)
+    private static void EmitEntryForwarder(
+        StringBuilder sb, EntryRef e, string hostTypeParameters, bool hidesInheritedEntry = false)
     {
         var typeParameters = e.TypeParameters;
         var constraints = e.Constraints;
@@ -3379,7 +3395,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // the metadata carries no docs, emit an empty comment that suppresses the tooltip entirely.
         sb.Append("    /// <inheritdoc cref=\"").Append(e.HostFqn).Append('.').Append(e.Name)
             .AppendLine("\"/>");
-        sb.Append("    private static ").Append(returnType).Append(' ').Append(EscapeIdentifier(e.Name))
+        // `new` when the name is already an INHERITED framework entry. Hiding is what the author asked
+        // for by naming a component after a tag, and it is the precedence the chain has always had — the
+        // nearer component wins. Without the modifier this is CS0108, an error under warnings-as-errors;
+        // without the forwarder at all the tag would quietly win instead and the markup would render the
+        // wrong element with a green build.
+        sb.Append("    private static ").Append(hidesInheritedEntry ? "new " : string.Empty)
+            .Append(returnType).Append(' ').Append(EscapeIdentifier(e.Name))
             .Append(typeParameters).Append(parameters).Append(constraints).Append(" => ").Append(e.HostFqn)
             .Append('.').Append(EscapeIdentifier(e.Name)).Append(typeParameters).Append(e.Arguments)
             .AppendLine(";");
@@ -3738,6 +3760,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var names = new SortedSet<string>(StringComparer.Ordinal);
         for (var t = symbol; t is not null; t = t.BaseType)
         {
+            // RaskMarkup's members are the framework entries, and EmitConsumerEntries answers for those
+            // separately (it hides them with `new`). Counting them HERE would instead filter out the
+            // host's own component entry of the same name and hand the simple name to the TAG —
+            // silently, and only at render time.
+            if (t.OriginalDefinition.ToDisplayString() == RaskMarkupFullName)
+            {
+                continue;
+            }
+
             foreach (var name in t.MemberNames)
             {
                 names.Add(name);

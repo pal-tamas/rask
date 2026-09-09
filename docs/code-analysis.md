@@ -8,8 +8,8 @@ deliberate, per-PR cleanup (see below).
 
 ## Adopted: the public-API gate
 
-**Microsoft.CodeAnalysis.PublicApiAnalyzers** is on for every shipped package (plus `Rask.Core` and
-`Rask.Html`), wired in `Directory.Build.targets`. It tracks the public surface in a checked-in
+**Microsoft.CodeAnalysis.PublicApiAnalyzers** is on for every shipped package (plus `Rask.Core`),
+wired in `Directory.Build.targets`. It tracks the public surface in a checked-in
 `PublicAPI/<tfm>/PublicAPI.{Shipped,Unshipped}.txt` pair, so RS0016/RS0017 turn an unrecorded
 public-surface change into a build failure and a reviewable text diff.
 

@@ -43,10 +43,9 @@
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
-    <!-- Rask.Core and Rask.Html arrive transitively at runtime, but a ProjectReference does not flow
+    <!-- Rask.Core arrives transitively at runtime, but a ProjectReference does not flow
          analyzers, so the factory/routes generators have to be asked for by name to compile a Component. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

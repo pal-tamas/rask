@@ -28,9 +28,11 @@
   <!--
     RaskBuilderEntryInjection (default true) — exposed to the source generator. Turning it off stops
     this assembly injecting its OWN entries into its own markup hosts, while still publishing them
-    for consumers. That is what a component library wants and nothing else does: Rask.Html declares
-    ~155 tags, and injecting every one into every other is O(n²) members whose names collide with
-    the props those hosts inherit from Element.
+    for consumers. That is what a third-party COMPONENT LIBRARY wants and nothing else does: a library
+    that is itself a large entry set would otherwise inject every one of its components into every
+    other, which is O(n²) members whose names collide with the props those hosts inherit from Element.
+    Rask.Core does not need the switch — the framework's own entries reach every component by
+    inheritance from RaskMarkup, which emits nothing per host.
 
     There is no switch for the chain itself. There was one — RaskBuilderSurface — while a generated
     factory was the other way to write markup; with the factory gone, turning the chain off would

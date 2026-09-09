@@ -30,9 +30,11 @@ long time and could never have engaged — they do not run in CI at all. See
 
 **GitHub does the bare minimum — only what GitHub alone can do:** `commitlint.yml`, `pages.yml`,
 `release.yml`, and `nightly.yml`'s prerelease publish. There is no `ci.yml`; the benchmark byte-gates
-it held moved into `.githooks/pre-push`. `commitlint` earns its place because it checks the **PR
-title**, and the repo squash-merges — so that title becomes the commit on `main` and no local
-`commit-msg` hook ever sees it.
+it held moved into `.githooks/pre-push`. `commitlint` earns its place on the one path a local hook
+cannot reach: an **external** contribution, where the **PR title** becomes the squash commit on
+`main` and no `commit-msg` hook ever sees it. It triggers `on: pull_request` only, so it says nothing
+about the maintainer's own work — that lands by a direct push and is linted by `.githooks/commit-msg`
+instead (which also refuses AI-attribution trailers).
 
 The one CI gate that did exist rode red through three merges without stopping anyone
 ([#919](https://github.com/pal-tamas/rask/issues/919)), which is what a non-required check on a repo

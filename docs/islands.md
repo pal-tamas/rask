@@ -150,6 +150,9 @@ rather than leaving an ERESOLVE tree that names four Babel packages and neither 
 the [TypeScript SPA lane](spa.md) relies on — and one adapter serves both. New code should reach for
 `PreactComponent`, which imports Preact directly and needs no aliasing to be right.
 
+This is also why neither showcase carries a Preact island — both already carry a React one. It is
+covered without a browser instead; see [Preact, verified without a browser](#preact-verified-without-a-browser).
+
 ### What Angular needs
 
 Angular's plugin imports two packages it does not depend on, so both have to be installed beside it,
@@ -294,10 +297,11 @@ dictionaries, and records composed of the same. Anything else is
 [RASK057](diagnostics.md#rask057) at compile time rather than `null` in the browser. `[SkipFactory]`
 keeps a property out of the props entirely.
 
-> **A prop named after an HTML tag will not compile.** `Title`, `Label`, `Data`, `Form`, `Style` and
-> friends collide with the chain entry of the same name (CS0108, fatal under `-warnaserror`). This is
-> not specific to these, but they make it much likelier because those are natural names for a UI
-> component's props. Rename the property, or qualify the tag at its use site.
+> **A prop named after an HTML tag is fine.** `Title`, `Label`, `Data`, `Form`, `Style` and friends
+> hide the chain entry of the same name, and CS0108 used to make that fatal under `-warnaserror`.
+> [RASKSUP001](diagnostics.md#cs0108-a-member-hides-a-builder-entry) now suppresses it, so these
+> natural prop names cost nothing. Inside the component the hidden name resolves to your property —
+> qualify the tag on the rare occasion you want the element instead.
 
 ## Callbacks
 
@@ -559,7 +563,6 @@ line 1 — naming neither Vue nor the plugin that should have handled it.
 | Property | Default | |
 |---|---|---|
 | `RaskExternalBuild` | `true` | `false` skips node entirely. They still render their host elements. |
-| `RaskExternalLitAutoPair` | `true` | `false` stops a `.ts` beside a `.cs` being assumed a Lit island. Set it in any project that also has scoped TypeScript. |
 | `RaskExternalOutputDir` | `wwwroot/_rask/external` | Under `wwwroot` so the SDK publishes it with no publish target of its own. |
 
 The bundle is written after `wwwroot` has already been globbed, so the build registers it as a
@@ -591,20 +594,36 @@ what to create — a custom element registers its own tag and nothing about the 
 > `static properties` plus `customElements.define('my-tag', MyElement)`, which is the same API with no
 > transform to depend on.
 
-> **A Lit island collides with scoped TypeScript.** Both features are spelled `Name.ts` beside
-> `Name.cs`, and nothing in MSBuild can tell them apart: the only difference is whether the class
-> derives from `LitComponent`, which Roslyn knows and a glob does not. It bites in both directions —
-> the scoped pipeline compiles an island's file as a component asset, and island discovery offers
-> every scoped file to the bundler as a Lit module that never default-exported a tag name.
->
-> Say which the project has:
->
-> - **Islands only** (no scoped TypeScript): `<RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>`.
-> - **Scoped TypeScript only**, or scoped TypeScript plus Lit islands you name yourself:
->   `<RaskExternalLitAutoPair>false</RaskExternalLitAutoPair>`, then declare each Lit island with
->   `<RaskExternal Include="widgets/gauge.ts" Runtime="lit"/>`.
->
-> The other three runtimes have extensions of their own and are never ambiguous.
+### A Lit island and scoped TypeScript in one project
+
+Both features are spelled `Name.ts` beside `Name.cs`. The only difference is whether the class derives
+from `LitComponent` — which Roslyn knows and a glob does not — so the build used to claim files in both
+directions: the scoped pipeline compiled an island's module as a component asset, and island discovery
+offered every scoped file to the bundler as a Lit module that never default-exported a tag name. Two
+opt-outs let a project say which *one* of the features it had, and a project that wanted both could not
+have them.
+
+**Nothing to set now.** The build reads the base list out of the C# and each `.ts` goes to exactly one
+pipeline. `RaskExternalLitAutoPair` is **retired**: setting it does nothing, and it can be deleted from
+any project that carries it. `RaskScopedTsAutoInclude` stays — it is Rask.Core's own switch, for a
+project whose `.ts` files are not component assets at all — but it is no longer something an islands
+project has to reach for.
+
+The reading happens *before* the compile, because the scoped-TypeScript list is compiled and handed to
+the C# compiler and so cannot wait for the assembly that compile produces. It is therefore a scan of the
+source rather than a semantic answer, and the build checks it against the real one: after the compile,
+an island whose declared module is not among the files being built is reported by name.
+
+Two consequences worth knowing:
+
+- The pairing is per **directory** and per **name**. `Gauge.ts` is `Gauge`'s module only if `Gauge.cs`
+  sits beside it, and only if `Gauge`'s runtime is one that writes a plain `.ts` — a `Chart.ts` next to
+  a `Chart : ReactComponent` stays a scoped asset, because that component's module is `./Chart.tsx`.
+- A component that overrides `Module` to name something else still has its sibling file claimed. The
+  build says so rather than leaving it silent: the declared module has no file, and that is reported.
+
+`<RaskExternal Include="widgets/gauge.ts" Runtime="lit"/>` is still there for a file the convention
+cannot reach. The other runtimes have extensions of their own and were never ambiguous.
 
 ### Both hosts, verified
 
@@ -614,6 +633,27 @@ local state advancing together, which is what shows the adapter reconciles rathe
 
 On WASM the callback reaches C# through a `[JSExport]` call into this tab's runtime rather than over a
 socket; nothing in the front-end file knows which.
+
+### Preact, verified without a browser
+
+Preact is the one runtime with no showcase island, and it cannot have one: both showcases carry a
+React island, and [React and Preact cannot share a project](#react-and-preact-cannot-share-a-project).
+That is a constraint on a bundled **app**, not on a test — a fixture installs Preact and nothing
+else — so it is covered instead by `PreactAdapterTests` in `tests/Rask.External.Tests`, a Node harness
+that drives the shipped client runtime, the shipped adapter, real Preact and a real DOM (happy-dom):
+
+- it mounts into the island element and the component's own `useEffect` runs once;
+- a `props` attribute change **reconciles** — the heading changes while the component's own `useState`
+  keeps the value a click put there, and the mount effect does not re-run;
+- a callback called inside the component arrives on the host dispatch channel with its arguments, and
+  stops firing once C# stops passing the delegate;
+- unmount is `render(null, element)`, so the component's cleanup effects actually run.
+
+The packages are pinned and installed under `obj/` on first build; with no npm, no network, or
+`-p:RaskPreactFixture=false` the tests report **skipped** rather than passing quietly.
+
+What this does not reach is `@preact/preset-vite` itself: nothing builds a Preact island through Vite,
+so a change in its transform is still only caught by building one.
 
 ## What is not here yet
 
@@ -627,9 +667,27 @@ socket; nothing in the front-end file knows which.
   since Angular components need the Angular compiler rather than plain Vite.
 - **Blazor.** `.razor` components, with props staying C# and never becoming JSON — and static prerender
   needing no bundler at all.
-- **Islands in a shared library.** The client runtime resolves the manifest at the app-rooted
-  `/_rask/external/manifest.json`, so the app that serves the page is the app that has to bundle them.
-  A class library can hold the C#, but its bundle would be served under `_content/<PackageId>/` where
-  nothing looks for it.
+- **Islands in a shared library.** The app that serves the page is still the app that has to bundle
+  them. Measured against a real class library and an app referencing it, the gap is narrower than it
+  reads — and narrower than [#939](https://github.com/pal-tamas/rask/issues/939) first recorded:
+
+  - The *build* side already works inside a library. A Razor-SDK class library holding `Badge.cs`
+    (a `LitComponent`) and `Badge.ts` beside it writes its own `Badge.props.d.ts`, runs the prop
+    type-check (a renamed C# property fails the library's build with `TS2339`), bundles with Vite, and
+    registers the chunks as static web assets under `_content/<PackageId>/_rask/external/`, which the
+    referencing app then serves. None of that needs changing.
+  - Two URLs are wrong, and both are the same mistake. `rask-external.js` fetches the app-rooted
+    `/_rask/external/manifest.json`, which the `UseRask` catch-all answers with the page's own HTML
+    (`Unexpected token '<'`, nothing mounted). And `RaskExternalPublicBase` defaults to `/_rask/external/`
+    whatever project it is in, so the library's manifest points every chunk at a path under the *app's*
+    root rather than under its own `_content/` base — a URL that answers with the page's HTML too.
+  - The prop-types half of #939 only bites when a component's C# and its front-end file are in
+    *different* projects. That shape is already reported: `ReportUnbuiltIslands` warns in the project
+    that declares the island, because the module it points at is not among the files being built.
+  - **A trap for whoever fixes this.** The library's URL base cannot be derived from
+    `StaticWebAssetBasePath` or `StaticWebAssetProjectMode`. Both are empty at evaluation, and once
+    `ResolveStaticWebAssetsConfiguration` has run, the browser-WASM app resolves to
+    `_content/Rask.Site` / `Default` — character-for-character what the class library resolves to,
+    while its `wwwroot` is served at the site root. `OutputType` is what separates them.
 - **Server-side rendering** for the bundler-backed runtimes, which is what would make `Hydration.None`
   broadly useful.

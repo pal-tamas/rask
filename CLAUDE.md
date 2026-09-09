@@ -7,15 +7,15 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 
 ## Workflows → skills (use them automatically)
 `.claude/skills/` holds the committed playbooks; apply the matching one without being asked.
-- **rask-ship** — definition-of-done gate before any commit/PR: `dotnet format` (.editorconfig) →
-  `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → PR.
+- **rask-ship** — definition-of-done gate before any commit: `dotnet format` (.editorconfig) →
+  `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → land on main.
 - **add-html-tag** · **add-diagnostic** · **add-codefix** — scaffolding (component+test / RASK0xx+docs+test / IDE quick-fix+test).
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
-- **open-pr** — branch off main, Conventional-Commit, **no AI-attribution footers**, delete branch after merge.
+- **land-on-main** — Conventional-Commit, gated merge of `origin/main`, `git push origin HEAD:main`. **Never open a PR** for own work.
 - **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
-Standing rules: do your best every PR, holding **UX + security + performance** together; prefer
+Standing rules: do your best every change, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E
 only when unreachable); E2E for every `site/` change — **tests run locally, not in CI**: `dotnet
 format` + unit via `scripts/run-unit-local.sh` (enforced by `.githooks/pre-commit`), browser E2E via
@@ -32,9 +32,10 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 `docs/ai-agents.md`. Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
 
 ## Projects
-- `src/Rask.Core` — rendering, live context, routing, scoped CSS/TypeScript, lifecycle.
-- `src/Rask.Html` — the HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Html.Components`;
-  `IsPackable=false`, bundled into every host package. Core keeps only the tags its engine builds.
+- `src/Rask.Core` — rendering, live context, routing, scoped CSS/TypeScript, lifecycle, AND the whole
+  HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Core.Components`. `IsPackable=false`,
+  bundled into every host package. The tags live HERE so their entries land on `RaskMarkup` and reach
+  every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
 - `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
 - `src/Rask.Server` — ASP.NET host (`AddRask()`/`UseRask<TApp>()`, WS dispatcher). `src/Rask.Wasm` — browser host.
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
@@ -112,7 +113,7 @@ started / migration / testing / architecture (`docs/`). Trimming: `site/Rask.Sit
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
-- **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
+- **New HTML tag** → `add-html-tag` skill (`src/Rask.Core/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–074 are documented in `docs/diagnostics.md`
   (RASK030/032/034/042/047/048/049/050 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK075). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space

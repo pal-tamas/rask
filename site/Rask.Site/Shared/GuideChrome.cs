@@ -2,7 +2,6 @@ using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Routing;
-using Rask.Html.Components;
 using Rask.Site.Features;
 
 namespace Rask.Site;

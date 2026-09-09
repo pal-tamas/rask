@@ -260,7 +260,7 @@ public class PackageDependencyTests
     [Fact]
     public void A_bundled_dll_ships_its_XML_docs_too()
     {
-        // Rask.Core and Rask.Html are IsPackable=false and reach consumers by being copied into a host
+        // Rask.Core is IsPackable=false and reaches consumers by being copied into a host
         // package's lib/ folder. Their XML doc file has to make the same trip: it is the ONLY way the
         // documentation on Component, Element and every element component reaches anyone consuming the
         // package. Drop the line and nothing breaks — the build is green, the API works, and every
@@ -424,8 +424,8 @@ public class PackageDependencyTests
                 .Where(v => !string.IsNullOrEmpty(v))!,
             StringComparer.OrdinalIgnoreCase);
 
-    // A bundled project can itself bundle another (Rask.Html takes Rask.Core), and the
-    // host packs every one of their DLLs, so the whole chain's package references have to surface.
+    // A bundled project can itself bundle another, and the host packs every one of their DLLs, so the
+    // whole chain's package references have to surface.
     private static IEnumerable<string> TransitivePackageReferences(string name, Dictionary<string, string> projects)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

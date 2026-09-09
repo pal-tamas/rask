@@ -88,7 +88,7 @@ public sealed class TailwindBuiltInTests
     /// <remarks>
     ///     Not tidiness, and not merely redundant. An app that referenced both a host package and
     ///     Rask.Tailwind would import the same targets twice, and the compile target would run the
-    ///     Tailwind compiler twice over one output file. Rask.Core and Rask.Html are
+    ///     Tailwind compiler twice over one output file. Rask.Core is
     ///     <c>IsPackable=false</c> for the same reason.
     /// </remarks>
     [Fact]

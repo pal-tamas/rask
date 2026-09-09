@@ -273,7 +273,7 @@ in `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed t
 
 Every component carries the `Ui` prefix, and that is load-bearing rather than decorative. Inside a
 markup host a bare `X` is the chain's `Build<X>` entry, so a component called `Shell` would collide
-with `Component.Shell`, and `Nav`/`Main`/`Button`/`Select`/`Search` with the Rask.Html tags. On a
+with `Component.Shell`, and `Nav`/`Main`/`Button`/`Select`/`Search` with the HTML tags. On a
 collision [RASK040](diagnostics.md#rask040) gives **neither** type an entry, across the whole
 compilation.
 

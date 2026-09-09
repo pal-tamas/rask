@@ -13,7 +13,6 @@ public class ComponentConstructionAnalyzerTests
     {
         var src = """
                   using Rask.Core.Components;
-                  using Rask.Html.Components;
                   class C
                   {
                       void M() { var x = new Div(); }
@@ -137,7 +136,6 @@ public class ComponentConstructionAnalyzerTests
     {
         var src = """
                   using Rask.Core.Components;
-                  using Rask.Html.Components;
                   class C
                   {
                       void M() { var arr = new[] { new Div(), new Span() }; }

@@ -46,10 +46,8 @@ public sealed class ErrorBoundary : Component
 
     /// <summary>Where <see cref="Error" /> came from. Meaningless when <see cref="Error" /> is null.</summary>
     /// <remarks>
-    ///     This used to need <c>new</c>: the builder surface gave <see cref="Component" /> an entry named
-    ///     after every tag, and one of them is <c>&lt;source&gt;</c>. The tag family lives in
-    ///     <c>Rask.Html</c> now, so Core inherits no <c>Source</c> entry and there is nothing left to
-    ///     hide — the collision, and the CS0108 it caused, are gone with it.
+    ///     Hides the builder entry named after the <c>&lt;source&gt;</c> tag, which is what this member
+    ///     means. No <c>new</c> is needed for it: RASKSUP001 suppresses that CS0108.
     /// </remarks>
     internal ErrorSource Source { get; private set; }
 

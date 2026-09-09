@@ -33,7 +33,7 @@ namespace Rask.Ui;
 public sealed partial class UiModal : Component
 {
     /// <summary>daisyUI and MaryUI both call this <c>title</c>.</summary>
-    public new required string Title { get; set; }
+    public required string Title { get; set; }
 
     /// <summary>
     ///     Names the dialog so a button can open it. Required for the popover path — it is what
