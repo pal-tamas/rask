@@ -349,9 +349,14 @@ public static class ModelSet
         ///         model read with <c>AsTracking()</c> writes only what it touched.
         ///     </para>
         ///     <para>
-        ///         This writes an existing row. A new model is inserted with <c>Add</c>, which says so at
-        ///         the call site rather than leaving insert-or-update to be inferred from whether a key
-        ///         happens to be set.
+        ///         <b>It inserts a model that has never been persisted and updates one that has</b>, so a
+        ///         freshly created model and a loaded one are both just saved. The two are told apart by
+        ///         <c>CreatedAt</c>, which the <see cref="AuditingInterceptor" />
+        ///         stamps on insert and nothing else ever writes — no extra <c>SELECT</c>, and no guessing
+        ///         from whether the key is set, which for a client-assigned <see cref="Guid" /> it always
+        ///         is. A row whose <c>CreatedAt</c> was never populated — a table that predates these
+        ///         conventions — reads as new and fails loudly on the duplicate key rather than writing
+        ///         the wrong thing; <c>Update</c> is the explicit way to save one of those.
         ///     </para>
         /// </remarks>
         public async Task SaveAsync(CancellationToken cancellationToken = default)
@@ -361,14 +366,140 @@ public static class ModelSet
             await using var unitOfWork = Db.Begin();
             var context = unitOfWork.Context;
 
-            // Update() on an already-tracked model would mark every property modified and throw away the
-            // change tracking that makes a targeted UPDATE possible, so only a detached one is attached.
+            // Already tracked: leave it alone. Update() here would mark every property modified and throw
+            // away the change tracking that makes a targeted UPDATE possible.
             if (context.Entry(entity).State == EntityState.Detached)
             {
-                context.Update(entity);
+                // Insert or update. A model that DECLARES CreatedAt answers for free: the auditing
+                // interceptor stamps it on insert and nothing else ever writes it, so a default value
+                // means "never persisted". A shadow CreatedAt cannot answer — a shadow value lives in the
+                // change tracker, and this entity is detached — so the database is asked instead.
+                // Guessing from the key would not work either way: a client-assigned Guid is always set.
+                var isNew = DeclaredCreatedAt(context, entity) is { } createdAt
+                    ? createdAt == default
+                    : !await ExistsAsync(context, entity, cancellationToken).ConfigureAwait(false);
+
+                if (isNew)
+                {
+                    context.Add(entity);
+                }
+                else
+                {
+                    context.Update(entity);
+                }
             }
 
             await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
+
+        /// <summary>Deletes this model.</summary>
+        /// <remarks>
+        ///     <para>
+        ///         The counterpart of <see cref="SaveAsync" />, and it follows the same rule: outside a
+        ///         unit of work it is one, and inside one it joins rather than commits, so a delete that a
+        ///         caller wrapped in a transaction is written when that transaction is.
+        ///     </para>
+        ///     <para>
+        ///         It goes through the change tracker, which is what keeps the conventions: an
+        ///         <see cref="ISoftDeletable" /> is stamped rather than removed, and a model carrying
+        ///         domain events still announces them. That is the difference from
+        ///         <see cref="ModelQuery{TEntity}.ExecuteDeleteAsync" />, which is a <c>DELETE</c>
+        ///         statement the interceptors never see.
+        ///     </para>
+        /// </remarks>
+        public async Task DeleteAsync(CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+
+            await using var unitOfWork = Db.Begin();
+            var context = unitOfWork.Context;
+
+            // Attach first when detached: Remove on an untracked model throws rather than deleting, and
+            // the caller reasonably has one they read with the no-tracking default.
+            if (context.Entry(entity).State == EntityState.Detached)
+            {
+                context.Attach(entity);
+            }
+
+            context.Remove(entity);
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    ///     This model's <c>CreatedAt</c>, when it declares one as a real property — <c>null</c> when it
+    ///     has no audit stamps at all, or carries them only as shadow columns.
+    /// </summary>
+    /// <remarks>
+    ///     A shadow property's value lives in the change tracker, so a detached entity simply does not
+    ///     have one to read; saying so here is what sends the caller to the database instead of reading a
+    ///     default and calling an existing row new.
+    /// </remarks>
+    private static DateTime? DeclaredCreatedAt(DbContext context, Model entity)
+    {
+        if (entity is not ITimestamped)
+        {
+            return null;
+        }
+
+        var property = context.Model.FindEntityType(entity.GetType())?.FindProperty(Columns.CreatedAt);
+        if (property is null || property.IsShadowProperty())
+        {
+            return null;
+        }
+
+        // Read straight off the CLR property rather than through context.Entry: asking the context for
+        // an entry begins tracking the entity, and this runs before SaveAsync has decided whether the
+        // entity is an insert or an update — a premature attach captures the concurrency token's original
+        // value as its default and the resulting UPDATE matches no row.
+        return property.PropertyInfo?.GetValue(entity) as DateTime?;
+    }
+
+    /// <summary>
+    ///     Whether this row is already in the database, for a model with no readable <c>CreatedAt</c> to
+    ///     answer with.
+    /// </summary>
+    /// <remarks>
+    ///     One <c>SELECT</c> by primary key, and only on a detached save of a model that opted out of the
+    ///     audit stamps — a timestamped one never reaches here, and neither does a tracked one. The row it
+    ///     finds is detached again before returning, or the caller's own instance could not be attached
+    ///     afterwards ("another instance with the same key is already being tracked").
+    /// </remarks>
+    private static async Task<bool> ExistsAsync(DbContext context, Model entity, CancellationToken cancellationToken)
+    {
+        var clrType = entity.GetType();
+        var primaryKey = context.Model.FindEntityType(clrType)?.FindPrimaryKey();
+
+        // No mapped key to ask about: treat it as existing, which is the update path this method
+        // replaced. Adding a row whose identity we cannot check is the worse guess of the two.
+        if (primaryKey is null)
+        {
+            return true;
+        }
+
+        // Off the CLR properties, for the same reason: a key read must not begin tracking the entity.
+        var keyValues = new object?[primaryKey.Properties.Count];
+        for (var i = 0; i < keyValues.Length; i++)
+        {
+            if (primaryKey.Properties[i].PropertyInfo is not { } keyProperty)
+            {
+                return true; // a shadow key cannot be read from the entity; treat it as existing
+            }
+
+            keyValues[i] = keyProperty.GetValue(entity);
+        }
+
+        var found = await context.FindAsync(clrType, keyValues, cancellationToken).ConfigureAwait(false);
+        if (found is null)
+        {
+            return false;
+        }
+
+        if (!ReferenceEquals(found, entity))
+        {
+            context.Entry(found).State = EntityState.Detached;
+        }
+
+        return true;
     }
 }

@@ -59,9 +59,14 @@ them until tagged releases begin.
   - **`Db` is the ambient database**, reachable from anywhere including inside a model: `Db.Current` is
     the real `DbContext`, `Db.Set<T>()` its sets, `Db.SaveChangesAsync()` the ambient commit.
   - **A model can save itself.** `await this.SaveAsync()` lets behaviour on the model finish the job —
-    `order.Cancel(now)` then persist — with no unit of work around it. Inside one it *joins* rather than
-    commits, so a caller who wrapped several models in one transaction still gets one transaction and a
-    model's own method can never commit half of its caller's work.
+    `order.Cancel(now)` then persist — with no unit of work around it. It **inserts** a model that has
+    never been persisted and **updates** one that has, and `DeleteAsync()` is its counterpart, so a
+    single write of any kind is a one-liner and `Db.Begin()` is left for the thing it is actually for:
+    putting several models in one transaction. Inside one, both *join* rather than commit, so a caller
+    who wrapped several models still gets one transaction and a model's own method can never commit half
+    of its caller's work. Insert and update are told apart by `CreatedAt` — stamped on insert and written
+    by nothing else — so there is no extra `SELECT` and no guessing from a client-assigned key, which is
+    always set and therefore says nothing.
   - **Batch update and delete.** `ExecuteUpdateAsync` and `ExecuteDeleteAsync` on a query are one
     set-based statement over every matching row, with setters that can read the row they update. They
     bypass the interceptors, as EF's do, so the docs state what that skips — no `UpdatedAt`, no `Version`
@@ -91,6 +96,22 @@ them until tagged releases begin.
   battery to your own context instead. See [docs/data.md](docs/data.md).
 
 ### Changed
+
+- **`CreatedAt`/`UpdatedAt` are now opt-in, and no marker puts anything on your class.** `Model<TId>`
+  carries only `Id` and the domain-events buffer. `ITimestamped`, `ISoftDeletable` and `IVersioned` are
+  now **pure markers**: the columns they imply are added as EF shadow properties, so a domain model can
+  carry audit stamps and soft delete without a line of infrastructure in the type you wrote. Declaring
+  the property is how you opt into *reading* it, and mixing is fine — declare `CreatedAt` and leave
+  `UpdatedAt` a shadow column. Breaking for any model that relied on inheriting `CreatedAt`/`UpdatedAt`,
+  and for anything that referenced them through the interfaces.
+
+  `IVersioned` is the one exception and must declare `public int Version`: optimistic concurrency exists
+  to round-trip the token through an edit form, and a value the application cannot read is one it cannot
+  send back. A shadow token is refused while the model is built, naming the model and the fix, instead of
+  surfacing later as EF's "expected to affect 1 row(s), but actually affected 0".
+
+  `entity.SaveAsync()` still tells an insert from an update for free when the model declares `CreatedAt`,
+  and asks the database with one `SELECT` by key when it does not.
 
 - **`Rask.Data.Entity<TId>` is now `Rask.Data.Model<TId>`**, with the non-generic `Model` as the base the
   active-record surface is keyed on. Breaking for anything deriving from the old name.
