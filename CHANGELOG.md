@@ -66,6 +66,12 @@ them until tagged releases begin.
   `ErrorBoundary.SetProps` still accepts a `Func<…>` and constructs the carrier itself, rather than
   pushing `new Fn<…>(…)` onto everything that calls it.
 
+  With the last sync-only kit handlers converted too — `UiAccordion.OnOpen`, `UiCalendar.OnMonth`,
+  `UiCollapse`/`UiDrawer`/`UiDropdown``.OnToggle` and `UiPagination.OnSelect` — **every optional
+  delegate property on a component is a carrier.** Each of those six gains an asynchronous overload it
+  never had. What remains a bare delegate is deliberate: required props (their step lives on the seed),
+  internal seams, and options classes, none of which are reachable through a chain step.
+
 
 - **Every callback in the framework is one property now, and RASK027 is retired.** BREAKING: the
   remaining `OnXAsync` siblings are gone — `IFormControl<T>`'s `OnChange` and `AfterBind`, `Input`'s

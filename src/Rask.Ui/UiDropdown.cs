@@ -44,7 +44,7 @@ public sealed partial class UiDropdown : Component
     public UiOpenOn? OpenOn { get; set; }
 
     /// <summary>Runs when the trigger is activated, with the state the reader is asking for.</summary>
-    public Action<bool>? OnToggle { get; set; }
+    public Callback<bool>? OnToggle { get; set; }
 
     public UiIconName? Icon { get; set; }
 
@@ -83,7 +83,7 @@ public sealed partial class UiDropdown : Component
         if (OnToggle is { } toggle)
         {
             var next = Open != true;
-            trigger = trigger.OnClick(() => toggle(next));
+            trigger = trigger.OnClick(() => toggle.Invoke(next) ?? Task.CompletedTask);
         }
 
         return Div.Class(UiClass.Compose(

@@ -21,7 +21,7 @@ public sealed partial class UiAccordion : Component
     public string? Open { get; set; }
 
     /// <summary>Runs with the key the reader asked to open, or <c>null</c> if they closed the open one.</summary>
-    public Action<string?>? OnOpen { get; set; }
+    public Callback<string?>? OnOpen { get; set; }
 
     public string? Class { get; set; }
 

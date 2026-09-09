@@ -37,7 +37,7 @@ public sealed partial class UiDrawer : Component
     public bool? Open { get; set; }
 
     /// <summary>Runs when the panel is opened or closed, with the state being asked for.</summary>
-    public Action<bool>? OnToggle { get; set; }
+    public Callback<bool>? OnToggle { get; set; }
 
     /// <summary>The accessible name for the closing overlay.</summary>
     public string? CloseLabel { get; set; }

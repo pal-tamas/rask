@@ -567,7 +567,7 @@ Rask.Ui.RaskSeed_UiValidator.RaskSeed_UiValidator() -> void
 Rask.Ui.UiAccordion
 Rask.Ui.UiAccordion.Class.get -> string?
 Rask.Ui.UiAccordion.Class.set -> void
-Rask.Ui.UiAccordion.OnOpen.get -> System.Action<string?>?
+Rask.Ui.UiAccordion.OnOpen.get -> Rask.Core.Callback<string?>?
 Rask.Ui.UiAccordion.OnOpen.set -> void
 Rask.Ui.UiAccordion.Open.get -> string?
 Rask.Ui.UiAccordion.Open.set -> void
@@ -582,13 +582,13 @@ Rask.Ui.UiAccordionSection.Title.set -> void
 Rask.Ui.UiAccordionSection.UiAccordionSection() -> void
 Rask.Ui.UiAccordionState
 Rask.Ui.UiAccordionState.<Clone>$() -> Rask.Ui.UiAccordionState!
-Rask.Ui.UiAccordionState.Deconstruct(out string? Open, out System.Action<string?>? OnOpen) -> void
+Rask.Ui.UiAccordionState.Deconstruct(out string? Open, out Rask.Core.Callback<string?>? OnOpen) -> void
 Rask.Ui.UiAccordionState.Equals(Rask.Ui.UiAccordionState? other) -> bool
-Rask.Ui.UiAccordionState.OnOpen.get -> System.Action<string?>?
+Rask.Ui.UiAccordionState.OnOpen.get -> Rask.Core.Callback<string?>?
 Rask.Ui.UiAccordionState.OnOpen.init -> void
 Rask.Ui.UiAccordionState.Open.get -> string?
 Rask.Ui.UiAccordionState.Open.init -> void
-Rask.Ui.UiAccordionState.UiAccordionState(string? Open, System.Action<string?>? OnOpen) -> void
+Rask.Ui.UiAccordionState.UiAccordionState(string? Open, Rask.Core.Callback<string?>? OnOpen) -> void
 Rask.Ui.UiAlert
 Rask.Ui.UiAlert.Class.get -> string?
 Rask.Ui.UiAlert.Class.set -> void
@@ -698,7 +698,7 @@ Rask.Ui.UiCalendar.Month.get -> System.DateOnly?
 Rask.Ui.UiCalendar.Month.set -> void
 Rask.Ui.UiCalendar.OnChange.get -> Rask.Core.Callback<System.DateOnly>?
 Rask.Ui.UiCalendar.OnChange.set -> void
-Rask.Ui.UiCalendar.OnMonth.get -> System.Action<System.DateOnly>?
+Rask.Ui.UiCalendar.OnMonth.get -> Rask.Core.Callback<System.DateOnly>?
 Rask.Ui.UiCalendar.OnMonth.set -> void
 Rask.Ui.UiCalendar.UiCalendar() -> void
 Rask.Ui.UiCalendar.Validate.get -> Rask.Core.Forms.Validate<System.DateOnly>?
@@ -768,7 +768,7 @@ Rask.Ui.UiCollapse.Class.get -> string?
 Rask.Ui.UiCollapse.Class.set -> void
 Rask.Ui.UiCollapse.Marker.get -> Rask.Ui.UiMarker?
 Rask.Ui.UiCollapse.Marker.set -> void
-Rask.Ui.UiCollapse.OnToggle.get -> System.Action<bool>?
+Rask.Ui.UiCollapse.OnToggle.get -> Rask.Core.Callback<bool>?
 Rask.Ui.UiCollapse.OnToggle.set -> void
 Rask.Ui.UiCollapse.Open.get -> bool?
 Rask.Ui.UiCollapse.Open.set -> void
@@ -842,7 +842,7 @@ Rask.Ui.UiDrawer.CloseLabel.get -> string?
 Rask.Ui.UiDrawer.CloseLabel.set -> void
 Rask.Ui.UiDrawer.Id.get -> string!
 Rask.Ui.UiDrawer.Id.set -> void
-Rask.Ui.UiDrawer.OnToggle.get -> System.Action<bool>?
+Rask.Ui.UiDrawer.OnToggle.get -> Rask.Core.Callback<bool>?
 Rask.Ui.UiDrawer.OnToggle.set -> void
 Rask.Ui.UiDrawer.Open.get -> bool?
 Rask.Ui.UiDrawer.Open.set -> void
@@ -854,7 +854,7 @@ Rask.Ui.UiDropdown.Class.get -> string?
 Rask.Ui.UiDropdown.Class.set -> void
 Rask.Ui.UiDropdown.Icon.get -> Rask.Ui.UiIconName?
 Rask.Ui.UiDropdown.Icon.set -> void
-Rask.Ui.UiDropdown.OnToggle.get -> System.Action<bool>?
+Rask.Ui.UiDropdown.OnToggle.get -> Rask.Core.Callback<bool>?
 Rask.Ui.UiDropdown.OnToggle.set -> void
 Rask.Ui.UiDropdown.Open.get -> bool?
 Rask.Ui.UiDropdown.Open.set -> void
@@ -1356,7 +1356,7 @@ Rask.Ui.UiPagination.Class.get -> string?
 Rask.Ui.UiPagination.Class.set -> void
 Rask.Ui.UiPagination.Current.get -> int
 Rask.Ui.UiPagination.Current.set -> void
-Rask.Ui.UiPagination.OnSelect.get -> System.Action<int>?
+Rask.Ui.UiPagination.OnSelect.get -> Rask.Core.Callback<int>?
 Rask.Ui.UiPagination.OnSelect.set -> void
 Rask.Ui.UiPagination.Pages.get -> int
 Rask.Ui.UiPagination.Pages.set -> void
@@ -2139,18 +2139,30 @@ static RaskBuilderSettersRask_Ui.OnComplete<TMode>(this Rask.Core.Build<Rask.Ui.
 static RaskBuilderSettersRask_Ui.OnFiles<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
 static RaskBuilderSettersRask_Ui.OnFiles<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
 static RaskBuilderSettersRask_Ui.OnFiles<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
+static RaskBuilderSettersRask_Ui.OnMonth<TMode>(this Rask.Core.Build<Rask.Ui.UiCalendar!, TMode> __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, TMode>
 static RaskBuilderSettersRask_Ui.OnMonth<TMode>(this Rask.Core.Build<Rask.Ui.UiCalendar!, TMode> __b, System.Action<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, TMode>
+static RaskBuilderSettersRask_Ui.OnMonth<TMode>(this Rask.Core.Build<Rask.Ui.UiCalendar!, TMode> __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, TMode>
+static RaskBuilderSettersRask_Ui.OnOpen(this Rask.Core.Build<Rask.Ui.UiAccordion!> __b, Rask.Core.Callback<string?>? value) -> Rask.Core.Build<Rask.Ui.UiAccordion!>
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.Core.Build<Rask.Ui.UiAccordion!> __b, System.Action<string?>? value) -> Rask.Core.Build<Rask.Ui.UiAccordion!>
+static RaskBuilderSettersRask_Ui.OnOpen(this Rask.Core.Build<Rask.Ui.UiAccordion!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiAccordion!>
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, Rask.Core.Callback<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, Rask.Core.Callback<string!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, Rask.Core.Callback<int>? value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, System.Action<int>? value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, Rask.Core.Callback<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, Rask.Core.Callback<bool>? value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, Rask.Core.Callback<bool>? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiAccordion!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiAccordion!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>

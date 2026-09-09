@@ -6,4 +6,4 @@ namespace Rask.Ui;
 // Qualified rather than imported: `using System.ComponentModel` puts a SECOND `Component` in scope and
 // every `Component` in this file becomes CS0104-ambiguous.
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public sealed record UiAccordionState(string? Open, Action<string?>? OnOpen);
+public sealed record UiAccordionState(string? Open, Rask.Core.Callback<string?>? OnOpen);

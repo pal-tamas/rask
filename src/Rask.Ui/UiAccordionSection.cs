@@ -39,7 +39,7 @@ public sealed partial class UiAccordionSection : Component
 
         if (state.OnOpen is { } onOpen)
         {
-            title = title.OnClick(() => onOpen(open ? null : key));
+            title = title.OnClick(() => onOpen.Invoke(open ? null : key) ?? Task.CompletedTask);
         }
 
         return Div.Class(UiClass.Compose(
