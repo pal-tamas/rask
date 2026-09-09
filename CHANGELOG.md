@@ -93,6 +93,33 @@ them until tagged releases begin.
   Because the batteries share no assembly (`Rask.Cache` has no Rask reference at all, and keeping it
   that way is #1014's concern), the check is source-linked into each package and reports one battery at
   a time. (#1015)
+- **A second `dotnet publish` into the same directory duplicated every head asset, and a third tripled
+  it.** `WasmPrerender` reads the boot shell from `index.html` — and the root route's own output IS
+  `index.html`. The pass already reasoned about that *within* a run (the shell is read once, before the
+  page loop, or page two would get the merged page one). The same argument holds *across* runs and was
+  not handled: the second publish read the first publish's merged page as its shell, so
+  `PrerenderShell.Merge` spliced the head into a document that already carried it. Every stylesheet,
+  preload, `meta` and canonical appeared twice, down to the `data-rask-key` that is meant to make them
+  one node.
+
+  The SDK does not rescue it — the prerendered `index.html` is newer than the staged shell, so the copy
+  step calls it up to date and leaves it in place. Nothing failed: green build, page renders, and the
+  only thing that noticed was a browser E2E assertion counting the `global.css` link, which fired when
+  the gate happened to run twice against the same publish and read as a flake.
+
+  The pass now tells its own output from a boot shell (`data-rask-prerendered` on `<html>`, or a keyed
+  head asset) and re-reads the untouched shell it already keeps at `404.html` for exactly this class of
+  problem. With no pristine copy to fall back on it fails the publish and says to delete the directory,
+  rather than silently appending another head. Its `robots.txt` is recognised as its own on the same
+  grounds and rewritten — an author's is still never touched — so a change to `<RaskSiteUrl>` cannot be
+  outlived by the first publish's file.
+
+  Verified on a real double publish, not on generated text: three consecutive `dotnet publish` runs of a
+  prerendered WASM app into one directory now produce 616 of 617 files byte-identical, the exception
+  being the `Last-Modified` values in `*.staticwebassets.endpoints.json`, which describe file times by
+  definition. Before the fix the same three runs gave one, two and three copies of each head asset.
+  (#1036)
+
 - **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
   Every class name was present and correct in the markup; the rules never won. The hero's
   `h1.text-4xl.font-semibold` computed to **16px/400** and the primary call to action's `px-5` computed

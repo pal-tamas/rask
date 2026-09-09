@@ -655,6 +655,160 @@ public class WasmPrerenderTests
         }
     }
 
+    [Fact]
+    public async Task ItsOwnRobotsIsRewrittenRatherThanMistakenForTheApps()
+    {
+        // The same family as #1036, quieter: the second publish into a directory finds the FIRST
+        // publish's robots.txt, and "a robots.txt exists" was read as "the author shipped one". So an
+        // app that changed its origin kept publishing a file pointing a crawler at the old domain's
+        // sitemap — with the log saying the author had asked for it.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(ItsOwnRobotsIsRewrittenRatherThanMistakenForTheApps), [
+            new RouteRegistration(typeof(Home), "/", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://staging.example.com");
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://example.com");
+            await WasmPrerender.RunAsync<Home>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            Assert.Equal(
+                "User-agent: *\nAllow: /\nSitemap: https://example.com/sitemap.xml\n",
+                await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt")));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task PublishingTwiceIntoTheSameDirectoryWritesTheSameBytes()
+    {
+        // #1036. The pass runs AfterTargets="Publish" and writes into the published wwwroot, where the
+        // root route's own output IS index.html — the file the shell is read from. Publish twice into
+        // the same directory and the SDK does not rescue it: the prerendered index.html is NEWER than
+        // the staged shell, so the copy step calls it up to date and leaves it alone. The second pass
+        // then read a merged page as its shell and spliced the head into a document that already had
+        // it, so every stylesheet, preload, meta and canonical appeared twice — and a third publish
+        // made three. Silently: green build, page renders, and only something COUNTING the elements
+        // sees it.
+        //
+        // Asserted as byte equality over the whole directory rather than on one tag, because the
+        // duplication is not the only way a second pass can differ from the first, and "publish twice
+        // = publish once" is the property that actually has to hold.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+
+        RouteRegistry.Replace(nameof(PublishingTwiceIntoTheSameDirectoryWritesTheSameBytes), [
+            new RouteRegistration(typeof(HeadContributor), "/", null),
+            new RouteRegistration(typeof(HeadContributor), "/about", null),
+        ]);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(dir, "index.html"),
+            """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"/><base href="/"/><title>Rask</title>
+            <script type="importmap">{"imports":{}}</script></head>
+            <body data-rask-root><div class="rask-boot">Loading…</div>
+            <script src="main.js" type="module"></script></body></html>
+            """);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            await WasmPrerender.RunAsync<HeadContributor>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+            var first = Snapshot(dir);
+
+            await WasmPrerender.RunAsync<HeadContributor>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+            var second = Snapshot(dir);
+
+            // Named individually before the whole-directory compare, so a failure says WHICH page grew
+            // rather than only that something did.
+            foreach (var page in new[] { "index.html", Path.Combine("about", "index.html") })
+            {
+                var html = await File.ReadAllTextAsync(Path.Combine(dir, page));
+                Assert.Equal(1, Occurrences(html, "name=\"description\""));
+                Assert.Equal(1, Occurrences(html, "property=\"og:title\""));
+                Assert.Equal(1, Occurrences(html, "type=\"importmap\""));
+                Assert.Equal(1, Occurrences(html, "data-rask-prerendered"));
+            }
+
+            Assert.Equal(first, second);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ARenderedPageWithNoPristineShellBesideItIsRefusedRatherThanMergedInto()
+    {
+        // The other half of #1036: the recovery reads the untouched shell the pass keeps at 404.html,
+        // and a directory that has the rendered index.html but not that copy has nothing to recover
+        // from. Merging anyway is what duplicated the head in the first place, and writing whole
+        // documents instead would publish pages that can never boot — so this stops, and says how to
+        // get out of it. A silent wrong answer is the thing being fixed, not a fallback to keep.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+
+        RouteRegistry.Replace(nameof(ARenderedPageWithNoPristineShellBesideItIsRefusedRatherThanMergedInto), [
+            new RouteRegistration(typeof(Home), "/", null),
+        ]);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(dir, "index.html"),
+            """
+            <!doctype html><html lang="en" data-rask-prerendered><head><title>Rask</title></head>
+            <body><div class="home-page"></div><script src="main.js" type="module"></script></body></html>
+            """);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        try
+        {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                WasmPrerender.RunAsync<Home>(
+                    services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5)));
+
+            Assert.Contains("404.html", error.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
+    /// <summary>Every file under a directory, by relative path, with its bytes hashed.</summary>
+    private static Dictionary<string, string> Snapshot(string root)
+    {
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
+            files[relative] = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(file)));
+        }
+
+        return files;
+    }
+
     private static int Occurrences(string haystack, string needle)
     {
         var count = 0;
@@ -674,6 +828,20 @@ public class WasmPrerenderTests
 
     private sealed class Home : Component
     {
+        protected override Component? Render() => Div["home-page"];
+    }
+
+    // A page that contributes to <head>, which is what the merge duplicates. A component with no head
+    // assets cannot show the #1036 failure at all: the shell's head is the only head there is.
+    private sealed class HeadContributor : Component
+    {
+        protected override Component? HeadAssets =>
+        [
+            Title["Home"],
+            Meta.Name("description").Content("a page"),
+            Meta.Property("og:title").Content("Home"),
+        ];
+
         protected override Component? Render() => Div["home-page"];
     }
 

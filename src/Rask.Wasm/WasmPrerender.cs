@@ -140,6 +140,10 @@ public static class WasmPrerender
         // Read ONCE, before the first page is written — the shell being read is index.html, and the
         // root route's own output is index.html. Reading it per page would hand page two the merged
         // page one as its shell.
+        //
+        // The same argument holds ACROSS runs, and reading once does not answer it: a second publish
+        // into the same directory finds the FIRST publish's merged page under that name. ReadShellAsync
+        // is where that case is detected and recovered from (#1036).
         var shell = await ReadShellAsync(outputDirectory).ConfigureAwait(false);
         if (shell is null)
         {
@@ -545,7 +549,13 @@ public static class WasmPrerender
 
         var sitemapUrl = $"{origin}{LiveOptions.PathBase}/{SitemapFileName}";
         var robots = Path.Combine(outputDirectory, RobotsFileName);
-        if (File.Exists(robots))
+
+        // "Existing" is not the same question as "the app's own" — the second publish into a directory
+        // finds the FIRST publish's robots.txt sitting there, and calling that one the app's leaves it
+        // frozen at whatever origin the earlier run was given. Same family of bug as the shell (#1036),
+        // with a quieter symptom: an app that changes RaskSiteUrl keeps publishing a robots.txt
+        // pointing a crawler at the old domain's sitemap, and the log says the author asked for it.
+        if (File.Exists(robots) && !IsOwnRobots(File.ReadAllText(robots)))
         {
             Console.WriteLine(
                 $"[Rask.Prerender] kept the app's own {RobotsFileName} — add "
@@ -553,9 +563,32 @@ public static class WasmPrerender
             return;
         }
 
-        File.WriteAllText(robots, $"User-agent: *\nAllow: /\nSitemap: {sitemapUrl}\n");
+        File.WriteAllText(robots, RobotsFor(sitemapUrl));
         writtenFiles.Add(robots);
         Console.WriteLine($"[Rask.Prerender] wrote {RobotsFileName}");
+    }
+
+    /// <summary>The whole of the <c>robots.txt</c> this pass writes, for a given sitemap URL.</summary>
+    private static string RobotsFor(string sitemapUrl) =>
+        $"User-agent: *\nAllow: /\nSitemap: {sitemapUrl}\n";
+
+    /// <summary>
+    ///     Whether a <c>robots.txt</c> is one an earlier run of this pass wrote, rather than the app's.
+    /// </summary>
+    /// <remarks>
+    ///     Matched on the exact three lines it writes, for ANY sitemap URL — so a file an author edited
+    ///     even slightly is the author's, and stays untouched. The bar is deliberately that high:
+    ///     getting this wrong overwrites a file that can delist a site.
+    /// </remarks>
+    private static bool IsOwnRobots(string text)
+    {
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+
+        return lines.Length == 4
+               && lines[0] == "User-agent: *"
+               && lines[1] == "Allow: /"
+               && lines[2].StartsWith("Sitemap: ", StringComparison.Ordinal)
+               && lines[3].Length == 0;
     }
 
     /// <summary>
@@ -748,7 +781,8 @@ public static class WasmPrerender
     }
 
     /// <summary>
-    ///     The published boot shell, or <c>null</c> when there is none to splice into.
+    ///     Where the SDK publishes the boot shell — and, because the root route's output lands on the
+    ///     same name, where this pass's own home page ends up. See <see cref="ReadShellAsync" />.
     /// </summary>
     internal const string ShellFileName = "index.html";
 
@@ -764,13 +798,65 @@ public static class WasmPrerender
     /// <summary>Written only when the app ships none of its own.</summary>
     internal const string RobotsFileName = "robots.txt";
 
+    /// <summary>
+    ///     The published boot shell, read from <see cref="ShellFileName" /> — or, when that file is this
+    ///     pass's own output from an earlier publish, from the untouched copy at
+    ///     <see cref="FallbackFileName" />.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <b>Idempotence (#1036).</b> The pass runs <c>AfterTargets="Publish"</c> and writes into
+    ///         the published <c>wwwroot</c>, where the root route's own output IS <c>index.html</c> —
+    ///         the file the shell is read from. Publish twice into the same directory and the SDK does
+    ///         not rescue it: the prerendered <c>index.html</c> is NEWER than the staged shell, so the
+    ///         copy step calls it up to date and leaves it alone. The second pass then reads a merged
+    ///         page as its shell and splices the head into a document that already has it, and a third
+    ///         publish makes three of everything. Silently — the build is green and the page renders.
+    ///     </para>
+    ///     <para>
+    ///         The pass already keeps what it needs to recover: it writes the untouched shell to
+    ///         <c>404.html</c> before the page loop (#974), so a deep link to an un-prerenderable route
+    ///         still gets a neutral document. That file is the pristine shell by construction — written
+    ///         from this same value, before anything is merged — so it is exactly the input the second
+    ///         run wants.
+    ///     </para>
+    ///     <para>
+    ///         And when there is no pristine copy to fall back on, this THROWS rather than merging into
+    ///         output. A silent duplication is the thing being fixed, and quietly writing whole
+    ///         documents instead would publish pages that can never boot. The remedy is one line, and
+    ///         the message says it.
+    ///     </para>
+    /// </remarks>
     private static async Task<string?> ReadShellAsync(string outputDirectory)
     {
-        var path = Path.Combine(outputDirectory, ShellFileName);
-        return File.Exists(path)
-            ? await File.ReadAllTextAsync(path).ConfigureAwait(false)
-            : null;
+        var shell = await ReadIfPresentAsync(Path.Combine(outputDirectory, ShellFileName))
+            .ConfigureAwait(false);
+
+        if (shell is null || !PrerenderShell.IsRendered(shell))
+        {
+            return shell;
+        }
+
+        var pristine = await ReadIfPresentAsync(Path.Combine(outputDirectory, FallbackFileName))
+            .ConfigureAwait(false);
+
+        if (pristine is not null && !PrerenderShell.IsRendered(pristine))
+        {
+            Console.WriteLine(
+                $"[Rask.Prerender] {ShellFileName} is a page an earlier publish rendered, not a boot "
+                + $"shell — reading the untouched shell from {FallbackFileName} instead");
+            return pristine;
+        }
+
+        throw new InvalidOperationException(
+            $"Rask prerendering found a rendered page at {Path.Combine(outputDirectory, ShellFileName)} "
+            + $"and no untouched boot shell at {FallbackFileName} to read instead. Merging into it would "
+            + "append a second copy of every head asset — every stylesheet, preload, meta and canonical. "
+            + "Delete the publish directory and publish again.");
     }
+
+    private static async Task<string?> ReadIfPresentAsync(string path) =>
+        File.Exists(path) ? await File.ReadAllTextAsync(path).ConfigureAwait(false) : null;
 
     /// <summary>
     ///     Where a route's document goes: <c>/</c> is the directory's own <c>index.html</c>, and
