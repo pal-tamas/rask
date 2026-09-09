@@ -30,7 +30,9 @@ internal static partial class ProjectGenerator
 
     private static string AppShellCs() =>
         $$"""
+        using Rask.Core.Live;
         using Rask.Core.Routing;
+        using Rask.Ui;
 
         namespace Company.RaskServer.Features.Shared;
 
@@ -49,16 +51,40 @@ internal static partial class ProjectGenerator
             // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —
             // override HtmlLang / BodyClass for their attributes, or Shell(head, body) for the rest.
             protected override Component? Render() => Router;
+
+            // Turns the UI kit's theme on for the whole document.
+            //
+            // Load-bearing, and its absence is silent: daisyUI paints :root by default and the kit
+            // confines its palette to this attribute, so that referencing the package cannot repaint an
+            // app that only wanted a button. Without it every Ui* component renders structurally
+            // correct and completely grey.
+            //
+            // Put `data-theme` here too to pick one of daisyUI's 35 themes; the default is light, with
+            // dark following the operating system.
+            protected override Component Shell(Component head, Component body) =>
+                Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+                    head,
+                    Body.Class(BodyClass)[body]
+                ];
         }
 
         """;
 
-    // A plain <link> to what the build compiled. Nothing framework-specific: Rask.Tailwind writes
-    // wwwroot/css/app.css before the app builds, and every host already serves wwwroot.
+    // Two sheets, and the ORDER IS THE CONTRACT.
+    //
+    // A browser ranks @layer names by FIRST APPEARANCE, across every sheet on the page, in link order —
+    // and nothing later can reorder a name already placed. The kit's sheet opens by declaring the order
+    // it means, so it has to arrive first; link it second and the ranking falls out of whichever sheet
+    // happened to mention a name earliest. That is not a hypothetical: it put `base` above `utilities`
+    // for a whole document once, and every text-4xl and px-* in the markup was silently beaten by
+    // preflight's `h1 { font-size: inherit }` and `* { padding: 0 }`.
     private const string TailwindHead =
         """
+                // The kit's sheet, FIRST — it declares the @layer order for the whole document.
+                // Href() carries a content hash, so it caches hard and still changes when the kit does.
+                Link.Rel("stylesheet").Href(UiStylesheet.Href(LiveOptions.PathBase)),
                 // Compiled from Styles/app.css by Rask.Tailwind, scanning this project's own source.
-                Link.Rel("stylesheet").Href("/css/app.css")
+                Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
         """;
 
     // The welcome home page that teaches the CLI — a Features/Home slice, so a new project already models
@@ -106,11 +132,20 @@ internal static partial class ProjectGenerator
 
         """;
 
-    // The same page in Tailwind utilities. Every class here is one Tailwind will find by scanning THIS
-    // FILE at build time — which is the whole mechanism, and the reason the page is worth scaffolding
-    // rather than leaving the stylesheet empty: it proves the loop end to end on the first build.
-    private const string HomePageTailwindCs =
-        """
+    // The starter page, in daisyUI's own class names.
+    //
+    // Every class here is one Tailwind will find by scanning THIS FILE at build time — which is the
+    // whole mechanism, and the reason the page is worth scaffolding rather than leaving the stylesheet
+    // empty: it proves the loop end to end on the first build, plugin included.
+    //
+    // Spelled out as complete literals, never assembled. daisyUI emits a component's CSS only where
+    // Tailwind can SEE the class name, so a name built by concatenation ("btn-" + tone) is absent from
+    // the sheet and the component renders with NO styling at all, on a green build.
+    //
+    // The same navbar / hero / card / footer skeleton is what every other `rask new` template draws,
+    // down to the class names, so a project looks the same whichever front end it was scaffolded with.
+    private static string HomePageTailwindCs(bool accounts) =>
+        $$"""
         using Rask.Core.Routing;
 
         namespace Company.RaskServer.Features.Home;
@@ -119,24 +154,75 @@ internal static partial class ProjectGenerator
         public sealed partial class HomePage : Component
         {
             protected override Component? Render() =>
-                Main.Class("mx-auto max-w-xl px-4 py-10")[
-                    Div.Class("rounded-xl border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-700 dark:bg-slate-800")[
-                        H1.Class("mb-2 text-2xl font-semibold tracking-tight")["Hello, Rask! 👋"],
-                        P.Class("mb-4 text-slate-500 dark:text-slate-400")["Your app is ready. What to do next:"],
-                        Ul.Class("mb-4 list-disc space-y-1 pl-5")[
-                            Li[Code.Class("rounded bg-violet-100 px-1.5 py-0.5 text-violet-700")["rask dev"], " — run with hot reload"],
-                            Li[Code.Class("rounded bg-violet-100 px-1.5 py-0.5 text-violet-700")["rask db add Init"], " — create the database"],
-                            Li[A.Class("text-violet-600 underline underline-offset-2 hover:text-violet-500").Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"]]
+                // A column so the footer sits at the bottom of a short page rather than under the fold.
+                Div.Class("flex min-h-screen flex-col bg-base-200")[
+                    Nav.Class("navbar bg-base-100 shadow-sm")[
+                        Div.Class("navbar-start")[
+                            Span.Class("px-2 text-lg font-semibold tracking-tight")["Company.RaskServer"]
                         ],
-                        P.Class("text-sm text-slate-500 dark:text-slate-400")[
-                            "Edit this page in ",
-                            Code.Class("rounded bg-slate-100 px-1.5 py-0.5 dark:bg-slate-700")["HomePage.cs"],
-                            " — Tailwind rebuilds the stylesheet from it on the next build."
+                        Div.Class("navbar-end")[{{(accounts ? SignInLink : DocsLink)}}]
+                    ],
+                    Main.Class("hero grow bg-base-200 py-16")[
+                        Div.Class("hero-content text-center")[
+                            Div.Class("max-w-md")[
+                                H1.Class("text-4xl font-bold")["Hello, Rask! 👋"],
+                                P.Class("py-4 text-base-content/70")["Your app is running. What to do next:"],
+                                Div.Class("card bg-base-100 w-full max-w-md shadow-sm")[
+                                    Div.Class("card-body gap-4 text-left")[
+                                        Ul.Class("space-y-2 text-sm")[
+                                            Li[Code.Class("kbd kbd-sm")["rask dev"], " — run with hot reload"],
+                                            Li[Code.Class("kbd kbd-sm")["rask db add Init"], " — create the database"],
+                                            Li["Edit ", Code.Class("kbd kbd-sm")["HomePage.cs"], " — the sheet rebuilds from it"]
+                                        ],
+                                        Div.Class("card-actions justify-end")[
+                                            A
+                                                .Class("btn btn-primary")
+                                                .Href("https://rask.sh/docs/tutorial/00-overview")["Start the tutorial"]
+                                        ]
+                                    ]
+                                ]
+                            ]
                         ]
+                    ],
+                    Footer.Class("footer footer-center bg-base-100 p-4 text-base-content/70")[
+                        Aside[P["Built with Rask."]]
                     ]
                 ];
         }
 
+        """;
+
+    /// <summary>
+    ///     The two opt-ins that put daisyUI in a scaffolded app's own build, and the kit's sheet on its
+    ///     pages. Both default to <c>false</c> in <c>Rask.Ui</c>, because referencing a component kit is
+    ///     not the same as asking it to write files into your project.
+    /// </summary>
+    /// <remarks>
+    ///     They answer two different questions and an app needs both. The stylesheet is what styles the
+    ///     <c>Ui*</c> components, whose class names live in a compiled assembly no Tailwind can scan.
+    ///     The plugin is what styles the daisyUI class names this project writes in its OWN markup,
+    ///     which the kit's prebuilt sheet knows nothing about.
+    /// </remarks>
+    private const string UiKitProperties =
+        """
+            <!-- The UI kit's compiled sheet as a cached file in wwwroot, rather than inlined in every
+                 document. Linked FIRST in Features/Shared/App.cs: it declares the @layer order. -->
+            <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+            <!-- daisyUI's plugin, copied beside Styles/app.css so this project compiles daisyUI itself.
+                 No npm and no node_modules: `dotnet build` is still the whole toolchain. -->
+            <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+        """;
+
+    // An app with a database has accounts, so the built-in sign-in page is reachable and the starter
+    // says so. Without one there is nothing at /login, and a link to it would be a dead end.
+    private const string SignInLink =
+        """
+        A.Class("btn btn-primary btn-sm").Href("/login")["Sign in"]
+        """;
+
+    private const string DocsLink =
+        """
+        A.Class("link link-hover link-primary").Href("https://rask.sh/docs")["Docs"]
         """;
 
     private const string LaunchSettings =
@@ -219,6 +305,12 @@ internal static partial class ProjectGenerator
         [Bb]uild/
         [Oo]ut/
         artifacts/
+
+        # Written into the tree by the build, not by you: the compiled Tailwind sheet, the UI kit's
+        # own sheet, and the daisyUI plugin Rask.Ui ships so this project can compile daisyUI itself.
+        wwwroot/css/app.css
+        wwwroot/css/rask-ui.css
+        Styles/vendor/
 
         # IDE / editor
         .vs/
@@ -340,10 +432,42 @@ internal static partial class ProjectGenerator
     /// </remarks>
     private const string TailwindInputCss =
         """
+        /*
+          The layer order for the whole document, declared before anything can imply another one.
+
+          daisyUI emits its rules into a `daisyui` layer, and Tailwind's own import only ranks
+          theme/base/components/utilities — so `daisyui` would otherwise be ranked by wherever it
+          first appeared in the output, which lands it ABOVE utilities. That makes `class="btn px-8"`
+          give you .btn's padding and not px-8: correct markup, quietly ignored.
+        */
+        @layer properties, theme, base, components, daisyui, utilities;
+
         @import "tailwindcss";
 
+        /*
+          The plugin bundle is NOT a source file, and saying so is load-bearing.
+
+          Tailwind scans the project it runs in, and vendor/daisyui.mjs is inside it: daisyUI's own
+          code, naming every class daisyUI defines. Scanned, it acts as a safelist for the whole
+          library and this sheet carries every component whether or not you use one — which reads as
+          correct, because a sheet containing too much looks exactly like a sheet containing enough.
+        */
+        @source not "./vendor";
+
+        /*
+          daisyUI, compiled from the copy Rask.Ui ships — no npm, no node_modules, no package.json.
+          The build copies it here; it is generated, and .gitignore'd for the same reason wwwroot is.
+
+          By relative path because Tailwind resolves a plugin the way Node does, by walking up for a
+          node_modules, and the standalone engine carries no package tree.
+        */
+        @plugin "./vendor/daisyui.mjs";
+
         /* Your own CSS goes here. Anything below participates in the same build, so @apply and
-           @theme work, and the output still contains only what this project actually uses. */
+           @theme work, and the output still contains only what this project actually uses.
+
+           Redefining a daisyUI token in your own @theme re-skins every component without overriding
+           a single rule — that is the intended way to make this yours. */
 
         """;
 }

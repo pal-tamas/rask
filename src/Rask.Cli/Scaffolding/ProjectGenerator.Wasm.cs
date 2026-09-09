@@ -22,7 +22,7 @@ internal static partial class ProjectGenerator
             ("Program.cs", WasmProgram(pwa, cultures)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
             ("Features/Shared/App.cs", AppShellCs()),
-            ("Features/Home/HomePage.cs", HomePageTailwindCs),
+            ("Features/Home/HomePage.cs", HomePageTailwindCs(accounts: false)),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
             ("tsconfig.json", TsConfigJson),
@@ -52,7 +52,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker, cultures.Length > 0))
         {
-            Packages = ["Rask.Wasm"],
+            Packages = ["Rask.Wasm", "Rask.Ui"],
         };
     }
 
@@ -106,6 +106,12 @@ internal static partial class ProjectGenerator
             <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
             <!-- Rask WASM marker (gates the framework's wwwroot staging + scoped-asset bake). -->
             <RaskWasm>true</RaskWasm>
+            <!-- The UI kit's compiled sheet as a cached file in wwwroot, rather than inlined in every
+                 document. Linked FIRST in Features/Shared/App.cs: it declares the @layer order. -->
+            <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+            <!-- daisyUI's plugin, copied beside Styles/app.css so this project compiles daisyUI itself.
+                 No npm and no node_modules: `dotnet build` is still the whole toolchain. -->
+            <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
             <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders on
                  publish so static-host (GitHub Pages) redeploys stay subresource-integrity-safe. -->
             <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
@@ -136,6 +142,12 @@ internal static partial class ProjectGenerator
 
           <ItemGroup>
             <PackageReference Include="Rask.Wasm" Version="{version}"/>
+            <PackageReference Include="Rask.Ui" Version="{version}"/>
+          </ItemGroup>
+
+          <ItemGroup>
+            <!-- The kit's namespace, project-wide, so a page names Ui* with no per-file using. -->
+            <Using Include="Rask.Ui"/>
           </ItemGroup>
 
         </Project>

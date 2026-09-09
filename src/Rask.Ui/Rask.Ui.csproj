@@ -124,6 +124,42 @@
     </ItemGroup>
   </Target>
 
+  <!--
+    And again for the PACKAGE, because the item above never reaches it.
+
+    This project multi-targets, so `dotnet pack` generates the nuspec in the OUTER, TFM-less build and
+    the target above runs only in the inner ones — RaskTailwindOutput is unset outside them by design
+    (see the PropertyGroup up top). An item added during an inner build is not in the outer build's
+    collection, so `build/ui.css` was simply absent from every package this project has produced.
+
+    It stayed invisible because the only consumer that copies the sheet is in this repository, where a
+    ProjectReference reads it straight out of obj/ and never looks in the package. A package consumer
+    setting RaskUiWriteStylesheet=true got the targets' own error instead, which reads as "you did not
+    build the kit" and is not what happened.
+
+    The sheet does not vary by TFM — it is Tailwind's scan of this project's sources — so the first
+    face that built it is the right one to ship.
+  -->
+  <Target Name="PackRaskUiStylesheet"
+          Condition=" '$(TargetFramework)' == '' "
+          BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <_RaskUiPackCandidate Include="obj/*/ui.generated.css"/>
+    </ItemGroup>
+
+    <!-- Batched to ONE value: two faces built means two matches, and PackagePath takes a single file. -->
+    <PropertyGroup Condition="'@(_RaskUiPackCandidate)' != ''">
+      <_RaskUiPackStylesheet>%(_RaskUiPackCandidate.FullPath)</_RaskUiPackStylesheet>
+    </PropertyGroup>
+
+    <Error Condition="'$(_RaskUiPackStylesheet)' == ''"
+           Text="Rask.Ui: no compiled stylesheet was found to pack (obj/&lt;tfm&gt;/ui.generated.css). Packing without it ships a package whose RaskUiWriteStylesheet target cannot find the sheet, and every consumer that opts in fails to build."/>
+
+    <ItemGroup>
+      <None Include="$(_RaskUiPackStylesheet)" Pack="true" PackagePath="build/ui.css" Visible="false"/>
+    </ItemGroup>
+  </Target>
+
   <!-- The build hooks a consumer gets from the package: see build/Rask.Ui.targets. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>

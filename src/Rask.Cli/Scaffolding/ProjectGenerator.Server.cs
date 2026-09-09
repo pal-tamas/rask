@@ -19,7 +19,7 @@ internal static partial class ProjectGenerator
             ($"{NameToken}.csproj", ServerCsproj(batteries, version)),
             ("Program.cs", ServerProgram(batteries)),
             ("Features/Shared/App.cs", AppShellCs()),
-            ("Features/Home/HomePage.cs", HomePageTailwindCs),
+            ("Features/Home/HomePage.cs", HomePageTailwindCs(batteries.Data)),
             ("Properties/launchSettings.json", LaunchSettings),
             ("appsettings.json", AppSettings),
             ("tsconfig.json", TsConfigJson),
@@ -77,7 +77,13 @@ internal static partial class ProjectGenerator
     {
         // No Rask.Tailwind here: the Tailwind build ships INSIDE Rask.Server (RaskTailwindBuildPack),
         // so a scaffolded csproj naming it would be a second copy of the same targets, imported twice.
-        var packages = new List<string> { "Rask.Server" };
+        //
+        // Rask.Ui IS named, and directly rather than through the meta-package, because a package's
+        // build/ hooks are imported for a DIRECT reference only — and those hooks are what put daisyUI's
+        // plugin next to Styles/app.css and the kit's sheet in wwwroot. It also brings the ~110 Ui*
+        // components, which is a bonus here rather than the reason: the starter page writes daisyUI's
+        // own class names, so it needs the plugin whether or not it ever names a component.
+        var packages = new List<string> { "Rask.Server", "Rask.Ui" };
 
         if (batteries.Cqrs)
         {
@@ -197,11 +203,20 @@ internal static partial class ProjectGenerator
         // The client transport belongs to the BUNDLE and must not reach the server: it is the half that
         // calls the endpoints the server answers. RaskBrowserPackageReference is how one project says a
         // reference is the browser's alone.
-        var browserOnlyPackages = batteries is { Wasm: true, Cqrs: true }
+        //
+        // Rask.Ui is here as well, and for a different reason: the companion's reference list is CLOSED
+        // (Rask.Server.Browser.targets), so the PackageReference above reaches the server half only. The
+        // bundle compiles this app's own pages, and those pages name UiStylesheet — so without this line
+        // `dotnet build` is clean and `dotnet publish` fails inside a generated project nobody wrote.
+        var browserOnlyCqrs = batteries.Cqrs
+            ? $"\n    <RaskBrowserPackageReference Include=\"Rask.Cqrs.Client\" Version=\"{version}\"/>"
+            : "";
+
+        var browserOnlyPackages = batteries.Wasm
             ? $"""
 
               <ItemGroup>
-                <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="{version}"/>
+                <RaskBrowserPackageReference Include="Rask.Ui" Version="{version}"/>{browserOnlyCqrs}
               </ItemGroup>
             """
             : "";
@@ -218,10 +233,16 @@ internal static partial class ProjectGenerator
             <TargetFramework>net10.0</TargetFramework>
             <ImplicitUsings>enable</ImplicitUsings>
             <Nullable>enable</Nullable>{browserRungProperty}{litestreamProperty}
+        {UiKitProperties}
           </PropertyGroup>
 
           <ItemGroup>
             <PackageReference Include="Rask.Server" Version="{version}"/>{refs}
+          </ItemGroup>
+
+          <ItemGroup>
+            <!-- The kit's namespace, project-wide, so a page names Ui* with no per-file using. -->
+            <Using Include="Rask.Ui"/>
           </ItemGroup>
         {browserOnlyPackages}
 

@@ -73,6 +73,39 @@ public sealed class KitStylesheetResolutionTests
         Assert.DoesNotContain("<Warning Condition=", block, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ThePackagedSheetIsCollectedByTheOuterBuild()
+    {
+        // The sheet the targets above look for in a PACKAGE has to get into that package, and for a
+        // long time it did not.
+        //
+        // This project multi-targets, so `dotnet pack` generates the nuspec in the outer, TFM-less
+        // build — while the target that adds `build/ui.css` runs only in the inner ones, because it
+        // needs RaskTailwindOutput, which is deliberately unset outside them. An item added during an
+        // inner build is not in the outer build's collection, so every package this project produced
+        // shipped without the file its own targets then failed to find.
+        //
+        // Invisible from inside this repository: the only consumer that copies the sheet is here, and
+        // a ProjectReference reads it straight out of obj/ without ever looking in a package.
+        var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Rask.Ui", "Rask.Ui.csproj"));
+
+        Assert.Contains("Condition=\" '$(TargetFramework)' == '' \"", csproj, StringComparison.Ordinal);
+        Assert.Contains("BeforeTargets=\"_GetPackageFiles\"", csproj, StringComparison.Ordinal);
+        Assert.Contains("PackagePath=\"build/ui.css\"", csproj, StringComparison.Ordinal);
+    }
+
+    private static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return dir!.FullName;
+    }
+
     private static string ReadTargets()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
