@@ -63,6 +63,20 @@ internal static partial class ProjectGenerator
             files.Add(($"{framework.AppDir}/{path}", content));
         }
 
+        // The sign-in and registration screens, in this framework's own routing convention.
+        //
+        // Only with a database, because accounts are rows: without one there is nothing behind
+        // /api/auth to answer, and a scaffolded screen that cannot work is worse than none. This is the
+        // first thing this lane overlays that is a PAGE rather than a config file — see
+        // MetaTemplate.AuthPages for what that costs on Nuxt, which has no pages directory to add to.
+        if (batteries.Data)
+        {
+            foreach (var (path, content) in framework.AuthPages)
+            {
+                files.Add(($"{framework.AppDir}/{path}", content));
+            }
+        }
+
         // Tailwind, for the two frameworks whose creators cannot be asked for it. The other four take
         // it from their own creator — which is the better answer here, since a scaffold that produced
         // something the framework's own documentation does not describe would be worth less than none.

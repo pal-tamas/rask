@@ -107,6 +107,104 @@ public sealed class JsLaneAuthWiringTests
         }
     }
 
+    [Fact]
+    public void Every_meta_template_scaffolds_both_screens()
+    {
+        // Route paths that are not guessable and were read off real scaffolds: a file at the wrong path
+        // does not fail, the framework simply never routes it and the page 404s on a green build.
+        var expected = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["nuxt"] = ["app/pages/login.vue", "app/pages/register.vue"],
+            ["nextjs"] = ["app/login/page.tsx", "app/register/page.tsx"],
+            ["sveltekit"] = ["src/routes/login/+page.svelte", "src/routes/register/+page.svelte"],
+            ["solidstart"] = ["src/routes/login.tsx", "src/routes/register.tsx"],
+            ["tanstack-start"] = ["src/routes/login.tsx", "src/routes/register.tsx"],
+            ["analog"] = ["src/app/pages/login.page.ts", "src/app/pages/register.page.ts"],
+        };
+
+        foreach (var template in MetaTemplate.All)
+        {
+            var paths = ProjectGenerator
+                .GenerateMeta(Root, "App", template, new ServerBatteries { Data = true }, "1.2.3")
+                .Files
+                .Select(f => f.Path.Replace('\\', '/'))
+                .ToArray();
+
+            foreach (var route in expected[template.Key])
+            {
+                Assert.Contains(
+                    paths,
+                    p => p.EndsWith($"/{template.AppDir}/{route}", StringComparison.Ordinal));
+            }
+        }
+    }
+
+    [Fact]
+    public void Nextjs_marks_its_interactive_screen_as_a_client_component()
+    {
+        // App Router components are SERVER components by default, where useState does not exist. The
+        // failure is a build error in a file Rask wrote, which is the worst place for one.
+        var form = ProjectGenerator
+            .GenerateMeta(Root, "App", MetaTemplate.Next, new ServerBatteries { Data = true }, "1.2.3")
+            .Files
+            .Single(f => f.Path.Replace('\\', '/').EndsWith("/auth-form.tsx", StringComparison.Ordinal))
+            .Content;
+
+        Assert.StartsWith("'use client'", form, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Nuxt_gets_the_pages_router_its_screens_need()
+    {
+        // The minimal template writes no pages/ directory: app.vue renders <NuxtWelcome /> and that is
+        // the whole app. Adding pages/ is what turns vue-router on, and app.vue then has to render
+        // <NuxtPage /> or none of them are reachable — including an index, or `/` starts 404ing.
+        var files = ProjectGenerator
+            .GenerateMeta(Root, "App", MetaTemplate.Nuxt, new ServerBatteries { Data = true }, "1.2.3")
+            .Files
+            .ToDictionary(f => f.Path.Replace('\\', '/'), f => f.Content, StringComparer.Ordinal);
+
+        var appVue = files.Single(f => f.Key.EndsWith("/app/app.vue", StringComparison.Ordinal)).Value;
+
+        Assert.Contains("<NuxtPage />", appVue, StringComparison.Ordinal);
+        Assert.DoesNotContain("<NuxtWelcome />", appVue, StringComparison.Ordinal);
+        Assert.Contains(files, f => f.Key.EndsWith("/app/pages/index.vue", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void An_app_with_no_database_gets_no_screens_it_cannot_serve()
+    {
+        foreach (var template in MetaTemplate.All)
+        {
+            var paths = ProjectGenerator
+                .GenerateMeta(Root, "App", template, new ServerBatteries { Data = false }, "1.2.3")
+                .Files
+                .Select(f => f.Path.Replace('\\', '/'))
+                .ToArray();
+
+            Assert.DoesNotContain(paths, p => p.Contains("login", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void Every_meta_screen_draws_the_same_card_as_the_others()
+    {
+        foreach (var template in MetaTemplate.All)
+        {
+            var markup = string.Join("\n", template.AuthPages.Select(page => page.Content));
+
+            foreach (var name in (string[])["hero min-h-screen", "card bg-base-100", "card-body", "btn btn-primary btn-block", "alert alert-error"])
+            {
+                Assert.Contains(name, markup, StringComparison.Ordinal);
+            }
+
+            // The generated client, not a hand-rolled fetch: typed, and it carries the CSRF header
+            // these endpoints require.
+            Assert.Contains("@rask/browser/auth", markup, StringComparison.Ordinal);
+            Assert.DoesNotContain("localStorage.", markup, StringComparison.Ordinal);
+        }
+    }
+
     private static string Program(ScaffoldResult result) =>
         result.Files
             .Single(f => f.Path.Replace('\\', '/').EndsWith("/Program.cs", StringComparison.Ordinal))

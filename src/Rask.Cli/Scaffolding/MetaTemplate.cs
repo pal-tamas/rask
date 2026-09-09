@@ -131,6 +131,23 @@ internal sealed record MetaTemplate(
     public string? DaisyUiStylesheet { get; init; }
 
     /// <summary>
+    ///     The sign-in and registration screens, in this framework's own routing convention.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Separate from <see cref="ConfigFiles" />, and named for what it is, so that the argument
+    ///         those make — one config file carrying the two facts a creator cannot know — stays true.
+    ///         These are pages, and this lane deliberately overlaid none until now.
+    ///     </para>
+    ///     <para>
+    ///         Additive on five of the six: a route file the creator did not write, beside the ones it
+    ///         did. Nuxt is the exception, because its minimal template has no <c>pages/</c> directory at
+    ///         all — see <see cref="MetaAuthPages.Nuxt" />.
+    ///     </para>
+    /// </remarks>
+    public IReadOnlyList<(string Path, string Content)> AuthPages { get; init; } = [];
+
+    /// <summary>
     ///     Whether Rask's Tailwind goes in through PostCSS rather than the Vite plugin.
     /// </summary>
     /// <remarks>
@@ -261,6 +278,7 @@ internal sealed record MetaTemplate(
         GeneratedDir = "app/rask",
         TsConfigFile = null,
         TailwindStylesheet = "app/assets/css/main.css",
+        AuthPages = MetaAuthPages.Nuxt,
         DevServerUrl = "http://localhost:3000",
     };
 
@@ -276,6 +294,7 @@ internal sealed record MetaTemplate(
         ],
         GeneratedDir = "app/rask",
         DaisyUiStylesheet = "app/globals.css",
+        AuthPages = MetaAuthPages.Next,
         DevServerUrl = "http://localhost:3000",
     };
 
@@ -308,6 +327,7 @@ internal sealed record MetaTemplate(
             "--no-install", "--no-dir-check", "--no-download-check",
         ],
         DaisyUiStylesheet = "src/routes/layout.css",
+        AuthPages = MetaAuthPages.SvelteKit,
         ViteConfigFile = "vite.config.ts",
         DevServerUrl = "http://localhost:5173",
     };
@@ -336,6 +356,7 @@ internal sealed record MetaTemplate(
         // NOT the first @import in this file — the creator's sheet opens with a Google Fonts
         // `@import url(...)`, and the Tailwind one is the third line.
         DaisyUiStylesheet = "src/styles.css",
+        AuthPages = MetaAuthPages.TanStackStart,
         DevServerUrl = "http://localhost:3000",
     };
 
@@ -359,6 +380,7 @@ internal sealed record MetaTemplate(
         ViteConfigFile = "vite.config.ts",
 
         DaisyUiStylesheet = "src/app.css",
+        AuthPages = MetaAuthPages.SolidStart,
 
         // Vite's own default is 5173, but @solidjs/start moves it — a scaffolded app reports
         // "Local: http://localhost:3000". Measured rather than assumed, because --open goes here.
@@ -395,6 +417,7 @@ internal sealed record MetaTemplate(
             "--template", "angular-v20", "--skipTailwind",
         ],
         TailwindStylesheet = "src/styles.css",
+        AuthPages = MetaAuthPages.Analog,
         TailwindThroughPostcss = true,
         ViteConfigFile = "vite.config.ts",
         DevServerUrl = "http://localhost:5173",

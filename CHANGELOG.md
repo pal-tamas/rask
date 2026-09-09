@@ -35,6 +35,14 @@ them until tagged releases begin.
   nothing. An app with a database links its sign-in page from the navbar; one without does not, because
   there is nothing at that route.
 
+  **All thirteen JavaScript templates can sign somebody in**, each in its own routing convention —
+  `app/login/page.tsx` on Next with `'use client'`, `src/routes/login/+page.svelte` on SvelteKit,
+  `createFileRoute` on TanStack, `*.page.ts` on Analog. Every one of those paths was read off a real
+  scaffold by running the creator, because a route file at the wrong path does not fail: the framework
+  simply never routes it, and the page 404s on a green build. On Nuxt the screens are not purely
+  additive — its minimal template has no `pages/` directory, so turning the router on replaces
+  `<NuxtWelcome />` with `<NuxtPage />` and brings an `index.vue` with it.
+
   **The seven front-end templates can also sign somebody in.** The endpoints and a typed client both
   already shipped — `Rask.Auth` maps `/api/auth`, and the build generates `rask/browser/auth` into every
   client — so the only thing between a scaffolded front end and a working account was the two screens.
