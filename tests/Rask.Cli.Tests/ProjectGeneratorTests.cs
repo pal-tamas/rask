@@ -292,9 +292,11 @@ public sealed class ProjectGeneratorTests
         var (on, result) = Generate(data: true);
 
         // The AppDbContext file, applying Rask conventions so generated feature configs are picked up.
+        // Over RaskDbContext, not DbContext: that base is what maps the models the app declares. See
+        // ServerBatteryScaffoldTests for the dedicated assertion on the base type and the call order.
         Assert.True(on.ContainsKey("Features/Shared/AppDbContext.cs"));
         var context = on["Features/Shared/AppDbContext.cs"];
-        Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)", context, StringComparison.Ordinal);
+        Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskDbContext(options)", context, StringComparison.Ordinal);
         Assert.Contains("modelBuilder.ApplyRaskConventions();", context, StringComparison.Ordinal);
 
         // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that honours a ConnectionStrings:App

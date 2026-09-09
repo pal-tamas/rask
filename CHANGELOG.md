@@ -60,6 +60,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The scaffolded `AppDbContext` derived from `DbContext`, so a model you declared mapped to nothing.**
+  `ModelRegistry.Apply` — the call that maps every `Model<TId>` — lives in `RaskDbContext.OnModelCreating`
+  and nowhere else; `ApplyRaskConventions()` does not do it. So on the path most people take (`rask new
+  --data`, then one class deriving from `Model<Guid>`) the headline feature of this data layer did not
+  work at all. Nothing could catch it: the file compiles, the app boots, `rask db add` succeeds and the
+  migration applies — the table is simply not in it, and the first `Product.Add(…)` throws at runtime
+  saying the entity type was not found. The scaffolded context now derives from `RaskDbContext` and
+  chains `base.OnModelCreating` ahead of `ApplyRaskConventions`, which also brings `ConfigureConventions`
+  and with it the value converters for strongly-typed ids — those could not have worked in a scaffolded
+  app either. Guarded twice: a scaffold test on the emitted base type and call order, and an end-to-end
+  test that declares a model in a real scaffolded app and asserts a `Product` table reaches the
+  migration. Both were confirmed to fail against the old template.
+
+- **`rask new` told you to add a `DbSet<T>`.** The next-steps text printed after scaffolding taught the
+  one workflow this data layer exists to remove; it now shows declaring a `Model<Guid>`, and says you
+  query it off the type itself.
+
 - **The scaffolded `AppDbContext` applied Rask's conventions before the batteries mapped their tables**,
   so anything they mapped missed the audit stamps, the soft-delete filter and the concurrency token. The
   template's own comment described the correct order — "it has to follow the configurations… or entities
