@@ -9,10 +9,13 @@ namespace Rask.Examples.E2E.Tests;
 // (RunShowcaseJourneyAsync). This file holds only the per-test browser lifecycle, navigation
 // primitives, and failure diagnostics that the journey builds on.
 //
-// Path navigation goes through NavigateToAsync. The default implementation calls
-// Page.GotoAsync(path), which works for the ASP.NET hosts that install a SPA fallback.
-// StandaloneWasmExampleTests overrides it to home-then-sidebar because WasmAppHost has no
-// SPA fallback (deep links 404).
+// Path navigation goes through NavigateToAsync, whose default calls Page.GotoAsync(path) — right for
+// any host that answers a deep link, which is every host this suite still drives.
+//
+// Nothing overrides it today. The seam is kept rather than inlined because the case it exists for is
+// real and recurring: a host with no SPA fallback 404s a deep link, so its journeys have to navigate
+// home-then-sidebar instead. StandaloneWasmExampleTests did exactly that over WasmAppHost until the
+// samples consolidation removed it, and the meta-hosting epic would bring the shape back.
 public abstract partial class SharedSmokeTests : IAsyncLifetime
 {
     private readonly List<string> _console = new();

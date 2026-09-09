@@ -1,8 +1,10 @@
 
 namespace Rask.Core.Tests.Live;
 
-// Regression guard for the keyed <head> reconciliation crash on WASM static-host
-// hydration (E2E: StandaloneWasmExampleTests.Journey_WalksEveryPageAndUnusualActivity).
+// Regression guard for the keyed <head> reconciliation crash on WASM static-host hydration, first
+// caught by the journey that drove a plain static host — StandaloneWasmExampleTests, removed in the
+// samples consolidation. This unit test is now the only thing holding that behaviour, which is the
+// reason it is written against the morph directly rather than through a browser.
 //
 // Symptom: a WASM app served by a plain static host rendered a blank page; the .NET
 // runtime booted and applied its first render, then the second morph threw
