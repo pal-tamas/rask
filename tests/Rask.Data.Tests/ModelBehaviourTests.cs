@@ -4,11 +4,15 @@ namespace Rask.Data.Tests;
 
 // Behaviour on the model, of the kind an application actually writes: a guard, a state change, an event
 // — and one method that has to ask the database something before it can decide.
-public sealed class Order : Model<Guid>, ISoftDeletable
+public sealed class Order : Model<Guid>, ITimestamped, ISoftDeletable
 {
     private Order() { } // EF materialization
 
     public string Reference { get; private set; } = "";
+
+    public DateTime CreatedAt { get; private set; }
+
+    public DateTime UpdatedAt { get; private set; }
 
     public OrderStatus Status { get; private set; } = OrderStatus.Open;
 
