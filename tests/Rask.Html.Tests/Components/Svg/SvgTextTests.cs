@@ -9,9 +9,13 @@ public partial class SvgTextTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void SvgText_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
-            "<text x=\"1\" y=\"2\" dx=\"3\" dy=\"4\" rotate=\"5\" text-anchor=\"middle\" " +
+            // text-anchor / lengthAdjust / textLength come from SvgTextContentElement and x / y / dx /
+            // dy / rotate from SvgTextPositioningElement below it, so the content attributes are
+            // written first. MDN's split; the order carries no meaning in SVG.
+            "<text text-anchor=\"middle\" lengthAdjust=\"spacing\" textLength=\"80\" " +
+            "x=\"1\" y=\"2\" dx=\"3\" dy=\"4\" rotate=\"5\" " +
             "dominant-baseline=\"central\" font-family=\"sans-serif\" font-size=\"12\" " +
-            "font-weight=\"bold\" lengthAdjust=\"spacing\" textLength=\"80\">hi</text>",
+            "font-weight=\"bold\">hi</text>",
             SvgText
                 .X("1")
                 .Y("2")
@@ -29,8 +33,8 @@ public partial class SvgTextTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Tspan_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
-            "<tspan x=\"1\" y=\"2\" dx=\"3\" dy=\"4\" rotate=\"5\" text-anchor=\"end\" " +
-            "lengthAdjust=\"spacingAndGlyphs\" textLength=\"40\">x</tspan>",
+            "<tspan text-anchor=\"end\" lengthAdjust=\"spacingAndGlyphs\" textLength=\"40\" " +
+            "x=\"1\" y=\"2\" dx=\"3\" dy=\"4\" rotate=\"5\">x</tspan>",
             Tspan
                 .X("1")
                 .Y("2")

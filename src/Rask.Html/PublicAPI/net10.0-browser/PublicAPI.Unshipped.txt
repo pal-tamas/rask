@@ -1082,29 +1082,33 @@ Rask.Html.Components.SvgStyle.Type.set -> void
 Rask.Html.Components.SvgText
 Rask.Html.Components.SvgText.DominantBaseline.get -> string?
 Rask.Html.Components.SvgText.DominantBaseline.set -> void
-Rask.Html.Components.SvgText.Dx.get -> string?
-Rask.Html.Components.SvgText.Dx.set -> void
-Rask.Html.Components.SvgText.Dy.get -> string?
-Rask.Html.Components.SvgText.Dy.set -> void
 Rask.Html.Components.SvgText.FontFamily.get -> string?
 Rask.Html.Components.SvgText.FontFamily.set -> void
 Rask.Html.Components.SvgText.FontSize.get -> string?
 Rask.Html.Components.SvgText.FontSize.set -> void
 Rask.Html.Components.SvgText.FontWeight.get -> string?
 Rask.Html.Components.SvgText.FontWeight.set -> void
-Rask.Html.Components.SvgText.LengthAdjust.get -> string?
-Rask.Html.Components.SvgText.LengthAdjust.set -> void
-Rask.Html.Components.SvgText.Rotate.get -> string?
-Rask.Html.Components.SvgText.Rotate.set -> void
 Rask.Html.Components.SvgText.SvgText() -> void
-Rask.Html.Components.SvgText.TextAnchor.get -> string?
-Rask.Html.Components.SvgText.TextAnchor.set -> void
-Rask.Html.Components.SvgText.TextLength.get -> string?
-Rask.Html.Components.SvgText.TextLength.set -> void
-Rask.Html.Components.SvgText.X.get -> string?
-Rask.Html.Components.SvgText.X.set -> void
-Rask.Html.Components.SvgText.Y.get -> string?
-Rask.Html.Components.SvgText.Y.set -> void
+Rask.Html.Components.SvgTextContentElement
+Rask.Html.Components.SvgTextContentElement.LengthAdjust.get -> string?
+Rask.Html.Components.SvgTextContentElement.LengthAdjust.set -> void
+Rask.Html.Components.SvgTextContentElement.SvgTextContentElement() -> void
+Rask.Html.Components.SvgTextContentElement.TextAnchor.get -> string?
+Rask.Html.Components.SvgTextContentElement.TextAnchor.set -> void
+Rask.Html.Components.SvgTextContentElement.TextLength.get -> string?
+Rask.Html.Components.SvgTextContentElement.TextLength.set -> void
+Rask.Html.Components.SvgTextPositioningElement
+Rask.Html.Components.SvgTextPositioningElement.Dx.get -> string?
+Rask.Html.Components.SvgTextPositioningElement.Dx.set -> void
+Rask.Html.Components.SvgTextPositioningElement.Dy.get -> string?
+Rask.Html.Components.SvgTextPositioningElement.Dy.set -> void
+Rask.Html.Components.SvgTextPositioningElement.Rotate.get -> string?
+Rask.Html.Components.SvgTextPositioningElement.Rotate.set -> void
+Rask.Html.Components.SvgTextPositioningElement.SvgTextPositioningElement() -> void
+Rask.Html.Components.SvgTextPositioningElement.X.get -> string?
+Rask.Html.Components.SvgTextPositioningElement.X.set -> void
+Rask.Html.Components.SvgTextPositioningElement.Y.get -> string?
+Rask.Html.Components.SvgTextPositioningElement.Y.set -> void
 Rask.Html.Components.SvgTitle
 Rask.Html.Components.SvgTitle.SvgTitle() -> void
 Rask.Html.Components.Switch
@@ -1230,23 +1234,7 @@ Rask.Html.Components.Track.Srclang.get -> string?
 Rask.Html.Components.Track.Srclang.set -> void
 Rask.Html.Components.Track.Track() -> void
 Rask.Html.Components.Tspan
-Rask.Html.Components.Tspan.Dx.get -> string?
-Rask.Html.Components.Tspan.Dx.set -> void
-Rask.Html.Components.Tspan.Dy.get -> string?
-Rask.Html.Components.Tspan.Dy.set -> void
-Rask.Html.Components.Tspan.LengthAdjust.get -> string?
-Rask.Html.Components.Tspan.LengthAdjust.set -> void
-Rask.Html.Components.Tspan.Rotate.get -> string?
-Rask.Html.Components.Tspan.Rotate.set -> void
-Rask.Html.Components.Tspan.TextAnchor.get -> string?
-Rask.Html.Components.Tspan.TextAnchor.set -> void
-Rask.Html.Components.Tspan.TextLength.get -> string?
-Rask.Html.Components.Tspan.TextLength.set -> void
 Rask.Html.Components.Tspan.Tspan() -> void
-Rask.Html.Components.Tspan.X.get -> string?
-Rask.Html.Components.Tspan.X.set -> void
-Rask.Html.Components.Tspan.Y.get -> string?
-Rask.Html.Components.Tspan.Y.set -> void
 Rask.Html.Components.U
 Rask.Html.Components.U.U() -> void
 Rask.Html.Components.Ul
@@ -1315,6 +1303,8 @@ override Rask.Html.Components.SvgElement.WriteAttributes(System.Text.StringBuild
 override Rask.Html.Components.SvgFilterPrimitiveElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.SvgGeometryElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.SvgGraphicsElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Html.Components.SvgTextContentElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Html.Components.SvgTextPositioningElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.Ul.TagName.get -> string!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Html.Components.ValidatingIndicator.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<Rask.Core.Component!>! Template) -> Rask.Html.Components.ValidatingIndicator!
@@ -1741,6 +1731,7 @@ static RaskBuilderSettersRask_Html.Label(this Rask.Core.Build<Rask.Html.Componen
 static RaskBuilderSettersRask_Html.Label(this Rask.Core.Build<Rask.Html.Components.Option!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Option!>
 static RaskBuilderSettersRask_Html.Label(this Rask.Core.Build<Rask.Html.Components.Track!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Track!>
 static RaskBuilderSettersRask_Html.LengthAdjust(this Rask.Core.Build<Rask.Html.Components.SvgText!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgText!>
+static RaskBuilderSettersRask_Html.LengthAdjust(this Rask.Core.Build<Rask.Html.Components.TextPath!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.TextPath!>
 static RaskBuilderSettersRask_Html.LengthAdjust(this Rask.Core.Build<Rask.Html.Components.Tspan!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Tspan!>
 static RaskBuilderSettersRask_Html.List<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
 static RaskBuilderSettersRask_Html.Loading(this Rask.Core.Build<Rask.Html.Components.Iframe!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Iframe!>
@@ -2324,8 +2315,10 @@ static RaskBuilderSettersRask_Html.Template(this Rask.Core.Build<Rask.Html.Compo
 static RaskBuilderSettersRask_Html.Template(this Rask.Core.Build<Rask.Html.Components.ValidationMessage!> __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, Rask.Core.Component!>! value) -> Rask.Core.Build<Rask.Html.Components.ValidationMessage!>
 static RaskBuilderSettersRask_Html.Template(this Rask.Core.Build<Rask.Html.Components.ValidationSummary!> __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.ValidationEntry>!, Rask.Core.Component?>! value) -> Rask.Core.Build<Rask.Html.Components.ValidationSummary!>
 static RaskBuilderSettersRask_Html.TextAnchor(this Rask.Core.Build<Rask.Html.Components.SvgText!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgText!>
+static RaskBuilderSettersRask_Html.TextAnchor(this Rask.Core.Build<Rask.Html.Components.TextPath!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.TextPath!>
 static RaskBuilderSettersRask_Html.TextAnchor(this Rask.Core.Build<Rask.Html.Components.Tspan!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Tspan!>
 static RaskBuilderSettersRask_Html.TextLength(this Rask.Core.Build<Rask.Html.Components.SvgText!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgText!>
+static RaskBuilderSettersRask_Html.TextLength(this Rask.Core.Build<Rask.Html.Components.TextPath!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.TextPath!>
 static RaskBuilderSettersRask_Html.TextLength(this Rask.Core.Build<Rask.Html.Components.Tspan!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Tspan!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Circle!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Circle!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Ellipse!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Ellipse!>

@@ -246,6 +246,16 @@ them until tagged releases begin.
   muted text colour — the same class of mistake `ui.css` already documents for `ok`/`warn`. It reached
   294 call sites through `text-ui-muted`, and is now `base-content` stepped back.
 
+- **The text elements split the way the DOM splits them.** `text` and `tspan` each declared the same
+  eight attributes. MDN puts them on two interfaces: `SVGTextContentElement` for how text is fitted to a
+  length (`text-anchor`, `lengthAdjust`, `textLength`) and `SVGTextPositioningElement` below it for
+  placing glyphs (`x`, `y`, `dx`, `dy`, `rotate`). `textPath` joins the first and gains the fitting
+  attributes it has in the DOM and had never modelled — and stays out of the second, because text
+  following a path has nothing for absolute positioning to mean.
+
+  Their attributes reorder for the same reason as the others: a base writes before its subclass, so the
+  fitting attributes now precede the positioning ones. Two assertions record it.
+
 - **`transform` moved to the elements that can actually be transformed.** It sat on `SvgElement`, so
   every SVG element carried it — including `defs`, `stop`, `filter`, the gradients and the filter
   primitives, none of which are rendered and none of which have a `transform` in the DOM. It offered
