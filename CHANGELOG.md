@@ -7,6 +7,30 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`rask new` builds the project it just scaffolded**, between the restore and the first migration:
+
+  ```
+  Restoring packages…
+  Building…
+  Creating the first migration…
+  Applying it to the database…
+  ```
+
+  The ordering is the point. The migration step was already what first compiled a new project — `dotnet
+  ef` builds it to load the `DbContext` — so a scaffold emitting code that did not compile surfaced as an
+  EF failure under a line reading "Creating the first migration…", naming neither the file nor the error.
+  A build says it plainly and stops before EF runs against a project that cannot load. It reuses the
+  front-end skip the migration step already used, so scaffolding a front-end template does not sit
+  through a production bundler run. `--no-restore` skips it too: there is nothing to build against.
+
+- **A migration end-to-end test.** `rask db add Init` is what `rask new` runs for you and what the
+  next-steps text falls back to, and nothing exercised it — the only assertions were that the *sentence*
+  appears in the output. `MigrationE2ETests` scaffolds a real app against the local package feed, adds
+  the migration through `DbCommand` and applies it, then asserts the database exists: a model that
+  compiles can still be rejected when the DDL is emitted.
+
 ### Changed
 
 - **`RaskUser` is gone; your app declares its own account type and Rask finds it.** Rask no longer ships
