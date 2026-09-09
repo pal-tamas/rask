@@ -1,0 +1,59 @@
+/*
+  The stylesheet for the built-in sign-in, registration and recovery pages.
+
+  These pages ship inside a package, so their class names live in a compiled assembly that no
+  application's Tailwind can scan — Tailwind emits a class only where it can SEE the name, and a name
+  inside a DLL is not somewhere it can look. Borrowing the host's stylesheet is therefore not an
+  option: the app would have to already contain every class these pages write, by coincidence.
+
+  So this project compiles its own, at ITS build, and embeds the result. Because the only source
+  scanned is the six pages beside this file, the output is a few KB rather than the whole library —
+  which is what makes it affordable to carry it inline on a page that must render on an app with no
+  CSS of its own.
+*/
+
+/*
+  The layer order for the sheet, declared before anything can imply another one. daisyUI emits into a
+  `daisyui` layer that Tailwind's own import does not rank, so its position would otherwise fall out
+  of where it first appears — which lands it above utilities, and then a utility beside a component
+  class is silently ignored.
+*/
+@layer properties, theme, base, components, daisyui, utilities;
+
+/*
+  The granular imports rather than `@import "tailwindcss"`, and for two reasons that both matter here.
+
+  NO PREFLIGHT. This sheet is inlined into somebody else's document. Tailwind's base layer resets
+  `html`, `body`, every heading and `* { padding: 0 }` — carried into a host page, that restyles the
+  whole application because it happened to render a sign-in form. A package's stylesheet must never do
+  that, and the full import is what would.
+
+  LAYERED. Unlayered CSS beats layered CSS in every browser, whatever the source order. An app puts
+  its utilities in `@layer utilities`, so these arriving unlayered would silently outrank every
+  utility the app wrote — which is how a library's `.hidden` once beat an app's `.md:flex` and left a
+  sidebar display:none at every width, on a page that otherwise looked fine.
+
+  daisyUI's own rules are already layered, so only these two needed saying.
+*/
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/*
+  daisyUI, from the bundle Rask.Ui vendors — one copy of daisyUI in the repository, so these pages and
+  the kit can never be a version apart.
+
+  A relative path across projects, which is unusual and safe here: this sheet is compiled when
+  Rask.Auth itself is built, in this repository, and shipped as an embedded resource. The path never
+  has to resolve on a consumer's machine, and the bundle is a source file no build produces, so it is
+  present in a clean checkout. It also sits outside this project's tree, so unlike the kit's own sheet
+  there is nothing here to @source-exclude.
+
+  Scoped to [data-rask-auth] rather than :root, for the reason the kit scopes to [data-rask-ui]: a
+  package must not repaint the application that referenced it. AuthPage puts the attribute on its own
+  wrapper, which is as high as a component can reach.
+*/
+@plugin "../../Rask.Ui/Styles/vendor/daisyui.mjs" {
+  themes: light --default, dark --prefersdark;
+  root: "[data-rask-auth]";
+  exclude: rootscrollgutter;
+}

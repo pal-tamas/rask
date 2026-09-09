@@ -148,7 +148,9 @@ override Rask.Auth.Pages.AuthPage.HeadAssets.get -> Rask.Core.Component?
 override sealed Rask.Auth.Pages.AuthPage.Render() -> Rask.Core.Component?
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth<TUser>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Auth.Pages.AuthPage.Error(string! id, Rask.Core.Component? message) -> Rask.Core.Component!
 static Rask.Auth.Pages.AuthPage.Field(string! id, string! label, Rask.Core.Component! input) -> Rask.Core.Component!
+static Rask.Auth.Pages.AuthPage.Ok(string! id, Rask.Core.Component? message) -> Rask.Core.Component!
 static Rask.Auth.Pages.Routes.ConfirmEmailPage(string? UserId = null, string? Token = null) -> Rask.Core.Routing.RouteUrl
 static Rask.Auth.Pages.Routes.ForgotPasswordPage() -> Rask.Core.Routing.RouteUrl
 static Rask.Auth.Pages.Routes.LoginPage(string? ReturnUrl = null) -> Rask.Core.Routing.RouteUrl

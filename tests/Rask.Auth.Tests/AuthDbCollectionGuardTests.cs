@@ -4,7 +4,7 @@ using Rask.Tests.Shared;
 namespace Rask.Auth.Tests;
 
 /// <summary>
-///     Every test class here builds an <see cref="AuthDbContext" />, so every one must be in the
+///     Almost every test class here builds an <see cref="AuthDbContext" />, so those must be in the
 ///     collection that serialises them. This fires when the shape comes back, rather than waiting for the
 ///     model-cache race to surface on the full-solution gate.
 /// </summary>
@@ -16,5 +16,8 @@ public sealed class AuthDbCollectionGuardTests
             Assembly.GetExecutingAssembly(),
             AuthDbCollection.Name,
             // This class only reflects over the assembly; it never builds a context.
-            nameof(AuthDbCollectionGuardTests));
+            nameof(AuthDbCollectionGuardTests),
+            // Reads the stylesheet embedded in Rask.Auth. No database, and deliberately not collected:
+            // serialising it behind the database suite would cost the whole run for nothing.
+            nameof(AuthStylesheetTests));
 }
