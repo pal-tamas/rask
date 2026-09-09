@@ -712,12 +712,32 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             restoreFailed = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false) != 0;
         }
 
+        // Built here, before anything else touches it, so "does this compile?" is answered by the compiler
+        // rather than inferred from whatever fails next. The step that used to be first — creating the
+        // migration — builds the project as a side effect of loading the DbContext, so a scaffold that did
+        // not compile surfaced as an EF failure under a line reading "Creating the first migration…",
+        // which names neither the file nor the error. A build says it plainly and stops.
+        var buildFailed = false;
+        if (!noRestore && !restoreFailed)
+        {
+            Console.WriteLine("Building…", ConsoleStyle.Dim);
+
+            // The same front-end skip the migration step uses: with the batteries on, a plain build runs
+            // the bundler (or, on the meta lane, a full production front-end build) — minutes of silence
+            // for output nobody reads before `rask dev` turns both off again.
+            buildFailed = await _process.RunAsync(
+                "dotnet",
+                ["build", restoreTarget, .. SkipFrontEndBuild.Select(p => $"-p:{p.Key}={p.Value}")],
+                targetDirectory,
+                cancellationToken).ConfigureAwait(false) != 0;
+        }
+
         // The database-backed batteries keep their state in tables that only exist once a migration has been
         // applied, and their processors are hosted services — a faulted BackgroundService stops the host, so
         // an unmigrated app doesn't warn, it exits. That was an opt-in edge case while --data was opt-in;
         // now that the batteries are on by default it would be the first `dotnet run` of every new project.
         // So the first migration is part of scaffolding rather than a step in the next-steps text.
-        var migrated = !batteries.Data || noRestore || restoreFailed
+        var migrated = !batteries.Data || noRestore || restoreFailed || buildFailed
             ? (bool?)null
             : await CreateFirstMigrationAsync(targetDirectory, PickEfProject(result, name), cancellationToken)
                 .ConfigureAwait(false);
