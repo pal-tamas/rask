@@ -26,11 +26,19 @@ public static class RaskAuthServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddRaskAuth<TContext>(
         this IServiceCollection services, Action<AuthOptions>? configure = null)
-        where TContext : DbContext =>
-        services.AddRaskAuth<TContext, RaskUser>(configure);
+        where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        // The app's account type, found at compile time by the generator. An app that declares none
+        // gets no auth — which is the honest outcome, and the alternative (inventing a user type) is
+        // what this change removed.
+        return AuthUser.Binding?.Add<TContext>(services, configure) ?? services;
+    }
 
     /// <summary>
-    /// Adds accounts for an application-supplied user type deriving from <see cref="RaskUser"/>.
+    /// Adds accounts for a named user type, when an app would rather say which than let the generator
+    /// find it.
     /// </summary>
     /// <typeparam name="TContext">The application context that owns the account tables.</typeparam>
     /// <typeparam name="TUser">The application's user entity.</typeparam>
@@ -44,7 +52,7 @@ public static class RaskAuthServiceCollectionExtensions
     public static IServiceCollection AddRaskAuth<TContext, TUser>(
         this IServiceCollection services, Action<AuthOptions>? configure = null)
         where TContext : DbContext
-        where TUser : RaskUser, new()
+        where TUser : IdentityUser, new()
     {
         ArgumentNullException.ThrowIfNull(services);
 

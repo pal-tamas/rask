@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Api;
+using Rask.Auth;
 using Rask.Core;
 using Rask.Data;
 using Rask.Server;
@@ -178,6 +179,19 @@ public sealed class RaskApp
         if (app.Services.GetService<AmbientContextBinding>() is not null)
         {
             Db.Configure(app.Services);
+        }
+
+        // Auth is on, the database is there, and yet no account type was found — so nothing was wired and
+        // this app has no accounts. Said out loud because it is the one battery that cannot switch itself
+        // on: Rask ships no user class, so an app that declares none leaves Identity with nothing to close
+        // over. Silence here would read exactly like a working auth battery until the first sign-in.
+        if (_options.Auth.Enabled && _options.Data.Enabled && !AuthUser.Exists)
+        {
+            app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask").LogWarning(
+                "The auth battery is on, but this app declares no account type, so accounts are not "
+                + "wired. Declare a class deriving from IdentityUser — `rask new` writes one as "
+                + "Features/Shared/User.cs — and Rask finds it. If this app has no accounts, say so "
+                + "with app.Configure(c => c.Auth.Off()) and this notice stops.");
         }
 
         // FIRST: rewrite Request.Scheme and RemoteIpAddress from the proxy's headers, so everything below

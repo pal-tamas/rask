@@ -7,6 +7,43 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **`RaskUser` is gone; your app declares its own account type and Rask finds it.** Rask no longer ships
+  a user class. `rask new` writes `Features/Shared/User.cs`:
+
+  ```csharp
+  public class User : IdentityUser
+  {
+  }
+  ```
+
+  A source generator finds the one `IdentityUser` subclass in the compilation and emits a
+  `[ModuleInitializer]` naming it to `AuthUser`, so `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` keep
+  working with no type argument — the binding closes over the type at compile time, so nothing is
+  reflected and a trimmed publish cannot lose the account tables. Two user types are reported as
+  **RASK074** rather than one being picked; none means the app has no accounts and auth is simply not
+  wired, which is the honest outcome now that there is no type to invent.
+
+  The five `where TUser : RaskUser, new()` constraints relax to `IdentityUser`, and the named overloads
+  (`AddRaskAuth<TUser>`, `AddRaskAuth<TContext, TUser>`) remain for an app that would rather say which.
+
+  **Breaking, and it is a schema change**: `RaskUser.CreatedUtc` went with it — a column written once at
+  registration and read nowhere in the repo. Audit stamps now come from the same convention as every
+  model: add `ITimestamped` to your `User` and `CreatedAt`/`UpdatedAt` are stamped on every write, as
+  shadow columns unless you declare them. Do **not** add `IVersioned` — Identity already maintains
+  `ConcurrencyStamp`, and a second token on the same row is a race rather than a guard.
+
+### Fixed
+
+- **The scaffolded `AppDbContext` applied Rask's conventions before the batteries mapped their tables**,
+  so anything they mapped missed the audit stamps, the soft-delete filter and the concurrency token. The
+  template's own comment described the correct order — "it has to follow the configurations… or entities
+  registered afterwards silently miss out" — and the code did the opposite, appending every `AddRaskX()`
+  after `ApplyRaskConventions()`. Harmless while no battery entity carried a marker, and silently wrong
+  the moment a scaffolded `User` declares `ITimestamped`. The conventions now come last, with a scaffold
+  test pinning the order.
+
 ### Added
 
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an

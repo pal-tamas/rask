@@ -7,6 +7,12 @@ using Rask.Mail;
 
 namespace Rask.Auth.Tests;
 
+/// <summary>
+///     The account type these tests run on. Rask ships none — an app declares its own and the generator
+///     finds it — so the suite declares one exactly as a scaffolded app does.
+/// </summary>
+public sealed class TestUser : Microsoft.AspNetCore.Identity.IdentityUser;
+
 /// <summary>One captured message, in the terms a test asks questions in.</summary>
 /// <param name="To">The recipient.</param>
 /// <param name="Subject">The subject line.</param>
@@ -162,7 +168,7 @@ public sealed class AuthHarness : IAsyncDisposable
     public async Task<IReadOnlyList<string>> RolesOfAsync(string email)
     {
         using var scope = NewScope();
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<RaskUser>>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<TestUser>>();
         var user = await users.FindByEmailAsync(email);
 
         return user is null ? [] : (await users.GetRolesAsync(user)).ToArray();
@@ -171,7 +177,7 @@ public sealed class AuthHarness : IAsyncDisposable
     public async Task<int> UserCountAsync()
     {
         await using var db = NewContext();
-        return await db.Set<RaskUser>().CountAsync();
+        return await db.Set<TestUser>().CountAsync();
     }
 
     public async ValueTask DisposeAsync()
