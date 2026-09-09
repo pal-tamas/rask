@@ -15,7 +15,7 @@ internal sealed record AccountOutcome(AuthResult Result, ClaimsPrincipal? Princi
 /// </summary>
 /// <remarks>
 /// The endpoints are mapped by <c>MapRaskAuth()</c>, which has no way to know which
-/// <see cref="RaskUser" /> an app configured — it is a parameterless extension method on the endpoint
+/// account type an app declared — it is a parameterless extension method on the endpoint
 /// builder, chosen so an app writes one line. Registering this alongside the generic service gives the
 /// endpoints something to resolve that does not name the type.
 /// </remarks>
@@ -52,9 +52,8 @@ internal sealed class AccountService<TUser>(
     IInstanceClaimStore claims,
     FirstRunToken firstRun,
     AuthMail mail,
-    AuthOptions options,
-    TimeProvider clock) : IAccounts
-    where TUser : RaskUser, new()
+    AuthOptions options) : IAccounts
+    where TUser : IdentityUser, new()
 {
     public async Task<AccountOutcome> RegisterAsync(
         string email,
@@ -86,7 +85,6 @@ internal sealed class AccountService<TUser>(
         {
             UserName = email,
             Email = email,
-            CreatedUtc = clock.GetUtcNow().UtcDateTime,
         };
 
         var created = await users.CreateAsync(user, password).ConfigureAwait(false);
