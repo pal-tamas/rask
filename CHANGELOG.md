@@ -7,6 +7,35 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Validation now covers MVC controllers and minimal API endpoints.** Writing an
+  `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
+  run on a controller action or a minimal API, and no *asynchronous* rule ran on either, because MVC's
+  `ModelState` and `Validator.TryValidateObject` are both synchronous and a `MustAsync` cannot ride a
+  synchronous pass. Minimal APIs had no validation at all — a `[Required]` on a body was silently
+  unenforced there while the identical controller rejected it.
+
+  Both seams now run the same two passes a form does: the body's DataAnnotations attributes, then the
+  discovered `AbstractValidator<T>`, asynchronous rules included. A controller gets a global
+  `IAsyncActionFilter` that merges its findings with `ModelState`; a minimal API gets an endpoint
+  filter, attached to everything mapped through `app.MapEndpoints(e => …)`, and
+  `.RequireRaskValidation()` for an endpoint mapped elsewhere (ASP.NET has no global endpoint filter).
+  Only what the caller sent is validated — an injected service is never walked.
+
+  A rejection is the **same** 400 `application/problem+json` a rejected CQRS dispatch sends: the stable
+  `type` at `docs/validation.md#rejected`, and an `errors` object keyed by field. One client-side
+  rejection handler now covers every seam. `app.Configure(c => c.Validation.Off())` turns the Rask pass
+  off on both, and leaves ASP.NET's own `ModelState` behaviour intact.
+
+  New public API: `RaskApiValidation.AddRaskApiValidation()` and
+  `IEndpointConventionBuilder.RequireRaskValidation()`. (#988)
+
+- **`ApiException.Errors`** — a rejected API call now hands the caller the field errors, the same map
+  `RemoteDispatchException.Errors` carries. `ApiCall` previously skipped the `errors` object while
+  reading a problem document, so a 400 arrived with nothing to show the user and nothing anywhere
+  said why. (#988)
+
 ### Fixed
 
 - **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that

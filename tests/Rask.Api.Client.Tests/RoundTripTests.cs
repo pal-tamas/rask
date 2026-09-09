@@ -197,6 +197,20 @@ public sealed class RoundTripTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_rejection_hands_the_caller_the_field_errors()
+    {
+        // The half a client could not act on. A 400 with no `errors` leaves a call site able to say only
+        // "something was wrong", when the server sent messages that were written to be shown — the same
+        // map, from the same problem type, that RemoteDispatchException.Errors carries for a rejected
+        // CQRS request, so one rejection handler covers both seams.
+        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked()));
+
+        Assert.NotNull(error.Errors);
+        Assert.True(error.Errors!.ContainsKey("Name"), $"no 'Name' in {string.Join(", ", error.Errors.Keys)}");
+        Assert.NotEmpty(error.Errors["Name"]);
+    }
+
+    [Fact]
     public async Task A_required_member_is_still_enforced_by_the_lean_registration()
     {
         // AddRaskApi registers AddMvcCore().AddDataAnnotations() rather than AddControllers(), to keep

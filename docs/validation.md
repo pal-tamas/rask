@@ -17,10 +17,11 @@ reaches its handler. There is no package to add for DataAnnotations and nothing 
 | --- | --- | --- |
 | A `Form<T>` | The model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
 | A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
-| A controller or minimal API endpoint | ASP.NET's own DataAnnotations pass only — an `AbstractValidator<T>` does not run there yet | [what is not covered](#what-is-not-covered-yet) |
+| A controller action or a minimal API endpoint | The bound body's attributes, then the `AbstractValidator<T>` for it — asynchronous rules included | [HTTP endpoints](#http-endpoints) |
 
-The two halves share one validator: an `AbstractValidator<Order>` validates a `Form<Order>` while the
-user types **and** an `Order` command when it is dispatched. Write the rules once.
+All three share one validator: an `AbstractValidator<Order>` validates a `Form<Order>` while the user
+types, an `Order` command when it is dispatched, **and** an `Order` posted to `/api/orders`. Write the
+rules once.
 
 ## The two sources
 
@@ -125,20 +126,93 @@ could not evaluate — a `MustAsync` that needs the database — comes back from
 Notifications are not validated. `PublishAsync` does not go through the request pipeline, so a rule on
 a notification would be enforced nowhere; put it on the command that raises the notification instead.
 
-## What is not covered yet
+## HTTP endpoints
 
-[HTTP endpoints](api-endpoints.md) are **not** covered by the two passes above — tracked in
-[#988](https://github.com/pal-tamas/rask/issues/988).
+An [endpoint](api-endpoints.md) runs the same two passes, with nothing declared. Put `[Required]` on the
+body type, or write an `AbstractValidator<T>` for it, and a controller action and a minimal API both
+reject an invalid request with the [400 shown above](#a-rejected-request) — the same document, from the same
+`type`, that a rejected dispatch sends, so one client-side handler covers every seam.
 
-They are not unvalidated. `AddRaskApi` registers `AddMvcCore().AddDataAnnotations()`, so a
-controller's `[Required]` and `[Range]` are enforced by `ModelState` exactly as they are in any
-ASP.NET app. What is missing is the other half of what a form and a request get: an
-`AbstractValidator<T>` written for a request type does **not** run on a controller action or a minimal
-API endpoint, and neither does an async rule.
+```csharp
+public sealed class NewOrder
+{
+    [Required] public string? Reference { get; set; }
+    [Range(1, 100)] public int Quantity { get; set; }
+}
 
-The intended shape is the platform's own synchronous pass — `ModelState` for controllers, .NET 10's
-`AddValidation()` for minimal APIs — plus a Rask asynchronous filter running the discovered validator
-and merging into the same 400 shown above, so one client handles a rejection from any seam.
+public sealed class NewOrderValidator : AbstractValidator<NewOrder>
+{
+    public NewOrderValidator(IOrderStore store) =>
+        RuleFor(o => o.Reference)
+            .MustAsync(async (reference, ct) => !await store.ExistsAsync(reference!, ct))
+            .WithMessage("That reference is already used.");
+}
+```
+
+That validator now runs in three places: in a `Form<NewOrder>` as the user types, on a `NewOrder`
+command when it is dispatched, and on both of these:
+
+```csharp
+[HttpPost("")]
+public ActionResult<Order> Place(NewOrder body) => …;      // a controller action
+
+app.MapEndpoints(e =>
+    e.MapPost("/api/orders", (NewOrder body, AppDb db) => …));   // a minimal API
+```
+
+**The asynchronous rule is the point.** MVC's `ModelState` and `Validator.TryValidateObject` are both
+synchronous, so a `MustAsync` — the uniqueness check, the usual reason to reach for FluentValidation at
+all — could never ride the platform's own pass. Rask adds an asynchronous filter beside it: an action
+filter for controllers, an endpoint filter for minimal APIs.
+
+Only what the **caller** sent is validated. An injected service is left alone — a `DbContext` bound as
+an endpoint parameter is the container's, not the request's, and walking its object graph would be both
+wrong and slow.
+
+### Where the filter reaches
+
+A controller is covered wherever it lives; MVC runs its filters for every action.
+
+A minimal API is covered when it is mapped through `app.MapEndpoints(e => …)`, which is where an app
+writes them. ASP.NET has no such thing as a global endpoint filter — a convention reaches only what is
+mapped into the group carrying it — so an endpoint mapped somewhere else asks for the convention by
+name:
+
+```csharp
+var app = raskApp.Build<App>();
+app.MapPost("/api/orders", (NewOrder body) => …).RequireRaskValidation();
+```
+
+A host assembled by hand, without `RaskApp`, adds the services half itself:
+
+```csharp
+builder.Services.AddRaskApiValidation();
+```
+
+### What turning it off does, and does not do
+
+`app.Configure(c => c.Validation.Off())` stops the Rask pass everywhere, endpoints included: the
+discovered `AbstractValidator<T>` no longer runs on a controller action or a minimal API.
+
+It deliberately leaves **ASP.NET's own** behaviour alone. `AddRaskApi` registers
+`AddMvcCore().AddDataAnnotations()`, so a controller's `[Required]` and `[Range]` are still enforced by
+`ModelState` exactly as in any ASP.NET app — dropping that would silently start accepting bodies the
+endpoint used to reject, which is worse than a heavier registration. What changes is only the shape of
+the answer: with validation on, the rejection is the Rask problem document; with it off, it is MVC's
+own `ValidationProblemDetails`.
+
+### On the client
+
+A generated [API client](api-endpoints.md#the-typed-client) surfaces the rejection as an `ApiException`
+whose `Errors` hold the same field map, keyed the same way, that `RemoteDispatchException.Errors`
+carries for a rejected dispatch:
+
+```csharp
+catch (ApiException ex) when (ex.Errors is { } errors)
+{
+    foreach (var (field, messages) in errors) { … }
+}
+```
 
 ## See also
 

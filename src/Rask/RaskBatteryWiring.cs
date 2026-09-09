@@ -117,6 +117,17 @@ internal static class RaskBatteryWiring
             services.AddRaskApi(o => options.Api.Apply(o));
         }
 
+        // The ASYNC half for HTTP endpoints, which the platform cannot supply: MVC's ModelState and
+        // Validator.TryValidateObject are both synchronous, so the discovered AbstractValidator<T> — and
+        // above all a MustAsync rule inside it — has nowhere to run on a controller action or a minimal
+        // API. Registered off the validation battery rather than the API one: a minimal API is an
+        // endpoint whether or not this app maps controllers, and "validation is on" has to mean the same
+        // thing at every seam.
+        if (options.Validation.Enabled)
+        {
+            services.AddRaskApiValidation();
+        }
+
         if (!data)
         {
             return;
