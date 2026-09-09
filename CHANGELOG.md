@@ -7,6 +7,55 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Validation now covers MVC controllers and minimal API endpoints.** Writing an
+  `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
+  run on a controller action or a minimal API, and no *asynchronous* rule ran on either, because MVC's
+  `ModelState` and `Validator.TryValidateObject` are both synchronous and a `MustAsync` cannot ride a
+  synchronous pass. Minimal APIs had no validation at all — a `[Required]` on a body was silently
+  unenforced there while the identical controller rejected it.
+
+  Both seams now run the same two passes a form does: the body's DataAnnotations attributes, then the
+  discovered `AbstractValidator<T>`, asynchronous rules included. A controller gets a global
+  `IAsyncActionFilter` that merges its findings with `ModelState`; a minimal API gets an endpoint
+  filter, attached to everything mapped through `app.MapEndpoints(e => …)`, and
+  `.RequireRaskValidation()` for an endpoint mapped elsewhere (ASP.NET has no global endpoint filter).
+  Only what the caller sent is validated — an injected service is never walked.
+
+  A rejection is the **same** 400 `application/problem+json` a rejected CQRS dispatch sends: the stable
+  `type` at `docs/validation.md#rejected`, and an `errors` object keyed by field. One client-side
+  rejection handler now covers every seam. `app.Configure(c => c.Validation.Off())` turns the Rask pass
+  off on both, and leaves ASP.NET's own `ModelState` behaviour intact.
+
+  New public API: `RaskApiValidation.AddRaskApiValidation()` and
+  `IEndpointConventionBuilder.RequireRaskValidation()`. (#988)
+
+- **`ApiException.Errors`** — a rejected API call now hands the caller the field errors, the same map
+  `RemoteDispatchException.Errors` carries. `ApiCall` previously skipped the `errors` object while
+  reading a problem document, so a 400 arrived with nothing to show the user and nothing anywhere
+  said why. (#988)
+
+- **A Lit island on the showcase.** `LitBadge.ts` is a plain custom element that imports nothing at
+  all — no framework, no npm package — and it takes the same generated props, the same build-time
+  type-check and the same C# callback every other island does. It could not be shown before: the site
+  has scoped TypeScript, and until the collision below was fixed a project could only have one of the
+  two. (#938)
+- **The Preact island runtime is now actually exercised.** `PreactComponent` shipped as one of the
+  seven island runtimes with nothing anywhere proving a Preact island mounts, takes its C# props, or
+  round-trips a callback — the other six have a showcase island, and Preact cannot have one, because
+  `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite` pins a `@babel/core@"7.x"` peer
+  and npm refuses to install both. That refusal is correct and stays; it constrains a bundled app, not
+  a test.
+
+  `PreactAdapterTests` (`tests/Rask.External.Tests`) drives the shipped client runtime, the shipped
+  `preactComponent` adapter, real Preact and a real DOM in Node: it mounts, a `props` change
+  **reconciles** — the component's own `useState` survives it and the mount effect does not re-run — a
+  callback reaches the host dispatch channel and stops firing once C# clears it, and unmount runs the
+  component's cleanup effects. Each of those fails if the adapter regresses and passes every C#-side
+  assertion while doing so. The packages are pinned and installed under `obj/` on first build; with no
+  npm or no network the tests report **skipped** rather than passing quietly. (#963)
+
 ### Changed
 
 - **CS0108 no longer costs you a `new`: RASKSUP001 suppresses it when the hidden member is a builder
@@ -71,6 +120,226 @@ them until tagged releases begin.
 
   CS0108 for a member of your own named after a tag now covers ~170 names rather than the 15 Core used
   to keep — and no longer needs answering at all; see RASKSUP001 below.
+
+- **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
+  `Name.ts` beside `Name.cs`, and the only thing separating them is whether the class derives from
+  `LitComponent` — which Roslyn knows and a glob does not. So in a project with both, island discovery
+  offered every scoped file to the bundler as a Lit module that never default-exported a tag name, and
+  the scoped glob compiled every island's module as a component asset: registered as
+  `window.Rask["Gauge"]`, injected as a `<script>` the component never asked for, and type-checked
+  against a `@rask/Gauge.props` mapping that exists only in the island's own tsconfig.
+
+  The build now reads the base list out of the C# source and sends each `.ts` down exactly one
+  pipeline. It has to be the SOURCE and not the compiled assembly, which knows exactly: the
+  scoped-TypeScript list is compiled and handed to the C# compiler, so it cannot wait for the assembly
+  that compile produces, and reusing the previous build's would make a clean build differ from the one
+  after it. The approximation is checked against the real answer on the same build — an island whose
+  declared module is not among the files being built is already reported by name.
+
+  `RaskExternalLitAutoPair` is **retired**. It existed only to say which one of the two features a
+  project had; a project can now have both, which is what the knob could never deliver. Delete it
+  wherever it appears — the showcase carried it, and now carries a Lit island instead.
+  `RaskScopedTsAutoInclude` stays: it is Rask.Core's own switch for a `.ts` that is not a component
+  asset at all. (#938)
+
+- **The repository-wide scoped-TypeScript type-check never looked at `site/`.** The one app in the
+  repo — the app whose scoped TypeScript the feature exists for — was the only tree the sweep skipped,
+  and nothing said so. It sweeps `site` now, and skips island modules, which are not scoped assets.
+  (#938)
+
+- **The showcase's top bar was near-black text on a near-black bar, on markup whose class names were
+  entirely correct.** `wwwroot/global.css` still carried `.app-navbar { background: rgba(20, 16, 31,
+  .82) !important }` from the dark-first showcase. That sheet is UNLAYERED and linked last, so it
+  outranks every layered utility on the page: the rule beat the `bg-ui-bg` written on the same element,
+  while the bar's text stayed `text-ui-ink` — base-content, near-black in this light theme. Measured,
+  the wordmark, the "showcase" pill and the route readout came out at about **1.4:1**, against WCAG
+  1.4.3's 4.5:1. Nothing could see it: `bg-ui-bg` and `text-ui-ink` were both present and asserted, the
+  build was clean, and the browser suite only ever checked that the class was there. Same shape as
+  #1033, one cascade layer up.
+
+  The bar is drawn from the palette now and measures **17.6:1**. The glass survives as `bg-ui-bg/85`
+  plus a backdrop blur — the same three utilities the landing page's header already used, so the two
+  headers are finally the same thing.
+
+  Two new gates, because a class-name assertion demonstrably cannot catch this class of bug.
+  `ChromeStylesheetTests` fails if `global.css` declares a rule for any chrome hook the markup styles
+  with utilities, and the journey now composites the bar's real background (it is translucent, so the
+  ancestors behind it count), composites the text over that, and asserts the contrast ratio.
+
+- **The desktop sidebar's bottom entries were unreachable.** The rule capping the rail to the viewport
+  was written against `.side-nav.offcanvas-md .offcanvas-body`, an element that stopped existing when
+  `BsOffcanvas` was removed — the `<aside>` is the body now. With nothing capping it, the sticky column
+  rendered at its full **4,272px**, pinned under the bar, and no amount of page scrolling brought its
+  lower half into view. The cap is back on the element that exists. (#1017)
+- **A component that loads its data with `await …ConfigureAwait(false)` still served its placeholder,
+  at 200, with nothing wrong anywhere.** The second instance of the window that caused
+  [#932](https://github.com/pal-tamas/rask/issues/932), on the path where the hook's continuation never
+  reaches `LifecycleSyncContext.Post` at all — so the paint gate that fix relies on is never registered,
+  because the code that registers it never runs.
+
+  What painted such a hook was the terminal `ContinueWith`, and what the quiescence wave loop was handed
+  to wait on was the hook's own `Task` — which completes one statement *earlier*. Both continuations run
+  `ExecuteSynchronously`, so the loop could wake inside that gap, re-render a child that had not been
+  marked dirty yet, snapshot nothing, and serve. Same silent outcome as #932: the placeholder goes out
+  at 200, inside budget, with nothing marked timed out and no fault raised — to the browser and to every
+  crawler. And `ConfigureAwait(false)` is not exotic: it is what library code is normally advised to
+  write, so the ordinary hook took the unfixed path while every fixture in the suite awaited a plain
+  `Task.Delay` and took the fixed one.
+
+  The tracked work is now the **paint**, not the hook: `Component.InvokeAsyncLifecycleWithRendering`
+  chains `QuiescenceScope.Track` onto the terminal continuation instead of onto the hook's `Task`, so
+  what the loop waits on cannot complete before the render that shows the data has been requested. That
+  closes the window for both paths at once, and costs nothing — it is the same two continuations as
+  before, in series rather than in parallel (`Allocated` byte-identical across `RenderOnce` 88.41 KB,
+  `RenderTenTimes` 159.29 KB, `RenderKeyedList100` 100.36 KB, `RenderDeep_50UserComponents` 77.91 KB and
+  `RenderAndBuildPayload` 35.4 KB).
+
+  Pinned twice, and both pins fail without the change: `Get_AwaitsANestedHookWhoseAwaitsAreAllConfigure`
+  `AwaitFalse` drives the real `GET` and reported `Not found: "ca-child-loaded"` on every run, and
+  `Work_tracked_for_a_ConfigureAwaitFalse_hook_outlives_its_own_repaint_request` pins the ordering itself
+  — asked from a synchronous continuation on the tracked task, with the walk on a dedicated thread so no
+  pool thread can carry `QuiescenceScope`'s thread-static and rescue it. (#1037, #932)
+
+- **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that
+  arrives prerendered carries its `<rask-external>` hosts in the first response, so the islands runtime
+  mounts them before WebAssembly has finished starting. The first full frame then replaces `<body>`
+  outright rather than patching it — and `rask-external.js` had its `MutationObserver` bound to the body
+  the page loaded with. That node is detached by the swap, so the observer never fired again: the
+  islands mounted before the swap went away with the old body, and the hosts in the new one were never
+  hydrated. The page kept four empty `<rask-external>` elements for the rest of its life.
+
+  The observer is now bound to `<html>`, which outlives the swap. `subtree: true` reaches everything it
+  did before, plus the replacement body — which arrives as an added node and sweeps normally — while the
+  removed body sweeps out through teardown, so a discarded island gets its adapter's `unmount` instead
+  of being dropped still mounted.
+
+  It stayed hidden because it is a race the boot shell happened to win, and the browser suite only ever
+  saw the boot shell. `StaticWwwrootHostFixture` resolved `GET /docs` to a directory, failed
+  `File.Exists`, and fell through to the SPA fallback — serving the shell instead of the prerendered
+  page that `Rask.Wasm.Hosting` serves in production (`UseDefaultFiles`). With the shell, this module
+  starts before there is anything to mount and the islands arrive inside the new body; prerendered, the
+  order inverts. The host now resolves a directory to its `index.html`, so the prerendered output has
+  browser coverage for the first time. (#1035, #1034)
+
+- **The browser journeys were racing a cold WebAssembly boot, which is what the load-dependent flakes
+  were.** Serving the boot shell for every route meant the suite's opening assertion — an active sidebar
+  link is visible — could not pass until the runtime had downloaded, started and painted. Idle that is a
+  second or two; under the full gate, with several browsers competing, it exceeded the 30s budget. Two
+  consecutive gate runs on one commit failed 10 and then 5 journeys with different membership, every one
+  of them on that same locator. Serving the prerendered page removes the race: the suite went from 68/78
+  and 73/78 to **78/78**, three runs in a row, and got faster (2m51s → 1m47s).
+
+  Serving the real page also removes an accidental synchronisation barrier, so the suite now waits on the
+  framework's own signal before interacting: the runtime clears `data-rask-prerendered` from `<html>` on
+  its first frame, which is exactly when handlers exist. (#1034, #1028, #989, #1029)
+
+- **`@onclick:preventDefault` on a hosted Blazor component leaked a `__internal_*` attribute into the
+  page.** Those directives are not attributes: the Razor compiler lowers each to a boolean frame named
+  `__internal_preventDefault_onclick` / `__internal_stopPropagation_onclick`, carrying no handler id.
+  They therefore missed `BlazorFrameWriter`'s handler branch and fell through to its boolean arm, which
+  writes a true boolean attribute bare — so `<a href="/x" @onclick:preventDefault="Pick">` shipped a
+  stray `__internal_preventDefault_onclick` that means nothing to any browser. They are now dropped.
+
+  Dropped rather than translated, because Rask's delegated listeners already give both directives what
+  they ask for — this was a naming mismatch, not a missing feature. The client cancels the default for
+  any element carrying `data-rask-on-click` (declining only for a popover invoker, whose default action
+  is the point of the control), so a hosted `<a href>` with a handler does not navigate. And the
+  listener resolves its target with `closestFrom`, the NEAREST ancestor carrying the attribute, so an
+  ancestor's handler never sees a click a descendant already claimed — which is the propagation
+  `:stopPropagation` exists to stop. What is still not covered is propagation to non-Rask listeners the
+  page installed itself. (#951)
+
+- **An enabled battery whose tables were never mapped failed only at first use, never at boot.** Every
+  battery is on by default, and a battery that is on needs its tables in the application's
+  `DbContext`. An app that forgets one compiles, boots, serves pages and signs people in — then dies on
+  the first request that touches it, with `Cannot create a DbSet for 'QueuedMail' because this type is
+  not included in the model for the context`. In practice that is the first password reset anybody asks
+  for. A sample shipped in exactly that state and it took a browser journey to find.
+
+  The background half never complains, and cannot: a worker has to tolerate a table that is not there
+  yet, because a freshly scaffolded app boots before its first migration has run and a hosted service
+  that threw on a missing table would stop the host from starting at all. So the failure surfaces in a
+  request path, in production, long after the mistake was made.
+
+  `AddRaskAuth<TContext>()`, `AddRaskMail`, `AddRaskJobs`, `AddRaskCache` and `AddRaskOutbox` now each
+  register a startup check that looks its own entity up in the model once, before that battery's worker
+  starts. A missing one fails the boot with the line to type:
+
+      The Mail battery is on, but QueuedMail is not in AppDbContext's model, so the first
+      request that uses it would fail with "Cannot create a DbSet for 'QueuedMail'".
+      Add it to OnModelCreating:
+          modelBuilder.AddRaskMail();
+
+  **The MODEL, not the database**, and that distinction is what lets this fail the boot where the
+  workers cannot. The model is built from `OnModelCreating` and needs no connection, so "the type is
+  not mapped" is a code mistake and always wrong, while "the table does not exist yet" is normal for an
+  app that has not run `rask db update` and is not checked at all. An app with no migrations still
+  starts, and there is a test that says so.
+
+  The check belongs to `AddRaskX<TContext>()` rather than to the meta-package's battery wiring, and
+  that placement is the fix rather than a detail of it. A scaffolded app references `Rask.Server` and
+  writes `builder.Services.AddRaskMail<AppDbContext>()` into its own `Program.cs`; it never goes through
+  `RaskApp`. A guard living there would have passed its own tests while firing for nothing any real app
+  does — so the tests for this go through a bare `ServiceCollection`, the way `rask new` wires it.
+  Because the batteries share no assembly (`Rask.Cache` has no Rask reference at all, and keeping it
+  that way is #1014's concern), the check is source-linked into each package and reports one battery at
+  a time. (#1015)
+- **A second `dotnet publish` into the same directory duplicated every head asset, and a third tripled
+  it.** `WasmPrerender` reads the boot shell from `index.html` — and the root route's own output IS
+  `index.html`. The pass already reasoned about that *within* a run (the shell is read once, before the
+  page loop, or page two would get the merged page one). The same argument holds *across* runs and was
+  not handled: the second publish read the first publish's merged page as its shell, so
+  `PrerenderShell.Merge` spliced the head into a document that already carried it. Every stylesheet,
+  preload, `meta` and canonical appeared twice, down to the `data-rask-key` that is meant to make them
+  one node.
+
+  The SDK does not rescue it — the prerendered `index.html` is newer than the staged shell, so the copy
+  step calls it up to date and leaves it in place. Nothing failed: green build, page renders, and the
+  only thing that noticed was a browser E2E assertion counting the `global.css` link, which fired when
+  the gate happened to run twice against the same publish and read as a flake.
+
+  The pass now tells its own output from a boot shell (`data-rask-prerendered` on `<html>`, or a keyed
+  head asset) and re-reads the untouched shell it already keeps at `404.html` for exactly this class of
+  problem. With no pristine copy to fall back on it fails the publish and says to delete the directory,
+  rather than silently appending another head. Its `robots.txt` is recognised as its own on the same
+  grounds and rewritten — an author's is still never touched — so a change to `<RaskSiteUrl>` cannot be
+  outlived by the first publish's file.
+
+  Verified on a real double publish, not on generated text: three consecutive `dotnet publish` runs of a
+  prerendered WASM app into one directory now produce 616 of 617 files byte-identical, the exception
+  being the `Last-Modified` values in `*.staticwebassets.endpoints.json`, which describe file times by
+  definition. Before the fix the same three runs gave one, two and three copies of each head asset.
+  (#1036)
+- **A server-rendered page could serve a nested component's placeholder, at 200, with nothing wrong
+  anywhere — because `LifecycleSyncContext.Post` could not see the render it belonged to.**
+  `Post` read the quiescence scope from an `AsyncLocal` on the assumption that it runs under the
+  awaiter's captured `ExecutionContext`. It does not: the runtime restores that context around the
+  **continuation**, not around the `SynchronizationContext.Post` that schedules it. Measured directly —
+  a twenty-line program prints `SCOPE` before the await, `<null>` inside `Post`, and `SCOPE` again
+  after it.
+
+  So `Post` fell through to `QuiescenceScope`'s thread-static fallback and got the pass only when the
+  awaited task happened to finish on the very thread that opened it. Two full traced runs of
+  `Rask.Server.Tests` agree: **every** lookup inside `Post` saw an empty flow slot, and resolved to the
+  right pass, to a *stranger's* pass, or to nothing depending purely on which thread the timer fired
+  on. With no pass, the paint gate added in the previous fix was never registered at all, and the wave
+  loop was free to snapshot in the one-line window that gate exists to close — re-render before the
+  child's `StateHasChanged()`, find nothing pending, and serve.
+
+  That is [#932](https://github.com/pal-tamas/rask/issues/932):
+  `QuiescentRenderTests.Get_AwaitsWorkStartedByAResolvedWave`
+  failing about one run in five with `Not found: "child-loaded"`, never in isolation, well inside a 5 s
+  budget with nothing marked timed out. It was never only a test: any page whose component mounts a
+  second component that loads its own data could serve the inner placeholder as its first paint, to a
+  browser and to every crawler.
+
+  The scope is now **captured by the render walk** — where it is a fact rather than an inference — and
+  handed to `LifecycleSyncContext` through its constructor; `Post` never consults ambient state again.
+  The same lookup serves `QuiescenceScope.Track`, which used to do its own.
+  `The_gate_survives_a_continuation_posted_from_a_foreign_thread`
+  pins it by running the walk on a dedicated thread, so the pool thread that completes the hook cannot
+  be carrying the thread-static; it fails every time with the change reverted, naming the cause —
+  *the scope reported nothing pending*.
 
 - **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
   Every class name was present and correct in the markup; the rules never won. The hero's
@@ -206,6 +475,187 @@ them until tagged releases begin.
   to be equal being unequal is the entire defect, so a test naming `"client"` twice would have passed
   throughout. `docs/meta.md` stated the old default in its property table; four comments in the props
   and targets still described a PascalCase folder. (#994)
+
+### Documentation
+
+- **"Islands in a shared library" now says what is actually missing.** Measured against a real
+  Razor-SDK class library holding a Lit island and an app referencing it: the library's own build
+  already writes its prop types, runs the type-check, bundles, and registers the chunks under
+  `_content/<PackageId>/_rask/external/`, which the app then serves. What is broken is two URLs, both
+  the same mistake — `rask-external.js` fetches the app-rooted `/_rask/external/manifest.json`, and
+  `RaskExternalPublicBase` defaults to that same app-rooted prefix inside a library, so the manifest
+  points every chunk under the app's root. Both answer with the page's own HTML.
+
+  The note also records the trap waiting for whoever fixes it: the library's base cannot be derived
+  from `StaticWebAssetBasePath` or `StaticWebAssetProjectMode`. Both are empty at evaluation, and once
+  `ResolveStaticWebAssetsConfiguration` has run the browser-WASM app resolves to `_content/Rask.Site` /
+  `Default` — exactly what the class library resolves to, while its `wwwroot` is served at the site
+  root. `OutputType` is what separates them. (#939)
+
+### Changed
+
+- **A finished change lands on `main` directly; the `open-pr` skill is now `land-on-main`.** Every
+  workflow document ended the definition-of-done gate with "open a PR" — `CLAUDE.md`, `AGENTS.md`,
+  `.claude/skills/README.md`, `rask-ship` step 7 and `docs/development-workflow.md` step 7 — so a
+  working session parked its work on a branch and waited for a review that is never coming. This repo
+  has one regular committer and **zero required checks**: the gates are the local `pre-commit` and
+  `pre-push` hooks, so a pull request adds ceremony and proves nothing that the push has not already
+  proven.
+
+  The gate's last step is now a gated merge and a direct push, and the skill carries the two traps
+  that make the naive version unsound. A *clean* `git merge` creates its own commit and runs
+  `pre-merge-commit` — a hook this repo does not have — so it lands with no format check, no build and
+  no tests; the flow merges `origin/main` with `--no-commit` and lets `git commit` run the gate. And
+  because a worktree cannot check `main` out (the primary checkout holds it), the change goes up as
+  `git push origin HEAD:main`, backgrounded, verified by `git ls-remote` rather than by an exit code
+  a pipe can swallow.
+
+  Pull requests keep the one job a local hook cannot do: an **external** contribution, where the PR
+  title becomes the squash commit. `commitlint.yml` triggers `on: pull_request` only, so
+  `docs/repo-administration.md` no longer claims it covers the maintainer's own commits —
+  `.githooks/commit-msg` does.
+
+- **The operator console's palette is daisyUI's, and the console is invisible in dark mode no longer.**
+  `Rask.Dashboard`'s own stylesheet carried a near-white ladder in literal `oklch()` while `UiShell`
+  painted the surface under it with daisyUI's `bg-base-200` / `bg-base-100` / `text-base-content`. Those
+  two palettes agreed only by coincidence, and only in light: daisyUI's theme scope follows
+  `prefers-color-scheme`, so on an operator's dark-mode machine the chrome and the cards went dark while
+  every `text-ui-ink` label on them stayed near-black. Measured in a browser, the queue titles on the
+  overview came out at **1.09:1** and the log table's headers at 2.88:1. Nothing could see it — the
+  tokens were valid, every class name in the markup was correct, and the 88-test unit suite was green,
+  because the whole defect is a question of what the tokens *resolve to*.
+
+  Every `--color-ui-*` in `dashboard.css` is now an alias for a daisyUI semantic variable, and the theme
+  is named rather than inherited: `data-theme="light"` rides with the theme scope on `<html>`
+  (`RaskDashboardShell`) and on the shell div (`UiShell`), which is where daisyUI actually reads it. In
+  light the console is pixel-identical to before — `--color-base-100/200/300/content` are the ladder it
+  had — and in dark it is now identical to light rather than half-repainted.
+
+  Two aliases are derived rather than taken, and each says what it measured. `--color-ui-muted` is
+  `color-mix(in oklab, var(--color-base-content) 62%, var(--color-base-100))`, **not** `--color-neutral`
+  as the kit's transitional table maps it: neutral is oklch(14%) in daisyUI's light theme, *darker* than
+  base-content, and it would have rendered thirty-four secondary labels heavier than the text above them.
+  `--color-ui-danger` is `--color-error` darkened 70% toward black, because daisyUI's error is a surface
+  colour and measures 2.87:1 read as text on white — the same trap `--color-ui-warn-ink` already existed
+  to avoid.
+
+  New `UiShell.Theme` in `Rask.Ui`, because until now a surface built on the shell had no way to name a
+  theme at all: `data-theme` on an ancestor does not settle it, since the rule that follows the OS is
+  `[data-rask-ui]:not([data-theme])` and it matches the shell's own element.
+
+  Four new gates in `DashboardPaletteTests`, because class-name assertions demonstrably cannot see any of
+  this: the `@theme` block may declare no literal colour, no token written as `text-ui-*` may be a bare
+  alias of a daisyUI *surface* colour (scanned from the pages, so a new one is covered the day it is
+  written), and both scope-carrying elements must name a theme. Verified in a real browser at 1280x900
+  and 390x844, light and dark: no page overflow and no over-wide table at either width, and the console's
+  worst measured text contrast is 16.68:1 in both colour schemes. (#1017)
+
+- **The showcase's chrome is daisyUI's now, following the sidebar.** The top bar is `navbar` with its
+  `navbar-start` / `navbar-end` halves, the hamburger is `btn btn-ghost btn-square`, the two brand pills
+  are `badge`, and `CodeSample`'s panel is `card`. Sixty-odd lines of bespoke CSS go with them —
+  `.app-navbar`, `.hamburger-btn` (whose `color: #fff` existed only to survive the dark bar), `.app-shell`,
+  `.page-main`, `.rask-badge`, `.sample-card` and `.sample-result-col` — and two hard-coded colours that
+  could never follow a theme, `background: #fff` on the live-result pane and `bg-white` on the sample
+  header, are on the palette instead.
+
+  The class names stay on the elements. They style nothing, exactly as `side-nav-link` and `nav-group-*`
+  have since `66369460`, but sixty-odd assertions across the unit and browser suites name them and every
+  one is still about the right thing. `--nav-h` now says the bar's real height (4rem): it claimed 56px
+  while the bar measured 61px, which is what left the mobile drawer's filter box under the bar it was
+  meant to clear.
+
+  `SeeAlso` and its `.see-also-link` rule are gone rather than converted: nothing has rendered a "See
+  also" pill since the demo pages folded into the guides, so there was no consumer to migrate.
+
+  Deliberately NOT converted: the code pane inside a `CodeSample` (`.sample-code-col`, `.sample-code`,
+  `.sample-dot`, `.sample-tab`, `.sample-copy`). daisyUI's `mockup-code` is themed on `--color-neutral`
+  and draws one monochrome triple-dot at 30% opacity through a `::before`, so adopting it would repaint
+  a surface that is deliberately fixed-dark in every theme, discard the syntax palette tuned to it, and
+  put the dots on their own row above the filename tabs. That is a redesign, not a supersede. The demo
+  pages, the landing site and the operator console's own sheet remain their own areas of #1017. (#1017)
+
+- **The push gate compiled 105 projects, serially, to run a suite that loads 39 of them.**
+  `scripts/run-e2e-local.sh` opened with `dotnet build Rask.slnx -c Release -m:1` — every project in
+  the solution, one core, before a browser opened. The suite does not need them.
+  `Rask.Examples.E2E.Tests` has no `ProjectReference` at all: it is a leaf that drives a served bundle
+  over HTTP, and every fixture in it boots exactly one app, `site/Rask.Site`. That app's transitive
+  closure is 39 projects. The other 66 — every unit-test assembly, all three benchmark projects, the
+  CLI — were compiled by the push gate and then never loaded by it, after `.githooks/pre-commit` had
+  already built *and run* them on the way in.
+
+  The gate now publishes the site and builds the one leaf project. Order is load-bearing rather than
+  tidy: the leaf's own `_RaskBundleBrowserFixtures` target calls `ResolveTypeScriptToolTask`, whose
+  `UsingTask` resolves `src/Rask.Core/build/Rask.TypeScript.Tasks.dll` by assembly file — a gitignored
+  artifact that only a build of `src/Rask.TypeScript.Tasks` puts there — and that project is inside the
+  site's graph, so publishing first bootstraps it. Measured cold on a busy machine: 104s for both steps
+  (103s publish, 1s leaf), against a step whose own comment recorded 9m30s of build and publish before
+  `dotnet test` appeared at all. What the gate stops proving is that the whole solution compiles, which
+  is `pre-commit`'s job on every code commit; the one thing it built that `pre-commit` does not is the
+  WASM bundle, and that is the site publish itself.
+
+- **The three local gates disagreed about `MinVerSkip`, and so kept rebuilding each other's output.**
+  The unit gate and the benchmark gate both pass `-p:MinVerSkip=true`; the E2E gate did not. MinVer
+  stamps the commit height and the commit SHA into `AssemblyInformationalVersion`, so with it on every
+  project's generated `AssemblyInfo.cs` changes on *every commit*, and any project whose version flag
+  differs from the last gate to touch `obj/` is recompiled from scratch. The E2E gate now passes it
+  too. It is safe here because the recorded hazard — a MinVer fallback version breaking a published app
+  launched **out-of-process** whose routes live in a separate assembly — cannot arise: `ExampleAppFixture`,
+  the only out-of-process host runner, has no derived class left, and the one fixture in use serves a
+  published browser-WASM bundle from an in-process static-file host, where every assembly loads from
+  the bundle. If an out-of-process host fixture is ever reintroduced, the flag has to come back off.
+
+  Note what this does *not* buy: the E2E gate's own publish is not incremental and was never going to
+  be. Measured back to back, a republish with no source change at all cost 73s against the changed
+  run's 54s — `dotnet publish` re-runs the trimmer, the prerender and the compression every time. The
+  saving is entirely in the *next* gate, whose `obj/` is no longer invalidated. That one is large, and
+  it was measured rather than reasoned about: the same solution build the commit gate runs took **164s
+  after the old MinVer-on publish and 45s after the patched one**, on the same tree, minutes apart,
+  with the faster run carrying the heavier machine load of the two. Every push was quietly charging the
+  next commit a full recompile of the shared graph.
+
+- **The commit gate built three source generators to serve a formatter it then skipped.** The Debug
+  build of `src/*.Generators` exists only so `dotnet format` can resolve its `OutputItemType="Analyzer"`
+  references from the default configuration. It ran unconditionally, so a commit staging no `.cs` at
+  all — a docs page, a workflow, a `.ts` file — paid for three compilations and then printed
+  "Formatting check skipped". It now runs only on the paths that go on to format, and the three build
+  concurrently: they have no `ProjectReference`, so there is no shared output to race over, and each is
+  pinned to `-m:1` so they cannot each claim the box. The gate's own ten bash tests run concurrently
+  for the same reason — every one of them stubs `ps`/`pgrep` rather than touching the machine. 18s to
+  12s, measured back to back.
+
+- **Deleting a merged branch ran the entire push gate.** `git push origin --delete <branch>` sends one
+  ref line whose local sha is all zeroes: no commit reaches the remote and no tree changes. The hook
+  ran the full browser E2E suite, both payload-bytes baselines and the capacity smokes on it anyway,
+  because every gate is written in terms of "is this push path-relevant" and a deletion matches those
+  filters exactly like any other push. Found by deleting a merged branch and watching ~40 minutes of
+  browser suite start up behind it. The attribution guard had the right idea all along — its loop
+  already skips a ref whose local sha is zero — it just kept the conclusion to itself; the hook now
+  reads stdin once and both readers share it. Only a push where **every** ref is a deletion skips the
+  gates: delete one branch and update another and the content still gets the full gate. The test drives
+  the real hook with none of the `RASK_SKIP_*` variables set, in a throwaway repository containing no
+  `scripts/run-*.sh` at all, so reaching a gate necessarily fails — exit 0 there can only mean it
+  returned first. A companion row asserts the negation, because with the skips set the same assertion
+  would have passed against a hook that ran every gate.
+
+- **The benchmark gate re-evaluated a project six times to find a path it already knew.** Six
+  `dotnet run -c Release --project … --no-build` invocations became direct calls to the built binaries.
+  Nothing the apps can observe changes: every baseline and artifact they read is resolved from
+  `AppContext.BaseDirectory`, never from the working directory, so losing `dotnet run`'s cwd is
+  inert. The gate now asserts both binaries exist before it starts, because a wrong path would
+  otherwise surface as "command not found" on a `|| status=1` line and read exactly like a regression.
+  The one `dotnet run` left is the baseline-refresh command inside the failure hint, which a human
+  pastes into a tree that may not have been built.
+
+### Fixed
+
+- **`dotnet format --verify-no-changes --no-restore` rewrote 57 files it was only asked to check.**
+  Both arms of the commit gate passed `--no-restore`. Without a restore the workspace cannot resolve
+  the source generators, so every generated symbol goes missing, the remove-unnecessary-imports
+  analysis concludes the `using` directives that reference them are dead, and it **writes** — which
+  `--verify-no-changes` did not stop. The flag is gone from both arms. The restore it now does is
+  already up to date from the build above, so this costs seconds, and it buys back a verify that
+  cannot rewrite the tree it is verifying. A destructive pass and a clean one differ only in how many
+  files moved, not in the exit code, which is why this survived being run.
 
 ### Added
 
@@ -1383,7 +1833,6 @@ them until tagged releases begin.
   never re-scaffolded. Its browser journey — the first one this sample has ever had — asserts the page
   reports no console errors, because that is the only place this failure was visible.
 
-
 - **The landing page was still grey after the theme scope was added to its root component.** Setting
   `data-rask-ui` in `App.Shell` is not enough for a prerendered WebAssembly app: the publish splices the
   render into the SDK's boot shell — that is what carries the import map and the boot script — and the
@@ -1395,7 +1844,6 @@ them until tagged releases begin.
   so a `Shell` override stops being silently lossy for every prerendered app; the shell wins wherever
   both name the same attribute, because its `lang` and any sub-path rewrite were computed for that
   publish.
-
 
 - **The landing site shipped to rask.sh with no colour at all.** `Rask.Example.Site` drew with the kit
   but was wired for neither half of it, and both failures are silent in the same way: the build stays
@@ -1416,7 +1864,6 @@ them until tagged releases begin.
   Both are fixed, and `UiKitWiringTests` now holds **every** app that references `Rask.Ui` to both rules
   rather than only the showcase, which is why the second consumer of the kit reproduced a bug the first
   had already solved. Checked by putting each half of the bug back and watching the guard name the site.
-
 
 - **The SQLite journey's database assertions reported machine load as a product failure.** The bulk
   imports and the concurrent-writer bursts waited on Playwright's default 5s budget for work that
@@ -1535,7 +1982,6 @@ them until tagged releases begin.
   one list directly inside another. The list scrolls, because thirty-five rows is taller than most
   viewports.
 
-
 - **The kit ships every daisyUI theme, and a picker for them.** It carried two — `light` and `dark` —
   while the vendored bundle already contained all 35, so 33 palettes were being compiled away.
 
@@ -1554,7 +2000,6 @@ them until tagged releases begin.
   rather than a `<select>` for exactly that reason: a select's value is only readable from a script, and
   there is none. Nothing persists the choice; an app that wants it remembered should render `data-theme`
   from its own stored preference.
-
 
 - **Email confirmation and password reset, over the mail battery.** Registering now sends a
   confirmation link, `/forgot-password` emails a reset link, and `/reset-password` and `/confirm-email`
@@ -1621,7 +2066,6 @@ them until tagged releases begin.
   **`Rask.Dashboard` still inlines**, deliberately: the console is mounted into somebody else's host,
   which references the dashboard rather than the kit and so never gets the build hook. A `<link>` there
   would point at a file nothing produced.
-
 
 - **`.gitignore` no longer lets a sample's SQLite database be committed.** The runtime-artifact block
   carried a comment claiming it was "no longer a per-sample list" and was exactly that: it named only
@@ -1728,7 +2172,6 @@ them until tagged releases begin.
   cookie is the shipped default on every host, `docs/authentication-jwt.md` documents the hand-rolled
   bearer path, and the two JWT samples demonstrate it.
 
-
 - **The browser half did not survive the trimmer.** `Rask.Auth.Client` serialised with
   `ReadFromJsonAsync<T>` and `JsonContent.Create` — reflection-based JSON, which a trimmed WebAssembly
   publish cannot keep. Three `IL2026` and a **failed publish** for any app that used it, while its unit
@@ -1738,7 +2181,6 @@ them until tagged releases begin.
   exact shapes. Moving the DTOs into `Rask.Core.Authentication` took the shapes and left the serializers
   behind. The framework owns both now, and the fix is pinned by publishing rather than by a unit test —
   `Rask.Example.Auth.WasmCookie` and `Rask.Example.Wasm` both publish with zero IL warnings.
-
 
 - **Concurrent registrations could collide on the roles table.** Two people registering at the same
   moment could get a 500 — `UNIQUE constraint failed: AspNetRoles.NormalizedName` — on the path
@@ -1812,7 +2254,6 @@ them until tagged releases begin.
   existing channel, so it lands in the session every other handler runs in. It also says the two things
   people get backwards: do not send the principal into an island as a prop (props are serialized into
   the page), and gating the host component gates the island.
-
 
 - **`Rask.Auth.Client` — the browser half, so a WebAssembly app writes the same three calls.** Until
   now a WASM app had `IAuth` and `IUserProvider` but no implementation of either; the documented answer
@@ -2050,7 +2491,6 @@ them until tagged releases begin.
   which on this lane is not academic, since every route module is loaded by Node before any browser
   sees it.
 
-
 ### Added
 - **RASK071 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
   route attribute and ASP.NET's share the short name `Route` and differ only by namespace, so a server
@@ -2262,7 +2702,6 @@ them until tagged releases begin.
   being compiled into the shipped stylesheet with no component anywhere that could write them. The
   stylesheet looked complete precisely because the gap was in the C#.
 
-
 - **The kit covers daisyUI's component set: 69 components, none of them needing a line of JavaScript.**
   Forms (input, textarea, file input, checkbox, radio, toggle, range, fieldset, validator), navigation
   (link, breadcrumbs, menu, navbar, steps, dock, pagination), feedback (alert, loading, progress, radial
@@ -2282,7 +2721,6 @@ them until tagged releases begin.
   for "no rating", without which a rating can be raised and lowered but never cleared. `UiAvatar` demands
   alt text, `UiRadio` demands the group name that makes the options mutually exclusive, and every control
   that has no visible label demands an accessible one.
-
 
 - **The kit is built on daisyUI, and its theme cannot escape onto a page that did not ask for it.**
   `Rask.Ui` now compiles daisyUI into its embedded stylesheet, so the components stop carrying
@@ -2513,7 +2951,6 @@ them until tagged releases begin.
   sheet by `UiClassNamesTests`. That guard found six fabricated names on its first run: `tab-xs`
   through `tab-xl` (daisyUI sizes tabs on the CONTAINER, `tabs-*`) and `tooltip-neutral`, which daisyUI
   does not define. Five components would have rendered unsized and one uncoloured, silently.
-
 
 - **The gates now share this machine by a slot budget instead of one all-or-nothing lane, so several
   worktrees can test at once without lying to each other.** Eight worktrees run on one box here, and
@@ -2754,7 +3191,6 @@ them until tagged releases begin.
   because a mounted application owns its whole document and so has nothing of its own to be outranked;
   the showcase is the first consumer where it could matter.
 
-
 - **The kit's stylesheet shipped the whole of daisyUI, because the plugin was being read as source.**
   `vendor/daisyui.mjs` is 348 KB of daisyUI's own code and it sits inside the project Tailwind scans, so
   the scanner found every class name daisyUI defines and treated the bundle as a safelist for the entire
@@ -2771,7 +3207,6 @@ them until tagged releases begin.
   looks exactly like a stylesheet containing enough.** Nothing renders wrong, no test goes red, and the
   only symptom is a number with nothing to compare it against. It surfaced only from asking why
   `mockup-browser` was in the output when no component mentions it.
-
 
 - **`UiIcon` sized itself only until a caller asked for anything, and then rendered nothing at all.**
   `Class` REPLACED the icon's own `size-5 shrink-0` rather than adding to it, so every call site that
@@ -2792,7 +3227,6 @@ them until tagged releases begin.
   Two sizing leftovers from the glyph era went with it: `text-xl`/`text-2xl` on an icon (a font size,
   which does nothing to an SVG) and `.nav-group-chevron { font-size: 0.7rem }`, which had been the
   showcase sidebar chevron's only size.
-
 
 - **A version pinned in two places was held together by a comment, and one of the comments was
   describing a test that did not exist.** `ProjectGenerator.Wasm.AspNetCoreFrameworkVersion` must match
@@ -3012,7 +3446,6 @@ them until tagged releases begin.
   meant "retry", `UsbDrive`/`UsbPlug`/`Controller` all meant "a device". Three names have no Heroicons
   equivalent and take the nearest honest match rather than vendoring a second icon style:
   `Bluetooth`/`Broadcast` → `Signal`, and `Github` → `CodeBracket`, since Heroicons ships no brand marks.
-
 
 - **An island takes no children, in either island family — and saying so is now a compile error
   ([RASK062](docs/diagnostics.md#rask062)).** Both kinds offered a way in and neither could keep its

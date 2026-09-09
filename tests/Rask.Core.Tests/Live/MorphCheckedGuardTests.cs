@@ -1,9 +1,10 @@
 
 namespace Rask.Core.Tests.Live;
 
-// Regression guard for the radio/checkbox `.checked` desync (E2E:
-// StandaloneWasmExampleTests.Journey_WalksEveryPageAndUnusualActivity, the Forms
-// guide's radio-group step).
+// Regression guard for the radio/checkbox `.checked` desync, first caught by the Forms guide's
+// radio-group step in the WASM journey. (That step ran in StandaloneWasmExampleTests too until the
+// samples consolidation removed that class; the surviving journey is
+// WasmExampleTests.Journey_WalksEveryPageAndUnusualActivity.)
 //
 // Symptom: after the user clicked a radio, a re-render the server computed BEFORE
 // the change reached it landed afterwards; both client apply paths (the full morph

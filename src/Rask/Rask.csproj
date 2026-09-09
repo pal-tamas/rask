@@ -23,6 +23,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- ApiValidationTests pins RaskApiValidation.ProblemType against the literal Rask.Cqrs.Server sends:
+         the constant is what a client branches on, and nothing else stops the two drifting apart. -->
+    <InternalsVisibleTo Include="Rask.Tests"/>
+  </ItemGroup>
+
   <!-- build/Rask.props roots this assembly for the trimmer; without it the browser half is trimmed out
        of the bundle entirely and the batteries silently do nothing. A `build\**` glob has NO discovery
        pass behind it, so it can pack silently missing with exit 0 (#852) — PackagedBuildPropsTests reads
@@ -132,6 +138,8 @@
     <Compile Remove="RaskApp.cs"/>
     <Compile Remove="RaskAppOptions.cs"/>
     <Compile Remove="RaskBatteryWiring.cs"/>
+    <!-- Endpoint and MVC filters: ASP.NET hosting types, so the server half only. -->
+    <Compile Remove="ApiValidation.cs"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">

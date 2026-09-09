@@ -30,6 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Rask.Mail.Tests"/>
     <!-- Rask.Auth sends the confirmation and reset links through IMail, and its tests assert on what was
          queued: the recipient, the subject, and the link the body carries. Email is write-only in public

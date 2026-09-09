@@ -103,6 +103,12 @@ public static class RaskAuthServiceCollectionExtensions
         services.TryAddScoped<IAccounts>(sp => sp.GetRequiredService<AccountService<TUser>>());
         services.TryAddScoped<IAuth, ServerAuth<TUser>>();
 
+        // Before the first-run token initializer, so an app whose model never mapped the account tables
+        // fails the boot with the line to type rather than at the first registration — Identity's EF
+        // stores resolve lazily, so nothing above this notices. See BatteryModelCheck: this reads the
+        // MODEL, never the database, so an app that has not run `rask db update` yet still starts.
+        services.AddHostedService<AuthModelCheck<TContext, TUser>>();
+
         services.AddHostedService<FirstRunTokenInitializer>();
 
         // The cookie scheme is Rask.Auth's, unconditionally: cookies are the only session Rask

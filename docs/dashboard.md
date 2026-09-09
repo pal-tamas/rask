@@ -237,8 +237,33 @@ builder.Services.AddRaskDashboard<AppDbContext>(o =>
 });
 ```
 
+## How it looks, and why you cannot change it
+
+The console draws with [the UI kit](ui-kit.md) and its own compiled stylesheet, and that stylesheet's
+palette is daisyUI's: every `--color-ui-*` token it declares is an alias for a semantic variable
+(`--color-base-100`, `--color-base-content`, `--color-warning`) rather than a colour of its own. The
+console renders kit components beside its own utilities, so a second palette would not be a re-skin —
+it would be two designs on one page.
+
+**It is pinned to daisyUI's `light` theme, and that is not configurable.** The theme scope goes on
+`<html>` with an explicit `data-theme`, so the console ignores both the host application's theme and
+the reader's `prefers-color-scheme`. An operator surface is a set of contrast ratios measured against
+a white ground: daisyUI's `warning` and `error` are *surface* colours that fail AA read as text on one
+(1.76:1 and 2.87:1), which is why the sheet derives darkened `-ink` twins for the text roles. Letting
+the palette follow the OS would invalidate every one of those measurements silently.
+
+It is not a hypothetical, either — it is what the console did before this was enforced. Its own
+palette was a fixed light one while `UiShell` painted with daisyUI's, so on a machine set to dark mode
+the chrome and the cards went dark and every label on them stayed near-black: the queue titles on the
+overview measured **1.09:1**, with every class name in the markup correct and the whole unit suite
+green.
+
+Your own pages are unaffected: the console is a mounted application with its own document, so its
+stylesheet, its reset and its theme reach nothing of yours.
+
 ## Related
 
 - [Observability](observability.md) — logging categories, the `Rask.Server` meter, tracing, health checks.
+- [The UI kit](ui-kit.md) — the daisyUI components the console is drawn with, and the theme scope.
 - [Jobs](jobs.md) · [Outbox](outbox.md) · [Mail](mail.md) · [Cache](cache.md) — the pillars it reads.
 - [SQLite](sqlite.md) — pragmas, continuous backup, and snapshots.

@@ -35,7 +35,7 @@ filter", exited 0, and the hook announced the gate had passed.
 
 ## The definition-of-done gate
 
-Every change passes this gate before a PR (the `rask-ship` skill):
+Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 
 1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. The `pre-commit` gate
    runs the verify for you, so this is a fast pre-check rather than the last line of defence.
@@ -67,14 +67,17 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    assembly — run `dotnet build-server shutdown` before judging any change to it, or you are measuring
    the previous build's DLL.
 4. **Benchmarks** — any render/live-runtime hot-path change runs `benchmarks/Rask.Benchmarks`
-   before/after and quotes the `Allocated` delta in the PR.
+   before/after and quotes the `Allocated` delta in the commit body.
 5. **Docs & the site** — user-facing changes update `site/Rask.Site`, the relevant `docs/*.md`,
    `README.md`, `NUGET.md`, `llms.txt`, and the template `AGENTS.md`. Add a `CHANGELOG.md`
    `[Unreleased]` entry (Keep a Changelog).
 6. **Review** — security, performance, and memory held together with UX; prefer standard .NET
    APIs over hand-rolled code; refactor duplication you touch (the `rask-review` skill).
-7. **PR** — Conventional Commit `type(scope): subject` (enforced by commitlint), structured body,
-   no AI-attribution footers; delete the branch after squash-merge.
+7. **Land on `main`** — Conventional Commit `type(scope): subject` (enforced by commitlint), then
+   merge `origin/main` in with `git merge --no-commit` (a *clean* merge auto-commits and runs
+   `pre-merge-commit`, a hook this repo does not have, so it lands ungated) and
+   `git push origin HEAD:main`. **Own work never goes through a pull request** — PRs are reserved
+   for external contributions, which arrive from forks. See the `land-on-main` skill.
 
 ## Versioning & releases
 
@@ -133,9 +136,23 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   `dotnet format` evaluates the solution in the default configuration, so it resolves the
   `OutputItemType="Analyzer"` references to `bin/Debug/`, and without those DLLs no source generator runs
   — `Routes.*` is never emitted and the routing tests fail to bind with CS1503. That is the real cause of
-  the "spurious CS1503" that kept this gate on the whitespace pass alone until #584. The
-  `.githooks/pre-commit` hook runs it whenever a commit stages code (enable hooks with
+  the "spurious CS1503" that kept this gate on the whitespace pass alone until #584. That Debug build
+  happens **only on the runs that go on to format**: the formatter is its only consumer, so a commit
+  staging no `.cs` at all (a docs page, a workflow, a `.ts` file) no longer pays for three Debug
+  compilations and then skips the formatter. The three projects build concurrently — they have no
+  `ProjectReference`, so there is no shared output to race over — each pinned to `-m:1` so they cannot
+  each claim the box. The gate's own bash tests run concurrently too, for the same reason: ten
+  independent scripts that stub `ps`/`pgrep` rather than touching the machine.
+  The `.githooks/pre-commit` hook runs it whenever a commit stages code (enable hooks with
   `git config core.hooksPath .githooks`; bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`).
+- **`dotnet format` never gets `--no-restore`, and that is not an oversight.** Both arms of the gate
+  passed it until now, and `dotnet format Rask.slnx --verify-no-changes --no-restore` **modified 57
+  files it was only asked to check**, rewriting `using` directives across the repo. Without a restore
+  the workspace cannot resolve the source generators; every generated symbol goes missing, the
+  remove-unnecessary-imports analysis concludes those usings are dead, and it writes — which
+  `--verify-no-changes` did not stop. The restore it now does is already up to date from the build
+  above, so this costs seconds. Do not put the flag back to shave them off, and check `git status`
+  after any format run: a destructive pass and a clean one differ only in how many files moved.
 - **Attribution trailers are rejected, at both boundaries.** Commit messages carry no
   `Co-authored-by:`, no `Claude-Session:` and no "Generated with …" footer. GitHub's contributor list
   credits co-authors as well as authors, so one footer adds an account to the sidebar that only a
@@ -146,6 +163,13 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   redundant — the first only runs once `core.hooksPath` is set, and a fresh clone or a new worktree
   has not set it, which is exactly how the two trailers got in. A human `Signed-off-by:` passes;
   `scripts/tests/attribution-guard.test.sh` states all 32 cases, both directions.
+- **A deletion-only push runs no gate.** `git push origin --delete <branch>` moves no commits and
+  changes no tree, so there is nothing for a build or a browser journey to have an opinion about. The
+  hook used to run the whole gate on it regardless — every gate below it is phrased as "is this push
+  path-relevant", and a deletion matches those filters like anything else. It now returns early when
+  **every** ref in the push is a deletion; a push that deletes one branch and updates another still
+  gets the full gate.
+
 - **E2E runs locally, enforced before push.** The browser-journey E2E
   (`tests/Rask.Examples.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
   `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
@@ -154,6 +178,28 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   happen (they are what the tests boot), but you pay for one journey instead of the whole suite:
   `RASK_E2E_FILTER='FullyQualifiedName~WasmExampleTests' scripts/run-e2e-local.sh`. It says loudly
   that the run was filtered, because a narrowed green is not the gate.
+
+  **It builds the graph the suite runs, not the solution.** This gate used to open with
+  `dotnet build Rask.slnx -m:1` — 105 projects, serially, on one core, before a browser opened.
+  `Rask.Examples.E2E.Tests` has no `ProjectReference` at all (it drives a served bundle over HTTP) and
+  every fixture in it boots exactly one app, `site/Rask.Site`; transitively that is 39 projects. The
+  other 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled here and
+  never loaded, after `pre-commit` had already built **and run** them on the way in. The gate now
+  publishes the site (which bootstraps the MSBuild task assemblies the leaf needs) and then builds the
+  one leaf project. What it stops proving is that the whole solution compiles, which is `pre-commit`'s
+  job on every code commit; the one thing it built that `pre-commit` does not is the WASM bundle, and
+  that is the site publish itself.
+
+  **All three gates now agree on `MinVerSkip=true`.** The unit and benchmark gates already passed it;
+  this one did not, and that disagreement was expensive in a way none of them could see. MinVer stamps
+  the commit height and SHA into `AssemblyInformationalVersion`, so every project's generated
+  `AssemblyInfo.cs` changes on **every commit**, and any project whose version flag differs from the
+  last gate to touch `obj/` is recompiled from scratch. The three were rebuilding each other's output
+  in a loop. It is safe here because the recorded hazard — a MinVer fallback version breaking a
+  published app launched **out-of-process** whose routes live in a separate assembly — cannot arise:
+  `ExampleAppFixture`, the only out-of-process host runner, has no derived class left, and the one
+  fixture in use serves a published browser-WASM bundle from an in-process static-file host. If an
+  out-of-process host fixture is ever reintroduced, the flag has to come back off.
 
   **The machine has a slot budget, and every gate claims against it.** Several worktrees share one
   box, and the two things that go wrong there pull in opposite directions: too much work at once

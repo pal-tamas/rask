@@ -6,6 +6,17 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <NoWarn>$(NoWarn);RASK014</NoWarn>
+    <!--
+      This project LINKS the site's sources (below) but not its front-end files, so the island
+      generator declares every one of the site's islands here while no `.tsx`, `.vue`, `.svelte` or
+      `.ts` is anywhere near it. The unbuilt-island check then reports each of them — correctly, for a
+      real app, and meaninglessly here: nothing in this assembly is ever bundled or served, so no
+      browser can ask for a chunk it does not have.
+
+      The prop types are what that check hangs off, and they buy nothing here either: they exist for a
+      front-end file to import, and there is none.
+    -->
+    <RaskExternalPropTypes>false</RaskExternalPropTypes>
   </PropertyGroup>
 
   <ItemGroup>

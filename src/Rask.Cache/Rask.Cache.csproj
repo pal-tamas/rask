@@ -28,6 +28,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
   </ItemGroup>
 
+  <!-- The boot-time "is this battery mapped?" check, source-linked rather than referenced: the
+       batteries share no common assembly, and this project deliberately has no Rask dependency at all. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cache.Tests"/>
   </ItemGroup>

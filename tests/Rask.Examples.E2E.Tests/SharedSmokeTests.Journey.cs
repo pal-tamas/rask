@@ -74,6 +74,9 @@ public abstract partial class SharedSmokeTests
         // token — a hardcoded slate-* would mean the layout drifted back off the shared palette.
         await Expect(Page.Locator("nav button[aria-label='Toggle light / dark theme']")).ToHaveCountAsync(0);
         await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
+        // …and daisyUI's navbar draws it, rather than a hand-rolled flex row shaped like one.
+        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\bnavbar\b"));
+        await AssertTopBarIsLegibleAsync();
 
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();
@@ -123,6 +126,97 @@ public abstract partial class SharedSmokeTests
     // ToastDemo.cs / ToasterDemo.cs source whose "Danger"/"Error" message is literally "Something went wrong.".
     protected async Task AssertNoGlobalCrashAsync() =>
         Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
+
+    // The top bar's wordmark, measured against what is actually behind it.
+    //
+    // This exists because every class name on that bar was already right when it was illegible. The
+    // showcase moved onto Rask.Ui's light palette and the markup said `bg-ui-bg text-ui-ink`, but
+    // global.css still carried `.app-navbar { background: rgba(20, 16, 31, .82) }` from the dark-first
+    // design — UNLAYERED, and therefore ahead of every layered utility on the page. The bar rendered
+    // near-black behind near-black text, at about 1.4:1, and a class-name assertion cannot see any of
+    // it: `text-ui-ink` was present and correct throughout. Same shape as #1033, one layer up.
+    //
+    // So: composite the real background (the bar's own colour is translucent, so the ancestors behind it
+    // count), composite the text over that, and compare luminance. WCAG 1.4.3 wants 4.5:1 for text this
+    // size; the bar reads about 15:1 when it is drawn from the palette it claims to use.
+    private async Task AssertTopBarIsLegibleAsync()
+    {
+        // Colours are read through a 1x1 canvas rather than parsed: a computed background is whatever
+        // colour space the author wrote, and this one comes back as `oklab(1 0 0 / 0.85)`, which no
+        // rgb() regex reads. Drawing it and reading the pixel is the browser doing the conversion.
+        var probe = await Page.EvaluateAsync<string>(
+            """
+            () => {
+              const el = document.querySelector('.app-navbar .app-brand');
+              if (!el) return JSON.stringify({ error: 'no .app-navbar .app-brand' });
+
+              const cv = document.createElement('canvas');
+              cv.width = cv.height = 1;
+              const ctx = cv.getContext('2d', { willReadFrequently: true });
+              const rgba = css => {
+                ctx.clearRect(0, 0, 1, 1);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+                ctx.fillStyle = css;
+                ctx.fillRect(0, 0, 1, 1);
+                const d = ctx.getImageData(0, 0, 1, 1).data;
+                return [d[0], d[1], d[2], d[3] / 255];
+              };
+
+              // Vacuous-pass guard. An unparsed colour leaves fillStyle at the transparent reset, which
+              // would quietly drop a DARK bar out of the composite and report the light page behind it.
+              const plain = rgba('rgb(1, 2, 3)');
+              const modern = rgba('oklab(0 0 0 / 0.5)');
+              if (plain[0] !== 1 || plain[1] !== 2 || plain[2] !== 3 || Math.abs(modern[3] - 0.5) > 0.02) {
+                return JSON.stringify({ error: 'canvas cannot parse the colours this page uses' });
+              }
+
+              const over = (fg, bg) => [
+                fg[0] * fg[3] + bg[0] * (1 - fg[3]),
+                fg[1] * fg[3] + bg[1] * (1 - fg[3]),
+                fg[2] * fg[3] + bg[2] * (1 - fg[3]),
+                1,
+              ];
+              const chain = [];
+              for (let n = el; n; n = n.parentElement) chain.push(n);
+              let bg = [255, 255, 255, 1];
+              for (let i = chain.length - 1; i >= 0; i--) {
+                bg = over(rgba(getComputedStyle(chain[i]).backgroundColor), bg);
+              }
+              const fg = over(rgba(getComputedStyle(el).color), bg);
+
+              const lum = c => {
+                const s = [c[0], c[1], c[2]].map(v => {
+                  v /= 255;
+                  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+                });
+                return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2];
+              };
+              const l1 = lum(fg), l2 = lum(bg);
+              const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+              return JSON.stringify({ ratio: Math.round(ratio * 100) / 100, fg, bg });
+            }
+            """);
+
+        Assert.DoesNotContain("error", probe, StringComparison.Ordinal);
+        var ratio = double.Parse(
+            Regex.Match(probe, "\"ratio\":([0-9.]+)").Groups[1].Value,
+            System.Globalization.CultureInfo.InvariantCulture);
+        Assert.True(ratio >= 4.5,
+            $"The top bar's wordmark is at {ratio}:1 against the bar behind it (WCAG 1.4.3 wants 4.5:1). "
+            + $"Its classes are almost certainly still correct — look for a rule outranking them: {probe}");
+    }
+
+    /// <summary>One number out of a small JSON object an in-page probe returned.</summary>
+    /// <remarks>
+    ///     Invariant culture on purpose: JSON writes 61.5, and on a machine whose locale uses a comma
+    ///     the default parse reads that as 615.
+    /// </remarks>
+    private static double JsonNumber(string json, string name)
+    {
+        var m = Regex.Match(json, $"\"{Regex.Escape(name)}\"\\s*:\\s*(-?[0-9.]+)");
+        Assert.True(m.Success, $"no \"{name}\" in the probe's result: {json}");
+        return double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
 
     // After walking every page, each scoped component's keyed stylesheet (<link data-rask-key>) must
     // appear in <head> exactly once. On hosts that deliver scoped CSS per component via a full reply
@@ -1053,25 +1147,52 @@ public abstract partial class SharedSmokeTests
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
-        // The navbar height is centralised in a single --nav-h custom property (no hard-coded 56px),
-        // and on desktop the sidebar's list (.side-nav-scroll) becomes an independent, viewport-bounded
-        // scroll region so it scrolls inside itself rather than stretching the page — the "navbar too
-        // tall" fix. The filter above it is a pinned flex header (the body itself does not scroll — a
-        // sticky-in-flex child would not stick in Safari). (Groups now collapse by default, so the list
-        // itself is short; this only asserts the region is bounded and scrollable when needed.)
-        Assert.Equal("56px", (await Page.EvaluateAsync<string>(
-            "() => getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim()")));
+        // The top bar's height is centralised in a single --nav-h custom property, and it has to be
+        // TRUE: the sticky sidebar's `top`, the mobile drawer's top padding and every guide heading's
+        // scroll-margin are all calc()'d from it, so a value that disagrees with the bar tucks content
+        // under the bar rather than clearing it.
+        //
+        // This used to pin the literal text "56px", which checked the wrong half. It stayed green while
+        // the bar rendered 61px underneath it — the drawer's filter box sat 5px under the bar it was
+        // meant to clear — and it would go red on a purely notational change from 56px to 3.5rem.
+        //
+        // Resolved through a probe element rather than read as text, and that is load-bearing twice
+        // over: a custom property's computed value is its TEXT, so parseFloat("4rem") is 4, which is
+        // what the `bounded` check below used to lean on and would have quietly loosened to nearly
+        // nothing the moment the unit changed.
+        var navMetrics = await Page.EvaluateAsync<string>(
+            """
+            () => {
+              const probe = document.createElement('div');
+              probe.style.cssText = 'position:absolute;visibility:hidden;height:var(--nav-h)';
+              document.body.appendChild(probe);
+              const declared = probe.getBoundingClientRect().height;
+              probe.remove();
+              const bar = document.querySelector('nav.app-navbar');
+              return JSON.stringify({ declared, measured: bar ? bar.getBoundingClientRect().height : -1 });
+            }
+            """);
+        var declaredNavH = JsonNumber(navMetrics, "declared");
+        var measuredNavH = JsonNumber(navMetrics, "measured");
+        Assert.True(declaredNavH > 0, $"--nav-h resolves to nothing: {navMetrics}");
+        Assert.True(Math.Abs(declaredNavH - measuredNavH) <= 1,
+            $"--nav-h says {declaredNavH}px and the top bar measures {measuredNavH}px. Everything "
+            + $"positioned under the bar is calc()'d from the first number: {navMetrics}");
+
+        // On desktop the sidebar's list (.side-nav-scroll) is an independent, viewport-bounded scroll
+        // region, so it scrolls inside itself rather than stretching the page — the "navbar too tall"
+        // fix. The filter above it is a pinned flex header (the body itself does not scroll — a
+        // sticky-in-flex child would not stick in Safari).
         var navScroll = await Page.Locator(".side-nav .side-nav-scroll").First.EvaluateAsync<string>(
-            @"el => {
+            @"(el, navH) => {
                 const cs = getComputedStyle(el);
                 const body = getComputedStyle(el.closest('.side-nav'));
-                const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'));
                 return JSON.stringify({
                     overflowY: cs.overflowY,
                     bodyOverflowY: body.overflowY,
                     bounded: el.clientHeight <= window.innerHeight - navH + 1,
                 });
-            }");
+            }", declaredNavH);
         Assert.Contains("\"overflowY\":\"auto\"", navScroll);
         // The body itself must not scroll — only the inner list does, so the filter stays pinned.
         Assert.Contains("\"bodyOverflowY\":\"hidden\"", navScroll);

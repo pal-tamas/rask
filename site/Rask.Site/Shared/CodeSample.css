@@ -1,7 +1,5 @@
-.sample-card {
-    overflow: hidden;
-    border-radius: 0.85rem !important;
-}
+/* .sample-card is daisyUI's `card` plus utilities now (see CodeSample.Render) — the radius comes from
+   --radius-box rather than from an !important that existed only to outrank Tw.Card's rounded-xl. */
 
 .sample-code-col {
     background: var(--rask-ink);
@@ -120,11 +118,10 @@
    Raw(), so those spans carry no scope attribute. The colour rules for them therefore can't
    be scoped — they live (anchored under .sample-code) in the app's global stylesheet,
    wwwroot/global.css. The structural styles below stay scoped to this component. */
-.sample-result-col {
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-}
+
+/* .sample-result-col is utilities now: `flex flex-col border-t border-ui-line bg-ui-bg`. Its surface
+   was a literal #fff here and its hairline an accent-tinted rgba() over in global.css — two files, one
+   element, and neither colour on the palette. */
 
 /* The "Live result" label reads as the output side of a C# → DOM pairing: the brand accent plus a
    small pulsing dot, set in the mono face so it rhymes with the code header opposite it. */

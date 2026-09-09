@@ -46,7 +46,7 @@ public static class NodeFixture
             return null;
         }
 
-        var script = Path.Combine(AppContext.BaseDirectory, "node-fixtures", name + ".mjs");
+        var script = ScriptPath(name);
         Assert.True(
             File.Exists(script),
             $"'{script}' is missing. It is bundled from {name}.ts by the _RaskBundleNodeFixtures target — "
@@ -85,6 +85,17 @@ public static class NodeFixture
         using var document = JsonDocument.Parse(jsonLine!);
         return document.RootElement.Clone();
     }
+
+    /// <summary>Where the build bundles <paramref name="name" />, whether or not it managed to.</summary>
+    /// <remarks>
+    ///     Public for the one fixture whose bundling is conditional: the Preact adapter harness needs npm
+    ///     packages, so on a machine that could not install them its <c>.mjs</c> is legitimately absent and
+    ///     the test reports SKIPPED rather than the "build the test project first" failure
+    ///     <see cref="Run" /> raises. Every other fixture bundles from the repository alone, so a missing
+    ///     one there really is a broken build.
+    /// </remarks>
+    public static string ScriptPath(string name) =>
+        Path.Combine(AppContext.BaseDirectory, "node-fixtures", name + ".mjs");
 
     private static string? ResolveNode()
     {
