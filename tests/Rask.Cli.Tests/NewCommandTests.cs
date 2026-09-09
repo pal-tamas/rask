@@ -61,6 +61,43 @@ public sealed class NewCommandTests
     }
 
     [Fact]
+    public async Task It_builds_the_project_before_creating_the_first_migration()
+    {
+        // Scaffolding that emits code which does not compile used to surface as an EF failure under a
+        // line reading "Creating the first migration..." - the migration step is what first builds the
+        // project, because dotnet-ef builds it to load the DbContext. That message names neither the file
+        // nor the error. Building first says it plainly, and stops before EF runs against a project that
+        // cannot load.
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Blog"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+
+        var order = runner.Invocations.Select(i => i.Arguments.FirstOrDefault() ?? "").ToList();
+        var restore = order.IndexOf("restore");
+        var build = order.IndexOf("build");
+        var ef = order.IndexOf("ef");
+
+        Assert.True(build >= 0, $"expected a build; ran: {string.Join(" | ", order)}");
+        Assert.True(restore < build, "restore has to come first - a build with no packages says nothing useful");
+        Assert.True(ef < 0 || build < ef, "the build has to precede the migration, or EF reports the compile error");
+    }
+
+    [Fact]
+    public async Task Skipping_the_restore_skips_the_build_with_it()
+    {
+        // Nothing to build against: --no-restore is the offline switch, and a build that fails for want
+        // of packages would report a broken scaffold rather than an absent network.
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Blog", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("build"));
+    }
+
+    [Fact]
     public async Task Turning_off_a_battery_the_template_never_had_is_a_usage_error()
     {
         var (console, _, runner, command) = Build();
