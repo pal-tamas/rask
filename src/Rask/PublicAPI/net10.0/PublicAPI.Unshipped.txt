@@ -13,6 +13,7 @@ Rask.DataAnnotationsRequestValidator<TRequest>.ValidateAsync(TRequest request, S
 Rask.FluentValidationRequestValidator<TRequest>
 Rask.FluentValidationRequestValidator<TRequest>.FluentValidationRequestValidator(System.IServiceProvider! services) -> void
 Rask.FluentValidationRequestValidator<TRequest>.ValidateAsync(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
+Rask.RaskApiValidation
 Rask.RaskApp
 Rask.RaskApp.Build<TApp>(string! pathBase = "") -> Microsoft.AspNetCore.Builder.WebApplication!
 Rask.RaskApp.Configuration.get -> Microsoft.Extensions.Configuration.IConfiguration!
@@ -59,5 +60,7 @@ Rask.RaskRemoteRequestValidator
 Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopes) -> void
 Rask.RaskRemoteRequestValidator.ValidateAsync(object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.RaskRequestValidation
+static Rask.RaskApiValidation.AddRaskApiValidation(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.RaskApiValidation.RequireRaskValidation<TBuilder>(this TBuilder builder) -> TBuilder
 static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.Builder.WebApplicationBuilder!>? configure = null) -> Rask.RaskApp!
 static Rask.RaskRequestValidation.AddRaskRequestValidation(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

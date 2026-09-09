@@ -239,9 +239,25 @@ public sealed class RaskApp
             app.MapRaskApi();
         }
 
-        foreach (var map in _endpoints)
+        // Mapped into a group rather than straight onto the app, so the validation convention reaches
+        // every minimal API this app writes. There is no such thing as a global endpoint filter in
+        // ASP.NET — a convention only reaches what is mapped into the group carrying it — so without this
+        // an AbstractValidator<T> would run on a controller and silently not on a MapPost next to it,
+        // which is precisely the failure the battery exists to remove. An empty prefix changes no route:
+        // MapRaskApi already groups the same way.
+        if (_endpoints.Count > 0)
         {
-            map(app);
+            var group = app.MapGroup(string.Empty);
+
+            if (_options.Validation.Enabled)
+            {
+                group.RequireRaskValidation();
+            }
+
+            foreach (var map in _endpoints)
+            {
+                map(group);
+            }
         }
 
         if (_options.Wasm)
