@@ -3,6 +3,25 @@ using Rask.Cqrs;
 namespace Rask.Data;
 
 /// <summary>
+/// The root of the entity hierarchy, and what the active-record surface is keyed on: every type that
+/// derives from this gains the static members <see cref="ModelSet" /> declares — <c>Product.Add</c>,
+/// <c>Product.Where</c>, <c>Product.FindAsync</c> — and the instance ones (<c>SaveAsync</c>,
+/// <c>DeleteAsync</c>, <c>ReloadAsync</c>).
+/// </summary>
+/// <remarks>
+/// Carries no state. It exists so that surface can be constrained to entities rather than to
+/// <c>class</c>, which would put <c>Where</c> and <c>Add</c> on every type in the program. Derive from
+/// <see cref="Model{TId}" /> instead of this — it is the one that has an identity.
+/// </remarks>
+public abstract class Model
+{
+    /// <summary>Initializes the base. Derive from <see cref="Model{TId}" /> unless the key is composite.</summary>
+    protected Model()
+    {
+    }
+}
+
+/// <summary>
 /// The base class for a domain entity persisted with Entity Framework Core. It owns the identity
 /// (<see cref="Id"/>), the audit stamps (<see cref="CreatedAt"/>/<see cref="UpdatedAt"/>, maintained by the
 /// <see cref="AuditingInterceptor"/>), and a domain-events buffer that the <see cref="DomainEventInterceptor"/>
@@ -10,7 +29,7 @@ namespace Rask.Data;
 /// <see cref="ISoftDeletable"/> / <see cref="IVersioned"/> on the derived type.
 /// </summary>
 /// <typeparam name="TId">The key type (e.g. <see cref="Guid"/>, <see cref="int"/>, <see cref="long"/>).</typeparam>
-public abstract class Entity<TId> : ITimestamped, IHasDomainEvents
+public abstract class Model<TId> : Model, ITimestamped, IHasDomainEvents
 {
     private readonly List<INotification> _domainEvents = [];
 

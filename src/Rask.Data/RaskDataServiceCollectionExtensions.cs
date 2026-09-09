@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -52,6 +53,54 @@ public static class RaskDataServiceCollectionExtensions
                 services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
             }
         }
+
+        return services;
+    }
+
+    /// <summary>
+    ///     Registers the interceptors as <see cref="AddRaskData" /> does, and binds
+    ///     <typeparamref name="TContext" /> as the context the ambient database opens — the one behind
+    ///     <c>Db.Begin()</c>, <c>Product.Where(…)</c> and <c>Product.Add(…)</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Naming the context here, rather than scanning for one, is what lets an app with two
+    ///         databases say which one the bare <c>Product.Where(…)</c> means. It is resolved through
+    ///         <see cref="IDbContextFactory{TContext}" />, so the app's own
+    ///         <c>AddDbContextFactory&lt;TContext&gt;</c> — with its interceptors and its connection
+    ///         string — is what actually opens the context.
+    ///     </para>
+    ///     <para>
+    ///         One line still has to run after the container is built, to hand the ambient database its
+    ///         factory. A Rask app gets that from the host; anything else calls
+    ///         <see cref="Db.Configure(IServiceProvider)" />:
+    ///     </para>
+    ///     <code>
+    /// builder.Services.AddRaskData&lt;AppDbContext&gt;();
+    /// builder.Services.AddDbContextFactory&lt;AppDbContext&gt;((sp, o) =&gt; o
+    ///     .UseSqlite("Data Source=app.db")
+    ///     .AddInterceptors(sp.GetServices&lt;ISaveChangesInterceptor&gt;()));
+    ///
+    /// var app = builder.Build();
+    /// Db.Configure(app.Services);
+    ///     </code>
+    /// </remarks>
+    public static IServiceCollection AddRaskData<TContext>(
+        this IServiceCollection services,
+        Action<RaskDataOptions>? configure = null)
+        where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddRaskData(configure);
+
+        // Singleton and resolved lazily: IDbContextFactory<TContext> is itself a singleton, so the
+        // binding never reaches into a request or session scope for the context it opens. TryAdd keeps
+        // the first binding, so a second call naming another context does not silently repoint the
+        // ambient database out from under the first.
+        services.TryAddSingleton(sp => new AmbientContextBinding(
+            typeof(TContext),
+            () => sp.GetRequiredService<IDbContextFactory<TContext>>().CreateDbContext()));
 
         return services;
     }

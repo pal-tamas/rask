@@ -138,14 +138,32 @@ public sealed class RaskBatteryTests
     }
 
     [Fact]
-    public void An_app_with_no_DbContext_gets_no_database_batteries_and_still_starts()
+    public void An_app_with_no_DbContext_of_its_own_gets_Rask_s_and_the_database_batteries_with_it()
     {
-        // Nothing is guessed at and nothing throws: an app that registered no context simply has no
-        // pillars, and the rest of it runs.
+        // The contract this replaces was "no context, no pillars". It changed deliberately: an app now
+        // declares entities and nothing else, and RaskAppDbContext maps them — so there is always a
+        // database to hang the pillars on, and no app is silently missing its jobs and outbox because it
+        // never wrote a context class. Turning the database off is still how an app has none, which
+        // Turning_the_database_off_takes_its_dependents_with_it pins.
         var workers = Workers(withDatabase: false);
 
-        Assert.DoesNotContain(Jobs, workers);
-        Assert.DoesNotContain(Outbox, workers);
+        Assert.Contains(Jobs, workers);
+        Assert.Contains(Outbox, workers);
+    }
+
+    [Fact]
+    public void The_app_s_own_DbContext_still_wins_over_Rask_s()
+    {
+        // Registering a context is the whole of opting out: the default is never constructed, and the
+        // pillars bind to the app's type. Otherwise an app that outgrew the default would quietly end up
+        // with two databases and its jobs running against the empty one.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
+        var built = app.Build<TestApp>();
+
+        Assert.NotNull(built.Services.GetService<IDbContextFactory<TestDbContext>>());
+        Assert.Null(built.Services.GetService<IDbContextFactory<RaskAppDbContext>>());
     }
 
     [Fact]

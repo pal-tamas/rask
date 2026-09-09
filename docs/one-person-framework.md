@@ -62,7 +62,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 |---------|--------------|
 | **[The `rask` CLI](cli.md)** | `rask new` (scaffold), `rask dev` (watch + hot reload), `rask db`, `rask deploy`. The front door. |
 | **[A CRUD vertical slice](tutorial/02-first-feature.md)** | Encapsulated entity, form model, EF mapping, CQRS commands/queries, and list/create/edit pages — written once in the tutorial and repeated per feature. |
-| **[`Rask.Data`](data.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
+| **[`Rask.Data`](data.md)** | `Model<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
 | **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
 | **[`Rask.Jobs`](jobs.md)** | Durable background jobs on the app's own database — enqueue, delayed, and recurring, run by a hosted worker. |
 | **[`Rask.Mail`](mail.md)** | Transactional email queued in the same database and delivered by a background worker (SMTP/MailKit). |
