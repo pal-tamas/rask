@@ -130,8 +130,8 @@ a notification would be enforced nowhere; put it on the command that raises the 
 
 An [endpoint](api-endpoints.md) runs the same two passes, with nothing declared. Put `[Required]` on the
 body type, or write an `AbstractValidator<T>` for it, and a controller action and a minimal API both
-reject an invalid request with the [400 shown above](#a-rejected-request) — the same document, from the same
-`type`, that a rejected dispatch sends, so one client-side handler covers every seam.
+reject an invalid request with the [400 shown above](#a-rejected-request) — the same document, from
+the same `type`, that a rejected dispatch sends, so one client-side handler covers every seam.
 
 ```csharp
 public sealed class NewOrder
@@ -197,9 +197,14 @@ discovered `AbstractValidator<T>` no longer runs on a controller action or a min
 It deliberately leaves **ASP.NET's own** behaviour alone. `AddRaskApi` registers
 `AddMvcCore().AddDataAnnotations()`, so a controller's `[Required]` and `[Range]` are still enforced by
 `ModelState` exactly as in any ASP.NET app — dropping that would silently start accepting bodies the
-endpoint used to reject, which is worse than a heavier registration. What changes is only the shape of
-the answer: with validation on, the rejection is the Rask problem document; with it off, it is MVC's
-own `ValidationProblemDetails`.
+endpoint used to reject, which is worse than a heavier registration. For a controller, then, what
+turning validation off changes is the shape of the answer: on, the rejection is the Rask problem
+document; off, it is MVC's own `ValidationProblemDetails`.
+
+A minimal API has no such platform pass to fall back on — .NET 10 ships one behind `AddValidation()`,
+which Rask does not switch on — so turning validation off leaves a minimal API's body unvalidated. If
+that is what you want for the app but not for one endpoint, keep the battery on and take the endpoint
+out of the group instead.
 
 ### On the client
 
