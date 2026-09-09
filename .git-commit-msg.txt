@@ -1,0 +1,21 @@
+refactor(html): transform belongs to the elements that can be transformed
+
+MDN puts `transform` on SVGGraphicsElement, not on SVGElement, and the
+distinction is real rather than taxonomic: a gradient stop, a filter primitive
+and a <defs> are not rendered, so there is nothing to transform. Here it sat on
+SvgElement, which meant all of them carried the attribute and offered it as a
+chain step and a factory parameter that could never do anything.
+
+SvgGraphicsElement now carries it, and the elements the DOM calls graphics
+derive from it: the seven geometry shapes through SvgGeometryElement, plus g,
+svg, use, image, foreignObject, switch, symbol, a, text, tspan and textPath.
+Everything else loses an attribute it never had in the browser.
+
+It also moves in the output - transform is written after the presentation
+attributes rather than in the middle of them, since a base writes before its
+subclass. One assertion recorded the old position and records the new one.
+
+Public API: -24 +5 per framework. Nothing in the repo set transform on a
+non-graphics element, so nothing had to change at a call site.
+
+Html 495 tests, site 598 - green.

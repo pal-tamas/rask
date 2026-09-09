@@ -8,7 +8,7 @@ namespace Rask.Html.Components;
 ///     right container for an icon sprite.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/symbol">MDN</see>
 /// </summary>
-public sealed partial class Symbol : SvgElement
+public sealed partial class Symbol : SvgGraphicsElement
 {
     protected override string TagName => "symbol";
 

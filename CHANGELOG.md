@@ -246,6 +246,18 @@ them until tagged releases begin.
   muted text colour — the same class of mistake `ui.css` already documents for `ok`/`warn`. It reached
   294 call sites through `text-ui-muted`, and is now `base-content` stepped back.
 
+- **`transform` moved to the elements that can actually be transformed.** It sat on `SvgElement`, so
+  every SVG element carried it — including `defs`, `stop`, `filter`, the gradients and the filter
+  primitives, none of which are rendered and none of which have a `transform` in the DOM. It offered
+  them a chain step and a factory parameter that could never do anything. MDN puts it on
+  `SVGGraphicsElement`, and so does this now: the seven geometry shapes reach it through
+  `SvgGeometryElement`, and `g`, `svg`, `use`, `image`, `foreignObject`, `switch`, `symbol`, `a` and the
+  text elements derive from it directly. Nineteen public API entries went with it.
+
+  It also moves in the rendered output — `transform` is written after the presentation attributes now
+  rather than in the middle of them, because a base writes before its subclass. One assertion recorded
+  the old position and records the new one.
+
 - **The SVG tags follow the SVG DOM's own interfaces, so fifteen of them stopped repeating the same
   attribute.** MDN groups SVG elements by interface exactly where they share attributes, and the
   duplication in this repo lined up with it precisely:

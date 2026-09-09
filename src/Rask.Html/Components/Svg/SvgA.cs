@@ -9,7 +9,7 @@ namespace Rask.Html.Components;
 ///     still renders as <c>a</c>, inside the SVG namespace.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/a">MDN</see>
 /// </summary>
-public sealed partial class SvgA : SvgElement
+public sealed partial class SvgA : SvgGraphicsElement
 {
     protected override string TagName => "a";
 

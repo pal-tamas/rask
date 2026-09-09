@@ -25,9 +25,11 @@ public partial class SvgElementTests : global::Rask.Core.RaskMarkup
             "<circle id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" " +
             "fill=\"f\" fill-opacity=\"fo\" fill-rule=\"fr\" stroke=\"st\" stroke-width=\"sw\" " +
             "stroke-opacity=\"so\" stroke-linecap=\"slc\" stroke-linejoin=\"slj\" " +
-            "stroke-dasharray=\"sda\" stroke-dashoffset=\"sdo\" opacity=\"o\" transform=\"t\" " +
+            "stroke-dasharray=\"sda\" stroke-dashoffset=\"sdo\" opacity=\"o\" " +
             "clip-path=\"cp\" color=\"col\" display=\"d\" visibility=\"vis\" pointer-events=\"pe\" " +
-            "cx=\"1\" cy=\"2\" r=\"3\"></circle>",
+            // transform sits here, after SvgElement's presentation attributes, because it is declared
+            // on SvgGraphicsElement - MDN puts it there, and a base writes before its subclass does.
+            "transform=\"t\" cx=\"1\" cy=\"2\" r=\"3\"></circle>",
             Circle
                 .Cx("1")
                 .Cy("2")

@@ -8,7 +8,7 @@ namespace Rask.Html.Components;
 ///     container.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/svg">MDN</see>
 /// </summary>
-public sealed partial class Svg : SvgElement
+public sealed partial class Svg : SvgGraphicsElement
 {
     protected override string TagName => "svg";
 

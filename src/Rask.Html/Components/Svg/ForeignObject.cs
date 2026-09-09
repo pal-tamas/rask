@@ -7,7 +7,7 @@ namespace Rask.Html.Components;
 ///     escape hatch for putting wrapped, laid-out HTML text inside an SVG.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/foreignObject">MDN</see>
 /// </summary>
-public sealed partial class ForeignObject : SvgElement
+public sealed partial class ForeignObject : SvgGraphicsElement
 {
     protected override string TagName => "foreignObject";
 

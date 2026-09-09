@@ -17,7 +17,7 @@ namespace Rask.Html.Components;
 ///     the one attribute they share is declared once.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/SVGGeometryElement">MDN</see>
 /// </summary>
-public abstract partial class SvgGeometryElement : SvgElement
+public abstract partial class SvgGeometryElement : SvgGraphicsElement
 {
     /// <summary>
     ///     The length the browser should pretend the outline has, so dash patterns can be expressed as

@@ -7,7 +7,7 @@ namespace Rask.Html.Components;
 ///     coordinates and participates in SVG transforms and clipping.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/image">MDN</see>
 /// </summary>
-public sealed partial class Image : SvgElement
+public sealed partial class Image : SvgGraphicsElement
 {
     protected override string TagName => "image";
 

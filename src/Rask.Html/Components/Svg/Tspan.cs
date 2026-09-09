@@ -7,7 +7,7 @@ namespace Rask.Html.Components;
 ///     highlighted word, a superscript.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/tspan">MDN</see>
 /// </summary>
-public sealed partial class Tspan : SvgElement
+public sealed partial class Tspan : SvgGraphicsElement
 {
     protected override string TagName => "tspan";
 

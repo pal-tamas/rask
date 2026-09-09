@@ -7,7 +7,7 @@ namespace Rask.Html.Components;
 ///     defined once in a <c>defs</c> or a <c>symbol</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/use">MDN</see>
 /// </summary>
-public sealed partial class Use : SvgElement
+public sealed partial class Use : SvgGraphicsElement
 {
     protected override string TagName => "use";
 

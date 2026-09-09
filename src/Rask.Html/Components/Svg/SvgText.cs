@@ -10,7 +10,7 @@ namespace Rask.Html.Components;
 ///     primitive.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/text">MDN</see>
 /// </summary>
-public sealed partial class SvgText : SvgElement
+public sealed partial class SvgText : SvgGraphicsElement
 {
     protected override string TagName => "text";
 

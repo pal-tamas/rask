@@ -1049,8 +1049,6 @@ Rask.Html.Components.SvgElement.StrokeOpacity.set -> void
 Rask.Html.Components.SvgElement.StrokeWidth.get -> string?
 Rask.Html.Components.SvgElement.StrokeWidth.set -> void
 Rask.Html.Components.SvgElement.SvgElement() -> void
-Rask.Html.Components.SvgElement.Transform.get -> string?
-Rask.Html.Components.SvgElement.Transform.set -> void
 Rask.Html.Components.SvgElement.Visibility.get -> string?
 Rask.Html.Components.SvgElement.Visibility.set -> void
 Rask.Html.Components.SvgFilterPrimitiveElement
@@ -1061,6 +1059,10 @@ Rask.Html.Components.SvgGeometryElement
 Rask.Html.Components.SvgGeometryElement.PathLength.get -> string?
 Rask.Html.Components.SvgGeometryElement.PathLength.set -> void
 Rask.Html.Components.SvgGeometryElement.SvgGeometryElement() -> void
+Rask.Html.Components.SvgGraphicsElement
+Rask.Html.Components.SvgGraphicsElement.SvgGraphicsElement() -> void
+Rask.Html.Components.SvgGraphicsElement.Transform.get -> string?
+Rask.Html.Components.SvgGraphicsElement.Transform.set -> void
 Rask.Html.Components.SvgPath
 Rask.Html.Components.SvgPath.D.get -> string?
 Rask.Html.Components.SvgPath.D.set -> void
@@ -1312,6 +1314,7 @@ override Rask.Html.Components.Nav.TagName.get -> string!
 override Rask.Html.Components.SvgElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.SvgFilterPrimitiveElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.SvgGeometryElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Html.Components.SvgGraphicsElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.Ul.TagName.get -> string!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Html.Components.ValidatingIndicator.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<Rask.Core.Component!>! Template) -> Rask.Html.Components.ValidatingIndicator!
@@ -2325,40 +2328,18 @@ static RaskBuilderSettersRask_Html.TextAnchor(this Rask.Core.Build<Rask.Html.Com
 static RaskBuilderSettersRask_Html.TextLength(this Rask.Core.Build<Rask.Html.Components.SvgText!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgText!>
 static RaskBuilderSettersRask_Html.TextLength(this Rask.Core.Build<Rask.Html.Components.Tspan!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Tspan!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Circle!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Circle!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.ClipPath!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.ClipPath!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Defs!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Defs!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Desc!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Desc!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Ellipse!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Ellipse!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeBlend!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeBlend!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeColorMatrix!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeColorMatrix!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeComposite!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeComposite!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeDropShadow!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeDropShadow!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeFlood!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeFlood!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeGaussianBlur!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeGaussianBlur!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeMerge!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeMerge!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeMergeNode!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeMergeNode!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.FeOffset!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeOffset!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Filter!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Filter!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.ForeignObject!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.ForeignObject!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.G!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.G!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Image!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Image!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Line!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Line!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.LinearGradient!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.LinearGradient!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Marker!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Marker!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Mask!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Mask!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Pattern!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Pattern!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Polygon!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Polygon!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Polyline!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Polyline!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.RadialGradient!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.RadialGradient!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Rect!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Rect!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Stop!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Stop!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Svg!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Svg!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.SvgA!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgA!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.SvgPath!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgPath!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.SvgScript!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgScript!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.SvgStyle!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgStyle!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.SvgText!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgText!>
-static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.SvgTitle!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgTitle!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Switch!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Switch!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.Symbol!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Symbol!>
 static RaskBuilderSettersRask_Html.Transform(this Rask.Core.Build<Rask.Html.Components.TextPath!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.TextPath!>

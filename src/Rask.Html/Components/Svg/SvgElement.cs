@@ -71,11 +71,6 @@ public abstract partial class SvgElement : Element
     /// </summary>
     public string? Opacity { get; set; }
 
-    /// <summary>
-    ///     A list of transforms applied to this element and its children: <c>translate()</c>,
-    ///     <c>rotate()</c>, <c>scale()</c>, <c>skewX()</c>, <c>matrix()</c>.
-    /// </summary>
-    public string? Transform { get; set; }
 
     /// <summary>A reference to a <c>clipPath</c> that clips this element, as <c>url(#id)</c>.</summary>
     public string? ClipPath { get; set; }
@@ -166,10 +161,6 @@ public abstract partial class SvgElement : Element
             AppendAttr(sb, "opacity", Opacity);
         }
 
-        if (Transform is not null)
-        {
-            AppendAttr(sb, "transform", Transform);
-        }
 
         if (ClipPath is not null)
         {
