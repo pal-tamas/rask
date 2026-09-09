@@ -29,6 +29,11 @@ internal static partial class ProjectGenerator
         if (batteries.Data)
         {
             files.Add(("Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
+
+            // Paired with the context, on the condition that maps the account tables: the auth battery is
+            // on whenever there is a database, and Rask has no user type of its own to fall back to — the
+            // generator wires Identity to whichever one the app declares, so the app must declare one.
+            files.Add(("Features/Shared/User.cs", UserCs()));
         }
 
         if (batteries.Push)
@@ -674,6 +679,37 @@ internal static partial class ProjectGenerator
     // An empty database ready for features. Add one `DbSet<T>` per entity; ApplyRaskConventions +
     // ApplyConfigurationsFromAssembly pick up each feature's IEntityTypeConfiguration automatically, so the
     // context needs no per-entity edits beyond that line.
+    /// <summary>
+    ///     The application's account, written into every scaffolded app so there is somewhere to put the
+    ///     columns an account grows.
+    /// </summary>
+    /// <remarks>
+    ///     Rask ships no user type: a generator finds this one and wires Identity to it, so nothing has
+    ///     to name it. Retrofitting it later is a migration plus a change to every
+    ///     <c>UserManager&lt;&gt;</c> in the app, which is why it is here from the first commit even for
+    ///     an app that never adds a column to it.
+    /// </remarks>
+    private static string UserCs() =>
+        """
+        using Microsoft.AspNetCore.Identity;
+
+        namespace Company.RaskServer.Features.Shared;
+
+        // Your account. Add the columns your app needs — a display name, a locale, a team id — and create
+        // the migration with `rask db add AddUserColumns && rask db update`.
+        //
+        // Everything an account already has comes from Identity: the password hash, the security stamp,
+        // the lockout counters and the confirmation flags. Inject UserManager<User> to work with
+        // accounts, or Rask's IAuth for the surface that works on every host.
+        //
+        // Add `, ITimestamped` to get CreatedAt/UpdatedAt columns without declaring either — Rask stamps
+        // them. Do NOT add IVersioned: Identity already maintains ConcurrencyStamp, and a second token on
+        // the same row is a race rather than a guard.
+        public class User : IdentityUser
+        {
+        }
+        """;
+
     private static string AppDbContextCs(ServerBatteries batteries)
     {
         var usings = new StringBuilder("using Microsoft.EntityFrameworkCore;\nusing Rask.Data;\n");
@@ -724,11 +760,12 @@ internal static partial class ProjectGenerator
         {
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
-                // ApplyRaskConventions walks the model as it stands, applying the soft-delete query filter and
-                // the concurrency token to whatever is already in it — so it has to follow the configurations,
-                // not precede them, or entities registered afterwards silently miss out.
-                modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-                modelBuilder.ApplyRaskConventions();{{schema}}
+                // ApplyRaskConventions walks the model as it stands, giving each marked entity its audit
+                // stamps, its soft-delete query filter and its concurrency token — so it has to come LAST,
+                // after the configurations AND after every battery's tables. Anything mapped after it
+                // silently misses out, which is what a User declaring ITimestamped used to do.
+                modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);{{schema}}
+                modelBuilder.ApplyRaskConventions();
             }
         }
 
