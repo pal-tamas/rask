@@ -22,6 +22,6 @@ public sealed partial class UiCard : Component
                 Action
             ];
 
-        return Div.Class($"{UiStyles.Card} {Class}")[header, Children ?? []];
+        return Div.Class(UiClass.Compose(UiStyles.Card, Class))[header, Children ?? []];
     }
 }

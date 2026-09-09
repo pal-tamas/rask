@@ -24,7 +24,7 @@ public sealed partial class UiFieldset : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Fieldset.Class(UiClass.Compose("fieldset", Class))[
-            Legend.Class("fieldset-legend")[Title],
+            Legend.Class("fieldset-legend")[Text],
             Children ?? [],
             Help is { } help ? P.Class("label")[help] : null
         ];
