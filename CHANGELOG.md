@@ -22,8 +22,22 @@ them until tagged releases begin.
   `Callback.Invoke()` returns `null` when there is nothing to await, so a synchronous handler never
   acquires an asynchronous hop it did not have: no `Task`, no closure, no state machine. Call it as
   `if (OnClick?.Invoke() is { } t) await t;`. `Validator<T>.Invoke` returns a `ValueTask<>` for the same
-  reason — the synchronous rule runs on every keystroke of every bound control. Nothing consumes the
-  carriers yet.
+  reason — the synchronous rule runs on every keystroke of every bound control.
+
+- **A carrier-typed prop gets a chain step per delegate shape it accepts, under one name.** A lambda has
+  no type, so it can never reach a carrier through the carrier's own constructor (CS1660) — without these
+  there would be no way to write a handler at all. So `Callback` gets a sync and an async overload,
+  `Validator<T>` the same over the framework's named validator delegates, and `Fn<…>` a single one,
+  having no async twin. The call site writes the handler it means: `.OnPick(Refresh)` or
+  `.OnPick(SaveAsync)`, and an `async () => { … }` lambda binds the async shape, never async void.
+
+  Keyed off the TYPE, never a naming convention, so a new carrier prop gets its steps without anyone
+  remembering. The carrier-typed setter stays as the pass-through — for forwarding a carrier a component
+  already holds — and carries `[OverloadResolutionPriority(1)]`, because `null` converts to every shape
+  and `.OnPick(null)` would otherwise be ambiguous; priority is applied after applicability, so a lambda
+  still reaches its own overload. Carriers are also excluded from the `propsChanged` fold: a `Callback?`
+  is a struct, and folding one would report a change every frame and defeat the render cache for every
+  element carrying a handler. Nothing declares a carrier prop yet.
 
 ### Fixed
 

@@ -261,7 +261,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                var isDelegate = p.Type.TypeKind == TypeKind.Delegate;
+                // Carriers count as delegates here for the same reason as the per-component pass: a
+                // `Callback?` is a struct, so the TypeKind test alone would fold it and defeat the render
+                // cache for every element that carries a handler.
+                var isDelegate = p.Type.TypeKind == TypeKind.Delegate
+                                 || CarrierDelegates(p.Type.ToDisplayString(FullyQualifiedNullable))
+                                     .Count > 0;
                 var (defaultLiteral, isRequired) = DefaultLiteralFor(p, compilation);
                 shared.Add(new SharedSetter(
                     p.Name,
@@ -1129,6 +1134,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // `x.OnClick(fn)` and reads the call as an invocation (CS1593), never reaching an extension
         // method — but only if the property is on the receiver. One step off it, the lookup finds
         // nothing and the setter binds. See Rask.Core.Build{T}.
+        // A carrier-typed prop gets bare-delegate overloads beside this setter, and `null` converts to
+        // every one of them. Priority makes the carrier-typed one win that call rather than CS0121.
+        if (CarrierDelegates(typeFqn).Count > 0)
+        {
+            sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(1)]");
+        }
+
         sb.Append("    ").Append(visibility).Append(" static ");
         if (generic)
         {
@@ -1140,6 +1152,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
                 .Append(" = ").Append(assigned).AppendLine("; return __b; }");
             EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
+                generic: true, mode);
+            EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
                 generic: true, mode);
             return;
         }
@@ -1153,6 +1167,94 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(" = ").Append(assigned).AppendLine("; return __b; }");
         EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
             generic: false, mode, typeParameters, constraints);
+        EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
+            generic: false, mode, typeParameters, constraints);
+    }
+
+    private const string CallbackFqn = "global::Rask.Core.Callback";
+
+    private const string FnFqn = "global::Rask.Core.Fn";
+
+    private const string ValidatorFqn = "global::Rask.Core.Validator";
+
+    private const string TaskFqn = "global::System.Threading.Tasks.Task";
+
+    /// <summary>
+    ///     The delegate shapes a carrier-typed property accepts, or empty when the type is not a carrier.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A carrier holds a delegate without BEING one, which is what lets a step keep the property's
+    ///         name — see <c>Rask.Core.Callback</c>. The cost is that a lambda can never reach it: a lambda
+    ///         has no type, so no user-defined conversion applies to it (CS1660). The step therefore has to
+    ///         offer the bare delegate shapes as OVERLOADS, and this is the list of them.
+    ///     </para>
+    ///     <para>
+    ///         Keyed off the type, never off the property's name — the same rule as <see cref="IsAttrBag" />
+    ///         and for the same reason: a naming convention is a thing someone has to remember, and the one
+    ///         who forgets gets a step that silently is not there.
+    ///     </para>
+    /// </remarks>
+    private static List<string> CarrierDelegates(string typeFqn)
+    {
+        var bare = typeFqn.EndsWith("?", StringComparison.Ordinal)
+            ? typeFqn.Substring(0, typeFqn.Length - 1)
+            : typeFqn;
+
+        var open = bare.IndexOf('<');
+        var name = open < 0 ? bare : bare.Substring(0, open);
+        var args = open < 0
+            ? new List<string>()
+            : SplitGenericArguments(bare.Substring(open + 1, bare.Length - open - 2));
+
+        // `Callback` is the sync/async pair: one name, two overloads. `Validator` is the same shape over
+        // the framework's own named delegates. `Fn` returns a value and so has no async twin — its last
+        // type argument is the return type, which is why it takes one overload rather than two.
+        return name switch
+        {
+            CallbackFqn => [
+                Generic("global::System.Action", args),
+                Generic("global::System.Func", [.. args, TaskFqn]),
+            ],
+            ValidatorFqn when args.Count == 1 => [
+                Generic("global::Rask.Core.Forms.Validate", args),
+                Generic("global::Rask.Core.Forms.ValidateAsync", args),
+            ],
+            FnFqn when args.Count > 0 => [Generic("global::System.Func", args)],
+            _ => [],
+        };
+
+        static string Generic(string open, List<string> arguments) =>
+            arguments.Count == 0 ? open : open + "<" + string.Join(", ", arguments) + ">";
+    }
+
+    // Top-level commas only: `Fn<Exception, Action, string>` has three arguments, but
+    // `Callback<IReadOnlyList<string>>` has one and its comma-free inner text must not be split on a
+    // comma that a nested argument list owns.
+    private static List<string> SplitGenericArguments(string text)
+    {
+        var parts = new List<string>();
+        var depth = 0;
+        var start = 0;
+        for (var i = 0; i < text.Length; i++)
+        {
+            switch (text[i])
+            {
+                case '<':
+                    depth++;
+                    break;
+                case '>':
+                    depth--;
+                    break;
+                case ',' when depth == 0:
+                    parts.Add(text.Substring(start, i - start).Trim());
+                    start = i + 1;
+                    break;
+            }
+        }
+
+        parts.Add(text.Substring(start).Trim());
+        return parts;
     }
 
     // A property whose type IS an attribute bag — Data, Aria, FieldAria, and anything added later.
@@ -1170,6 +1272,67 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return string.Equals(
             bare, "global::System.Collections.Generic.IReadOnlyDictionary<string, string?>",
             StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     One extra step per delegate shape a carrier-typed property accepts, so the call site writes the
+    ///     handler it means — <c>.OnClick(Refresh)</c> or <c>.OnClick(SaveAsync)</c> — under one name.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         These are not a convenience. A lambda has no type, so it can never reach the carrier through
+    ///         the carrier's own constructor (CS1660): without an overload taking the bare delegate there is
+    ///         no way to write a handler at all. The carrier-typed setter stays as the pass-through, for
+    ///         forwarding a carrier a component already holds.
+    ///     </para>
+    ///     <para>
+    ///         The pass-through carries <c>[OverloadResolutionPriority(1)]</c> because <c>null</c> converts
+    ///         to every one of these and would otherwise be ambiguous (CS0121) — and passing <c>null</c> for
+    ///         a handler is a spelling the framework has always blessed. Priority filtering runs AFTER
+    ///         applicability and a lambda is never applicable to the struct, so the sync and async lambdas
+    ///         still bind to their own overloads.
+    ///     </para>
+    /// </remarks>
+    private static void EmitCarrierOverloads(
+        StringBuilder sb, string setterName, string propertyName, string typeFqn, string receiver,
+        bool wrap, int pendingBit, string visibility, bool generic, string? mode = null,
+        string typeParameters = "", string constraints = "")
+    {
+        var shapes = CarrierDelegates(typeFqn);
+        if (shapes.Count == 0)
+        {
+            return;
+        }
+
+        var escaped = EscapeIdentifier(setterName);
+        var prop = EscapeIdentifier(propertyName);
+        var carrier = typeFqn.EndsWith("?", StringComparison.Ordinal)
+            ? typeFqn.Substring(0, typeFqn.Length - 1)
+            : typeFqn;
+
+        // A carrier is non-folding — it holds a delegate, and two delegates are practically never equal —
+        // so there is no Track call here, only the pending-bit bookkeeping and the callback flag.
+        var track = pendingBit >= 0
+            ? "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); "
+            : "global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); ";
+
+        var self = BuildOf(generic ? "T" : receiver, mode);
+        var typeArgs = WithMode(generic ? "<T>" : typeParameters, mode);
+        var where = generic ? " where T : " + ConstraintFor(receiver, mode) : constraints;
+
+        foreach (var shape in shapes)
+        {
+            // Wrapped exactly as the pass-through setter's own value is: an Element's handlers go to the
+            // DOM unwrapped, a non-Element component's are wrapped so invoking one re-renders its owner.
+            var value = wrap ? "global::Rask.Core.AutoCallback.Wrap(value)!" : "value";
+
+            sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(0)]");
+            sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
+                .Append(typeArgs).Append("(this ").Append(self).Append(" __b, ").Append(shape)
+                .Append(" value)").Append(where);
+            sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(prop)
+                .Append(" = new ").Append(carrier).AppendLine("(" + value + "); return __b; }");
+        }
     }
 
     /// <summary>
@@ -4639,7 +4802,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // so this is load-bearing for the render-hotpath allocation pin. Distinct from
                 // isAutoRerenderDelegate, which ALSO drives the parent re-render wrapping that element
                 // props must NOT get.
-                var isDelegate = prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate };
+                // A CARRIER counts too, and missing that is the quietest regression in this file: a
+                // `Callback?` is `Nullable<Callback>`, a STRUCT, so the TypeKind test alone says false and
+                // every carrier-typed handler starts folding. Nothing fails — every element carrying a
+                // handler simply reports propsChanged: true on every frame, and the render cache is
+                // defeated tree-wide. Only the allocation benchmarks would notice.
+                var isDelegate = prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate }
+                                 || CarrierDelegates(prop.Type.ToDisplayString(FullyQualifiedNullable))
+                                     .Count > 0;
 
                 // An unconstrained type-parameter prop (e.g. `TValue? Value`) can't default to `null` —
                 // there's no conversion from null to T — so its optional factory param must default to
