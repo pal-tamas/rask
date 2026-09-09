@@ -73,6 +73,17 @@ them until tagged releases begin.
   test that declares a model in a real scaffolded app and asserts a `Product` table reaches the
   migration. Both were confirmed to fail against the old template.
 
+- **A scaffolded app could not use a model even once it was mapped.** `Product.Add(…)` goes through the
+  ambient `Db`, and binding that needs two things the scaffold never wrote: the *generic*
+  `AddRaskData<AppDbContext>()` (the non-generic overload registers only the interceptors, so
+  `Db.Configure` has nothing to point at), and one `Db.Configure(app.Services)` after the container is
+  built. Neither could come from the framework — `Rask.Server` does not reference `Rask.Data` at all, and
+  the only caller of `Db.Configure` is the meta package's `RaskApp`, which a scaffolded server app does
+  not use. So the app booted, served, migrated, and threw `The ambient database has not been configured`
+  on the first line of data code. The scaffold now emits both. The same stale wiring was in the tutorial
+  (which this release rewrote to teach `Model<TId>`) and in the cheatsheet, whose block claims to be what
+  `rask new` writes; both now match.
+
 - **`rask new` told you to add a `DbSet<T>`.** The next-steps text printed after scaffolding taught the
   one workflow this data layer exists to remove; it now shows declaring a `Model<Guid>`, and says you
   query it off the type itself.

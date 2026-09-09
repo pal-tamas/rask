@@ -134,17 +134,22 @@ public sealed class ServerBatteryScaffoldTests
     [Theory]
     [InlineData("outbox")]
     [InlineData("data")]
-    public void AddRaskData_is_scaffolded_bare_whether_or_not_the_outbox_is_on(string flag)
+    public void AddRaskData_is_scaffolded_without_a_domain_event_argument_whether_or_not_the_outbox_is_on(
+        string flag)
     {
         // The outbox used to require `o.DispatchDomainEventsInProcess = false` here, and a scaffold that
         // forgot it silently emptied the outbox: DomainEventInterceptor drained and cleared every entity's
         // events before OutboxInterceptor could copy them, while every handler still ran, so nothing looked
         // wrong. The framework now settles that when the container is built (AddRaskOutbox registers an
-        // IDomainEventDeliveryOwner), so the emitter has no argument left to get wrong. Asserting the
-        // ABSENCE is the point — this is the line that would regress if the old conditional came back.
+        // IDomainEventDeliveryOwner), so the emitter has no OPTIONS argument left to get wrong. Asserting
+        // that absence is the point — this is the line that would regress if the old conditional came back.
+        //
+        // The TYPE argument is a different thing and is required: the generic overload is what binds the
+        // context to the ambient database, so Db.Configure has something to point at. This test used to
+        // assert the bare `AddRaskData();`, which read as though the type argument were unwanted too.
         var program = Generate(flag)["Program.cs"];
 
-        Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
         Assert.DoesNotContain("DispatchDomainEventsInProcess", program, StringComparison.Ordinal);
     }
 

@@ -57,15 +57,22 @@ Plus `public DbSet<Product> Products => Set<Product>();` on the app's one `AppDb
 
 ## Wiring one-liners
 
-A data-backed app needs these three in `Program.cs` (`rask new` writes them for you):
+A data-backed app needs these in `Program.cs` (`rask new` writes them for you):
 
 ```csharp
 builder.Services.AddRaskCqrs();                        // the mediator (IDispatcher)
-builder.Services.AddRaskData();                        // EF interceptors: audit/soft-delete/events
+builder.Services.AddRaskData<ProductsDbContext>();     // interceptors + names the ambient database
 builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
     .UseSqlite("Data Source=app.db")
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));   // audit/soft-delete/events/outbox
+
+var app = builder.Build();
+Db.Configure(app.Services);                            // Product.Where(…) now knows which database
 ```
+
+The type argument and `Db.Configure` are a pair: the bare `AddRaskData()` registers only the
+interceptors, and without both, the first `Product.Add(…)` throws `The ambient database has not been
+configured`. Your context should derive from `RaskDbContext`, which is what maps the models you declare.
 
 The other pillars are **one registration + one `modelBuilder` line + a migration** you add by hand:
 

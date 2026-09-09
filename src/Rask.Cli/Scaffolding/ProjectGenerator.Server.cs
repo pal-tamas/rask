@@ -477,6 +477,24 @@ internal static partial class ProjectGenerator
 
             var app = builder.Build();
 
+            """);
+
+        if (batteries.Data)
+        {
+            // Points the ambient database at the context registered above, once, after the container
+            // exists. Without it every Product.Add(…) / Product.Where(…) throws "The ambient database has
+            // not been configured" — the app boots, serves, and fails only on the first line of data code.
+            // Nothing in Rask.Server can do this for you: it does not reference Rask.Data at all.
+            sb.Append("""
+                // Point the ambient database at the context registered above. This is what lets a model be
+                // used from anywhere — Product.Where(…), Product.FindAsync(id) — with no DbContext injected.
+                Db.Configure(app.Services);
+
+                """.TrimStart('\n'));
+        }
+
+        sb.Append("""
+
             // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
             // (HSTS, redirects, your own logging) sees the request the visitor actually made.
             app.UseForwardedHeaders();
