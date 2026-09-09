@@ -7,6 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Callback carriers, so a component's props can hold a delegate without being one.** `Callback`,
+  `Callback<T>` and `Callback<T1, T2>` hold an event handler in its sync *or* its async form under one
+  property; `Fn<TOut>`, `Fn<TIn, TOut>` and `Fn<T1, T2, TOut>` hold a value the framework asks a
+  component for — a template, a selector, a predicate; `Validator<T>` holds a field rule in either form.
+
+  They are the groundwork for the chain receiving on the component itself. A delegate-typed property
+  swallows its own chain step — C# stops at it when resolving `x.OnClick(fn)` and reads the call as a
+  delegate invocation (CS1593), so the extension setter is never considered — and a struct over a
+  delegate is not invocable, so member lookup falls through and the setter binds.
+
+  `Callback.Invoke()` returns `null` when there is nothing to await, so a synchronous handler never
+  acquires an asynchronous hop it did not have: no `Task`, no closure, no state machine. Call it as
+  `if (OnClick?.Invoke() is { } t) await t;`. `Validator<T>.Invoke` returns a `ValueTask<>` for the same
+  reason — the synchronous rule runs on every keystroke of every bound control. Nothing consumes the
+  carriers yet.
+
 ### Fixed
 
 - **A prerendered page looked interactive before it was, and clicks in that window were lost.**

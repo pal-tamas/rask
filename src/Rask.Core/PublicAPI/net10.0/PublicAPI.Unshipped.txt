@@ -1411,6 +1411,27 @@ Rask.Core.Build<T>.this[System.Collections.Generic.IEnumerable<Rask.Core.Compone
 Rask.Core.Build<T>.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
 Rask.Core.Build<T>.this[params object?[]! children].get -> Rask.Core.Component!
 Rask.Core.BuilderRuntime
+Rask.Core.Callback
+Rask.Core.Callback.Callback() -> void
+Rask.Core.Callback.Callback(System.Action! handler) -> void
+Rask.Core.Callback.Callback(System.Func<System.Threading.Tasks.Task!>! handler) -> void
+Rask.Core.Callback.Handler.get -> System.Delegate?
+Rask.Core.Callback.HasValue.get -> bool
+Rask.Core.Callback.Invoke() -> System.Threading.Tasks.Task?
+Rask.Core.Callback<T1, T2>
+Rask.Core.Callback<T1, T2>.Callback() -> void
+Rask.Core.Callback<T1, T2>.Callback(System.Action<T1, T2>! handler) -> void
+Rask.Core.Callback<T1, T2>.Callback(System.Func<T1, T2, System.Threading.Tasks.Task!>! handler) -> void
+Rask.Core.Callback<T1, T2>.Handler.get -> System.Delegate?
+Rask.Core.Callback<T1, T2>.HasValue.get -> bool
+Rask.Core.Callback<T1, T2>.Invoke(T1 arg1, T2 arg2) -> System.Threading.Tasks.Task?
+Rask.Core.Callback<T>
+Rask.Core.Callback<T>.Callback() -> void
+Rask.Core.Callback<T>.Callback(System.Action<T>! handler) -> void
+Rask.Core.Callback<T>.Callback(System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
+Rask.Core.Callback<T>.Handler.get -> System.Delegate?
+Rask.Core.Callback<T>.HasValue.get -> bool
+Rask.Core.Callback<T>.Invoke(T arg) -> System.Threading.Tasks.Task?
 Rask.Core.Component
 Rask.Core.Component.CancellationToken.get -> System.Threading.CancellationToken
 Rask.Core.Component.Children.get -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>?
@@ -1986,6 +2007,21 @@ Rask.Core.FactoryGenericAttribute.TypedDelegateProperties.get -> string![]!
 Rask.Core.FactoryGenericAttribute.TypedDelegateProperties.init -> void
 Rask.Core.FactoryGenericAttribute.TypedValidatorProperties.get -> string![]!
 Rask.Core.FactoryGenericAttribute.TypedValidatorProperties.init -> void
+Rask.Core.Fn<T1, T2, TOut>
+Rask.Core.Fn<T1, T2, TOut>.Fn() -> void
+Rask.Core.Fn<T1, T2, TOut>.Fn(System.Func<T1, T2, TOut>! fn) -> void
+Rask.Core.Fn<T1, T2, TOut>.HasValue.get -> bool
+Rask.Core.Fn<T1, T2, TOut>.Invoke(T1 arg1, T2 arg2) -> TOut?
+Rask.Core.Fn<TIn, TOut>
+Rask.Core.Fn<TIn, TOut>.Fn() -> void
+Rask.Core.Fn<TIn, TOut>.Fn(System.Func<TIn, TOut>! fn) -> void
+Rask.Core.Fn<TIn, TOut>.HasValue.get -> bool
+Rask.Core.Fn<TIn, TOut>.Invoke(TIn arg) -> TOut?
+Rask.Core.Fn<TOut>
+Rask.Core.Fn<TOut>.Fn() -> void
+Rask.Core.Fn<TOut>.Fn(System.Func<TOut>! fn) -> void
+Rask.Core.Fn<TOut>.HasValue.get -> bool
+Rask.Core.Fn<TOut>.Invoke() -> TOut?
 Rask.Core.FormBuild<T>
 Rask.Core.FormBuild<T>.FormBuild() -> void
 Rask.Core.FormBuild<T>.FormBuild(T! component) -> void
@@ -2784,6 +2820,13 @@ Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Utf8.get -> System.Re
 Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Utf8.init -> void
 Rask.Core.SkipFactoryAttribute
 Rask.Core.SkipFactoryAttribute.SkipFactoryAttribute() -> void
+Rask.Core.Validator<T>
+Rask.Core.Validator<T>.HasValue.get -> bool
+Rask.Core.Validator<T>.Invoke(T value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>
+Rask.Core.Validator<T>.Rule.get -> System.Delegate?
+Rask.Core.Validator<T>.Validator() -> void
+Rask.Core.Validator<T>.Validator(Rask.Core.Forms.Validate<T>! rule) -> void
+Rask.Core.Validator<T>.Validator(Rask.Core.Forms.ValidateAsync<T>! rule) -> void
 Rask.Core.Virtualization.ItemsProviderRequest
 Rask.Core.Virtualization.ItemsProviderRequest.<Clone>$() -> Rask.Core.Virtualization.ItemsProviderRequest!
 Rask.Core.Virtualization.ItemsProviderRequest.CancellationToken.get -> System.Threading.CancellationToken
