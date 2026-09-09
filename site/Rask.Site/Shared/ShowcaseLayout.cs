@@ -95,11 +95,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             NavLink
                 .Href(Features.Routes.GuidesIndexPage())
                 .ActiveClass("")
-                .Class("app-brand font-semibold inline-flex items-center gap-2 text-ui-ink no-underline")[
+                .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
                 RaskLogo.Size(24).GradientId("brandBolt"),
                 Span["Rask"],
-                Span.Class("rask-badge rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted")["showcase"],
-                Span.Class("rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted")[$"v{RaskVersion.Current}"]
+                // Both badges are hidden below sm. The bar carries a hamburger, the brand, a GitHub
+                // link and the theme picker, and on a 390px screen the row measured 399px — a
+                // 9px overflow that scrolled the whole document sideways on every page of the docs.
+                Span.Class("rask-badge hidden rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted sm:inline")["showcase"],
+                Span.Class("hidden rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted sm:inline")[$"v{RaskVersion.Current}"]
             ],
             Div.Class("flex items-center gap-2 ms-auto")[
                 PathDisplay,
@@ -108,7 +111,8 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     .Target("_blank")
                     .Rel("noopener")
                     .Class(TopAction + " border border-ui-line bg-ui-bg text-ui-ink hover:bg-ui-well")[
-                    UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"), "GitHub"
+                    UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"),
+                    Span.Class("hidden sm:inline")["GitHub"]
                 ]
                 ,
                 // The light/dark toggle that used to sit here went when the showcase became light on

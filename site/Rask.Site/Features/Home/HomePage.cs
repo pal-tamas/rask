@@ -131,7 +131,15 @@ public sealed partial class HomePage : Component
         Section.Class("pt-14 pb-16 sm:pt-20 sm:pb-24")[
             Div.Class(Wrap)[
                 Div.Class("hero-grid grid items-start gap-10 lg:grid-cols-2 lg:gap-14")[
-                    Div[
+                    // min-w-0 on BOTH tracks. A grid item's min-width defaults to `auto`, which
+                    // resolves to its min-content size — and the code window's <pre> carries
+                    // `white-space: pre`, so its min-content is the longest source line, 510px.
+                    // `overflow-x-auto` on the <pre> does not help: that makes the PRE scroll, it
+                    // does not shrink the track asking to be 510 wide. The single column on a phone
+                    // therefore grew past the viewport and took the whole document with it —
+                    // measured at 532px against a 390px screen, which is why the hero text was
+                    // rendered small and clipped rather than wrapped.
+                    Div.Class("min-w-0")[
                         P.Class(Eyebrow)["The .NET One Person Framework"],
                         H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-ui-ink sm:text-5xl")[
                             "Ship a whole product.", Br, "Just you, and ",
@@ -156,7 +164,7 @@ public sealed partial class HomePage : Component
                     ],
                     // The page proving its own thesis, on first paint: the component's source, and the
                     // component itself, running.
-                    Div.Class("flex flex-col gap-4")[CodeWindow(), LiveCounter]
+                    Div.Class("flex min-w-0 flex-col gap-4")[CodeWindow(), LiveCounter]
                 ]
             ]
         ];

@@ -174,12 +174,29 @@
     border-top: 1px solid var(--rask-line);
 }
 
+/* Stacked on a phone. Side by side, each card gets ~175px, which is not enough for a guide title —
+   they were ellipsed to two or three words, so the control said "Next" and then nothing useful. */
+@media (max-width: 639.98px) {
+    .guide-prevnext {
+        flex-direction: column;
+    }
+
+    .guide-prevnext-spacer {
+        display: none;
+    }
+}
+
 .guide-prevnext-spacer {
     flex: 1 1 0;
 }
 
 .guide-prevnext-link {
     flex: 1 1 0;
+    /* min-width: 0 has to be repeated on EVERY flex item in the chain, not just the inner body. A flex
+       item's min-width defaults to `auto` = its min-content size, and the title inside is
+       `white-space: nowrap`, so this link's minimum was the full untruncated guide title — it pushed
+       the docs 21px past a 390px viewport while the ellipsis it was supposed to trigger never ran. */
+    min-width: 0;
     display: flex;
     align-items: center;
     padding: .85rem 1.1rem;

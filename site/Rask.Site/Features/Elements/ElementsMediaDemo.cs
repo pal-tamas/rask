@@ -60,11 +60,11 @@ public sealed partial class ElementsMediaDemo : Component
             ]
         ],
         Div.Class("grid grid-cols-12 gap-4")[
-            Div.Class("md:col-span-6")[
+            Div.Class("col-span-12 md:col-span-6")[
                 P.Class("text-sm mb-1 text-ui-muted")["audio (controls)"],
                 Audio.Controls(true).Preload("none").Class("w-full")
             ],
-            Div.Class("md:col-span-6")[
+            Div.Class("col-span-12 md:col-span-6")[
                 P.Class("text-sm mb-1 text-ui-muted")["video (poster + track)"],
                 Video
                     .Controls(true)

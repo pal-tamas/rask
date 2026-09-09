@@ -9,6 +9,56 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
+  Every class name was present and correct in the markup; the rules never won. The hero's
+  `h1.text-4xl.font-semibold` computed to **16px/400** and the primary call to action's `px-5` computed
+  to **`padding: 0`**.
+
+  CSS orders `@layer` names by FIRST APPEARANCE, across every sheet on the page, in link order — and
+  nothing later can reorder a name that has already been placed. `rask-ui.css` is linked first, as
+  `docs/ui-kit.md` instructs, and it declared no order of its own, so the order fell out of where its
+  blocks happened to land: `properties, theme, utilities, daisyui, rask, base`, because daisyUI emits
+  its `base` rules last. That puts `base` ABOVE `utilities` for the entire page. The app's own Tailwind
+  then linked second with `@layer theme, base, components, utilities;`, which is a no-op once those
+  names are ordered — and its preflight (`h1..h6 { font-size: inherit }`, `* { padding: 0 }`) outranked
+  every utility it had just emitted. Any app that references `Rask.Ui` and runs its own Tailwind had
+  this, not only the showcase.
+
+  The kit's sheet now opens with the order it means: `@layer properties, theme, base, components,
+  daisyui, rask, utilities;` — your utilities beat your own preflight, daisyUI, and the kit's own
+  corrections, which is the promise the `layer()` imports beside it were already making.
+  `UiLayerOrderTests` asserts it against the COMPILED sheet, since Tailwind rewrites the statement while
+  emitting its own blocks; verified to fail without it. Documented in `docs/ui-kit.md`.
+
+  Green builds throughout: the class names were emitted and the sheet was emitted, and nothing rendered
+  the two together to read a computed style. That is the second time this site shipped unstyled for a
+  reason invisible to its source. (#1033)
+
+- **Five surfaces overflowed a phone sideways, and one of them shrank the whole landing page.** With the
+  cascade repaired, ten surfaces were measured at 390x844; five scrolled horizontally.
+
+  The landing hero was **142px too wide**, which is why its text rendered small and clipped rather than
+  wrapped: a grid item's `min-width` defaults to `auto` — its min-content size — and the code window's
+  `<pre>` carries `white-space: pre`, so its min-content is the longest source line, 510px. That sized
+  the single phone column and the document with it. `overflow-x-auto` makes the `<pre>` scroll; it does
+  not shrink a track asking to be 510 wide. Both tracks now carry `min-w-0`.
+
+  **Twenty-two call sites** put a child in `grid grid-cols-12` with only a `md:`/`sm:`/`lg:` `col-span`
+  and no base one, so on a phone each occupied **1 of 12 columns — about 16px** — with its content
+  spilling out of it. They all take `col-span-12` as the base now.
+
+  Also: markdown tables scroll rather than widening the page (Markdig emits a bare `<table>` with
+  nothing to wrap, and `width: 100%` does not stop a table growing to the sum of its columns' minimum
+  widths); long inline identifiers and bare URLs in the guides break rather than push; the guide
+  prev/next control gained the `min-width: 0` its inner body already had, so its ellipsis finally runs,
+  and stacks below `sm`; and the docs top bar drops its two brand badges and the GitHub label on a
+  phone, where the row measured 399px against a 390px screen.
+
+  The guides index is rebuilt on the kit's own card, with the group icon inline beside the title instead
+  of a 28px block above it — it is derived from the guide's GROUP, so it was the same glyph repeated
+  down a section already labelled with that group's name. The index is **23% shorter** on a phone
+  (21,025px to 16,245px). (#1033)
+
 - **A prerendered page looked interactive before it was, and clicks in that window were lost.**
   Prerendering serves real HTML, so a page's buttons and links are present and look clickable from the
   first paint — but no handler is attached until the bundle downloads, starts and takes the page over,

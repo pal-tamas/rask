@@ -27,20 +27,45 @@ public sealed partial class GuideCards : Component
                 continue;
             }
 
+            // font-bold AND font-semibold were both on this element, which leaves the winner to
+            // whichever Tailwind emits later rather than to the markup. It is a section label above a
+            // grid of cards, so it is small and quiet and the cards carry the weight.
             yield return H2
-                .Class("font-bold uppercase text-ui-muted mt-4 mb-3 text-base font-semibold feature-section")[group];
+                .Class("mt-8 mb-3 text-xs font-semibold uppercase tracking-widest text-ui-muted")[group];
             yield return Div.Class("grid grid-cols-12 gap-4")[cards.Select(c => (Component)Card(c))];
         }
     }
 
+    // The surface is the kit's own card (UiStyles.Card), so these read as the same object as every
+    // other panel the framework draws.
+    //
+    // The icon sits INLINE with the title rather than in a block above it, and it is small. GuideEntry
+    // derives it from the guide's GROUP, so every card under one heading shows the identical glyph —
+    // ten copies of the same arrow down a section that is already labelled with the group's name. As a
+    // 28px block it was the loudest thing on the page and said nothing; beside the title it reads as a
+    // quiet section marker and gives back roughly half the card's height, which is what an index of
+    // eighty guides needs on a phone.
+    //
+    // feature-card / feature-icon / feature-section went with it: no stylesheet in this repo defines
+    // any of the three. They are leftovers from a design that was replaced.
     private static Component Card(GuideEntry g) =>
-        Div.Class("md:col-span-6 lg:col-span-4").Key(g.Slug)[
-            NavLink.Href(Features.Routes.GuidePage(g.Slug)).ActiveClass("").Class("no-underline")[
-                Div.Class($"{Tw.Card} h-full border-0 shadow-sm feature-card")[
-                    Div.Class($"{Tw.CardBody} p-4")[
-                        Div.Class("feature-icon mb-3")[UiIcon.Name(g.Icon).Class("size-7")],
-                        H3.Class("font-semibold mb-2 text-base text-ui-ink")[g.Title],
-                        P.Class("text-ui-muted mb-0 text-sm")[g.Blurb]
+        Div.Class("col-span-12 md:col-span-6 lg:col-span-4").Key(g.Slug)[
+            NavLink
+                .Href(Features.Routes.GuidePage(g.Slug))
+                .ActiveClass("")
+                .Class("block h-full no-underline")[
+                // A card is a link, so it needs a hover and a focus state. It had neither.
+                Div.Class(
+                    $"{UiStyles.Card} h-full transition-colors hover:border-ui-brand "
+                    + "focus-within:border-ui-brand")[
+                    Div.Class("flex items-start gap-3")[
+                        UiIcon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-ui-muted"),
+                        // min-w-0: without it this flex item cannot shrink below the longest
+                        // unbreakable word in the title, and the card widens its grid column.
+                        Div.Class("min-w-0")[
+                            H3.Class("text-base font-semibold text-ui-ink")[g.Title],
+                            P.Class("mt-1 text-sm leading-relaxed text-ui-muted")[g.Blurb]
+                        ]
                     ]
                 ]
             ]

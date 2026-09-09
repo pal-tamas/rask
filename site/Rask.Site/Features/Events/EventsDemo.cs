@@ -22,7 +22,7 @@ public sealed partial class EventsDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             // Pointer tracking pad: mousemove + enter/leave + wheel, all typed.
-            Div.Class("md:col-span-6")[
+            Div.Class("col-span-12 md:col-span-6")[
                 Div
                     .Class("border rounded p-4 text-center user-select-none")
                     .Style(_hovering ? "background:#eef6ff" : null)
@@ -36,7 +36,7 @@ public sealed partial class EventsDemo : Component
                 ]
             ],
             // Double-click + context menu (preventDefault'd client-side so the native menu is suppressed).
-            Div.Class("md:col-span-6")[
+            Div.Class("col-span-12 md:col-span-6")[
                 Button
                     .Class($"{Tw.BtnOutlinePrimary} w-full py-4")
                     .OnDoubleClick(_ => _doubleClicks++)
@@ -46,7 +46,7 @@ public sealed partial class EventsDemo : Component
                     $"double-clicks: {_doubleClicks} · context-menu toggled: {_contextMenu}"]
             ],
             // Focus / blur + keyboard on a focusable div.
-            Div.Class("md:col-span-6")[
+            Div.Class("col-span-12 md:col-span-6")[
                 Div
                     .Class("border rounded p-4")
                     .TabIndex(0)
@@ -60,7 +60,7 @@ public sealed partial class EventsDemo : Component
                 ]
             ],
             // Clipboard: paste into the box and read the text server-side.
-            Div.Class("md:col-span-6")[
+            Div.Class("col-span-12 md:col-span-6")[
                 Div
                     .Class("border rounded p-4")
                     .OnPaste(e => _pasted = e.Text)[
