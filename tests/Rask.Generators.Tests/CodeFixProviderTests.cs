@@ -233,6 +233,9 @@ public class CodeFixProviderTests
     }
 
     // ---- RASK027: both OnX and OnXAsync passed -> drop the async one ----
+    //
+    // Driven by a component declared in the test source, because the DOM events these used to use
+    // are one Callback property each now and cannot express "both set".
 
     // The async handler is a STEP, so the fix splices it out of the chain.
     [Fact]
@@ -242,17 +245,23 @@ public class CodeFixProviderTests
             using System.Threading.Tasks;
             using Rask.Core;
             namespace Demo;
+            public sealed partial class Widget : Component
+            {
+                public System.Action? OnSave { get; set; }
+                public System.Func<Task>? OnSaveAsync { get; set; }
+                protected override Component? Render() => null;
+            }
             public sealed partial class App : Component
             {
                 protected override Component? Render() =>
-                    Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())["x"];
+                    Widget.OnSave(() => {}).OnSaveAsync(async () => await Task.Yield());
             }
             """;
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new SyncAsyncHandlerAnalyzer(), new SyncAsyncHandlerCodeFixProvider(), "RASK027", source);
 
-        Assert.DoesNotContain("OnClickAsync", fixhed);
-        Assert.Contains("Button.OnClick(() => {})[\"x\"]", fixhed);
+        Assert.DoesNotContain(".OnSaveAsync(", fixhed);
+        Assert.Contains("Widget.OnSave(() => {})", fixhed);
     }
 
     // The fix must never reach OUTSIDE the chain it was offered on. It used to walk up to the nearest
@@ -265,23 +274,29 @@ public class CodeFixProviderTests
             using System.Threading.Tasks;
             using Rask.Core;
             namespace Demo;
+            public sealed partial class Widget : Component
+            {
+                public System.Action? OnSave { get; set; }
+                public System.Func<Task>? OnSaveAsync { get; set; }
+                protected override Component? Render() => null;
+            }
             public sealed partial class App : Component
             {
                 private static Component Wrap(Component Content, string Label) => Content;
 
                 protected override Component? Render() =>
                     Wrap(
-                        Content: Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())["x"],
+                        Content: Widget.OnSave(() => {}).OnSaveAsync(async () => await Task.Yield()),
                         Label: "hi");
             }
             """;
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new SyncAsyncHandlerAnalyzer(), new SyncAsyncHandlerCodeFixProvider(), "RASK027", source);
 
-        Assert.DoesNotContain("OnClickAsync", fixhed);
+        Assert.DoesNotContain(".OnSaveAsync(", fixhed);
         Assert.Contains("Content:", fixhed);          // the argument survives
         Assert.Contains("Label: \"hi\"", fixhed);
-        Assert.Contains("Button.OnClick(() => {})", fixhed);
+        Assert.Contains("Widget.OnSave(() => {})", fixhed);
     }
 
     // ---- CS0108: a member hides an inherited builder entry -> add `new` ----

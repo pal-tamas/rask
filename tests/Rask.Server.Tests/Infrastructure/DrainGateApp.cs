@@ -25,7 +25,7 @@ public sealed partial class DrainGateApp : Component
     [
         new P()[$"count={Counter}"],
         Button
-            .OnClickAsync(async () =>
+            .OnClick(async () =>
         {
             await Gate.Task;
             Counter++;

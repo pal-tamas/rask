@@ -13,7 +13,7 @@ public sealed partial class NetworkInfoDemo(INetworkInfo network) : Component
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("net-read")
-                    .OnClickAsync(Read)[
+                    .OnClick(Read)[
                     "Read network status"],
                 Div.Class("text-sm text-ui-muted")["Connection: ", Code.Id("net-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("net-status")[_status ?? "(idle)"]]

@@ -45,6 +45,33 @@ them until tagged releases begin.
   silently never fire. With typed `Action<T1, T2>` and `Func<T1, T2, Task>` overloads, a missing arity is
   a compile error instead.
 
+### Changed
+
+- **Every DOM event is one property now, and `Button.OnClick` takes a sync *or* an async handler.**
+  BREAKING: the 58 `OnXAsync` siblings on `Element` and `HtmlMediaElement` are gone. Write the handler
+  you mean:
+
+  ```csharp
+  Button.OnClick(Refresh)                        // was OnClick
+  Button.OnClick(async () => await SaveAsync())  // was OnClickAsync
+  ```
+
+  The pair never bought anything. Both properties were already two views over **one** storage slot, with
+  a runtime tiebreak where the sync handler won and the async one was silently dropped, and an error
+  diagnostic (RASK027) whose whole job was to stop you reaching that state. One `Callback`-typed property
+  makes it unrepresentable instead of diagnosed: the slot loses its `IsAsync` flag, the four typed
+  readers and two asymmetric writers collapse to one of each, and "sync wins" has nothing left to
+  arbitrate — the last write wins, like any other step.
+
+  Nothing is paid for it at run time. `Callback` holds the delegate bare, so the dispatch switch is
+  unchanged arm for arm and a synchronous handler still runs without a `Task`, a closure or a state
+  machine. An `async` lambda binds the asynchronous overload — never async void — and `.OnClick(null)`
+  still clears the slot.
+
+  `UiButton.OnClick` and `DragDrop.OnDrop` collapse the same way. The form and kit callbacks that are
+  still pairs (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, the submit callbacks) are unchanged,
+  so RASK027 stays — narrowed to them, and documented as no longer applying to DOM events.
+
 ### Fixed
 
 - **The missing-`Key` and missing-`Alt` checks never ran on a generic component or a form control.**
@@ -8527,7 +8554,7 @@ them until tagged releases begin.
   rather than trusting that green tests meant done.**
   - **RASK027's lightbulb deleted whatever enclosed the chain.** Making the analyzer fire on chains
     without touching its fix left the provider looking *upward* for an argument to remove, so
-    `Wrap(Content: Button.OnClick(…).OnClickAsync(…)["x"], Label: "hi")` became `Wrap(Label: "hi")` —
+    `Wrap(Content: Button.OnClick(…).OnClick(…)["x"], Label: "hi")` became `Wrap(Label: "hi")` —
     the component silently gone, and the result still compiling. The diagnostic is now anchored on the
     step's name rather than the whole chain, and the fix splices that one step out and never walks past
     the node it was given.
@@ -8565,7 +8592,7 @@ them until tagged releases begin.
     — the exact shape the guides teach — went unreported, so those lists reconcile by position and lose
     focus and input state on insert/remove/reorder.
   - **RASK027 (both the sync and async handler set) never fired on a chain.**
-    `Button.OnClick(…).OnClickAsync(…)` silently dropped the async handler, which is the whole reason the
+    `Button.OnClick(…).OnClick(…)` silently dropped the async handler, which is the whole reason the
     diagnostic is an **Error** on a factory call.
   - **RASK034 (a `BsDataGrid` column with no `Field`) never fired on a chain either.** The column
     chooser addresses a column by the token read off `Field`, so a column without one can never be

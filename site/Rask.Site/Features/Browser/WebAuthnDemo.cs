@@ -50,13 +50,13 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("webauthn-create").OnClickAsync(Create)[
+                    Button.Class(Tw.BtnPrimary).Id("webauthn-create").OnClick(Create)[
                         UiIcon.Name(UiIconName.FingerPrint).Class("me-1"), "Create passkey"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("webauthn-auth")
                         .Disabled(_credentialId is null)
-                        .OnClickAsync(Authenticate)["Authenticate"]
+                        .OnClick(Authenticate)["Authenticate"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Support: ", Code.Id("webauthn-support")[_support]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("webauthn-status")[_status]]

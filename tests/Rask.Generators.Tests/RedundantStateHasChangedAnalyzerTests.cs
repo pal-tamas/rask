@@ -79,7 +79,7 @@ public class RedundantStateHasChangedAnalyzerTests
     public async Task AsyncCallback_StateHasChanged_ReportsRask026() =>
         Assert.Equal("RASK026", Assert.Single(await Diagnostics(App(
                 "protected override Component? Render() => "
-                + "Button.OnClickAsync(async () => { await System.Threading.Tasks.Task.Yield(); StateHasChanged(); })[\"x\"];")))
+                + "Button.OnClick(async () => { await System.Threading.Tasks.Task.Yield(); StateHasChanged(); })[\"x\"];")))
             .Id);
 
     [Fact]

@@ -67,12 +67,12 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
                         .Class(Tw.BtnPrimary)
                         .Id("install-button")
                         .Disabled(!_canInstall)
-                        .OnClickAsync(Install)[
+                        .OnClick(Install)[
                         UiIcon.Name(UiIconName.Download).Class("me-1"), "Install app"],
                     Button
                         .Class(Tw.BtnOutlineSecondary)
                         .Id("install-refresh")
-                        .OnClickAsync(RefreshAsync)[
+                        .OnClick(RefreshAsync)[
                         "Re-check"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("install-status")[_status]]

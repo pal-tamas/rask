@@ -23,9 +23,9 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
                         .Id("storage-input")
                         .Placeholder("Value to persist")
                         .OnInput(v => _input = v),
-                    Button.Type("button").Class(Tw.BtnPrimary).Id("storage-set").OnClickAsync(Set)["Set"],
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("storage-read").OnClickAsync(Read)["Read"],
-                    Button.Type("button").Class(Tw.BtnOutlineDanger).Id("storage-remove").OnClickAsync(Remove)["Remove"]
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("storage-set").OnClick(Set)["Set"],
+                    Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("storage-read").OnClick(Read)["Read"],
+                    Button.Type("button").Class(Tw.BtnOutlineDanger).Id("storage-remove").OnClick(Remove)["Remove"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]

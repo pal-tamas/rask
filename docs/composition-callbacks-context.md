@@ -67,12 +67,20 @@ to keep the property's name.
 
 **DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
 **every** element (not a hand-picked few) carries the complete event set, just like the real DOM
-mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Action<TArgs>`)
-and an asynchronous `OnXxxAsync` (`Func<TArgs, Task>`); set **at most one** per event (wiring both
-is a compile error, [RASK027](diagnostics.md#rask027) — the runtime would keep the sync one and drop
-the async). Pass a **bare lambda or method group** — `OnMouseMove: e => { _x = e.OffsetX; }`,
-`OnKeyDown: OnKey` — never `new Action<T>(…)`: the step already gives the lambda its
-type, exactly like `OnClick: () => _count++`. The surface:
+mixin. Every event is **one** property, `OnXxx`, typed `Callback` (or `Callback<TArgs>`), and the step
+takes **either shape**:
+
+```csharp
+Button.OnClick(Refresh)                        // sync
+Button.OnClick(async () => await SaveAsync())  // async — awaited before the re-render
+```
+
+There is nothing to choose between and no pair to get wrong: one name, one slot. An `async` lambda
+binds the asynchronous overload, never async void. Writing the step twice is simply a duplicated step
+([RASK044](diagnostics.md#rask044)) — the last one wins, as with any other step.
+
+Pass a **bare lambda or method group** — `.OnMouseMove(e => { _x = e.OffsetX; })`, `.OnKeyDown(OnKey)`
+— never `new Action<T>(…)`: the step already gives the lambda its type. The surface:
 
 - **Mouse** — `OnClick` (parameterless), `OnDoubleClick`, `OnContextMenu`, `OnMouseDown`/`Up`/`Move`/
   `Enter`/`Leave`/`Over`/`Out`, all taking `MouseEventArgs` (button/buttons, client/screen/page/offset/
@@ -128,7 +136,7 @@ cancellable async work a handler or lifecycle hook starts, so the work aborts wh
 away and a slow handler unwinds instead of pinning the session's render pipeline:
 
 ```csharp
-Button.OnClickAsync(async () =>
+Button.OnClick(async () =>
     _rows = await _api.LoadAsync(CancellationToken))["Load"]
 ```
 

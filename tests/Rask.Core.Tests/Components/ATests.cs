@@ -44,7 +44,7 @@ public partial class ATests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnClickAsyncInsideLiveContext_EmitsDataRaskOnClick()
     {
-        var view = new StubComponent(() => A.OnClickAsync(async () => { await Task.Yield(); })["go"]);
+        var view = new StubComponent(() => A.OnClick(async () => { await Task.Yield(); })["go"]);
         Assert.Equal("<a data-rask-on-click=\"h0\">go</a>", view.RenderAsLiveRoot());
     }
 }

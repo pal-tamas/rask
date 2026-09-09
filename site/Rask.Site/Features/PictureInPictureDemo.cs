@@ -49,9 +49,9 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
                     .Controls(true)
                     .Class("rounded border mb-2 bg-slate-900"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("pip-enter").OnClickAsync(Enter)[
+                    Button.Class(Tw.BtnPrimary).Id("pip-enter").OnClick(Enter)[
                         "Open miniplayer"],
-                    Button.Class(Tw.BtnOutlineDanger).Id("pip-exit").OnClickAsync(Exit)["Exit"]
+                    Button.Class(Tw.BtnOutlineDanger).Id("pip-exit").OnClick(Exit)["Exit"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pip-status")[_status]]
             ]

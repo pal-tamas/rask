@@ -337,54 +337,30 @@ Rask.Html.Components.HtmlMediaElement.Loop.get -> bool?
 Rask.Html.Components.HtmlMediaElement.Loop.set -> void
 Rask.Html.Components.HtmlMediaElement.Muted.get -> bool?
 Rask.Html.Components.HtmlMediaElement.Muted.set -> void
-Rask.Html.Components.HtmlMediaElement.OnDurationChange.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnDurationChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnDurationChange.set -> void
-Rask.Html.Components.HtmlMediaElement.OnDurationChangeAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnDurationChangeAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnEnded.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnEnded.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnEnded.set -> void
-Rask.Html.Components.HtmlMediaElement.OnEndedAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnEndedAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnLoadedMetadata.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnLoadedMetadata.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnLoadedMetadata.set -> void
-Rask.Html.Components.HtmlMediaElement.OnLoadedMetadataAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnLoadedMetadataAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnPause.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnPause.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnPause.set -> void
-Rask.Html.Components.HtmlMediaElement.OnPauseAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnPauseAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnPlay.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnPlay.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnPlay.set -> void
-Rask.Html.Components.HtmlMediaElement.OnPlayAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnPlayAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnPlaying.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnPlaying.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnPlaying.set -> void
-Rask.Html.Components.HtmlMediaElement.OnPlayingAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnPlayingAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnRateChange.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnRateChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnRateChange.set -> void
-Rask.Html.Components.HtmlMediaElement.OnRateChangeAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnRateChangeAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnSeeked.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnSeeked.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnSeeked.set -> void
-Rask.Html.Components.HtmlMediaElement.OnSeekedAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnSeekedAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnSeeking.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnSeeking.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnSeeking.set -> void
-Rask.Html.Components.HtmlMediaElement.OnSeekingAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnSeekingAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnTimeUpdate.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnTimeUpdate.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnTimeUpdate.set -> void
-Rask.Html.Components.HtmlMediaElement.OnTimeUpdateAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnTimeUpdateAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnVolumeChange.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnVolumeChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnVolumeChange.set -> void
-Rask.Html.Components.HtmlMediaElement.OnVolumeChangeAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnVolumeChangeAsync.set -> void
-Rask.Html.Components.HtmlMediaElement.OnWaiting.get -> System.Action<Rask.Core.Live.MediaEventArgs!>?
+Rask.Html.Components.HtmlMediaElement.OnWaiting.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Html.Components.HtmlMediaElement.OnWaiting.set -> void
-Rask.Html.Components.HtmlMediaElement.OnWaitingAsync.get -> System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.HtmlMediaElement.OnWaitingAsync.set -> void
 Rask.Html.Components.HtmlMediaElement.Preload.get -> string?
 Rask.Html.Components.HtmlMediaElement.Preload.set -> void
 Rask.Html.Components.HtmlMediaElement.Src.get -> string?
@@ -1806,14 +1782,18 @@ static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Co
 static RaskBuilderSettersRask_Html.OnChangeAsync<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnChangeAsync<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnChangeAsync<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnDurationChangeAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnDurationChangeAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnEndedAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnEndedAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnFiles<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
 static RaskBuilderSettersRask_Html.OnFilesAsync<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
 static RaskBuilderSettersRask_Html.OnInput<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
@@ -1822,50 +1802,70 @@ static RaskBuilderSettersRask_Html.OnInputAsync<T>(this Rask.Core.Build<Rask.Htm
 static RaskBuilderSettersRask_Html.OnInputAsync<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnInvalidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Action<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnInvalidSubmitAsync<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnLoadedMetadataAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnLoadedMetadataAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnPause(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnPause(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnPause(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnPause(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnPause(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnPauseAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnPauseAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnPause(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnPlay(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnPlay(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnPlay(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnPlay(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnPlay(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnPlayAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnPlayAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnPlay(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnPlaying(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnPlaying(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnPlaying(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnPlaying(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnPlaying(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnPlayingAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnPlayingAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnPlaying(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnRateChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnRateChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnRateChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnRateChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnRateChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnRateChangeAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnRateChangeAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnRateChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnSeeked(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnSeeked(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnSeeked(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnSeeked(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnSeeked(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnSeekedAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnSeekedAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnSeeked(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnSeekingAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnSeekingAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Action<Rask.Core.Live.FormData!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnSubmitAsync<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<Rask.Core.Live.FormData!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnTimeUpdateAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnTimeUpdateAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnValidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Action<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnValidSubmitAsync<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnVolumeChangeAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnVolumeChangeAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnWaiting(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnWaiting(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnWaiting(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
+static RaskBuilderSettersRask_Html.OnWaiting(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnWaiting(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
-static RaskBuilderSettersRask_Html.OnWaitingAsync(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
-static RaskBuilderSettersRask_Html.OnWaitingAsync(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnWaiting(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.Opacity(this Rask.Core.Build<Rask.Html.Components.Circle!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Circle!>
 static RaskBuilderSettersRask_Html.Opacity(this Rask.Core.Build<Rask.Html.Components.ClipPath!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.ClipPath!>
 static RaskBuilderSettersRask_Html.Opacity(this Rask.Core.Build<Rask.Html.Components.Defs!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Defs!>

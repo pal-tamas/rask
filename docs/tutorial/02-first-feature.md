@@ -363,7 +363,7 @@ public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
     }
 
     protected override Component? Render() =>
-        Button.Type("button").OnClickAsync(DeleteAsync)["Delete"];
+        Button.Type("button").OnClick(DeleteAsync)["Delete"];
 }
 ```
 

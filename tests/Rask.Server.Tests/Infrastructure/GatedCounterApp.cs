@@ -22,7 +22,7 @@ public sealed partial class GatedCounterApp : Component
     protected override Component? Render() =>
     [
         new P()[$"count={Counter}"],
-        Button.OnClickAsync(async () => await Gate.Task)["hang"],
+        Button.OnClick(async () => await Gate.Task)["hang"],
         Button.OnClick(() => Counter++)["bump"]
     ];
 }

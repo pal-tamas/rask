@@ -441,25 +441,28 @@ a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasCh
 ## RASK027
 **Both the sync and async handler are set for one event** · Error
 
-Every DOM event on a component maps to a single handler slot. The typed `OnX` (sync) and `OnXAsync`
-(async) properties are two views over that one slot, so wiring **both** for the same event — e.g.
-`Button.OnClick(...).OnClickAsync(...)` — is a mistake: the runtime keeps the sync handler and silently
-ignores the async one, which is rarely what the author intended. Set exactly one handler per event.
+A callback that still ships as a **pair** — a sync `OnX` and an async `OnXAsync` — maps to a single
+handler slot, so wiring both is a mistake: the runtime keeps the sync one and silently ignores the
+async one, which is rarely what the author intended. Set exactly one.
 
 ```csharp
-// ✗ both set — OnClickAsync is silently dropped at runtime:
-Button.OnClick(() => Toggle()).OnClickAsync(async () => await SaveAsync())["Save"]
+// ✗ both set — OnChangeAsync is silently dropped at runtime:
+Input.Bind(() => m.Name).OnChange(v => Touch(v)).OnChangeAsync(async v => await SaveAsync(v))
 // ✓ pick one — the async handler, since it awaits:
-Button.OnClickAsync(async () => await SaveAsync())["Save"]
+Input.Bind(() => m.Name).OnChangeAsync(async v => await SaveAsync(v))
 // ✓ passing null for the sibling is allowed (a deliberate "at most one" conditional):
-Button.OnClick(useAsync ? null : Sync).OnClickAsync(useAsync ? Async : null)["Save"]
+Input.Bind(() => m.Name).OnChange(useAsync ? null : Sync).OnChangeAsync(useAsync ? Async : null)
 ```
 
-**Fix:** remove one of the two handlers (keep the async `OnXAsync` if it awaits, else the sync `OnX`).
-The error fires only when both siblings are passed as non-`null` arguments to the same factory call;
-passing `null` for one (a conditional "set at most one") is left alone. Applies to every paired event,
-including form callbacks (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, …). Suppressible like any
-analyzer.
+**Fix:** remove one of the two (keep the async `OnXAsync` if it awaits, else the sync `OnX`). The error
+fires only when both siblings are passed as non-`null` arguments; passing `null` for one is left alone.
+
+**No longer applies to DOM events.** `Element`'s events are one `Callback`-typed property each, whose
+step takes either shape — `Button.OnClick(Refresh)` or `Button.OnClick(SaveAsync)`. Setting "both" is
+not expressible there, so nothing is left to diagnose; writing the step twice is an ordinary duplicated
+step, [RASK044](#rask044), and the last one wins. What remains in this rule's scope is the form and kit
+callbacks that are still declared as pairs (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, the
+submit callbacks). Suppressible like any analyzer.
 
 ## RASK028
 **Ambiguous request handler** · Error

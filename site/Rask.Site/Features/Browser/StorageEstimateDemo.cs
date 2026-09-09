@@ -13,7 +13,7 @@ public sealed partial class StorageEstimateDemo(IStorageEstimator storage) : Com
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("storage-est-read")
-                    .OnClickAsync(Read)[
+                    .OnClick(Read)[
                     "Estimate storage"],
                 Div.Class("text-sm text-ui-muted")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]

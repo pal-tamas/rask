@@ -13,7 +13,7 @@ public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Compo
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("vv-read")
-                    .OnClickAsync(Read)[
+                    .OnClick(Read)[
                     "Read visual viewport"],
                 Div.Class("text-sm text-ui-muted")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vv-status")[_status ?? "(idle)"]]

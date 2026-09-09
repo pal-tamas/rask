@@ -26,7 +26,7 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
             ? Fragment[
                 H1["Sign out"],
                 P[$"You are signed in as {users.Current.Identity.Name}."],
-                Button.Type("button").Id("logout-submit").OnClickAsync(SignOutAsync)["Sign out"]
+                Button.Type("button").Id("logout-submit").OnClick(SignOutAsync)["Sign out"]
             ]
             : Fragment[
                 H1["Signed out"],

@@ -296,7 +296,7 @@ public sealed partial class QueuePage(
                 .Key("retry-all")
                 .Type("button")
                 .Class(UiStyles.Danger)
-                .OnClickAsync(() => RunAsync(
+                .OnClick(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
                     async ct => $"Re-queued {await _panel!.RetryAllAsync(ct).ConfigureAwait(false)}."))[
                 UiIcon.Name(UiIconName.Retry).Class("size-4"),
@@ -310,7 +310,7 @@ public sealed partial class QueuePage(
                 .Key("purge")
                 .Type("button")
                 .Class(UiStyles.Button)
-                .OnClickAsync(() => RunAsync(
+                .OnClick(() => RunAsync(
                     "Delete processed rows older than 7 days? Outstanding work and dead letters are kept.",
                     async ct => $"Purged {await _panel!.PurgeProcessedAsync(TimeSpan.FromDays(7), ct).ConfigureAwait(false)}."))[
                 "Purge processed"
@@ -326,7 +326,7 @@ public sealed partial class QueuePage(
                 .Key("retry")
                 .Type("button")
                 .Class(UiStyles.Danger)
-                .OnClickAsync(() => RunAsync(
+                .OnClick(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
                     async ct => await _panel!.RetryAsync(row.Id, ct).ConfigureAwait(false) > 0
                         ? $"Re-queued #{row.Id}."
@@ -339,7 +339,7 @@ public sealed partial class QueuePage(
                 .Key("delete")
                 .Type("button")
                 .Class(UiStyles.Danger)
-                .OnClickAsync(() => RunAsync(
+                .OnClick(() => RunAsync(
                     $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
                     async ct => await _panel!.DeleteAsync(row.Id, ct).ConfigureAwait(false) > 0
                         ? $"Deleted #{row.Id}."
@@ -394,7 +394,7 @@ public sealed partial class QueuePage(
             ? UiNotice.Tone("warn")[
                 Span.Class("min-w-0 grow break-words")[pending.Prompt],
                 UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error)
-                    .OnClickAsync(() => ExecuteAsync(pending.Action)),
+                    .OnClick(() => ExecuteAsync(pending.Action)),
                 UiButton.Key("cancel").Label("Cancel").OnClick(Cancel)
             ]
             : null;
@@ -435,7 +435,7 @@ public sealed partial class QueuePage(
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
             UiButton.Key("prev").Label("Previous")
                 .Disabled(_page == 0)
-                .OnClickAsync(() => GoAsync(_page - 1)),
+                .OnClick(() => GoAsync(_page - 1)),
             Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {_page + 1} of {pages}"],
                 // The total is the first thing to go when there is no room for it.
@@ -443,7 +443,7 @@ public sealed partial class QueuePage(
             ],
             UiButton.Key("next").Label("Next")
                 .Disabled(_page >= pages - 1)
-                .OnClickAsync(() => GoAsync(_page + 1))
+                .OnClick(() => GoAsync(_page + 1))
         ];
     }
 

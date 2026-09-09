@@ -84,7 +84,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     {
         var fired = false;
         var view = new StubComponent(() => Button
-            .OnClickAsync(async () =>
+            .OnClick(async () =>
         {
             await Task.Yield();
             fired = true;
@@ -135,31 +135,32 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_AsyncSetsAttributeAndPrefersSyncWhenBoth()
+    public async Task TryInvokeHandlerAsync_LastWriteWinsTheSlot()
     {
         var syncFired = 0;
         var asyncFired = 0;
-        // Deliberately wires BOTH siblings to verify the runtime tiebreak (sync wins). RASK027 flags
-        // this at the call site for real code; here it's the behaviour under test, so suppress it.
-#pragma warning disable RASK027
+        // Writes the step twice, which is now a duplicated step rather than an ambiguous pair — the
+        // second write simply takes the slot. RASK044 reports it for real code; here it is the
+        // behaviour under test.
+#pragma warning disable RASK044
         var view = new StubComponent(() => Button
             .OnClick(() => syncFired++)
-            .OnClickAsync(async () =>
+            .OnClick(async () =>
             {
                 await Task.Yield();
                 asyncFired++;
             })["x"]);
-#pragma warning restore RASK027
+#pragma warning restore RASK044
 
-        // emits attribute even when both set; sync wins when both registered
+        // The attribute is emitted for whichever handler holds the slot, and dispatch runs that one.
         var html = view.RenderAsLiveRoot();
         Assert.Contains("data-rask-on-click=\"h0\"", html);
 
         var ok = await view.TryInvokeHandlerAsync("h0", JsonDocument.Parse("{}").RootElement);
 
         Assert.True(ok);
-        Assert.Equal(1, syncFired);
-        Assert.Equal(0, asyncFired);
+        Assert.Equal(0, syncFired);
+        Assert.Equal(1, asyncFired);
     }
 
     [Fact]

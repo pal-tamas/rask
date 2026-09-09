@@ -8,13 +8,27 @@ namespace Rask.Generators.Tests;
 
 public class SyncAsyncHandlerAnalyzerTests
 {
-    // Wraps a Render() body in a component so the analyzer resolves the genuine generated factories
-    // (Button/Div/Input) from the referenced Rask.Core.
+    // Wraps a Render() body alongside a component that still declares a sync/async PAIR.
+    //
+    // It has to be a local one now. The DOM events these tests used to drive — OnClick, OnScroll — are a
+    // single `Callback` property each, so "both set" is not expressible on them any more and there is
+    // nothing for this rule to find. What is left in its scope is the form and kit callbacks that are
+    // still declared as pairs, and a component declared right here pins the rule rather than whichever
+    // of those happens to survive next.
     private static string App(string body) => $$"""
+                                                using System;
                                                 using System.Collections.Generic;
                                                 using System.Threading.Tasks;
                                                 using Rask.Core;
                                                 namespace Demo;
+                                                public sealed partial class Widget : Component
+                                                {
+                                                    public Action? OnSave { get; set; }
+                                                    public Func<Task>? OnSaveAsync { get; set; }
+                                                    public Action<string>? OnPick { get; set; }
+                                                    public Func<string, Task>? OnPickAsync { get; set; }
+                                                    protected override Component? Render() => null;
+                                                }
                                                 public sealed partial class App : Component
                                                 {
                                                     protected override Component? Render()
@@ -28,55 +42,42 @@ public class SyncAsyncHandlerAnalyzerTests
     public async Task BothSyncAndAsyncClick_ReportsRask027()
     {
         var d = Assert.Single(await Diagnostics(App(
-            "return Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())[\"x\"];")));
+            "return Widget.OnSave(() => {}).OnSaveAsync(async () => await Task.Yield());")));
         Assert.Equal("RASK027", d.Id);
-        Assert.Contains("OnClick", d.GetMessage());
-        Assert.Contains("OnClickAsync", d.GetMessage());
-    }
-
-    // The chain is what the framework teaches. A chain's steps are extension methods on Build<T>, not a
-    // static Generated.Button(...), so the factory branch matched none of these and one of the two
-    // handlers was silently dropped with nothing said.
-    [Fact]
-    public async Task ChainBothSyncAndAsyncClick_ReportsRask027()
-    {
-        var d = Assert.Single(await Diagnostics(App(
-            "return Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())[\"x\"];")));
-        Assert.Equal("RASK027", d.Id);
-        Assert.Contains("OnClick", d.GetMessage());
-        Assert.Contains("OnClickAsync", d.GetMessage());
+        Assert.Contains("OnSave", d.GetMessage());
+        Assert.Contains("OnSaveAsync", d.GetMessage());
     }
 
     [Fact]
     public async Task ChainOnlyAsync_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App(
-            "return Button.OnClickAsync(async () => await Task.Yield())[\"x\"];")));
+            "return Widget.OnSaveAsync(async () => await Task.Yield());")));
 
     [Fact]
     public async Task OnlySync_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App("return Button(OnClick: () => {})[\"x\"];")));
+        Assert.Empty(await Diagnostics(App("return Widget.OnSave(() => {});")));
 
     [Fact]
     public async Task OnlyAsync_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App(
-            "return Button.OnClickAsync(async () => await Task.Yield())[\"x\"];")));
+            "return Widget.OnSaveAsync(async () => await Task.Yield());")));
 
     [Fact]
     public async Task AsyncWithNullSync_NoDiagnostic() =>
         // Passing null for the sibling is the deliberate "set at most one" conditional shape.
         Assert.Empty(await Diagnostics(App(
-            "return Button.OnClick(null).OnClickAsync(async () => await Task.Yield())[\"x\"];")));
+            "return Widget.OnSave(null).OnSaveAsync(async () => await Task.Yield());")));
 
     [Fact]
-    public async Task BothSyncAndAsyncScroll_ReportsRask027() =>
+    public async Task BothSyncAndAsyncTypedArg_ReportsRask027() =>
         Assert.Equal("RASK027", Assert.Single(await Diagnostics(App(
-            "return Div.OnScroll(e => {}).OnScrollAsync(async e => await Task.Yield())[\"x\"];"))).Id);
+            "return Widget.OnPick(v => {}).OnPickAsync(async v => await Task.Yield());"))).Id);
 
     [Fact]
     public async Task DifferentEvents_NoDiagnostic() =>
-        // OnClick (sync) + OnScrollAsync (async) are different events — not a conflict.
+        // OnSave (sync) + OnPickAsync (async) are different callbacks — not a conflict.
         Assert.Empty(await Diagnostics(App(
-            "return Div.OnClick(() => {}).OnScrollAsync(async e => await Task.Yield())[\"x\"];")));
+            "return Widget.OnSave(() => {}).OnPickAsync(async v => await Task.Yield());")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {
@@ -86,6 +87,11 @@ public class SyncAsyncHandlerAnalyzerTests
             GeneratorDriverFixture.BuildReferences(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
+
+        // The component under test is declared HERE, so its steps only exist once the builder generator
+        // has run over this compilation — the referenced assemblies carry entries for their own
+        // components, not for one written in the test source.
+        compilation = (CSharpCompilation)GeneratorDriverFixture.WithBuilderSurface(compilation);
 
         var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(new SyncAsyncHandlerAnalyzer());
         var all = await compilation.WithAnalyzers(analyzers).GetAnalyzerDiagnosticsAsync();

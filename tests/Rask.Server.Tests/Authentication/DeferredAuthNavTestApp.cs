@@ -24,7 +24,7 @@ public sealed partial class DeferredAuthNavTestApp : Component
 public sealed partial class DeferredNavStartPage(AuthSignIn auth) : Component
 {
     protected override Component? Render() =>
-        Div.Id("start")[Button.OnClickAsync(SignInAsync)["sign-in"]];
+        Div.Id("start")[Button.OnClick(SignInAsync)["sign-in"]];
 
     private Task SignInAsync()
     {

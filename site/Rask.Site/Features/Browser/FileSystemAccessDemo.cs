@@ -17,14 +17,14 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("fs-open").OnClickAsync(Open)[
+                    Button.Class(Tw.BtnPrimary).Id("fs-open").OnClick(Open)[
                         UiIcon.Name(UiIconName.Folder).Class("me-1"), "Open file"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("fs-save")
                         .Disabled(_handle is null)
-                        .OnClickAsync(Save)[UiIcon.Name(UiIconName.Save).Class("me-1"), "Save"],
-                    Button.Class(Tw.BtnOutlinePrimary).Id("fs-saveas").OnClickAsync(SaveAs)[
+                        .OnClick(Save)[UiIcon.Name(UiIconName.Save).Class("me-1"), "Save"],
+                    Button.Class(Tw.BtnOutlinePrimary).Id("fs-saveas").OnClick(SaveAs)[
                         "Save as…"]
                 ],
                 Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],

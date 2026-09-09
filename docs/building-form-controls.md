@@ -137,7 +137,7 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
         {
             var captured = option;
             var active = current is not null && comparer.Equals(captured, current);
-            buttons.Add(Button.Type("button").Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClickAsync(() => SelectAsync(acc, ctx, fid, captured)).Key(i++)[OptionLabel is { } label ? label(option) : option?.ToString() ?? ""]);
+            buttons.Add(Button.Type("button").Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClick(() => SelectAsync(acc, ctx, fid, captured)).Key(i++)[OptionLabel is { } label ? label(option) : option?.ToString() ?? ""]);
         }
 
         var children = new List<Component> { Div.Class("action-group")[buttons] };

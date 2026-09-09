@@ -240,7 +240,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
             // its own toggle flipped `aria-expanded` back to false over a list that was plainly open.
             // All this does is have a cursor ready for the frame that opens.
             .OnClick(() => _cursor = UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled))
-            .OnKeyDownAsync(e => OnKeyAsync(e, acc, ctx, flat, disabled, current));
+            .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, disabled, current));
 
         // The popover is a PANEL around the list, and the extra element is load-bearing twice over.
         //
@@ -354,7 +354,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
 
         if (!off)
         {
-            option = option.OnClickAsync(() => CommitAsync(acc, ctx, value));
+            option = option.OnClick(() => CommitAsync(acc, ctx, value));
         }
 
         // menu-disabled goes on the <li>, unlike menu-active and menu-focus, which go on the child.

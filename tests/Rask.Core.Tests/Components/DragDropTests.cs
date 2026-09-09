@@ -30,7 +30,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
         var view = new StubComponent(() => DragDrop
             .Body(ctx => Div[
                 Div.Draggable(true).OnDragStart(ctx.DragStart("zoneA", 2))["src"],
-                Div.OnDropAsync(ctx.Drop("zoneB", 5))["dst"]
+                Div.OnDrop(ctx.Drop("zoneB", 5))["dst"]
             ])
             .OnDrop(m => captured = m));
 
@@ -53,7 +53,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
     {
         var fired = false;
         var view = new StubComponent(() => DragDrop
-            .Body(ctx => Div.OnDropAsync(ctx.Drop("z", 0))["dst"])
+            .Body(ctx => Div.OnDrop(ctx.Drop("z", 0))["dst"])
             .OnDrop(_ => fired = true));
 
         var dropId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-drop");
@@ -146,9 +146,9 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
         var view = new StubComponent(() => DragDrop
             .Body(ctx => Div[
                 Div.Draggable(true).OnDragStart(ctx.DragStart("a", 1))["src"],
-                Div.OnDropAsync(ctx.Drop("b", 0))["dst"]
+                Div.OnDrop(ctx.Drop("b", 0))["dst"]
             ])
-            .OnDropAsync(async m =>
+            .OnDrop(async m =>
             {
                 await Task.Yield();
                 captured = m;

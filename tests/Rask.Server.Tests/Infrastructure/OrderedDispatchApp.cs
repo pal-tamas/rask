@@ -35,7 +35,7 @@ public sealed partial class OrderedDispatchApp : Component
         for (var i = 0; i < HandlerCount; i++)
         {
             var captured = i;
-            children.Add(Button.OnClickAsync(() => RecordAsync(captured)).Key(captured)[$"#{captured}"]);
+            children.Add(Button.OnClick(() => RecordAsync(captured)).Key(captured)[$"#{captured}"]);
         }
 
         return [.. children.ToArray()];

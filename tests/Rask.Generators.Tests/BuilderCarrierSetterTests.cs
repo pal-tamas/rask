@@ -30,13 +30,13 @@ public class BuilderCarrierSetterTests
     {
         var output = BuilderGeneratorHarness.Run(Src).Source("RaskBuilderSetters.g.cs");
 
-        Assert.Contains("__b, global::System.Action value)", output, StringComparison.Ordinal);
+        Assert.Contains("__b, global::System.Action? value)", output, StringComparison.Ordinal);
         Assert.Contains(
-            "__b, global::System.Func<global::System.Threading.Tasks.Task> value)", output,
+            "__b, global::System.Func<global::System.Threading.Tasks.Task>? value)", output,
             StringComparison.Ordinal);
-        Assert.Contains("__b, global::System.Action<int> value)", output, StringComparison.Ordinal);
+        Assert.Contains("__b, global::System.Action<int>? value)", output, StringComparison.Ordinal);
         Assert.Contains(
-            "__b, global::System.Func<int, global::System.Threading.Tasks.Task> value)", output,
+            "__b, global::System.Func<int, global::System.Threading.Tasks.Task>? value)", output,
             StringComparison.Ordinal);
     }
 
@@ -47,7 +47,7 @@ public class BuilderCarrierSetterTests
     {
         var output = BuilderGeneratorHarness.Run(Src).Source("RaskBuilderSetters.g.cs");
 
-        Assert.Contains("__b, global::System.Func<int, string> value)", output, StringComparison.Ordinal);
+        Assert.Contains("__b, global::System.Func<int, string>? value)", output, StringComparison.Ordinal);
     }
 
     // `null` converts to the carrier AND to every delegate overload, so without the priority the blessed
@@ -78,12 +78,13 @@ public class BuilderCarrierSetterTests
 
     // The point of the whole exercise: one name, and the call site writes the handler it means.
     [Theory]
-    [InlineData("OnPick(() => { })", "System.Action")]
-    [InlineData("OnPick(async () => { await Task.Yield(); })", "System.Func<System.Threading.Tasks.Task>")]
-    [InlineData("OnPick(() => Task.CompletedTask)", "System.Func<System.Threading.Tasks.Task>")]
-    [InlineData("OnRate(v => { _ = v; })", "System.Action<int>")]
-    [InlineData("OnRate(async v => { await Task.Yield(); _ = v; })", "System.Func<int, System.Threading.Tasks.Task>")]
-    [InlineData("Row(i => i.ToString())", "System.Func<int, string>")]
+    [InlineData("OnPick(() => { })", "System.Action?")]
+    [InlineData("OnPick(async () => { await Task.Yield(); })", "System.Func<System.Threading.Tasks.Task>?")]
+    [InlineData("OnPick(() => Task.CompletedTask)", "System.Func<System.Threading.Tasks.Task>?")]
+    [InlineData("OnRate(v => { _ = v; })", "System.Action<int>?")]
+    [InlineData("OnRate(async v => { await Task.Yield(); _ = v; })", "System.Func<int, System.Threading.Tasks.Task>?")]
+    [InlineData("Row(i => i.ToString())", "System.Func<int, string>?")]
+    [InlineData("OnPick(null)", "Rask.Core.Callback?")]
     public void A_handler_binds_to_the_shape_it_was_written_as(string step, string expectedParameter)
     {
         var source = $$"""
@@ -110,7 +111,7 @@ public class BuilderCarrierSetterTests
         var tree = compilation.SyntaxTrees.First(t => t.ToString().Contains("class Page", StringComparison.Ordinal));
         var model = compilation.GetSemanticModel(tree);
         var call = tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>()
-            .First(i => i.ToString().Contains("=>", StringComparison.Ordinal));
+            .First(i => i.Expression is MemberAccessExpressionSyntax);
         var bound = (IMethodSymbol)model.GetSymbolInfo(call).Symbol!;
 
         Assert.Equal(expectedParameter, bound.Parameters[^1].Type.ToDisplayString());

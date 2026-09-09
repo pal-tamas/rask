@@ -14,7 +14,7 @@ public sealed partial class GeolocationDemo(IGeolocation geolocation) : Componen
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("geo-get")
-                    .OnClickAsync(Get)[
+                    .OnClick(Get)[
                     "Get current position"],
                 Div.Class("text-sm text-ui-muted")["Position: ", Code.Id("geo-value")[_location ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("geo-status")[_status ?? "(idle)"]]

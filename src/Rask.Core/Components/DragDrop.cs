@@ -6,7 +6,7 @@ namespace Rask.Core.Components;
 // DragDropContext describing the in-flight drag. The consumer draws its own draggable items and
 // drop zones, wiring the context's DragStart/DragOver/Drop/DragEnd delegates onto them and
 // reading IsDropTarget/SourceZone/... to style feedback. When an item is dropped, DragDrop fires
-// OnDrop/OnDropAsync with a DragDropMove({FromZone,FromIndex} -> {ToZone,ToIndex}); the consumer
+// OnDrop with a DragDropMove({FromZone,FromIndex} -> {ToZone,ToIndex}); the consumer
 // owns the backing collections and performs the actual move.
 //
 // Zones are arbitrary string keys: a single-list reorder uses one zone, a Kanban board uses one
@@ -33,14 +33,12 @@ public sealed class DragDrop : Component
     /// </summary>
     public new Func<DragDropContext, Component>? Body { get; set; }
 
-    // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
-    // Calling one back is `OnDrop?.Invoke(move)`.
+    // Fired once when an item is dropped onto a zone, in whichever shape the consumer wrote — the
+    // carrier holds a sync or an async handler under the one name. Calling it back is
+    // `OnDrop?.Invoke(move)`, which hands back null when there is nothing to await.
 
     /// <summary>Called with what was dropped once the drop completes.</summary>
-    public Action<DragDropMove>? OnDrop { get; set; }
-
-    /// <summary>Called with what was dropped once the drop completes, asynchronously.</summary>
-    public Func<DragDropMove, Task>? OnDropAsync { get; set; }
+    public Callback<DragDropMove>? OnDrop { get; set; }
 
     // DragDrop reads mutable internal drag state (source / hover target) that the framework can't
     // observe through props, so every render must re-execute — same reasoning as VirtualizeModel.
@@ -82,9 +80,9 @@ public sealed class DragDrop : Component
         TargetIndexInternal = -1;
     }
 
-    // Routes a drop to whichever handler the consumer set — async if OnDropAsync is present,
-    // otherwise the sync OnDrop (which completes synchronously inside the returned Task). The
-    // DragDropContext always wires this to Element.OnDropAsync, so both consumer styles work.
+    // Routes a drop to the consumer's handler in whatever shape they wrote it. `Invoke` hands back null
+    // for a synchronous handler — it has already run, and there is nothing to await — so the sync path
+    // never acquires a Task it did not need.
     internal Task CommitDropAsync(string zone, int index)
     {
         if (TryTakeMove(zone, index) is not { } move)
@@ -92,13 +90,7 @@ public sealed class DragDrop : Component
             return Task.CompletedTask;
         }
 
-        if (OnDropAsync is { } handler)
-        {
-            return handler(move);
-        }
-
-        OnDrop?.Invoke(move);
-        return Task.CompletedTask;
+        return OnDrop?.Invoke(move) ?? Task.CompletedTask;
     }
 
     // Snapshots the source, clears all drag state, and returns the move — or null if no drag was

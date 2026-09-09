@@ -25,11 +25,11 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
                     Button.Type("button").Class(Tw.BtnPrimary)
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
-                        .OnClickAsync(Start)["Start listening"],
+                        .OnClick(Start)["Start listening"],
                     Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
-                        .OnClickAsync(Stop)["Stop"]
+                        .OnClick(Stop)["Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Transcript: ",

@@ -295,7 +295,7 @@ _ctx.AddValidator(new SlowTitleValidator());
 
 Form.Model(_model).OnValidSubmit(m => _submission = "Saved").Context(_ctx)[
     Input.Bind(() => _model.Title),
-    Button.Type("button").OnClickAsync(() => _ctx.ValidateAsync().AsTask())["Validate now"],
+    Button.Type("button").OnClick(() => _ctx.ValidateAsync().AsTask())["Validate now"],
     Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
 ]
 ```

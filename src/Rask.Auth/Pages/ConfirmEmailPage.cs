@@ -54,7 +54,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
         Fragment[
             H1["Confirm your email"],
             P["Press the button to finish confirming this address."],
-            Button.Type("button").Id("confirm-submit").OnClickAsync(ConfirmAsync)["Confirm my email"]
+            Button.Type("button").Id("confirm-submit").OnClick(ConfirmAsync)["Confirm my email"]
         ];
 
     private Component AlreadyConfirmed =>

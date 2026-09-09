@@ -21,9 +21,9 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     _watch is null
-                        ? Button.Class(Tw.BtnPrimary).Id("geowatch-start").OnClickAsync(Start)[
+                        ? Button.Class(Tw.BtnPrimary).Id("geowatch-start").OnClick(Start)[
                             "Start watching"]
-                        : Button.Class(Tw.BtnOutlineDanger).Id("geowatch-stop").OnClickAsync(Stop)[
+                        : Button.Class(Tw.BtnOutlineDanger).Id("geowatch-stop").OnClick(Stop)[
                             "Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted")[

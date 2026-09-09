@@ -179,7 +179,7 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
 
         if (!blocked)
         {
-            button = button.OnClickAsync(() => UiFormCommit.CommitAsync(this, accessor, context, date));
+            button = button.OnClick(() => UiFormCommit.CommitAsync(this, accessor, context, date));
         }
 
         return button[date.Day.ToString(CultureInfo.CurrentCulture)];

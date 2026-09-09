@@ -75,10 +75,10 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
         // registers the handler and emits the attribute, in dragstart → dragover → drop → dragend
         // order.
         var view = new StubComponent(() => Div
-            .OnDragStartAsync(() => Task.CompletedTask)
-            .OnDragOverAsync(() => Task.CompletedTask)
-            .OnDropAsync(() => Task.CompletedTask)
-            .OnDragEndAsync(() => Task.CompletedTask));
+            .OnDragStart(() => Task.CompletedTask)
+            .OnDragOver(() => Task.CompletedTask)
+            .OnDrop(() => Task.CompletedTask)
+            .OnDragEnd(() => Task.CompletedTask));
         Assert.Equal(
             "<div data-rask-on-dragstart=\"h0\" data-rask-on-dragover=\"h1\" " +
             "data-rask-on-drop=\"h2\" data-rask-on-dragend=\"h3\"></div>",
@@ -93,12 +93,8 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
         // per-instance footprint.
         var div = Div.Value;
         Assert.Null(div.OnDragStart);
-        Assert.Null(div.OnDragStartAsync);
         Assert.Null(div.OnDragOver);
-        Assert.Null(div.OnDragOverAsync);
         Assert.Null(div.OnDrop);
-        Assert.Null(div.OnDropAsync);
         Assert.Null(div.OnDragEnd);
-        Assert.Null(div.OnDragEndAsync);
     }
 }

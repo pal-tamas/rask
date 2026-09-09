@@ -171,14 +171,14 @@ public sealed partial class CachePage(
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
             UiButton.Key("prev").Label("Previous")
                 .Disabled(_page == 0)
-                .OnClickAsync(() => GoAsync(_page - 1)),
+                .OnClick(() => GoAsync(_page - 1)),
             Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {_page + 1} of {pages}"],
                 Span.Class("hidden sm:inline")[$" — {_total} keys"]
             ],
             UiButton.Key("next").Label("Next")
                 .Disabled(_page >= pages - 1)
-                .OnClickAsync(() => GoAsync(_page + 1))
+                .OnClick(() => GoAsync(_page + 1))
         ];
     }
 
@@ -187,7 +187,7 @@ public sealed partial class CachePage(
     // stampede — hence the Destructive tier and a confirmation.
     private Component? EvictButton(string key) =>
         options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? UiButton.Label("Evict").OnClickAsync(() => EvictAsync(key))
+            ? UiButton.Label("Evict").OnClick(() => EvictAsync(key))
             : null;
 
     private Component? FlushButton() =>
@@ -201,7 +201,7 @@ public sealed partial class CachePage(
                 Span.Class("min-w-0 grow break-words")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error).OnClickAsync(FlushAsync),
+                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error).OnClick(FlushAsync),
                 UiButton.Key("cancel").Label("Cancel").OnClick(() => Confirm(false))
             ]
             : null;

@@ -17,7 +17,7 @@ namespace Rask.Generators.CodeFixes;
 //
 // Two shapes, because RASK027 now fires on both. On a factory call the async handler is a named ARGUMENT
 // and goes with the argument. On a chain it is a STEP, and removing it means splicing the chain back
-// together — `Button.OnClick(a).OnClickAsync(b)` becomes `Button.OnClick(a)`.
+// together — `Button.OnClick(a).OnClick(b)` becomes `Button.OnClick(a)`.
 //
 // The node is taken exactly where the diagnostic points, and this provider deliberately does NOT walk up
 // looking for a shape it likes: the diagnostic sits inside an expression that may itself be an argument to

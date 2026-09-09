@@ -1095,7 +1095,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var paramType = typeFqn;
         // Wrap returns a nullable delegate (null in → null out); assigning it to a non-nullable prop
         // needs the null-forgiving `!` (CS8601), the same way the factory's assignment pass does it.
-        var value = wrap
+        // A CARRIER-typed setter is the pass-through — it forwards a carrier the caller already holds,
+        // and that carrier was wrapped when a delegate was put into it. Wrapping here would wrap the
+        // struct (which `Wrap` has no overload for) and, if it did compile, would double-wrap. The
+        // delegate overloads beside it do the wrapping; see EmitCarrierOverloads.
+        var value = wrap && CarrierDelegates(typeFqn).Count == 0
             ? "global::Rask.Core.AutoCallback.Wrap(value)"
               + (typeFqn.EndsWith("?", StringComparison.Ordinal) ? string.Empty : "!")
             : "value";
@@ -1326,12 +1330,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // DOM unwrapped, a non-Element component's are wrapped so invoking one re-renders its owner.
             var value = wrap ? "global::Rask.Core.AutoCallback.Wrap(value)!" : "value";
 
-            sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(0)]");
+            // The parameter is NULLABLE, and a null clears the slot rather than filling it with a carrier
+            // wrapping nothing. Forwarding an optional handler a component already holds
+            // (`.OnClick(OnClick)` where its own is `Action?`) is ordinary, and requiring the caller to
+            // null-check first would be ceremony the chain exists to remove. `null` on its own still
+            // reaches the carrier-typed pass-through, which outranks these.
             sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
                 .Append(typeArgs).Append("(this ").Append(self).Append(" __b, ").Append(shape)
-                .Append(" value)").Append(where);
+                .Append("? value)").Append(where);
             sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(prop)
-                .Append(" = new ").Append(carrier).AppendLine("(" + value + "); return __b; }");
+                .Append(" = value is null ? null : new ").Append(carrier)
+                .AppendLine("(" + value + "); return __b; }");
         }
     }
 
@@ -4582,16 +4591,35 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                == "global::System.Threading.Tasks.Task";
     }
 
-    // The same question asked of a PROPERTY: lift a `Nullable<>` first, then ask the delegate.
+    // The same question asked of a PROPERTY: lift a `Nullable<>` first, then ask the delegate — and
+    // recognise a CARRIER, which is a struct holding its delegate and so answers the delegate question
+    // with a flat no.
     //
-    // This used to unwrap a carrier as well — a callback property was a struct holding its delegate, so
-    // without the unwrap every one of them looked like a plain value type and silently lost its
-    // auto-rerender wrapping. Properties are delegates again, so the lift is all that is left.
-    private static bool IsAutoRerenderProp(ITypeSymbol type) =>
-        IsAutoRerenderDelegate(
-            type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } lifted
-                ? lifted.TypeArguments[0]
-                : type);
+    // Getting that wrong is silent in the worst way. A non-Element component's callback loses its
+    // auto-rerender wrapping, the markup stays byte-identical, and the only symptom is that clicking the
+    // thing no longer repaints the component whose state it just changed. This function has now lost the
+    // unwrap twice — once when carriers were removed and the comment here was rewritten to say the lift
+    // "is all that is left", and again when they came back — so it is pinned by
+    // BuilderCallbackTests.A_component_callback_is_wrapped_where_an_element_controls_is_not.
+    //
+    // Only the `Callback` family counts. `Fn` and `Validator` return values and are called DURING a
+    // render, so wrapping one to re-render would render from inside a render.
+    private static bool IsAutoRerenderProp(ITypeSymbol type)
+    {
+        var lifted =
+            type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } n
+                ? n.TypeArguments[0]
+                : type;
+
+        var fqn = lifted.ToDisplayString(FullyQualifiedNullable);
+        var open = fqn.IndexOf('<');
+        if ((open < 0 ? fqn : fqn.Substring(0, open)) == CallbackFqn)
+        {
+            return true;
+        }
+
+        return IsAutoRerenderDelegate(lifted);
+    }
 
     private static bool IsInRaskCoreNamespace(INamedTypeSymbol symbol)
     {
