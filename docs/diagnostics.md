@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK071, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK073, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -104,6 +104,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK069](#rask069) | Error | Two endpoints claim one client method |
 | [RASK070](#rask070) | Warning | Endpoint's response type is not statically known |
 | [RASK071](#rask071) | Error | ASP.NET route attribute on a Rask component |
+| [RASK072](#rask072) | Warning | Entity `Configure` method will not be called |
+| [RASK073](#rask073) | Warning | Strongly-typed id has no usable value |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1586,6 +1588,79 @@ table would be the worse outcome.
 
 This does not fire on ordinary classes. A Rask server project is an ASP.NET project and may hold
 genuine controllers; `[Route]` on one of those is correct and is never reported.
+
+---
+
+## RASK072
+
+**Entity `Configure` method will not be called** · Warning
+
+An entity maps itself: Rask's model generator calls a static `Configure` on every `Model<TId>` that
+declares one, for the rules that are that entity's own. The method is matched **by signature**, not by
+name alone — so one that is an instance method, is private, or takes something other than
+`EntityTypeBuilder<TSelf>` is simply not found.
+
+Without this warning the build stays green, the table is created from conventions alone, and the
+missing index or length turns up in production.
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    public string Sku { get; private set; } = "";
+
+    // ✗ RASK072 — an instance method; the generator emits `Product.Configure(...)`
+    public void Configure(EntityTypeBuilder<Product> builder) =>
+        builder.HasIndex(p => p.Sku).IsUnique();
+}
+```
+
+**Fix:** declare it exactly as the generator calls it — `public static`, returning `void`, taking this
+entity's own builder:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Product> builder) =>
+    builder.HasIndex(p => p.Sku).IsUnique();
+```
+
+`internal static` works too — the generated registry is emitted into the same assembly. The type
+argument must be the entity itself: `EntityTypeBuilder<SomethingElse>` configures another table and is
+reported rather than called.
+
+An entity with no `Configure` at all is not reported. It is mapped by convention, which is the common
+case and the intended one.
+
+---
+
+## RASK073
+
+**Strongly-typed id has no usable value** · Warning
+
+A strongly-typed id — `Model<ProductId>` rather than `Model<Guid>` — is stored as its underlying value
+through a generated `ValueConverter`. Building one needs two things the generator can see: a single
+public property holding the value, and a public constructor taking that value back.
+
+```csharp
+// ✗ RASK073 — two public properties, so which one is the stored value is ambiguous
+public readonly record struct ProductId(Guid Value, string Label);
+```
+
+**Fix:** give the id one value and a matching constructor. A positional record struct is the shortest
+form and gives value equality for free:
+
+```csharp
+public readonly record struct ProductId(Guid Value);
+```
+
+The conversion is then registered once for the type, in `ConfigureConventions`, so **every** property
+of that type is converted — the key, a foreign key on another entity, and a nullable one — without any
+of them being named individually.
+
+This is a Warning rather than an Error because the rest of the assembly still builds, but the model
+does not: EF Core refuses a key type it cannot map, and its own message names the property rather than
+the reason. That is what this replaces.
+
+Ids that need no converter are not reported. Anything the provider already maps — `Guid`, `int`,
+`long`, `string` — is left alone.
 
 ---
 
