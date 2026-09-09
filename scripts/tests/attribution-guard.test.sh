@@ -152,6 +152,7 @@ export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
 ) >/dev/null 2>&1
 
 base="$(git -C "$push_repo" rev-parse HEAD)"
+zero_sha="0000000000000000000000000000000000000000"
 
 (
   cd "$push_repo"
@@ -183,6 +184,36 @@ assert_pre_push() {
 
 assert_pre_push "blocks a push carrying the trailer" "$dirty" 1
 assert_pre_push "lets a clean push through"          "$clean" 0
+
+# A deletion-only push must never reach the gates.
+#
+# Deliberately driven WITHOUT the RASK_SKIP_* variables the assertions above pass, and that omission
+# is the whole assertion. $push_repo contains the hook and the two libs it sources — and no
+# scripts/run-*.sh at all — so a hook that gets as far as the E2E gate necessarily fails trying to run
+# a script that is not there. Exit 0 with nothing skipped therefore means it returned BEFORE the
+# gates, which is the claim; asserting it with the skips set would have passed just as well against a
+# hook that ran every one of them.
+#
+# assert_pre_push_unskipped <name> <local-sha> <remote-sha> <expected-exit>
+assert_pre_push_unskipped() {
+  checked=$((checked + 1))
+  set +e
+  actual="$(
+    cd "$push_repo" || exit 9
+    printf 'refs/heads/topic %s refs/heads/topic %s\n' "$2" "$3" \
+      | bash .githooks/pre-push origin https://example.invalid >/dev/null 2>&1
+    echo $?
+  )"
+  set -e
+  if [ "$actual" = "$4" ]; then pass "$1"; else fail "$1" "-> exit $actual (expected $4)"; fi
+}
+
+assert_pre_push_unskipped "a deletion-only push runs no gate" "$zero_sha" "$clean" 0
+
+# The negation, so the row above cannot pass for the wrong reason. Same harness, same missing gate
+# scripts, one difference: a real sha in the local slot. This one MUST fail, and if it ever starts
+# exiting 0 the assertion above has stopped meaning "returned before the gates".
+assert_pre_push_unskipped "a content push does reach the gates" "$clean" "$base" 1
 
 echo "==> .github/workflows/commitlint.yml (the CI backstop)"
 

@@ -285,6 +285,91 @@ them until tagged releases begin.
   throughout. `docs/meta.md` stated the old default in its property table; four comments in the props
   and targets still described a PascalCase folder. (#994)
 
+### Changed
+
+- **The push gate compiled 105 projects, serially, to run a suite that loads 39 of them.**
+  `scripts/run-e2e-local.sh` opened with `dotnet build Rask.slnx -c Release -m:1` — every project in
+  the solution, one core, before a browser opened. The suite does not need them.
+  `Rask.Examples.E2E.Tests` has no `ProjectReference` at all: it is a leaf that drives a served bundle
+  over HTTP, and every fixture in it boots exactly one app, `site/Rask.Site`. That app's transitive
+  closure is 39 projects. The other 66 — every unit-test assembly, all three benchmark projects, the
+  CLI — were compiled by the push gate and then never loaded by it, after `.githooks/pre-commit` had
+  already built *and run* them on the way in.
+
+  The gate now publishes the site and builds the one leaf project. Order is load-bearing rather than
+  tidy: the leaf's own `_RaskBundleBrowserFixtures` target calls `ResolveTypeScriptToolTask`, whose
+  `UsingTask` resolves `src/Rask.Core/build/Rask.TypeScript.Tasks.dll` by assembly file — a gitignored
+  artifact that only a build of `src/Rask.TypeScript.Tasks` puts there — and that project is inside the
+  site's graph, so publishing first bootstraps it. Measured cold on a busy machine: 104s for both steps
+  (103s publish, 1s leaf), against a step whose own comment recorded 9m30s of build and publish before
+  `dotnet test` appeared at all. What the gate stops proving is that the whole solution compiles, which
+  is `pre-commit`'s job on every code commit; the one thing it built that `pre-commit` does not is the
+  WASM bundle, and that is the site publish itself.
+
+- **The three local gates disagreed about `MinVerSkip`, and so kept rebuilding each other's output.**
+  The unit gate and the benchmark gate both pass `-p:MinVerSkip=true`; the E2E gate did not. MinVer
+  stamps the commit height and the commit SHA into `AssemblyInformationalVersion`, so with it on every
+  project's generated `AssemblyInfo.cs` changes on *every commit*, and any project whose version flag
+  differs from the last gate to touch `obj/` is recompiled from scratch. The E2E gate now passes it
+  too. It is safe here because the recorded hazard — a MinVer fallback version breaking a published app
+  launched **out-of-process** whose routes live in a separate assembly — cannot arise: `ExampleAppFixture`,
+  the only out-of-process host runner, has no derived class left, and the one fixture in use serves a
+  published browser-WASM bundle from an in-process static-file host, where every assembly loads from
+  the bundle. If an out-of-process host fixture is ever reintroduced, the flag has to come back off.
+
+  Note what this does *not* buy: the E2E gate's own publish is not incremental and was never going to
+  be. Measured back to back, a republish with no source change at all cost 73s against the changed
+  run's 54s — `dotnet publish` re-runs the trimmer, the prerender and the compression every time. The
+  saving is entirely in the *next* gate, whose `obj/` is no longer invalidated. That one is large, and
+  it was measured rather than reasoned about: the same solution build the commit gate runs took **164s
+  after the old MinVer-on publish and 45s after the patched one**, on the same tree, minutes apart,
+  with the faster run carrying the heavier machine load of the two. Every push was quietly charging the
+  next commit a full recompile of the shared graph.
+
+- **The commit gate built three source generators to serve a formatter it then skipped.** The Debug
+  build of `src/*.Generators` exists only so `dotnet format` can resolve its `OutputItemType="Analyzer"`
+  references from the default configuration. It ran unconditionally, so a commit staging no `.cs` at
+  all — a docs page, a workflow, a `.ts` file — paid for three compilations and then printed
+  "Formatting check skipped". It now runs only on the paths that go on to format, and the three build
+  concurrently: they have no `ProjectReference`, so there is no shared output to race over, and each is
+  pinned to `-m:1` so they cannot each claim the box. The gate's own ten bash tests run concurrently
+  for the same reason — every one of them stubs `ps`/`pgrep` rather than touching the machine. 18s to
+  12s, measured back to back.
+
+- **Deleting a merged branch ran the entire push gate.** `git push origin --delete <branch>` sends one
+  ref line whose local sha is all zeroes: no commit reaches the remote and no tree changes. The hook
+  ran the full browser E2E suite, both payload-bytes baselines and the capacity smokes on it anyway,
+  because every gate is written in terms of "is this push path-relevant" and a deletion matches those
+  filters exactly like any other push. Found by deleting a merged branch and watching ~40 minutes of
+  browser suite start up behind it. The attribution guard had the right idea all along — its loop
+  already skips a ref whose local sha is zero — it just kept the conclusion to itself; the hook now
+  reads stdin once and both readers share it. Only a push where **every** ref is a deletion skips the
+  gates: delete one branch and update another and the content still gets the full gate. The test drives
+  the real hook with none of the `RASK_SKIP_*` variables set, in a throwaway repository containing no
+  `scripts/run-*.sh` at all, so reaching a gate necessarily fails — exit 0 there can only mean it
+  returned first. A companion row asserts the negation, because with the skips set the same assertion
+  would have passed against a hook that ran every gate.
+
+- **The benchmark gate re-evaluated a project six times to find a path it already knew.** Six
+  `dotnet run -c Release --project … --no-build` invocations became direct calls to the built binaries.
+  Nothing the apps can observe changes: every baseline and artifact they read is resolved from
+  `AppContext.BaseDirectory`, never from the working directory, so losing `dotnet run`'s cwd is
+  inert. The gate now asserts both binaries exist before it starts, because a wrong path would
+  otherwise surface as "command not found" on a `|| status=1` line and read exactly like a regression.
+  The one `dotnet run` left is the baseline-refresh command inside the failure hint, which a human
+  pastes into a tree that may not have been built.
+
+### Fixed
+
+- **`dotnet format --verify-no-changes --no-restore` rewrote 57 files it was only asked to check.**
+  Both arms of the commit gate passed `--no-restore`. Without a restore the workspace cannot resolve
+  the source generators, so every generated symbol goes missing, the remove-unnecessary-imports
+  analysis concludes the `using` directives that reference them are dead, and it **writes** — which
+  `--verify-no-changes` did not stop. The flag is gone from both arms. The restore it now does is
+  already up to date from the build above, so this costs seconds, and it buys back a verify that
+  cannot rewrite the tree it is verifying. A destructive pass and a clean one differ only in how many
+  files moved, not in the exit code, which is why this survived being run.
+
 ### Added
 
 - **Every control in the kit is a form control.** All twelve of `Rask.Ui`'s data-input components now

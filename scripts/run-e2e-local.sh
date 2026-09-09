@@ -195,15 +195,43 @@ fi
 # it would refuse to run the gate on a machine that can run it perfectly well.
 #
 # WasmBuildNative=false: build against the prebuilt .NET-WASM runtime — the same mode the fixture serves
-# and the CI unit gate uses. Unset, InvariantGlobalization forces the relink, and the build below and the
-# publish further down would disagree about the mode while writing the same obj/: the fingerprinted
-# _framework assets drift out of sync with the SRI hashes the boot import map pins, the browser blocks the
-# mismatched asset, and the runtime hangs at "Loading… 96%". One consistent mode = no drift, and it skips
-# the slow, flaky relink. Serial (-m:1): the nested WASM publish double-builds Rask.Core.dll.
-echo "==> Build the E2E graph once (Release, serial, prebuilt WASM runtime)"
-# Teed and classified by error kind: this build is the first thing to fail when the machine cannot build
+# and the unit gate uses. Unset, InvariantGlobalization forces the relink, and the two steps below would
+# disagree about the mode while writing the same obj/: the fingerprinted _framework assets drift out of
+# sync with the SRI hashes the boot import map pins, the browser blocks the mismatched asset, and the
+# runtime hangs at "Loading… 96%". One consistent mode = no drift, and it skips the slow, flaky relink.
+# Both steps pass it for that reason, which is why it is repeated rather than set once.
+#
+# Serial (-m:1) rides on the PUBLISH now, not on a solution build. The reason is unchanged — the nested
+# WASM publish double-builds Rask.Core.dll — but the step it has to guard moved: the publish is what
+# compiles the graph now that no solution build precedes it, so putting the cap anywhere else would
+# leave that race uncovered. It is the same serialisation as before over 39 projects instead of 105.
+#
+# THE GRAPH, NOT THE SOLUTION. This used to be `dotnet build Rask.slnx -m:1` — 105 projects, serially,
+# on one core, before a single browser opened. The suite does not need them. Rask.Examples.E2E.Tests
+# has NO ProjectReference at all (it is a leaf that drives a served bundle over HTTP), and every
+# fixture in it boots exactly one app: `site/Rask.Site`. Transitively that is 39 projects. The other
+# 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled by this gate
+# and then never loaded by it, and .githooks/pre-commit had already built and RUN them on the way in.
+#
+# Order is load-bearing, and it is why the publish comes first. The E2E project's own
+# _RaskBundleBrowserFixtures target calls ResolveTypeScriptToolTask, whose UsingTask resolves
+# src/Rask.Core/build/Rask.TypeScript.Tasks.dll by ASSEMBLY FILE — a gitignored artifact that only a
+# build of src/Rask.TypeScript.Tasks puts there. That project is inside the site's graph, so
+# publishing the site bootstraps it; building the leaf first in a fresh worktree would not find it.
+#
+# What is no longer proved here: that the whole solution compiles. That is pre-commit's job and it
+# runs on every code commit, so nothing can reach a push without having passed it. The one thing this
+# gate builds that pre-commit does not is the WASM bundle (pre-commit passes -p:RaskWasm=false) — and
+# that IS the site publish below, which is the artifact the suite actually drives.
+echo "==> Publish the site the E2E fixtures boot (Release, serial, prebuilt WASM runtime)"
+# The one app the browser suite drives: the published site bundle, served by a plain static host the
+# way GitHub Pages serves it. It used to be eight publishes across eight samples; there is one site now.
+#
+# Teed and classified by error kind: this is the first thing to fail when the machine cannot build
 # browser targets, and reporting that as a broken journey sends people to debug a test that is fine
 # (#718). `set -o pipefail` above is what makes the pipeline report dotnet's status rather than tee's.
+# The publish is inside the teed/classified pair now; it used to run bare, so the one step most likely
+# to hit a workload problem was the one step whose failure got no verdict at all.
 build_log="$(mktemp -t rask-e2e-build.XXXXXX)"
 # rask_lane_release rides along here rather than in a second trap, because a bare `trap ... EXIT`
 # REPLACES any handler already installed — a separate release trap added later would silently destroy
@@ -211,8 +239,34 @@ build_log="$(mktemp -t rask-e2e-build.XXXXXX)"
 # so this is safe on every exit path including the early ones above.
 trap 'rm -f "$build_log"; rask_lane_release' EXIT
 
+# No --no-restore any more: nothing restores the solution ahead of this step now, so the flag would
+# have this publish resolve against whatever an earlier gate happened to leave in obj/.
+#
+# MinVerSkip=true, which the unit gate and the benchmark gate already pass and this one did not. That
+# disagreement was expensive in a way neither gate could see. MinVer stamps the commit HEIGHT and the
+# commit SHA into AssemblyInformationalVersion, so with it on, every project's generated AssemblyInfo.cs
+# changes on EVERY COMMIT — and every project whose version flag differs from the last gate to touch
+# obj/ is recompiled from scratch. The three gates were therefore rebuilding each other's output in a
+# loop: commit (skip=true, all 105) -> push (skip unset, the whole graph again) -> benchmarks
+# (skip=true, back again). Agreeing on one value is what makes any of them incremental.
+#
+# Safe here on both of the counts that made it unsafe elsewhere. The recorded hazard is a MinVer
+# fallback version breaking a published app launched OUT-OF-PROCESS whose routes live in a separate
+# assembly (FileNotFoundException from __RaskRoutesRegistry's cctor). This suite launches no such
+# thing: ExampleAppFixture — the only out-of-process host runner — has no derived class left, and the
+# one fixture in use, WasmExampleAppFixture, serves a published browser-WASM bundle from an in-process
+# static-file host. WASM apps load every assembly from the bundle, so the version identity never has
+# to resolve. If an out-of-process host fixture is ever reintroduced, this flag has to come back off.
 build_status=0
-dotnet build Rask.slnx -c Release -m:1 -p:WasmBuildNative=false 2>&1 | tee "$build_log" || build_status=$?
+dotnet publish site/Rask.Site -c Release -m:1 -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+  | tee "$build_log" || build_status=$?
+
+if [ "$build_status" -eq 0 ]; then
+  echo "==> Build the browser-journey project (leaf; bundles BrowserFixtures/*.ts with esbuild)"
+  dotnet build tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj \
+    -c Release -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+    | tee -a "$build_log" || build_status=$?
+fi
 
 if [ "$build_status" -ne 0 ]; then
   # .githooks/pre-push captures this same output and delivers the verdict itself when it is the caller
@@ -226,11 +280,6 @@ if [ "$build_status" -ne 0 ]; then
   fi
   exit "$build_status"
 fi
-
-echo "==> Publish the site the E2E fixtures boot"
-# The one app the browser suite drives: the published site bundle, served by a plain static host the
-# way GitHub Pages serves it. It used to be eight publishes across eight samples; there is one site now.
-dotnet publish site/Rask.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
 
 # This used to shell out to `pwsh <path>/playwright.ps1 install chromium`, and skipped itself whenever
 # pwsh was missing. On Linux that is the common case, not the edge one — PowerShell is in neither

@@ -78,11 +78,39 @@ echo "run-unit-local: taking $lane_slots of $(rask_lane_budget) slots on this ma
 # Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
 # you your branch is broken or your machine is busy, and it is plain bash, so nothing else would catch a
 # regression in it.
-echo "==> Gate script tests"
+#
+# Run CONCURRENTLY. They are ten independent bash scripts with no shared state — every one of them
+# stubs `ps`/`pgrep` rather than touching the machine — and the slowest (machine-lane, 54 cases) sets
+# the floor for all of them either way. `wait -n` is deliberately not used: it needs bash 4.3+, and
+# macOS still ships bash 3.2 as /bin/bash, so this collects statuses by pid instead.
+echo "==> Gate script tests (concurrent)"
+gate_test_pids=""
+gate_test_names=""
 for t in scripts/tests/*.test.sh; do
   [ -e "$t" ] || continue
-  bash "$t"
+  bash "$t" >"${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$t" .test.sh).log" 2>&1 &
+  gate_test_pids="$gate_test_pids $!"
+  gate_test_names="$gate_test_names $t"
 done
+
+gate_tests_failed=0
+# shellcheck disable=SC2086  # deliberate word split: the names line up with the pids collected above
+set -- $gate_test_names
+for pid in $gate_test_pids; do
+  gate_test_name="$1"; shift
+  gate_test_log="${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$gate_test_name" .test.sh).log"
+  # Output is printed either way. A gate test that passes silently is one nobody notices has stopped
+  # asserting anything, which is the failure this repository keeps paying for.
+  if wait "$pid"; then
+    cat "$gate_test_log"
+  else
+    cat "$gate_test_log" >&2
+    echo "run-unit-local: gate script test FAILED: $gate_test_name" >&2
+    gate_tests_failed=1
+  fi
+  rm -f "$gate_test_log"
+done
+[ "$gate_tests_failed" -eq 0 ] || exit 1
 
 echo "==> Build once (Release; no WASM bundle, no sample front ends)"
 # -m:$lane_slots is the lever that actually bounds this gate. Left at MSBuild's default it takes every
@@ -104,10 +132,32 @@ dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
   -p:RaskMetaBuild=false -p:RaskSpaBuild=false
 
-echo "==> Source generators in Debug (dotnet format resolves analyzers from the default configuration)"
-for proj in src/*.Generators/*.csproj; do
-  dotnet build "$proj" -c Debug --nologo -v quiet
-done
+# Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
+# evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
+# project references from src/*.Generators/bin/DEBUG/, while this gate builds Release. See the header.
+#
+# CONCURRENT, and safe to be: these projects have no ProjectReference at all, so there is no shared
+# output for two builds to race over — they share only source-linked .cs files, which are read and
+# never written. Each is pinned to -m:1 so three concurrent invocations cannot each claim the whole
+# box; same reasoning as the -m cap on the solution build above, applied to parallelism that is ours
+# rather than MSBuild's.
+rask_build_debug_generators() {
+  echo "==> Source generators in Debug (dotnet format resolves analyzers from the default configuration)"
+  gen_pids=""
+  for proj in src/*.Generators/*.csproj; do
+    [ -e "$proj" ] || continue
+    dotnet build "$proj" -c Debug -m:1 --nologo -v quiet &
+    gen_pids="$gen_pids $!"
+  done
+  gen_failed=0
+  for pid in $gen_pids; do
+    wait "$pid" || gen_failed=1
+  done
+  if [ "$gen_failed" -ne 0 ]; then
+    echo "run-unit-local: a Debug generator build FAILED — see above." >&2
+    exit 1
+  fi
+}
 
 # Scoped to the files being committed when the caller says so (the pre-commit hook does), and the whole
 # solution otherwise. Measured: 59s full, 30s scoped — the remaining 30s is solution load, which no
@@ -119,25 +169,43 @@ done
 #
 # The standalone gate keeps the full pass on purpose. It is the definition-of-done run, invoked with no
 # commit in view, and "everything is formatted" is exactly the claim it exists to make.
+#
+# DECIDED BEFORE rask_build_debug_generators runs, which is the only reason that build is now
+# conditional. A commit that stages no .cs at all — a docs page, a workflow, a .ts file — was paying
+# for three Debug compilations whose entire purpose is to make `dotnet format` resolve its analyzers,
+# and then skipping the formatter.
+#
+# NEITHER ARM PASSES --no-restore, and that is a correctness fix, not a missing optimisation. Both did
+# until now, and `dotnet format Rask.slnx --verify-no-changes --no-restore` MODIFIED 57 files it was
+# only asked to check, rewriting `using` directives across the repo. Without a restore the workspace
+# cannot resolve the source generators; every generated symbol goes missing, the
+# remove-unnecessary-imports analysis concludes those usings are dead, and it WRITES — which
+# --verify-no-changes did not stop. The restore it now does is up to date from the solution build
+# above, so this costs seconds and buys back a verify that cannot rewrite the tree it is verifying.
+# Do not put the flag back to shave them off. (Also: check `git status` after any format run — a
+# destructive pass and a clean one differ only in how many files moved, not in the exit code.)
 format_scope=""
 if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ]; then
   # -z/-d so a path with a space or a newline in it cannot split into two arguments.
   staged_cs="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep -E '\.cs$' || true)"
 
   if [ -n "$staged_cs" ]; then
+    rask_build_debug_generators
     echo "==> Formatting check (staged .cs files only — RASK_FORMAT_SCOPE=staged)"
     # shellcheck disable=SC2086
-    printf '%s\n' "$staged_cs" | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --no-restore --include
+    printf '%s\n' "$staged_cs" | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --include
     format_scope="done"
   else
     echo "==> Formatting check skipped — RASK_FORMAT_SCOPE=staged and no .cs staged."
+    echo "    (and with it the Debug generator build, which exists only to serve the formatter)"
     format_scope="done"
   fi
 fi
 
 if [ -z "$format_scope" ]; then
+  rask_build_debug_generators
   echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
-  dotnet format Rask.slnx --verify-no-changes --no-restore
+  dotnet format Rask.slnx --verify-no-changes
 fi
 
 # The generated TypeScript is compiled by tsgo, which the test fetches itself as a checksum-verified
