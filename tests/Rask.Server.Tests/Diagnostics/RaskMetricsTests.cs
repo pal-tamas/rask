@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Html.Components;
 using Rask.Server.Diagnostics;
 
 namespace Rask.Server.Tests.Diagnostics;

@@ -235,8 +235,6 @@
       <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' == 'true' "
                           Include="    &lt;ProjectReference Include=&quot;$(RaskBrowserCompanionSrc)\Rask.Core\Rask.Core.csproj&quot; /&gt;"/>
       <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' == 'true' "
-                          Include="    &lt;ProjectReference Include=&quot;$(RaskBrowserCompanionSrc)\Rask.Html\Rask.Html.csproj&quot; /&gt;"/>
-      <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' == 'true' "
                           Include="    &lt;ProjectReference Include=&quot;$(RaskBrowserCompanionSrc)\Rask.Wasm\Rask.Wasm.csproj&quot; /&gt;"/>
       <_RaskCompanionLine Condition=" '$(_RaskBrowserBySource)' == 'true' "
                           Include="    &lt;ProjectReference Include=&quot;$(RaskBrowserCompanionSrc)\Rask.Generators\Rask.Generators.csproj&quot; OutputItemType=&quot;Analyzer&quot; ReferenceOutputAssembly=&quot;false&quot; /&gt;"/>

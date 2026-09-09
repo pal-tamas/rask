@@ -8,7 +8,7 @@ namespace Rask.Generators.Tests;
 
 public class InputTypeMismatchAnalyzerTests
 {
-    // Wraps a Render() body. The real Rask.Html Input<T> entry + InputType are referenced via
+    // Wraps a Render() body. The real Rask.Core Input<T> entry + InputType are referenced via
     // BuildReferences(), so the analyzer resolves the genuine control and its value type T.
     private static string App(string body) => $$"""
                                                 using System;
@@ -30,9 +30,10 @@ public class InputTypeMismatchAnalyzerTests
                                                 }
                                                 """;
 
-    // Named in full because `App` is not a markup host in this fixture — it declares a component, so it is
-    // given no entries of its own and the bare `Input` would be the TYPE (RASK043 says exactly that).
-    private const string Entry = "global::RaskEntriesRask_Html.Input";
+    // The bare entry: `Input` is one of Rask.Core's own components, so every component inherits its entry
+    // from RaskMarkup. The snippet imports Rask.Core and not Rask.Core.Components, so the TYPE is not even
+    // in scope to compete with it.
+    private const string Entry = "Input";
 
     [Fact]
     public async Task StringFamilyType_OnBoolInput_ReportsRask025() =>
@@ -42,7 +43,7 @@ public class InputTypeMismatchAnalyzerTests
     [Fact]
     public async Task StringFamilyType_OnIntInput_ReportsRask025()
     {
-        var d = Assert.Single(await Diagnostics(App("return global::RaskEntriesRask_Html.Input.Bind(() => _m.Age).Type(InputType.Email);")));
+        var d = Assert.Single(await Diagnostics(App("return Input.Bind(() => _m.Age).Type(InputType.Email);")));
         Assert.Equal("RASK025", d.Id);
         Assert.Contains("Email", d.GetMessage());
     }

@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <!--
-    Deliberately no reference to Rask.Core, Rask.Html or Rask.Wasm. A TypeScript SPA has no Component, no
+    Deliberately no reference to Rask.Core or Rask.Wasm. A TypeScript SPA has no Component, no
     scoped assets and no live session, so there is nothing to depend on — and staying free of them is
     what lets this package serve a plain ASP.NET app too, exactly as Rask.Cqrs.Server does. The one
     consequence is that RaskPath.Normalize is out of reach, so SpaPath carries its own copy.

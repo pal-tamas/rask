@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
-using Rask.Html.Components;
+using Rask.Core.Components;
 using Rask.Server;
 using Rask.Wasm.Hosting;
 using Rask.Wasm.Hosting.Tests.Infrastructure;

@@ -20,7 +20,7 @@ public sealed partial class UiCollapse : Component
 {
     /// <summary>daisyUI and MaryUI both call this <c>title</c>. <c>new</c> because the base type carries a
     /// markup entry of that name; this component renders no &lt;title&gt; element, so nothing is lost.</summary>
-    public new required string Title { get; set; }
+    public required string Title { get; set; }
 
     /// <summary>Whether it is open. Leave it unset to let the browser open it on focus.</summary>
     public bool? Open { get; set; }

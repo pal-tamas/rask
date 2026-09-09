@@ -1,4 +1,4 @@
-using Rask.Html.Components;
+using Rask.Core.Components;
 
 namespace Rask.Ui;
 

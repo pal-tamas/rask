@@ -1,10 +1,10 @@
-// Template — copy to tests/Rask.Html.Tests/Components/{Tag}Tests.cs.
+// Template — copy to tests/Rask.Core.Tests/Components/{Tag}Tests.cs.
 // Asserts exact attribute order: id, class, style, data-*, then tag-specific.
 //
-// `partial` and `: RaskMarkup` are both load-bearing. The tag family ships from Rask.Html, so its
-// builder entries are INJECTED into this project's own markup hosts rather than inherited from
-// Rask.Core — a non-partial host gets none of them (RASK036) and `{Tag}` would not resolve.
-namespace Rask.Html.Tests.Components;
+// `: RaskMarkup` is load-bearing: a test class is not a Component, so it reaches the builder entries by
+// deriving from the markup half of Component. `partial` matters for the entries this project's OWN
+// components contribute, which are injected rather than inherited (RASK036).
+namespace Rask.Core.Tests.Components;
 
 public partial class {Tag}Tests : global::Rask.Core.RaskMarkup
 {

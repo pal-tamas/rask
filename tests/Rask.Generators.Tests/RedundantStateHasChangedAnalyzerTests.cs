@@ -34,10 +34,9 @@ public class RedundantStateHasChangedAnalyzerTests
     [Fact]
     public async Task OnChange_StateHasChanged_ReportsRask026()
     {
-        // Named in full: this fixture's host DECLARES a component, so it is given no entries of its own.
         var d = Assert.Single(await Diagnostics(App(
             "protected override Component? Render() => "
-            + "global::RaskEntriesRask_Html.Input.Of<string>().OnChange(_ => StateHasChanged());")));
+            + "Input.Of<string>().OnChange(_ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnChange", d.GetMessage());
     }
@@ -48,7 +47,7 @@ public class RedundantStateHasChangedAnalyzerTests
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
             + "protected override Component? Render() => "
-            + "global::RaskEntriesRask_Html.Input.Bind(() => _name).AfterBind(_ => StateHasChanged());")));
+            + "Input.Bind(() => _name).AfterBind(_ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());
     }
@@ -60,7 +59,7 @@ public class RedundantStateHasChangedAnalyzerTests
     {
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
-            + "protected override Component? Render() => global::RaskEntriesRask_Html.Input.Bind(() => _name)"
+            + "protected override Component? Render() => Input.Bind(() => _name)"
             + ".AfterBind(_ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());

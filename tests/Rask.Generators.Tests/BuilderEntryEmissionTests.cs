@@ -1,3 +1,6 @@
+using System.IO;
+using Microsoft.CodeAnalysis;
+
 namespace Rask.Generators.Tests;
 
 // PROTOTYPE — the builder ENTRY emission: which components get a `Foo[…]` entry at all, and the two
@@ -413,18 +416,93 @@ public class BuilderEntryEmissionTests
 
     // Components in a REFERENCED assembly are in neither emission: they are not Rask.Core's (whose
     // entries ride on Component itself and are inherited), and they are not in this compilation's
-    // syntax. Without this they reach the builder surface not at all and stay factory-only — which is
-    // what makes deleting the factory impossible. Rask.Html is a real referenced Rask assembly here.
+    // syntax. Without this they reach the builder surface not at all — which is what a third-party
+    // component library depends on. Emitted for real, because the scan reads METADATA.
     [Fact]
     public void A_referenced_assemblys_components_are_injected_too()
     {
+        var library = BuilderGeneratorHarness.Compile("""
+                                                      using Rask.Core;
+                                                      namespace Lib;
+                                                      public partial class LibCard : Component { }
+                                                      """, "Lib");
+
+        using var stream = new MemoryStream();
+        var emit = library.Emit(stream);
+        Assert.True(emit.Success, string.Join("\n", emit.Diagnostics));
+        stream.Position = 0;
+
         var entries = BuilderGeneratorHarness.Run("""
                                                   using Rask.Core;
                                                   namespace Demo;
                                                   public partial class Page : Component { }
+                                                  """, new[] { MetadataReference.CreateFromStream(stream) })
+            .Source(Entries);
+
+        Assert.Contains("global::RaskEntriesLib.LibCard", entries, StringComparison.Ordinal);
+    }
+
+    // A component named after a framework tag KEEPS the simple name: its own entry is injected with
+    // `new`, hiding the inherited one. Without the modifier the compiler refuses it (CS0108); without
+    // the entry at all the TAG wins and `Section[…]` renders <section> instead of the component — a
+    // green build that paints the wrong element, which is how this was found (a Svelte island named
+    // Meter rendered <meter value="0">).
+    [Fact]
+    public void An_own_entry_named_after_a_framework_tag_hides_the_inherited_one()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Section : Component { }
+                                                  public partial class Page : Component { }
                                                   """).Source(Entries);
 
-        Assert.Contains("global::RaskEntriesRask_Html.", entries, StringComparison.Ordinal);
+        Assert.Contains(
+            "private static new global::Rask.Core.Build<global::Demo.Section> Section",
+            entries,
+            StringComparison.Ordinal);
+    }
+
+    // The same, for the host shape whose inheritance does not exist YET: `[RaskMarkup]` on a free base
+    // slot is given `: RaskMarkup` by the very partial being generated, so asking the SYMBOL what it
+    // inherits answers "nothing" and the modifier would be missed on exactly the host that needs it.
+    // The framework entry SET is what decides, not the base chain.
+    [Fact]
+    public void An_attributed_host_given_the_base_also_hides_the_tag_it_is_about_to_inherit()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Section : Component { }
+                                                  [RaskMarkup]
+                                                  public partial class SectionTests { }
+                                                  """).Source(Entries);
+
+        Assert.Contains("partial class SectionTests : global::Rask.Core.RaskMarkup", entries,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "private static new global::Rask.Core.Build<global::Demo.Section> Section",
+            entries,
+            StringComparison.Ordinal);
+    }
+
+    // …and the `new` is reserved for exactly that. A component whose name no framework tag carries is
+    // hiding nothing, and `new` on it would be CS0109 under warnings-as-errors.
+    [Fact]
+    public void An_own_entry_that_hides_nothing_is_not_marked_new()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Sidebar : Component { }
+                                                  public partial class Page : Component { }
+                                                  """).Source(Entries);
+
+        Assert.Contains(
+            "private static global::Rask.Core.Build<global::Demo.Sidebar> Sidebar",
+            entries,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("new global::Rask.Core.Build<global::Demo.Sidebar>", entries, StringComparison.Ordinal);
     }
 
     // Rask.Core's tags are members of Component, which every component everywhere already inherits.

@@ -136,7 +136,7 @@ public abstract partial class Element : Component
     ///         the framework — a silent source break for anyone passing them positionally.
     ///     </para>
     /// </summary>
-    public new string? Title { get; set; }
+    public string? Title { get; set; }
 
     // A stable DOM handle for JS interop. When set, emits data-rask-ref="{id}" in the data-* group;
     // the client reviver resolves an ElementRef arg to this element via [data-rask-ref="..."].
