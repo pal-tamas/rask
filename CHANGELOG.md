@@ -9,6 +9,31 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The showcase's top bar was near-black text on a near-black bar, on markup whose class names were
+  entirely correct.** `wwwroot/global.css` still carried `.app-navbar { background: rgba(20, 16, 31,
+  .82) !important }` from the dark-first showcase. That sheet is UNLAYERED and linked last, so it
+  outranks every layered utility on the page: the rule beat the `bg-ui-bg` written on the same element,
+  while the bar's text stayed `text-ui-ink` — base-content, near-black in this light theme. Measured,
+  the wordmark, the "showcase" pill and the route readout came out at about **1.4:1**, against WCAG
+  1.4.3's 4.5:1. Nothing could see it: `bg-ui-bg` and `text-ui-ink` were both present and asserted, the
+  build was clean, and the browser suite only ever checked that the class was there. Same shape as
+  #1033, one cascade layer up.
+
+  The bar is drawn from the palette now and measures **17.6:1**. The glass survives as `bg-ui-bg/85`
+  plus a backdrop blur — the same three utilities the landing page's header already used, so the two
+  headers are finally the same thing.
+
+  Two new gates, because a class-name assertion demonstrably cannot catch this class of bug.
+  `ChromeStylesheetTests` fails if `global.css` declares a rule for any chrome hook the markup styles
+  with utilities, and the journey now composites the bar's real background (it is translucent, so the
+  ancestors behind it count), composites the text over that, and asserts the contrast ratio.
+
+- **The desktop sidebar's bottom entries were unreachable.** The rule capping the rail to the viewport
+  was written against `.side-nav.offcanvas-md .offcanvas-body`, an element that stopped existing when
+  `BsOffcanvas` was removed — the `<aside>` is the body now. With nothing capping it, the sticky column
+  rendered at its full **4,272px**, pinned under the bar, and no amount of page scrolling brought its
+  lower half into view. The cap is back on the element that exists. (#1017)
+
 - **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that
   arrives prerendered carries its `<rask-external>` hosts in the first response, so the islands runtime
   mounts them before WebAssembly has finished starting. The first full frame then replaces `<body>`
@@ -286,6 +311,30 @@ them until tagged releases begin.
   and targets still described a PascalCase folder. (#994)
 
 ### Changed
+
+- **The showcase's chrome is daisyUI's now, following the sidebar.** The top bar is `navbar` with its
+  `navbar-start` / `navbar-end` halves, the hamburger is `btn btn-ghost btn-square`, the two brand pills
+  are `badge`, and `CodeSample`'s panel is `card`. Sixty-odd lines of bespoke CSS go with them —
+  `.app-navbar`, `.hamburger-btn` (whose `color: #fff` existed only to survive the dark bar), `.app-shell`,
+  `.page-main`, `.rask-badge`, `.sample-card` and `.sample-result-col` — and two hard-coded colours that
+  could never follow a theme, `background: #fff` on the live-result pane and `bg-white` on the sample
+  header, are on the palette instead.
+
+  The class names stay on the elements. They style nothing, exactly as `side-nav-link` and `nav-group-*`
+  have since `66369460`, but sixty-odd assertions across the unit and browser suites name them and every
+  one is still about the right thing. `--nav-h` now says the bar's real height (4rem): it claimed 56px
+  while the bar measured 61px, which is what left the mobile drawer's filter box under the bar it was
+  meant to clear.
+
+  `SeeAlso` and its `.see-also-link` rule are gone rather than converted: nothing has rendered a "See
+  also" pill since the demo pages folded into the guides, so there was no consumer to migrate.
+
+  Deliberately NOT converted: the code pane inside a `CodeSample` (`.sample-code-col`, `.sample-code`,
+  `.sample-dot`, `.sample-tab`, `.sample-copy`). daisyUI's `mockup-code` is themed on `--color-neutral`
+  and draws one monochrome triple-dot at 30% opacity through a `::before`, so adopting it would repaint
+  a surface that is deliberately fixed-dark in every theme, discard the syntax palette tuned to it, and
+  put the dots on their own row above the filename tabs. That is a redesign, not a supersede. The demo
+  pages, the landing site and the operator console's own sheet remain their own areas of #1017. (#1017)
 
 - **The push gate compiled 105 projects, serially, to run a suite that loads 39 of them.**
   `scripts/run-e2e-local.sh` opened with `dotnet build Rask.slnx -c Release -m:1` — every project in

@@ -76,35 +76,55 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     protected override Component? Render() =>
     [
-        // The top bar is the kit's, so the showcase, the operator console and the landing site share one
-        // piece of chrome rather than three near-identical ones. What is NOT the kit's is the sidebar
-        // below: UiNav is a five-tab bar for a console, and this app has eighty guides in a filterable,
-        // grouped rail. Forcing one into the other would have been worse than sharing neither.
+        // daisyUI's `navbar`, with its `navbar-start` / `navbar-end` halves, so the showcase, the
+        // operator console and the landing site share one piece of chrome rather than three
+        // near-identical ones. What is NOT daisyUI's is the sidebar below: `menu` covers the rail
+        // itself (see GroupBlock), but nothing in the kit is a filterable, grouped, eighty-guide
+        // accordion, and forcing one into the other would have been worse than sharing neither.
+        //
+        // `app-navbar` now names the bar and styles nothing: the rule that used to back it —
+        // `background: rgba(20, 16, 31, .82)`, a leftover from the dark-first showcase — sat UNLAYERED
+        // in global.css, which outranks every layered utility on the page, so it beat the `bg-ui-bg`
+        // written right here. The bar rendered near-black while its own text stayed `text-ui-ink`
+        // (base-content, near-black in this light theme): the wordmark, the "showcase" pill and the
+        // route readout all came out at about 1.4:1, on markup whose class names were entirely correct.
+        // The glass survives — `bg-ui-bg/85` + a backdrop blur — but drawn from the palette, and it now
+        // matches the landing page's header exactly, which is the same three utilities.
         Nav.Class(
-            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-ui-line "
-            + "bg-ui-bg px-3 py-2 text-ui-ink")[
-            Button
-                .Type("button")
-                .Class(
-                    "hamburger-btn inline-flex min-h-11 items-center rounded-lg px-2 text-ui-muted "
-                    + "hover:bg-ui-well hover:text-ui-ink md:hidden")
-                .Aria(DrawerAria)
-                .OnClick(() => _drawerOpen = !_drawerOpen)[
-                UiIcon.Name(_drawerOpen ? UiIconName.Close : UiIconName.Menu).Class("size-5 shrink-0")
+            "app-navbar navbar sticky top-0 z-50 flex-nowrap gap-3 border-b border-ui-line "
+            + "bg-ui-bg/85 px-3 pt-[calc(0.5rem_+_env(safe-area-inset-top))] text-ui-ink "
+            + "backdrop-blur backdrop-saturate-150")[
+            // w-auto/grow rather than daisyUI's 50/50 split: the leading half is a hamburger and a
+            // wordmark and the trailing half is three controls, so an even split would squeeze the
+            // wider one at exactly the width where it matters.
+            Div.Class("navbar-start w-auto min-w-0 gap-2")[
+                Button
+                    .Type("button")
+                    // btn-ghost/btn-square, not a hand-rolled transparent button: the CSS behind
+                    // `hamburger-btn` forced `color: #fff` for the dark bar above and is gone with it.
+                    // size-11 over daisyUI's 2.5rem because 44px is the smallest reliable touch target.
+                    .Class("hamburger-btn btn btn-ghost btn-square size-11 md:hidden")
+                    .Aria(DrawerAria)
+                    .OnClick(() => _drawerOpen = !_drawerOpen)[
+                    UiIcon.Name(_drawerOpen ? UiIconName.Close : UiIconName.Menu).Class("size-5 shrink-0")
+                ],
+                NavLink
+                    .Href(Features.Routes.GuidesIndexPage())
+                    .ActiveClass("")
+                    .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
+                    RaskLogo.Size(24).GradientId("brandBolt"),
+                    Span["Rask"],
+                    // Both badges are hidden below sm, in the markup and nowhere else. The bar carries a
+                    // hamburger, the brand, a GitHub link and the theme picker, and on a 390px screen the
+                    // row measured 399px — a 9px overflow that scrolled the whole document sideways on
+                    // every page of the docs. global.css had its own `display: none` for the first badge
+                    // under a 768px media query, which disagreed with `sm:` (640px) about where the line
+                    // is and only ever hid one of the two; the utility is the one that decides now.
+                    Span.Class("badge badge-sm badge-primary badge-soft hidden sm:inline-flex")["showcase"],
+                    Span.Class("badge badge-sm badge-ghost hidden sm:inline-flex")[$"v{RaskVersion.Current}"]
+                ]
             ],
-            NavLink
-                .Href(Features.Routes.GuidesIndexPage())
-                .ActiveClass("")
-                .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
-                RaskLogo.Size(24).GradientId("brandBolt"),
-                Span["Rask"],
-                // Both badges are hidden below sm. The bar carries a hamburger, the brand, a GitHub
-                // link and the theme picker, and on a 390px screen the row measured 399px — a
-                // 9px overflow that scrolled the whole document sideways on every page of the docs.
-                Span.Class("rask-badge hidden rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted sm:inline")["showcase"],
-                Span.Class("hidden rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted sm:inline")[$"v{RaskVersion.Current}"]
-            ],
-            Div.Class("flex items-center gap-2 ms-auto")[
+            Div.Class("navbar-end w-auto grow gap-2")[
                 PathDisplay,
                 A
                     .Href("https://github.com/pal-tamas/rask")
@@ -122,22 +142,27 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 UiThemeDropdown.Placement("dropdown-end")
             ]
         ],
-        Div.Class("flex app-shell")[
+        Div.Class("flex items-start app-shell")[
             // Always in the flow from md up; below that it slides over the page, and a backdrop
             // closes it. The open state was already Rask state — the drawer never needed script.
+            // Below the bar, not over it: the drawer used to be z-50 against the bar's z-40, and the
+            // only reason its close button stayed reachable was a `z-index: 1046` on .app-navbar in
+            // global.css. With that magic number gone the three layers say the order themselves —
+            // bar 50, drawer 40, backdrop 30.
             Aside
                 .Class(_drawerOpen
-                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-ui-bg p-4 "
+                    ? "side-nav flex fixed inset-y-0 left-0 z-40 w-72 bg-ui-bg p-4 "
                       + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none"
                     : "side-nav hidden w-64 p-4 md:flex")[
                 SidebarBody()
             ],
             _drawerOpen
                 ? Div
-                    .Class("nav-backdrop fixed inset-0 z-40 bg-black/40 md:hidden")
+                    .Class("nav-backdrop fixed inset-0 z-30 bg-black/40 md:hidden")
                     .OnClick(() => _drawerOpen = false)
                 : null,
-            Main.Class("grow py-4 px-3 md:px-5 page-main")[
+            Main.Class(
+                "grow min-w-0 px-3 py-4 pb-[calc(2rem_+_env(safe-area-inset-bottom))] md:px-5 page-main")[
                 Div.Class("mx-auto page-main-inner")[Outlet]
             ]
         ]
