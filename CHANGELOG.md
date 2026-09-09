@@ -33,6 +33,34 @@ them until tagged releases begin.
   `BsOffcanvas` was removed — the `<aside>` is the body now. With nothing capping it, the sticky column
   rendered at its full **4,272px**, pinned under the bar, and no amount of page scrolling brought its
   lower half into view. The cap is back on the element that exists. (#1017)
+- **A component that loads its data with `await …ConfigureAwait(false)` still served its placeholder,
+  at 200, with nothing wrong anywhere.** The second instance of the window that caused
+  [#932](https://github.com/pal-tamas/rask/issues/932), on the path where the hook's continuation never
+  reaches `LifecycleSyncContext.Post` at all — so the paint gate that fix relies on is never registered,
+  because the code that registers it never runs.
+
+  What painted such a hook was the terminal `ContinueWith`, and what the quiescence wave loop was handed
+  to wait on was the hook's own `Task` — which completes one statement *earlier*. Both continuations run
+  `ExecuteSynchronously`, so the loop could wake inside that gap, re-render a child that had not been
+  marked dirty yet, snapshot nothing, and serve. Same silent outcome as #932: the placeholder goes out
+  at 200, inside budget, with nothing marked timed out and no fault raised — to the browser and to every
+  crawler. And `ConfigureAwait(false)` is not exotic: it is what library code is normally advised to
+  write, so the ordinary hook took the unfixed path while every fixture in the suite awaited a plain
+  `Task.Delay` and took the fixed one.
+
+  The tracked work is now the **paint**, not the hook: `Component.InvokeAsyncLifecycleWithRendering`
+  chains `QuiescenceScope.Track` onto the terminal continuation instead of onto the hook's `Task`, so
+  what the loop waits on cannot complete before the render that shows the data has been requested. That
+  closes the window for both paths at once, and costs nothing — it is the same two continuations as
+  before, in series rather than in parallel (`Allocated` byte-identical across `RenderOnce` 88.41 KB,
+  `RenderTenTimes` 159.29 KB, `RenderKeyedList100` 100.36 KB, `RenderDeep_50UserComponents` 77.91 KB and
+  `RenderAndBuildPayload` 35.4 KB).
+
+  Pinned twice, and both pins fail without the change: `Get_AwaitsANestedHookWhoseAwaitsAreAllConfigure`
+  `AwaitFalse` drives the real `GET` and reported `Not found: "ca-child-loaded"` on every run, and
+  `Work_tracked_for_a_ConfigureAwaitFalse_hook_outlives_its_own_repaint_request` pins the ordering itself
+  — asked from a synchronous continuation on the tracked task, with the walk on a dedicated thread so no
+  pool thread can carry `QuiescenceScope`'s thread-static and rescue it. (#1037, #932)
 
 - **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that
   arrives prerendered carries its `<rask-external>` hosts in the first response, so the islands runtime

@@ -37,6 +37,25 @@ public class QuiescentRenderTests
     }
 
     [Fact]
+    public async Task Get_AwaitsANestedHookWhoseAwaitsAreAllConfigureAwaitFalse()
+    {
+        // The same wake-before-registration window as the test above, on the path where the hook's
+        // continuation never reaches LifecycleSyncContext.Post at all (#1037).
+        //
+        // ConfigureAwait(false) is what library code is normally advised to write, so this is the
+        // ORDINARY hook rather than an exotic one — and it takes the branch where the paint gate Post
+        // registers does not exist. The tracked work used to complete strictly BEFORE the terminal
+        // StateHasChanged that paints the resolved data, so the wave loop could wake in between,
+        // re-render the stale child, find nothing pending and serve the placeholder at 200.
+        using var host = RaskTestHost.Create<NestedConfigureAwaitApp>();
+
+        var body = await host.Http.GetStringAsync("/");
+
+        Assert.Contains("ca-child-loaded", body);
+        Assert.DoesNotContain("ca-child-loading", body);
+    }
+
+    [Fact]
     public async Task Get_WhenWorkNeverSettles_StillAnswersWithinBudget()
     {
         using var host = RaskTestHost.Create<NeverSettlesApp>(
@@ -129,6 +148,39 @@ public sealed partial class AsyncChild : Component
     }
 
     protected override Component? Render() => Span[_value ?? "child-loading"];
+}
+
+public sealed partial class NestedConfigureAwaitApp : Component
+{
+    private bool _ready;
+
+    protected override Component? HeadAssets => Title["nested-configure-await"];
+
+    // Every await here is ConfigureAwait(false), so nothing is ever posted back to the lifecycle sync
+    // context and the terminal continuation is the only thing that can request the repaint.
+    protected override async Task OnMountAsync()
+    {
+        await Task.Delay(20).ConfigureAwait(false);
+        _ready = true;
+    }
+
+    protected override Component? Render() =>
+        _ready ? Div[ConfigureAwaitChild] : Div["parent-loading"];
+}
+
+public sealed partial class ConfigureAwaitChild : Component
+{
+    private string? _value;
+
+    // The NESTED hook is what pins the fix: the root is force-dirtied every wave, so only a child
+    // depends on its own StateHasChanged having run before the loop looks again.
+    protected override async Task OnMountAsync()
+    {
+        await Task.Delay(20).ConfigureAwait(false);
+        _value = "ca-child-loaded";
+    }
+
+    protected override Component? Render() => Span[_value ?? "ca-child-loading"];
 }
 
 public sealed partial class NeverSettlesApp : Component
