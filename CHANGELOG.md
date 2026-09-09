@@ -56,6 +56,21 @@ them until tagged releases begin.
   assertion while doing so. The packages are pinned and installed under `obj/` on first build; with no
   npm or no network the tests report **skipped** rather than passing quietly. (#963)
 
+- **The vendored daisyUI version is now asserted, not just claimed.** `src/Rask.Ui/Styles/ui.css` says
+  in prose which daisyUI its `@plugin` bundle is, and the bundle says so itself in
+  `var version = "…"` — two statements of one pin, with nothing checking they agree. A bump that
+  re-downloads `vendor/daisyui.mjs` and forgets the sentence left the file naming a version the
+  repository no longer shipped, and Dependabot cannot help: the kit deliberately has no `package.json`
+  (Tailwind resolves a bare `@plugin "daisyui"` the Node way, and the standalone engine carries no
+  package tree), so there is no npm ecosystem to watch and no manifest to read.
+
+  `DaisyUiVersionPinTests` reads the bundle through the path `ui.css` actually names, compares its
+  version with the sentence, and checks the MIT header a careless re-download drops. It also ties both
+  to the **compiled** sheet rather than leaving them an agreement between two source files that may
+  have compiled nothing: daisyUI defines 35 themes and `ui.css` asks for `themes: all`, so the theme
+  set in the shipped bytes must be the bundle's own — the same reason `UiLayerOrderTests` reads the
+  compiled sheet instead of the `@layer` line it was built from. (#1039)
+
 ### Fixed
 
 - **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
