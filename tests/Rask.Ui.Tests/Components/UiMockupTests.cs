@@ -9,6 +9,24 @@ namespace Rask.Ui.Tests.Components;
 public partial class UiMockupTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
+    public void The_code_mockup_carries_the_prompt_gap_correction()
+    {
+        // #1032, the markup half. daisyUI drops its own `margin-right: 2ch` on the prompt when the
+        // nested rule replaces the declaration block, so the terminal renders `$curl` with no gap. The
+        // kit corrects it with a utility rather than a stylesheet rule - it writes no custom CSS - and
+        // with WIDTH rather than margin, because a consuming app's preflight resets margin on ::before
+        // from a separate sheet that no layer here can outrank. UiStylesheetTests asserts the
+        // declaration reaches the compiled sheet; this asserts the element asks for it.
+        var html = UiMockupCode.Lines([("$", "curl rask.sh | sh")]).ToHtml();
+
+        // Encoded, and correctly so: HtmlEncoder.Default escapes `+` as `&#x2B;`, which the browser
+        // decodes back to the class Tailwind emitted. Asserting the raw form would be asserting
+        // something the framework never writes - the same escape appears on `image/svg+xml` elsewhere
+        // in this repo.
+        Assert.Contains("before:w-[calc(2rem&#x2B;2ch)]", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_browser_mockup_shows_the_url_it_is_given() =>
         Assert.Contains("https://rask.sh",
             UiMockupBrowser.Url("https://rask.sh")[Span["page"]].ToHtml());

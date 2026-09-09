@@ -375,8 +375,11 @@ them until tagged releases begin.
   *replaces* that whole declaration block in the nested `[data-prefix]` rule that supplies the content,
   so the gap is lost. Both rules being present is why the sheet reads as correct.
 
-  Corrected in the kit's own stylesheet, so every consumer gets it rather than each rediscovering it —
-  but **not by restoring the margin**, which cannot work from a library stylesheet at all. Putting
+  Corrected where the component renders, as a utility on the element, so every consumer gets it rather
+  than each rediscovering it. The kit's stylesheet stays free of custom CSS: it declares the palette and
+  nothing else, and a correction to daisyUI is expressed in the markup that needs it.
+
+  **Not by restoring the margin**, which cannot work from a library stylesheet at all. Putting
   `margin-right` back was tried at two specificities and in two cascade layers, and the browser computed
   `0px` every time: a consuming app's Tailwind preflight resets `margin` and `padding` on `::before`
   from its *own* `<link>`, and cascade layers do not merge across separate sheets, so that reset
@@ -385,13 +388,14 @@ them until tagged releases begin.
   unlayered sheet to work.
 
   The gap is made from a property the reset does not touch. daisyUI already right-aligns the prompt
-  inside a fixed `2rem` box, so the kit widens that box — same mechanism, one property further along.
-  The showcase's `.term`-scoped workaround is gone.
+  inside a fixed `2rem` box, so the component widens that box with `before:w-[calc(2rem+2ch)]` — same
+  mechanism, one property further along. The showcase's `.term`-scoped workaround is gone.
 
-  Pinned in two places, because neither alone is enough: a unit test asserts the correction sets width
-  and does *not* set a margin (a margin here reads as a fix and is not one), and the browser suite
-  measures the computed box on the rendered page. Only the browser could tell these apart — every
-  failed attempt produced a stylesheet that read as correct. (#1032)
+  Pinned in three places, because no one of them is enough: a unit test asserts the element asks for the
+  utility, a second asserts Tailwind actually emitted the declaration for it (a class the markup names
+  but the compiler never saw would leave the markup reading correct and the gap still missing), and the
+  browser suite measures the computed box on the rendered page. Only the browser could tell the earlier
+  attempts apart — every one of them produced a stylesheet that read as correct. (#1032)
 
 - **The meta lane's two front-end-directory defaults disagreed, and only Linux noticed.**
   `RaskMetaAppDir` defaults to `client`; `MetaHostingOptions.AppDirectory` still defaulted to `Client`.

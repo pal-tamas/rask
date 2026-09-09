@@ -103,7 +103,12 @@ public sealed class SiteExampleTests
             var prompt = await page.Locator(".term pre[data-prefix]").First.EvaluateAsync<string>(
                 @"el => {
                     const s = getComputedStyle(el, '::before');
-                    return JSON.stringify({ width: s.width, content: s.content, textAlign: s.textAlign });
+                    return JSON.stringify({
+                        width: s.width,
+                        content: s.content,
+                        textAlign: s.textAlign,
+                        prefix: el.getAttribute('data-prefix'),
+                    });
                 }");
 
             var width = System.Text.Json.JsonDocument.Parse(prompt).RootElement
@@ -113,6 +118,27 @@ public sealed class SiteExampleTests
                 double.TryParse(width.Replace("px", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var widthPx)
                 && widthPx > 32,
                 $"the install command is flush against its prompt: computed ::before was {prompt}");
+
+            // And the prompt is still THERE. The gap is asked for with a `before:` utility, and that
+            // variant always emits `content: var(--tw-content)` alongside the width - a pseudo-element
+            // with no content does not render - from the utilities layer, which outranks daisyUI's own
+            // content on the same pseudo-element. Widening the box could therefore have emptied it, and
+            // a terminal with no prompts would pass the width check above perfectly.
+            //
+            // It survives because daisyUI sets `--tw-content: attr(data-prefix)` on this element and the
+            // utility reads it back, which UiStylesheetTests pins in the sheet. This is the same claim
+            // made where it actually counts, on the composited page.
+            var promptJson = System.Text.Json.JsonDocument.Parse(prompt).RootElement;
+            var content = promptJson.GetProperty("content").GetString() ?? "";
+            var prefix = promptJson.GetProperty("prefix").GetString() ?? "";
+
+            // Against the element's OWN data-prefix rather than a literal, because the terminal's first
+            // line is not always the `$` one - it is a `#` comment here - and a hard-coded character
+            // asserts the page's copy rather than the mechanism. This is the mechanism: whatever prefix
+            // the markup gave this line is what the pseudo-element renders.
+            Assert.False(prefix.Length == 0, $"the mockup line has no data-prefix to render: {prompt}");
+            Assert.True(content.Contains(prefix, StringComparison.Ordinal),
+                $"the terminal lost its prompt while keeping the gap: computed ::before was {prompt}");
 
             // Windows can't run a .sh, and rask.sh refuses under MINGW/MSYS and points here.
             await Expect(page.Locator(".install-foot").First)

@@ -25,6 +25,22 @@ public sealed partial class UiMockupCode : Component
     protected override Component? Render() =>
         Div.Class(UiClass.Compose("mockup-code overflow-x-auto", Class))[
             Lines.Select((line, index) =>
-                Pre.Key(index).Attributes(("data-prefix", line.Prefix))[Code[line.Text]])
+                Pre
+                    .Key(index)
+                    // The gap after the prompt, as a utility rather than a rule in the kit's sheet.
+                    //
+                    // daisyUI puts the space there with `margin-right: 2ch` on the pseudo-element, and
+                    // then the nested rule that supplies the content REPLACES that declaration block
+                    // instead of adding to it - so the margin is lost and the terminal renders `$curl`
+                    // with the prompt against the command.
+                    //
+                    // It cannot be put back with a margin. Tailwind's preflight resets
+                    // `*, ::after, ::before { margin: 0; padding: 0 }` and arrives in the APP's
+                    // stylesheet; layers do not merge across separate sheets, so that reset outranks
+                    // anything layered in the kit's own however specific. WIDTH is untouched by it, and
+                    // daisyUI already right-aligns the prompt in a fixed 2rem box - so widening the box
+                    // puts the space between prompt and command and leaves the prompt where it was.
+                    .Class("before:w-[calc(2rem+2ch)]")
+                    .Attributes(("data-prefix", line.Prefix))[Code[line.Text]])
         ];
 }

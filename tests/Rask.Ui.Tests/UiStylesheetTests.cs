@@ -125,78 +125,63 @@ public sealed class UiStylesheetTests
         // REPLACES that declaration block in the nested rule that supplies the content, so the gap is
         // lost and a terminal renders `$curl` with the prompt flush against the command.
         //
-        // WIDTH, and this test exists mostly to say why it is not margin. The correcting rule went in
-        // three times as `margin-right: 2ch` — the exact declaration daisyUI's own base rule sets and its
-        // nested rule drops — at two different specificities and in two different layers, and the browser
-        // computed 0px every time. A consuming app's Tailwind preflight resets margin and padding on
-        // ::before from its own <link>, and layers do not merge across separate sheets, so nothing layered
-        // in this sheet can win that. Widening the box daisyUI already right-aligns the prompt inside
-        // uses a property the reset does not touch.
+        // WIDTH, and this test exists mostly to say why it is not margin. The correction went in three
+        // times as `margin-right: 2ch` - the exact declaration daisyUI's own base rule sets and its
+        // nested rule drops - at two different specificities and in two different layers, and the
+        // browser computed 0px every time. A consuming app's Tailwind preflight resets margin and
+        // padding on ::before from its own <link>, and layers do not merge across separate sheets, so
+        // nothing in this sheet can win that. Widening the box daisyUI already right-aligns the prompt
+        // inside uses a property the reset does not touch.
         //
-        // So the assertion is: the correction sets width, and it does NOT set margin — because a margin
-        // here reads as a fix and is not one.
-        var correction = Assert.Single(
-            LayersOf(UiStylesheet.Css, ".mockup-code pre[data-prefix]:before")
-                .Where(r => r.Body.Contains("width", StringComparison.Ordinal)
-                            && !r.Body.Contains("content", StringComparison.Ordinal))
-                .ToList());
+        // It is a UTILITY on the element now rather than a rule in this stylesheet - the kit writes no
+        // custom CSS - so this half asserts the sheet and UiMockupTests asserts the markup that names
+        // it. What has to stay true did not change: the gap comes from width, and a margin here reads
+        // as a fix and is not one.
+        //
+        // A class the markup names but Tailwind never emitted is the silent half of this failure - the
+        // markup would look correct and the gap would still be gone - so the emitted declaration is
+        // what is checked, not the class name.
+        Assert.Contains("width:calc(2rem + 2ch)", UiStylesheet.Css, StringComparison.Ordinal);
 
-        Assert.Contains("2ch", correction.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain("margin", correction.Body, StringComparison.Ordinal);
-
-        // Outside daisyUI's own sublayer, so it is a correction rather than part of what it corrects.
-        var layer = Assert.Single(correction.Layers);
-        Assert.DoesNotContain("daisyui", layer, StringComparison.Ordinal);
+        // `margin-right:2ch` IS in this sheet - it is daisyUI's own base rule, the one whose nested
+        // rule then drops it - so its presence is not the thing to assert against. What must not come
+        // back is a CORRECTION written as a margin, which is why the check above is on the width.
     }
 
-    /// <summary>
-    ///     Every rule in <paramref name="css" /> whose selector is <paramref name="selector" />, with the
-    ///     stack of at-rules enclosing it. The stack is what decides which of two identical selectors wins.
-    /// </summary>
-    private static IEnumerable<(IReadOnlyList<string> Layers, string Body)> LayersOf(string css, string selector)
+    [Fact]
+    public void The_mockup_prompt_gap_does_not_blank_the_prompt()
     {
-        var stripped = Regex.Replace(css, @"/\*.*?\*/", "", RegexOptions.Singleline);
-        var stack = new List<string>();
-        var found = new List<(IReadOnlyList<string>, string)>();
+        // The hazard the utility brought with it, and the reason it is safe.
+        //
+        // Tailwind's `before:` variant does not emit width alone. It emits
+        //
+        //     .before\:w-\[calc\(2rem\+2ch\)\]:before { content: var(--tw-content); width: ... }
+        //
+        // because a pseudo-element with no `content` does not render at all, so the variant always
+        // supplies one. That declaration lands in the UTILITIES layer, which is last, so it beats
+        // daisyUI's own `content` on the same pseudo-element. A utility asked for the gap and would
+        // have taken the `$` away with it - the prompt would vanish and the gap would look perfect.
+        //
+        // It does not, because both sides are Tailwind: daisyUI sets `--tw-content: attr(data-prefix)`
+        // on this very element, and the utility's `content: var(--tw-content)` reads it back. The
+        // winning declaration resolves to exactly what it overrode.
+        //
+        // That is a coincidence of daisyUI being built on Tailwind, not a guarantee, and it is invisible
+        // in both the markup and the computed width. So it is pinned here: if daisyUI ever supplies the
+        // prompt with a literal `content` instead of the variable, this fails rather than the terminal
+        // silently losing its prompts.
+        var prefixRule = Assert.Single(
+            System.Text.RegularExpressions.Regex.Matches(
+                    UiStylesheet.Css, @"\.mockup-code pre\[data-prefix\]:before\{([^}]*)\}")
+                .Select(m => m.Groups[1].Value)
+                .ToList());
 
-        foreach (Match m in Regex.Matches(stripped, @"@[a-zA-Z-]+[^{;]*[{;]|[^{}@;]+\{|\}"))
-        {
-            var token = m.Value.Trim();
+        Assert.Contains("--tw-content:attr(data-prefix)", prefixRule, StringComparison.Ordinal);
+        Assert.Contains("content:var(--tw-content)", prefixRule, StringComparison.Ordinal);
 
-            if (token == "}")
-            {
-                if (stack.Count > 0)
-                {
-                    stack.RemoveAt(stack.Count - 1);
-                }
-
-                continue;
-            }
-
-            if (token.EndsWith(';'))
-            {
-                continue;
-            }
-
-            var head = token[..^1].Trim();
-
-            if (head.StartsWith('@'))
-            {
-                stack.Add(head);
-                continue;
-            }
-
-            if (head == selector)
-            {
-                var end = stripped.IndexOf('}', m.Index + m.Length);
-                found.Add((stack.ToArray(), end < 0 ? "" : stripped[(m.Index + m.Length)..end]));
-            }
-
-            // A plain selector opens a block that has to be closed before the stack is read again.
-            stack.Add(head);
-        }
-
-        return found;
+        // And the utility takes the same route rather than hard-coding a content of its own.
+        Assert.Contains(
+            "content:var(--tw-content);width:calc(2rem + 2ch)", UiStylesheet.Css, StringComparison.Ordinal);
     }
 
     private static string Head(string s) => s.Length <= 80 ? s : s[..80] + "…";
