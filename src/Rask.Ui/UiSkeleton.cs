@@ -8,11 +8,17 @@ namespace Rask.Ui;
 /// reading out a row of empty boxes is worse than silence. Pair it with a <see cref="UiLoading" /> where
 /// the wait itself needs announcing.
 /// </remarks>
-public sealed partial class UiSkeleton : Component
+public sealed partial class UiSkeleton : Div
 {
-    public string? Class { get; set; }
+    // aria-hidden, because a skeleton is a placeholder for content that has not arrived: announcing it
+    // tells a screen-reader user about a box that means nothing.
+    /// <inheritdoc />
+    protected override void WriteAttributes(System.Text.StringBuilder sb)
+    {
+        base.WriteAttributes(sb);
+        AppendAttr(sb, "aria-hidden", "true");
+    }
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class(UiClass.Compose("skeleton", Class)).Attributes(("aria-hidden", "true"))[Children ?? []];
+    protected override string? ResolveClass() => UiClass.Compose("skeleton", Class);
 }

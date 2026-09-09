@@ -7,11 +7,11 @@ namespace Rask.Ui;
 /// Pointer-only by construction — there is no hover on a touch screen and none from a keyboard — so
 /// nothing may depend on the tilt. It is an effect on content that is already complete without it.
 /// </remarks>
-public sealed partial class UiHover3d : Component
+public sealed partial class UiHover3d : Div
 {
-    public string? Class { get; set; }
+
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class(UiClass.Compose("hover-3d", Class))[Children ?? []];
+    protected override string? ResolveClass() =>
+        UiClass.Compose("hover-3d", Class);
 }

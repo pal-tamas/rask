@@ -7,7 +7,7 @@ namespace Rask.Ui;
 /// CSS-only, from daisyUI's <c>data-tip</c>. It is a hint and nothing more: a tooltip is not reachable by
 /// touch and is easy to miss, so nothing that matters should live only here.
 /// </remarks>
-public sealed partial class UiTooltip : Component
+public sealed partial class UiTooltip : Div
 {
     public required string Tip { get; set; }
 
@@ -23,16 +23,19 @@ public sealed partial class UiTooltip : Component
     /// </summary>
     public bool? Open { get; set; }
 
-    public string? Class { get; set; }
+    /// <inheritdoc />
+    protected override void WriteAttributes(System.Text.StringBuilder sb)
+    {
+        base.WriteAttributes(sb);
+        AppendAttr(sb, "data-tip", Tip);
+    }
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div
-            .Class(UiClass.Compose(
-                "tooltip",
-                Placement is { } placement ? UiClassNames.TooltipPlacement(placement) : "",
-                Tone is { } tone ? UiClassNames.TooltipTone(tone) : "",
-                Open == true ? "tooltip-open" : "",
-                Class))
-            .Attributes(("data-tip", Tip))[Children ?? []];
+    protected override string? ResolveClass() =>
+        UiClass.Compose(
+            "tooltip",
+            Placement is { } placement ? UiClassNames.TooltipPlacement(placement) : "",
+            Tone is { } tone ? UiClassNames.TooltipTone(tone) : "",
+            Open == true ? "tooltip-open" : "",
+            Class);
 }

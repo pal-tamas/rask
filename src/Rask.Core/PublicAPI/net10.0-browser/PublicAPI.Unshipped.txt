@@ -3062,6 +3062,7 @@ override Rask.Core.Browser.WebAppManifest.GetHashCode() -> int
 override Rask.Core.Browser.WebAppManifest.ToString() -> string!
 override Rask.Core.Components.Button.TagName.get -> string!
 override Rask.Core.Components.Button.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Core.Components.Div.TagName.get -> string!
 override Rask.Core.DragAndDrop.DragDropMove.Equals(object? obj) -> bool
 override Rask.Core.DragAndDrop.DragDropMove.GetHashCode() -> int
 override Rask.Core.DragAndDrop.DragDropMove.ToString() -> string!

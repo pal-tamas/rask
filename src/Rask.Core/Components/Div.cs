@@ -9,7 +9,7 @@ namespace Rask.Core.Components;
 ///     something a <c>div</c> cannot.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/div">MDN</see>
 /// </summary>
-public sealed class Div : Element
+public class Div : Element
 {
     protected override string TagName => "div";
 }

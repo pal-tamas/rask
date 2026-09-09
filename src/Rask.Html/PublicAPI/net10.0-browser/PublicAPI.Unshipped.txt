@@ -1321,12 +1321,16 @@ Rask.Html.Components.Wbr
 Rask.Html.Components.Wbr.Wbr() -> void
 RaskBuilderSettersRask_Html
 RaskEntriesRask_Html
+override Rask.Html.Components.Footer.TagName.get -> string!
 override Rask.Html.Components.HtmlMediaElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.HtmlModElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.HtmlQuoteElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.HtmlTableCellElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.HtmlTableColElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Html.Components.Main.TagName.get -> string!
+override Rask.Html.Components.Nav.TagName.get -> string!
 override Rask.Html.Components.SvgElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Html.Components.Ul.TagName.get -> string!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Html.Components.ValidatingIndicator.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<Rask.Core.Component!>! Template) -> Rask.Html.Components.ValidatingIndicator!
 static Rask.Html.Components.ValidationMessage.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, Rask.Core.Component!>! Template) -> Rask.Html.Components.ValidationMessage!

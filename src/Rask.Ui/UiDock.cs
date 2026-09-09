@@ -8,16 +8,15 @@ namespace Rask.Ui;
 /// the top. It is fixed to the viewport, so a page using one needs padding at its end or the last row
 /// sits underneath it.
 /// </remarks>
-public sealed partial class UiDock : Component
+public sealed partial class UiDock : Div
 {
+
     public UiSize? Size { get; set; }
 
-    public string? Class { get; set; }
-
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class(UiClass.Compose(
+    protected override string? ResolveClass() =>
+        UiClass.Compose(
             "dock",
             Size is { } size ? UiClassNames.DockSize(size) : "",
-            Class))[Children ?? []];
+            Class);
 }

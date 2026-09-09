@@ -7,11 +7,11 @@ namespace Rask.Ui;
 /// CSS scroll-snap, so the swiping is the browser's — no script, and it keeps the momentum and the
 /// scrollbar a native scroller has. Each child should carry <c>carousel-item</c>.
 /// </remarks>
-public sealed partial class UiCarousel : Component
+public sealed partial class UiCarousel : Div
 {
-    public string? Class { get; set; }
+
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class(UiClass.Compose("carousel", Class))[Children ?? []];
+    protected override string? ResolveClass() =>
+        UiClass.Compose("carousel", Class);
 }

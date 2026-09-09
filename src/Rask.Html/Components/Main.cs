@@ -5,7 +5,7 @@ namespace Rask.Html.Components;
 ///     repeated across the site. One per page, and the target every skip link should point at.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/main">MDN</see>
 /// </summary>
-public sealed partial class Main : Element
+public partial class Main : Element
 {
     protected override string TagName => "main";
 }

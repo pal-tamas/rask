@@ -246,6 +246,29 @@ them until tagged releases begin.
   muted text colour — the same class of mistake `ui.css` already documents for `ok`/`warn`. It reached
   294 call sites through `text-ui-muted`, and is now `base-content` stepped back.
 
+- **Nineteen more kit components stopped re-declaring what the element already gives them.** A
+  component that wraps an element has to repeat its parameters; 74 of the kit's 96 re-declared `Class`
+  alone, forwarding it to the element underneath. The ones that can simply BE their element no longer
+  do: `UiStack`, `UiJoin`, `UiGrid`, `UiMask`, `UiDock`, `UiCarousel`, `UiHover3d`, `UiSkeleton`,
+  `UiTooltip`, `UiNotice`, `UiDetailList`, `UiMetricRow` derive from `Div`; `UiList`, `UiMenu`,
+  `UiSteps`, `UiTimeline` from `Ul`; `UiFooter`, `UiMain`, `UiNav` from their tags. `Class` comes from
+  `Element`, the class list is composed through `ResolveClass()`, and the public API shrank by 49
+  entries per target framework.
+
+  **The rule is what a component DOES, not what it looks like.** An element renders the children it was
+  handed and never a `Render()` of its own, so only a component whose content is exactly its caller's
+  children can inherit. The audit found 20 of those; the other 75 build content — an icon, a heading, a
+  wrapper — and stay components, keeping their own `Class` because they have an outer element of their
+  own to put it on. `UiAura` is the one exception on the other side: it could inherit, but its `Style`
+  property is a `UiAuraStyle` and would shadow `Element.Style`, which is the silent kind of collision
+  (a second setter wins overload resolution and writes a property nothing renders), so it keeps
+  composing.
+
+  `Div`, `Ul`, `Footer`, `Main` and `Nav` are unsealed for it. They carry no properties of their own —
+  MDN gives `HTMLDivElement` only the deprecated `align`, `HTMLUListElement` only `compact`/`type`, and
+  `<footer>`/`<main>`/`<nav>` no interface at all beyond `HTMLElement` — so deriving from the tag
+  inherits nothing but `TagName`, which is the point: no override, and the component says what it is.
+
 - **`UiButton` IS a `<button>` now: it derives from the element instead of wrapping one.** The wrapper
   had no element surface of its own, so it grew one property at a time and every call site that needed
   something else either dropped out of the kit or waited — an `Id` for a test hook, then `Type` for a

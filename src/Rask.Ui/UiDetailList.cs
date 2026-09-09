@@ -1,9 +1,10 @@
 namespace Rask.Ui;
 
 /// <summary>The key-and-value list a detail sheet is made of.</summary>
-public sealed partial class UiDetailList : Component
+public sealed partial class UiDetailList : Div
 {
+
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class("divide-y divide-ui-line")[Children ?? []];
+    protected override string? ResolveClass() =>
+        "divide-y divide-ui-line";
 }
