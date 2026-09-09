@@ -40,6 +40,9 @@ public class BrowserCompanionGenerationTests : IDisposable
               </PropertyGroup>
               <ItemGroup>
                 <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>
+                <Using Include="Fixture.Shared"/>
+                <Using Include="Fixture.Aliased" Alias="Shorthand"/>
+                <Using Include="Fixture.Statics" Static="true"/>
               </ItemGroup>
               <Import Project="{Path.Combine(SrcDir, "Rask.Server", "build", "Rask.Server.Browser.targets")}"/>
             </Project>
@@ -119,6 +122,38 @@ public class BrowserCompanionGenerationTests : IDisposable
 
         Assert.Contains("Edits are lost; change the app instead.", project, StringComparison.Ordinal);
         Assert.Contains("RunAsync<Fixture.App>();", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheAppsProjectWideUsingsReachTheBundle()
+    {
+        // The companion compiles the app's OWN sources, so a name those files resolve through a
+        // <Using> has to resolve here too. Only ImplicitUsings was carried across, and that is the
+        // SDK's set — it says nothing about the app's own.
+        //
+        // The failure was invisible until publish, because the companion is only generated then: the
+        // server half built clean, and the browser half died on a missing type inside a generated
+        // project the author never wrote.
+        var project = Generate();
+
+        Assert.Contains("<Using Include=\"Fixture.Shared\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AUsingKeepsItsAliasAndItsStaticFlag()
+    {
+        // Include alone is not the whole item. An alias dropped here turns every use of the short name
+        // into a missing type, and a static using dropped turns every unqualified member into one.
+        var project = Generate();
+
+        Assert.Contains(
+            "<Using Include=\"Fixture.Aliased\" Alias=\"Shorthand\" />",
+            project,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<Using Include=\"Fixture.Statics\" Static=\"true\" />",
+            project,
+            StringComparison.Ordinal);
     }
 
     [Fact]

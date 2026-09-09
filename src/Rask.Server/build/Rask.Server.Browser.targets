@@ -198,6 +198,25 @@
       <_RaskCompanionLine Include="  &lt;/ItemGroup&gt;"/>
 
       <!--
+        The app's project-wide usings. The companion compiles the app's OWN sources, so a name those
+        files resolve through a <Using> must resolve here too — and the property above carries only
+        ImplicitUsings, which is the SDK's set and says nothing about the app's.
+
+        Without this an app that puts a namespace in its project file rather than at the top of every
+        file (which is what <Using> is for) compiles on the server half and fails on the browser half,
+        as a missing-type error inside a generated project the author never wrote. It builds and it
+        publishes broken, because the companion is only produced on publish.
+      -->
+      <_RaskCompanionLine Condition=" '@(Using)' != '' " Include="  &lt;ItemGroup&gt;"/>
+      <_RaskCompanionLine Include="@(Using->'    &lt;Using Include=&quot;%(Identity)&quot; /&gt;')"
+                          Condition=" '%(Using.Alias)' == '' And '%(Using.Static)' != 'true' "/>
+      <_RaskCompanionLine Include="@(Using->'    &lt;Using Include=&quot;%(Identity)&quot; Alias=&quot;%(Alias)&quot; /&gt;')"
+                          Condition=" '%(Using.Alias)' != '' "/>
+      <_RaskCompanionLine Include="@(Using->'    &lt;Using Include=&quot;%(Identity)&quot; Static=&quot;true&quot; /&gt;')"
+                          Condition=" '%(Using.Alias)' == '' And '%(Using.Static)' == 'true' "/>
+      <_RaskCompanionLine Condition=" '@(Using)' != '' " Include="  &lt;/ItemGroup&gt;"/>
+
+      <!--
         References the BROWSER half needs and the server half must not have.
         <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..." /> is how an app says
         "this belongs to the bundle only".
