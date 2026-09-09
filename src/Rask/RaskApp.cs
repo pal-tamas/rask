@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Api;
 using Rask.Core;
+using Rask.Data;
 using Rask.Server;
 using Rask.Wasm.Hosting;
 
@@ -170,6 +171,14 @@ public sealed class RaskApp
         RaskBatteryWiring.Apply(_builder, _options);
 
         var app = _builder.Build();
+
+        // Hand the ambient database its factory, so `Product.Where(…)`, `Db.Begin()` and `Db.Current`
+        // work with nothing injected and nothing configured. Conditional on a binding existing, which is
+        // the Data battery having been wired — an app with `c.Data.Off()` has no database to point at.
+        if (app.Services.GetService<AmbientContextBinding>() is not null)
+        {
+            Db.Configure(app.Services);
+        }
 
         // FIRST: rewrite Request.Scheme and RemoteIpAddress from the proxy's headers, so everything below
         // — HSTS, redirects, the app's own logging — sees the request the visitor actually made. Opt-in,

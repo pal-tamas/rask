@@ -291,7 +291,7 @@ public class SqliteBulkInsertBenchmarks
 }
 
 /// <summary>A representative row: a few scalars of each storage class, plus Rask's audit stamps.</summary>
-public sealed class BenchProduct : Entity<Guid>
+public sealed class BenchProduct : Model<Guid>
 {
     public string Sku { get; private set; } = string.Empty;
 

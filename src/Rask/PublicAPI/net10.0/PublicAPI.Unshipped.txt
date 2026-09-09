@@ -22,6 +22,8 @@ Rask.RaskApp.MapEndpoints(System.Action<Microsoft.AspNetCore.Routing.IEndpointRo
 Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
 Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
 Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.RaskAppDbContext
+Rask.RaskAppDbContext.RaskAppDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<Rask.RaskAppDbContext!>! options) -> void
 Rask.RaskAppOptions
 Rask.RaskAppOptions.Api.get -> Rask.Battery<Rask.Api.ApiOptions!>!
 Rask.RaskAppOptions.Auth.get -> Rask.Battery<Rask.Auth.AuthOptions!>!
@@ -59,5 +61,6 @@ Rask.RaskRemoteRequestValidator
 Rask.RaskRemoteRequestValidator.RaskRemoteRequestValidator(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopes) -> void
 Rask.RaskRemoteRequestValidator.ValidateAsync(object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.RaskRequestValidation
+override Rask.RaskAppDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> void
 static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.Builder.WebApplicationBuilder!>? configure = null) -> Rask.RaskApp!
 static Rask.RaskRequestValidation.AddRaskRequestValidation(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
