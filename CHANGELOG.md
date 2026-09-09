@@ -306,6 +306,20 @@ them until tagged releases begin.
   for the same reason — every one of them stubs `ps`/`pgrep` rather than touching the machine. 18s to
   12s, measured back to back.
 
+- **Deleting a merged branch ran the entire push gate.** `git push origin --delete <branch>` sends one
+  ref line whose local sha is all zeroes: no commit reaches the remote and no tree changes. The hook
+  ran the full browser E2E suite, both payload-bytes baselines and the capacity smokes on it anyway,
+  because every gate is written in terms of "is this push path-relevant" and a deletion matches those
+  filters exactly like any other push. Found by deleting a merged branch and watching ~40 minutes of
+  browser suite start up behind it. The attribution guard had the right idea all along — its loop
+  already skips a ref whose local sha is zero — it just kept the conclusion to itself; the hook now
+  reads stdin once and both readers share it. Only a push where **every** ref is a deletion skips the
+  gates: delete one branch and update another and the content still gets the full gate. The test drives
+  the real hook with none of the `RASK_SKIP_*` variables set, in a throwaway repository containing no
+  `scripts/run-*.sh` at all, so reaching a gate necessarily fails — exit 0 there can only mean it
+  returned first. A companion row asserts the negation, because with the skips set the same assertion
+  would have passed against a hook that ran every gate.
+
 - **The benchmark gate re-evaluated a project six times to find a path it already knew.** Six
   `dotnet run -c Release --project … --no-build` invocations became direct calls to the built binaries.
   Nothing the apps can observe changes: every baseline and artifact they read is resolved from

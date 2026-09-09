@@ -160,6 +160,13 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   redundant — the first only runs once `core.hooksPath` is set, and a fresh clone or a new worktree
   has not set it, which is exactly how the two trailers got in. A human `Signed-off-by:` passes;
   `scripts/tests/attribution-guard.test.sh` states all 32 cases, both directions.
+- **A deletion-only push runs no gate.** `git push origin --delete <branch>` moves no commits and
+  changes no tree, so there is nothing for a build or a browser journey to have an opinion about. The
+  hook used to run the whole gate on it regardless — every gate below it is phrased as "is this push
+  path-relevant", and a deletion matches those filters like anything else. It now returns early when
+  **every** ref in the push is a deletion; a push that deletes one branch and updates another still
+  gets the full gate.
+
 - **E2E runs locally, enforced before push.** The browser-journey E2E
   (`tests/Rask.Examples.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
   `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
