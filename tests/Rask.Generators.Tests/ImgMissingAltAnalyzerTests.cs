@@ -61,7 +61,7 @@ public class ImgMissingAltAnalyzerTests
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
-        // The chain needs the builder entries, and a tag from Rask.Html only has them once the
+        // The chain needs the builder entries, and a referenced library's component only has them once the
         // generator has injected them — inheritance no longer supplies it.
         compilation = (CSharpCompilation)GeneratorDriverFixture.WithBuilderSurface(compilation);
 

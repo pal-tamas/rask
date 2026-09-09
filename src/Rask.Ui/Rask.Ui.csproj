@@ -39,11 +39,10 @@
 
 
   <ItemGroup>
-    <!-- PrivateAssets="all": Rask.Core and Rask.Html are IsPackable=false and ship transitively from
+    <!-- PrivateAssets="all": Rask.Core is IsPackable=false and ships transitively from
          the host packages, so listing them as nuspec dependencies would reference packages that exist
          on no feed and make Rask.Ui unrestorable. Guarded by PackageDependencyTests. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
 
     <!-- Emits this assembly's own Generated.* factories, so a consuming app can open a chain on
          UiButton, UiMetric and the rest exactly as it does on a tag. -->

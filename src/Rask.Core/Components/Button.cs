@@ -35,7 +35,7 @@ public sealed class Button : Element
     /// <summary>
     ///     The <c>id</c> of the form this button submits, when the button is not inside it.
     /// </summary>
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
 
     /// <summary>
     ///     Overrides the form's <c>action</c> for this button only — how one form offers "save" and

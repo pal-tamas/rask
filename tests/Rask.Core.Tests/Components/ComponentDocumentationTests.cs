@@ -102,8 +102,7 @@ public class ComponentDocumentationTests
     [Theory]
     [InlineData("Rask.Core", "Element.cs")]
     [InlineData("Rask.Core", "ElementEvents.cs")]
-    // HtmlMediaElement moved with the element family; the project is a parameter so the case can follow it.
-    [InlineData("Rask.Html", "Components/HtmlMediaElement.cs")]
+    [InlineData("Rask.Core", "Components/HtmlMediaElement.cs")]
     [InlineData("Rask.Core", "Forms/FormControlInterfaces.cs")]
     public void Every_universal_property_is_documented(string project, string relativePath)
     {
@@ -173,10 +172,8 @@ public class ComponentDocumentationTests
     // Read once: every theory case looks the sources up, and there are ~180 of each.
     private static readonly Lazy<IReadOnlyList<(string File, string Source)>> Sources = new(() =>
     {
-        // Both halves of the element family: Rask.Core keeps the components its own engine constructs and
-        // Rask.Html declares the rest, so walking only one of them would quietly stop documenting ~150 tags.
-        return new[] { "Rask.Core", "Rask.Html" }
-            .Select(project => Path.Combine(RepoRoot(), "src", project, "Components"))
+        // The whole element family, engine components included — Rask.Core declares all of it.
+        return new[] { Path.Combine(RepoRoot(), "src", "Rask.Core", "Components") }
             .Where(Directory.Exists)
             .SelectMany(dir => Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
             .Order(StringComparer.Ordinal)

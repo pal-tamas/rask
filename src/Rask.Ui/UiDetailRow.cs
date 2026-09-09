@@ -11,7 +11,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiDetailRow : Component
 {
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     public required string Value { get; set; }
 

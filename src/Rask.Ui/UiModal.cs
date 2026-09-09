@@ -64,7 +64,7 @@ public sealed partial class UiModal : Component
     public Action? Close { get; set; }
 
     /// <summary>The actions, trailing-aligned on a pointer and stacked on a phone.</summary>
-    public Component? Footer { get; set; }
+    public new Component? Footer { get; set; }
 
     public string? Class { get; set; }
 

@@ -77,7 +77,7 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
         }
     }
 
-    private async Task Stop()
+    private new async Task Stop()
     {
         if (_session is not null)
         {

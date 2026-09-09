@@ -660,10 +660,9 @@ public partial class RouterTests : RaskMarkup        // ✓ — enclosing type i
 }
 ```
 
-This used not to matter: the HTML tags lived in `Rask.Core` and reached a nested component by
-*inheritance*, where nesting is irrelevant. They ship from `Rask.Html` now, and a referenced library's
-entries can only be injected — so a nested component whose enclosing chain is not `partial` would
-silently lose the chain, which is what this reports instead.
+The framework's own tags reach a nested component by *inheritance*, where nesting is irrelevant. A
+**referenced library's** entries can only be injected — so a nested component whose enclosing chain is
+not `partial` would silently lose them, which is what this reports instead.
 
 **Fix:** add `partial`. Suppress with `#pragma warning disable RASK036` / `.editorconfig`
 (`dotnet_diagnostic.RASK036.severity = none`) if you build every component through the factory.

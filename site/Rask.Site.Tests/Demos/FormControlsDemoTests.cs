@@ -112,7 +112,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
 
     // The demo's children are a FUNCTION of the submit state. This pins the not-submitting half — the
     // shape the page is in whenever a submit is not running, which is what a reader of the guide sees.
-    // The flag flipping mid-submit is unit-tested at the source in Rask.Html.Tests' FormTests; this
+    // The flag flipping mid-submit is unit-tested at the source in Rask.Core.Tests' FormTests; this
     // harness cannot drive a form's async submit bridge (the stock fixed-children form does not route
     // through it here either), so the round trip is covered by the browser journey instead.
     [Fact]

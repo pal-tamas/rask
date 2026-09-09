@@ -41,7 +41,6 @@
        free of reference cycles. -->
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
 
     <!-- The confirmation and reset links go out through the app's own mail queue. A REAL package
          dependency, not PrivateAssets: Rask.Mail is its own package rather than something a host

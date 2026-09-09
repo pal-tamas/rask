@@ -12,7 +12,7 @@
 
       Publishing this as a package as well would be actively harmful, not merely redundant: an app that
       referenced both would import the same targets twice and run the Tailwind compiler twice over one
-      output file. Rask.Core and Rask.Html are IsPackable=false for the same reason. Guarded by
+      output file. Rask.Core is IsPackable=false for the same reason. Guarded by
       PackageDependencyTests.
 
       What is left here is a build-order shim: this project exists so that Rask.Tailwind.Tasks has

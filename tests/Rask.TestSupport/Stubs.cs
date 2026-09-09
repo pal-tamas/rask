@@ -1,7 +1,6 @@
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Forms;
-using Rask.Html.Components;
 
 namespace Rask.TestSupport;
 

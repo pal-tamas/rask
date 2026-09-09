@@ -40,7 +40,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     private int _cursor = -1;
 
     /// <summary>The accessible name.</summary>
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     /// <summary>
     ///     The options: the value stored, and the words shown.
@@ -148,7 +148,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     /// <inheritdoc />
     protected override Component? Render() => Native == false ? Custom() : NativeSelect();
 
-    // The platform's control. Everything form-shaped is forwarded to Rask.Html's Select<T>, which is
+    // The platform's control. Everything form-shaped is forwarded to Rask.Core's Select<T>, which is
     // itself an IFormControl<T> — so binding, validation registration and the change parse are the
     // framework's here rather than reimplemented, and there is exactly one place they can drift from.
     private Component NativeSelect()

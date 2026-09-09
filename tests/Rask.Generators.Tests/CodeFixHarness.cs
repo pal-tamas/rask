@@ -19,7 +19,7 @@ internal static class CodeFixHarness
     {
         var document = CreateDocument(source);
         var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
-        // Entries for a tag that ships from Rask.Html exist only once the generator has injected them —
+        // Entries for a REFERENCED library's component exist only once the generator has injected them —
         // they are no longer inherited — so a chain over one would not bind and the analyzer would see
         // nothing to fix. The document itself is untouched, so the fix still lands on the user's tree.
         compilation = (CSharpCompilation)GeneratorDriverFixture.WithBuilderSurface(compilation);
@@ -37,7 +37,7 @@ internal static class CodeFixHarness
     {
         var document = CreateDocument(source);
         var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
-        // Entries for a tag that ships from Rask.Html exist only once the generator has injected them —
+        // Entries for a REFERENCED library's component exist only once the generator has injected them —
         // they are no longer inherited — so a chain over one would not bind and the analyzer would see
         // nothing to fix. The document itself is untouched, so the fix still lands on the user's tree.
         compilation = (CSharpCompilation)GeneratorDriverFixture.WithBuilderSurface(compilation);

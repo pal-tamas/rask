@@ -32,9 +32,10 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 `docs/ai-agents.md`. Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
 
 ## Projects
-- `src/Rask.Core` — rendering, live context, routing, scoped CSS/TypeScript, lifecycle.
-- `src/Rask.Html` — the HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Html.Components`;
-  `IsPackable=false`, bundled into every host package. Core keeps only the tags its engine builds.
+- `src/Rask.Core` — rendering, live context, routing, scoped CSS/TypeScript, lifecycle, AND the whole
+  HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Core.Components`. `IsPackable=false`,
+  bundled into every host package. The tags live HERE so their entries land on `RaskMarkup` and reach
+  every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
 - `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
 - `src/Rask.Server` — ASP.NET host (`AddRask()`/`UseRask<TApp>()`, WS dispatcher). `src/Rask.Wasm` — browser host.
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
@@ -112,7 +113,7 @@ started / migration / testing / architecture (`docs/`). Trimming: `site/Rask.Sit
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
-- **New HTML tag** → `add-html-tag` skill (`src/Rask.Html/Components/{Tag}.cs` + `tests/Rask.Html.Tests/Components/{Tag}Tests.cs`).
+- **New HTML tag** → `add-html-tag` skill (`src/Rask.Core/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–071 are documented in `docs/diagnostics.md`
   (RASK030/032/034/042/047/048/049/050 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK072). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space

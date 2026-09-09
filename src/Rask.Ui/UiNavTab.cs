@@ -5,7 +5,7 @@ namespace Rask.Ui;
 /// <summary>One section tab.</summary>
 public sealed partial class UiNavTab : Component
 {
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     public required RouteUrl Href { get; set; }
 

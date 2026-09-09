@@ -11,7 +11,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiMetric : Component
 {
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     public required string Value { get; set; }
 
@@ -21,7 +21,7 @@ public sealed partial class UiMetric : Component
     /// </summary>
     public UiTone? Tone { get; set; }
 
-    public string? Caption { get; set; }
+    public new string? Caption { get; set; }
 
     /// <summary>Makes the tile the control that selects this slice.</summary>
     public string? Href { get; set; }

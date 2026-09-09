@@ -11,7 +11,7 @@ namespace Rask.Ui;
 public sealed partial class UiBrand : Component
 {
     /// <summary>The wordmark. Hidden below <c>sm</c>, so it is never the only thing naming the page.</summary>
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     /// <summary>Where the mark goes. Home, for whatever this surface calls home.</summary>
     public required RouteUrl Href { get; set; }

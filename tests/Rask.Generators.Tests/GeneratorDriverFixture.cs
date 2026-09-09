@@ -149,11 +149,11 @@ internal static class GeneratorDriverFixture
     ///     returns the compilation the analyzers should actually see.
     /// </summary>
     /// <remarks>
-    ///     A plain compilation has no builder entries for a tag that ships from Rask.Html: the framework's
-    ///     own entries used to be precompiled into Rask.Core.dll and arrive by inheritance, so an analyzer
-    ///     test could bind `Img.Src(…)` without a generator ever running. A referenced library's entries are
-    ///     INJECTED instead, which only exists once the generator has run — so a chain over a moved tag
-    ///     silently failed to bind and the analyzer saw nothing to report.
+    ///     The framework's own entries are precompiled into Rask.Core.dll and arrive by inheritance, so a
+    ///     chain over a tag binds without a generator ever running. A REFERENCED LIBRARY's entries are
+    ///     INJECTED instead, and only exist once the generator has run — so an analyzer test over a
+    ///     third-party component needs this or the chain silently fails to bind and the rule under test
+    ///     reports nothing.
     /// </remarks>
     internal static Compilation WithBuilderSurface(Compilation compilation)
     {
@@ -257,14 +257,11 @@ internal static class GeneratorDriverFixture
             .Cast<MetadataReference>()
             .ToList();
 
-        // Pull Rask.Core in directly (TestAssembly compilation needs to know about Rask.Core.Component).
+        // Pull Rask.Core in directly: TestAssembly needs Rask.Core.Component, and Rask.Core also declares
+        // the HTML/SVG element family — the test snippets are full of Div/Span/Img/Input, and the analyzers
+        // that pin a tag by full metadata name resolve it here.
         var raskCore = Assembly.Load("Rask.Core");
         refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
-
-        // Rask.Html, which now declares the HTML/SVG element family — the test snippets are full of
-        // Div/Span/Img/Input, and the analyzers that pin a tag by full metadata name resolve it here.
-        var raskHtml = Assembly.Load("Rask.Html");
-        refs.Add(MetadataReference.CreateFromFile(raskHtml.Location));
 
         // Rask.Server too, so analyzer tests can resolve the real UseRask symbol (the ASP.NET Core
         // shared framework rides along in the trusted-platform-assemblies set above via the project's

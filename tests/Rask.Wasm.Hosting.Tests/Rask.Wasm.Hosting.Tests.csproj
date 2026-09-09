@@ -33,7 +33,6 @@
     <!-- Rask.Wasm.Hosting keeps its Rask.Core reference private (Core is IsPackable=false), so name it
          directly rather than inheriting it — the same reason an app references Core itself. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
     <!-- Dual-host composition: an app that serves a WASM SPA AND mounts the server-rendered
          dashboard references both hosts. DualHostMountTests pins what that composition must do. -->

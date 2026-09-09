@@ -7,7 +7,46 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **`Rask.Html` is gone: the HTML/SVG element family moved back into `Rask.Core`.** The ~155 tag
+  components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) and their 461 tests
+  rejoin the components Core always kept, in the `Rask.Core.Components` namespace. The assembly, its
+  test project, its PublicAPI baselines and the `Rask.Html.dll` copy bundled into every host package are
+  all deleted.
+
+  **What this buys is a delivery mechanism, not tidiness.** An assembly can only add members to a type
+  it declares, so the two halves reached a consumer by different routes: Core's entries land on
+  `Rask.Core.RaskMarkup`, which `Component` derives from, and every component everywhere inherits them
+  for free; `Rask.Html`'s could only be INJECTED — one forwarder per entry per markup host, in every
+  project that referenced it. Measured on `Rask.Server.Tests` (60 hosts):
+  `RaskBuilderConsumerEntries.g.cs` was **25,143 lines, 8,700 of its forwarders (~17,400 lines, 69%)
+  nothing but Rask.Html's 145 entries repeated into every host**. It is now **7,743 lines**. Every app
+  gets the same reduction, scaled by its own component count.
+
+  **No source break for the chain or the factories** — a chain entry is a member of the markup host, not
+  a name imported from a namespace, so `Div.Class("card")[Span["hi"]]` is unaffected. Code that names a
+  tag TYPE explicitly drops `using Rask.Html.Components;`: the host packages already surface
+  `Rask.Core.Components`. This undoes the namespace half of #710.
+
 ### Fixed
+
+- **A component named after an HTML tag silently rendered the tag instead.** Found by the merge above and
+  fixed with it: the per-host collision filter skipped an own entry whose name the host already had —
+  and once the tags were inherited from `RaskMarkup`, "already had" included every tag. A Svelte island
+  named `Meter` compiled, shipped, and rendered `<meter value="0">` with a green build.
+
+  An own or referenced-library entry that collides with an INHERITED framework entry is now emitted with
+  `new` instead of being dropped, so the nearer component keeps the simple name — the precedence the
+  chain has always had. `ReachableMemberNames` no longer counts `RaskMarkup`'s members as names the host
+  declares; `InheritedEntryNames` answers for those separately, because the two demand opposite
+  treatment: a name the host DECLARES must stop the injection (CS0102), a name it merely INHERITS is
+  hidden. Two tests in `BuilderEntryEmissionTests` pin both directions — `new` when it hides a tag, no
+  `new` (CS0109) when it hides nothing.
+
+  CS0108 still fires for a member of your own named after a tag, and now covers ~170 names rather than
+  the 15 Core used to keep. That is the documented, quick-fixable case (`docs/diagnostics.md`), and
+  `dotnet format` applies the `new` for you.
 
 - **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
   Every class name was present and correct in the markup; the rules never won. The hero's

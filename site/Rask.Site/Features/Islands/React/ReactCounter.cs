@@ -23,7 +23,7 @@ public sealed partial class ReactCounter : Rask.External.ReactComponent
     public int Step { get; set; }
 
     /// <summary>The caption above the counter.</summary>
-    public required string Caption { get; set; }
+    public new required string Caption { get; set; }
 
     /// <summary>Runs with the component's running total whenever it changes.</summary>
     public Action<int>? OnTotalChanged { get; set; }

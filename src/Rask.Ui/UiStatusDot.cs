@@ -9,7 +9,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiStatusDot : Component
 {
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     /// <summary>The dot's colour. Omitted, it reads as idle.</summary>
     public UiTone? Tone { get; set; }

@@ -273,7 +273,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         return UiRating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
     }
 
-    private static string Filter(Profile model) =>
+    private static new string Filter(Profile model) =>
         UiFilter.Bind(() => model.Tag!).Group("tags")
             .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
             .ToHtml();

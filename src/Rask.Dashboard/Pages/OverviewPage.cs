@@ -130,7 +130,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     }
 
     // Named Figure, not Stat or Metric: both of those are chain entries on this markup host.
-    private Component Figure(string label, int value, string? tone) =>
+    private new Component Figure(string label, int value, string? tone) =>
         Div[
             Div.Class("text-xs font-medium text-ui-muted")[label],
             Div.Class("mt-0.5 text-2xl font-semibold tabular-nums tracking-tight "

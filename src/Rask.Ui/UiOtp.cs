@@ -35,7 +35,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>
     private bool _complete;
 
     /// <summary>The accessible name — what the code is for.</summary>
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     /// <summary>How many characters. daisyUI draws the boxes from this.</summary>
     public required int Length { get; set; }

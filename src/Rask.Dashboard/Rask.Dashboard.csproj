@@ -32,7 +32,6 @@
          packages (Rask.Server), so listing it as a nuspec dependency would reference a package that
          exists on no feed and make Rask.Dashboard unrestorable. Guarded by PackageDependencyTests. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-    <ProjectReference Include="..\Rask.Html\Rask.Html.csproj" PrivateAssets="all"/>
 
     <!-- The component kit the console is drawn with. A real package dependency, not PrivateAssets: the
          types are Rask.Ui's and an app restoring Rask.Dashboard has to be able to resolve them. -->

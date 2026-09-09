@@ -13,7 +13,7 @@ namespace Rask.Core.Tests;
 // through IEnumerable<>. A projection of chains could not be children.
 internal sealed partial class CatalogBadge : Component
 {
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     protected override Component? Render() => Em[Label ?? ""];
 }

@@ -111,12 +111,10 @@
          client runtime resolves the manifest app-rooted at /_rask/external/manifest.json. -->
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- Arrived with the guides and demos when the Shared library folded into this project. Rask.Core
-         and Rask.Html are named explicitly rather than left to the Rask meta-package: the library used
-         to carry them, and the meta reference does not flow them to the compiler — dropping them takes
-         `Component` itself out of scope, which arrives as ~1,900 errors that all look like missing
-         usings. -->
+         is named explicitly rather than left to the Rask meta-package: the library used to carry it,
+         and the meta reference does not flow it to the compiler — dropping it takes `Component` itself
+         out of scope, which arrives as ~1,900 errors that all look like missing usings. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
@@ -164,8 +162,7 @@
   </Target>
 
   <!-- The kit's namespace, project-wide. Its icons and components are named in markup all over this
-       project, and a per-file using on ~60 files would be noise. Mirrors how Rask.Html imports
-       Rask.Core for the same reason. -->
+       project, and a per-file using on ~60 files would be noise. -->
   <!--
     The islands' front-end files. Styles/app.css names the same directory in `@source`, and that is a
     TAILWIND-side path — nothing hands it to MSBuild, so without this the sheet is built from them once

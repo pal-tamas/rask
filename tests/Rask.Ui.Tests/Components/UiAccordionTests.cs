@@ -83,7 +83,7 @@ public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
 
     // The markup for one section, sliced out of the whole so an assertion cannot pass by finding the
     // class on its neighbour.
-    private static string Section(string html, string title)
+    private static new string Section(string html, string title)
     {
         var at = html.IndexOf(title, StringComparison.Ordinal);
         Assert.True(at >= 0, $"no section titled {title}");

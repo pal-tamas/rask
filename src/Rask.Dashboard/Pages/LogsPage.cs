@@ -157,7 +157,7 @@ public sealed partial class LogsPage(
     // reaches this buffer however low LogMinimumLevel is set. Promising "Information and above" while
     // appsettings.Production.json says Warning is how an operator concludes the panel is broken when it is
     // working exactly as configured.
-    private string Caption() => IsHistory
+    private new string Caption() => IsHistory
         ? $"{_history.TotalCount} stored entries, kept across restarts"
         : $"at most {options.LogBufferSize} entries, {options.LogMinimumLevel} and above, in memory only";
 
@@ -251,7 +251,7 @@ public sealed partial class LogsPage(
     /// The current view's URL with the given facets. Every filter is carried explicitly so that changing one
     /// composes with the others instead of silently resetting them.
     /// </summary>
-    private string Link(string? level, string? category, int? page = null, string? query = null) =>
+    private new string Link(string? level, string? category, int? page = null, string? query = null) =>
         Routes.LogsPage(
             View: IsHistory ? "history" : null,
             Level: level,

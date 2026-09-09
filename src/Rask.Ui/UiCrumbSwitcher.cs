@@ -19,7 +19,7 @@ namespace Rask.Ui;
 public sealed partial class UiCrumbSwitcher : Component
 {
     /// <summary>The accessible name. There is no visible label — the crumb's position is the label.</summary>
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     /// <summary>The option currently selected.</summary>
     public required string Value { get; set; }

@@ -120,7 +120,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
     private static Component Swatch(string key, string colour) =>
         Div.Key(key).Class($"h-full w-full {colour}");
 
-    private static Component Section(string heading, string blurb, Component body) =>
+    private static new Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[
             H2.Class("text-lg font-semibold tracking-tight")[heading],
             P.Class("mt-1 mb-3 text-sm text-ui-muted")[blurb],

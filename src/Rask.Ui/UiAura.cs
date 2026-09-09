@@ -11,7 +11,7 @@ namespace Rask.Ui;
 public sealed partial class UiAura : Component
 {
     /// <summary>Which glow. Omitted, it is daisyUI's plain one.</summary>
-    public UiAuraStyle? Style { get; set; }
+    public new UiAuraStyle? Style { get; set; }
 
     /// <summary>How far the glow reaches.</summary>
     public UiSize? Size { get; set; }

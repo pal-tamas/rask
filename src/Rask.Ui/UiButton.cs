@@ -18,7 +18,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiButton : Component
 {
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     /// <summary>The button's colour. Omitted, it is the theme's plain button.</summary>
     public UiTone? Tone { get; set; }
@@ -43,7 +43,7 @@ public sealed partial class UiButton : Component
     public bool? Square { get; set; }
 
     /// <summary>Draws it as a circle holding nothing but its <see cref="Icon" />, as <see cref="Square" />.</summary>
-    public bool? Circle { get; set; }
+    public new bool? Circle { get; set; }
 
     /// <summary>
     ///     Draws it as though it were being pressed. For a button that toggles something, where the

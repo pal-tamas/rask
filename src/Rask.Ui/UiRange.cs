@@ -20,7 +20,7 @@ public sealed partial class UiRange : Component, IFormControl<double>
     ///     &lt;label&gt; element of its own — where one does, the property is AccessibleLabel instead.
     /// </summary>
     /// <remarks>A slider with no name announces only a number.</remarks>
-    public required string Label { get; set; }
+    public new required string Label { get; set; }
 
     public double? Min { get; set; }
 

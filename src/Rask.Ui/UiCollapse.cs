@@ -29,7 +29,7 @@ public sealed partial class UiCollapse : Component
     public Action<bool>? OnToggle { get; set; }
 
     /// <summary>Draws the arrow or plus marker.</summary>
-    public UiMarker? Marker { get; set; }
+    public new UiMarker? Marker { get; set; }
 
     public string? Class { get; set; }
 

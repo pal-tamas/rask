@@ -17,7 +17,7 @@ namespace Rask.Ui;
 public sealed partial class UiTabs : Component
 {
     /// <summary>How the row is drawn.</summary>
-    public UiTabStyle? Style { get; set; }
+    public new UiTabStyle? Style { get; set; }
 
     public UiSize? Size { get; set; }
 
