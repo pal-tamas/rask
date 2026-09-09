@@ -39,6 +39,12 @@ them until tagged releases begin.
   is a struct, and folding one would report a change every frame and defeat the render cache for every
   element carrying a handler. Nothing declares a carrier prop yet.
 
+- **`AutoCallback.Wrap` now types the two-argument shapes.** A handler whose delegate takes two arguments
+  previously fell to the `Delegate` fallback, which hands back an `Action<object?>` — a shape no
+  arity-typed carrier matches, so such a handler would be stored, never recognised at dispatch, and
+  silently never fire. With typed `Action<T1, T2>` and `Func<T1, T2, Task>` overloads, a missing arity is
+  a compile error instead.
+
 ### Fixed
 
 - **The missing-`Key` and missing-`Alt` checks never ran on a generic component or a form control.**

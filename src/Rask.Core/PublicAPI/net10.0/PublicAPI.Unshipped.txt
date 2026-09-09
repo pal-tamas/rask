@@ -3205,6 +3205,8 @@ static Rask.Core.Authorization.RouteAuthorizationResult.Forbid(string? scheme, S
 static Rask.Core.AutoCallback.Wrap(System.Action? d) -> System.Action?
 static Rask.Core.AutoCallback.Wrap(System.Delegate? d) -> System.Delegate?
 static Rask.Core.AutoCallback.Wrap(System.Func<System.Threading.Tasks.Task!>? d) -> System.Func<System.Threading.Tasks.Task!>?
+static Rask.Core.AutoCallback.Wrap<T1, T2>(System.Action<T1, T2>? d) -> System.Action<T1, T2>?
+static Rask.Core.AutoCallback.Wrap<T1, T2>(System.Func<T1, T2, System.Threading.Tasks.Task!>? d) -> System.Func<T1, T2, System.Threading.Tasks.Task!>?
 static Rask.Core.AutoCallback.Wrap<T>(System.Action<T>? d) -> System.Action<T>?
 static Rask.Core.AutoCallback.Wrap<T>(System.Func<T, System.Threading.Tasks.Task!>? d) -> System.Func<T, System.Threading.Tasks.Task!>?
 static Rask.Core.Browser.AnimationId.operator !=(Rask.Core.Browser.AnimationId left, Rask.Core.Browser.AnimationId right) -> bool
