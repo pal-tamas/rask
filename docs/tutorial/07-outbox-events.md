@@ -34,7 +34,7 @@ added — the whole file, so you can see where they go:
 ```csharp
 namespace Shop.Features.Orders;
 
-public sealed class Order : Entity<Guid>
+public sealed class Order : Model<Guid>
 {
     private Order() { } // EF Core materialization
 
@@ -72,7 +72,7 @@ public sealed class Order : Entity<Guid>
 ```
 
 `Create` changed from an expression body to a block so it can raise before returning; the fields are
-chapter 3's, untouched. `Raise` comes from `Entity<TId>`, and the events sit on the entity until
+chapter 3's, untouched. `Raise` comes from `Model<TId>`, and the events sit on the entity until
 `SaveChanges` — which is what makes the next part atomic.
 
 **Reacting.** `Features/Orders/OrderCreatedHandler.cs` — auto-registered by `AddRaskCqrs()`:

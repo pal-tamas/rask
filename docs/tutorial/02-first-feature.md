@@ -23,7 +23,7 @@ what's new.
 ```csharp
 namespace Shop.Features.Products;
 
-public sealed class Product : Entity<Guid>
+public sealed class Product : Model<Guid>
 {
     private Product() { } // EF Core materialization
 

@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Api;
@@ -19,6 +20,7 @@ using Rask.Mail;
 using Rask.Outbox;
 using Rask.Query;
 using Rask.Server;
+using Rask.SQLite;
 using Rask.SQLite.Litestream;
 using Rask.SQLite.Snapshots;
 using Rask.WebPush;
@@ -173,6 +175,20 @@ internal static class RaskBatteryWiring
         {
             WireContextBatteries(services, options, context);
         }
+        else
+        {
+            // No context of its own, so the app gets Rask's — mapped from the entities the source
+            // generator found, which is what lets an app declare an entity and nothing else and still
+            // have a database. Registered unconditionally rather than only when an entity exists: the
+            // generated registry is populated by a module initializer, and an entity living in a class
+            // library the app has not yet touched would make "are there entities?" answer differently
+            // depending on what ran first.
+            services.AddDbContextFactory<RaskAppDbContext>((sp, o) => o
+                .UseRaskSqlite(connectionString, sqlite => sqlite.StrictTables = true)
+                .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+
+            WireContextBatteries(services, options, typeof(RaskAppDbContext));
+        }
     }
 
     /// <summary>
@@ -211,6 +227,10 @@ internal static class RaskBatteryWiring
     private static void WireFor<TContext>(IServiceCollection services, RaskAppOptions options)
         where TContext : DbContext
     {
+        // Bind the ambient database to this context, so `Product.Where(…)` and `Db.Begin()` reach it
+        // without anything being injected. AddRaskData is idempotent, so this only adds the binding.
+        services.AddRaskData<TContext>();
+
         // The outbox first, so a reader meets durable delivery before the things that use it. Order is not
         // load-bearing — see OutboxDeliveryHandoverTests, which pins that both ways round work.
         if (options.Outbox.Enabled)

@@ -36,6 +36,80 @@ them until tagged releases begin.
   reading a problem document, so a 400 arrived with nothing to show the user and nothing anywhere
   said why. (#988)
 
+- **Declare a model, and that is the whole data layer.** `Rask.Data` gains an active-record surface over
+  EF Core: a class deriving from `Model<TId>` is mapped, queryable and writable with no `DbContext`
+  class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
+  `IDbContextFactory` injected into every page that reads a row.
+
+  - **The model type is its own `DbSet`.** `Product.Where(…)`, `Product.OrderBy(…)`, `Product.Include(…)`,
+    `Product.FindAsync(id)`, `Product.CountAsync()`, `Product.Add/Update/Remove(…)` and the rest of EF's
+    vocabulary are C# 14 static extension members over `Model`, so an entity that compiles today has them
+    — no second base class and no generated partial. A member declared on the model itself always wins,
+    so your own `Create` or `Find` is untouched.
+  - **Reads need no ceremony.** A query composes without holding a context open; the terminal call opens
+    one, runs and disposes it before returning, so `await Product.Where(p => p.Active).ToListAsync()` is a
+    complete statement inside `OnMountAsync`. Rows come back **untracked by default** — `.AsTracking()`
+    opts in, and `Product.Update(entity)` is the ordinary way to write one back.
+  - **Writes are a unit of work.** `Db.Begin()` makes one short-lived context ambient; `Add`/`Remove`/
+    `Update` track against it and one `SaveChangesAsync` commits them together. They are EF's verbs with
+    EF's meanings, so outside a unit of work they say so rather than appearing to work. Nesting *joins*
+    rather than nests, so a helper can open one unconditionally and still take part in its caller's
+    transaction. The context is created lazily and is never session-scoped, which is what keeps a
+    long-lived Rask session away from a shared `DbContext`.
+  - **`Db` is the ambient database**, reachable from anywhere including inside a model: `Db.Current` is
+    the real `DbContext`, `Db.Set<T>()` its sets, `Db.SaveChangesAsync()` the ambient commit.
+  - **A model can save itself.** `await this.SaveAsync()` lets behaviour on the model finish the job —
+    `order.Cancel(now)` then persist — with no unit of work around it. Inside one it *joins* rather than
+    commits, so a caller who wrapped several models in one transaction still gets one transaction and a
+    model's own method can never commit half of its caller's work.
+  - **Batch update and delete.** `ExecuteUpdateAsync` and `ExecuteDeleteAsync` on a query are one
+    set-based statement over every matching row, with setters that can read the row they update. They
+    bypass the interceptors, as EF's do, so the docs state what that skips — no `UpdatedAt`, no `Version`
+    bump, no domain events — and that a batch *soft* delete is an `ExecuteUpdateAsync` of `DeletedAt`,
+    because `ExecuteDeleteAsync` really deletes an `ISoftDeletable` row.
+  - **Models are testable as plain objects.** Behaviour that only changes the model needs no database and
+    no mock; behaviour that reads one gets a real database in a line via `TestDatabase.StartAsync`, which
+    builds the generated model, creates the schema, wires the auditing and soft-delete interceptors, and
+    clears the ambient database on dispose. Provider-agnostic, so `Rask.Data` gains no provider
+    dependency and a test runs against the database the app ships on.
+  - **Mapping rules live on the model**, as a plain `public static void Configure(EntityTypeBuilder<T>)`
+    — no attribute, no interface, no separate class. It runs last, so it can overrule Rask's conventions
+    rather than being overwritten by them.
+  - **Value objects** marked `IValueObject` are mapped as EF **complex types** (part of the row) rather
+    than owned entities (a joined table with hidden identity), nested ones included.
+  - **Strongly-typed ids** work with nothing declared: `Model<ProductId>` registers a generated value
+    converter once for the type, so the key, foreign keys and nullable occurrences are all converted.
+  - **Generated, never reflected.** A source generator builds the model at compile time, so a trimmed
+    publish cannot drop an entity and leave a missing table behind a green build.
+
+  Two diagnostics keep the conventions from failing silently: **RASK072** when a `Configure` method will
+  not be called because its signature does not match, and **RASK073** when a strongly-typed id has no
+  value the generator can convert.
+
+  None of it is compulsory. A class that does not derive from `Model` is an ordinary EF Core entity, and
+  registering an `IDbContextFactory<YourContext>` binds the ambient database and every database-backed
+  battery to your own context instead. See [docs/data.md](docs/data.md).
+
+### Changed
+
+- **`Rask.Data.Entity<TId>` is now `Rask.Data.Model<TId>`**, with the non-generic `Model` as the base the
+  active-record surface is keyed on. Breaking for anything deriving from the old name.
+
+- **An app with no `DbContext` of its own now gets one.** Previously it got no database and therefore no
+  jobs, outbox, mail, cache or auth; it now gets `RaskAppDbContext` — the generated model plus every
+  battery's tables — so declaring a model is enough to have a working database. Registering an
+  `IDbContextFactory<YourContext>` still wins and is the way to opt out. Every battery's tables are
+  mapped whether or not the battery is on, matching what Auth already promised, so toggling one is not a
+  destructive migration.
+
+### Fixed
+
+- **A `UnitOfWork` disposed with `await using` never left the ambient scope.** `DisposeAsync` was an
+  `async` method, so its `AsyncLocal` write landed on the state machine's own execution context and never
+  reached the caller's. The scope stayed open forever and the next `Db.Begin()` handed back a handle onto
+  the disposed context. The pop now happens in a synchronous body; only the context's disposal is
+  awaited.
+
 ### Fixed
 
 - **The showcase's top bar was near-black text on a near-black bar, on markup whose class names were
