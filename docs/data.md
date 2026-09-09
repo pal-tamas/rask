@@ -41,14 +41,45 @@ and nothing to register.
 **Generated, never reflected.** No assembly is scanned and no method is found by name, so a trimmed
 publish cannot quietly drop an entity and leave you a missing table with a green build.
 
-`Model<TId>` carries `Id`, `CreatedAt`, `UpdatedAt` and a domain-events buffer
-(`Raise` / `DomainEvents` / `ClearDomainEvents`). Two behaviours are opt-in — implement a marker
-interface:
+`Model<TId>` carries `Id` and a domain-events buffer (`Raise` / `DomainEvents` / `ClearDomainEvents`).
+**Everything else is opt-in, and opting in does not put anything on your class** — the marker alone is
+enough, and the column is added as an EF *shadow property*:
 
-| Interface | Adds | Effect |
-|-----------|------|--------|
-| `ISoftDeletable` | `DateTime? DeletedAt` | `Remove` becomes a `DeletedAt` stamp; a global query filter hides it. |
-| `IVersioned` | `int Version` | Marked as the optimistic-concurrency token; bumped on every update. |
+| Interface | Column | Effect |
+|-----------|--------|--------|
+| `ITimestamped` | `CreatedAt`, `UpdatedAt` | Stamped on insert and on every update. |
+| `ISoftDeletable` | `DeletedAt` | `Remove` becomes a `DeletedAt` stamp; a global query filter hides it. |
+| `IVersioned` | `Version` | The optimistic-concurrency token; bumped on every update. |
+
+```csharp
+public sealed class Product : Model<Guid>, ITimestamped, ISoftDeletable
+{
+    public string Name { get; private set; } = "";   // and that is the whole class
+}
+```
+
+That model has `CreatedAt`, `UpdatedAt` and `DeletedAt` columns, is stamped on every write, and
+disappears from queries when deleted — with no infrastructure in the domain type at all.
+
+**Declaring a property is how you opt into *reading* one.** When a screen shows "added on", or a query
+orders by it, write it out and it becomes an ordinary mapped property:
+
+```csharp
+public sealed class Product : Model<Guid>, ITimestamped
+{
+    public DateTime CreatedAt { get; private set; }   // now selectable, filterable, renderable
+}
+```
+
+One or both, in any combination — declare only `CreatedAt` and `UpdatedAt` stays a shadow column. A
+private setter is enough either way: the framework writes these through EF's change tracker, not through
+the CLR setter. What is not declared is still reachable when something genuinely needs it, through
+`EF.Property<DateTime>(product, "CreatedAt")`.
+
+**`IVersioned` is the exception and must declare `public int Version { get; private set; }`.**
+Optimistic concurrency exists to round-trip the token through an edit form, and a value the application
+cannot read is one it cannot send back. A model that marks itself versioned without the property is
+refused while the model is built, by name, rather than failing later as an update that matched no row.
 
 ## Reading: the model type is its own `DbSet`
 
@@ -141,6 +172,32 @@ public async Task<bool> TryCancelAsync(DateTime when, CancellationToken ct = def
 
 Outside a unit of work `SaveAsync` *is* one — a context is opened, the row is written, the context is
 disposed — so `await order.TryCancelAsync(now)` is a complete operation with no `Db.Begin()` around it.
+
+**It inserts a model that has never been persisted and updates one that has**, and `DeleteAsync` is its
+counterpart, so a single write of any kind is a one-liner:
+
+```csharp
+var order = Order.Place("A-1");
+await order.SaveAsync();        // insert
+order.Cancel(now);
+await order.SaveAsync();        // update
+await order.DeleteAsync();      // soft delete, through the interceptor
+```
+
+That leaves `Db.Begin()` for the one thing it is actually needed for: **putting several models in one
+transaction**.
+
+An `ITimestamped` model answers the insert-or-update question for free: the auditing interceptor stamps
+`CreatedAt` on insert and nothing else ever writes it, so a default value means "never persisted" — no
+extra `SELECT`, and no guessing from whether the key is set, which for a client-assigned `Guid` it
+always is. A model **without** the stamps is asked instead: one `SELECT` by primary key, and only on a
+detached save — a tracked model never reaches that path. A row whose `CreatedAt` was never populated (a
+table predating these conventions) reads as new and fails loudly on the duplicate key rather than
+writing the wrong thing; `Update` is the explicit way to save one of those.
+
+`DeleteAsync` goes through the change tracker, so an `ISoftDeletable` is stamped rather than removed and
+domain events are still announced — the difference from `ExecuteDeleteAsync`, which the interceptors
+never see.
 
 **Inside a unit of work it joins rather than commits.** The change is tracked and written when the
 *caller's* unit of work commits, so wrapping two orders in one transaction still gives one transaction,

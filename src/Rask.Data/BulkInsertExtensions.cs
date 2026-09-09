@@ -12,7 +12,7 @@ namespace Rask.Data;
 /// <remarks>
 /// <para>
 /// The insert runs through the context, so everything Rask.Data wires stays true: the
-/// <see cref="AuditingInterceptor"/> stamps <see cref="ITimestamped.CreatedAt"/>/<see cref="ITimestamped.UpdatedAt"/>
+/// <see cref="AuditingInterceptor"/> stamps <c>CreatedAt</c>/<c>UpdatedAt</c>
 /// and the <see cref="DomainEventInterceptor"/> publishes each entity's domain events, exactly as they would
 /// for an ordinary save. What changes is the shape of the work: the entities are added and saved in batches
 /// of <see cref="BulkInsertOptions.BatchSize"/>, change detection is off for the duration, and the change
