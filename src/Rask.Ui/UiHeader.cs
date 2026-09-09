@@ -5,7 +5,7 @@ public sealed partial class UiHeader : Component
 {
     public required string Heading { get; set; }
 
-    public new string? Caption { get; set; }
+    public string? Caption { get; set; }
 
     public Component? Actions { get; set; }
 

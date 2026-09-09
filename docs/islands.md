@@ -294,10 +294,11 @@ dictionaries, and records composed of the same. Anything else is
 [RASK057](diagnostics.md#rask057) at compile time rather than `null` in the browser. `[SkipFactory]`
 keeps a property out of the props entirely.
 
-> **A prop named after an HTML tag will not compile.** `Title`, `Label`, `Data`, `Form`, `Style` and
-> friends collide with the chain entry of the same name (CS0108, fatal under `-warnaserror`). This is
-> not specific to these, but they make it much likelier because those are natural names for a UI
-> component's props. Rename the property, or qualify the tag at its use site.
+> **A prop named after an HTML tag is fine.** `Title`, `Label`, `Data`, `Form`, `Style` and friends
+> hide the chain entry of the same name, and CS0108 used to make that fatal under `-warnaserror`.
+> [RASKSUP001](diagnostics.md#cs0108-a-member-hides-a-builder-entry) now suppresses it, so these
+> natural prop names cost nothing. Inside the component the hidden name resolves to your property —
+> qualify the tag on the rare occasion you want the element instead.
 
 ## Callbacks
 

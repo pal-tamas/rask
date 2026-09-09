@@ -20,7 +20,7 @@ public sealed partial class Option : Element
     public bool? Disabled { get; set; }
 
     /// <summary>A shorter label to display instead of the option's text.</summary>
-    public new string? Label { get; set; }
+    public string? Label { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

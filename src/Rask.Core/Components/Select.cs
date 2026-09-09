@@ -47,7 +47,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     public int? Size { get; set; }
 
     /// <summary>The <c>id</c> of the form this control belongs to.</summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     /// <summary>Focuses this control on page load.</summary>
     public bool? Autofocus { get; set; }

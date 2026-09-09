@@ -36,7 +36,7 @@ public sealed partial class HomePage : Component
 
     private const string Lede = "mt-5 text-lg leading-relaxed text-ui-ink";
 
-    private new const string Sub = "mt-4 text-sm leading-relaxed text-ui-muted";
+    private const string Sub = "mt-4 text-sm leading-relaxed text-ui-muted";
 
     private const string Card = "rounded-2xl border border-ui-line bg-ui-bg";
 

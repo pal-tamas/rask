@@ -10,7 +10,7 @@ namespace Rask.Ui;
 public sealed partial class UiProgress : Component
 {
     /// <summary>The accessible name — what is progressing.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     public required double Value { get; set; }
 

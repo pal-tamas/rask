@@ -15,5 +15,5 @@ public sealed partial class SvelteMeter : Rask.External.SvelteComponent
     public int Value { get; set; }
 
     /// <summary>The caption beside the reading.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 }

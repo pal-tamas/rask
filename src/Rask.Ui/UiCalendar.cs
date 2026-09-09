@@ -34,7 +34,7 @@ namespace Rask.Ui;
 public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
 {
     /// <summary>The accessible name — what the date is for.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     /// <summary>Any day in the month being shown. Defaults to the month of the chosen day, or today.</summary>
     public DateOnly? Month { get; set; }

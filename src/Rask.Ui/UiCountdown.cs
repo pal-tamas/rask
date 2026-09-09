@@ -19,7 +19,7 @@ public sealed partial class UiCountdown : Component
     public required int Value { get; set; }
 
     /// <summary>The accessible name — what is being counted.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     public string? Class { get; set; }
 

@@ -22,7 +22,7 @@ public sealed partial class CodeSample : Component
 #pragma warning disable CS8618
     public CodeSample(IJSRuntime js) => _js = js;
 
-    public new string? Title { get; set; }
+    public string? Title { get; set; }
 
     // The demo source files to show, in tab order, as bare embedded-resource leaf names
     // (e.g. ["ElementRefDemo.cs", "ElementRefDemo.ts"]). Each file gets its own tab labelled
@@ -66,7 +66,7 @@ public sealed partial class CodeSample : Component
         await _js.InvokeVoidAsync("Rask.CodeSample.copy", source, _copyButton);
     }
 
-    private new Component Header()
+    private Component Header()
     {
         Component files = Files.Count == 1
             ? Span.Class("sample-code-label ms-2")[Files[0]]

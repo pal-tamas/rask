@@ -53,7 +53,7 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
         }
     }
 
-    private new async Task Stop()
+    private async Task Stop()
     {
         if (_watch is not null)
         {

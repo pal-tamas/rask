@@ -30,7 +30,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>
     ///     &lt;label&gt; element of its own — where one does, the property is AccessibleLabel instead.
     /// </summary>
     /// <remarks>Rendered as <c>aria-label</c>: a placeholder is not a name, it vanishes when typing starts.</remarks>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     public string? Placeholder { get; set; }
 

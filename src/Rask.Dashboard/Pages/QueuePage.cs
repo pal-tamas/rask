@@ -35,7 +35,7 @@ public sealed partial class QueuePage(
     /// <inheritdoc />
     protected override RaskDashboardOptions Options => options;
 
-    private new QueueFilter Filter =>
+    private QueueFilter Filter =>
         Enum.TryParse<QueueFilter>(Show, ignoreCase: true, out var parsed) ? parsed : QueueFilter.Outstanding;
 
     /// <inheritdoc />

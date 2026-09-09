@@ -11,10 +11,10 @@ namespace Rask.Ui;
 public sealed partial class UiAccordionSection : Component
 {
     /// <summary>The heading, and the thing you press.</summary>
-    public new required string Title { get; set; }
+    public required string Title { get; set; }
 
     /// <summary>Draws the arrow or plus marker.</summary>
-    public new UiMarker? Marker { get; set; }
+    public UiMarker? Marker { get; set; }
 
     public string? Class { get; set; }
 

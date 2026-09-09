@@ -43,7 +43,7 @@ public abstract partial class Element : Component
     ///     </para>
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/style">MDN</see>
     /// </summary>
-    public new string? Style { get; set; }
+    public string? Style { get; set; }
 
     /// <summary>
     ///     Custom <c>data-*</c> attributes. Each entry emits <c>data-{key}="{value}"</c> — the key verbatim,
@@ -57,7 +57,7 @@ public abstract partial class Element : Component
     ///     </para>
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/data-*">MDN</see>
     /// </summary>
-    public new IReadOnlyDictionary<string, string?>? Data { get; set; }
+    public IReadOnlyDictionary<string, string?>? Data { get; set; }
 
     // Accessibility, available on every element. `Aria` is the data-* model applied to ARIA: each
     // entry emits aria-{key}="{value}" (key verbatim, value HTML-encoded) — so `Aria: new() {
@@ -136,7 +136,7 @@ public abstract partial class Element : Component
     ///         the framework — a silent source break for anyone passing them positionally.
     ///     </para>
     /// </summary>
-    public new string? Title { get; set; }
+    public string? Title { get; set; }
 
     // A stable DOM handle for JS interop. When set, emits data-rask-ref="{id}" in the data-* group;
     // the client reviver resolves an ElementRef arg to this element via [data-rask-ref="..."].

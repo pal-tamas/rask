@@ -105,7 +105,7 @@ public sealed partial class UiKitFeedbackDemo : Component
     private static Component Spin(string key, UiLoadingShape shape, string label) =>
         UiLoading.Key(key).Text(label).Shape(shape).Size(UiSize.Lg);
 
-    private static new Component Section(string heading, string blurb, Component body) =>
+    private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[
             H2.Class("text-lg font-semibold tracking-tight")[heading],
             P.Class("mt-1 mb-3 text-sm text-ui-muted")[blurb],

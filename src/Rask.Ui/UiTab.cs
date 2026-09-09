@@ -7,7 +7,7 @@ public sealed partial class UiTab : Component
 {
     public required string Href { get; set; }
 
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     public bool? Active { get; set; }
 

@@ -17,7 +17,7 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>
     ///     daisyUI and MaryUI both call this <c>label</c>. Free to use here because this component renders no
     ///     &lt;label&gt; element of its own — where one does, the property is AccessibleLabel instead.
     /// </summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     public string? Placeholder { get; set; }
 

@@ -64,7 +64,7 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
     public string? Autocomplete { get; set; }
 
     /// <summary>The <c>id</c> of the form this control belongs to.</summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     /// <summary>The name under which the field's text direction is submitted alongside its value.</summary>
     public string? Dirname { get; set; }

@@ -9,6 +9,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **CS0108 no longer costs you a `new`: RASKSUP001 suppresses it when the hidden member is a builder
+  entry.** Every component contributes an entry named after itself, and the ~170 HTML/SVG tags land on
+  `RaskMarkup`, which every component inherits — so an ordinary `Component? Footer`, `required string
+  Label`, private `Section(…)` helper or nested `record Address` hides one it never asked about. A
+  framework should not spend a keyword of your source per accidental collision with a tag name.
+
+  The rule is narrow on purpose: the hidden member must itself be an entry — named after the component
+  it builds, declared on the markup surface. Hiding a real member of your own base type still warns,
+  inside a component or outside one. Both entry shapes are recognised, including the `RaskSeed_*` field
+  a GENERIC component (`Form<T>`, `Select<T>`, `Input<T>`) opens its chain through; missing that left
+  nine members warning inside `Rask.Core` alone.
+
+  **`dotnet format` does not honour `DiagnosticSuppressor`s**, which is the part worth knowing if you
+  run the same gate: it surfaces the diagnostic itself and fails on any warning-severity report. With
+  the suppressor in place the Release build reported ZERO CS0108 while the same tree's format verify
+  pass reported 200, every one a member the compiler had agreed to ignore. Rask's own `.editorconfig`
+  consequently sets `dotnet_diagnostic.CS0108.severity = none` **for its own source only** — consumers
+  need no such setting, because the suppressor is what answers CS0108 for them and it keeps the genuine
+  case. The **CS0108 quick-fix is removed** — it existed only to write the `new` this makes
+  unnecessary — and 111 `new` modifiers come out of this repository's own source.
+
+  A prop or parameter named after a tag is consequently no longer a compile error for **islands**
+  (`Title`, `Label`, `Data`, `Form` are natural prop names) or for **Blazor components**, where
+  `[BlazorParameter("Name")]` becomes a readability choice rather than a requirement.
+
 - **`Rask.Html` is gone: the HTML/SVG element family moved back into `Rask.Core`.** The ~155 tag
   components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) and their 461 tests
   rejoin the components Core always kept, in the `Rask.Core.Components` namespace. The assembly, its
@@ -44,9 +69,8 @@ them until tagged releases begin.
   hidden. Two tests in `BuilderEntryEmissionTests` pin both directions — `new` when it hides a tag, no
   `new` (CS0109) when it hides nothing.
 
-  CS0108 still fires for a member of your own named after a tag, and now covers ~170 names rather than
-  the 15 Core used to keep. That is the documented, quick-fixable case (`docs/diagnostics.md`), and
-  `dotnet format` applies the `new` for you.
+  CS0108 for a member of your own named after a tag now covers ~170 names rather than the 15 Core used
+  to keep — and no longer needs answering at all; see RASKSUP001 below.
 
 - **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
   Every class name was present and correct in the markup; the rules never won. The hero's

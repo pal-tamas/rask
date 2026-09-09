@@ -40,7 +40,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     private int _cursor = -1;
 
     /// <summary>The accessible name.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     /// <summary>
     ///     The options: the value stored, and the words shown.

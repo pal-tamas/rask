@@ -27,7 +27,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
     public required string Group { get; set; }
 
     /// <summary>The accessible name for the group.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     public int? Max { get; set; }
 

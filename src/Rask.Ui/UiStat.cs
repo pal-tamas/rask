@@ -7,14 +7,14 @@ public sealed partial class UiStat : Component
 {
     public required string Value { get; set; }
 
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     // NULLABLE, not defaulted. A property with an initialiser is excluded from the chain altogether, and
     // one that is non-nullable without an initialiser becomes a REQUIRED step (RASK001) — so an optional
     // step is spelled by making the property nullable, and only that.
     public UiIconName? Icon { get; set; }
 
-    public new string? Caption { get; set; }
+    public string? Caption { get; set; }
 
     /// <summary>
     ///     <c>danger</c> for a number an operator must act on, <c>warn</c> for one that is merely unproven.

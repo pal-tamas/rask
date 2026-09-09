@@ -5,7 +5,7 @@ namespace Rask.Ui;
 /// <summary>A link out of the console, in the top bar's trailing edge.</summary>
 public sealed partial class UiTopLink : Component
 {
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     public required string Href { get; set; }
 

@@ -11,7 +11,7 @@ namespace Rask.Ui;
 public sealed partial class UiRadialProgress : Component
 {
     /// <summary>The accessible name — what is progressing.</summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     /// <summary>0 to 100.</summary>
     public required int Percent { get; set; }

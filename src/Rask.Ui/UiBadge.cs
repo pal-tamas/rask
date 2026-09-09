@@ -3,7 +3,7 @@ namespace Rask.Ui;
 /// <summary>A small status pill.</summary>
 public sealed partial class UiBadge : Component
 {
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     /// <summary>One of <c>danger</c>, <c>warn</c>, <c>info</c>, <c>ok</c>. Anything else reads as neutral.</summary>
     public string? Tone { get; set; }

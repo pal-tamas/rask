@@ -26,7 +26,7 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
     ///     daisyUI and MaryUI both call this <c>label</c>. Free to use here because this component renders no
     ///     &lt;label&gt; element of its own — where one does, the property is AccessibleLabel instead.
     /// </summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     /// <summary>
     ///     The chosen files themselves, for reading or uploading. Fires in both modes, and with an empty

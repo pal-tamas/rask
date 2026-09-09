@@ -295,8 +295,8 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
 
     private sealed class NamedProbe : Component
     {
-        public new string? A;
-        public new string? B;
+        public string? A;
+        public string? B;
         public string? Unnamed;
 
         protected override Component? Render()

@@ -264,7 +264,7 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         _ => UiFileInput.Value("").Label("Avatar").Tone(tone).ToHtml(),
     };
 
-    private static new string Filter(string? selected) =>
+    private static string Filter(string? selected) =>
         UiFilter.Value(selected).Group("tags")
             .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
             .ToHtml();

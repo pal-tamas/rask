@@ -38,7 +38,7 @@ public sealed class GestureTrigger : Component
     public Func<string?, Task>? OnResult { get; set; }
 
     /// <summary>Renders your trigger element, given the attribute bundle to apply via its <c>Data</c> prop.</summary>
-    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render() => Template!(GestureBridge.Attr(Capability, OnResult));
@@ -51,7 +51,7 @@ public sealed class FullscreenTrigger : Component
     public ElementRef? For { get; set; }
 
     /// <summary>Renders your trigger element; its click requests fullscreen for the page (or <see cref="For" />).</summary>
-    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render() => Template!(GestureBridge.Attr("fullscreen.request", null, el: For?.Id));
@@ -64,7 +64,7 @@ public sealed class EyeDropperTrigger : Component
     public Func<string?, Task>? OnColor { get; set; }
 
     /// <summary>Renders your trigger element; its click opens the eyedropper.</summary>
-    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render() => Template!(GestureBridge.Attr("eyedropper.open", OnColor));
@@ -82,7 +82,7 @@ public sealed class ScreenOrientationTrigger : Component
     public required string Orientation { get; set; }
 
     /// <summary>Renders your trigger element; its click locks the orientation (a no-op unless the page is fullscreen).</summary>
-    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render() => Template!(GestureBridge.Attr("orientation.lock", null, arg: Orientation));
@@ -98,7 +98,7 @@ public sealed class PictureInPictureTrigger : Component
     public required ElementRef For { get; set; }
 
     /// <summary>Renders your trigger element; its click opens the picture-in-picture miniplayer for <see cref="For" />.</summary>
-    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render() => Template!(GestureBridge.Attr("pip.request", null, el: For.Id));
@@ -116,7 +116,7 @@ public sealed class InstallTrigger : Component
     public Func<string?, Task>? OnOutcome { get; set; }
 
     /// <summary>Renders your trigger element; its click shows the browser's install prompt.</summary>
-    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render() => Template!(GestureBridge.Attr("install.prompt", OnOutcome));
@@ -135,10 +135,10 @@ public sealed class MediaCaptureTrigger : Component
     public required ElementRef For { get; set; }
 
     /// <summary>Capture the microphone. Defaults to <c>false</c>.</summary>
-    public new bool Audio { get; set; } = false;
+    public bool Audio { get; set; } = false;
 
     /// <summary>Capture the camera. Defaults to <c>true</c>.</summary>
-    public new bool Video { get; set; } = true;
+    public bool Video { get; set; } = true;
 
     /// <summary>Optional camera facing mode — <c>"user"</c> (front) or <c>"environment"</c> (rear).</summary>
     public string? FacingMode { get; set; }
@@ -156,7 +156,7 @@ public sealed class MediaCaptureTrigger : Component
     public Func<MediaStreamId, Task>? OnStream { get; set; }
 
     /// <summary>Renders your trigger element; its click starts the capture and attaches it to <see cref="For" />.</summary>
-    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render()

@@ -50,7 +50,7 @@ public sealed partial class Meter : SvelteComponent
 public sealed partial class Tile : PreactComponent
 {
     /// <summary>Caption shown on the tile.</summary>
-    public new required string Caption { get; set; }
+    public required string Caption { get; set; }
 }
 
 /// <summary>A spark rendered by a sibling Spark.tsx — Solid's, not React's.</summary>
@@ -64,7 +64,7 @@ public sealed partial class Spark : SolidComponent
 public sealed partial class Quote : AngularComponent
 {
     /// <summary>The symbol being quoted.</summary>
-    public new required string Symbol { get; set; }
+    public required string Symbol { get; set; }
 }
 
 // Renders real components rather than asserting on generator output as text. What has to work is the

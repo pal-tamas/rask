@@ -69,7 +69,7 @@ public partial class UiMegamenuTests : global::Rask.Core.RaskMarkup
     private global::Rask.Core.Build<UiMegamenuPanel> Panel() =>
         UiMegamenuPanel.Trigger("Products").Id("products");
 
-    private new string Menu() =>
+    private string Menu() =>
         UiMegamenu[
             UiMegamenuPanel.Key("p").Trigger("Products").Id("products")[P["Everything we sell."]],
             UiMegamenuPanel.Key("c").Trigger("Company").Id("company")[P["Who we are."]]

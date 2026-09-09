@@ -15,7 +15,7 @@ public sealed partial class Output : Element
     public string? For { get; set; }
 
     /// <summary>The <c>id</c> of the form this output belongs to.</summary>
-    public new string? Form { get; set; }
+    public string? Form { get; set; }
 
     /// <summary>The control's name, used when the form is submitted.</summary>
     public string? Name { get; set; }

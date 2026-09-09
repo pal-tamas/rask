@@ -17,7 +17,7 @@ public sealed partial class Th : HtmlTableCellElement
     public string? Scope { get; set; }
 
     /// <summary>A short form of the header, used where repeating the full text would be tedious.</summary>
-    public new string? Abbr { get; set; }
+    public string? Abbr { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

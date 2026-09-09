@@ -46,11 +46,10 @@ public sealed class ErrorBoundary : Component
 
     /// <summary>Where <see cref="Error" /> came from. Meaningless when <see cref="Error" /> is null.</summary>
     /// <remarks>
-    ///     <c>new</c> because the builder surface gives <see cref="Component" /> an entry named after every
-    ///     tag, and one of them is <c>&lt;source&gt;</c>. Hiding it is what this member means; the quick-fix
-    ///     for CS0108 writes exactly this modifier.
+    ///     Hides the builder entry named after the <c>&lt;source&gt;</c> tag, which is what this member
+    ///     means. No <c>new</c> is needed for it: RASKSUP001 suppresses that CS0108.
     /// </remarks>
-    internal new ErrorSource Source { get; private set; }
+    internal ErrorSource Source { get; private set; }
 
     // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
     // render result would never reflect a Trip(). BypassRenderCache forces Render() to run

@@ -25,7 +25,7 @@ public sealed partial class UiThemeController : Component
     ///     What this control is called — for example "Dark". Free to use here because this component
     ///     renders no <c>&lt;label&gt;</c> element of its own.
     /// </summary>
-    public new required string Label { get; set; }
+    public required string Label { get; set; }
 
     /// <summary>The theme this control selects.</summary>
     public required UiThemeName Theme { get; set; }

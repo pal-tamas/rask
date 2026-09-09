@@ -138,10 +138,10 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     }
 
     [SkipFactory]
-    // `new`: a nested component named after a tag. The generator no longer injects an entry for it (that
-    // would be CS0102 against this very declaration), but the inherited <section> entry is still there to
-    // hide — CS0108, and `new` is what says the nested component is the one meant here.
-    public new sealed class Section : Component
+    // A nested component named after a tag. The generator no longer injects an entry for it (that would
+    // be CS0102 against this very declaration), and the inherited <section> entry it hides needs no
+    // `new` — RASKSUP001 suppresses that CS0108.
+    public sealed class Section : Component
     {
         protected override Component? Render() =>
             global::RaskEntriesRask_Core.Section["section:", Outlet];

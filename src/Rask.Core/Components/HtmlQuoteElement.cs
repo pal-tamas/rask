@@ -15,7 +15,7 @@ public abstract partial class HtmlQuoteElement : Element
     ///     A URL for the source of the quotation. Not displayed by browsers — surface it in your own markup
     ///     if readers need it.
     /// </summary>
-    public new string? Cite { get; set; }
+    public string? Cite { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
