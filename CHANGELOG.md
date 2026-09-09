@@ -27,6 +27,22 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The missing-`Key` and missing-`Alt` checks never ran on a generic component or a form control.**
+  `RASK022` and `RASK023` read a chain from its outermost link down to the entry that opened it, and an
+  entry was recognised only as a property typed `Build<T>`. A generic component cannot hand that back —
+  its own type argument is unknown until a step pins it — so its entry is typed `RaskSeed_<Name>` and the
+  first step returns the chain. A form's chain is a third shape again, `FormBuild<T>`, which exists
+  because an indexer cannot be constrained.
+
+  So `items.Select(i => Row.Item(i))` — a keyless list of a generic component, exactly the shape
+  `RASK022` exists to catch — passed in silence, as did every keyless list of bound form controls. The
+  analyzer did not report anything wrong; it simply never ran, which is the failure mode an analyzer
+  cannot report on its own. This is the same miss as #704, one chain shape later.
+
+  The entry test now recognises the seed struct by the one name the generator spells it with, and
+  `ChainedComponent` matches `FormBuild<T>` alongside the two `Build<>` arities. Sweeping the solution
+  turned up no newly-reported call sites, so nothing was silently relying on the gap.
+
 - **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that
   arrives prerendered carries its `<rask-external>` hosts in the first response, so the islands runtime
   mounts them before WebAssembly has finished starting. The first full frame then replaces `<body>`
