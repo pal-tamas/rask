@@ -27,6 +27,9 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     public Task EveryRuntimeMountsAndTakesItsCSharpProps() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs + "/islands");
+        // Prerendered: the islands are on screen before the runtime exists, so a callback fired
+        // now would reach nothing. Wait for the runtime to clear data-rask-prerendered (#1035).
+        await WaitForInteractiveAsync();
 
         // Four runtimes on this page, not the Server showcase's six: Lit and Angular are not part of
         // the WASM pair, because both pair with a plain .ts and this app genuinely uses Rask's scoped
@@ -64,6 +67,9 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         // WebSocket; here there is no socket at all, and the handler id has to come back through
         // [JSExport] into the runtime running in this tab. Identical markup, entirely different path.
         await Page.GotoAsync(Docs + "/islands");
+        // Prerendered: the islands are on screen before the runtime exists, so a callback fired
+        // now would reach nothing. Wait for the runtime to clear data-rask-prerendered (#1035).
+        await WaitForInteractiveAsync();
         await Expect(Page.GetByTestId("vue-chart")).ToBeVisibleAsync();
 
         await Expect(Page.Locator("#island-last-clicked")).ToHaveTextAsync("(none)");
@@ -79,6 +85,9 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     public Task APropChangeReconcilesRatherThanRemounting() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs + "/islands");
+        // Prerendered: the islands are on screen before the runtime exists, so a callback fired
+        // now would reach nothing. Wait for the runtime to clear data-rask-prerendered (#1035).
+        await WaitForInteractiveAsync();
         await Expect(Page.GetByTestId("svelte-meter")).ToBeVisibleAsync();
 
         // State that belongs to the front-end component and that C# has never seen. If a prop change

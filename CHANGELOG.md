@@ -9,6 +9,39 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that
+  arrives prerendered carries its `<rask-external>` hosts in the first response, so the islands runtime
+  mounts them before WebAssembly has finished starting. The first full frame then replaces `<body>`
+  outright rather than patching it — and `rask-external.js` had its `MutationObserver` bound to the body
+  the page loaded with. That node is detached by the swap, so the observer never fired again: the
+  islands mounted before the swap went away with the old body, and the hosts in the new one were never
+  hydrated. The page kept four empty `<rask-external>` elements for the rest of its life.
+
+  The observer is now bound to `<html>`, which outlives the swap. `subtree: true` reaches everything it
+  did before, plus the replacement body — which arrives as an added node and sweeps normally — while the
+  removed body sweeps out through teardown, so a discarded island gets its adapter's `unmount` instead
+  of being dropped still mounted.
+
+  It stayed hidden because it is a race the boot shell happened to win, and the browser suite only ever
+  saw the boot shell. `StaticWwwrootHostFixture` resolved `GET /docs` to a directory, failed
+  `File.Exists`, and fell through to the SPA fallback — serving the shell instead of the prerendered
+  page that `Rask.Wasm.Hosting` serves in production (`UseDefaultFiles`). With the shell, this module
+  starts before there is anything to mount and the islands arrive inside the new body; prerendered, the
+  order inverts. The host now resolves a directory to its `index.html`, so the prerendered output has
+  browser coverage for the first time. (#1035, #1034)
+
+- **The browser journeys were racing a cold WebAssembly boot, which is what the load-dependent flakes
+  were.** Serving the boot shell for every route meant the suite's opening assertion — an active sidebar
+  link is visible — could not pass until the runtime had downloaded, started and painted. Idle that is a
+  second or two; under the full gate, with several browsers competing, it exceeded the 30s budget. Two
+  consecutive gate runs on one commit failed 10 and then 5 journeys with different membership, every one
+  of them on that same locator. Serving the prerendered page removes the race: the suite went from 68/78
+  and 73/78 to **78/78**, three runs in a row, and got faster (2m51s → 1m47s).
+
+  Serving the real page also removes an accidental synchronisation barrier, so the suite now waits on the
+  framework's own signal before interacting: the runtime clears `data-rask-prerendered` from `<html>` on
+  its first frame, which is exactly when handlers exist. (#1034, #1028, #989, #1029)
+
 - **`@onclick:preventDefault` on a hosted Blazor component leaked a `__internal_*` attribute into the
   page.** Those directives are not attributes: the Razor compiler lowers each to a boolean frame named
   `__internal_preventDefault_onclick` / `__internal_stopPropagation_onclick`, carrying no handler id.
