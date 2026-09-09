@@ -27,5 +27,5 @@ public sealed partial class SolidSpark : Rask.External.SolidComponent
     public required string Caption { get; set; }
 
     /// <summary>Runs with the index the reader hovered, so C# can echo it back.</summary>
-    public Action<int>? OnPointHovered { get; set; }
+    public Callback<int>? OnPointHovered { get; set; }
 }

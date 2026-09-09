@@ -17,7 +17,7 @@ internal sealed partial class LifecycleLeaf : Component
 {
     public string? Word { get; set; }
 
-    public Action? OnPing { get; set; }
+    public Callback? OnPing { get; set; }
 
     internal int Mounts;
     internal int PropsChanges;

@@ -94,7 +94,8 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                      + "generator cannot express has to be reported now rather than arriving as null in the browser. "
                      + "Supported: the primitive types, string, Guid, the date/time types, Uri, enums, byte[], "
                      + "nullable versions of those, arrays and lists of them, string-keyed dictionaries, and records "
-                     + "or classes composed of the same. Callbacks are supported as Action, Action<T>, Func<Task> "
+                     + "or classes composed of the same. Callbacks are supported as Callback, Callback<T>, "
+                     + "Action, Action<T>, Func<Task> "
                      + "and Func<T, Task>. Mark a property [SkipFactory] to keep it out of the props entirely.",
         helpLinkUri: DiagnosticHelp.Link("RASK057"));
 
@@ -588,20 +589,58 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             ? literal.Token.ValueText
             : null;
 
-    /// <summary>The callback shape a delegate prop takes, or null when it is not a callback at all.</summary>
+    /// <summary>The callback shape a prop takes, or null when it is not a callback at all.</summary>
     /// <remarks>
-    ///     The four shapes Rask already auto-wraps. A delegate outside the set falls through to the wire
-    ///     classifier, which rejects it with RASK057 — better than silently dropping a prop the author
-    ///     clearly meant to be called.
+    ///     <para>
+    ///         The four shapes Rask already auto-wraps, plus the CARRIER that holds any one of them.
+    ///         Something outside the set falls through to the wire classifier, which rejects it with
+    ///         RASK057 — better than silently dropping a prop the author clearly meant to be called.
+    ///     </para>
+    ///     <para>
+    ///         A carrier is not a delegate, and that is the point of it: a delegate-typed property swallows
+    ///         its own chain step, because C# reads <c>x.OnPick(fn)</c> as invoking the property and never
+    ///         reaches the extension setter (CS1593). So an island prop that is set through the chain —
+    ///         which is every one of them — has to be a carrier, and this has to know that.
+    ///     </para>
+    ///     <para>
+    ///         One difference travels with it: a bare delegate says statically whether it is asynchronous,
+    ///         and a carrier does not — it holds either shape and decides when invoked. So a carrier's
+    ///         bridge is always emitted in the asynchronous form. See <c>EmitArgumentBridges</c>.
+    ///     </para>
     /// </remarks>
     private static CallbackShape? Callback(ITypeSymbol type)
     {
-        if (type is not INamedTypeSymbol named || named.TypeKind != TypeKind.Delegate)
+        if (type is not INamedTypeSymbol named)
         {
             return null;
         }
 
+        // `Callback?` is `Nullable<Callback>` — a struct — so the carrier is one level in.
+        if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+            && named.TypeArguments[0] is INamedTypeSymbol inner)
+        {
+            named = inner;
+        }
+
         var definition = named.OriginalDefinition.ToDisplayString();
+
+        // Carriers first: they are not delegates, so the TypeKind guard below would reject them.
+        var carrier = definition switch
+        {
+            "Rask.Core.Callback" => new CallbackShape(null, true, IsCarrier: true),
+            "Rask.Core.Callback<T>" => new CallbackShape(named.TypeArguments[0], true, IsCarrier: true),
+            _ => null,
+        };
+
+        if (carrier is not null)
+        {
+            return carrier;
+        }
+
+        if (named.TypeKind != TypeKind.Delegate)
+        {
+            return null;
+        }
 
         return definition switch
         {
@@ -648,8 +687,17 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // has no general Action<T> case and cannot have one — T is only known where the component
             // is compiled — so the raw delegate fell through to a DynamicInvoke with no arguments and
             // threw on the first click. The wrapper reads the argument here, where the type is known.
+            // A carrier is not itself dispatchable, so what is registered is the delegate it holds —
+            // the same `value?.Handler` unwrap ElementEvents.SetHandler does at the DOM boundary.
+            // `Handler` is `Delegate?` — the guard above proved the CARRIER was supplied, not that it
+            // holds anything — so the null-forgiving operator is what says "a carrier that reached a
+            // prop always came from a setter that refused null".
+            var raw = handler.Shape.IsCarrier
+                ? $"this.{handler.ClrName}!.Value.Handler!"
+                : $"this.{handler.ClrName}";
+
             var registered = handler.Shape.Argument is null
-                ? $"this.{handler.ClrName}"
+                ? raw
                 : $"__Arg{handler.ClrName}";
 
             body.AppendLine("                writer.WriteString(\"$h\", "
@@ -699,8 +747,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
             var read = ScalarRead(handler.Shape.Argument);
             var type = handler.Shape.Argument.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            // A carrier does not say statically which shape it holds, so its bridge is the asynchronous
+            // one either way — `Invoke` hands back null when the handler was synchronous, and
+            // `?? Task.CompletedTask` turns that into the completed task this signature promises. No
+            // state machine is created for a synchronous handler; the null IS the fast path.
             var invoke = handler.Shape.IsAsync
-                ? $"global::System.Func<global::System.Text.Json.JsonElement, global::System.Threading.Tasks.Task>"
+                ? "global::System.Func<global::System.Text.Json.JsonElement, global::System.Threading.Tasks.Task>"
                 : "global::System.Action<global::System.Text.Json.JsonElement>";
 
             sb.AppendLine($"    /// <summary>Feeds the argument to <c>{handler.ClrName}</c> from the dispatched frame.</summary>");
@@ -722,10 +774,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine("        }");
             sb.AppendLine();
             // `return` only for the async shape: the sync one is an Action, and returning a value
-            // from a void-returning lambda is CS8030.
+            // from a void-returning lambda is CS8030. A carrier is always the async shape (see above)
+            // and is invoked through the struct rather than called like a delegate.
+            var call = handler.Shape.IsCarrier
+                ? $"this.{handler.ClrName}!.Value.Invoke(__v) "
+                  + "?? global::System.Threading.Tasks.Task.CompletedTask"
+                : $"this.{handler.ClrName}!(__v)";
+
             sb.AppendLine(handler.Shape.IsAsync
-                ? $"        return this.{handler.ClrName}!(__v);"
-                : $"        this.{handler.ClrName}!(__v);");
+                ? $"        return {call};"
+                : $"        {call};");
             sb.AppendLine("    };");
             sb.AppendLine();
         }
@@ -788,7 +846,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         };
     }
 
-    private sealed record CallbackShape(ITypeSymbol? Argument, bool IsAsync);
+    private sealed record CallbackShape(ITypeSymbol? Argument, bool IsAsync, bool IsCarrier = false);
 
     private sealed record IslandProp(string ClrName, string WireName, WireType Wire, bool IsNullable);
 

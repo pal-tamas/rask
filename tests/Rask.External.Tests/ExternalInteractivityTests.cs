@@ -9,7 +9,7 @@ namespace Rask.External.Tests;
 public sealed partial class Ticker : ReactComponent
 {
     /// <summary>Runs when the ticker is clicked.</summary>
-    public Action? OnTick { get; set; }
+    public Callback? OnTick { get; set; }
 }
 
 /// <summary>An island with no callbacks at all.</summary>
@@ -37,7 +37,7 @@ public partial class ExternalInteractivityTests
     {
         var handle = new RecordingHandle();
 
-        Render(new Ticker { OnTick = () => { } }, handle);
+        Render(new Ticker { OnTick = new Callback(() => { }) }, handle);
 
         Assert.True(
             handle.Reasons.HasFlag(InteractivityReason.Handler),

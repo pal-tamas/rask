@@ -227,7 +227,7 @@ export interface ChartProps {
 Three things there are decisions rather than formatting. `heading` is **nullable but still required**,
 because the writer emits the key with a JSON `null` — "never set" and "set to nothing" are different
 facts, and `heading?: string` would describe the wrong one. A callback is **optional**, because an
-unwired one omits its key entirely. And it returns **`void` even for a `Func<T, Task>`**: the callback
+unwired one omits its key entirely. And it returns **`void` even for an asynchronous handler**: the callback
 crosses as a handler reference and the client hands back a plain function that ships the payload, so
 there is no promise on that side to await.
 
@@ -301,11 +301,11 @@ keeps a property out of the props entirely.
 
 ## Callbacks
 
-A delegate prop becomes a function on the front end, and calling it re-enters C#:
+A callback prop becomes a function on the front end, and calling it re-enters C#:
 
 ```csharp
-public Action<int>? OnPointClick { get; set; }
-public Func<Range, Task>? OnZoomAsync { get; set; }
+public Callback<int>? OnPointClick { get; set; }
+public Callback<Range>? OnZoom { get; set; }
 ```
 
 ```tsx
@@ -314,7 +314,20 @@ export default function Chart({ series, onPointClick }: ChartProps) {
 }
 ```
 
-`Action`, `Action<T>`, `Func<Task>` and `Func<T, Task>` — the four shapes Rask already auto-wraps.
+```csharp
+Chart.Series(_points).OnPointClick(Select)                  // synchronous
+Chart.Series(_points).OnPointClick(async i => await LoadAsync(i))   // asynchronous — same property
+```
+
+**One property per callback, taking either shape.** `Callback` and `Callback<T>` hold a synchronous
+handler or an asynchronous one, so there is no `…Async` sibling to declare and no pair to get wrong.
+The wire is identical either way: the front end never learns whether the C# on the other side awaits,
+and should not.
+
+A carrier rather than a bare `Action<T>?` because a delegate-typed property is *invocable* — C# would
+read `.OnPointClick(fn)` as invoking the property and never reach the chain step of the same name
+(CS1593). The step still accepts the bare shapes (`Action<T>`, `Func<T, Task>`), so only the
+declaration changes.
 
 They travel as a handler reference rather than a value, and reach C# through the **same channel every
 DOM handler uses**: the open WebSocket on the Server host, a direct `[JSExport]` call into this tab's

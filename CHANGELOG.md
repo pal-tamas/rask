@@ -47,6 +47,35 @@ them until tagged releases begin.
 
 ### Changed
 
+- **An island's callbacks are carriers, so one property takes a synchronous or an asynchronous
+  handler.** `Callback`/`Callback<T>` on a `ReactComponent`, `VueComponent`, `SolidComponent`,
+  `PreactComponent`, `SvelteComponent`, `AngularComponent`, `LitComponent` or `BlazorComponent<T>`,
+  where a bare `Action<T>?` could only ever hold one shape. The wire is unchanged — the front end never
+  learns whether the C# on the other side awaits, and should not.
+
+  `ExternalGenerator` had to learn them, and the reason is worth recording: it decides what IS a
+  callback with `named.TypeKind != TypeKind.Delegate`, and a carrier is a struct. Left alone it would
+  have rejected every island callback with RASK057 — loudly, at least, rather than silently shipping a
+  prop that looks callable in devtools and reaches nobody.
+
+  One consequence fell out of it: **a carrier does not say statically whether it is asynchronous**, so
+  the generated argument bridge is now always emitted in the asynchronous form (`Func<JsonElement,
+  Task>`, returning `Invoke(…) ?? Task.CompletedTask`). That is one emitted shape where there were two,
+  and no state machine for a synchronous handler — `Invoke` returning `null` IS the fast path.
+
+- **The remaining component callback props in `tests/` and `site/` are carriers** — 18 across 13
+  components. This is groundwork for the chain receiving on the component itself, and it is the whole
+  DX cost of that change made concrete: a component author writes `Callback?` where they wrote
+  `Action?`. **Call sites are untouched** — `.OnSelect(Choose)` and `.OnSelect(SaveAsync)` both still
+  bind, because the step carries an overload per delegate shape.
+
+  Two rules kept the sweep honest, and both cut real cases out of it. A component only takes a chain
+  step if it is `partial`, so a non-`partial` `Component` set by object initializer needs nothing
+  (`AsyncCallbackMidAwaitRenderTests.Child`). And a plain class is not a component at all, however
+  delegate-shaped its props (`AsyncValidatorTests.GatedValidator`) — which is also the only arity-3
+  delegate prop in the repo, so the decision to stop the carrier family at arity 2 stands.
+
+
 - **A form control's validation rule is ONE property taking either shape.** `Validate` and
   `ValidateAsync` were two properties over one slot, with a "the synchronous one wins" tiebreak and
   nothing to enforce it — the same shape as the callback pairs, and the last of them. `Validate` is a
