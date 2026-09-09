@@ -582,39 +582,94 @@ public sealed class SpaTemplateTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void Tailwind_styles_the_elements_the_starter_renders()
+    public void Every_starter_draws_the_same_skeleton_in_daisyui()
     {
-        string[] elements = ["main", "h1", "label", "input", "button"];
+        // The class names every `rask new` template draws, C# hosts included, so a project looks the
+        // same whichever front end it was scaffolded with. Asserted per framework rather than once,
+        // because each of these is hand-written in its own templating syntax and nothing type-checks
+        // them: a skeleton that drifts in one framework drifts silently.
+        string[] skeleton =
+        [
+            "navbar", "navbar-start", "navbar-end",
+            "hero", "hero-content",
+            "card", "card-body", "card-actions",
+            "btn btn-primary",
+            "footer",
+        ];
 
+        foreach (var framework in SpaFramework.All)
+        {
+            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
+
+            foreach (var name in skeleton)
+            {
+                Assert.Contains(name, markup, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public void Every_element_the_starter_renders_carries_a_class()
+    {
+        // This replaces a rule that styled these elements BY TAG, and the swap is the point rather
+        // than an implementation detail.
+        //
+        // The starter used to carry no class attributes at all, so the stylesheet had to reach it by
+        // element — and overwriting the scaffolder's CSS with a bare `@import "tailwindcss"` once let
+        // preflight reset what the browser had given those tags, producing a visibly worse page than
+        // no flag at all, with every check green (#859).
+        //
+        // Now the markup names daisyUI components directly, so the guard moves to where the styling
+        // does: an element the starter renders without a class is the same failure in a new place.
+        string[] elements = ["main", "h1", "input", "button", "footer"];
+
+        foreach (var framework in SpaFramework.All)
+        {
+            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
+
+            foreach (var element in elements)
+            {
+                var opened = markup.IndexOf($"<{element}", StringComparison.Ordinal);
+                Assert.True(opened >= 0, $"[{framework.Key}] the starter no longer renders <{element}>.");
+
+                // The opening tag, up to its closing bracket, must carry a class binding of some kind.
+                // Which spelling depends on the framework, so all three are accepted.
+                var tag = markup[opened..markup.IndexOf('>', opened)];
+
+                Assert.True(
+                    tag.Contains("class=", StringComparison.Ordinal)
+                    || tag.Contains("className=", StringComparison.Ordinal)
+                    || tag.Contains("[class]", StringComparison.Ordinal),
+                    $"[{framework.Key}] <{element}> carries no class, so preflight has removed whatever "
+                    + "the browser gave it and nothing has put anything back.");
+            }
+        }
+    }
+
+    [Fact]
+    public void Every_starter_stylesheet_compiles_daisyui()
+    {
         foreach (var framework in SpaFramework.All)
         {
             var result = ProjectGenerator.GenerateSpa(
                 Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
             var sheet = Content(result, $"/client/{framework.GlobalStylesheet}");
-            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
 
-            // Matched on the trimmed line rather than on indentation, so re-indenting the stylesheet is
-            // not a test failure. A selector opening a block is what is being looked for.
-            var rules = sheet.Split('\n').Select(line => line.Trim()).ToHashSet(StringComparer.Ordinal);
+            // Loaded from node_modules here, unlike the C# hosts: this lane has a package tree, so the
+            // plugin resolves by name the way Node does.
+            Assert.Contains("@plugin \"daisyui\";", sheet, StringComparison.Ordinal);
 
-            // The premise. Utilities reach this markup by element or not at all.
-            Assert.DoesNotContain("class=", markup, StringComparison.Ordinal);
-            Assert.DoesNotContain("className=", markup, StringComparison.Ordinal);
+            // daisyUI emits into a layer Tailwind's own import does not rank, so without this statement
+            // it outranks the utilities beside it and `class="btn px-8"` ignores the px-8.
+            Assert.Contains(
+                "@layer properties, theme, base, components, daisyui, utilities;",
+                sheet,
+                StringComparison.Ordinal);
 
-            foreach (var element in elements)
-            {
-                Assert.Contains($"<{element}", markup, StringComparison.Ordinal);
-
-                Assert.True(
-                    rules.Contains($"{element} {{"),
-                    $"[{framework.Key}] the starter renders <{element}> and the Tailwind stylesheet has no "
-                    + $"rule for it, so that element ships unstyled — preflight having removed whatever the "
-                    + "browser gave it.");
-            }
-
-            // Rules alone would pass with an empty body; the utilities are the point.
-            Assert.Contains("@apply", sheet, StringComparison.Ordinal);
+            // The one element rule that survives: daisyUI paints base-100 on :root, and something has
+            // to put the page's own background behind it.
+            Assert.Contains("@apply bg-base-200", sheet, StringComparison.Ordinal);
         }
     }
 

@@ -88,35 +88,80 @@ internal static class SpaClientSources
                 }
               }
 
+              // daisyUI's own class names, and the same navbar / hero / card / footer skeleton every
+              // other `rask new` template draws — so a project looks the same whichever front end it
+              // was scaffolded with. Spelled out in full: Tailwind emits a class only where it can see
+              // the name, so a name built by concatenation styles nothing.
               return (
-                <main>
-                  <h1>Rask + React</h1>
+                <div className="flex min-h-screen flex-col bg-base-200">
+                  <nav className="navbar bg-base-100 shadow-sm">
+                    <div className="navbar-start">
+                      <span className="px-2 text-lg font-semibold tracking-tight">Rask + React</span>
+                    </div>
+                    <div className="navbar-end">
+                      <a className="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+                    </div>
+                  </nav>
 
-                  <label>
-                    Name <input value={name} onChange={(event) => setName(event.target.value)} />
-                  </label>
+                  <main className="hero grow py-16">
+                    <div className="hero-content text-center">
+                      <div className="max-w-md">
+                        <h1 className="text-4xl font-bold">Rask + React</h1>
+                        <p className="py-4 text-base-content/70">
+                          One query and one command, over your C# records.
+                        </p>
 
-                  {!greeting && !error && <p>Loading…</p>}
-                  {error && <p role="alert">{error}</p>}
+                        <div className="card bg-base-100 w-full max-w-md shadow-sm">
+                          <div className="card-body gap-4 text-left">
+                            <label className="fieldset">
+                              <span className="fieldset-legend">Name</span>
+                              <input
+                                className="input w-full"
+                                value={name}
+                                onChange={(event) => setName(event.target.value)}
+                              />
+                            </label>
 
-                  {greeting && (
-                    <>
-                      <p>{greeting.message}</p>
-                      {/* seenAt is a real Date, revived because the C# type said it was an instant — not
-                          because the string looked like one. Formatting is the browser's job: `undefined`
-                          means the visitor's own locale, and their own time zone. */}
-                      <p>
-                        Server time:{' '}
-                        {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
-                      </p>
-                      <p>Visits: {greeting.visits}</p>
-                    </>
-                  )}
+                            {!greeting && !error && (
+                              <span className="loading loading-spinner loading-sm" aria-label="Loading" />
+                            )}
+                            {error && (
+                              <div role="alert" className="alert alert-error"><span>{error}</span></div>
+                            )}
 
-                  <button onClick={visit} disabled={busy}>
-                    Record a visit
-                  </button>
-                </main>
+                            {greeting && (
+                              <>
+                                <p>{greeting.message}</p>
+                                {/* seenAt is a real Date, revived because the C# type said it was an
+                                    instant — not because the string looked like one. Formatting is the
+                                    browser's job: `undefined` means the visitor's own locale, and their
+                                    own time zone. */}
+                                <p className="text-sm text-base-content/70">
+                                  Server time:{' '}
+                                  {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
+                                </p>
+                                <div className="stat p-0">
+                                  <div className="stat-title">Visits</div>
+                                  <div className="stat-value text-2xl">{greeting.visits}</div>
+                                </div>
+                              </>
+                            )}
+
+                            <div className="card-actions justify-end">
+                              <button className="btn btn-primary" onClick={visit} disabled={busy}>
+                                Record a visit
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </main>
+
+                  <footer className="footer footer-center bg-base-100 p-4 text-base-content/70">
+                    <aside><p>Built with Rask.</p></aside>
+                  </footer>
+                </div>
               )
             }
 
@@ -174,36 +219,72 @@ internal static class SpaClientSources
               }
 
               return (
-                <main>
-                  <h1>Rask + Preact</h1>
+                <div className="flex min-h-screen flex-col bg-base-200">
+                  <nav className="navbar bg-base-100 shadow-sm">
+                    <div className="navbar-start">
+                      <span className="px-2 text-lg font-semibold tracking-tight">Rask + Preact</span>
+                    </div>
+                    <div className="navbar-end">
+                      <a className="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+                    </div>
+                  </nav>
 
-                  <label>
-                    Name{' '}
-                    <input
-                      value={name}
-                      onInput={(event) => setName((event.target as HTMLInputElement).value)}
-                    />
-                  </label>
+                  <main className="hero grow py-16">
+                    <div className="hero-content text-center">
+                      <div className="max-w-md">
+                        <h1 className="text-4xl font-bold">Rask + Preact</h1>
+                        <p className="py-4 text-base-content/70">
+                          One query and one command, over your C# records.
+                        </p>
 
-                  {!greeting && !error && <p>Loading…</p>}
-                  {error && <p role="alert">{error}</p>}
+                        <div className="card bg-base-100 w-full max-w-md shadow-sm">
+                          <div className="card-body gap-4 text-left">
+                            <label className="fieldset">
+                              <span className="fieldset-legend">Name</span>
+                              <input
+                                className="input w-full"
+                                value={name}
+                                onInput={(event) => setName((event.target as HTMLInputElement).value)}
+                              />
+                            </label>
 
-                  {greeting && (
-                    <>
-                      <p>{greeting.message}</p>
-                      {/* seenAt is a real Date, revived because the C# type said it was an instant. */}
-                      <p>
-                        Server time:{' '}
-                        {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
-                      </p>
-                      <p>Visits: {greeting.visits}</p>
-                    </>
-                  )}
+                            {!greeting && !error && (
+                              <span className="loading loading-spinner loading-sm" aria-label="Loading" />
+                            )}
+                            {error && (
+                              <div role="alert" className="alert alert-error"><span>{error}</span></div>
+                            )}
 
-                  <button onClick={visit} disabled={busy}>
-                    Record a visit
-                  </button>
-                </main>
+                            {greeting && (
+                              <>
+                                <p>{greeting.message}</p>
+                                {/* seenAt is a real Date, revived because the C# type said it was an instant. */}
+                                <p className="text-sm text-base-content/70">
+                                  Server time:{' '}
+                                  {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
+                                </p>
+                                <div className="stat p-0">
+                                  <div className="stat-title">Visits</div>
+                                  <div className="stat-value text-2xl">{greeting.visits}</div>
+                                </div>
+                              </>
+                            )}
+
+                            <div className="card-actions justify-end">
+                              <button className="btn btn-primary" onClick={visit} disabled={busy}>
+                                Record a visit
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </main>
+
+                  <footer className="footer footer-center bg-base-100 p-4 text-base-content/70">
+                    <aside><p>Built with Rask.</p></aside>
+                  </footer>
+                </div>
               )
             }
 
@@ -249,42 +330,78 @@ internal static class SpaClientSources
               }
 
               return (
-                <main>
-                  <h1>Rask + Solid</h1>
+                <div class="flex min-h-screen flex-col bg-base-200">
+                  <nav class="navbar bg-base-100 shadow-sm">
+                    <div class="navbar-start">
+                      <span class="px-2 text-lg font-semibold tracking-tight">Rask + Solid</span>
+                    </div>
+                    <div class="navbar-end">
+                      <a class="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+                    </div>
+                  </nav>
 
-                  <label>
-                    Name{' '}
-                    <input
-                      value={name()}
-                      onInput={(event) => setName(event.currentTarget.value)}
-                    />
-                  </label>
-
-                  <Show when={greeting.loading}>
-                    <p>Loading…</p>
-                  </Show>
-                  <Show when={greeting.error}>
-                    {(error) => <p role="alert">{String(error())}</p>}
-                  </Show>
-
-                  <Show when={greeting()}>
-                    {(data) => (
-                      <>
-                        <p>{data().message}</p>
-                        {/* seenAt is a real Date, revived because the C# type said it was an instant. */}
-                        <p>
-                          Server time:{' '}
-                          {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(data().seenAt)}
+                  <main class="hero grow py-16">
+                    <div class="hero-content text-center">
+                      <div class="max-w-md">
+                        <h1 class="text-4xl font-bold">Rask + Solid</h1>
+                        <p class="py-4 text-base-content/70">
+                          One query and one command, over your C# records.
                         </p>
-                        <p>Visits: {data().visits}</p>
-                      </>
-                    )}
-                  </Show>
 
-                  <button onClick={visit} disabled={busy()}>
-                    Record a visit
-                  </button>
-                </main>
+                        <div class="card bg-base-100 w-full max-w-md shadow-sm">
+                          <div class="card-body gap-4 text-left">
+                            <label class="fieldset">
+                              <span class="fieldset-legend">Name</span>
+                              <input
+                                class="input w-full"
+                                value={name()}
+                                onInput={(event) => setName(event.currentTarget.value)}
+                              />
+                            </label>
+
+                            <Show when={greeting.loading}>
+                              <span class="loading loading-spinner loading-sm" aria-label="Loading" />
+                            </Show>
+                            <Show when={greeting.error}>
+                              {(error) => (
+                                <div role="alert" class="alert alert-error">
+                                  <span>{String(error())}</span>
+                                </div>
+                              )}
+                            </Show>
+
+                            <Show when={greeting()}>
+                              {(data) => (
+                                <>
+                                  <p>{data().message}</p>
+                                  {/* seenAt is a real Date, revived because the C# type said it was an instant. */}
+                                  <p class="text-sm text-base-content/70">
+                                    Server time:{' '}
+                                    {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(data().seenAt)}
+                                  </p>
+                                  <div class="stat p-0">
+                                    <div class="stat-title">Visits</div>
+                                    <div class="stat-value text-2xl">{data().visits}</div>
+                                  </div>
+                                </>
+                              )}
+                            </Show>
+
+                            <div class="card-actions justify-end">
+                              <button class="btn btn-primary" onClick={visit} disabled={busy()}>
+                                Record a visit
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </main>
+
+                  <footer class="footer footer-center bg-base-100 p-4 text-base-content/70">
+                    <aside><p>Built with Rask.</p></aside>
+                  </footer>
+                </div>
               )
             }
 
@@ -355,28 +472,65 @@ internal static class SpaClientSources
             </script>
 
             <template>
-              <main>
-                <h1>Rask + Vue</h1>
+              <div class="flex min-h-screen flex-col bg-base-200">
+                <nav class="navbar bg-base-100 shadow-sm">
+                  <div class="navbar-start">
+                    <span class="px-2 text-lg font-semibold tracking-tight">Rask + Vue</span>
+                  </div>
+                  <div class="navbar-end">
+                    <a class="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+                  </div>
+                </nav>
 
-                <label>
-                  Name
-                  <input v-model="name" />
-                </label>
+                <main class="hero grow py-16">
+                  <div class="hero-content text-center">
+                    <div class="max-w-md">
+                      <h1 class="text-4xl font-bold">Rask + Vue</h1>
+                      <p class="py-4 text-base-content/70">
+                        One query and one command, over your C# records.
+                      </p>
 
-                <p v-if="!greeting && !error">Loading…</p>
-                <p v-else-if="error" role="alert">{{ error }}</p>
+                      <div class="card bg-base-100 w-full max-w-md shadow-sm">
+                        <div class="card-body gap-4 text-left">
+                          <label class="fieldset">
+                            <span class="fieldset-legend">Name</span>
+                            <input class="input w-full" v-model="name" />
+                          </label>
 
-                <template v-if="greeting">
-                  <p>{{ greeting.message }}</p>
-                  <!-- seenAt is a real Date, revived because the C# type said it was an instant. -->
-                  <p>Server time: {{ serverTime }}</p>
-                  <p>Visits: {{ greeting.visits }}</p>
-                </template>
+                          <span
+                            v-if="!greeting && !error"
+                            class="loading loading-spinner loading-sm"
+                            aria-label="Loading"
+                          />
+                          <div v-else-if="error" role="alert" class="alert alert-error">
+                            <span>{{ error }}</span>
+                          </div>
 
-                <button :disabled="busy" @click="visit">
-                  Record a visit
-                </button>
-              </main>
+                          <template v-if="greeting">
+                            <p>{{ greeting.message }}</p>
+                            <!-- seenAt is a real Date, revived because the C# type said it was an instant. -->
+                            <p class="text-sm text-base-content/70">Server time: {{ serverTime }}</p>
+                            <div class="stat p-0">
+                              <div class="stat-title">Visits</div>
+                              <div class="stat-value text-2xl">{{ greeting.visits }}</div>
+                            </div>
+                          </template>
+
+                          <div class="card-actions justify-end">
+                            <button class="btn btn-primary" :disabled="busy" @click="visit">
+                              Record a visit
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </main>
+
+                <footer class="footer footer-center bg-base-100 p-4 text-base-content/70">
+                  <aside><p>Built with Rask.</p></aside>
+                </footer>
+              </div>
             </template>
 
             """),
@@ -438,31 +592,63 @@ internal static class SpaClientSources
               }
             </script>
 
-            <main>
-              <h1>Rask + Svelte</h1>
+            <div class="flex min-h-screen flex-col bg-base-200">
+              <nav class="navbar bg-base-100 shadow-sm">
+                <div class="navbar-start">
+                  <span class="px-2 text-lg font-semibold tracking-tight">Rask + Svelte</span>
+                </div>
+                <div class="navbar-end">
+                  <a class="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+                </div>
+              </nav>
 
-              <label>
-                Name <input bind:value={name} />
-              </label>
+              <main class="hero grow py-16">
+                <div class="hero-content text-center">
+                  <div class="max-w-md">
+                    <h1 class="text-4xl font-bold">Rask + Svelte</h1>
+                    <p class="py-4 text-base-content/70">
+                      One query and one command, over your C# records.
+                    </p>
 
-              {#if !greeting && !error}
-                <p>Loading…</p>
-              {:else if error}
-                <p role="alert">{error}</p>
-              {:else if greeting}
-                <p>{greeting.message}</p>
-                <!-- seenAt is a real Date, revived because the C# type said it was an instant. -->
-                <p>
-                  Server time:
-                  {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
-                </p>
-                <p>Visits: {greeting.visits}</p>
-              {/if}
+                    <div class="card bg-base-100 w-full max-w-md shadow-sm">
+                      <div class="card-body gap-4 text-left">
+                        <label class="fieldset">
+                          <span class="fieldset-legend">Name</span>
+                          <input class="input w-full" bind:value={name} />
+                        </label>
 
-              <button onclick={visit} disabled={busy}>
-                Record a visit
-              </button>
-            </main>
+                        {#if !greeting && !error}
+                          <span class="loading loading-spinner loading-sm" aria-label="Loading"></span>
+                        {:else if error}
+                          <div role="alert" class="alert alert-error"><span>{error}</span></div>
+                        {:else if greeting}
+                          <p>{greeting.message}</p>
+                          <!-- seenAt is a real Date, revived because the C# type said it was an instant. -->
+                          <p class="text-sm text-base-content/70">
+                            Server time:
+                            {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
+                          </p>
+                          <div class="stat p-0">
+                            <div class="stat-title">Visits</div>
+                            <div class="stat-value text-2xl">{greeting.visits}</div>
+                          </div>
+                        {/if}
+
+                        <div class="card-actions justify-end">
+                          <button class="btn btn-primary" onclick={visit} disabled={busy}>
+                            Record a visit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </main>
+
+              <footer class="footer footer-center bg-base-100 p-4 text-base-content/70">
+                <aside><p>Built with Rask.</p></aside>
+              </footer>
+            </div>
 
             """),
     ];
@@ -576,30 +762,67 @@ internal static class SpaClientSources
             """),
 
         ("src/app/app.html", """
-            <main>
-              <h1>Rask + Angular</h1>
+            <div class="flex min-h-screen flex-col bg-base-200">
+              <nav class="navbar bg-base-100 shadow-sm">
+                <div class="navbar-start">
+                  <span class="px-2 text-lg font-semibold tracking-tight">Rask + Angular</span>
+                </div>
+                <div class="navbar-end">
+                  <a class="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+                </div>
+              </nav>
 
-              <label>
-                Name
-                <input [value]="name()" (input)="setName($any($event.target).value)" />
-              </label>
+              <main class="hero grow py-16">
+                <div class="hero-content text-center">
+                  <div class="max-w-md">
+                    <h1 class="text-4xl font-bold">Rask + Angular</h1>
+                    <p class="py-4 text-base-content/70">
+                      One query and one command, over your C# records.
+                    </p>
 
-              @if (!greeting() && !error()) {
-                <p>Loading…</p>
-              }
+                    <div class="card bg-base-100 w-full max-w-md shadow-sm">
+                      <div class="card-body gap-4 text-left">
+                        <label class="fieldset">
+                          <span class="fieldset-legend">Name</span>
+                          <input
+                            class="input w-full"
+                            [value]="name()"
+                            (input)="setName($any($event.target).value)"
+                          />
+                        </label>
 
-              @if (error(); as message) {
-                <p role="alert">{{ message }}</p>
-              }
+                        @if (!greeting() && !error()) {
+                          <span class="loading loading-spinner loading-sm" aria-label="Loading"></span>
+                        }
 
-              @if (greeting(); as data) {
-                <p>{{ data.message }}</p>
-                <p>Server time: {{ time(data.seenAt) }}</p>
-                <p>Visits: {{ data.visits }}</p>
-              }
+                        @if (error(); as message) {
+                          <div role="alert" class="alert alert-error"><span>{{ message }}</span></div>
+                        }
 
-              <button [disabled]="busy()" (click)="record()">Record a visit</button>
-            </main>
+                        @if (greeting(); as data) {
+                          <p>{{ data.message }}</p>
+                          <p class="text-sm text-base-content/70">Server time: {{ time(data.seenAt) }}</p>
+                          <div class="stat p-0">
+                            <div class="stat-title">Visits</div>
+                            <div class="stat-value text-2xl">{{ data.visits }}</div>
+                          </div>
+                        }
+
+                        <div class="card-actions justify-end">
+                          <button class="btn btn-primary" [disabled]="busy()" (click)="record()">
+                            Record a visit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </main>
+
+              <footer class="footer footer-center bg-base-100 p-4 text-base-content/70">
+                <aside><p>Built with Rask.</p></aside>
+              </footer>
+            </div>
 
             """),
     ];
@@ -651,40 +874,76 @@ internal static class SpaClientSources
 
               render() {
                 return html`
-                  <main>
-                    <h1>Rask + Lit</h1>
+                  <div class="flex min-h-screen flex-col bg-base-200">
+                    <nav class="navbar bg-base-100 shadow-sm">
+                      <div class="navbar-start">
+                        <span class="px-2 text-lg font-semibold tracking-tight">Rask + Lit</span>
+                      </div>
+                      <div class="navbar-end">
+                        <a class="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+                      </div>
+                    </nav>
 
-                    <label>
-                      Name
-                      <input
-                        .value=${this.name}
-                        @input=${(event: Event) => {
-                          this.name = (event.target as HTMLInputElement).value
-                          void this.load()
-                        }}
-                      />
-                    </label>
-
-                    ${!this.greeting && !this.error ? html`<p>Loading…</p>` : ''}
-                    ${this.error ? html`<p role="alert">${this.error}</p>` : ''}
-                    ${this.greeting
-                      ? html`
-                          <p>${this.greeting.message}</p>
-                          <!-- seenAt is a real Date, revived because the C# type said so. -->
-                          <p>
-                            Server time:
-                            ${new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
-                              this.greeting.seenAt,
-                            )}
+                    <main class="hero grow py-16">
+                      <div class="hero-content text-center">
+                        <div class="max-w-md">
+                          <h1 class="text-4xl font-bold">Rask + Lit</h1>
+                          <p class="py-4 text-base-content/70">
+                            One query and one command, over your C# records.
                           </p>
-                          <p>Visits: ${this.greeting.visits}</p>
-                        `
-                      : ''}
 
-                    <button ?disabled=${this.busy} @click=${this.record}>
-                      Record a visit
-                    </button>
-                  </main>
+                          <div class="card bg-base-100 w-full max-w-md shadow-sm">
+                            <div class="card-body gap-4 text-left">
+                              <label class="fieldset">
+                                <span class="fieldset-legend">Name</span>
+                                <input
+                                  class="input w-full"
+                                  .value=${this.name}
+                                  @input=${(event: Event) => {
+                                    this.name = (event.target as HTMLInputElement).value
+                                    void this.load()
+                                  }}
+                                />
+                              </label>
+
+                              ${!this.greeting && !this.error
+                                ? html`<span class="loading loading-spinner loading-sm" aria-label="Loading"></span>`
+                                : ''}
+                              ${this.error
+                                ? html`<div role="alert" class="alert alert-error"><span>${this.error}</span></div>`
+                                : ''}
+                              ${this.greeting
+                                ? html`
+                                    <p>${this.greeting.message}</p>
+                                    <!-- seenAt is a real Date, revived because the C# type said so. -->
+                                    <p class="text-sm text-base-content/70">
+                                      Server time:
+                                      ${new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
+                                        this.greeting.seenAt,
+                                      )}
+                                    </p>
+                                    <div class="stat p-0">
+                                      <div class="stat-title">Visits</div>
+                                      <div class="stat-value text-2xl">${this.greeting.visits}</div>
+                                    </div>
+                                  `
+                                : ''}
+
+                              <div class="card-actions justify-end">
+                                <button class="btn btn-primary" ?disabled=${this.busy} @click=${this.record}>
+                                  Record a visit
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </main>
+
+                    <footer class="footer footer-center bg-base-100 p-4 text-base-content/70">
+                      <aside><p>Built with Rask.</p></aside>
+                    </footer>
+                  </div>
                 `
               }
 
