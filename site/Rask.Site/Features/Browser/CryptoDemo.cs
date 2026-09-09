@@ -15,8 +15,8 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Class(Tw.BtnOutlinePrimary).Id("crypto-uuid").OnClickAsync(Uuid)["Random UUID"],
-                    Button.Class(Tw.BtnOutlinePrimary).Id("crypto-bytes").OnClickAsync(Bytes)[
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("crypto-uuid").OnClickAsync(Uuid)["Random UUID"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("crypto-bytes").OnClickAsync(Bytes)[
                         "Random bytes"]
                 ],
                 Div.Class("text-sm text-ui-muted")["UUID: ", Code.Id("crypto-uuid-value")[_uuid ?? "(none)"]],
@@ -26,7 +26,7 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
                     .Id("crypto-text")
                     .Class($"{Tw.Input} mb-2")
                     .OnInput(v => _text = v),
-                Button.Class($"{Tw.BtnPrimary} mb-2").Id("crypto-hash").OnClickAsync(Hash)["SHA-256"],
+                UiButton.Tone(UiTone.Primary).Class("mb-2").Id("crypto-hash").OnClickAsync(Hash)["SHA-256"],
                 Div.Class("text-sm text-ui-muted text-break")["Hash: ", Code.Id("crypto-hash-value")[_hash ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("crypto-status")[_status ?? "(idle)"]]
             ]

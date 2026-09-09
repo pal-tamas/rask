@@ -14,7 +14,7 @@ public sealed partial class TagsFormDemo : Component
                 .Class(Tw.Input)
                 .Placeholder("Jane Doe")
         ],
-        Button.Class(Tw.BtnPrimary).Type("submit")["Submit"]
+        UiButton.Tone(UiTone.Primary).Type("submit")["Submit"]
     ];
 
     private sealed class Fields

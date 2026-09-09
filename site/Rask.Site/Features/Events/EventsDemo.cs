@@ -37,8 +37,8 @@ public sealed partial class EventsDemo : Component
             ],
             // Double-click + context menu (preventDefault'd client-side so the native menu is suppressed).
             Div.Class("col-span-12 md:col-span-6")[
-                Button
-                    .Class($"{Tw.BtnOutlinePrimary} w-full py-4")
+                UiButton
+                    .Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("w-full py-4")
                     .OnDoubleClick(_ => _doubleClicks++)
                     .OnContextMenu(_ => _contextMenu = !_contextMenu)[
                     "Double-click or right-click me"],

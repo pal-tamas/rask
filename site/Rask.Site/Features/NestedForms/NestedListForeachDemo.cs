@@ -50,13 +50,13 @@ public sealed partial class NestedListForeachDemo : Component
                         .OnClick(() =>
                             _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[
                         UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add row"],
-                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-list-submit")[
+                    UiButton.Tone(UiTone.Primary).Type("submit").Id("nf-list-submit")[
                         UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
+                : UiAlert.Tone(UiTone.Success).Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
         ];
     }
 }

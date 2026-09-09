@@ -32,6 +32,9 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiModal : Component
 {
+    private static readonly IReadOnlyDictionary<string, string?> CloseAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Close" };
+
     /// <summary>daisyUI and MaryUI both call this <c>title</c>.</summary>
     public new required string Title { get; set; }
 
@@ -97,13 +100,17 @@ public sealed partial class UiModal : Component
             // `open` on a <dialog> shows it non-modally; daisyUI's `.modal[open]` rule is what makes it
             // cover the viewport anyway. `modal-open` alongside it drives the transition.
             Dialog.Class(UiClass.Compose(Classes(), Open == false ? "" : "modal-open")).Open(Open != false),
+            // Square, so it holds the glyph and no text — and an icon with no text has no accessible
+            // name, so the name is given explicitly. A required Label used to do this implicitly; now
+            // that UiButton IS a <button>, it is stated the same way any other button would state it.
             UiButton
-                .Label("Close")
                 .Variant(UiVariant.Ghost)
                 .Size(UiSize.Sm)
                 .Square(true)
-                .Icon(UiIconName.Close)
-                .OnClick(() => Close?.Invoke()),
+                .Aria(CloseAria)
+                .OnClick(() => Close?.Invoke())[
+                UiIcon.Name(UiIconName.Close).Class("size-4 shrink-0")
+            ],
             // A pointer convenience, not the only way out: the header's close button is the keyboard
             // path, which is why this carries no role and no label of its own.
             backdrop: Close is null

@@ -67,13 +67,13 @@ public sealed partial class NestedFluentValidationDemo : Component
                         .Id("nf-fv-add")
                         .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
                         UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add line"],
-                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-fv-submit")[
+                    UiButton.Tone(UiTone.Primary).Type("submit").Id("nf-fv-submit")[
                         UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Place"]
                 ]
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
+                : UiAlert.Tone(UiTone.Success).Class("text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
         ];
     }
 }

@@ -35,10 +35,10 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
                             .OnInput(v => _value = v)]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("idb-set").OnClickAsync(Set)["Set"],
-                    Button.Class(Tw.BtnOutlinePrimary).Id("idb-get").OnClickAsync(Get)["Get"],
-                    Button.Class(Tw.BtnOutlineSecondary).Id("idb-keys").OnClickAsync(Keys)["List keys"],
-                    Button.Class(Tw.BtnOutlineDanger).Id("idb-clear").OnClickAsync(Clear)["Clear"]
+                    UiButton.Tone(UiTone.Primary).Id("idb-set").OnClickAsync(Set)["Set"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("idb-get").OnClickAsync(Get)["Get"],
+                    UiButton.Tone(UiTone.Secondary).Variant(UiVariant.Outline).Id("idb-keys").OnClickAsync(Keys)["List keys"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("idb-clear").OnClickAsync(Clear)["Clear"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],

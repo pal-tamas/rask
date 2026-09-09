@@ -31,7 +31,7 @@ public sealed partial class AsyncValidationDemo : Component
                     .For(() => _model.Username)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Sign up"]
+                UiButton.Tone(UiTone.Primary).Type("submit")[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Sign up"]
             ]
         ],
         _submission is null

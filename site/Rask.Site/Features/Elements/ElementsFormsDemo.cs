@@ -47,8 +47,8 @@ public sealed partial class ElementsFormsDemo : Component
             ]
         ],
         Div[
-            Button.Class(Tw.BtnPrimary).Type("submit")["Submit"], " ",
-            Button.Class(Tw.BtnOutlineSecondary).Type("reset")["Reset"]
+            UiButton.Tone(UiTone.Primary).Type("submit")["Submit"], " ",
+            UiButton.Tone(UiTone.Secondary).Variant(UiVariant.Outline).Type("reset")["Reset"]
         ]
     ];
 

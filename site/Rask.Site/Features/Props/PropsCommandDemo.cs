@@ -10,14 +10,14 @@ public sealed partial class PropsCommandDemo : Component
     // CommandEvent instead of invoking one.
     protected override Component? Render() =>
         Div[
-            Button
-                .Class(Tw.BtnOutlinePrimary)
+            UiButton
+                .Tone(UiTone.Primary).Variant(UiVariant.Outline)
                 .Command("show-modal")
                 .CommandFor("props-command-dialog")["Open the dialog"],
             Dialog.Id("props-command-dialog").Class("p-3 border-0 rounded shadow")[
                 P.Class("mb-3")["Opened by ", Code["command"], ", with no handler on either side."],
-                Button
-                    .Class(Tw.BtnSecondary)
+                UiButton
+                    .Tone(UiTone.Secondary)
                     .Command("close")
                     .CommandFor("props-command-dialog")["Close"]]];
 }

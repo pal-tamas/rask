@@ -31,7 +31,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                 P.Class("text-sm text-ui-muted")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
-                Button.Class($"{Tw.BtnPrimary} mb-2").Id("pwa-notify").OnClickAsync(ShowNotification)[
+                UiButton.Tone(UiTone.Primary).Class("mb-2").Id("pwa-notify").OnClickAsync(ShowNotification)[
                     "Show a notification"],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
             ]
@@ -47,10 +47,10 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                     ") for the full loop — see ", Code["docs/pwa.md"], "."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnOutlinePrimary).Id("pwa-push").OnClickAsync(EnablePush)[
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-push").OnClickAsync(EnablePush)[
                         "Enable push (subscribe)"],
-                    Button
-                        .Class(Tw.BtnPrimary)
+                    UiButton
+                        .Tone(UiTone.Primary)
                         .Id("pwa-push-send")
                         .Disabled(!_subscribed)
                         .OnClickAsync(SendTestPush)[
@@ -68,9 +68,9 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                     "A silent no-op in a normal browser tab."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnOutlinePrimary).Id("pwa-badge-inc").OnClickAsync(BumpBadge)[
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-badge-inc").OnClickAsync(BumpBadge)[
                         "Increment badge"],
-                    Button.Class(Tw.BtnOutlineDanger).Id("pwa-badge-clear").OnClickAsync(ClearBadge)[
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("pwa-badge-clear").OnClickAsync(ClearBadge)[
                         "Clear badge"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]

@@ -169,16 +169,16 @@ public sealed partial class CachePage(
         // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
         // which is where thumbs are.
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            UiButton.Key("prev").Label("Previous")
+            UiButton.Key("prev")
                 .Disabled(_page == 0)
-                .OnClickAsync(() => GoAsync(_page - 1)),
+                .OnClickAsync(() => GoAsync(_page - 1))["Previous"],
             Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {_page + 1} of {pages}"],
                 Span.Class("hidden sm:inline")[$" — {_total} keys"]
             ],
-            UiButton.Key("next").Label("Next")
+            UiButton.Key("next")
                 .Disabled(_page >= pages - 1)
-                .OnClickAsync(() => GoAsync(_page + 1))
+                .OnClickAsync(() => GoAsync(_page + 1))["Next"]
         ];
     }
 
@@ -187,12 +187,13 @@ public sealed partial class CachePage(
     // stampede — hence the Destructive tier and a confirmation.
     private Component? EvictButton(string key) =>
         options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? UiButton.Label("Evict").OnClickAsync(() => EvictAsync(key))
+            ? UiButton.OnClickAsync(() => EvictAsync(key))["Evict"]
             : null;
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? UiButton.Label("Flush cache").Tone(UiTone.Error).Icon(UiIconName.Trash).OnClick(() => Confirm(true))
+            ? UiButton.Tone(UiTone.Error).OnClick(() => Confirm(true))[
+                UiIcon.Name(UiIconName.Trash).Class("size-4 shrink-0"), "Flush cache"]
             : null;
 
     private Component? ConfirmPrompt() =>
@@ -201,8 +202,8 @@ public sealed partial class CachePage(
                 Span.Class("min-w-0 grow break-words")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error).OnClickAsync(FlushAsync),
-                UiButton.Key("cancel").Label("Cancel").OnClick(() => Confirm(false))
+                UiButton.Key("confirm").Tone(UiTone.Error).OnClickAsync(FlushAsync)["Confirm"],
+                UiButton.Key("cancel").OnClick(() => Confirm(false))["Cancel"]
             ]
             : null;
 

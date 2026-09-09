@@ -29,7 +29,7 @@ public sealed partial class FirstErrorWinsDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Unlock).Class("me-1"), "Activate"]
+                UiButton.Tone(UiTone.Primary).Type("submit")[UiIcon.Name(UiIconName.Unlock).Class("me-1"), "Activate"]
             ]
         ],
         _submission is null

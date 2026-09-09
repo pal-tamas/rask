@@ -29,7 +29,7 @@ public sealed partial class FluentValidationAsyncDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Ticket).Class("me-1"), "Reserve"]
+                UiButton.Tone(UiTone.Primary).Type("submit")[UiIcon.Name(UiIconName.Ticket).Class("me-1"), "Reserve"]
             ]
         ],
         _submission is null

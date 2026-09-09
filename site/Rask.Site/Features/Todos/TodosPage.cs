@@ -213,7 +213,7 @@ public sealed partial class TodoFormDialog : Component
                     ValidationMessage.Template(FieldError).For(() => Model.Title),
                     Div.Class("flex justify-end gap-2")[
                         Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(OnCancel)["Cancel"],
-                        Button.Class(Tw.BtnPrimary).Type("submit")[
+                        UiButton.Tone(UiTone.Primary).Type("submit")[
                             UiIcon.Name(UiIconName.CheckCircle).Class("me-1"),
                             IsAdding ? "Add" : "Save"
                         ]

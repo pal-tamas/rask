@@ -7,6 +7,12 @@ namespace Rask.Site.Tests.Pages;
 
 public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 {
+    // The demo's error banner is a UiAlert now, so the marker is daisyUI's class rather than the
+    // composed Tw constant. It is also a better marker here: this file already documents the risk of
+    // the page's source pane containing the alert's class names as literal text, and the source now
+    // reads `UiAlert.Tone(UiTone.Error)` - the rendered class does not appear in it at all.
+    private const string ErrorAlertClass = "alert-error";
+
     [Fact]
     public async Task OnMountAsync_FetchesPost_PopulatesArticle()
     {
@@ -43,7 +49,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         await Task.Delay(120);
         var html = page.Render();
 
-        Assert.Contains(Tw.AlertDanger, html, StringComparison.Ordinal);
+        Assert.Contains(ErrorAlertClass, html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,7 +85,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
             "the retried fetch never rendered its body");
         var html = page.Render();
 
-        Assert.DoesNotContain(Tw.AlertDanger, html, StringComparison.Ordinal);
+        Assert.DoesNotContain(ErrorAlertClass, html, StringComparison.Ordinal);
         Assert.Contains("the body text", html);
     }
 
@@ -97,12 +103,12 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // attempts then stops.
         var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(
-            () => page.Render().Contains(Tw.AlertDanger, StringComparison.Ordinal),
+            () => page.Render().Contains(ErrorAlertClass, StringComparison.Ordinal),
             TimeSpan.FromSeconds(6),
             "the exhausted retry loop never surfaced its error banner");
         var html = page.Render();
 
-        Assert.Contains(Tw.AlertDanger, html, StringComparison.Ordinal);
+        Assert.Contains(ErrorAlertClass, html, StringComparison.Ordinal);
         // The spinner is gone — the demo no longer hangs on the loading state. Asserting on the
         // demo's rendered result (not the page) keeps the spinner-border check meaningful.
         Assert.DoesNotContain("spinner-border", html);
@@ -119,6 +125,6 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         await Task.Delay(120);
         var html = page.Render();
 
-        Assert.Contains(Tw.AlertDanger, html, StringComparison.Ordinal);
+        Assert.Contains(ErrorAlertClass, html, StringComparison.Ordinal);
     }
 }

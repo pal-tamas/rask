@@ -31,7 +31,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             return null;
         }
 
-        return Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
+        return UiAlert.Tone(UiTone.Error).Class("text-sm mb-0")[
             Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
@@ -68,7 +68,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Gift).Class("me-1"), "Redeem"]
+                UiButton.Tone(UiTone.Primary).Type("submit")[UiIcon.Name(UiIconName.Gift).Class("me-1"), "Redeem"]
             ]
         ],
         _submission is null

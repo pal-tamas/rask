@@ -24,7 +24,7 @@ public sealed partial class ValidatableObjectDemo : Component
             return null;
         }
 
-        return Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
+        return UiAlert.Tone(UiTone.Error).Class("text-sm mb-0")[
             Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
@@ -49,7 +49,7 @@ public sealed partial class ValidatableObjectDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Calendar).Class("me-1"), "Book"]
+                UiButton.Tone(UiTone.Primary).Type("submit")[UiIcon.Name(UiIconName.Calendar).Class("me-1"), "Book"]
             ]
         ],
         _submission is null

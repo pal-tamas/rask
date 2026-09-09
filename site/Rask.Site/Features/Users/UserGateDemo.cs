@@ -20,7 +20,7 @@ public sealed partial class UserGateDemo : Component
                     P["Signed in as ", Strong[_auth.Current.Identity!.Name ?? "?"]],
                     // Role-gated: only an admin sees this panel.
                     _auth.Current.IsInRole("admin")
-                        ? Div.Class($"{Tw.AlertWarning} py-2")["🔑 Admin-only panel"]
+                        ? UiAlert.Tone(UiTone.Warning).Class("py-2")["🔑 Admin-only panel"]
                         : null,
                     Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(_auth.SignOut)["Sign out"]]
                 : [

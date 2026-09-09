@@ -46,14 +46,14 @@ public sealed partial class UiKitLayoutDemo : Component
             Div.Data(Testid("ui-layout-rest")).Class("space-y-4")[
                 UiDivider.Key("d").Text("or"),
                 UiJoin.Key("j")[
-                    UiButton.Key("1").Label("«"),
-                    UiButton.Key("2").Label("1"),
-                    UiButton.Key("3").Label("»")
-                ],
+                    UiButton.Key("1")["«"],
+                    UiButton.Key("2")["1"],
+                    UiButton.Key("3")
+["»"]                ],
                 Div.Class("flex flex-wrap items-center gap-6")[
                     UiIndicator.Key("i").Badge(UiBadge.Label("9").Tone("error"))[
-                        UiButton.Label("Inbox")
-                    ],
+                        UiButton
+["Inbox"]                    ],
                     UiAvatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round(true)
                         .Class("w-12")
                 ]

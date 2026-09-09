@@ -194,9 +194,8 @@ public sealed partial class QueuePage(
         // console has no script to make one behave like a control.
         yield return UiButton
             .Key("details")
-            .Label("Details")
-            .Icon(UiIconName.ChevronRight)
-            .OnClick(() => Open(row.Id));
+            .OnClick(() => Open(row.Id))[
+            UiIcon.Name(UiIconName.ChevronRight).Class("size-4 shrink-0"), "Details"];
     }
 
     private Component StatusBadge(QueueRow row, bool isDead, DateTime now) => row switch
@@ -235,7 +234,7 @@ public sealed partial class QueuePage(
             .Close(Close)
             .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
                 RowActionButtons(row, isDead),
-                UiButton.Key("close").Label("Close").OnClick(Close)
+                UiButton.Key("close").OnClick(Close)["Close"]
             ])[
             UiDetailList[
                 UiDetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
@@ -393,9 +392,9 @@ public sealed partial class QueuePage(
         _pending is { } pending
             ? UiNotice.Tone("warn")[
                 Span.Class("min-w-0 grow break-words")[pending.Prompt],
-                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error)
-                    .OnClickAsync(() => ExecuteAsync(pending.Action)),
-                UiButton.Key("cancel").Label("Cancel").OnClick(Cancel)
+                UiButton.Key("confirm").Tone(UiTone.Error)
+                    .OnClickAsync(() => ExecuteAsync(pending.Action))["Confirm"],
+                UiButton.Key("cancel").OnClick(Cancel)["Cancel"]
             ]
             : null;
 
@@ -433,17 +432,17 @@ public sealed partial class QueuePage(
         // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
         // which is where thumbs are.
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            UiButton.Key("prev").Label("Previous")
+            UiButton.Key("prev")
                 .Disabled(_page == 0)
-                .OnClickAsync(() => GoAsync(_page - 1)),
+                .OnClickAsync(() => GoAsync(_page - 1))["Previous"],
             Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {_page + 1} of {pages}"],
                 // The total is the first thing to go when there is no room for it.
                 Span.Class("hidden sm:inline")[$" — {_total} rows"]
             ],
-            UiButton.Key("next").Label("Next")
+            UiButton.Key("next")
                 .Disabled(_page >= pages - 1)
-                .OnClickAsync(() => GoAsync(_page + 1))
+                .OnClickAsync(() => GoAsync(_page + 1))["Next"]
         ];
     }
 

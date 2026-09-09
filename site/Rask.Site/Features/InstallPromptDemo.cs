@@ -63,14 +63,14 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button
-                        .Class(Tw.BtnPrimary)
+                    UiButton
+                        .Tone(UiTone.Primary)
                         .Id("install-button")
                         .Disabled(!_canInstall)
                         .OnClickAsync(Install)[
                         UiIcon.Name(UiIconName.Download).Class("me-1"), "Install app"],
-                    Button
-                        .Class(Tw.BtnOutlineSecondary)
+                    UiButton
+                        .Tone(UiTone.Secondary).Variant(UiVariant.Outline)
                         .Id("install-refresh")
                         .OnClickAsync(RefreshAsync)[
                         "Re-check"]

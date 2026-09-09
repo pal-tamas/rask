@@ -46,7 +46,7 @@ public sealed partial class BoomRenderDemo : Component
         ];
 
     private static Component BoundaryFallback(Exception ex, Action recover) =>
-        Div.Class($"{Tw.AlertDanger} flex items-start").Id("boom-fallback")[
+        UiAlert.Tone(UiTone.Error).Class("flex items-start").Id("boom-fallback")[
             UiIcon.Name(UiIconName.Warning).Class("me-3 size-6"),
             Div[
                 Strong["Boundary caught: "],

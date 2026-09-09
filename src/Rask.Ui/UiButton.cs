@@ -1,3 +1,5 @@
+using Rask.Core.Components;
+
 namespace Rask.Ui;
 
 /// <summary>
@@ -11,15 +13,36 @@ namespace Rask.Ui;
 /// axes and compose, so an outlined error button needs no member of its own.
 /// </para>
 /// <para>
-/// Both <see cref="OnClick" /> and <see cref="OnClickAsync" /> exist because both call sites exist: an
-/// action that awaits, and a state flip that does not. Making every caller wrap a void in a completed
-/// task would be noise at the call site to save one property here.
+/// <b>It IS a <c>&lt;button&gt;</c>.</b> It derives from <see cref="Button" /> rather than wrapping one,
+/// so every button attribute is already here — <c>Type</c> (a form's commit button is
+/// <c>.Type("submit")</c>), <c>Name</c>/<c>Value</c>, the <c>Form*</c> overrides, <c>PopoverTarget</c>,
+/// <c>Command</c>/<c>CommandFor</c> — and so is the whole element surface: <c>Id</c>, <c>Style</c>,
+/// <c>Data</c>, <c>Aria</c>, <c>Role</c>, <c>TabIndex</c> and every <c>On*</c> handler.
+/// </para>
+/// <para>
+/// Wrapping was the reason this class kept growing a property at a time. It had none of the above, so a
+/// call site needing one either could not use the kit or waited for the property to be added: an
+/// <c>Id</c> for a test hook, then <c>Type</c> for a submit button, then <c>Command</c> for a scriptless
+/// dialog, then <c>Aria</c>. Inheriting ends the queue.
+/// </para>
+/// <para>
+/// <b>The trade is content.</b> A component renders through <c>Render()</c>; an element does not — the
+/// serializer writes its tag and walks the children the caller supplied. So this cannot invent content,
+/// and the <c>Label</c> and <c>Icon</c> properties are gone: a button's content is its children, exactly
+/// as with a plain <c>&lt;button&gt;</c>.
+/// </para>
+/// <code>
+/// UiButton.Tone(UiTone.Primary)[UiIcon.Name(UiIconName.EyeDropper).Class("me-1"), "Pick a color"]
+/// </code>
+/// <para>
+/// One consequence worth stating: <see cref="Square" /> and <see cref="Circle" /> hold a single glyph and
+/// no text, so a button drawn that way has no accessible name unless the call site gives it one with
+/// <c>.Aria(…)</c>. A required <c>Label</c> used to guarantee that. It is the call site's to get right
+/// now — which is already true of every plain <c>&lt;button&gt;</c> in the framework.
 /// </para>
 /// </remarks>
-public sealed partial class UiButton : Component
+public sealed partial class UiButton : Button
 {
-    public required string Label { get; set; }
-
     /// <summary>The button's colour. Omitted, it is the theme's plain button.</summary>
     public UiTone? Tone { get; set; }
 
@@ -28,21 +51,16 @@ public sealed partial class UiButton : Component
 
     public UiSize? Size { get; set; }
 
-    public UiIconName? Icon { get; set; }
-
     /// <summary>Fills the width of its container, which is what a button in a phone-width form wants.</summary>
     public bool? Block { get; set; }
 
     /// <summary>Wider than its content needs, without filling the container as <see cref="Block" /> does.</summary>
     public bool? Wide { get; set; }
 
-    /// <summary>
-    ///     Draws it as a square holding nothing but its <see cref="Icon" />. <see cref="Label" /> becomes
-    ///     the accessible name rather than visible text — see the remarks on icon-only buttons.
-    /// </summary>
+    /// <summary>Draws it as a square holding a single glyph.</summary>
     public bool? Square { get; set; }
 
-    /// <summary>Draws it as a circle holding nothing but its <see cref="Icon" />, as <see cref="Square" />.</summary>
+    /// <summary>Draws it as a circle holding a single glyph, as <see cref="Square" />.</summary>
     public bool? Circle { get; set; }
 
     /// <summary>
@@ -51,56 +69,37 @@ public sealed partial class UiButton : Component
     /// </summary>
     public bool? Active { get; set; }
 
-    public Action? OnClick { get; set; }
-
-    public Func<Task>? OnClickAsync { get; set; }
-
-    public bool? Disabled { get; set; }
-
-    public string? Class { get; set; }
-
+    // The safe default, kept. Button's own remark is the reason: an unset type means SUBMIT inside a
+    // form, "the usual cause of a page that reloads when you did not expect it". The wrapper used to
+    // hard-code type="button" and so could never be a submit button at all; inheriting Type made submit
+    // possible and silently took the default away with it, which would have turned every converted
+    // button inside a <form> into one that submits it. Defaulted here instead, so .Type("submit") is
+    // available and "button" is what you get by saying nothing.
     /// <inheritdoc />
-    protected override Component? Render()
+    protected override void WriteAttributes(System.Text.StringBuilder sb)
     {
-        // A square or a circle is sized to hold one glyph, so visible text would overflow it. The label
-        // is still REQUIRED — it becomes the accessible name, because a button whose only content is a
-        // decorative icon has no name at all, and a screen reader announces it as "button".
-        var iconOnly = Square == true || Circle == true;
-
-        var button = Button
-            .Type("button")
-            .Class(UiClass.Compose(
-                "btn",
-                Tone is { } tone ? UiClassNames.ButtonTone(tone) : "",
-                Variant is { } variant ? UiClassNames.ButtonVariant(variant) : "",
-                Size is { } size ? UiClassNames.ButtonSize(size) : "",
-                Block == true ? "btn-block" : "",
-                Wide == true ? "btn-wide" : "",
-                Square == true ? "btn-square" : "",
-                Circle == true ? "btn-circle" : "",
-                Active == true ? "btn-active" : "",
-                Class))
-            .Disabled(Disabled == true);
-
-        if (iconOnly)
-        {
-            button = button.Aria(new Dictionary<string, string?> { ["label"] = Label });
-        }
-
-        // Whichever the caller supplied. Both set would be a call-site bug, and the async one wins because
-        // it is the one that does work.
-        if (OnClickAsync is { } async)
-        {
-            button = button.OnClickAsync(async);
-        }
-        else if (OnClick is { } sync)
-        {
-            button = button.OnClick(sync);
-        }
-
-        return button[
-            Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,
-            iconOnly ? null : Span[Label]
-        ];
+        Type ??= "button";
+        base.WriteAttributes(sb);
     }
+
+    // The class attribute, composed rather than replaced. This is the seam Element documents for exactly
+    // this ("Subclasses transform the `class` attribute value without re-implementing the universal
+    // id/class/style/data-* walk"), and the one NavLink already uses to splice in its active class.
+    //
+    // Declaring a `Class` property here instead would be the trap: it would shadow Element's, the
+    // generator would emit a second non-generic setter that wins overload resolution, and the value would
+    // land on a property that nothing renders.
+    /// <inheritdoc />
+    protected override string? ResolveClass() =>
+        UiClass.Compose(
+            "btn",
+            Tone is { } tone ? UiClassNames.ButtonTone(tone) : "",
+            Variant is { } variant ? UiClassNames.ButtonVariant(variant) : "",
+            Size is { } size ? UiClassNames.ButtonSize(size) : "",
+            Block == true ? "btn-block" : "",
+            Wide == true ? "btn-wide" : "",
+            Square == true ? "btn-square" : "",
+            Circle == true ? "btn-circle" : "",
+            Active == true ? "btn-active" : "",
+            Class);
 }

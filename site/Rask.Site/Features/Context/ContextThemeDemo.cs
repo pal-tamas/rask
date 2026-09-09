@@ -25,7 +25,7 @@ public sealed partial class ContextThemeDemo : Component
                 .Style(_theme.IsDark
                     ? "background:var(--color-neutral);color:var(--color-neutral-content)"
                     : "background:var(--color-base-200);color:var(--color-base-content)")[
-                Button.Class($"{Tw.BtnOutlineSecondary} mb-3").Type("button")
+                UiButton.Tone(UiTone.Secondary).Variant(UiVariant.Outline).Class("mb-3")
                     .OnClick(() => _theme = _theme.IsDark ? Theme.Light : Theme.Dark)[
                     $"Toggle theme — currently {_theme.Name}"
                 ],

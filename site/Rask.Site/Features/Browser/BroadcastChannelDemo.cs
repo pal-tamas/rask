@@ -38,7 +38,7 @@ public sealed partial class BroadcastChannelDemo(IBroadcastChannel bus) : Compon
     protected override Component? Render() =>
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
-                Button.Class($"{Tw.BtnPrimary} mb-2").Type("button").Id("bc-send").OnClickAsync(Send)["Broadcast a message"],
+                UiButton.Tone(UiTone.Primary).Class("mb-2").Id("bc-send").OnClickAsync(Send)["Broadcast a message"],
                 Div.Class("text-sm text-ui-muted mb-1")["Received (from other connections/tabs):"],
                 _received.Count == 0
                     ? Div.Class("text-sm text-ui-muted italic").Id("bc-log")["(none yet)"]

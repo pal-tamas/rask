@@ -83,8 +83,8 @@ public sealed partial class IslandsDemo : Component
                 ],
 
                 Div.Class("flex gap-2 mt-3")[
-                    Button.Class(Tw.BtnPrimary).Id("island-raise").OnClick(Raise)["Raise the reading"],
-                    Button.Class(Tw.BtnOutlinePrimary).Id("island-reset").OnClick(Reset)["Reset"]
+                    UiButton.Tone(UiTone.Primary).Id("island-raise").OnClick(Raise)["Raise the reading"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("island-reset").OnClick(Reset)["Reset"]
                 ],
 
                 P.Class("text-sm mt-3 mb-0")[

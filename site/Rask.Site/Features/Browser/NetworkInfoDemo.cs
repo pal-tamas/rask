@@ -11,7 +11,7 @@ public sealed partial class NetworkInfoDemo(INetworkInfo network) : Component
     protected override Component? Render() =>
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
-                Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("net-read")
                     .OnClickAsync(Read)[
                     "Read network status"],

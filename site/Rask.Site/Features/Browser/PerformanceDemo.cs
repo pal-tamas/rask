@@ -13,7 +13,7 @@ public sealed partial class PerformanceDemo(IPerformance performance) : Componen
     protected override Component? Render() =>
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
-                Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Id("perf-read").OnClickAsync(Read)[
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2").Id("perf-read").OnClickAsync(Read)[
                     "Read performance timing"],
                 Div.Class("text-sm text-ui-muted")["Timing: ", Code.Id("perf-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("perf-status")[_status ?? "(idle)"]]

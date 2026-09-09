@@ -21,10 +21,10 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("bt-request").OnClickAsync(PairAndRead)[
+                    UiButton.Tone(UiTone.Primary).Id("bt-request").OnClickAsync(PairAndRead)[
                         UiIcon.Name(UiIconName.Signal).Class("me-1"), "Pair & read battery"],
-                    Button
-                        .Class(Tw.BtnOutlineDanger)
+                    UiButton
+                        .Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("bt-disconnect")
                         .Disabled(_device is null)
                         .OnClickAsync(Disconnect)["Disconnect"]

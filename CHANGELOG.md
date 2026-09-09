@@ -246,6 +246,38 @@ them until tagged releases begin.
   muted text colour — the same class of mistake `ui.css` already documents for `ok`/`warn`. It reached
   294 call sites through `text-ui-muted`, and is now `base-content` stepped back.
 
+- **`UiButton` IS a `<button>` now: it derives from the element instead of wrapping one.** The wrapper
+  had no element surface of its own, so it grew one property at a time and every call site that needed
+  something else either dropped out of the kit or waited — an `Id` for a test hook, then `Type` for a
+  submit button, then `Command` for a scriptless dialog, then `Aria`/`Role`/`TabIndex`. Deriving from
+  `Button` ends that: `Type`, `Name`/`Value`, the `Form*` overrides, `PopoverTarget`,
+  `Command`/`CommandFor` and the whole `Element` surface (`Id`, `Style`, `Data`, `Aria`, `Role`,
+  `TabIndex`, every `On*` handler) are simply there. Three showcase demos that exist to TEACH that
+  surface — `PropsAriaDemo`, `PropsCommandDemo`, `EventsDemo` — could not use the kit at all before and
+  do now.
+
+  `Button` is unsealed for it, which has a price worth naming: a sealed type's `protected` members are
+  not part of its public API, so `TagName` and `WriteAttributes` are now recorded in `Rask.Core`'s
+  baseline and overridable by anyone deriving.
+
+  **The trade is content.** An element does not render through `Render()` — the serializer writes its
+  tag and walks the children it was given — so `Label` and `Icon` are gone and a button's content is
+  its children, as with any `<button>`. For `Square`/`Circle` buttons, which hold one glyph and no
+  text, that removes the accessible name a required `Label` used to guarantee; the three icon-only call
+  sites state it with `.Aria(…)` instead, and `UiButtonTests` was rewritten to say whose job it now is
+  rather than deleted.
+
+  `type="button"` is still the default, and deliberately: inheriting `Type` made submit possible and
+  silently took the default with it, which would have turned every converted button inside a `<form>`
+  into one that submits it. `Button`'s own remark names that as "the usual cause of a page that reloads
+  when you did not expect it"; a unit test caught it.
+
+- **The showcase's demos are drawn with the kit rather than with class constants.** 98 buttons and 20
+  alerts moved from `Button.Class(Tw.BtnPrimary)` to `UiButton.Tone(UiTone.Primary)`, which the
+  `DemoMarkup` golden records as thirteen hand-rolled utilities collapsing to `btn btn-primary`.
+  `UiAlert.Message` became optional for the same reason `UiButton.Label` did — an alert carrying markup
+  had to pass an empty string to satisfy a requirement it then met meaninglessly.
+
 - **The showcase's shared class vocabulary had seven colours that were not theme colours.** `Tw.cs`
   says in its own remark that every colour in it is a palette token; seven were raw Tailwind. Three
   filled buttons paired a themed surface with a hard `text-white`, which is white-on-yellow the moment

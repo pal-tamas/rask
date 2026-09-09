@@ -33,7 +33,7 @@ public sealed partial class NestedListIndexerDemo : Component
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
-                    Button.Class($"{Tw.BtnOutlineSecondary} me-1").Type("button")
+                    UiButton.Tone(UiTone.Secondary).Variant(UiVariant.Outline).Class("me-1")
                         .Disabled(i == 0)
                         .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
                         UiIcon.Name(UiIconName.ArrowUp)],
@@ -56,13 +56,13 @@ public sealed partial class NestedListIndexerDemo : Component
                         .Id("nf-idx-add")
                         .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
                         UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add row"],
-                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-idx-submit")[
+                    UiButton.Tone(UiTone.Primary).Type("submit").Id("nf-idx-submit")[
                         UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
+                : UiAlert.Tone(UiTone.Success).Class("text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
         ];
     }
 }

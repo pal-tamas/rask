@@ -38,7 +38,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
                 Button.Type("button").Class(Tw.BtnOutlineSecondary).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
                     UiIcon.Name(UiIconName.Search).Class("me-1"), "Validate now"
                 ],
-                Button.Class(Tw.BtnPrimary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Save"]
+                UiButton.Tone(UiTone.Primary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Save"]
             ]
         ],
         _submission is null

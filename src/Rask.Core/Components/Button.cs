@@ -7,7 +7,18 @@ namespace Rask.Core.Components;
 ///     which is the usual cause of a page that reloads when you did not expect it.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button">MDN</see>
 /// </summary>
-public sealed class Button : Element
+/// <remarks>
+///     <b>Not sealed</b>, so a styled button can BE a button rather than wrap one — which is what
+///     <c>Rask.Ui</c>'s <c>UiButton</c> does. A subclass inherits every attribute here and everything on
+///     <see cref="Element" />, and composes the <c>class</c> attribute through
+///     <see cref="Element.ResolveClass" /> rather than re-declaring one. The alternative was a wrapper
+///     re-declaring this class's members one at a time, which is what it had been doing.
+///     <para>
+///         It stays a leaf in the DOM-interface mirror either way: <c>&lt;button&gt;</c> is
+///         <c>HTMLButtonElement</c>, and MDN defines no interface between that and <c>HTMLElement</c>.
+///     </para>
+/// </remarks>
+public class Button : Element
 {
     protected override string TagName => "button";
 

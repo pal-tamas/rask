@@ -10,7 +10,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
             ? null
-            : Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
+            : UiAlert.Tone(UiTone.Error).Class("text-sm mb-0")[
                 Ul.Class("mb-0 ps-3")[
                     entries.Select((e, i) => Li.Key(i)[
                         e.Field.Length == 0
@@ -39,7 +39,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
                 Input.Bind(() => _model.Return).Id("v5-return").Class(Tw.Input)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.PaperAirplane).Class("me-1"), "Book"]
+                UiButton.Tone(UiTone.Primary).Type("submit")[UiIcon.Name(UiIconName.PaperAirplane).Class("me-1"), "Book"]
             ]
         ],
         _submission is null

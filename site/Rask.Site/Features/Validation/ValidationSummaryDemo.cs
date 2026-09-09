@@ -8,7 +8,7 @@ public sealed partial class ValidationSummaryDemo : Component
     private string? _submission;
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
-        Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
+        UiAlert.Tone(UiTone.Error).Class("text-sm mb-0")[
             Div.Class("font-semibold mb-1")[
                 UiIcon.Name(UiIconName.Warning).Class("me-1"),
                 $"Please fix {entries.Count} error{(entries.Count == 1 ? "" : "s")}:"
@@ -51,7 +51,7 @@ public sealed partial class ValidationSummaryDemo : Component
                 ]
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Register"]
+                UiButton.Tone(UiTone.Primary).Type("submit")[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Register"]
             ]
         ],
         _submission is null
