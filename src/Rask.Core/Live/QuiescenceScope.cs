@@ -56,6 +56,15 @@ internal sealed class QuiescenceScope : IDisposable
     ///         with <see cref="Enter" />, which sets both slots, so the flow lookup finds it there too.
     ///     </para>
     ///     <para>
+    ///         <b>Ask this only from the render walk.</b> Every caller is on it, and that is the whole
+    ///         reason the answer is trustworthy: the walk runs inside the pass's own flow. A CONTINUATION
+    ///         cannot ask — a <c>SynchronizationContext.Post</c> runs before the runtime restores the
+    ///         awaiter's captured <c>ExecutionContext</c> (that happens around the continuation itself),
+    ///         so a lookup there reads whichever thread finished the awaited task and answers null, or a
+    ///         stranger, at random. Work started off the walk must be handed a scope captured on it —
+    ///         see <c>LifecycleSyncContext</c>'s field. This cost #932 twice.
+    ///     </para>
+    ///     <para>
     ///         A disposed scope is never current either, and reading past one clears it.
     ///         <see cref="Dispose" /> can only clear the thread-static slot on the thread it happens to
     ///         run on, and after an <c>await</c> that is routinely not the thread <see cref="Begin" />

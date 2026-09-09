@@ -1122,7 +1122,14 @@ public abstract partial class Component : RaskMarkup
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
     {
         var prev = SynchronizationContext.Current;
-        var ctx = new LifecycleSyncContext(this);
+
+        // Resolved HERE, on the render walk, and handed to the context — because this is the only
+        // place it is knowable. The walk runs inside the pass's own flow, so the AsyncLocal is
+        // exact; LifecycleSyncContext.Post runs on whichever thread finished the awaited task,
+        // where it is not (see the field it is stored in). One lookup now serves both the context
+        // and the Track below, which used to do its own.
+        var quiescence = QuiescenceScope.Current;
+        var ctx = new LifecycleSyncContext(this, quiescence);
         SynchronizationContext.SetSynchronizationContext(ctx);
         Task task;
         try { task = invoke(); }
@@ -1142,7 +1149,7 @@ public abstract partial class Component : RaskMarkup
         // continuation runs ExecuteSynchronously and can fire inline the moment the hook completes,
         // so registering afterwards would let a fast hook finish first and leave the tracker
         // reporting a render that had already settled when it had not.
-        QuiescenceScope.Current?.Track(task, this);
+        quiescence?.Track(task, this);
 
         // LifecycleSyncContext renders after each in-method await. The terminal render
         // here is the fallback for hooks that return a Task without awaiting it AND for

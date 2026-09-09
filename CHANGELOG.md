@@ -9,6 +9,37 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A server-rendered page could serve a nested component's placeholder, at 200, with nothing wrong
+  anywhere — because `LifecycleSyncContext.Post` could not see the render it belonged to.**
+  `Post` read the quiescence scope from an `AsyncLocal` on the assumption that it runs under the
+  awaiter's captured `ExecutionContext`. It does not: the runtime restores that context around the
+  **continuation**, not around the `SynchronizationContext.Post` that schedules it. Measured directly —
+  a twenty-line program prints `SCOPE` before the await, `<null>` inside `Post`, and `SCOPE` again
+  after it.
+
+  So `Post` fell through to `QuiescenceScope`'s thread-static fallback and got the pass only when the
+  awaited task happened to finish on the very thread that opened it. Two full traced runs of
+  `Rask.Server.Tests` agree: **every** lookup inside `Post` saw an empty flow slot, and resolved to the
+  right pass, to a *stranger's* pass, or to nothing depending purely on which thread the timer fired
+  on. With no pass, the paint gate added in the previous fix was never registered at all, and the wave
+  loop was free to snapshot in the one-line window that gate exists to close — re-render before the
+  child's `StateHasChanged()`, find nothing pending, and serve.
+
+  That is [#932](https://github.com/pal-tamas/rask/issues/932):
+  `QuiescentRenderTests.Get_AwaitsWorkStartedByAResolvedWave`
+  failing about one run in five with `Not found: "child-loaded"`, never in isolation, well inside a 5 s
+  budget with nothing marked timed out. It was never only a test: any page whose component mounts a
+  second component that loads its own data could serve the inner placeholder as its first paint, to a
+  browser and to every crawler.
+
+  The scope is now **captured by the render walk** — where it is a fact rather than an inference — and
+  handed to `LifecycleSyncContext` through its constructor; `Post` never consults ambient state again.
+  The same lookup serves `QuiescenceScope.Track`, which used to do its own.
+  `The_gate_survives_a_continuation_posted_from_a_foreign_thread`
+  pins it by running the walk on a dedicated thread, so the pool thread that completes the hook cannot
+  be carrying the thread-static; it fails every time with the change reverted, naming the cause —
+  *the scope reported nothing pending*.
+
 - **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
   Every class name was present and correct in the markup; the rules never won. The hero's
   `h1.text-4xl.font-semibold` computed to **16px/400** and the primary call to action's `px-5` computed
