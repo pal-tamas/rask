@@ -232,10 +232,10 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. It is gated on the `admin` role — the one the first account to register holds — because it shows job payloads, stored email bodies and log lines. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
-| `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore` and the migration). |
+| `--dry-run` | Print the files that would be created and write nothing (skips the restore, the build and the migration). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
 | `--no-git` | Don't initialize a git repository (one is created with an initial commit by default). |
-| `--no-restore` | Skip `dotnet restore` (for offline use), and the first migration with it. Without it, a restore failure is reported as a failure — the files are written, but the project won't build until it succeeds. |
+| `--no-restore` | Skip `dotnet restore` (for offline use), and with it the build and the first migration — there is nothing to build against. Without it, a restore failure is reported as a failure: the files are written, but the project won't build until it succeeds. |
 
 The batteries wire a feature up; they don't scaffold sample pages for you to delete.
 
