@@ -232,7 +232,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Li.Class("side-nav-section menu-title")[section]);
+            children.Add(
+                Li.Class("side-nav-section menu-title")[
+                    UiIcon.Name(SectionIcon(section)).Class("me-1.5 inline size-3.5 align-[-0.2em]"),
+                    section
+                ]);
             children.AddRange(groups);
         }
 
@@ -337,6 +341,16 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             }
         }
     }
+
+    // The two sections are different kinds of thing, so they get different glyphs: guides are read,
+    // examples are run. Anything else falls back to the neutral document icon rather than inventing a
+    // meaning for a section this method has not been told about.
+    private static UiIconName SectionIcon(string section) => section switch
+    {
+        "Guides" => UiIconName.Book,
+        "Examples" => UiIconName.Play,
+        _ => UiIconName.Document,
+    };
 
     private static string GroupKey(string section, string group) => $"{section}{group}";
 

@@ -79,9 +79,6 @@ public sealed partial class CodeSample : Component
             ];
 
         return Div.Class("sample-code-header")[
-            Span.Class("sample-dot dot-r"),
-            Span.Class("sample-dot dot-y"),
-            Span.Class("sample-dot dot-g"),
             files,
             Button
                 .Type("button")
@@ -102,7 +99,7 @@ public sealed partial class CodeSample : Component
         return Div.Class($"{Tw.Card} shadow-sm border-0 mb-4 sample-card")[
             Title is null && Notes is null
                 ? null
-                : Div.Class($"{Tw.CardHeader} bg-white border-b")[
+                : Div.Class($"{Tw.CardHeader} bg-base-100 border-b")[
                     Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
                     Notes is null
                         ? null
@@ -111,7 +108,10 @@ public sealed partial class CodeSample : Component
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either
             // pane into a narrow column on smaller viewports.
-            Div.Class("sample-code-col")[
+            // The kit's window frame rather than a bordered div with three coloured spans in it. The
+            // .sample-code-col class stays: it still carries the pane's surface and column layout, and
+            // an E2E journey selects on it to find a particular sample.
+            UiMockupWindow.Class("sample-code-col")[
                 Header(),
                 Pre.Class("sample-code m-0")[
                     Code.Class(codeClass)[
@@ -124,7 +124,10 @@ public sealed partial class CodeSample : Component
                 ]
             ],
             Div.Class("sample-result-col p-4")[
-                Div.Class("sample-result-label")["Live result"],
+                Div.Class("sample-result-label")[
+                    UiIcon.Name(UiIconName.Play).Class("me-1.5 inline size-3.5 align-[-0.2em]"),
+                    "Live result"
+                ],
                 Div.Class("sample-result-body")[Result ?? null]
             ]
         ];

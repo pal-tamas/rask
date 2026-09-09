@@ -23,11 +23,16 @@ namespace Rask.Site;
 /// <c>App.cs</c> — so a second set of colours had nothing left to select.
 /// </para>
 /// <para>
-/// Two variants have no token behind them. <c>Info</c> and the <c>Light</c>/<c>Dark</c> pair exist
-/// because this showcase demonstrates a full range of control weights side by side, and the kit's
-/// palette is deliberately smaller than that: it names the states an operator surface needs (ok, warn,
-/// danger) rather than a decorative spectrum. Collapsing them onto <c>brand</c> would have printed the
-/// same button twice in a demo whose point is that they differ, so they keep one hue of their own.
+/// <c>Info</c> used to be the exception, drawn from raw <c>sky-*</c> hues because the kit's palette
+/// named only the states an operator surface needs (ok, warn, danger). It was therefore the one control
+/// on the page that stayed the same blue under all thirty-five themes. daisyUI defines <c>info</c> — it
+/// simply had never been aliased — so it is a theme colour now like the rest, with
+/// <c>--color-ui-info-ink</c> darkening it for text the way <c>ok</c> and <c>warn</c> already are.
+/// </para>
+/// <para>
+/// The <c>Light</c>/<c>Dark</c> pair keeps its own weights, but from theme tokens: they are the base
+/// surface and the base content colour, which is what "light" and "dark" mean once a theme decides
+/// which is which.
 /// </para>
 /// </remarks>
 public static class Tw
@@ -37,17 +42,17 @@ public static class Tw
         "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline "
         + "transition disabled:cursor-default disabled:opacity-50";
 
-    public const string BtnPrimary = BtnBase + " bg-ui-brand text-white hover:bg-ui-brand/90";
+    public const string BtnPrimary = BtnBase + " bg-ui-brand text-primary-content hover:bg-ui-brand/90";
 
     public const string BtnSecondary = BtnBase + " bg-ui-well text-ui-ink hover:bg-ui-line/40";
 
-    public const string BtnSuccess = BtnBase + " bg-ui-ok text-white hover:bg-ui-ok/90";
+    public const string BtnSuccess = BtnBase + " bg-ui-ok text-success-content hover:bg-ui-ok/90";
 
-    public const string BtnDanger = BtnBase + " bg-ui-danger text-white hover:bg-ui-danger/90";
+    public const string BtnDanger = BtnBase + " bg-ui-danger text-error-content hover:bg-ui-danger/90";
 
     public const string BtnWarning = BtnBase + " bg-ui-warn text-ui-ink hover:bg-ui-warn/90";
 
-    public const string BtnInfo = BtnBase + " bg-sky-600 text-white hover:bg-sky-500";
+    public const string BtnInfo = BtnBase + " bg-info text-info-content hover:bg-info/90";
 
     public const string BtnLight = BtnBase + " bg-ui-bg text-ui-ink ring-1 ring-ui-line hover:bg-ui-well";
 
@@ -69,7 +74,7 @@ public static class Tw
     public const string BtnOutlineWarning =
         OutlineBase + " text-ui-warn-ink ring-ui-warn/40 hover:bg-ui-warn/10";
 
-    public const string BtnOutlineInfo = OutlineBase + " text-sky-700 ring-sky-300 hover:bg-sky-50";
+    public const string BtnOutlineInfo = OutlineBase + " text-ui-info-ink ring-info/40 hover:bg-info/5";
 
     public const string BtnOutlineLight = OutlineBase + " text-ui-ink ring-ui-line hover:bg-ui-well";
 
@@ -96,7 +101,7 @@ public static class Tw
 
     public const string AlertWarning = AlertBase + " bg-ui-warn/15 text-ui-warn-ink";
 
-    public const string AlertInfo = AlertBase + " bg-sky-50 text-sky-900";
+    public const string AlertInfo = AlertBase + " bg-info/10 text-ui-info-ink";
 
     public const string AlertLight = AlertBase + " bg-ui-bg text-ui-ink ring-1 ring-ui-line";
 
@@ -114,7 +119,7 @@ public static class Tw
 
     public const string BadgeWarning = BadgeBase + " bg-ui-warn/15 text-ui-warn-ink";
 
-    public const string BadgeInfo = BadgeBase + " bg-sky-100 text-sky-800";
+    public const string BadgeInfo = BadgeBase + " bg-info/10 text-ui-info-ink";
 
     public const string BadgeLight = BadgeBase + " bg-ui-bg text-ui-ink ring-1 ring-ui-line";
 

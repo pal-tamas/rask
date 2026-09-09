@@ -155,6 +155,7 @@
     danger is left alone: --color-error is already dark enough to pass, and moving a colour that works
     would be change for its own sake.
   */
+  --color-ui-info-ink: color-mix(in oklab, var(--color-info) 72%, black);
   --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 70%, black);
   --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 62%, black);
 }

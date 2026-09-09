@@ -19,25 +19,6 @@
     background: color-mix(in oklab, var(--color-base-content) 6%, transparent);
 }
 
-.sample-dot {
-    width: 0.65rem;
-    height: 0.65rem;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.dot-r {
-    background: var(--color-error);
-}
-
-.dot-y {
-    background: var(--color-warning);
-}
-
-.dot-g {
-    background: var(--color-success);
-}
-
 .sample-code-label {
     font-family: var(--font-mono);
     font-size: 0.72rem;

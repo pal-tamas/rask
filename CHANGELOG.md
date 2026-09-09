@@ -246,6 +246,27 @@ them until tagged releases begin.
   muted text colour — the same class of mistake `ui.css` already documents for `ok`/`warn`. It reached
   294 call sites through `text-ui-muted`, and is now `base-content` stepped back.
 
+- **The showcase's shared class vocabulary had seven colours that were not theme colours.** `Tw.cs`
+  says in its own remark that every colour in it is a palette token; seven were raw Tailwind. Three
+  filled buttons paired a themed surface with a hard `text-white`, which is white-on-yellow the moment
+  the theme's primary is light (bumblebee, and it is not the only one) — daisyUI pairs every surface
+  with a `*-content` colour chosen to sit on it, and those are used now. The fourth was `Info`, drawn
+  from `sky-600`/`sky-50`/`sky-100` because the kit's palette named only the states an operator surface
+  needs; it was therefore the one control on the page that stayed the same blue under all thirty-five
+  themes. daisyUI defines `info` and always had — it had simply never been aliased.
+
+  `--color-ui-info-ink` joins `ok-ink` and `warn-ink` for the text case, for the reason those two exist:
+  `info` is a SURFACE colour at roughly oklch(74%), about 2.4:1 on `base-100`, so using it as text would
+  have traded a fixed blue for an unreadable one. It reaches ~150 call sites through `Tw.cs` without
+  touching a demo, and `UiPaletteTests` holds the kit's copy and the showcase's identical.
+
+- **Code samples are drawn in the kit's window frame.** `CodeSample` built its own chrome — a bordered
+  div and three spans carrying macOS's traffic lights — on every sample in the docs. It is
+  `UiMockupWindow` now, so daisyUI draws those dots from a pseudo-element in `currentColor` and they
+  follow the theme instead of being three fixed hues. The `DemoMarkup` golden records the change across
+  every demo. The sidebar's section headings and each sample's "Live result" divider gained an icon,
+  both of which were bare text.
+
 - **The mobile nav drawer covers the phone.** It was a 288px rail pinned to the left edge, leaving a
   strip of page behind the backdrop and giving eighty guides half a screen to lay out in; it is the
   full viewport now (measured 390x844 on a 390x844 phone), with the list scrolling inside it.

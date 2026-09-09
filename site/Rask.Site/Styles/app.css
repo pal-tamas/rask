@@ -36,6 +36,7 @@
      read as 1.95:1 and worse on base-100, so aliasing them straight across shipped unreadable status
      text. Darkened in oklab, which moves only lightness — see the note in src/Rask.Ui/Styles/ui.css,
      which UiPaletteTests holds this copy identical to. */
+  --color-ui-info-ink: color-mix(in oklab, var(--color-info) 72%, black);
   --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 70%, black);
   --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 62%, black);
 }
