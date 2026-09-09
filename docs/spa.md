@@ -531,6 +531,12 @@ ends the pipeline with a fallback to `index.html` and an endpoint added after it
 instead of JSON. The `rask dev` proxy forwards `/api/auth` alongside `/_rask`, so a sign-in works the
 same in development, where the browser is talking to the bundler rather than to Kestrel.
 
+**The screens are scaffolded too.** `/login` and `/register` are in the template, drawn with the same
+daisyUI card the C# lane's sign-in uses, so the flow works on the first run rather than being the first
+thing you have to write. One component behind a `mode`, and the path is read in the entry file — the
+templates scaffold no router, because which one to use is a choice you have probably already made, and
+deep links work anyway since the dev server and the host both fall back to `index.html`.
+
 A TypeScript front end talks to them directly — there is no Rask client to install, because there is
 nothing to install: they are ordinary JSON over ordinary `fetch`.
 

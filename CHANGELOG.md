@@ -35,6 +35,14 @@ them until tagged releases begin.
   nothing. An app with a database links its sign-in page from the navbar; one without does not, because
   there is nothing at that route.
 
+  **The seven front-end templates can also sign somebody in.** The endpoints and a typed client both
+  already shipped — `Rask.Auth` maps `/api/auth`, and the build generates `rask/browser/auth` into every
+  client — so the only thing between a scaffolded front end and a working account was the two screens.
+  They draw the same card the C# lane's `/login` does. One file per framework, both screens behind a
+  `mode`, and the path read in the entry file each template already overlays rather than scaffolding a
+  router: the templates deliberately pick no router, because that is a choice a front-end developer has
+  usually already made. Nothing touches browser storage — the cookie these endpoints set is HttpOnly.
+
   For the six meta templates, four bring Tailwind from their own creator, so their stylesheet is patched
   rather than written. Every path was read off a real scaffold: SvelteKit's is under `src/routes/`, and
   its sheet quotes with apostrophes and already carries `@plugin '@tailwindcss/typography'`; TanStack's
