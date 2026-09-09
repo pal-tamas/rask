@@ -143,6 +143,7 @@ public static class ApiCall
     {
         string? problemType = null;
         string? detail = null;
+        Dictionary<string, string[]>? errors = null;
 
         var mediaType = response.Content.Headers.ContentType?.MediaType;
 
@@ -154,7 +155,7 @@ public static class ApiCall
                     .ReadAsByteArrayAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                ReadProblem(bytes, ref problemType, ref detail);
+                ReadProblem(bytes, ref problemType, ref detail, ref errors);
             }
             catch (JsonException)
             {
@@ -167,12 +168,17 @@ public static class ApiCall
             ? $"{method} {path} answered {(int)response.StatusCode}."
             : $"{method} {path} answered {(int)response.StatusCode}: {detail}";
 
-        return new ApiException(summary, method.Method, path, (int)response.StatusCode, problemType, detail);
+        return new ApiException(
+            summary, method.Method, path, (int)response.StatusCode, problemType, detail, errors);
     }
 
-    // Hand-read rather than deserialized: two known fields, and it keeps the package free of a
+    // Hand-read rather than deserialized: three known members, and it keeps the package free of a
     // reflection-based path the trimmer would have to be told about.
-    private static void ReadProblem(ReadOnlySpan<byte> json, ref string? type, ref string? detail)
+    private static void ReadProblem(
+        ReadOnlySpan<byte> json,
+        ref string? type,
+        ref string? detail,
+        ref Dictionary<string, string[]>? errors)
     {
         var reader = new Utf8JsonReader(json);
 
@@ -190,6 +196,7 @@ public static class ApiCall
         {
             var isType = reader.ValueTextEquals("type");
             var isDetail = reader.ValueTextEquals("detail");
+            var isErrors = reader.ValueTextEquals("errors");
 
             if (!reader.Read())
             {
@@ -198,6 +205,15 @@ public static class ApiCall
 
             if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
             {
+                // `errors` had to be named explicitly. Everything unknown is skipped, so a server that
+                // started sending field errors would have had them silently dropped — the caller would
+                // see a 400 with nothing to show the user, and nothing anywhere would say why.
+                if (isErrors && reader.TokenType == JsonTokenType.StartObject)
+                {
+                    errors = ReadErrors(ref reader);
+                    continue;
+                }
+
                 reader.Skip();
                 continue;
             }
@@ -216,5 +232,47 @@ public static class ApiCall
                 detail = reader.GetString();
             }
         }
+    }
+
+    // The `errors` object of a rejection: field name to messages, exactly the shape
+    // Rask.Cqrs.Client reads for a rejected remote dispatch and the shape ASP.NET's own
+    // ValidationProblemDetails uses, so a non-Rask 400 is understood too.
+    private static Dictionary<string, string[]>? ReadErrors(ref Utf8JsonReader reader)
+    {
+        var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
+
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            var field = reader.GetString() ?? string.Empty;
+
+            if (!reader.Read())
+            {
+                break;
+            }
+
+            if (reader.TokenType != JsonTokenType.StartArray)
+            {
+                // Skipping the VALUE rather than the token is what keeps the reader aligned; stepping
+                // over only the opening token would leave the loop reading property names off values.
+                reader.Skip();
+                continue;
+            }
+
+            var messages = new List<string>();
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+            {
+                if (reader.TokenType == JsonTokenType.String && reader.GetString() is { } message)
+                {
+                    messages.Add(message);
+                    continue;
+                }
+
+                reader.Skip();
+            }
+
+            result[field] = [.. messages];
+        }
+
+        return result.Count == 0 ? null : result;
     }
 }

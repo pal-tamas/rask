@@ -1,7 +1,13 @@
-/* Brand palette + global cascade for the Rask showcase. These rules target :root,
-   global Bootstrap classes, shell tags (html/body), and markup rendered by other
-   components (Raw-injected syntax-highlight spans), so they are deliberately NOT scoped.
-   Plain global stylesheet served from wwwroot and linked from App.cs's <Head>. */
+/* Brand palette + global cascade for the Rask showcase. These rules target :root, shell tags
+   (html/body), and markup rendered by other components through Raw() — the syntax-highlight token
+   spans and the Markdig-rendered guide HTML — which is why they are deliberately NOT scoped: nothing
+   here can be reached by a {Component}.css, because none of it carries a scope id.
+
+   That is the whole remit, and the boundary is enforced by ChromeStylesheetTests. This sheet is
+   UNLAYERED and linked last, so any rule in it outranks every Tailwind utility and every daisyUI
+   component on the page — a selector for a chrome element beats the classes written on that element,
+   silently, with every class name still present and correct. See the note on the missing `a { color }`
+   rule below, and the one over the .app-* names further down. */
 
 :root {
     /* The violet dark-first palette lives in Styles/app.css now, compiled into this project's own
@@ -33,7 +39,11 @@
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-    --nav-h: 56px;
+    /* The top bar's real height, which the sticky sidebar, the drawer's top padding and every
+       heading's scroll-margin are measured against. It is daisyUI's `.navbar` min-height now, and
+       saying 56px while the bar rendered 61px is what put the mobile drawer's filter box 5px under
+       the bar it was supposed to clear. */
+    --nav-h: 4rem;
 }
 
 body {
@@ -87,11 +97,6 @@ pre {
     margin: 0;
 }
 
-.rask-badge {
-    background: var(--rask-accent-soft);
-    color: var(--rask-accent);
-}
-
 .text-accent {
     color: var(--rask-accent) !important;
 }
@@ -126,16 +131,6 @@ button, a, [role="button"] {
     body:has(.nav-backdrop) {
         overflow: hidden;
         height: 100vh;
-    }
-
-    /* Keep the top navbar a single line on phones: never wrap, and drop the decorative brand badges
-       ("showcase" + version pill) that pushed the brand + GitHub button onto a second row. */
-    .app-navbar {
-        flex-wrap: nowrap;
-    }
-
-    .app-navbar .app-brand .rask-badge {
-        display: none;
     }
 }
 
@@ -197,81 +192,23 @@ button, a, [role="button"] {
     color: var(--color-success);
 }
 
-/* CodeSample: the source pane and the live result stack vertically (code first); a hairline
-   divides them now that they are no longer side-by-side columns. */
-.sample-result-col {
-    border-top: 1px solid var(--color-base-300);
-}
+/* ShowcaseLayout: the app shell (top bar + drawer sidebar + main). These rules are GLOBAL rather than
+   a scoped {Component}.css because the sidebar's anchors are rendered by NavLink, several component
+   levels below ShowcaseLayout, and so never carry its scope id. Same rationale as the .sample-code
+   rules above — markup another component renders can't be component-scoped. The .side-nav* /
+   .nav-group* / .app-* class names are specific enough not to leak.
 
-/* ShowcaseLayout: the app shell (navbar + responsive-offcanvas sidebar + main). These rules are
-   GLOBAL rather than a scoped {Component}.css because the sidebar is built from several nested
-   Rask.Bootstrap components (BsNavbar / BsOffcanvas / BsCollapse / BsNav / BsNavItem → NavLink), so
-   the elements they render (e.g. .offcanvas-body, the .side-nav-link anchors) sit several component
-   levels below ShowcaseLayout and never carry its scope id. Same rationale as the .sample-code rules
-   above — markup another component renders can't be component-scoped. The .side-nav* / .nav-group* /
-   .app-* class names are specific enough not to leak. */
+   What is NOT here any more: .app-navbar, .hamburger-btn and .app-shell. The bar is daisyUI's
+   `navbar` and the hamburger is its `btn btn-ghost btn-square`; the shell's one property
+   (align-items) is the `items-start` utility. Their names stay on the elements — the unit and browser
+   suites select on all three — but nothing in this file backs them, which is the point: unlayered
+   rules here outrank every layered utility on the page, so .app-navbar's dark-glass background quietly
+   beat the bg-ui-bg written in the markup and left the bar's own text at about 1.4:1 against it.
 
-/* Sticky top bar — glass over whatever surface the CHOSEN THEME defines.
-   
-   It used to read `background: rgba(20, 16, 31, 0.82) !important`: a violet-black pinned across every
-   theme, from when this bar was a BsNavbar carrying Theme:Dark and needing a dark ground under its
-   light text. The component went; the override outlived it, and `!important` meant no utility could
-   ever win. The result was a bar whose text and border tracked the picked theme while its background
-   could not — measured identical (rgba(20,16,31,0.82)) under light, dark, synthwave and retro, so
-   every light theme drew theme-coloured text on dark navy.
-
-   color-mix rather than a flat token because the blur below is only worth having if what sits behind
-   the bar shows through it. base-100 is the surface the element also names as `bg-base-100`, so the
-   utility and this rule agree instead of fighting. */
-.app-navbar {
-    background: color-mix(in oklab, var(--color-base-100) 82%, transparent);
-    backdrop-filter: saturate(180%) blur(14px);
-    -webkit-backdrop-filter: saturate(180%) blur(14px);
-    padding-top: calc(0.5rem + env(safe-area-inset-top));
-    z-index: 1046;
-}
-
-/* Hamburger toggle — a transparent icon button shown only below md (the d-md-none utility hides it
-   at >=md, where the sidebar is static). */
-/* NO colour here. `color: #fff` used to live in this rule, which is white-on-white the moment the
-   theme is a light one; the element carries `text-base-content/70` and owns its own colour. */
-.hamburger-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
-    border: 0;
-    background: transparent;
-    border-radius: 0.5rem;
-    margin-right: 0.25rem;
-    padding: 0;
-}
-
-.hamburger-btn:hover,
-.hamburger-btn:focus {
-    background: color-mix(in oklab, var(--color-base-content) 8%, transparent);
-    outline: none;
-}
-
-.hamburger-btn .bi {
-    font-size: 1.4rem;
-    line-height: 1;
-}
-
-/* The shell row: sidebar + main, laid out with the Display.Flex utility on the wrapper. */
-.app-shell {
-    align-items: flex-start;
-}
-
-/* The sidebar is a responsive offcanvas (offcanvas-md): a slide-in drawer below md, a fixed-width
-   static column at >=md. */
-/* The body is a non-scrolling flex column: a pinned filter header over a single scrolling list. The
-   filter is a real flex header (not position:sticky) because a sticky child of a flex container does
-   not stick in Safari — it would scroll away with the list. This is bulletproof across browsers. */
-/* The sidebar body is a non-scrolling flex column: the filter is a pinned header and the LIST inside
-   scrolls. BsOffcanvas used to supply this container as .offcanvas-body; the container is now the
-   <aside> itself, and loading after the utilities is what lets overflow:hidden beat its overflow-y-auto. */
+   The sidebar is a slide-in drawer below md and a fixed-width static column at >=md. Its body is a
+   non-scrolling flex column: the filter is a pinned header and the LIST inside scrolls. The filter is
+   a real flex header (not position:sticky) because a sticky child of a flex container does not stick
+   in Safari — it would scroll away with the list. This is bulletproof across browsers. */
 .side-nav {
     /* NO display here. This file loads after the utilities, so `display: flex` would beat the
        `hidden` utility and the mobile drawer could never close. Tailwind owns display (hidden /
@@ -336,12 +273,10 @@ button, a, [role="button"] {
     padding: 1rem 0.5rem;
 }
 
-/* Main content column. */
-.page-main {
-    min-width: 0; /* let long code blocks scroll instead of stretching the flex item */
-    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
-}
-
+/* Main content column. Its two properties — min-width:0 so long code blocks scroll instead of
+   stretching the flex item, and a safe-area-aware bottom pad — are `min-w-0` and an arbitrary
+   `pb-[…]` on the element now; .page-main is a name the browser suite selects on (it asserts focus
+   moves into the new page's <main> after a nav), not a style hook. */
 .page-main-inner {
     max-width: 1280px;
 }
@@ -355,19 +290,11 @@ button, a, [role="button"] {
         position: sticky;
         top: var(--nav-h);
         align-self: flex-start;
-    }
-
-    /* Cap the aside to the viewport minus the navbar so the inner .side-nav-scroll (not the page) is
-       the bounded scroll region — a long, fully-expanded list scrolls inside itself, filter pinned
-       above.
-
-       ON .side-nav ITSELF, and that is the fix. This used to read `.side-nav.offcanvas-md
-       .offcanvas-body`, from when BsOffcanvas supplied the container — the comment two rules up already
-       says the container is the <aside> now, so neither class was on the page and the rule matched
-       NOTHING. With no cap the aside grew to its full content height (measured: 4388px against a 900px
-       viewport), which meant .side-nav-scroll had no bounded parent to scroll inside, `position: sticky`
-       had nothing to stick within, and the whole rail scrolled with the document instead. */
-    .side-nav {
+        /* Cap the column to the viewport minus the top bar so the inner .side-nav-scroll (not the page)
+           is the bounded scroll region — a long, fully-expanded list scrolls inside itself, filter
+           pinned above. This used to be written against Bootstrap's .side-nav.offcanvas-md
+           .offcanvas-body, an element that stopped existing when BsOffcanvas went: the <aside> IS the
+           body now, so the rule had matched nothing since. */
         max-height: calc(100vh - var(--nav-h));
     }
 }
@@ -530,20 +457,4 @@ button, a, [role="button"] {
     margin: 2rem 0;
     border: 0;
     border-top: 1px solid var(--line);
-}
-
-/* SeeAlso: small accent pills linking a demo page to its guide(s). A dedicated class (not Bootstrap's
-   .badge) so it never collides with demo markup that the page itself renders. */
-.see-also-link {
-    display: inline-block;
-    background: var(--rask-accent-soft);
-    color: var(--rask-accent);
-    padding: 0.18rem 0.6rem;
-    border-radius: 999px;
-    font-weight: 600;
-}
-
-.see-also-link:hover {
-    background: var(--rask-accent);
-    color: var(--color-primary-content);
 }

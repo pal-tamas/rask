@@ -56,6 +56,15 @@ internal sealed class QuiescenceScope : IDisposable
     ///         with <see cref="Enter" />, which sets both slots, so the flow lookup finds it there too.
     ///     </para>
     ///     <para>
+    ///         <b>Ask this only from the render walk.</b> Every caller is on it, and that is the whole
+    ///         reason the answer is trustworthy: the walk runs inside the pass's own flow. A CONTINUATION
+    ///         cannot ask — a <c>SynchronizationContext.Post</c> runs before the runtime restores the
+    ///         awaiter's captured <c>ExecutionContext</c> (that happens around the continuation itself),
+    ///         so a lookup there reads whichever thread finished the awaited task and answers null, or a
+    ///         stranger, at random. Work started off the walk must be handed a scope captured on it —
+    ///         see <c>LifecycleSyncContext</c>'s field. This cost #932 twice.
+    ///     </para>
+    ///     <para>
     ///         A disposed scope is never current either, and reading past one clears it.
     ///         <see cref="Dispose" /> can only clear the thread-static slot on the thread it happens to
     ///         run on, and after an <c>await</c> that is routinely not the thread <see cref="Begin" />
@@ -145,15 +154,6 @@ internal sealed class QuiescenceScope : IDisposable
     internal static IDisposable Enter(QuiescenceScope? captured) => new Restore(captured);
 
     /// <summary>
-    ///     Record a lifecycle hook's task, along with the component that owns it.
-    /// </summary>
-    /// <remarks>
-    ///     Stores a wrapper that completes when <paramref name="task" /> does but never faults or
-    ///     cancels, so a batch can be awaited with a plain <c>WhenAll</c>. Faults are already routed
-    ///     to the nearest <c>ErrorBoundary</c> by the caller; re-observing them here would either
-    ///     throw out of the wait or double-report.
-    /// </remarks>
-    /// <summary>
     ///     Record work the render depends on that no lifecycle hook returned — see
     ///     <c>LiveRenderContext.AwaitBeforeFirstPaint</c>.
     /// </summary>
@@ -175,6 +175,26 @@ internal sealed class QuiescenceScope : IDisposable
         Track(task, owner: null);
     }
 
+    /// <summary>
+    ///     Record one piece of work this render is waiting on, along with the component that owns it.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Stores a wrapper that completes when <paramref name="task" /> does but never faults or
+    ///         cancels, so a batch can be awaited with a plain <c>WhenAll</c>. Faults are already routed
+    ///         to the nearest <c>ErrorBoundary</c> by the caller; re-observing them here would either
+    ///         throw out of the wait or double-report.
+    ///     </para>
+    ///     <para>
+    ///         <b>Work that paints through a component's own <c>StateHasChanged</c> must not be handed in
+    ///         as the hook's <c>Task</c>.</b> That Task completes one statement before the continuation
+    ///         that requests the render, and the wave loop is free to wake in between, re-render a
+    ///         component that is still clean, find nothing pending and serve its placeholder at 200. So
+    ///         <c>Component.InvokeAsyncLifecycleWithRendering</c> hands in its terminal continuation
+    ///         rather than the hook, and <c>LifecycleSyncContext.Post</c> hands in a gate it opens only
+    ///         after its own repaint. This cost #932 and #1037.
+    ///     </para>
+    /// </remarks>
     internal void Track(Task task, Component? owner)
     {
         var wrapped = task.ContinueWith(

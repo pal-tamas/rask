@@ -29,6 +29,12 @@ public static class RaskCacheServiceCollectionExtensions
         services.TryAddSingleton<IDistributedCache, RaskDistributedCache<TContext>>();
         services.TryAddSingleton<ICache, Cache>();
 
+        // Before the purger, so an app whose model never mapped CacheEntry fails the boot with the line
+        // to type rather than on the first cache read. The purger itself tolerates a missing table — it
+        // has to, because a freshly scaffolded app boots before its first migration has run — so it is
+        // the wrong place to notice. See BatteryModelCheck: this reads the MODEL, never the database.
+        services.AddHostedService<CacheModelCheck<TContext>>();
+
         // AddHostedService uses TryAddEnumerable, so a repeated call registers only one purger.
         services.AddHostedService<CachePurger<TContext>>();
         return services;

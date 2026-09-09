@@ -12,6 +12,7 @@ generates a typed client so *your* code never writes the URL twice.
 - [Hosting](#hosting) — `AddRaskApi()` / `MapRaskApi()`, and the 404 that was missing
 - [The typed client](#the-typed-client) — one client per controller, generated from the declaration
 - [Minimal APIs](#minimal-apis) — the same, read from the `MapGet` calls themselves
+- [Validation](#validation) — `[Required]` and your `AbstractValidator<T>`, async rules included
 - [What gets a client method](#what-gets-a-client-method) — and what is reported instead
 
 ---
@@ -198,7 +199,13 @@ exception that blurred them would make "is it down, or am I wrong?" unanswerable
 ```csharp
 catch (ApiException ex) when (ex.StatusCode is null) { /* offline: queue it */ }
 catch (ApiException ex) when (ex.StatusCode == 404)  { /* gone: show empty  */ }
+catch (ApiException ex) when (ex.Errors is { } fields) { /* rejected: show them */ }
 ```
+
+`Errors` is populated only for a [validation rejection](#validation), keyed by field with the empty key
+holding rules about the request as a whole — the same map `RemoteDispatchException.Errors` carries. It
+is the one failure whose text is safe to show: a validation message was authored for whoever sent the
+request, which is why it crosses the wire when handler exception text does not.
 
 `ApiClientOptions.ConfigureRequestAsync` is the hook for a bearer token or a tenant header. It receives
 the *request* rather than the `HttpClient`, deliberately: a token on the client is ambient state shared
@@ -234,6 +241,34 @@ e.MapDelete("/api/widgets/{id:int}/tag", (int id) => TypedResults.NoContent())
 **`TypedResults` is read properly.** `Ok<T>`, `NoContent` and `Results<Ok<T>, NotFound>` all carry the
 response type in the signature, and the alternative carrying a body supplies the client's return type.
 `Results.Ok(x)` — the untyped `IResult` — does not, and reports [RASK070](diagnostics.md#rask070).
+
+---
+
+## Validation
+
+An endpoint is validated like everything else in a Rask app, with nothing declared: the body's
+DataAnnotations attributes, then the `AbstractValidator<T>` written for its type — including
+`MustAsync` rules, which neither `ModelState` nor `Validator.TryValidateObject` can run.
+
+```csharp
+public sealed class NewOrder
+{
+    [Required] public string? Reference { get; set; }
+    [Range(1, 100)] public int Quantity { get; set; }
+}
+```
+
+A failure answers `400` `application/problem+json` with an `errors` object keyed by field, under the
+stable `type` documented at [a rejected request](validation.md#a-rejected-request) — the same document a
+rejected CQRS dispatch sends, so a client handles either. The generated client surfaces it as
+`ApiException.Errors`.
+
+Controllers are covered wherever they live. A minimal API is covered when it is mapped through
+`app.MapEndpoints(e => …)`; one mapped straight onto the built `WebApplication` asks for the convention
+by name with `.RequireRaskValidation()`, because ASP.NET has no global endpoint filter.
+
+Full detail — the off switch, what it leaves to ASP.NET, and the client side — is in
+[validation.md](validation.md#http-endpoints).
 
 ---
 

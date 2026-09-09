@@ -1122,7 +1122,14 @@ public abstract partial class Component : RaskMarkup
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
     {
         var prev = SynchronizationContext.Current;
-        var ctx = new LifecycleSyncContext(this);
+
+        // Resolved HERE, on the render walk, and handed to the context — because this is the only
+        // place it is knowable. The walk runs inside the pass's own flow, so the AsyncLocal is
+        // exact; LifecycleSyncContext.Post runs on whichever thread finished the awaited task,
+        // where it is not (see the field it is stored in). One lookup now serves both the context
+        // and the Track below, which used to do its own.
+        var quiescence = QuiescenceScope.Current;
+        var ctx = new LifecycleSyncContext(this, quiescence);
         SynchronizationContext.SetSynchronizationContext(ctx);
         Task task;
         try { task = invoke(); }
@@ -1138,12 +1145,6 @@ public abstract partial class Component : RaskMarkup
             return;
         }
 
-        // Registered BEFORE the terminal ContinueWith below, and the order is load-bearing: that
-        // continuation runs ExecuteSynchronously and can fire inline the moment the hook completes,
-        // so registering afterwards would let a fast hook finish first and leave the tracker
-        // reporting a render that had already settled when it had not.
-        QuiescenceScope.Current?.Track(task, this);
-
         // LifecycleSyncContext renders after each in-method await. The terminal render
         // here is the fallback for hooks that return a Task without awaiting it AND for
         // ConfigureAwait(false)-only chains where Post never fires. When the user's last
@@ -1153,7 +1154,7 @@ public abstract partial class Component : RaskMarkup
         // would then fire THIS callback inline before Post's own StateHasChanged runs,
         // producing two renders back-to-back. ctx.PostFired lets us short-circuit in
         // that case.
-        task.ContinueWith(static (t, state) =>
+        var painted = task.ContinueWith(static (t, state) =>
         {
             var (comp, ctx) = ((Component, LifecycleSyncContext))state!;
             if (t.IsFaulted)
@@ -1174,6 +1175,24 @@ public abstract partial class Component : RaskMarkup
 
             comp.StateHasChanged();
         }, (this, ctx), TaskContinuationOptions.ExecuteSynchronously);
+
+        // Tracked on the PAINT, never on the hook's own Task — the ordering guarantee the wave loop
+        // rests on, and the second half of #932's fix (#1037).
+        //
+        // The hook's Task completes one statement before the continuation above requests the render
+        // that shows its data, and both continuations run ExecuteSynchronously, so tracking the hook
+        // directly published a task that completed inside the window it exists to close: the loop
+        // could wake on it, re-render the still-clean child, find nothing pending and serve the
+        // placeholder at 200 with nothing marked timed out. Post closes that window for itself with
+        // an explicit gate — but Post never runs for a hook whose awaits are all ConfigureAwait(false),
+        // which is what library code is normally advised to write. Chaining the tracked wrapper onto
+        // the terminal continuation closes it for BOTH paths, and costs nothing: this is the same two
+        // continuations as before, in series rather than in parallel.
+        //
+        // Order here is safe either way. If the hook completes before this line, the continuation
+        // above has already run inline and requested the render, so what gets registered is a
+        // settled task and the loop simply takes one more wave over correct state.
+        quiescence?.Track(painted, this);
     }
 
     private static ErrorBoundary? ResolveHandlerBoundary(Component owner) =>
@@ -1866,6 +1885,11 @@ public abstract partial class Component : RaskMarkup
     // component has the first true and the second false (the graph was released).
     internal bool IsCleanSubtreeCachedForTest => _live?.Cached is not null;
     internal bool RetainsElementGraphForTest => _live?.CachedRenderResult is not null;
+
+    // Whether a render has been REQUESTED for this component but not yet performed — the half of
+    // StateHasChanged that happens synchronously, and so the only observable moment the quiescence
+    // ordering in InvokeAsyncLifecycleWithRendering can be pinned against (#1037).
+    internal bool IsRenderRequestedForTest => _live is { StateDirty: true };
 
     public Task StateHasChangedAsync()
     {

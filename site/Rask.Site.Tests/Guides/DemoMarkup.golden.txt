@@ -1,5 +1,5 @@
 === asset-basic-css ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -12,7 +12,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -25,7 +25,7 @@ code
 code
 
 === asset-js-only ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -38,7 +38,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -49,7 +49,7 @@ span .text-ui-muted
 strong
 
 === asset-lazy-mount ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -63,7 +63,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -73,7 +73,7 @@ button .btn .btn-outline .btn-secondary .mb-3
 div
 
 === asset-twin-bundle ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -86,7 +86,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -96,8 +96,8 @@ div .twin-tag
 div .twin-tag
 
 === auth-authorize ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -109,7 +109,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -122,8 +122,8 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 div .alert .mb-0 .py-2
 
 === auth-user-gate ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -135,7 +135,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -147,7 +147,7 @@ button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .
 button .bg-ui-warn .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-warn/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
 
 === binding-afterbind ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -158,7 +158,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -179,7 +179,7 @@ pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-afterbind-async ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -190,7 +190,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -210,7 +210,7 @@ pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-clear-default ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -221,7 +221,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -236,8 +236,8 @@ pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-manual ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -249,7 +249,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -259,8 +259,8 @@ p .mb-0 .text-sm
 code
 
 === binding-multi ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -272,7 +272,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -296,7 +296,7 @@ pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-nullable ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -307,7 +307,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -332,8 +332,8 @@ pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-textarea ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -345,7 +345,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -355,8 +355,8 @@ pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
 === binding-typed ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -368,7 +368,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -378,7 +378,7 @@ p .mb-0 .text-sm
 strong
 
 === boom-handler ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -389,7 +389,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -401,7 +401,7 @@ svg .me-2 .shrink-0 .size-5
 path
 
 === boom-nested ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -412,7 +412,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -426,7 +426,7 @@ svg .me-2 .shrink-0 .size-5
 path
 
 === boom-render ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -437,7 +437,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -449,7 +449,7 @@ svg .me-2 .shrink-0 .size-5
 path
 
 === browser-battery ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -460,7 +460,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -479,7 +479,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-broadcast-channel ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -490,7 +490,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -502,7 +502,7 @@ div .mb-1 .text-sm .text-ui-muted
 div .italic .text-sm .text-ui-muted
 
 === browser-clipboard ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -513,7 +513,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -530,7 +530,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-cookies ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -541,7 +541,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -559,7 +559,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-crypto ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -570,7 +570,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -592,7 +592,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-device-sensors ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -603,7 +603,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -628,7 +628,7 @@ code
 code
 
 === browser-file-system ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -639,7 +639,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -661,7 +661,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-gamepad ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -672,7 +672,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -686,7 +686,7 @@ code
 div .text-sm .text-ui-muted
 
 === browser-geolocation ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -697,7 +697,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -711,7 +711,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-geolocation-watch ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -722,7 +722,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -738,8 +738,8 @@ div .text-sm .text-ui-muted
 code
 
 === browser-gesture-bridge ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -751,7 +751,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -776,7 +776,7 @@ code
 code
 
 === browser-indexeddb ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -787,7 +787,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -812,7 +812,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-intersection ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -823,7 +823,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -838,7 +838,7 @@ div
 div .bg-ui-well .p-4 .rounded .text-center
 
 === browser-media-query ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -849,7 +849,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -863,7 +863,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-media-session ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -874,7 +874,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -893,7 +893,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-mutation ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -904,7 +904,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -925,7 +925,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-navigator-info ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -936,7 +936,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -950,7 +950,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-network ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -961,7 +961,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -975,7 +975,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-notifications ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -986,7 +986,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1002,7 +1002,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-opfs ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1013,7 +1013,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1032,7 +1032,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-page-visibility ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1043,7 +1043,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1057,7 +1057,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-performance ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1068,7 +1068,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1082,7 +1082,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-permissions ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1093,7 +1093,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1111,7 +1111,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-resize ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1122,7 +1122,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1135,7 +1135,7 @@ button .btn .btn-outline .btn-primary .mb-2
 div .bg-ui-well .rounded .text-center .w-fullp-4
 
 === browser-screen ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1146,7 +1146,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1160,8 +1160,8 @@ div .text-sm .text-ui-muted
 code
 
 === browser-share ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1173,7 +1173,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1186,7 +1186,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-signaling ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1197,7 +1197,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1213,7 +1213,7 @@ div .mb-1 .text-sm .text-ui-muted
 div .italic .text-sm .text-ui-muted
 
 === browser-speech ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1224,7 +1224,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1239,7 +1239,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-speech-recognition ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1250,7 +1250,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1266,7 +1266,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-storage ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1277,7 +1277,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1295,7 +1295,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-storage-estimate ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1306,7 +1306,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1320,7 +1320,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-vibration ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1331,7 +1331,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1346,7 +1346,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-visual-viewport ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1357,7 +1357,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1371,7 +1371,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-web-locks ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1382,7 +1382,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1398,7 +1398,7 @@ code
 div .italic .text-sm .text-ui-muted
 
 === browser-webauthn ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1409,7 +1409,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1427,7 +1427,7 @@ div .text-sm .text-ui-muted
 code
 
 === browser-webrtc ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1438,7 +1438,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1448,7 +1448,7 @@ div .p-5
 div .italic .text-sm .text-ui-muted
 
 === callback-rating ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1459,7 +1459,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1474,7 +1474,7 @@ button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leadin
 p .mb-0 .mt-2 .text-sm .text-ui-muted
 
 === cancellation ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1485,7 +1485,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1503,7 +1503,7 @@ h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
 
 === component-tiers ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1517,7 +1517,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1547,8 +1547,8 @@ p .text-sm .text-ui-muted
 button .bg-ui-brand .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand/90 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-primary-content .text-sm .transition
 
 === components-di ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1560,15 +1560,15 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
 div .sample-result-body
 
 === components-greeting ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1580,7 +1580,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1589,8 +1589,8 @@ p .mb-0
 strong
 
 === components-skipfactory ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1602,7 +1602,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1612,7 +1612,7 @@ svg .me-2 .shrink-0 .size-5
 path
 
 === context-theme ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1623,7 +1623,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1635,8 +1635,8 @@ span .text-sm .text-ui-muted
 span .bg-amber-100 .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-amber-900 .text-ui-muted .text-xs .theme-badge
 
 === cqrs-counter ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1650,7 +1650,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1663,8 +1663,8 @@ ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .gap-2 .items-center .px-4 .py-1 .py-2 .text-sm .text-ui-ink
 
 === data-download ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1676,7 +1676,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1688,8 +1688,8 @@ path
 div .mt-2 .text-sm .text-ui-muted
 
 === data-http-fetch ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1701,7 +1701,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1710,8 +1710,8 @@ div .flex .items-center .text-ui-muted
 span .animate-spin .border-2 .border-current .border-r-transparent .inline-block .me-2 .rounded-full .size-4 .size-5
 
 === data-http-register ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1723,7 +1723,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1735,8 +1735,8 @@ p .mb-0 .text-sm
 code
 
 === data-upload ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -1748,7 +1748,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1758,7 +1758,7 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 div .text-sm .text-ui-muted
 
 === disposal-async ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1769,7 +1769,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1787,7 +1787,7 @@ h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
 
 === disposal-sync ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1798,7 +1798,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1816,7 +1816,7 @@ h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
 
 === disposal-unmount ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1827,7 +1827,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1845,7 +1845,7 @@ h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
 
 === drag-drop-kanban ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1856,7 +1856,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1907,7 +1907,7 @@ path
 span
 
 === drag-drop-sortable ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1918,7 +1918,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -1946,7 +1946,7 @@ path
 span .font-semibold
 
 === elements-forms ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -1957,7 +1957,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2000,7 +2000,7 @@ button .btn .btn-primary
 button .btn .btn-outline .btn-secondary
 
 === elements-grouping ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2011,7 +2011,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2047,7 +2047,7 @@ pre .bg-slate-900 .p-2 .rounded .text-slate-100
 figcaption .mt-2 .text-sm .text-ui-muted
 
 === elements-interactive ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2058,7 +2058,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2081,7 +2081,7 @@ li .list-inline-item
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
 
 === elements-media ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2092,7 +2092,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2132,7 +2132,7 @@ video .border .rounded
 track
 
 === elements-metadata ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2143,7 +2143,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2163,7 +2163,7 @@ p .mb-0 .mt-1 .text-sm .text-ui-muted
 code
 
 === elements-sections ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2174,7 +2174,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2206,7 +2206,7 @@ footer .border-t .mt-2 .pt-2 .text-sm .text-ui-muted
 address .inline .italic
 
 === elements-tables ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2217,7 +2217,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2247,7 +2247,7 @@ th
 td .font-bold .text-right
 
 === elements-text ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2258,7 +2258,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2305,8 +2305,8 @@ ins
 del
 
 === events ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -2318,7 +2318,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2341,7 +2341,7 @@ strong
 div .mt-2 .text-ui-muted
 
 === events-click ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2352,7 +2352,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2362,8 +2362,8 @@ svg .me-2 .shrink-0 .size-5
 path
 
 === events-form ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -2375,7 +2375,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2390,7 +2390,7 @@ p .mb-0 .text-sm
 strong
 
 === events-input ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2401,7 +2401,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2411,7 +2411,7 @@ p .mb-0 .text-sm
 code
 
 === events-select ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2422,7 +2422,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2435,7 +2435,7 @@ p .mb-0 .text-sm
 strong
 
 === floating-labels ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2446,7 +2446,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2477,7 +2477,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === form-controls-input ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2488,7 +2488,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2507,7 +2507,7 @@ p .mb-0 .text-sm .text-ui-muted
 strong
 
 === form-controls-select ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2518,7 +2518,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2543,7 +2543,7 @@ p .mb-0 .text-sm .text-ui-muted
 strong
 
 === form-controls-textarea ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2554,7 +2554,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2573,7 +2573,7 @@ p .mb-0 .text-sm .text-ui-muted
 strong
 
 === form-submit-state ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2584,7 +2584,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2600,7 +2600,7 @@ p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
 strong
 
 === js-interop-elementref ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2613,7 +2613,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2626,7 +2626,7 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 div .bg-ui-well .border .p-3 .rounded
 
 === js-interop-jsruntime ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2637,7 +2637,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2667,7 +2667,7 @@ div
 code .text-base
 
 === js-interop-scoped-css ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2682,7 +2682,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2694,7 +2694,7 @@ div .box
 span .dot
 
 === keyed-lists-reorder ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2705,7 +2705,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2751,7 +2751,7 @@ span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 
 === lifecycle-cycle ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2762,7 +2762,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2780,7 +2780,7 @@ h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
 
 === lifecycle-hooks ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2791,7 +2791,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2813,8 +2813,8 @@ li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
 code .text-sm
 
 === localization-formats ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 h5 .font-semibold .mb-0
 p .mb-0 .mt-1 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
@@ -2827,7 +2827,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -2866,7 +2866,7 @@ td
 td
 
 === master-detail ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -2877,7 +2877,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3070,7 +3070,7 @@ td .text-ui-muted
 td
 
 === nested-fluent ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3081,7 +3081,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3122,7 +3122,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === nested-list-foreach ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3133,7 +3133,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3164,7 +3164,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === nested-list-indexer ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3175,7 +3175,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3211,7 +3211,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === nested-subobject ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3222,7 +3222,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3252,7 +3252,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === primitives-children ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3263,7 +3263,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3272,7 +3272,7 @@ div .mb-0
 strong
 
 === primitives-doctype ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3283,7 +3283,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3292,7 +3292,7 @@ span .text-ui-muted
 code
 
 === primitives-fragment ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3303,7 +3303,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3312,7 +3312,7 @@ h3 .font-semibold .text-lg
 p .mb-0
 
 === primitives-raw ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3323,7 +3323,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3332,7 +3332,7 @@ p .mb-0
 strong
 
 === primitives-text ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3343,7 +3343,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3351,7 +3351,7 @@ div .sample-result-body
 p .mb-0
 
 === props-aria ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3362,7 +3362,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3372,7 +3372,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === props-attribute-order ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3383,7 +3383,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3391,7 +3391,7 @@ div .sample-result-body
 a .link .link-primary
 
 === props-attributes ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3402,7 +3402,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3412,7 +3412,7 @@ span .italic
 code
 
 === props-command ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3423,7 +3423,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3436,7 +3436,7 @@ code
 button .btn .btn-secondary
 
 === props-data ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3447,7 +3447,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3455,7 +3455,7 @@ div .sample-result-body
 div .bg-ui-well .border .p-2 .rounded
 
 === props-id-class-style ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3466,7 +3466,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3474,7 +3474,7 @@ div .sample-result-body
 div .bg-ui-bg .ring-1 .ring-ui-line .ring-violet-500 .rounded-xl
 
 === routing-navigator ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3485,7 +3485,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3510,8 +3510,8 @@ button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-mediu
 button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger/5 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger .transition
 
 === routing-nested-layout ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -3523,15 +3523,15 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
 div .sample-result-body
 
 === routing-route-state ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -3543,14 +3543,14 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
 div .sample-result-body
 
 === svg-clickable ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3561,7 +3561,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3575,7 +3575,7 @@ p .mb-0 .mt-2 .text-sm .text-ui-muted
 strong
 
 === svg-gradient ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3586,7 +3586,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3600,7 +3600,7 @@ stop
 path
 
 === svg-shapes ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3611,7 +3611,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3622,7 +3622,7 @@ circle
 line
 
 === svg-text ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3633,7 +3633,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3643,7 +3643,7 @@ text
 tspan
 
 === tags-form ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3654,7 +3654,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3666,7 +3666,7 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 button .btn .btn-primary
 
 === tags-media ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3677,7 +3677,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3685,7 +3685,7 @@ div .sample-result-body
 img .rounded .shadow-sm
 
 === tags-table ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3696,7 +3696,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3717,7 +3717,7 @@ td
 code
 
 === tags-text ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3728,7 +3728,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3741,7 +3741,7 @@ em
 blockquote .border-l-4 .border-ui-line .italic .pl-4 .text-base .text-ui-muted
 
 === tags-void ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3752,7 +3752,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3762,7 +3762,7 @@ hr
 p .mb-0
 
 === validation-async ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3773,7 +3773,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3788,7 +3788,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-cross-field ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3799,7 +3799,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3817,7 +3817,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-custom-attribute ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3828,7 +3828,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3849,8 +3849,8 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-fields ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -3862,7 +3862,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3890,7 +3890,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-first-error-wins ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3901,7 +3901,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3916,8 +3916,8 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-fluent ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -3929,7 +3929,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3947,7 +3947,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-fluent-async ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -3958,7 +3958,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -3973,8 +3973,8 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-inline ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
-div .bg-base-100 .border-b .border-b .border-ui-line .font-medium .px-5 .py-3
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-base-100 .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
@@ -3986,7 +3986,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -4007,7 +4007,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-inline-async ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -4018,7 +4018,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -4033,7 +4033,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-nested-async ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -4044,7 +4044,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -4097,7 +4097,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-programmatic ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -4108,7 +4108,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -4126,7 +4126,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-summary ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -4137,7 +4137,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -4165,7 +4165,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === validation-validatable-object ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -4176,7 +4176,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -4197,7 +4197,7 @@ svg .me-1 .shrink-0 .size-5
 path
 
 === virtualize-items ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -4208,7 +4208,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path
@@ -4308,7 +4308,7 @@ tr
 td
 
 === virtualize-provider ===
-div .bg-ui-bg .border-0 .mb-4 .ring-1 .ring-ui-line .rounded-xl .sample-card .shadow-sm
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-base-100 .border .border-base-300 .mockup-window .sample-code-col
 div .border-base-300 .border-t
 div .sample-code-header
@@ -4319,7 +4319,7 @@ path
 span .sample-copy-text
 pre .m-0 .sample-code
 code .language-csharp
-div .p-4 .sample-result-col
+div .bg-base-100 .border-base-300 .border-t .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 svg .align-[-0.2em] .inline .me-1.5 .size-3.5
 path

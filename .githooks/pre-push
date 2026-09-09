@@ -40,9 +40,20 @@ mkdir -p "$gate_logs"
 zero="0000000000000000000000000000000000000000"
 offending=""
 
-# git feeds the hook "<local ref> <local sha> <remote ref> <remote sha>" per ref.
+# git feeds the hook "<local ref> <local sha> <remote ref> <remote sha>" per ref, ON STDIN, and stdin
+# can only be read once. It is captured here because two things now need it: the attribution guard
+# below, and the deletion check after it. Reading it inline in the loop — which is what this did —
+# left nothing for a second reader, so any later question about what is being pushed had to be
+# answered by guessing.
+push_refs="$(cat)"
+
+pushes_content=0
+
+# shellcheck disable=SC2086
 while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ -n "$local_sha" ] || continue          # the empty line a here-string appends
   [ "$local_sha" = "$zero" ] && continue   # branch deletion — nothing to inspect
+  pushes_content=1
 
   if [ "$remote_sha" = "$zero" ]; then
     # New branch: everything on it that no remote already has.
@@ -58,7 +69,9 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
 "
     fi
   done
-done
+done <<EOF
+$push_refs
+EOF
 
 if [ -n "$offending" ]; then
   cat >&2 <<EOF
@@ -76,6 +89,28 @@ $offending
       git config core.hooksPath .githooks
 EOF
   exit 1
+fi
+# -----------------------------------------------------------------------------
+
+# --- Deletion-only pushes run nothing ----------------------------------------
+#
+# `git push origin --delete <branch>` sends one ref line whose LOCAL sha is all zeroes: no commit
+# reaches the remote, no tree changes, and there is nothing a build or a browser journey could have
+# an opinion about. The hook ran the whole gate on it anyway — the full browser E2E suite, both
+# payload-bytes baselines and the capacity smokes — because every gate below is written in terms of
+# "is this push path-relevant", and a deletion matches those filters the same way any other push does.
+#
+# Found by deleting a merged branch and watching ~40 minutes of browser suite start up behind it. The
+# attribution loop above had the right idea all along (`local_sha = $zero` -> nothing to inspect); it
+# just kept the conclusion to itself.
+#
+# Only when EVERY ref is a deletion. A push that deletes one branch and updates another still has
+# content on it, and that content gets the gate.
+if [ "$pushes_content" -eq 0 ]; then
+  echo "pre-push: every ref in this push is a DELETION — no commits reach the remote, so there is"
+  echo "          nothing to build or test. Skipping the gates."
+  rmdir "$gate_logs" 2>/dev/null || true
+  exit 0
 fi
 # -----------------------------------------------------------------------------
 

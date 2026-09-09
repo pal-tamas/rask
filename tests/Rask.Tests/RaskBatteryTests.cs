@@ -2,7 +2,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Auth;
+using Rask.Cache;
+using Rask.Jobs;
 using Rask.Mail;
+using Rask.Outbox;
 
 namespace Rask.Tests;
 
@@ -18,6 +22,19 @@ namespace Rask.Tests;
 public sealed class RaskBatteryTests
 {
     private sealed class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options);
+
+    /// <summary>A context that maps every battery it is asked to carry, the way a real app's does.</summary>
+    private sealed class MappedDbContext(DbContextOptions<MappedDbContext> options) : DbContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.AddRaskAuth();
+            modelBuilder.AddRaskMail();
+            modelBuilder.AddRaskCache();
+            modelBuilder.AddRaskJobs();
+            modelBuilder.AddRaskOutbox();
+        }
+    }
 
     // The workers each battery adds. Names rather than types because the types are internal to their
     // packages, and the name is what an operator sees in a log line anyway.
@@ -165,5 +182,85 @@ public sealed class RaskBatteryTests
 
         // And exactly one worker, not two: AddHostedService uses TryAddEnumerable.
         Assert.Single(built.Services.GetServices<IHostedService>(), s => s.GetType().Name == Mail);
+    }
+
+    /// <summary>
+    /// Every battery's model check, found by name because each type is internal to its own package.
+    /// </summary>
+    /// <remarks>
+    /// Plural, and that is the shape of the decision behind it. The batteries share no assembly —
+    /// <c>Rask.Cache</c> has no Rask reference at all — so the check is source-linked into each of them
+    /// rather than accumulated in one place, and each reports only itself. The cost is that an app
+    /// missing several mappings meets them one restart at a time; the gain is that registering the check
+    /// belongs to <c>AddRaskX&lt;TContext&gt;</c>, which is what makes it fire for an app that wires its
+    /// batteries directly in <c>Program.cs</c> — the shape every scaffolded app has.
+    /// </remarks>
+    private static List<IHostedService> ModelChecks(IServiceProvider services) =>
+        [.. services.GetServices<IHostedService>()
+            .Where(s => s.GetType().Name.EndsWith("ModelCheck`1", StringComparison.Ordinal)
+                || s.GetType().Name.EndsWith("ModelCheck`2", StringComparison.Ordinal))];
+
+    [Fact]
+    public async Task A_battery_whose_tables_are_not_mapped_fails_at_boot_naming_the_missing_line()
+    {
+        // The failure this replaces: the app compiles, boots, serves pages and signs people in, then dies
+        // on the first request that touches the unmapped battery — "Cannot create a DbSet for 'QueuedMail'"
+        // — which in practice is the first password reset anybody asks for. A sample shipped in exactly
+        // that state and it took a browser journey to find it.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
+        var built = app.Build<TestApp>();
+
+        var checks = ModelChecks(built.Services);
+
+        // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache. Asserted as a count rather
+        // than "at least one" because a check that silently stopped being registered is precisely the
+        // failure this whole exercise is about — the original guard lived in the meta package and fired
+        // for nothing a real app does.
+        Assert.Equal(5, checks.Count);
+
+        var messages = new List<string>();
+        foreach (var check in checks)
+        {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => check.StartAsync(CancellationToken.None));
+            messages.Add(error.Message);
+        }
+
+        // Each names the LINE to type, not merely that something is wrong. The point of failing here
+        // rather than in a request is that the person reading it is the person who can fix it.
+        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskMail()", StringComparison.Ordinal));
+        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskAuth()", StringComparison.Ordinal));
+        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskJobs()", StringComparison.Ordinal));
+        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskCache()", StringComparison.Ordinal));
+        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskOutbox()", StringComparison.Ordinal));
+        Assert.All(messages, m => Assert.Contains("OnModelCreating", m, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_mapped_app_whose_database_does_not_exist_yet_still_starts()
+    {
+        // The constraint that decides whether this may fail the boot at all. A freshly scaffolded app
+        // boots before its first migration has run, so refusing to start over a missing TABLE would make
+        // "every battery is on by default" mean "a new app does not start" — which is exactly why the
+        // battery workers tolerate a missing table, and why the failure used to surface in a request.
+        //
+        // Reading the MODEL rather than the database separates the two: "not mapped" is a code mistake and
+        // always wrong; "not migrated yet" is normal and none of this check's business. This context maps
+        // everything and points at a file that does not exist, and every check still starts.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Services.AddDbContextFactory<MappedDbContext>(
+            o => o.UseSqlite($"Data Source={Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))}.db"));
+
+        var built = app.Build<TestApp>();
+
+        var checks = ModelChecks(built.Services);
+        Assert.Equal(5, checks.Count);
+
+        foreach (var check in checks)
+        {
+            await check.StartAsync(CancellationToken.None);
+        }
     }
 }

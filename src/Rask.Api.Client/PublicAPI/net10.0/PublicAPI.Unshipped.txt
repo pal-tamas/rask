@@ -19,8 +19,9 @@ Rask.Api.Client.ApiClientRegistration.Factory.get -> System.Func<System.Net.Http
 Rask.Api.Client.ApiClientRegistration.Factory.init -> void
 Rask.Api.Client.ApiClientRegistry
 Rask.Api.Client.ApiException
-Rask.Api.Client.ApiException.ApiException(string! message, string! method, string! path, int? statusCode = null, string? problemType = null, string? detail = null, System.Exception? innerException = null) -> void
+Rask.Api.Client.ApiException.ApiException(string! message, string! method, string! path, int? statusCode = null, string? problemType = null, string? detail = null, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>? errors = null, System.Exception? innerException = null) -> void
 Rask.Api.Client.ApiException.Detail.get -> string?
+Rask.Api.Client.ApiException.Errors.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>?
 Rask.Api.Client.ApiException.Method.get -> string!
 Rask.Api.Client.ApiException.Path.get -> string!
 Rask.Api.Client.ApiException.ProblemType.get -> string?

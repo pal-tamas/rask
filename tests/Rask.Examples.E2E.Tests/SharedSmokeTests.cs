@@ -9,10 +9,13 @@ namespace Rask.Examples.E2E.Tests;
 // (RunShowcaseJourneyAsync). This file holds only the per-test browser lifecycle, navigation
 // primitives, and failure diagnostics that the journey builds on.
 //
-// Path navigation goes through NavigateToAsync. The default implementation calls
-// Page.GotoAsync(path), which works for the ASP.NET hosts that install a SPA fallback.
-// StandaloneWasmExampleTests overrides it to home-then-sidebar because WasmAppHost has no
-// SPA fallback (deep links 404).
+// Path navigation goes through NavigateToAsync, whose default calls Page.GotoAsync(path) — right for
+// any host that answers a deep link, which is every host this suite still drives.
+//
+// Nothing overrides it today. The seam is kept rather than inlined because the case it exists for is
+// real and recurring: a host with no SPA fallback 404s a deep link, so its journeys have to navigate
+// home-then-sidebar instead. StandaloneWasmExampleTests did exactly that over WasmAppHost until the
+// samples consolidation removed it, and the meta-hosting epic would bring the shape back.
 public abstract partial class SharedSmokeTests : IAsyncLifetime
 {
     private readonly List<string> _console = new();
@@ -139,6 +142,37 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     // a SPA fallback; those must navigate via the home shell + sidebar instead.
     protected virtual Task NavigateToAsync(string path) => Page.GotoAsync(path);
 
+    /// <summary>
+    ///     Blocks until the runtime has taken the page over, so an interaction cannot be aimed at markup
+    ///     that is painted but not yet wired.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Needed because this host serves the prerendered page (#1034). Prerendering means the
+    ///         controls are in the first response, complete and on screen, before a line of script has
+    ///         run — so a click or a keystroke aimed at one of them reaches nothing until the bundle has
+    ///         downloaded, started and taken over.
+    ///     </para>
+    ///     <para>
+    ///         The wait used to be implicit and is not any more. When a route answered with the boot
+    ///         shell, the opening "an active sidebar link is visible" could not pass until WebAssembly
+    ///         had booted AND painted, so it doubled as a hydration barrier nobody had to write down.
+    ///         Serving the real page makes that assertion true immediately — correctly — and the barrier
+    ///         went with it.
+    ///     </para>
+    ///     <para>
+    ///         Reads the framework's own signal rather than a heuristic: <c>data-rask-prerendered</c> is
+    ///         stamped on <c>&lt;html&gt;</c> by the prerender pass and removed by the runtime on its
+    ///         first frame, which is exactly when handlers exist. An app styling
+    ///         <c>[data-rask-prerendered]</c> asks the same question, so there is no second mechanism to
+    ///         keep in step. A page that was never prerendered carries no such attribute and this
+    ///         returns at once rather than inventing a delay.
+    ///     </para>
+    /// </remarks>
+    protected Task WaitForInteractiveAsync(float timeoutMs = 30_000) =>
+        Assertions.Expect(Page.Locator("html[data-rask-prerendered]")).ToHaveCountAsync(
+            0, new LocatorAssertionsToHaveCountOptions { Timeout = timeoutMs });
+
     // Sidebar groups are collapsed by default, and a collapsed link is display:none — which means
     // Playwright's text engines can't even find it (they match visible text). So navigate the way a
     // user would when the list is long: type the label into the filter, which narrows the sidebar to
@@ -148,6 +182,14 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     // navigation (on WASM the events coalesce and the later one wins, dropping e.g. a select change).
     protected async Task ClickSidebar(string label)
     {
+        // The filter is a Rask handler (data-rask-on-input). On a prerendered page it is on screen and
+        // typeable before anything is listening, and the keystrokes then go nowhere: the sidebar never
+        // narrows and the link this is looking for never appears. Wait for the runtime first.
+        await WaitForInteractiveAsync();
+
+        // `.side-nav-filter` names the LABEL that wraps the field now the filter is a UiSearch -
+        // daisyUI's `input` is a wrapper that lays out the icon beside the control - so the field
+        // itself is one level in.
         var filter = Page.Locator(".side-nav .side-nav-filter input");
         await filter.FillAsync(label);
         // Guides-first: a label can appear as BOTH an example page and a guide (e.g. "Routing",

@@ -294,6 +294,42 @@ public class PrerenderShellTests
         Assert.Contains("main.js", merged, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ABootShellIsNotMistakenForARenderedPage()
+    {
+        // The guard has to be quiet on the ordinary input, or every first publish fails. This is the
+        // real shell from the top of this file, placeholders and pre-paint script and all.
+        Assert.False(PrerenderShell.IsRendered(Shell));
+    }
+
+    [Fact]
+    public void AMergedPageIsRecognisedAsOutputRatherThanInput()
+    {
+        // #1036. Publishing twice into the same directory hands the second pass this — its own output
+        // from the first — under the name it reads the shell from. Merging into it appends a second
+        // copy of every head asset, silently.
+        Assert.True(PrerenderShell.IsRendered(PrerenderShell.Merge(Shell, Document)));
+    }
+
+    [Fact]
+    public void AKeyedHeadAssetIsEnoughOnItsOwn()
+    {
+        // The second, independent tell. data-rask-prerendered is stamped onto <html>, so a shell with
+        // no <html> tag to stamp gets none — but a rendered page's head is full of the framework's own
+        // keyed assets either way, and a boot shell never carries one.
+        Assert.True(PrerenderShell.IsRendered(
+            """<head><link data-rask-key="h-0f4f32a3" href="/global.css" rel="stylesheet"/></head><body></body>"""));
+    }
+
+    [Fact]
+    public void AKeyOutSIDETheHeadIsNotATell()
+    {
+        // Keys are the framework's ordinary identity attribute, so a document that carries one in its
+        // BODY says nothing about whether its head has already been merged into.
+        Assert.False(PrerenderShell.IsRendered(
+            """<html><head><title>Rask</title></head><body><div data-rask-key="k1"></div></body></html>"""));
+    }
+
     private static int CountOf(string haystack, string needle)
     {
         var count = 0;

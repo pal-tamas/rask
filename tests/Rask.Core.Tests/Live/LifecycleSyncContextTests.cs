@@ -10,7 +10,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
     public void Send_ExecutesInline()
     {
         var component = new RecordingComponent();
-        var ctx = new LifecycleSyncContext(component);
+        var ctx = new LifecycleSyncContext(component, quiescence: null);
         var thread = -1;
 
         ctx.Send(_ => thread = Environment.CurrentManagedThreadId, null);
@@ -23,7 +23,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
     public async Task Post_TriggersStateHasChanged_AfterCallback()
     {
         var component = new RecordingComponent();
-        var ctx = new LifecycleSyncContext(component);
+        var ctx = new LifecycleSyncContext(component, quiescence: null);
         var ran = new TaskCompletionSource();
 
         ctx.Post(_ => ran.SetResult(), null);
@@ -42,7 +42,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
     public async Task Post_SuppressesExecutionContextFlow()
     {
         var component = new RecordingComponent();
-        var ctx = new LifecycleSyncContext(component);
+        var ctx = new LifecycleSyncContext(component, quiescence: null);
         var asyncLocal = new AsyncLocal<string?> { Value = "outer" };
         string? observed = null;
         var done = new TaskCompletionSource();
@@ -62,7 +62,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
     public void CreateCopy_ReturnsIndependentInstance()
     {
         var component = new RecordingComponent();
-        var ctx = new LifecycleSyncContext(component);
+        var ctx = new LifecycleSyncContext(component, quiescence: null);
 
         var copy = ctx.CreateCopy();
 

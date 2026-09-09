@@ -21,7 +21,7 @@ public sealed class ShowcaseLayoutTests
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
         var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
-        // app-navbar and app-brand are hooks the scoped stylesheet and the E2E both select on.
+        // app-navbar and app-brand are hooks the E2E selects on; neither styles anything any more.
         //
         // The colour assertion is on a THEME token, not a Tailwind hue. It pinned bg-slate-900 once
         // ("what makes it the dark bar"), then bg-ui-bg when the bar moved to the kit's palette; it is
@@ -32,6 +32,15 @@ public sealed class ShowcaseLayoutTests
         Assert.Contains("bg-base-100", html);
         Assert.Contains("app-brand", html);
         Assert.Contains("hamburger-btn", html);
+
+        // …and the bar IS daisyUI's, with its two halves, rather than a hand-rolled flex row that
+        // happens to look like one. The hamburger is daisyUI's ghost square button for the same reason:
+        // the CSS that used to draw it (`background: transparent; color: #fff`) existed only to survive
+        // the dark bar above it.
+        Assert.Contains("navbar", html);
+        Assert.Contains("navbar-start", html);
+        Assert.Contains("navbar-end", html);
+        Assert.Contains("btn btn-ghost btn-square", html);
 
         // The sidebar is in the flow from md up and a drawer below it. It was a Bootstrap responsive
         // offcanvas; the behaviour is unchanged because the open state was always Rask state.

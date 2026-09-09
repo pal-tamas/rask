@@ -19,6 +19,7 @@ public sealed class ApiException : Exception
     /// <param name="statusCode">The status answered, or null when the request never arrived.</param>
     /// <param name="problemType">The <c>type</c> of an RFC 9457 problem document, when there was one.</param>
     /// <param name="detail">The <c>detail</c> of an RFC 9457 problem document, when there was one.</param>
+    /// <param name="errors">The field errors, when the call was rejected by validation.</param>
     /// <param name="innerException">The transport failure, when there was one.</param>
     public ApiException(
         string message,
@@ -27,6 +28,7 @@ public sealed class ApiException : Exception
         int? statusCode = null,
         string? problemType = null,
         string? detail = null,
+        IReadOnlyDictionary<string, string[]>? errors = null,
         Exception? innerException = null)
         : base(message, innerException)
     {
@@ -35,6 +37,7 @@ public sealed class ApiException : Exception
         StatusCode = statusCode;
         ProblemType = problemType;
         Detail = detail;
+        Errors = errors;
     }
 
     /// <summary>The HTTP method that was attempted.</summary>
@@ -51,4 +54,20 @@ public sealed class ApiException : Exception
 
     /// <summary>The <c>detail</c> of an RFC 9457 problem document, when the answer carried one.</summary>
     public string? Detail { get; }
+
+    /// <summary>
+    ///     The field errors when the call was rejected by validation — keyed by the field, with the empty
+    ///     key holding rules about the request as a whole. Null for every other failure.
+    ///     <para>
+    ///         The same map, from the same <see cref="ProblemType" />, that
+    ///         <c>RemoteDispatchException.Errors</c> carries for a rejected CQRS request: one seam's
+    ///         rejection handler works unchanged against the other.
+    ///     </para>
+    ///     <para>
+    ///         Unlike <see cref="Detail" /> these are safe to show. A validation message was authored to
+    ///         be read by whoever sent the request, which is why it crosses the wire when handler
+    ///         exception text does not.
+    ///     </para>
+    /// </summary>
+    public IReadOnlyDictionary<string, string[]>? Errors { get; }
 }

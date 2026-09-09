@@ -31,6 +31,17 @@ cd "$root"
 standalone="benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj"
 vsblazor="benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj"
 
+# The built binaries, invoked directly instead of through `dotnet run --no-build --project`. Six of
+# those ran in this gate, and each one re-evaluates the project — restore check, target graph, output
+# resolution — to work out a path this script already knows. The apps do not care where they are
+# started from: every baseline and every artifact they read is resolved from AppContext.BaseDirectory,
+# never from the working directory, so losing `dotnet run`'s cwd changes nothing they can observe.
+#
+# Asserted rather than assumed, below, because a wrong path here would turn into "command not found"
+# and, on the `|| status=1` lines, read exactly like a benchmark regression.
+standalone_bin="benchmarks/Rask.Benchmarks/bin/Release/net10.0/Rask.Benchmarks"
+vsblazor_bin="benchmarks/Rask.Benchmarks.VsBlazor/bin/Release/net10.0/Rask.Benchmarks.VsBlazor"
+
 # BUILD FIRST, and never --no-build on its own. `--check` reads the baseline from
 # AppContext.BaseDirectory — the copy under bin/ — not from the source tree. Editing the CSV and
 # re-running with --no-build compares against the STALE copy and reports the old failure, which reads
@@ -38,6 +49,16 @@ vsblazor="benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj"
 echo "==> Building the benchmark projects (Release)"
 dotnet build "$standalone" -c Release -p:MinVerSkip=true
 dotnet build "$vsblazor" -c Release -p:MinVerSkip=true
+
+for bin in "$standalone_bin" "$vsblazor_bin"; do
+  if [ ! -x "$bin" ]; then
+    echo "run-benchmarks-local: built, but '$bin' is not there." >&2
+    echo "            The gate invokes the benchmark binaries directly. If the TFM or the assembly" >&2
+    echo "            name moved, fix the path at the top of this script — do not fall back to" >&2
+    echo "            'dotnet run', which would hide the drift behind a slower green run." >&2
+    exit 1
+  fi
+done
 
 # Both gates run even when the first one fails, and that is the whole point of the `||` bookkeeping
 # rather than plain `set -e`. The CI job they came from ran them as two steps, so a fail-fast on the
@@ -47,11 +68,11 @@ status=0
 
 echo
 echo "==> Payload-bytes gate (standalone codec)"
-dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- payload-bytes --check || status=1
+"$standalone_bin" payload-bytes --check || status=1
 
 echo
 echo "==> Payload-bytes gate (vs Blazor)"
-dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor --no-build -- payload-bytes --check || status=1
+"$vsblazor_bin" payload-bytes --check || status=1
 
 # The client runtimes every visitor downloads. Measured in RELEASE, because the Debug bundles are
 # unminified and a comment would move the number — and built here rather than assumed present, since
@@ -78,7 +99,7 @@ rm -f src/Rask.Wasm/Browser/rask.wasm.js
 rm -f src/Rask.Wasm/obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp
 dotnet build src/Rask.Server/Rask.Server.csproj -c Release -p:MinVerSkip=true >/dev/null
 dotnet build src/Rask.Wasm/Rask.Wasm.csproj -c Release -p:MinVerSkip=true >/dev/null
-dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- client-bundle-size --check || status=1
+"$standalone_bin" client-bundle-size --check || status=1
 
 # The live-session capacity reports, smoke-sized. They answer "how many sessions fit in a box", they
 # are documented in docs/scaling.md and docs/configuration.md as the way to size a host — and until
@@ -99,15 +120,15 @@ dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- client-
 # stayed broken through the fix for the standalone one (#921).
 echo
 echo "==> Live-session capacity: session-footprint (smoke)"
-dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- session-footprint --smoke || status=1
+"$standalone_bin" session-footprint --smoke || status=1
 
 echo
 echo "==> Live-session capacity: session-churn (smoke, asserts nothing survives teardown)"
-dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- session-churn --smoke || status=1
+"$standalone_bin" session-churn --smoke || status=1
 
 echo
 echo "==> Live-session capacity: session-load (smoke, real Kestrel + real sockets)"
-dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- session-load --smoke \
+"$standalone_bin" session-load --smoke \
   >/dev/null || status=1
 
 if [ "$status" -ne 0 ]; then

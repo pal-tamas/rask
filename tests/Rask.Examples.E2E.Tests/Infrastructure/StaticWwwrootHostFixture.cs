@@ -210,8 +210,21 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
 
             if (!rooted || !File.Exists(path))
             {
+                // DIRECTORY INDEX FIRST: the prerender pass writes a rendered page per route as
+                // <route>/index.html, and production serves it (Rask.Wasm.Hosting uses UseDefaultFiles
+                // with DefaultFileNames = ["index.html"]). Skipping straight to the SPA fallback served
+                // the BOOT SHELL instead, which made every journey a cold-WASM-boot race and left the
+                // prerendered output with no browser coverage at all (#1034).
+                var directoryIndex = rooted && !Path.HasExtension(rel)
+                    ? Path.Combine(path, "index.html")
+                    : null;
+
+                if (directoryIndex is not null && File.Exists(directoryIndex))
+                {
+                    path = directoryIndex;
+                }
                 // SPA fallback: a non-file route (no extension) serves index.html; a missing file 404s.
-                if (rooted && !Path.HasExtension(rel))
+                else if (rooted && !Path.HasExtension(rel))
                 {
                     path = Path.Combine(wwwroot, "index.html");
                 }

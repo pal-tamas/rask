@@ -28,6 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
   </ItemGroup>
 

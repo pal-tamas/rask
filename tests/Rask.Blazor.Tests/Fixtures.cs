@@ -158,3 +158,44 @@ public sealed partial class SlowIsland : BlazorComponent<SlowGreeting>
         }
     }
 }
+
+/// <summary>
+///     A link carrying <c>@onclick:preventDefault</c> and <c>@onclick:stopPropagation</c> (#951).
+/// </summary>
+/// <remarks>
+///     The two <c>__internal_*</c> attributes are not an invention of this fixture — they are exactly
+///     what the Razor compiler lowers those directives to: boolean frames, carrying no
+///     <c>AttributeEventHandlerId</c>, named after the event they modify. Writing them by hand is the
+///     only way to exercise that lowering without taking a Razor SDK dependency on this test project,
+///     and it is the same shape <c>BuildRenderTree</c> would hand the writer from a compiled
+///     <c>.razor</c>.
+/// </remarks>
+public sealed class PreventingLink : ComponentBase
+{
+    [Parameter] public EventCallback OnPick { get; set; }
+
+    protected override void BuildRenderTree(RenderTreeBuilder builder)
+    {
+        builder.OpenElement(0, "a");
+        builder.AddAttribute(1, "href", "/somewhere");
+        builder.AddAttribute(2, "onclick", EventCallback.Factory.Create(this, () => OnPick.InvokeAsync()));
+        builder.AddAttribute(3, "__internal_preventDefault_onclick", true);
+        builder.AddAttribute(4, "__internal_stopPropagation_onclick", true);
+        builder.AddContent(5, "pick");
+        builder.CloseElement();
+    }
+}
+
+/// <summary>An island over the link, for the marker-leak test.</summary>
+public sealed partial class PreventingLinkIsland : BlazorComponent<PreventingLink>
+{
+    public Action? OnPick { get; set; }
+
+    protected override void WriteParameters(Dictionary<string, object?> into)
+    {
+        if (OnPick is not null)
+        {
+            into["OnPick"] = EventCallback.Factory.Create(this, OnPick);
+        }
+    }
+}

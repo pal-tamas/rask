@@ -96,10 +96,18 @@ public sealed partial class CodeSample : Component
     protected override Component? Render()
     {
         var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
-        return Div.Class($"{Tw.Card} shadow-sm border-0 mb-4 sample-card")[
+        // daisyUI's `card` supplies the panel: the flex column, the --radius-box corner and the focus
+        // ring. What is left on the element is the border, the surface and the overflow clip that keeps
+        // the dark code pane inside that corner — .sample-card used to carry the radius as an
+        // `!important` override of Tw.Card's, which is what an unlayered rule needs to beat a utility.
+        // The name stays: five assertions across the unit and browser suites select on it.
+        return Div.Class(
+            "sample-card card mb-4 overflow-hidden border border-ui-line bg-ui-bg shadow-sm")[
             Title is null && Notes is null
                 ? null
-                : Div.Class($"{Tw.CardHeader} bg-base-100 border-b")[
+                // Not the bg-white this used to hard-code: the panel is the palette's, and a literal
+                // white was the one colour on this card that could not follow a theme.
+                : Div.Class($"{Tw.CardHeader} bg-base-100")[
                     Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
                     Notes is null
                         ? null
@@ -123,7 +131,7 @@ public sealed partial class CodeSample : Component
                     ]
                 ]
             ],
-            Div.Class("sample-result-col p-4")[
+            Div.Class("sample-result-col flex flex-col border-t border-base-300 bg-base-100 p-4")[
                 Div.Class("sample-result-label")[
                     UiIcon.Name(UiIconName.Play).Class("me-1.5 inline size-3.5 align-[-0.2em]"),
                     "Live result"
