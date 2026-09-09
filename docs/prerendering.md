@@ -226,7 +226,9 @@ rather than guessing a domain into a published file.
 
 `robots.txt` is written only when the app ships none of its own; yours is never overwritten, and the
 pass prints the `Sitemap:` line to add to it. A wrong `robots.txt` delists a site, so an author who
-wrote one has said something the build has no business editing.
+wrote one has said something the build has no business editing. A file matching the three lines the
+pass itself writes is *its* own, not yours, and is rewritten — otherwise the first publish's copy
+would outlive a change to `<RaskSiteUrl>` and keep pointing crawlers at the old domain's sitemap.
 
 **The sitemap lists the pages that claim to be a page**, which is narrower than "everything written",
 and each exclusion is read off the page's own rendered markup so the two can never disagree:
@@ -289,6 +291,25 @@ simply a useful one.
 If there is no shell in the output directory, the whole document is written instead and the pass says
 so. That page will not boot, which is the right outcome for a caller driving
 [the engine directly](#using-the-engine-directly) with no bundle to boot.
+
+### Publishing twice gives you the same bytes
+
+The pass reads the shell from `index.html`, and the root route's own output **is** `index.html` — so
+publishing into a directory that already holds a publish hands the pass its own earlier output as the
+thing it splices into. The SDK does not rescue it: the prerendered `index.html` is newer than the
+staged shell, so the copy step calls it up to date and leaves it alone. Left unhandled that appended a
+second copy of every head asset — every stylesheet, preload, `meta` and canonical — and a third
+publish made three of each, on a green build nobody had reason to look at.
+
+The pass recognises the case and recovers from the untouched shell it already keeps at `404.html`:
+
+```
+[Rask.Prerender] index.html is a page an earlier publish rendered, not a boot shell — reading the untouched shell from 404.html instead
+```
+
+If that copy is missing too, the publish **fails** rather than merging into output — delete the
+publish directory and publish again. Everything else the pass writes is rewritten from the same
+inputs, `robots.txt` included, so a second publish reproduces the first byte for byte.
 
 ## How it runs
 
