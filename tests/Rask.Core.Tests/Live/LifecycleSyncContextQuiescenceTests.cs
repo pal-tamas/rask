@@ -137,6 +137,61 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
 
         await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10));
     }
+
+    [Fact]
+    public async Task Work_tracked_for_a_ConfigureAwaitFalse_hook_outlives_its_own_repaint_request()
+    {
+        // The second instance of the same window (#1037). A hook whose awaits are ALL
+        // ConfigureAwait(false) never posts back, so LifecycleSyncContext.Post — and the gate it
+        // registers — never runs at all. What paints such a hook is the terminal ContinueWith, and
+        // the work the wave loop was handed used to be the hook's own Task, which completes one
+        // statement earlier. So the loop could wake, re-render a child that had not been marked
+        // dirty yet, snapshot nothing, and serve the placeholder at 200 (#932's symptom exactly).
+        //
+        // Pinned as ORDERING, not timing: the question is asked from a synchronous continuation
+        // registered on the tracked task BEFORE anything can complete it, so the answer cannot turn
+        // on whether the runtime happens to inline the loop's own await. And the walk runs on a
+        // dedicated thread, so no pool thread can be carrying QuiescenceScope's thread-static and
+        // rescue a lookup that should never happen.
+        QuiescenceScope.ResetSyncForTests();
+
+        ConfigureAwaitHookProbe component = ConfigureAwaitHookProbe;
+        QuiescenceScope? scope = null;
+        Task[] batch = [];
+
+        var walk = new Thread(() =>
+        {
+            scope = QuiescenceScope.Begin();
+            component.RaiseLifecycleBeforeRender(propsChanged: false);
+            scope.TrySnapshotPending(out batch);
+        })
+        {
+            IsBackground = true,
+        };
+
+        walk.Start();
+        walk.Join(TimeSpan.FromSeconds(10));
+
+        Assert.NotNull(scope);
+        using var pass = scope;
+
+        var tracked = Assert.Single(batch);
+        Assert.False(tracked.IsCompleted, "the hook completed before the wave could take it");
+
+        var requestedWhenTheGateOpened = false;
+        var observed = tracked.ContinueWith(
+            _ => requestedWhenTheGateOpened = component.IsRenderRequestedForTest,
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+
+        component.Resume.SetResult();
+        await observed.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.True(
+            requestedWhenTheGateOpened,
+            "the tracked work completed before the render that shows its data was requested");
+    }
 }
 
 /// <summary>
@@ -157,6 +212,20 @@ public sealed partial class ForeignThreadHookProbe : Component
         Entered.Set();
         Release.Wait(TimeSpan.FromSeconds(10));
     }
+
+    protected override Component? Render() => null;
+}
+
+/// <summary>
+///     A component whose <c>OnMountAsync</c> awaits with <c>ConfigureAwait(false)</c> and nothing else,
+///     so its continuation never reaches <c>LifecycleSyncContext.Post</c>.
+/// </summary>
+public sealed partial class ConfigureAwaitHookProbe : Component
+{
+    internal readonly TaskCompletionSource Resume =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    protected override async Task OnMountAsync() => await Resume.Task.ConfigureAwait(false);
 
     protected override Component? Render() => null;
 }

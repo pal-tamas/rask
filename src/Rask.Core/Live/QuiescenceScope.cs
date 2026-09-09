@@ -154,15 +154,6 @@ internal sealed class QuiescenceScope : IDisposable
     internal static IDisposable Enter(QuiescenceScope? captured) => new Restore(captured);
 
     /// <summary>
-    ///     Record a lifecycle hook's task, along with the component that owns it.
-    /// </summary>
-    /// <remarks>
-    ///     Stores a wrapper that completes when <paramref name="task" /> does but never faults or
-    ///     cancels, so a batch can be awaited with a plain <c>WhenAll</c>. Faults are already routed
-    ///     to the nearest <c>ErrorBoundary</c> by the caller; re-observing them here would either
-    ///     throw out of the wait or double-report.
-    /// </remarks>
-    /// <summary>
     ///     Record work the render depends on that no lifecycle hook returned — see
     ///     <c>LiveRenderContext.AwaitBeforeFirstPaint</c>.
     /// </summary>
@@ -184,6 +175,26 @@ internal sealed class QuiescenceScope : IDisposable
         Track(task, owner: null);
     }
 
+    /// <summary>
+    ///     Record one piece of work this render is waiting on, along with the component that owns it.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Stores a wrapper that completes when <paramref name="task" /> does but never faults or
+    ///         cancels, so a batch can be awaited with a plain <c>WhenAll</c>. Faults are already routed
+    ///         to the nearest <c>ErrorBoundary</c> by the caller; re-observing them here would either
+    ///         throw out of the wait or double-report.
+    ///     </para>
+    ///     <para>
+    ///         <b>Work that paints through a component's own <c>StateHasChanged</c> must not be handed in
+    ///         as the hook's <c>Task</c>.</b> That Task completes one statement before the continuation
+    ///         that requests the render, and the wave loop is free to wake in between, re-render a
+    ///         component that is still clean, find nothing pending and serve its placeholder at 200. So
+    ///         <c>Component.InvokeAsyncLifecycleWithRendering</c> hands in its terminal continuation
+    ///         rather than the hook, and <c>LifecycleSyncContext.Post</c> hands in a gate it opens only
+    ///         after its own repaint. This cost #932 and #1037.
+    ///     </para>
+    /// </remarks>
     internal void Track(Task task, Component? owner)
     {
         var wrapped = task.ContinueWith(
