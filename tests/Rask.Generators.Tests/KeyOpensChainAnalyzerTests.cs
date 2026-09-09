@@ -33,8 +33,7 @@ public class KeyOpensChainAnalyzerTests
                 public System.Action<bool>? OnChange { get; set; }
                 public System.Func<bool, System.Threading.Tasks.Task>? OnChangeAsync { get; set; }
                 public System.Linq.Expressions.Expression<System.Func<bool>>? Bind { get; set; }
-                public Rask.Core.Forms.Validate<bool>? Validate { get; set; }
-                public Rask.Core.Forms.ValidateAsync<bool>? ValidateAsync { get; set; }
+                public Rask.Core.Validator<bool>? Validate { get; set; }
                 public System.Action<bool>? AfterBind { get; set; }
                 public System.Func<bool, System.Threading.Tasks.Task>? AfterBindAsync { get; set; }
                 public string? Label { get; set; }

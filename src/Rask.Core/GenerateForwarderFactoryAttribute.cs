@@ -8,12 +8,8 @@ namespace Rask.Core;
 // logic (expression parsing, conditional dispatch, handler composition) that can't be derived
 // from class metadata alone — e.g. the Expression-driven `Input<TProp>(Bind: ...)` factory.
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class GenerateForwarderFactoryAttribute : Attribute
-{
-    // When set to the name of a `System.Delegate?` parameter on the source method, the generator fans the
-    // forwarder into three overloads (none / sync / async) instead of one verbatim forwarder — the
-    // validator parameter is omitted (forwarded as null), typed `Validate<T>`, or typed `ValidateAsync<T>`
-    // respectively, where T is the method's first type parameter. Lets a control declare a single `Bound`
-    // core and get the cast-free Validate overloads generated, instead of hand-writing all three.
-    public string? Validator { get; init; }
-}
+//
+// It carried a `Validator` option once, which fanned the forwarder into none/sync/async overloads so a
+// control could take either rule shape without a cast. `Validator<T>` does that now — one property, one
+// step, an overload per shape — so the option had nothing left to do.
+public sealed class GenerateForwarderFactoryAttribute : Attribute;

@@ -26,8 +26,7 @@ public class BuilderFormControlModeTests
                                       public T? Value { get; set; }
                                       public Callback<T>? OnChange { get; set; }
                                       public Expression<Func<T>>? Bind { get; set; }
-                                      public Validate<T>? Validate { get; set; }
-                                      public ValidateAsync<T>? ValidateAsync { get; set; }
+                                      public Validator<T>? Validate { get; set; }
                                       public Callback<T>? AfterBind { get; set; }
                                       public bool? Checked { get; set; }
                                       public Callback<string>? OnInput { get; set; }
@@ -49,8 +48,7 @@ public class BuilderFormControlModeTests
                                     public bool Value { get; set; } = false;
                                     public Action<bool>? OnChange { get; set; }
                                     public Expression<Func<bool>>? Bind { get; set; }
-                                    public Validate<bool>? Validate { get; set; }
-                                    public ValidateAsync<bool>? ValidateAsync { get; set; }
+                                    public Validator<bool>? Validate { get; set; }
                                     public Action<bool>? AfterBind { get; set; }
                                     public string? Label { get; set; }
                                 }
@@ -71,8 +69,7 @@ public class BuilderFormControlModeTests
                                       public bool Value { get; set; }
                                       public Action<bool>? OnChange { get; set; }
                                       public Expression<Func<bool>>? Bind { get; set; }
-                                      public Validate<bool>? Validate { get; set; }
-                                      public ValidateAsync<bool>? ValidateAsync { get; set; }
+                                      public Validator<bool>? Validate { get; set; }
                                       public Action<bool>? AfterBind { get; set; }
                                   }
                                   """;
@@ -91,8 +88,7 @@ public class BuilderFormControlModeTests
                                      public T? Value { get; set; }
                                      public Callback<T>? OnChange { get; set; }
                                      public Expression<Func<T>>? Bind { get; set; }
-                                     public Validate<T>? Validate { get; set; }
-                                     public ValidateAsync<T>? ValidateAsync { get; set; }
+                                     public Validator<T>? Validate { get; set; }
                                      public Callback<T>? AfterBind { get; set; }
                                  }
                                  """;
@@ -109,9 +105,11 @@ public class BuilderFormControlModeTests
         Assert.DoesNotContain("global::Rask.Core.Forms.Bound>", sig, StringComparison.Ordinal);
     }
 
+    // `ValidateAsync` is gone from this list because it is gone from the surface: the rule is one
+    // `Validate` step over a `Validator<T>` carrier, with an overload per shape. Signature asserts
+    // across ALL of a step's overloads, so the mode gate is still checked on every one of them.
     [Theory]
     [InlineData("Validate")]
-    [InlineData("ValidateAsync")]
     [InlineData("AfterBind")]
     public void A_bound_step_is_declared_only_on_the_bound_mode(string step)
     {

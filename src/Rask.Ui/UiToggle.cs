@@ -48,10 +48,8 @@ public sealed partial class UiToggle : Component, IFormControl<bool>
     public Expression<Func<bool>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<bool>? Validate { get; set; }
+    public Validator<bool>? Validate { get; set; }
 
-    /// <inheritdoc />
-    public ValidateAsync<bool>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
     public Callback<bool>? AfterBind { get; set; }
@@ -69,7 +67,6 @@ public sealed partial class UiToggle : Component, IFormControl<bool>
             return Input
                 .Bind(bind)
                 .Validate(Validate)
-                .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
                 .Disabled(Disabled == true)
                 .Class(BoxClass());

@@ -100,10 +100,8 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     ///     Cross-field validation for the form as a whole. Messages attach to the model rather than to a
     ///     field, so they surface in ValidationSummary and any field-less ValidationMessage.
     /// </summary>
-    public Validate<TModel>? Validate { get; set; }
+    public Validator<TModel>? Validate { get; set; }
 
-    /// <inheritdoc cref="Validate" />
-    public ValidateAsync<TModel>? ValidateAsync { get; set; }
 
     /// <summary>
     ///     Whether this form validates its model with no validator declared — its
@@ -229,7 +227,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 
         // Whichever shape was given; null clears a prior registration so a re-render that drops the
         // validator does not leave a stale callback behind.
-        ctx.RegisterFormValidator((Delegate?)Validate ?? ValidateAsync);
+        ctx.RegisterFormValidator(Validate?.Rule);
         return ctx;
     }
 

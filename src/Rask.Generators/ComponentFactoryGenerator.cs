@@ -28,13 +28,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
     // factory, and (for Bind/AfterBind) emitted as params on the synthesized bound factory.
-    // Validate/ValidateAsync are not direct params — they drive the none/sync/async validator fan-out.
     //
-    // `AfterBindAsync` is gone from this list because it is gone from the interface: the post-bind hook
-    // is one `Callback<T>` taking either shape. The list is matched by NAME, so a stale entry here is not
-    // a compile error — it is a member that quietly stops being mode-gated.
+    // `AfterBindAsync` and `ValidateAsync` are gone from this list because they are gone from the
+    // interface: the post-bind hook is one `Callback<T>` and the rule is one `Validator<T>`, each taking
+    // either shape. The list is matched by NAME, so a stale entry here is not a compile error — it is a
+    // member that quietly stops being mode-gated.
     private static readonly string[] BoundInterfaceMembers =
-        { "Bind", "Validate", "ValidateAsync", "AfterBind" };
+        { "Bind", "Validate", "AfterBind" };
 
     // The mirror set: the members that belong to CONTROLLED mode, excluded from the synthesized bound
     // factory. In bound mode the model owns the value and the framework owns the write-back handler, so a
@@ -901,7 +901,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     //
     // replaces the factory's none/sync/async overload fan-out, whose only purpose was to make
     // Validate a required, correctly-typed parameter. Never auto-wrapped: a validator is not an event
-    // callback, and AfterBind is a post-bind hook (the bound factory has always assigned them raw).
+    // callback (it RETURNS the messages, and is called during a render rather than dispatched to one),
+    // and AfterBind is a post-bind hook (the bound factory has always assigned them raw).
     private static void EmitBoundSetters(StringBuilder sb, Candidate c, string visibility)
     {
         if (c.FormControl is not { } fc)
@@ -916,8 +917,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var members = new (string Name, string TypeFqn)[]
         {
             ("Bind", "global::System.Linq.Expressions.Expression<global::System.Func<" + t + ">>?"),
-            ("Validate", "global::Rask.Core.Forms.Validate<" + t + ">?"),
-            ("ValidateAsync", "global::Rask.Core.Forms.ValidateAsync<" + t + ">?"),
+            // One rule taking either shape, for the same reason AfterBind below is one hook: the carrier
+            // is what gives the step its sync and async overloads (see EmitCarrierOverloads) in place of
+            // the `…Async` sibling that used to sit beside it here.
+            ("Validate", ValidatorFqn + "<" + t + ">?"),
             // One post-bind hook taking either shape. Typed as the CARRIER, which is what gives it the
             // sync and async step overloads (see EmitCarrierOverloads) in place of the sibling that used
             // to sit beside it here.
@@ -4185,20 +4188,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             var hasAttr = false;
-            string? validatorParam = null;
             foreach (var attr in method.GetAttributes())
             {
                 if (attr.AttributeClass?.ToDisplayString() == GenerateForwarderFactoryFullName)
                 {
                     hasAttr = true;
-                    foreach (var named in attr.NamedArguments)
-                    {
-                        if (named.Key == "Validator" && named.Value.Value is string v && v.Length > 0)
-                        {
-                            validatorParam = v;
-                        }
-                    }
-
                     break;
                 }
             }
@@ -4207,12 +4201,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             {
                 continue;
             }
-
-            // The validator fan-out types its sync/async overloads as Validate<T>/ValidateAsync<T>, where T
-            // is the bound value type — derived from the `Expression<Func<T>>` Bind parameter. That's the
-            // method's own type parameter for Input.Bound<TProp> (Expression<Func<TProp>>) and a concrete
-            // constructed type for MultiSelect.Bound (Expression<Func<ICollection<TItem>>>).
-            var validatorTypeArg = ExtractBoundValueType(method);
 
             var typeParams = method.TypeParameters.Length > 0
                 ? "<" + string.Join(", ", method.TypeParameters.Select(tp => tp.Name)) + ">"
@@ -4238,9 +4226,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 method.Name,
                 typeParams,
                 constraints,
-                new EquatableArray<ForwarderParamInfo>(parameters),
-                validatorTypeArg.Length > 0 ? validatorParam : null,
-                validatorTypeArg));
+                new EquatableArray<ForwarderParamInfo>(parameters)));
         }
 
         return result;
@@ -4291,7 +4277,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var modelProperty = string.Empty;
         var constraint = "class";
         var typedDelegates = Array.Empty<string>();
-        var typedValidators = Array.Empty<string>();
         foreach (var named in attr.NamedArguments)
         {
             switch (named.Key)
@@ -4321,17 +4306,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     }
 
                     break;
-                case "TypedValidatorProperties":
-                    if (!named.Value.IsNull)
-                    {
-                        typedValidators = named.Value.Values
-                            .Select(v => v.Value as string)
-                            .Where(s => !string.IsNullOrEmpty(s))
-                            .Select(s => s!)
-                            .ToArray();
-                    }
-
-                    break;
             }
         }
 
@@ -4339,29 +4313,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             typeParameter,
             modelProperty,
             new EquatableArray<string>(typedDelegates),
-            new EquatableArray<string>(typedValidators),
             constraint);
     }
 
     // Finds the bound value type T from a method's `Expression<Func<T>>` parameter (the Bind expression),
-    // fully qualified. Returns "" when no such parameter exists. Used to type the validator fan-out's
-    // Validate<T>/ValidateAsync<T> overloads.
-    private static string ExtractBoundValueType(IMethodSymbol method)
-    {
-        foreach (var p in method.Parameters)
-        {
-            if (p.Type is INamedTypeSymbol { Name: "Expression", TypeArguments.Length: 1 } expr
-                && expr.TypeArguments[0] is INamedTypeSymbol { Name: "Func", TypeArguments.Length: 1 } func)
-            {
-                return func.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
-            }
-        }
-
-        return string.Empty;
-    }
-
     // Merges two `<...>` type-parameter lists into one. Either may be empty; when both are present (a
     // generic method on a generic component) they're concatenated: "<A>" + "<B>" → "<A, B>".
     private static string MergeTypeParams(string a, string b)
@@ -4811,7 +4766,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
                                               | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
 
-                // A bound-mode IFormControl<T> member (Bind/Validate/ValidateAsync/AfterBind/AfterBindAsync):
+                // A bound-mode IFormControl<T> member (Bind/Validate/AfterBind):
                 // excluded from the controlled factory and instead emitted on the synthesized bound factory.
                 var isBoundInterfaceProp = isFormControl &&
                                            Array.IndexOf(BoundInterfaceMembers, prop.Name) >= 0;
@@ -5126,8 +5081,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     internal static string EscapeIdentifier(string name) =>
         SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
 
-    private enum ValidatorShape { None, Sync, Async }
-
     private sealed record Candidate(
         string Namespace,
         string TypeName,
@@ -5189,16 +5142,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string TypeParameter,
         string ModelProperty,
         EquatableArray<string> TypedDelegateProperties,
-        EquatableArray<string> TypedValidatorProperties,
         string Constraint);
 
     private readonly record struct ForwarderInfo(
         string MethodName,
         string TypeParameters,
         string TypeParameterConstraints,
-        EquatableArray<ForwarderParamInfo> Parameters,
-        string? ValidatorParam,
-        string ValidatorTypeArg);
+        EquatableArray<ForwarderParamInfo> Parameters);
 
     private readonly record struct ForwarderParamInfo(
         string TypeFqn,

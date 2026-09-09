@@ -59,10 +59,8 @@ public sealed partial class UiRange : Component, IFormControl<double>
     public Expression<Func<double>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<double>? Validate { get; set; }
+    public Validator<double>? Validate { get; set; }
 
-    /// <inheritdoc />
-    public ValidateAsync<double>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
     public Callback<double>? AfterBind { get; set; }
@@ -78,7 +76,6 @@ public sealed partial class UiRange : Component, IFormControl<double>
             return Input
                 .Bind(bind)
                 .Validate(Validate)
-                .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
                 .Type(InputType.Range)
                 .Min(Bound(Min ?? 0))

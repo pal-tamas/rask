@@ -297,10 +297,8 @@ Rask.Html.Components.Form<TModel>.Rel.get -> string?
 Rask.Html.Components.Form<TModel>.Rel.set -> void
 Rask.Html.Components.Form<TModel>.Target.get -> string?
 Rask.Html.Components.Form<TModel>.Target.set -> void
-Rask.Html.Components.Form<TModel>.Validate.get -> Rask.Core.Forms.Validate<TModel>?
+Rask.Html.Components.Form<TModel>.Validate.get -> Rask.Core.Validator<TModel>?
 Rask.Html.Components.Form<TModel>.Validate.set -> void
-Rask.Html.Components.Form<TModel>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<TModel>?
-Rask.Html.Components.Form<TModel>.ValidateAsync.set -> void
 Rask.Html.Components.G
 Rask.Html.Components.G.G() -> void
 Rask.Html.Components.H2
@@ -541,10 +539,8 @@ Rask.Html.Components.Input<T>.Step.get -> string?
 Rask.Html.Components.Input<T>.Step.set -> void
 Rask.Html.Components.Input<T>.Type.get -> Rask.Core.InputType?
 Rask.Html.Components.Input<T>.Type.set -> void
-Rask.Html.Components.Input<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Html.Components.Input<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Html.Components.Input<T>.Validate.set -> void
-Rask.Html.Components.Input<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Html.Components.Input<T>.ValidateAsync.set -> void
 Rask.Html.Components.Input<T>.Value.get -> T?
 Rask.Html.Components.Input<T>.Value.set -> void
 Rask.Html.Components.Input<T>.Width.get -> int?
@@ -925,10 +921,8 @@ Rask.Html.Components.Select<T>.Required.set -> void
 Rask.Html.Components.Select<T>.Select() -> void
 Rask.Html.Components.Select<T>.Size.get -> int?
 Rask.Html.Components.Select<T>.Size.set -> void
-Rask.Html.Components.Select<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Html.Components.Select<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Html.Components.Select<T>.Validate.set -> void
-Rask.Html.Components.Select<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Html.Components.Select<T>.ValidateAsync.set -> void
 Rask.Html.Components.Select<T>.Value.get -> T?
 Rask.Html.Components.Select<T>.Value.set -> void
 Rask.Html.Components.Shareable
@@ -1157,10 +1151,8 @@ Rask.Html.Components.Textarea<T>.Required.set -> void
 Rask.Html.Components.Textarea<T>.Rows.get -> int?
 Rask.Html.Components.Textarea<T>.Rows.set -> void
 Rask.Html.Components.Textarea<T>.Textarea() -> void
-Rask.Html.Components.Textarea<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Html.Components.Textarea<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Html.Components.Textarea<T>.Validate.set -> void
-Rask.Html.Components.Textarea<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Html.Components.Textarea<T>.ValidateAsync.set -> void
 Rask.Html.Components.Textarea<T>.Value.get -> T?
 Rask.Html.Components.Textarea<T>.Value.set -> void
 Rask.Html.Components.Textarea<T>.Wrap.get -> string?
@@ -2379,13 +2371,17 @@ static RaskBuilderSettersRask_Html.Type<T, TMode>(this Rask.Core.Build<Rask.Html
 static RaskBuilderSettersRask_Html.UseMap(this Rask.Core.Build<Rask.Html.Components.HtmlObject!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.HtmlObject!>
 static RaskBuilderSettersRask_Html.UseMap(this Rask.Core.Build<Rask.Html.Components.Img!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Img!>
 static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.Validate<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Html.Validate<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, Rask.Core.Forms.Validate<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
-static RaskBuilderSettersRask_Html.ValidateAsync<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Html.ValidateAsync<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Html.ValidateAsync<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Html.ValidateAsync<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, Rask.Core.Forms.ValidateAsync<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.Validate<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, Rask.Core.Forms.ValidateAsync<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.Validate<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, Rask.Core.Validator<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.Value(this Rask.Core.Build<Rask.Html.Components.Data!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Data!>
 static RaskBuilderSettersRask_Html.Value(this Rask.Core.Build<Rask.Html.Components.Li!> __b, int? value) -> Rask.Core.Build<Rask.Html.Components.Li!>
 static RaskBuilderSettersRask_Html.Value(this Rask.Core.Build<Rask.Html.Components.Meter!> __b, double? value) -> Rask.Core.Build<Rask.Html.Components.Meter!>

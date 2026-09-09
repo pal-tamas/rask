@@ -1911,8 +1911,6 @@ Rask.Core.FactoryGenericAttribute.ModelProperty.init -> void
 Rask.Core.FactoryGenericAttribute.TypeParameter.get -> string!
 Rask.Core.FactoryGenericAttribute.TypedDelegateProperties.get -> string![]!
 Rask.Core.FactoryGenericAttribute.TypedDelegateProperties.init -> void
-Rask.Core.FactoryGenericAttribute.TypedValidatorProperties.get -> string![]!
-Rask.Core.FactoryGenericAttribute.TypedValidatorProperties.init -> void
 Rask.Core.Fn<T1, T2, TOut>
 Rask.Core.Fn<T1, T2, TOut>.Fn() -> void
 Rask.Core.Fn<T1, T2, TOut>.Fn(System.Func<T1, T2, TOut>! fn) -> void
@@ -2023,10 +2021,8 @@ Rask.Core.Forms.IFormControl<T>.InvokeOnChangeAsync(T value) -> System.Threading
 Rask.Core.Forms.IFormControl<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Core.Forms.IFormControl<T>.OnChange.set -> void
 Rask.Core.Forms.IFormControl<T>.RegisterValidator(Rask.Core.Forms.ExpressionAccessor.Accessor! accessor, Rask.Core.Forms.EditContext? context) -> void
-Rask.Core.Forms.IFormControl<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Core.Forms.IFormControl<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Core.Forms.IFormControl<T>.Validate.set -> void
-Rask.Core.Forms.IFormControl<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Core.Forms.IFormControl<T>.ValidateAsync.set -> void
 Rask.Core.Forms.IFormControl<T>.Validator.get -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.Value.get -> T?
 Rask.Core.Forms.IFormControl<T>.Value.set -> void
@@ -2050,8 +2046,6 @@ Rask.Core.Forms.ValidationEntry.ValidationEntry() -> void
 Rask.Core.Forms.ValidationEntry.ValidationEntry(string! Field, string! Message) -> void
 Rask.Core.GenerateForwarderFactoryAttribute
 Rask.Core.GenerateForwarderFactoryAttribute.GenerateForwarderFactoryAttribute() -> void
-Rask.Core.GenerateForwarderFactoryAttribute.Validator.get -> string?
-Rask.Core.GenerateForwarderFactoryAttribute.Validator.init -> void
 Rask.Core.Globalization.CookieCulturePersistence
 Rask.Core.Globalization.CookieCulturePersistence.CookieCulturePersistence(Rask.Core.Browser.ICookies! cookies, Rask.Core.Globalization.RaskCultureOptions! options) -> void
 Rask.Core.Globalization.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

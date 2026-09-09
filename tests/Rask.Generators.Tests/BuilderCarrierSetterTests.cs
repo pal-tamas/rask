@@ -22,6 +22,7 @@ public class BuilderCarrierSetterTests
                                    public Callback? OnPick { get; set; }
                                    public Callback<int>? OnRate { get; set; }
                                    public Fn<int, string>? Row { get; set; }
+                                   public Validator<int>? Check { get; set; }
                                }
                                """;
 
@@ -48,6 +49,20 @@ public class BuilderCarrierSetterTests
         var output = BuilderGeneratorHarness.Run(Src).Source("RaskBuilderSetters.g.cs");
 
         Assert.Contains("__b, global::System.Func<int, string>? value)", output, StringComparison.Ordinal);
+    }
+
+    // The third family. A rule RETURNS the messages that reject the value, so neither of the other two
+    // carriers fits it: `Callback` has no return and `Fn` has no async twin. Its two shapes are the
+    // framework's own named delegates rather than `Action`/`Func`, and the async one takes the field's
+    // CancellationToken — which is exactly why it needed a carrier of its own rather than a wider `Fn`.
+    [Fact]
+    public void A_validator_carrier_offers_both_named_rule_shapes()
+    {
+        var output = BuilderGeneratorHarness.Run(Src).Source("RaskBuilderSetters.g.cs");
+
+        Assert.Contains("__b, global::Rask.Core.Forms.Validate<int>? value)", output, StringComparison.Ordinal);
+        Assert.Contains(
+            "__b, global::Rask.Core.Forms.ValidateAsync<int>? value)", output, StringComparison.Ordinal);
     }
 
     // `null` converts to the carrier AND to every delegate overload, so without the priority the blessed
@@ -84,6 +99,13 @@ public class BuilderCarrierSetterTests
     [InlineData("OnRate(v => { _ = v; })", "System.Action<int>?")]
     [InlineData("OnRate(async v => { await Task.Yield(); _ = v; })", "System.Func<int, System.Threading.Tasks.Task>?")]
     [InlineData("Row(i => i.ToString())", "System.Func<int, string>?")]
+    // A rule's two shapes are told apart by ARITY, not by `async` — the asynchronous one takes the
+    // field's CancellationToken. So a synchronous rule written `async` (returning a ValueTask without
+    // awaiting) still cannot be mistaken for the sync shape, and a two-argument sync lambda cannot be
+    // mistaken for it either: there is no one-argument async shape to fall into.
+    [InlineData("Check(v => new[] { v.ToString() })", "Rask.Core.Forms.Validate<int>?")]
+    [InlineData("Check(async (v, ct) => { await Task.Yield(); ct.ThrowIfCancellationRequested(); return (System.Collections.Generic.IEnumerable<string>)new[] { v.ToString() }; })", "Rask.Core.Forms.ValidateAsync<int>?")]
+    [InlineData("Check(null)", "Rask.Core.Validator<int>?")]
     [InlineData("OnPick(null)", "Rask.Core.Callback?")]
     public void A_handler_binds_to_the_shape_it_was_written_as(string step, string expectedParameter)
     {
@@ -97,6 +119,7 @@ public class BuilderCarrierSetterTests
                 public Callback? OnPick { get; set; }
                 public Callback<int>? OnRate { get; set; }
                 public Fn<int, string>? Row { get; set; }
+                public Validator<int>? Check { get; set; }
             }
             public sealed partial class Page : Component
             {

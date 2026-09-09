@@ -12,19 +12,20 @@ namespace Rask.Core.Forms;
 // name and excludes each mode's members from the OTHER mode's factory (so no [SkipFactory] is
 // needed). The exclusion runs both ways, and it is what makes the two modes mutually exclusive at
 // the call site rather than at render time:
-//   bound factory      — no Value, Checked, OnChange(Async), OnInput(Async)
-//   controlled factory — no Bind, Validate(Async), AfterBind(Async)
-// Checked and OnInput(Async) are not interface members (only Input and Textarea declare them), but
+//   bound factory      — no Value, Checked, OnChange, OnInput
+//   controlled factory — no Bind, Validate, AfterBind
+// Checked and OnInput are not interface members (only Input and Textarea declare them), but
 // they are recognized by the same name rule wherever they appear on an IFormControl<T>: bound mode
 // derives the checkbox state from the model and installs its own oninput write-back, so a control
-// reads neither. Before the exclusion they were accepted next to Bind and silently dropped. `Validate<T>`/`ValidateAsync<T>` (this namespace) and `Action<T>`/`Func<T, Task>`
-// (Rask.Core) are the framework's named delegate types; the generator collapses the sync/async
-// validator pair into the none/sync/async factory fan-out, and auto-wraps OnChange
-// (AutoCallback) so invoking them re-renders the consumer.
+// reads neither. Before the exclusion they were accepted next to Bind and silently dropped.
+// `Validate<T>`/`ValidateAsync<T>` (this namespace) are the two shapes a rule can take; a control
+// declares ONE `Validator<T>` property that accepts either, and the generated step has an overload per
+// shape. OnChange and AfterBind are `Callback<T>` for the same reason, and OnChange is auto-wrapped
+// (AutoCallback) so invoking it re-renders the consumer.
 //
 // The framework's own component-style controls (samples MultiSelect/CheckboxGroup/RadioGroup) are
-// the worked examples. In Render, collapse the typed validators for EditContext registration:
-//   ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
+// the worked examples. In Render, hand the rule to the EditContext through the carrier:
+//   ctx?.RegisterFieldValidator(fid, Validate?.Rule, () => acc.Getter());
 // Non-generic marker every IFormControl<T> carries, so the render machinery can recognise a form
 // control without knowing its value type T (Component.GetOrCreateChild records the control's creating
 // parent through it — see BindingConsumerRegistry). No members: it is purely a type tag.
@@ -51,30 +52,25 @@ public interface IFormControl<T> : IFormControl
     Expression<Func<T>>? Bind { get; set; }
 
     /// <summary>
-    ///     A validation rule for this field, run on change and on submit. Return an error message to reject
-    ///     the value, or <see langword="null" /> to accept it.
+    ///     A validation rule for this field, run on change and on submit. Return the messages that reject
+    ///     the value, or an empty sequence to accept it.
+    ///     <para>
+    ///         Takes either shape: a synchronous rule, or an asynchronous one that has to await something —
+    ///         checking a username against the server, say. There is no second property to choose between,
+    ///         so there is no pair to set both halves of and no rule about which wins.
+    ///     </para>
     ///     <para>
     ///         This is per-field validation, next to the field it guards. Rules that span several fields
     ///         (password confirmation, a date range) belong on the model — through the <c>Form</c>'s
     ///         validator — since no single field owns them.
     ///     </para>
     ///     <para>
-    ///         Client-side validation is a convenience, never a control: always validate again on the
-    ///         server.
+    ///         An asynchronous rule runs per change, so debounce anything expensive, and let the value
+    ///         through rather than blocking the form if the check itself fails. Client-side validation is a
+    ///         convenience, never a control: always validate again on the server.
     ///     </para>
     /// </summary>
-    Validate<T>? Validate { get; set; }
-
-    /// <summary>
-    ///     The <see langword="async" /> form of <see cref="Validate" />, for a rule that has to await
-    ///     something — checking a username against the server, say.
-    ///     <para>
-    ///         Set one or the other, not both: the synchronous rule wins and this is ignored. Remember it
-    ///         runs per change, so debounce anything expensive, and let the value through rather than
-    ///         blocking the form if the check itself fails.
-    ///     </para>
-    /// </summary>
-    ValidateAsync<T>? ValidateAsync { get; set; }
+    Validator<T>? Validate { get; set; }
 
     /// <summary>
     ///     Runs just after a bound write succeeded, with the value that was written. Use it for the work
@@ -107,8 +103,10 @@ public interface IFormControl<T> : IFormControl
     /// </summary>
     Callback<T>? OnChange { get; set; }
 
-    // The single delegate the EditContext dispatches — sync or async, whichever the consumer set.
-    Delegate? Validator => (Delegate?)Validate ?? ValidateAsync;
+    // The single delegate the EditContext dispatches — sync or async, whichever the consumer set. The
+    // carrier already holds exactly one, so there is nothing left to collapse here; the member stays
+    // because the registration below and every control's Render read the rule through one name.
+    Delegate? Validator => Validate?.Rule;
 
     // Registers the per-field validator for the bound field (no-op when context is null). Passing the
     // collapsed Validator each render also clears a stale rule when the consumer drops it, so call it every

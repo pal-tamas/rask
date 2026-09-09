@@ -51,10 +51,8 @@ public sealed partial class UiRating : Component, IFormControl<int>
     public Expression<Func<int>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<int>? Validate { get; set; }
+    public Validator<int>? Validate { get; set; }
 
-    /// <inheritdoc />
-    public ValidateAsync<int>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
     public Callback<int>? AfterBind { get; set; }

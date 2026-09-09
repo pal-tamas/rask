@@ -415,7 +415,7 @@ Rask re-renders the component that *owns* an event/binding callback automaticall
 runs — including when a child control raised it (the framework re-renders the delegate's owner, captured
 from the lambda's `this`) and after a two-way bound write (the binding re-renders its authoring
 component). So calling your own `StateHasChanged()` from inside `OnChange`/`OnClick`/`OnInput`/`OnSubmit`/…
-or the `AfterBind`/`AfterBindAsync` hooks is dead weight. The tell-tale anti-pattern is reaching for
+or the `AfterBind` hook is dead weight. The tell-tale anti-pattern is reaching for
 `AfterBind: _ => StateHasChanged()` to make derived UI refresh.
 
 ```csharp

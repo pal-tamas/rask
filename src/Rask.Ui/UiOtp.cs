@@ -67,10 +67,8 @@ public sealed partial class UiOtp : Component, IFormControl<string>
     public Expression<Func<string>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<string>? Validate { get; set; }
+    public Validator<string>? Validate { get; set; }
 
-    /// <inheritdoc />
-    public ValidateAsync<string>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
     public Callback<string>? AfterBind { get; set; }
@@ -86,7 +84,6 @@ public sealed partial class UiOtp : Component, IFormControl<string>
             return Input
                 .Bind(bind)
                 .Validate(Validate)
-                .ValidateAsync(ValidateAsync)
                 // The consumer's hook runs first, then completion. This used to be two steps — the
                 // consumer's on `AfterBind` and ours on `AfterBindAsync` — which worked only because both
                 // ran. One slot means one handler, so ours calls theirs.

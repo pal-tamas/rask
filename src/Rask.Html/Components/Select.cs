@@ -73,11 +73,9 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     /// </summary>
     public Expression<Func<T>>? Bind { get; set; }
 
-    /// <summary>A synchronous check run on the bound value, returning an error message or null.</summary>
-    public Validate<T>? Validate { get; set; }
+    /// <summary>A check run on the bound value, synchronous or asynchronous.</summary>
+    public Validator<T>? Validate { get; set; }
 
-    /// <summary>An asynchronous check run on the bound value.</summary>
-    public ValidateAsync<T>? ValidateAsync { get; set; }
 
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
     public Callback<T>? AfterBind { get; set; }

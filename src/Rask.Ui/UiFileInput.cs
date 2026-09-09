@@ -74,10 +74,8 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
     public Expression<Func<string>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<string>? Validate { get; set; }
+    public Validator<string>? Validate { get; set; }
 
-    /// <inheritdoc />
-    public ValidateAsync<string>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
     public Callback<string>? AfterBind { get; set; }

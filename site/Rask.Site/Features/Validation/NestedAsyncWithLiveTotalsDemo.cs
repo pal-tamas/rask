@@ -101,7 +101,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     Input.Bind(() => _model.Address.PostalCode)
                         .Id("v-nlive-postal")
                         .Class(Tw.Input)
-                        .ValidateAsync(ValidatePostalAsync),
+                        .Validate(ValidatePostalAsync),
                     ValidatingIndicator.Template(Checking).For(() => _model.Address.PostalCode),
                     ValidationMessage.Template(FieldError).For(() => _model.Address.PostalCode)
                 ],

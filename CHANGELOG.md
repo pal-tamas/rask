@@ -47,6 +47,29 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A form control's validation rule is ONE property taking either shape.** `Validate` and
+  `ValidateAsync` were two properties over one slot, with a "the synchronous one wins" tiebreak and
+  nothing to enforce it — the same shape as the callback pairs, and the last of them. `Validate` is a
+  `Validator<T>` now, and the chain step has an overload per rule shape, so
+  `.Validate(async (v, ct) => …)` reads exactly like `.Validate(NotEmpty)`. 17 pairs across
+  `IFormControl<T>`, `Form<TModel>`, `Input`/`Select`/`Textarea` and 12 kit controls.
+
+  `IFormControl<T>.Validator` — the single delegate the `EditContext` dispatches — is `Validate?.Rule`
+  rather than `(Delegate?)Validate ?? ValidateAsync`: the carrier already holds exactly one, so there is
+  nothing left to collapse.
+
+- **The none/sync/async validator fan-out is gone, along with the two options that configured it.**
+  `[GenerateForwarderFactory(Validator: …)]` and `[FactoryGeneric(TypedValidatorProperties: …)]` existed
+  to fan a factory into three overloads so a control could take either rule shape without a cast. The
+  carrier does that now — one property, one step, an overload per shape.
+
+  Worth recording how they were found: the fan-out itself had ALREADY stopped running when the factory
+  was dropped, and left its scaffolding behind — an enum nothing switched on, and three record fields
+  written on every candidate and read by nothing. No test noticed, because dead code passes every test.
+  Nothing in the repo set either option, so removing them changes no behaviour; they are removed because
+  a public option that describes machinery which no longer exists is worse than no option at all.
+
+
 - **The optional delegate props that were left — templates, selectors and the async-only handlers — are
   carriers now.** `Authorize.Authorized`, `ErrorBoundary.Fallback`, `DragDrop.Body`,
   `VirtualizeModel.Body`, `UiSelect`'s `OptionDisabled`/`OptionGroup`, `GestureTrigger`'s result

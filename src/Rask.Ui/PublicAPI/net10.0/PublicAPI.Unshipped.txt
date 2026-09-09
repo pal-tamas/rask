@@ -701,10 +701,8 @@ Rask.Ui.UiCalendar.OnChange.set -> void
 Rask.Ui.UiCalendar.OnMonth.get -> Rask.Core.Callback<System.DateOnly>?
 Rask.Ui.UiCalendar.OnMonth.set -> void
 Rask.Ui.UiCalendar.UiCalendar() -> void
-Rask.Ui.UiCalendar.Validate.get -> Rask.Core.Forms.Validate<System.DateOnly>?
+Rask.Ui.UiCalendar.Validate.get -> Rask.Core.Validator<System.DateOnly>?
 Rask.Ui.UiCalendar.Validate.set -> void
-Rask.Ui.UiCalendar.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<System.DateOnly>?
-Rask.Ui.UiCalendar.ValidateAsync.set -> void
 Rask.Ui.UiCalendar.Value.get -> System.DateOnly
 Rask.Ui.UiCalendar.Value.set -> void
 Rask.Ui.UiCard
@@ -751,10 +749,8 @@ Rask.Ui.UiCheckbox.Text.set -> void
 Rask.Ui.UiCheckbox.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiCheckbox.Tone.set -> void
 Rask.Ui.UiCheckbox.UiCheckbox() -> void
-Rask.Ui.UiCheckbox.Validate.get -> Rask.Core.Forms.Validate<bool>?
+Rask.Ui.UiCheckbox.Validate.get -> Rask.Core.Validator<bool>?
 Rask.Ui.UiCheckbox.Validate.set -> void
-Rask.Ui.UiCheckbox.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<bool>?
-Rask.Ui.UiCheckbox.ValidateAsync.set -> void
 Rask.Ui.UiCheckbox.Value.get -> bool
 Rask.Ui.UiCheckbox.Value.set -> void
 Rask.Ui.UiCode
@@ -911,10 +907,8 @@ Rask.Ui.UiFileInput.Size.set -> void
 Rask.Ui.UiFileInput.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiFileInput.Tone.set -> void
 Rask.Ui.UiFileInput.UiFileInput() -> void
-Rask.Ui.UiFileInput.Validate.get -> Rask.Core.Forms.Validate<string!>?
+Rask.Ui.UiFileInput.Validate.get -> Rask.Core.Validator<string!>?
 Rask.Ui.UiFileInput.Validate.set -> void
-Rask.Ui.UiFileInput.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<string!>?
-Rask.Ui.UiFileInput.ValidateAsync.set -> void
 Rask.Ui.UiFileInput.Value.get -> string?
 Rask.Ui.UiFileInput.Value.set -> void
 Rask.Ui.UiFileInput.Variant.get -> Rask.Ui.UiVariant?
@@ -935,10 +929,8 @@ Rask.Ui.UiFilter<T>.Options.set -> void
 Rask.Ui.UiFilter<T>.ResetLabel.get -> string?
 Rask.Ui.UiFilter<T>.ResetLabel.set -> void
 Rask.Ui.UiFilter<T>.UiFilter() -> void
-Rask.Ui.UiFilter<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Ui.UiFilter<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Ui.UiFilter<T>.Validate.set -> void
-Rask.Ui.UiFilter<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Ui.UiFilter<T>.ValidateAsync.set -> void
 Rask.Ui.UiFilter<T>.Value.get -> T?
 Rask.Ui.UiFilter<T>.Value.set -> void
 Rask.Ui.UiFloatingLabel
@@ -1089,10 +1081,8 @@ Rask.Ui.UiInput<T>.Tone.set -> void
 Rask.Ui.UiInput<T>.Type.get -> Rask.Core.InputType?
 Rask.Ui.UiInput<T>.Type.set -> void
 Rask.Ui.UiInput<T>.UiInput() -> void
-Rask.Ui.UiInput<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Ui.UiInput<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Ui.UiInput<T>.Validate.set -> void
-Rask.Ui.UiInput<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Ui.UiInput<T>.ValidateAsync.set -> void
 Rask.Ui.UiInput<T>.Value.get -> T?
 Rask.Ui.UiInput<T>.Value.set -> void
 Rask.Ui.UiInput<T>.Variant.get -> Rask.Ui.UiVariant?
@@ -1345,10 +1335,8 @@ Rask.Ui.UiOtp.Size.set -> void
 Rask.Ui.UiOtp.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiOtp.Tone.set -> void
 Rask.Ui.UiOtp.UiOtp() -> void
-Rask.Ui.UiOtp.Validate.get -> Rask.Core.Forms.Validate<string!>?
+Rask.Ui.UiOtp.Validate.get -> Rask.Core.Validator<string!>?
 Rask.Ui.UiOtp.Validate.set -> void
-Rask.Ui.UiOtp.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<string!>?
-Rask.Ui.UiOtp.ValidateAsync.set -> void
 Rask.Ui.UiOtp.Value.get -> string?
 Rask.Ui.UiOtp.Value.set -> void
 Rask.Ui.UiPagination
@@ -1410,10 +1398,8 @@ Rask.Ui.UiRadio.Text.set -> void
 Rask.Ui.UiRadio.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiRadio.Tone.set -> void
 Rask.Ui.UiRadio.UiRadio() -> void
-Rask.Ui.UiRadio.Validate.get -> Rask.Core.Forms.Validate<bool>?
+Rask.Ui.UiRadio.Validate.get -> Rask.Core.Validator<bool>?
 Rask.Ui.UiRadio.Validate.set -> void
-Rask.Ui.UiRadio.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<bool>?
-Rask.Ui.UiRadio.ValidateAsync.set -> void
 Rask.Ui.UiRadio.Value.get -> bool
 Rask.Ui.UiRadio.Value.set -> void
 Rask.Ui.UiRange
@@ -1438,10 +1424,8 @@ Rask.Ui.UiRange.Step.set -> void
 Rask.Ui.UiRange.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiRange.Tone.set -> void
 Rask.Ui.UiRange.UiRange() -> void
-Rask.Ui.UiRange.Validate.get -> Rask.Core.Forms.Validate<double>?
+Rask.Ui.UiRange.Validate.get -> Rask.Core.Validator<double>?
 Rask.Ui.UiRange.Validate.set -> void
-Rask.Ui.UiRange.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<double>?
-Rask.Ui.UiRange.ValidateAsync.set -> void
 Rask.Ui.UiRange.Value.get -> double
 Rask.Ui.UiRange.Value.set -> void
 Rask.Ui.UiRange.Vertical.get -> bool?
@@ -1464,10 +1448,8 @@ Rask.Ui.UiRating.OnChange.set -> void
 Rask.Ui.UiRating.Size.get -> Rask.Ui.UiSize?
 Rask.Ui.UiRating.Size.set -> void
 Rask.Ui.UiRating.UiRating() -> void
-Rask.Ui.UiRating.Validate.get -> Rask.Core.Forms.Validate<int>?
+Rask.Ui.UiRating.Validate.get -> Rask.Core.Validator<int>?
 Rask.Ui.UiRating.Validate.set -> void
-Rask.Ui.UiRating.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<int>?
-Rask.Ui.UiRating.ValidateAsync.set -> void
 Rask.Ui.UiRating.Value.get -> int
 Rask.Ui.UiRating.Value.set -> void
 Rask.Ui.UiSearch
@@ -1514,10 +1496,8 @@ Rask.Ui.UiSelect<T>.Size.set -> void
 Rask.Ui.UiSelect<T>.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiSelect<T>.Tone.set -> void
 Rask.Ui.UiSelect<T>.UiSelect() -> void
-Rask.Ui.UiSelect<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Ui.UiSelect<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Ui.UiSelect<T>.Validate.set -> void
-Rask.Ui.UiSelect<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Ui.UiSelect<T>.ValidateAsync.set -> void
 Rask.Ui.UiSelect<T>.Value.get -> T?
 Rask.Ui.UiSelect<T>.Value.set -> void
 Rask.Ui.UiSelect<T>.Variant.get -> Rask.Ui.UiVariant?
@@ -1660,10 +1640,8 @@ Rask.Ui.UiTextarea<T>.Size.set -> void
 Rask.Ui.UiTextarea<T>.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiTextarea<T>.Tone.set -> void
 Rask.Ui.UiTextarea<T>.UiTextarea() -> void
-Rask.Ui.UiTextarea<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
+Rask.Ui.UiTextarea<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Ui.UiTextarea<T>.Validate.set -> void
-Rask.Ui.UiTextarea<T>.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<T>?
-Rask.Ui.UiTextarea<T>.ValidateAsync.set -> void
 Rask.Ui.UiTextarea<T>.Value.get -> T?
 Rask.Ui.UiTextarea<T>.Value.set -> void
 Rask.Ui.UiTextarea<T>.Variant.get -> Rask.Ui.UiVariant?
@@ -1771,10 +1749,8 @@ Rask.Ui.UiToggle.Text.set -> void
 Rask.Ui.UiToggle.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiToggle.Tone.set -> void
 Rask.Ui.UiToggle.UiToggle() -> void
-Rask.Ui.UiToggle.Validate.get -> Rask.Core.Forms.Validate<bool>?
+Rask.Ui.UiToggle.Validate.get -> Rask.Core.Validator<bool>?
 Rask.Ui.UiToggle.Validate.set -> void
-Rask.Ui.UiToggle.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<bool>?
-Rask.Ui.UiToggle.ValidateAsync.set -> void
 Rask.Ui.UiToggle.Value.get -> bool
 Rask.Ui.UiToggle.Value.set -> void
 Rask.Ui.UiTone
@@ -2276,29 +2252,41 @@ static RaskBuilderSettersRask_Ui.Type<T, TMode>(this Rask.Core.Build<Rask.Ui.UiI
 static RaskBuilderSettersRask_Ui.Underline(this Rask.Core.Build<Rask.Ui.UiLink!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiLink!>
 static RaskBuilderSettersRask_Ui.Url(this Rask.Core.Build<Rask.Ui.UiMockupBrowser!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiMockupBrowser!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<string!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<string!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<string!>? value) -> Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<string!>? value) -> Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<T>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<T>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<T>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCheckbox!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<string!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<string!>? value) -> Rask.Core.Build<Rask.Ui.UiOtp!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync<T>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Ui.ValidateAsync<T>(this Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Validator<T>? value) -> Rask.Core.Build<Rask.Ui.UiTextarea<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiCountdown!> __b, int value) -> Rask.Core.Build<Rask.Ui.UiCountdown!>
 static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
 static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiDetailRow!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>

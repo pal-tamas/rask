@@ -50,10 +50,8 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
     public Expression<Func<T>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<T>? Validate { get; set; }
+    public Validator<T>? Validate { get; set; }
 
-    /// <inheritdoc />
-    public ValidateAsync<T>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
     public Callback<T>? AfterBind { get; set; }

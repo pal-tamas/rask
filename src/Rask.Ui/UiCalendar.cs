@@ -69,10 +69,8 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
     public Expression<Func<DateOnly>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<DateOnly>? Validate { get; set; }
+    public Validator<DateOnly>? Validate { get; set; }
 
-    /// <inheritdoc />
-    public ValidateAsync<DateOnly>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
     public Callback<DateOnly>? AfterBind { get; set; }

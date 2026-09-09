@@ -49,7 +49,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Redeemed: {m.Code}").Class("flex flex-col gap-3").ValidateAsync(async (m, ct) =>
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Redeemed: {m.Code}").Class("flex flex-col gap-3").Validate(async (m, ct) =>
             {
                 await Task.Yield();
                 ct.ThrowIfCancellationRequested();
@@ -62,7 +62,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
                 Input.Bind(() => _model.Code)
                     .Id("v10-code")
                     .Class(Tw.Input)
-                    .ValidateAsync(CheckCodeAsync),
+                    .Validate(CheckCodeAsync),
                 ValidatingIndicator.Template(Checking).For(() => _model.Code),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
