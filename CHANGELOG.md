@@ -58,6 +58,37 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **rask.sh no longer flickers when it hydrates, and its links navigate like the SPA it is.** Three
+  defects on the published site, all visible on the front door.
+
+  The **flicker** was a font reflow the framework's own morph re-triggered. The three faces arrived
+  from a font CDN through the standard non-blocking pattern — `<link media="print"
+  onload="this.media='all'">` — and that pattern is quietly incompatible with a full-document morph: a
+  head asset reconciles by key, so the WASM first frame put `media` back to the rendered `print`,
+  un-applied the faces, reflowed the page to fallback metrics, and reflowed back when the `onload`
+  re-fired. Measured: 5757px → 5705px → 5757px of document height and an `<h1>` line box of 56px →
+  61px, in about 8ms — and again on every cross-route navigation, because each of those is another
+  morph. Inter, Space Grotesk and JetBrains Mono are now **self-hosted** (variable `woff2`, latin +
+  latin-ext, in `wwwroot/fonts`, OFL, attributed in `wwwroot/fonts/LICENSE.md`), declared in
+  `global.css` and preloaded from the head. The real face is drawn on the first paint: no swap, no
+  reflow, nothing for a morph to revert — and one cross-origin DNS + TLS + round trip fewer, measured
+  at 802ms of a 2.9s first paint, plus a font CDN that no longer sees who reads the docs.
+
+  **Navigation** was not client-side at all. The landing page's shared `NavItem` stamped
+  `target="_blank"` on every entry, internal ones included, so "Docs" opened a second tab and
+  cold-booted the whole WASM bundle — runtime download, boot screen, hydration and all. The guide
+  cards did the same. Worse, the links that had no target were still bare `<a href>`, and the runtime
+  intercepts `a[data-rask-nav]`, which only `NavLink` writes — so those reloaded the app too. Every
+  in-app link on the page is a `NavLink` over a type-safe `RouteUrl` now; only genuinely external
+  links keep a target, and they keep the external-link glyph with it.
+
+  **The theme is remembered**, and light is still the default. The picker was daisyUI's CSS-only
+  `theme-controller`, which cannot persist anything — no script to store a choice, and a radio that
+  renders unchecked on every pass, so the next render put the theme back. The new `ThemeMenu` owns the
+  value and hands it to the boot script, which writes `localStorage` and stamps `<html>` — before the
+  first paint, so a saved theme is on the page from the first frame rather than corrected into it.
+  (#1058)
+
 - **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
   `Name.ts` beside `Name.cs`, and the only thing separating them is whether the class derives from
   `LitComponent` — which Roslyn knows and a glob does not. So in a project with both, island discovery

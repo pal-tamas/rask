@@ -1,4 +1,5 @@
 using Rask.Site.Pages;
+using Rask.Site.Tests.Infrastructure;
 using Rask.Testing;
 
 namespace Rask.Site.Tests;
@@ -64,13 +65,19 @@ public sealed partial class GuideLinkTests : global::Rask.Core.RaskMarkup
             $"the page has {blank} target=\"_blank\" link(s) but only {noopener} carry rel=\"noopener\".");
     }
 
-    private static string Render() => RaskTest.Render(() => HomePage).Html;
+    // TestServices rather than the bare default provider: the top bar's theme picker ctor-injects
+    // IJSRuntime — it hands a chosen theme to the boot script that stores it — so the page cannot be
+    // constructed without one. FakeJsRuntime is enough; nothing here invokes anything.
+    private static string Render() => RaskTest.Render(() => HomePage, TestServices.Default()).Html;
 
     private static List<string> GuideSlugs()
     {
+        // Root-relative now. The cards used to carry a relative "docs/guides/…" on a bare <a>, which
+        // reloaded the whole app on every click; they are NavLinks over a generated RouteUrl, and that
+        // is absolute.
         var matches = System.Text.RegularExpressions.Regex.Matches(
             Render(),
-            "href=\"docs/guides/(?<slug>[a-z0-9-]+)\"");
+            "href=\"/docs/guides/(?<slug>[a-z0-9-]+)\"");
 
         return matches.Select(m => m.Groups["slug"].Value).ToList();
     }

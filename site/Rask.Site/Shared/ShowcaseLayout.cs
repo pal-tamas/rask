@@ -137,9 +137,12 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 ,
                 // The light/dark toggle that used to sit here went when the showcase became light on
                 // the kit's palette: there was no second theme to flip to. There are thirty-five now,
-                // so it comes back as the whole set — and still with no IJSRuntime, because daisyUI
-                // matches the checked radio in CSS rather than asking a script to swap a class.
-                UiThemeDropdown.Placement("dropdown-end")
+                // so it comes back as the whole set — and the choice is REMEMBERED, across this
+                // navigation and the next visit. The kit's CSS-only picker that stood here could not
+                // do that: no script means nothing to persist with, and its radio renders unchecked
+                // every pass, so a navigation put the theme straight back to the default. ThemeMenu
+                // owns the value and hands it to the boot script, which is what actually holds it.
+                ThemeMenu.Placement("dropdown-end")
             ]
         ],
         Div.Class("flex items-start app-shell")[

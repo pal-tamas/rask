@@ -9,6 +9,83 @@
    silently, with every class name still present and correct. See the note on the missing `a { color }`
    rule below, and the one over the .app-* names further down. */
 
+/* The type system's three families, SELF-HOSTED — and that is a correctness fix, not a preference.
+   They used to arrive from fonts.googleapis.com through a <link media="print" onload="this.media='all'">,
+   the standard trick for a stylesheet that must not block first paint. On this site that trick was
+   actively harmful: the <link> is a keyed head asset, so every full-document morph — the WASM first
+   frame, and every cross-route navigation — reconciled `media` back to the rendered "print", dropping
+   the faces, reflowing the whole document to fallback metrics, and reflowing back when the onload
+   re-fired. Measured on rask.sh: document height 5757 -> 5705 -> 5757 in ~8ms, the <h1> line box
+   56px -> 61px. That double reflow at hydration IS the flicker (#1058).
+   Serving the files from this origin removes the reason to defer the sheet at all: the rules are in
+   THIS stylesheet, which is already linked normally, and the latin faces are preloaded from the head,
+   so the text is drawn in its real face on the first paint. It also drops a cross-origin DNS + TLS +
+   round trip that measured 802ms of a 2.9s first paint.
+   Variable faces (one file per family covers every weight the site uses), latin + latin-ext only.
+   See wwwroot/fonts/LICENSE.md for the upstream projects and the OFL they ship under. */
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/inter-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/inter-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 500 700;
+    font-display: swap;
+    src: url("fonts/space-grotesk-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 500 700;
+    font-display: swap;
+    src: url("fonts/space-grotesk-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url("fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
     /* The violet dark-first palette lives in Styles/app.css now, compiled into this project's own
        stylesheet — it used to come from Rask.Bootstrap's tokens.css, which is gone. This block keeps
