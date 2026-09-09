@@ -336,21 +336,21 @@ public sealed class AccountRecoveryTests
         AuthHarness harness, string email, string? firstRunToken = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         return (await accounts.RegisterAsync(email, Password, firstRunToken)).Result;
     }
 
     private static async Task<AuthResult> SignInAsync(AuthHarness harness, string email, string password)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         return (await accounts.ValidateAsync(email, password)).Result;
     }
 
     private static async Task<AuthResult> SendResetAsync(AuthHarness harness, string email)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         return await accounts.SendPasswordResetAsync(email);
     }
 
@@ -371,14 +371,14 @@ public sealed class AccountRecoveryTests
         AuthHarness harness, string userId, string token, string password)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         return await accounts.ResetPasswordAsync(userId, token, password);
     }
 
     private static async Task<AuthResult> ConfirmAsync(AuthHarness harness, string userId, string token)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         return await accounts.ConfirmEmailAsync(userId, token);
     }
 
@@ -386,7 +386,7 @@ public sealed class AccountRecoveryTests
     {
         using var scope = harness.NewScope();
         var users = scope.ServiceProvider
-            .GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<RaskUser>>();
+            .GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<TestUser>>();
 
         var user = await users.FindByEmailAsync(email);
         return user is not null && await users.IsEmailConfirmedAsync(user);

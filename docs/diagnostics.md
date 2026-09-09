@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK073, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK074, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -107,6 +107,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK071](#rask071) | Error | ASP.NET route attribute on a Rask component |
 | [RASK072](#rask072) | Warning | Entity `Configure` method will not be called |
 | [RASK073](#rask073) | Warning | Strongly-typed id has no usable value |
+| [RASK074](#rask074) | Warning | More than one account type |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1644,6 +1645,36 @@ the reason. That is what this replaces.
 
 Ids that need no converter are not reported. Anything the provider already maps — `Guid`, `int`,
 `long`, `string` — is left alone.
+
+---
+
+## RASK074
+
+**More than one account type** · Warning
+
+Rask ships no user class. The account type is the one class in your project deriving from ASP.NET Core
+Identity's `IdentityUser`, found at compile time and wired to Identity by a generated
+`[ModuleInitializer]` — which is what lets `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type
+argument.
+
+That needs there to be *one*. With two, picking either would map one set of account tables and silently
+strand the other, and the app would look wired until the first sign-in.
+
+```csharp
+public class User : IdentityUser { }
+
+// ✗ RASK074 — which of these is the account?
+public class LegacyUser : IdentityUser { }
+```
+
+**Fix:** keep one. A second user-shaped entity does not need to derive from `IdentityUser` to be mapped —
+it is an entity like any other, and if it is genuinely a second account store it belongs behind its own
+`AddRaskAuth<TContext, TUser>()` call rather than the convention.
+
+Auth is left unwired when this fires, rather than half-wired against a guess.
+
+Declaring **no** user type is not reported: an app with no accounts is a legitimate app, and the auth
+battery simply does not wire.
 
 ---
 
