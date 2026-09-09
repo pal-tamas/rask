@@ -7,15 +7,15 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 
 ## Workflows → skills (use them automatically)
 `.claude/skills/` holds the committed playbooks; apply the matching one without being asked.
-- **rask-ship** — definition-of-done gate before any commit/PR: `dotnet format` (.editorconfig) →
-  `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → PR.
+- **rask-ship** — definition-of-done gate before any commit: `dotnet format` (.editorconfig) →
+  `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → land on main.
 - **add-html-tag** · **add-diagnostic** · **add-codefix** — scaffolding (component+test / RASK0xx+docs+test / IDE quick-fix+test).
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
-- **open-pr** — branch off main, Conventional-Commit, **no AI-attribution footers**, delete branch after merge.
+- **land-on-main** — Conventional-Commit, gated merge of `origin/main`, `git push origin HEAD:main`. **Never open a PR** for own work.
 - **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
-Standing rules: do your best every PR, holding **UX + security + performance** together; prefer
+Standing rules: do your best every change, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E
 only when unreachable); E2E for every `site/` change — **tests run locally, not in CI**: `dotnet
 format` + unit via `scripts/run-unit-local.sh` (enforced by `.githooks/pre-commit`), browser E2E via

@@ -8,12 +8,12 @@ GitHub is the source of truth — keep docs, examples, and these guides up to da
 
 ## Repo workflows (`.claude/skills/`)
 Apply the matching playbook automatically:
-- **rask-ship** — definition-of-done gate before any commit/PR.
+- **rask-ship** — definition-of-done gate before any commit.
 - **add-html-tag** / **add-diagnostic** / **add-codefix** — scaffolding (component+test / RASK0xx+docs+test /
   IDE quick-fix+test). **run-benchmarks** — hot-path Allocated delta.
 - **run-rask** / **run-rask-wasm** / **run-rask-cli** — build, launch and drive the real thing (Server
   showcase, WASM showcase, the `rask` CLI) when a test passing isn't the same as it working.
-- **rask-review** — security/perf/memory/best-practices. **open-pr** — Conventional-Commit PR, no AI footers.
+- **rask-review** — security/perf/memory/best-practices. **land-on-main** — Conventional-Commit, land straight on `main`.
 - **cut-release** — tag `vX.Y.Z`. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 ## The gate (every change)
@@ -28,8 +28,9 @@ Apply the matching playbook automatically:
 5. **User-facing change → update `site/Rask.Site` + docs/README** (keep `docs/`, `README.md`, `NUGET.md`,
    `llms.txt`, and template `AGENTS.md` current). Add a `CHANGELOG.md` `[Unreleased]` entry.
 6. Review (security + performance + UX together; prefer standard .NET APIs; refactor duplication).
-7. Open a PR (`type(scope): subject`, Conventional Commits — enforced by commitlint); delete the
-   branch after squash-merge.
+7. Land it on `main` (`type(scope): subject`, Conventional Commits — enforced by commitlint): merge
+   `origin/main` in with `--no-commit` (a clean merge is otherwise ungated), then
+   `git push origin HEAD:main`. **No pull request** — PRs are for external contributions from forks.
 
 ## CI hygiene (`.github/workflows/`)
 Keep the annotation panel clean. Pin runners to an explicit image, never a moving `*-latest` label. Keep
@@ -37,7 +38,7 @@ Keep the annotation panel clean. Pin runners to an explicit image, never a movin
 runtime, not a deprecated one.
 
 ## Principles
-Do your best on every PR. Hold UX, security, and performance together. Don't reinvent the wheel —
+Do your best on every change. Hold UX, security, and performance together. Don't reinvent the wheel —
 use the BCL/framework. Automate what you can. Ask only when genuinely blocked.
 
 See `docs/development-workflow.md` for the full details.

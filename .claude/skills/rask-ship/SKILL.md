@@ -1,14 +1,14 @@
 ---
 name: rask-ship
-description: The Rask "definition of done" gate. Use before committing or opening a PR for any change in the Rask repo — it formats with dotnet format (.editorconfig), enforces a warnings-as-errors analyzer-clean build, requires unit tests for new features and E2E tests for site changes, runs benchmarks for framework/render-hotpath changes, updates the CHANGELOG, reviews for security/perf/memory, then opens a PR with no AI attribution.
+description: The Rask "definition of done" gate. Use before committing or landing any change in the Rask repo — it formats with dotnet format (.editorconfig), enforces a warnings-as-errors analyzer-clean build, requires unit tests for new features and E2E tests for site changes, runs benchmarks for framework/render-hotpath changes, updates the CHANGELOG, reviews for security/perf/memory, then lands the change on main directly (no pull request).
 ---
 
 # rask-ship — definition-of-done gate
 
-Run this before every commit/PR. Each step is a gate: do not advance with a failing step.
+Run this before every commit. Each step is a gate: do not advance with a failing step.
 Steps fire based on what changed (step 0 classifies). For the slnx use `Rask.slnx`.
 
-**Principles** (apply throughout): do your best on every PR; weigh **user experience, security,
+**Principles** (apply throughout): do your best on every change; weigh **user experience, security,
 and performance together**, never one at the cost of another; prefer **standard .NET / BCL APIs
 over hand-rolled code** (don't reinvent the wheel); **refactor opportunistically** when you touch
 code that's duplicated or unclear; **automate** whatever can be automated; **ask only when truly
@@ -60,7 +60,7 @@ RS0016 message; the IDE's "Add to public API" quick-fix writes it for you.
 
 Do not route around it. The diff in those files **is** the API review — read it as a reviewer would
 before you commit, against the rules in `docs/api-style.md`. A name you would not want to explain in
-a PR comment is a name to change now, while changing it is free.
+a review comment is a name to change now, while changing it is free.
 
 ## 3. Tests — unit-first; E2E for site changes
 Policy: **unit-test first** for every new feature/bug fix; add E2E **only** when a unit test
@@ -92,7 +92,7 @@ If the change is visible to app authors (new/changed component, API, prop, defau
 
 ## 4. Benchmarks (framework/render-hotpath changes only)
 If you changed render/live-runtime code → run the **`run-benchmarks`** skill, capture the
-`Allocated` before/after delta, and quote it in the PR. Do not skip this for hotpath changes.
+`Allocated` before/after delta, and quote it in the commit body. Do not skip this for hotpath changes.
 
 ## 5. CHANGELOG
 Add an entry under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog format: `### Added/
@@ -101,6 +101,8 @@ Changed/Fixed/Security/Performance/...`) in the same commit.
 ## 6. Review — security / performance / memory
 Run the **`rask-review`** skill on the diff and address findings before submitting.
 
-## 7. Open the PR
-Run the **`open-pr`** skill. Never add `Co-Authored-By` or `Generated-with` footers to commits
-or the PR body.
+## 7. Land it on `main`
+Run the **`land-on-main`** skill: commit, merge `origin/main` in (with `--no-commit`, or the merge
+lands ungated), then `git push origin HEAD:main`. **Do not open a pull request** — PRs are for
+external contributions only. Never add a `Co-Authored-By` or `Generated-with` footer —
+`.githooks/commit-msg` rejects it.
