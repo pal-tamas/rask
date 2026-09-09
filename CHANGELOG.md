@@ -70,8 +70,70 @@ them until tagged releases begin.
   have compiled nothing: daisyUI defines 35 themes and `ui.css` asks for `themes: all`, so the theme
   set in the shipped bytes must be the bundle's own — the same reason `UiLayerOrderTests` reads the
   compiled sheet instead of the `@layer` line it was built from. (#1039)
+### Changed
+
+- **CS0108 no longer costs you a `new`: RASKSUP001 suppresses it when the hidden member is a builder
+  entry.** Every component contributes an entry named after itself, and the ~170 HTML/SVG tags land on
+  `RaskMarkup`, which every component inherits — so an ordinary `Component? Footer`, `required string
+  Label`, private `Section(…)` helper or nested `record Address` hides one it never asked about. A
+  framework should not spend a keyword of your source per accidental collision with a tag name.
+
+  The rule is narrow on purpose: the hidden member must itself be an entry — named after the component
+  it builds, declared on the markup surface. Hiding a real member of your own base type still warns,
+  inside a component or outside one. Both entry shapes are recognised, including the `RaskSeed_*` field
+  a GENERIC component (`Form<T>`, `Select<T>`, `Input<T>`) opens its chain through; missing that left
+  nine members warning inside `Rask.Core` alone.
+
+  **`dotnet format` does not honour `DiagnosticSuppressor`s**, which is the part worth knowing if you
+  run the same gate: it surfaces the diagnostic itself and fails on any warning-severity report. With
+  the suppressor in place the Release build reported ZERO CS0108 while the same tree's format verify
+  pass reported 200, every one a member the compiler had agreed to ignore. Rask's own `.editorconfig`
+  consequently sets `dotnet_diagnostic.CS0108.severity = none` **for its own source only** — consumers
+  need no such setting, because the suppressor is what answers CS0108 for them and it keeps the genuine
+  case. The **CS0108 quick-fix is removed** — it existed only to write the `new` this makes
+  unnecessary — and 111 `new` modifiers come out of this repository's own source.
+
+  A prop or parameter named after a tag is consequently no longer a compile error for **islands**
+  (`Title`, `Label`, `Data`, `Form` are natural prop names) or for **Blazor components**, where
+  `[BlazorParameter("Name")]` becomes a readability choice rather than a requirement.
+
+- **`Rask.Html` is gone: the HTML/SVG element family moved back into `Rask.Core`.** The ~155 tag
+  components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) and their 461 tests
+  rejoin the components Core always kept, in the `Rask.Core.Components` namespace. The assembly, its
+  test project, its PublicAPI baselines and the `Rask.Html.dll` copy bundled into every host package are
+  all deleted.
+
+  **What this buys is a delivery mechanism, not tidiness.** An assembly can only add members to a type
+  it declares, so the two halves reached a consumer by different routes: Core's entries land on
+  `Rask.Core.RaskMarkup`, which `Component` derives from, and every component everywhere inherits them
+  for free; `Rask.Html`'s could only be INJECTED — one forwarder per entry per markup host, in every
+  project that referenced it. Measured on `Rask.Server.Tests` (60 hosts):
+  `RaskBuilderConsumerEntries.g.cs` was **25,143 lines, 8,700 of its forwarders (~17,400 lines, 69%)
+  nothing but Rask.Html's 145 entries repeated into every host**. It is now **7,743 lines**. Every app
+  gets the same reduction, scaled by its own component count.
+
+  **No source break for the chain or the factories** — a chain entry is a member of the markup host, not
+  a name imported from a namespace, so `Div.Class("card")[Span["hi"]]` is unaffected. Code that names a
+  tag TYPE explicitly drops `using Rask.Html.Components;`: the host packages already surface
+  `Rask.Core.Components`. This undoes the namespace half of #710.
 
 ### Fixed
+
+- **A component named after an HTML tag silently rendered the tag instead.** Found by the merge above and
+  fixed with it: the per-host collision filter skipped an own entry whose name the host already had —
+  and once the tags were inherited from `RaskMarkup`, "already had" included every tag. A Svelte island
+  named `Meter` compiled, shipped, and rendered `<meter value="0">` with a green build.
+
+  An own or referenced-library entry that collides with an INHERITED framework entry is now emitted with
+  `new` instead of being dropped, so the nearer component keeps the simple name — the precedence the
+  chain has always had. `ReachableMemberNames` no longer counts `RaskMarkup`'s members as names the host
+  declares; `InheritedEntryNames` answers for those separately, because the two demand opposite
+  treatment: a name the host DECLARES must stop the injection (CS0102), a name it merely INHERITS is
+  hidden. Two tests in `BuilderEntryEmissionTests` pin both directions — `new` when it hides a tag, no
+  `new` (CS0109) when it hides nothing.
+
+  CS0108 for a member of your own named after a tag now covers ~170 names rather than the 15 Core used
+  to keep — and no longer needs answering at all; see RASKSUP001 below.
 
 - **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
   `Name.ts` beside `Name.cs`, and the only thing separating them is whether the class derives from
@@ -1785,7 +1847,6 @@ them until tagged releases begin.
   never re-scaffolded. Its browser journey — the first one this sample has ever had — asserts the page
   reports no console errors, because that is the only place this failure was visible.
 
-
 - **The landing page was still grey after the theme scope was added to its root component.** Setting
   `data-rask-ui` in `App.Shell` is not enough for a prerendered WebAssembly app: the publish splices the
   render into the SDK's boot shell — that is what carries the import map and the boot script — and the
@@ -1797,7 +1858,6 @@ them until tagged releases begin.
   so a `Shell` override stops being silently lossy for every prerendered app; the shell wins wherever
   both name the same attribute, because its `lang` and any sub-path rewrite were computed for that
   publish.
-
 
 - **The landing site shipped to rask.sh with no colour at all.** `Rask.Example.Site` drew with the kit
   but was wired for neither half of it, and both failures are silent in the same way: the build stays
@@ -1818,7 +1878,6 @@ them until tagged releases begin.
   Both are fixed, and `UiKitWiringTests` now holds **every** app that references `Rask.Ui` to both rules
   rather than only the showcase, which is why the second consumer of the kit reproduced a bug the first
   had already solved. Checked by putting each half of the bug back and watching the guard name the site.
-
 
 - **The SQLite journey's database assertions reported machine load as a product failure.** The bulk
   imports and the concurrent-writer bursts waited on Playwright's default 5s budget for work that
@@ -1937,7 +1996,6 @@ them until tagged releases begin.
   one list directly inside another. The list scrolls, because thirty-five rows is taller than most
   viewports.
 
-
 - **The kit ships every daisyUI theme, and a picker for them.** It carried two — `light` and `dark` —
   while the vendored bundle already contained all 35, so 33 palettes were being compiled away.
 
@@ -1956,7 +2014,6 @@ them until tagged releases begin.
   rather than a `<select>` for exactly that reason: a select's value is only readable from a script, and
   there is none. Nothing persists the choice; an app that wants it remembered should render `data-theme`
   from its own stored preference.
-
 
 - **Email confirmation and password reset, over the mail battery.** Registering now sends a
   confirmation link, `/forgot-password` emails a reset link, and `/reset-password` and `/confirm-email`
@@ -2023,7 +2080,6 @@ them until tagged releases begin.
   **`Rask.Dashboard` still inlines**, deliberately: the console is mounted into somebody else's host,
   which references the dashboard rather than the kit and so never gets the build hook. A `<link>` there
   would point at a file nothing produced.
-
 
 - **`.gitignore` no longer lets a sample's SQLite database be committed.** The runtime-artifact block
   carried a comment claiming it was "no longer a per-sample list" and was exactly that: it named only
@@ -2130,7 +2186,6 @@ them until tagged releases begin.
   cookie is the shipped default on every host, `docs/authentication-jwt.md` documents the hand-rolled
   bearer path, and the two JWT samples demonstrate it.
 
-
 - **The browser half did not survive the trimmer.** `Rask.Auth.Client` serialised with
   `ReadFromJsonAsync<T>` and `JsonContent.Create` — reflection-based JSON, which a trimmed WebAssembly
   publish cannot keep. Three `IL2026` and a **failed publish** for any app that used it, while its unit
@@ -2140,7 +2195,6 @@ them until tagged releases begin.
   exact shapes. Moving the DTOs into `Rask.Core.Authentication` took the shapes and left the serializers
   behind. The framework owns both now, and the fix is pinned by publishing rather than by a unit test —
   `Rask.Example.Auth.WasmCookie` and `Rask.Example.Wasm` both publish with zero IL warnings.
-
 
 - **Concurrent registrations could collide on the roles table.** Two people registering at the same
   moment could get a 500 — `UNIQUE constraint failed: AspNetRoles.NormalizedName` — on the path
@@ -2214,7 +2268,6 @@ them until tagged releases begin.
   existing channel, so it lands in the session every other handler runs in. It also says the two things
   people get backwards: do not send the principal into an island as a prop (props are serialized into
   the page), and gating the host component gates the island.
-
 
 - **`Rask.Auth.Client` — the browser half, so a WebAssembly app writes the same three calls.** Until
   now a WASM app had `IAuth` and `IUserProvider` but no implementation of either; the documented answer
@@ -2452,7 +2505,6 @@ them until tagged releases begin.
   which on this lane is not academic, since every route module is loaded by Node before any browser
   sees it.
 
-
 ### Added
 - **RASK071 catches ASP.NET's `[Route]` on a Rask component, with a quick-fix that swaps it.** Rask's
   route attribute and ASP.NET's share the short name `Route` and differ only by namespace, so a server
@@ -2664,7 +2716,6 @@ them until tagged releases begin.
   being compiled into the shipped stylesheet with no component anywhere that could write them. The
   stylesheet looked complete precisely because the gap was in the C#.
 
-
 - **The kit covers daisyUI's component set: 69 components, none of them needing a line of JavaScript.**
   Forms (input, textarea, file input, checkbox, radio, toggle, range, fieldset, validator), navigation
   (link, breadcrumbs, menu, navbar, steps, dock, pagination), feedback (alert, loading, progress, radial
@@ -2684,7 +2735,6 @@ them until tagged releases begin.
   for "no rating", without which a rating can be raised and lowered but never cleared. `UiAvatar` demands
   alt text, `UiRadio` demands the group name that makes the options mutually exclusive, and every control
   that has no visible label demands an accessible one.
-
 
 - **The kit is built on daisyUI, and its theme cannot escape onto a page that did not ask for it.**
   `Rask.Ui` now compiles daisyUI into its embedded stylesheet, so the components stop carrying
@@ -2915,7 +2965,6 @@ them until tagged releases begin.
   sheet by `UiClassNamesTests`. That guard found six fabricated names on its first run: `tab-xs`
   through `tab-xl` (daisyUI sizes tabs on the CONTAINER, `tabs-*`) and `tooltip-neutral`, which daisyUI
   does not define. Five components would have rendered unsized and one uncoloured, silently.
-
 
 - **The gates now share this machine by a slot budget instead of one all-or-nothing lane, so several
   worktrees can test at once without lying to each other.** Eight worktrees run on one box here, and
@@ -3156,7 +3205,6 @@ them until tagged releases begin.
   because a mounted application owns its whole document and so has nothing of its own to be outranked;
   the showcase is the first consumer where it could matter.
 
-
 - **The kit's stylesheet shipped the whole of daisyUI, because the plugin was being read as source.**
   `vendor/daisyui.mjs` is 348 KB of daisyUI's own code and it sits inside the project Tailwind scans, so
   the scanner found every class name daisyUI defines and treated the bundle as a safelist for the entire
@@ -3173,7 +3221,6 @@ them until tagged releases begin.
   looks exactly like a stylesheet containing enough.** Nothing renders wrong, no test goes red, and the
   only symptom is a number with nothing to compare it against. It surfaced only from asking why
   `mockup-browser` was in the output when no component mentions it.
-
 
 - **`UiIcon` sized itself only until a caller asked for anything, and then rendered nothing at all.**
   `Class` REPLACED the icon's own `size-5 shrink-0` rather than adding to it, so every call site that
@@ -3194,7 +3241,6 @@ them until tagged releases begin.
   Two sizing leftovers from the glyph era went with it: `text-xl`/`text-2xl` on an icon (a font size,
   which does nothing to an SVG) and `.nav-group-chevron { font-size: 0.7rem }`, which had been the
   showcase sidebar chevron's only size.
-
 
 - **A version pinned in two places was held together by a comment, and one of the comments was
   describing a test that did not exist.** `ProjectGenerator.Wasm.AspNetCoreFrameworkVersion` must match
@@ -3414,7 +3460,6 @@ them until tagged releases begin.
   meant "retry", `UsbDrive`/`UsbPlug`/`Controller` all meant "a device". Three names have no Heroicons
   equivalent and take the nearest honest match rather than vendoring a second icon style:
   `Bluetooth`/`Broadcast` → `Signal`, and `Github` → `CodeBracket`, since Heroicons ships no brand marks.
-
 
 - **An island takes no children, in either island family — and saying so is now a compile error
   ([RASK062](docs/diagnostics.md#rask062)).** Both kinds offered a way in and neither could keep its

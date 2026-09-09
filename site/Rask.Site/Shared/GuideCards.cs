@@ -1,6 +1,5 @@
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Html.Components;
 using Rask.Site.Features;
 
 namespace Rask.Site;

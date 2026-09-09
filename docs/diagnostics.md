@@ -17,7 +17,6 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
-| **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -660,10 +659,9 @@ public partial class RouterTests : RaskMarkup        // ✓ — enclosing type i
 }
 ```
 
-This used not to matter: the HTML tags lived in `Rask.Core` and reached a nested component by
-*inheritance*, where nesting is irrelevant. They ship from `Rask.Html` now, and a referenced library's
-entries can only be injected — so a nested component whose enclosing chain is not `partial` would
-silently lose the chain, which is what this reports instead.
+The framework's own tags reach a nested component by *inheritance*, where nesting is irrelevant. A
+**referenced library's** entries can only be injected — so a nested component whose enclosing chain is
+not `partial` would silently lose them, which is what this reports instead.
 
 **Fix:** add `partial`. Suppress with `#pragma warning disable RASK036` / `.editorconfig`
 (`dotnet_diagnostic.RASK036.severity = none`) if you build every component through the factory.
@@ -858,26 +856,45 @@ host works too, since simple-name lookup walks out through enclosing types. Supp
 
 ## CS0108 (a member hides a builder entry)
 
-Not a Rask diagnostic, but a Rask quick-fix. Because every component type contributes an entry named
-after itself, any member that shares a tag's or a component's name now **hides** one, and the
-compiler asks for `new`:
+Not a Rask diagnostic, and — since RASKSUP001 — not something you have to answer. Because every
+component contributes an entry named after itself, and the HTML/SVG tags land on `RaskMarkup` which
+every component inherits, an ordinary member that happens to share a tag's name **hides** one:
 
 ```csharp
 public sealed partial class BsModal : Component
 {
-    public new Component? Footer { get; set; }        // vs the <footer> entry
-    private new Component Section(string t) => …;     // vs the <section> entry
-    public new sealed record Line(int X, int Y);      // vs the SVG <line> entry
+    public Component? Footer { get; set; }        // vs the <footer> entry
+    private Component Section(string t) => …;     // vs the <section> entry
+    public sealed record Line(int X, int Y);      // vs the SVG <line> entry
+    public required string Label { get; set; }    // vs the <label> entry
 }
 ```
 
-The lightbulb inserts `new` where `csharp_preferred_modifier_order` wants it (after the accessibility,
-before `sealed` / `readonly`), and is offered **only** inside a component — hiding in your own class
-hierarchy is your design decision, not the framework's.
+None of these needs a `new`. **`RASKSUP001` suppresses CS0108 whenever the hidden member is a builder
+entry** — a member named after the component it builds, declared on the markup surface. There are
+about 170 such names (`Title`, `Label`, `Form`, `Data`, `Filter`, `Marker`, `Address`, `B`…), and a
+framework should not spend a keyword of your source per accidental collision with one of them.
 
-> Deliberately a code fix and not a `DiagnosticSuppressor`. A suppressor satisfies the compiler, but
-> `dotnet format` does not honour suppressors and applies the underlying fix anyway, so the format
-> gate never settles.
+The suppression is deliberately narrow, so the warning keeps its meaning:
+
+```csharp
+public class Panel : Component { public int Count => 1; }
+public class Wide : Panel { public int Count => 2; }   // ✗ CS0108 still fires — Count is nobody's tag
+```
+
+Hiding a real member of your own base type is an ordinary hiding mistake and still warns, inside a
+component or outside one. Only entries are silenced. Generic components (`Form<T>`, `Select<T>`,
+`Input<T>`) open the chain through a `RaskSeed_*` field rather than a `Build<T>` member; both shapes
+are recognised.
+
+> **`dotnet format` does not honour `DiagnosticSuppressor`s.** It surfaces the diagnostic itself and
+> fails on any warning-severity report, so a gate built on it sees CS0108 even where the compiler has
+> already agreed to ignore it — measured on this repository: zero from the Release build, 200 from the
+> same tree's format verify pass. Rask's own `.editorconfig` therefore sets
+> `dotnet_diagnostic.CS0108.severity = none` for its own source. **Your project needs no such setting**:
+> RASKSUP001 is what answers CS0108 for you, and it keeps the genuine case. Set the same severity only
+> if you run `dotnet format` under warnings-as-errors yourself. This also replaces the old CS0108
+> quick-fix, which inserted the `new` for you and is now removed.
 
 The related `using`-alias collision cannot be fixed this way — it surfaces as a hard CS1061 after the
 alias has already lost the lookup, which is what [RASK037](#rask037) exists for.

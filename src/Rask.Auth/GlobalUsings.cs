@@ -2,4 +2,3 @@
 // entry is a member of the markup host, inherited or injected, and is in scope without any using.
 global using Rask.Core;
 global using Rask.Core.Components;
-global using Rask.Html.Components;

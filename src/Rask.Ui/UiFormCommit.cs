@@ -9,7 +9,7 @@ namespace Rask.Ui;
 /// <remarks>
 /// <para>
 /// The controls that wrap a single <c>&lt;input&gt;</c> — <see cref="UiInput{T}" />,
-/// <see cref="UiTextarea{T}" />, <see cref="UiCheckbox" /> — need none of this: <c>Rask.Html</c>'s own
+/// <see cref="UiTextarea{T}" />, <see cref="UiCheckbox" /> — need none of this: <c>Rask.Core</c>'s own
 /// <c>Input&lt;T&gt;</c> is an <c>IFormControl&lt;T&gt;</c>, so they forward <c>Bind</c> and the
 /// framework does the rest. It is the ones built from several elements — a radio group, a grid of
 /// buttons — that have to drive the binding themselves, and there are five of them, which is four too

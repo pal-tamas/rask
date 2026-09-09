@@ -22,7 +22,7 @@ public sealed partial class CodeSample : Component
 #pragma warning disable CS8618
     public CodeSample(IJSRuntime js) => _js = js;
 
-    public new string? Title { get; set; }
+    public string? Title { get; set; }
 
     // The demo source files to show, in tab order, as bare embedded-resource leaf names
     // (e.g. ["ElementRefDemo.cs", "ElementRefDemo.ts"]). Each file gets its own tab labelled

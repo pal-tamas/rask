@@ -20,7 +20,7 @@ namespace Rask.Ui;
 /// <para>
 /// <typeparamref name="T" /> is whatever the field holds — a <c>string</c>, an <c>int</c>, a
 /// <c>DateOnly</c>. The parse in both directions is the framework's, not this component's: it forwards
-/// to <c>Rask.Html</c>'s <c>Input&lt;T&gt;</c>, which is itself an <c>IFormControl&lt;T&gt;</c>.
+/// to <c>Rask.Core</c>'s <c>Input&lt;T&gt;</c>, which is itself an <c>IFormControl&lt;T&gt;</c>.
 /// </para>
 /// </remarks>
 public sealed partial class UiInput<T> : Component, IFormControl<T>

@@ -8,10 +8,10 @@
          hand every markup host, and importing the NAMESPACE is what the note below rules out.
          An alias puts exactly one type in scope and nothing else (#684). -->
     <Using Include="Rask.Core.Components.Virtualize" Alias="Virtualize"/>
-    <!-- The HTML/SVG element family moved to Rask.Html. Only the .Generated static is imported, exactly
-         as for Rask.Core above and for the same reason: importing the NAMESPACE would put the tag
-         TYPES in scope, and a type beats a same-named builder-entry property (CS0119). Entries reach
-         an app's own components by injection into their partials, the tags' types by the entry. -->
+    <!-- Rask.Core.Components — the HTML/SVG element family — is deliberately NOT imported as a
+         NAMESPACE: that would put the tag TYPES in scope, and a type beats a same-named builder-entry
+         property (CS0119). The entries reach every component by inheritance from RaskMarkup instead,
+         and the tags' types by the entry. -->
     <!-- Routing helpers (Router/Outlet/Route<T>) come from the generator in Rask.Core.Routing.Components. -->
   </ItemGroup>
 

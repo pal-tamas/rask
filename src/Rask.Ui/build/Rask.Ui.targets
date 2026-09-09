@@ -41,7 +41,7 @@
 
       In-repo these targets are imported for EVERY project by Directory.Build.targets, since a
       ProjectReference does not carry a package's build hooks. Without this the sheet is written into
-      the wwwroot of Rask.Core, Rask.Html, Rask.Generators and the rest — it was, on the first run:
+      the wwwroot of Rask.Core, Rask.Generators and the rest — it was, on the first run:
       eleven copies of a 241 KB file, staged for commit. A package consumer reaches this only by
       referencing Rask.Ui, so the check costs them nothing.
     -->

@@ -33,10 +33,6 @@
          (RenderAsLiveRoot / TryInvokeHandlerAsync) into a supported public testing API. -->
     <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
-    <!-- The HTML/SVG element family, split out of Rask.Core.Components. It sits on the same internal
-         seams the tag components always used while they lived here. -->
-    <InternalsVisibleTo Include="Rask.Html"/>
-    <InternalsVisibleTo Include="Rask.Html.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
     <!-- Same surface as Rask.Server.Tests; a separate assembly so MetadataUpdaterSupport can be on. -->

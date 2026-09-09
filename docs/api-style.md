@@ -4,9 +4,9 @@ Rask's promise is that you can read a Rask program aloud. That is a property of 
 the engine, and names drift unless something holds them. This page is what holds them, and
 [the public-API gate](#the-gate) is what makes it stick.
 
-It governs every public member of a shipped package, plus `Rask.Core` and `Rask.Html` — those two are
-`IsPackable=false` only because they are bundled into the host packages, and their surface is the one
-every component author writes against. It does **not** govern the source generators, their code fixes,
+It governs every public member of a shipped package, plus `Rask.Core` — which is `IsPackable=false`
+only because it is bundled into the host packages, and whose surface (the engine and the whole HTML/SVG
+element family) is the one every component author writes against. It does **not** govern the source generators, their code fixes,
 or the MSBuild tasks: the compiler and MSBuild construct those by name, and nobody writes code against
 them.
 
@@ -182,7 +182,7 @@ that skipped generated code would skip the part people actually call. It also ca
 cleanly: path-scoped `.editorconfig` severity does not reach generator-produced trees, so an exclusion
 would have to be a project-wide `NoWarn`, which is a hole rather than a rule.
 
-The files are per target framework because `Rask.Core`, `Rask.Html`, `Rask.Wasm`, `Rask.SQLite.Browser`
+The files are per target framework because `Rask.Core`, `Rask.Wasm`, `Rask.SQLite.Browser`
 and `Rask` build for `net10.0` and `net10.0-browser` with genuinely different surfaces. Every project
 uses the same layout, including the ones with a single framework today — so a project that gains a
 second one gets an empty baseline to fill rather than a gate that quietly starts contradicting itself.

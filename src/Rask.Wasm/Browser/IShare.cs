@@ -21,7 +21,7 @@ namespace Rask.Wasm.Browser;
 ///     </para>
 ///     <para>
 ///         For a <b>declarative</b> share that also works on the Server host, use the all-host, headless
-///         <c>Shareable</c> component in <c>Rask.Html</c> — it fires <c>navigator.share</c> client-side inside
+///         <c>Shareable</c> component in <c>Rask.Core</c> — it fires <c>navigator.share</c> client-side inside
 ///         the click gesture (no round-trip, no activation loss). Use <see cref="IShare" /> when you need to
 ///         share from code (after an <c>await</c>, a timer, …) on the WASM host.
 ///     </para>

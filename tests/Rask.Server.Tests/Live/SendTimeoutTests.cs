@@ -3,7 +3,6 @@ using System.Net.WebSockets;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Html.Components;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Live;

@@ -42,13 +42,11 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Core"/>
     <Using Include="Rask.Core.Components"/>
-    <Using Include="Rask.Html.Components"/>
     <Using Include="Rask.External"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Html\Rask.Html.csproj"/>
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- For NodeFixture: the client runtime is exercised as the JavaScript it ships, in node. -->
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>

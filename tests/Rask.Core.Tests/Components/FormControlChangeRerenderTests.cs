@@ -248,7 +248,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
     // — is this wrapper and never the component whose state the handler mutates.
     private sealed class Wrapper : Component
     {
-        public new IReadOnlyList<Component> Body { get; set; } = [];
+        public IReadOnlyList<Component> Body { get; set; } = [];
 
         protected override Component? Render() => Div[Body];
     }
