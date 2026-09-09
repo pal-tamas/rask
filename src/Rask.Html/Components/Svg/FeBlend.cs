@@ -6,7 +6,7 @@ namespace Rask.Html.Components;
 ///     Blends two inputs using a Porter-Duff or separable blend mode.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feBlend">MDN</see>
 /// </summary>
-public sealed partial class FeBlend : SvgElement
+public sealed partial class FeBlend : SvgFilterPrimitiveElement
 {
     protected override string TagName => "feBlend";
 
@@ -23,7 +23,6 @@ public sealed partial class FeBlend : SvgElement
     public string? Mode { get; set; }
 
     /// <summary>A name for this primitive's output.</summary>
-    public string? Result { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -43,9 +42,5 @@ public sealed partial class FeBlend : SvgElement
             AppendAttr(sb, "mode", Mode);
         }
 
-        if (Result is not null)
-        {
-            AppendAttr(sb, "result", Result);
-        }
     }
 }

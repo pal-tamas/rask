@@ -11,7 +11,7 @@ namespace Rask.Html.Components;
 ///     still renders as <c>path</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/path">MDN</see>
 /// </summary>
-public sealed partial class SvgPath : SvgElement
+public sealed partial class SvgPath : SvgGeometryElement
 {
     protected override string TagName => "path";
 
@@ -21,10 +21,6 @@ public sealed partial class SvgPath : SvgElement
     /// </summary>
     public string? D { get; set; }
 
-    /// <summary>
-    ///     The length the browser should pretend the path has, for dash patterns expressed as fractions.
-    /// </summary>
-    public string? PathLength { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -34,9 +30,5 @@ public sealed partial class SvgPath : SvgElement
             AppendAttr(sb, "d", D);
         }
 
-        if (PathLength is not null)
-        {
-            AppendAttr(sb, "pathLength", PathLength);
-        }
     }
 }

@@ -7,7 +7,7 @@ namespace Rask.Html.Components;
 ///     graphic.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feColorMatrix">MDN</see>
 /// </summary>
-public sealed partial class FeColorMatrix : SvgElement
+public sealed partial class FeColorMatrix : SvgFilterPrimitiveElement
 {
     protected override string TagName => "feColorMatrix";
 
@@ -24,7 +24,6 @@ public sealed partial class FeColorMatrix : SvgElement
     public string? Values { get; set; }
 
     /// <summary>A name for this primitive's output.</summary>
-    public string? Result { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -44,9 +43,5 @@ public sealed partial class FeColorMatrix : SvgElement
             AppendAttr(sb, "values", Values);
         }
 
-        if (Result is not null)
-        {
-            AppendAttr(sb, "result", Result);
-        }
     }
 }

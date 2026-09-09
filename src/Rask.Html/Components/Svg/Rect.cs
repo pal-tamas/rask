@@ -6,7 +6,7 @@ namespace Rask.Html.Components;
 ///     A rectangle, optionally with rounded corners.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect">MDN</see>
 /// </summary>
-public sealed partial class Rect : SvgElement
+public sealed partial class Rect : SvgGeometryElement
 {
     protected override string TagName => "rect";
 
@@ -30,10 +30,6 @@ public sealed partial class Rect : SvgElement
     /// <summary>The corner radius on the y axis.</summary>
     public string? Ry { get; set; }
 
-    /// <summary>
-    ///     The length the browser should pretend the outline has, for dash patterns expressed as fractions.
-    /// </summary>
-    public string? PathLength { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -68,9 +64,5 @@ public sealed partial class Rect : SvgElement
             AppendAttr(sb, "ry", Ry);
         }
 
-        if (PathLength is not null)
-        {
-            AppendAttr(sb, "pathLength", PathLength);
-        }
     }
 }

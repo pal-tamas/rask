@@ -79,8 +79,6 @@ Rask.Html.Components.Circle.Cx.get -> string?
 Rask.Html.Components.Circle.Cx.set -> void
 Rask.Html.Components.Circle.Cy.get -> string?
 Rask.Html.Components.Circle.Cy.set -> void
-Rask.Html.Components.Circle.PathLength.get -> string?
-Rask.Html.Components.Circle.PathLength.set -> void
 Rask.Html.Components.Circle.R.get -> string?
 Rask.Html.Components.Circle.R.set -> void
 Rask.Html.Components.Cite
@@ -125,8 +123,6 @@ Rask.Html.Components.Ellipse.Cx.set -> void
 Rask.Html.Components.Ellipse.Cy.get -> string?
 Rask.Html.Components.Ellipse.Cy.set -> void
 Rask.Html.Components.Ellipse.Ellipse() -> void
-Rask.Html.Components.Ellipse.PathLength.get -> string?
-Rask.Html.Components.Ellipse.PathLength.set -> void
 Rask.Html.Components.Ellipse.Rx.get -> string?
 Rask.Html.Components.Ellipse.Rx.set -> void
 Rask.Html.Components.Ellipse.Ry.get -> string?
@@ -151,14 +147,10 @@ Rask.Html.Components.FeBlend.In2.get -> string?
 Rask.Html.Components.FeBlend.In2.set -> void
 Rask.Html.Components.FeBlend.Mode.get -> string?
 Rask.Html.Components.FeBlend.Mode.set -> void
-Rask.Html.Components.FeBlend.Result.get -> string?
-Rask.Html.Components.FeBlend.Result.set -> void
 Rask.Html.Components.FeColorMatrix
 Rask.Html.Components.FeColorMatrix.FeColorMatrix() -> void
 Rask.Html.Components.FeColorMatrix.In.get -> string?
 Rask.Html.Components.FeColorMatrix.In.set -> void
-Rask.Html.Components.FeColorMatrix.Result.get -> string?
-Rask.Html.Components.FeColorMatrix.Result.set -> void
 Rask.Html.Components.FeColorMatrix.Type.get -> string?
 Rask.Html.Components.FeColorMatrix.Type.set -> void
 Rask.Html.Components.FeColorMatrix.Values.get -> string?
@@ -179,8 +171,6 @@ Rask.Html.Components.FeComposite.K4.get -> string?
 Rask.Html.Components.FeComposite.K4.set -> void
 Rask.Html.Components.FeComposite.Operator.get -> string?
 Rask.Html.Components.FeComposite.Operator.set -> void
-Rask.Html.Components.FeComposite.Result.get -> string?
-Rask.Html.Components.FeComposite.Result.set -> void
 Rask.Html.Components.FeDropShadow
 Rask.Html.Components.FeDropShadow.Dx.get -> string?
 Rask.Html.Components.FeDropShadow.Dx.set -> void
@@ -193,8 +183,6 @@ Rask.Html.Components.FeDropShadow.FloodOpacity.get -> string?
 Rask.Html.Components.FeDropShadow.FloodOpacity.set -> void
 Rask.Html.Components.FeDropShadow.In.get -> string?
 Rask.Html.Components.FeDropShadow.In.set -> void
-Rask.Html.Components.FeDropShadow.Result.get -> string?
-Rask.Html.Components.FeDropShadow.Result.set -> void
 Rask.Html.Components.FeDropShadow.StdDeviation.get -> string?
 Rask.Html.Components.FeDropShadow.StdDeviation.set -> void
 Rask.Html.Components.FeFlood
@@ -203,16 +191,12 @@ Rask.Html.Components.FeFlood.FloodColor.get -> string?
 Rask.Html.Components.FeFlood.FloodColor.set -> void
 Rask.Html.Components.FeFlood.FloodOpacity.get -> string?
 Rask.Html.Components.FeFlood.FloodOpacity.set -> void
-Rask.Html.Components.FeFlood.Result.get -> string?
-Rask.Html.Components.FeFlood.Result.set -> void
 Rask.Html.Components.FeGaussianBlur
 Rask.Html.Components.FeGaussianBlur.EdgeMode.get -> string?
 Rask.Html.Components.FeGaussianBlur.EdgeMode.set -> void
 Rask.Html.Components.FeGaussianBlur.FeGaussianBlur() -> void
 Rask.Html.Components.FeGaussianBlur.In.get -> string?
 Rask.Html.Components.FeGaussianBlur.In.set -> void
-Rask.Html.Components.FeGaussianBlur.Result.get -> string?
-Rask.Html.Components.FeGaussianBlur.Result.set -> void
 Rask.Html.Components.FeGaussianBlur.StdDeviation.get -> string?
 Rask.Html.Components.FeGaussianBlur.StdDeviation.set -> void
 Rask.Html.Components.FeMerge
@@ -229,8 +213,6 @@ Rask.Html.Components.FeOffset.Dy.set -> void
 Rask.Html.Components.FeOffset.FeOffset() -> void
 Rask.Html.Components.FeOffset.In.get -> string?
 Rask.Html.Components.FeOffset.In.set -> void
-Rask.Html.Components.FeOffset.Result.get -> string?
-Rask.Html.Components.FeOffset.Result.set -> void
 Rask.Html.Components.Fieldset
 Rask.Html.Components.Fieldset.Disabled.get -> bool?
 Rask.Html.Components.Fieldset.Disabled.set -> void
@@ -605,8 +587,6 @@ Rask.Html.Components.Li.Value.get -> int?
 Rask.Html.Components.Li.Value.set -> void
 Rask.Html.Components.Line
 Rask.Html.Components.Line.Line() -> void
-Rask.Html.Components.Line.PathLength.get -> string?
-Rask.Html.Components.Line.PathLength.set -> void
 Rask.Html.Components.Line.X1.get -> string?
 Rask.Html.Components.Line.X1.set -> void
 Rask.Html.Components.Line.X2.get -> string?
@@ -797,14 +777,10 @@ Rask.Html.Components.Pattern.Y.set -> void
 Rask.Html.Components.Picture
 Rask.Html.Components.Picture.Picture() -> void
 Rask.Html.Components.Polygon
-Rask.Html.Components.Polygon.PathLength.get -> string?
-Rask.Html.Components.Polygon.PathLength.set -> void
 Rask.Html.Components.Polygon.Points.get -> string?
 Rask.Html.Components.Polygon.Points.set -> void
 Rask.Html.Components.Polygon.Polygon() -> void
 Rask.Html.Components.Polyline
-Rask.Html.Components.Polyline.PathLength.get -> string?
-Rask.Html.Components.Polyline.PathLength.set -> void
 Rask.Html.Components.Polyline.Points.get -> string?
 Rask.Html.Components.Polyline.Points.set -> void
 Rask.Html.Components.Polyline.Polyline() -> void
@@ -888,8 +864,6 @@ Rask.Html.Components.RaskSeed_ValidationSummary.Template(System.Func<System.Coll
 Rask.Html.Components.Rect
 Rask.Html.Components.Rect.Height.get -> string?
 Rask.Html.Components.Rect.Height.set -> void
-Rask.Html.Components.Rect.PathLength.get -> string?
-Rask.Html.Components.Rect.PathLength.set -> void
 Rask.Html.Components.Rect.Rect() -> void
 Rask.Html.Components.Rect.Rx.get -> string?
 Rask.Html.Components.Rect.Rx.set -> void
@@ -1079,11 +1053,17 @@ Rask.Html.Components.SvgElement.Transform.get -> string?
 Rask.Html.Components.SvgElement.Transform.set -> void
 Rask.Html.Components.SvgElement.Visibility.get -> string?
 Rask.Html.Components.SvgElement.Visibility.set -> void
+Rask.Html.Components.SvgFilterPrimitiveElement
+Rask.Html.Components.SvgFilterPrimitiveElement.Result.get -> string?
+Rask.Html.Components.SvgFilterPrimitiveElement.Result.set -> void
+Rask.Html.Components.SvgFilterPrimitiveElement.SvgFilterPrimitiveElement() -> void
+Rask.Html.Components.SvgGeometryElement
+Rask.Html.Components.SvgGeometryElement.PathLength.get -> string?
+Rask.Html.Components.SvgGeometryElement.PathLength.set -> void
+Rask.Html.Components.SvgGeometryElement.SvgGeometryElement() -> void
 Rask.Html.Components.SvgPath
 Rask.Html.Components.SvgPath.D.get -> string?
 Rask.Html.Components.SvgPath.D.set -> void
-Rask.Html.Components.SvgPath.PathLength.get -> string?
-Rask.Html.Components.SvgPath.PathLength.set -> void
 Rask.Html.Components.SvgPath.SvgPath() -> void
 Rask.Html.Components.SvgScript
 Rask.Html.Components.SvgScript.Href.get -> string?
@@ -1330,6 +1310,8 @@ override Rask.Html.Components.HtmlTableColElement.WriteAttributes(System.Text.St
 override Rask.Html.Components.Main.TagName.get -> string!
 override Rask.Html.Components.Nav.TagName.get -> string!
 override Rask.Html.Components.SvgElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Html.Components.SvgFilterPrimitiveElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Html.Components.SvgGeometryElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Html.Components.Ul.TagName.get -> string!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Html.Components.ValidatingIndicator.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<Rask.Core.Component!>! Template) -> Rask.Html.Components.ValidatingIndicator!
@@ -2003,6 +1985,7 @@ static RaskBuilderSettersRask_Html.Result(this Rask.Core.Build<Rask.Html.Compone
 static RaskBuilderSettersRask_Html.Result(this Rask.Core.Build<Rask.Html.Components.FeDropShadow!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeDropShadow!>
 static RaskBuilderSettersRask_Html.Result(this Rask.Core.Build<Rask.Html.Components.FeFlood!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeFlood!>
 static RaskBuilderSettersRask_Html.Result(this Rask.Core.Build<Rask.Html.Components.FeGaussianBlur!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeGaussianBlur!>
+static RaskBuilderSettersRask_Html.Result(this Rask.Core.Build<Rask.Html.Components.FeMerge!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeMerge!>
 static RaskBuilderSettersRask_Html.Result(this Rask.Core.Build<Rask.Html.Components.FeOffset!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.FeOffset!>
 static RaskBuilderSettersRask_Html.Reversed(this Rask.Core.Build<Rask.Html.Components.Ol!> __b, bool? value) -> Rask.Core.Build<Rask.Html.Components.Ol!>
 static RaskBuilderSettersRask_Html.Rotate(this Rask.Core.Build<Rask.Html.Components.SvgText!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.SvgText!>

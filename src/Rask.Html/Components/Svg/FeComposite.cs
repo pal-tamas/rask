@@ -7,7 +7,7 @@ namespace Rask.Html.Components;
 ///     four coefficients.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feComposite">MDN</see>
 /// </summary>
-public sealed partial class FeComposite : SvgElement
+public sealed partial class FeComposite : SvgFilterPrimitiveElement
 {
     protected override string TagName => "feComposite";
 
@@ -37,7 +37,6 @@ public sealed partial class FeComposite : SvgElement
     public string? K4 { get; set; }
 
     /// <summary>A name for this primitive's output.</summary>
-    public string? Result { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -77,9 +76,5 @@ public sealed partial class FeComposite : SvgElement
             AppendAttr(sb, "k4", K4);
         }
 
-        if (Result is not null)
-        {
-            AppendAttr(sb, "result", Result);
-        }
     }
 }

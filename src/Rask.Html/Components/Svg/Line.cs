@@ -7,7 +7,7 @@ namespace Rask.Html.Components;
 ///     with no stroke is invisible.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/line">MDN</see>
 /// </summary>
-public sealed partial class Line : SvgElement
+public sealed partial class Line : SvgGeometryElement
 {
     protected override string TagName => "line";
 
@@ -23,10 +23,6 @@ public sealed partial class Line : SvgElement
     /// <summary>The end point's y coordinate.</summary>
     public string? Y2 { get; set; }
 
-    /// <summary>
-    ///     The length the browser should pretend the line has, for dash patterns expressed as fractions.
-    /// </summary>
-    public string? PathLength { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -51,9 +47,5 @@ public sealed partial class Line : SvgElement
             AppendAttr(sb, "y2", Y2);
         }
 
-        if (PathLength is not null)
-        {
-            AppendAttr(sb, "pathLength", PathLength);
-        }
     }
 }

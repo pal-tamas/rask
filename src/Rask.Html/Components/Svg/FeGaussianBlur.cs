@@ -6,7 +6,7 @@ namespace Rask.Html.Components;
 ///     Blurs its input with a Gaussian kernel.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feGaussianBlur">MDN</see>
 /// </summary>
-public sealed partial class FeGaussianBlur : SvgElement
+public sealed partial class FeGaussianBlur : SvgFilterPrimitiveElement
 {
     protected override string TagName => "feGaussianBlur";
 
@@ -27,7 +27,6 @@ public sealed partial class FeGaussianBlur : SvgElement
     public string? EdgeMode { get; set; }
 
     /// <summary>A name for this primitive's output, so a later one can take it as <c>In</c>.</summary>
-    public string? Result { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -47,9 +46,5 @@ public sealed partial class FeGaussianBlur : SvgElement
             AppendAttr(sb, "edgeMode", EdgeMode);
         }
 
-        if (Result is not null)
-        {
-            AppendAttr(sb, "result", Result);
-        }
     }
 }

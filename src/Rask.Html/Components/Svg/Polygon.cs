@@ -6,17 +6,13 @@ namespace Rask.Html.Components;
 ///     A closed shape through a list of points; the last point is joined back to the first automatically.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/polygon">MDN</see>
 /// </summary>
-public sealed partial class Polygon : SvgElement
+public sealed partial class Polygon : SvgGeometryElement
 {
     protected override string TagName => "polygon";
 
     /// <summary>The vertices, as space- or comma-separated <c>x,y</c> pairs.</summary>
     public string? Points { get; set; }
 
-    /// <summary>
-    ///     The length the browser should pretend the outline has, for dash patterns expressed as fractions.
-    /// </summary>
-    public string? PathLength { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -26,9 +22,5 @@ public sealed partial class Polygon : SvgElement
             AppendAttr(sb, "points", Points);
         }
 
-        if (PathLength is not null)
-        {
-            AppendAttr(sb, "pathLength", PathLength);
-        }
     }
 }

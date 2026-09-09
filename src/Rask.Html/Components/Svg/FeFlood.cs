@@ -6,7 +6,7 @@ namespace Rask.Html.Components;
 ///     Fills the whole filter region with one colour — the paint source for a shadow or a tint.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feFlood">MDN</see>
 /// </summary>
-public sealed partial class FeFlood : SvgElement
+public sealed partial class FeFlood : SvgFilterPrimitiveElement
 {
     protected override string TagName => "feFlood";
 
@@ -17,7 +17,6 @@ public sealed partial class FeFlood : SvgElement
     public string? FloodOpacity { get; set; }
 
     /// <summary>A name for this primitive's output.</summary>
-    public string? Result { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -32,9 +31,5 @@ public sealed partial class FeFlood : SvgElement
             AppendAttr(sb, "flood-opacity", FloodOpacity);
         }
 
-        if (Result is not null)
-        {
-            AppendAttr(sb, "result", Result);
-        }
     }
 }

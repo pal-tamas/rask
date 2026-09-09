@@ -6,7 +6,7 @@ namespace Rask.Html.Components;
 ///     A circle, positioned by its centre.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/circle">MDN</see>
 /// </summary>
-public sealed partial class Circle : SvgElement
+public sealed partial class Circle : SvgGeometryElement
 {
     protected override string TagName => "circle";
 
@@ -19,11 +19,6 @@ public sealed partial class Circle : SvgElement
     /// <summary>The radius. A zero or negative radius disables rendering.</summary>
     public string? R { get; set; }
 
-    /// <summary>
-    ///     The length the browser should pretend the outline has, so dash patterns can be expressed as
-    ///     fractions of it.
-    /// </summary>
-    public string? PathLength { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -43,9 +38,5 @@ public sealed partial class Circle : SvgElement
             AppendAttr(sb, "r", R);
         }
 
-        if (PathLength is not null)
-        {
-            AppendAttr(sb, "pathLength", PathLength);
-        }
     }
 }

@@ -6,7 +6,7 @@ namespace Rask.Html.Components;
 ///     Shifts its input by a fixed amount — the displacement half of a hand-built drop shadow.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feOffset">MDN</see>
 /// </summary>
-public sealed partial class FeOffset : SvgElement
+public sealed partial class FeOffset : SvgFilterPrimitiveElement
 {
     protected override string TagName => "feOffset";
 
@@ -20,7 +20,6 @@ public sealed partial class FeOffset : SvgElement
     public string? Dy { get; set; }
 
     /// <summary>A name for this primitive's output.</summary>
-    public string? Result { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -40,9 +39,5 @@ public sealed partial class FeOffset : SvgElement
             AppendAttr(sb, "dy", Dy);
         }
 
-        if (Result is not null)
-        {
-            AppendAttr(sb, "result", Result);
-        }
     }
 }

@@ -6,7 +6,7 @@ namespace Rask.Html.Components;
 ///     A drop shadow in one primitive — the blur, offset, flood and composite chain done for you.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feDropShadow">MDN</see>
 /// </summary>
-public sealed partial class FeDropShadow : SvgElement
+public sealed partial class FeDropShadow : SvgFilterPrimitiveElement
 {
     protected override string TagName => "feDropShadow";
 
@@ -29,7 +29,6 @@ public sealed partial class FeDropShadow : SvgElement
     public string? FloodOpacity { get; set; }
 
     /// <summary>A name for this primitive's output.</summary>
-    public string? Result { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -64,9 +63,5 @@ public sealed partial class FeDropShadow : SvgElement
             AppendAttr(sb, "flood-opacity", FloodOpacity);
         }
 
-        if (Result is not null)
-        {
-            AppendAttr(sb, "result", Result);
-        }
     }
 }

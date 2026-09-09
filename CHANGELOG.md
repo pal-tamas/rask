@@ -246,6 +246,28 @@ them until tagged releases begin.
   muted text colour — the same class of mistake `ui.css` already documents for `ok`/`warn`. It reached
   294 call sites through `text-ui-muted`, and is now `base-content` stepped back.
 
+- **The SVG tags follow the SVG DOM's own interfaces, so fifteen of them stopped repeating the same
+  attribute.** MDN groups SVG elements by interface exactly where they share attributes, and the
+  duplication in this repo lined up with it precisely:
+
+  - `SVGGeometryElement` is the interface for the shapes with a measurable outline, and MDN lists
+    exactly seven — circle, ellipse, line, path, polygon, polyline, rect. All seven declared
+    `PathLength` themselves. They derive from `SvgGeometryElement` now and declare none.
+  - `SVGFilterPrimitiveStandardAttributes` is what every `fe*` element shares. Seven declared `Result`
+    themselves; they derive from `SvgFilterPrimitiveElement`. `feMerge` joins them and GAINS `result`,
+    which it has in the DOM and had never modelled. `feMergeNode` stays out: it is not a filter
+    primitive, it is a child of `feMerge` naming one input. `in` stays on the concrete tags because it
+    is not a standard attribute — `feFlood` has none and `feBlend` takes two.
+
+  **One visible consequence.** A base writes its attributes before the leaf writes its own, so
+  `pathLength` and `result` now render FIRST on those elements rather than last. Attribute order carries
+  no meaning in SVG, and the fifteen assertions that recorded the old order record the new one.
+
+  What is NOT modelled: `viewBox`/`preserveAspectRatio` are shared by `svg`, `symbol`, `marker` and
+  `pattern`, but MDN makes that a MIXIN (`SVGFitToViewBox`) across elements with different parents, and
+  C# has no mixins — a shared base would have to invent a parent the DOM does not have. Those four keep
+  their own copies rather than distort the hierarchy to remove four duplicates.
+
 - **Nineteen more kit components stopped re-declaring what the element already gives them.** A
   component that wraps an element has to repeat its parameters; 74 of the kit's 96 re-declared `Class`
   alone, forwarding it to the element underneath. The ones that can simply BE their element no longer
