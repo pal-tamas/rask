@@ -419,15 +419,26 @@ var app = builder.Build();
 Db.Configure(app.Services);
 ```
 
-A hand-written context keeps the conventions with one line in `OnModelCreating`:
+Derive that context from `RaskDbContext` rather than `DbContext`. That is what maps the classes you
+declared — and it also brings `ConfigureConventions`, where the value converters for strongly-typed ids
+are registered, which EF reads *before* it builds the model:
 
 ```csharp
-protected override void OnModelCreating(ModelBuilder modelBuilder)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskDbContext(options)
 {
-    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-    modelBuilder.ApplyRaskConventions(); // query filters + concurrency tokens
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);  // every Model<TId> you declared
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        modelBuilder.ApplyRaskConventions(); // query filters + concurrency tokens — always last
+    }
 }
 ```
+
+Over plain `DbContext` this compiles, boots and migrates with every model silently absent, so the first
+`Product.Add(…)` throws saying the entity type was not found. If you cannot change the base type — it is
+already someone else's — call `ModelRegistry.Apply(modelBuilder)` in place of `base.OnModelCreating`, and
+`ModelRegistry.ApplyConventions(configurationBuilder)` from an overridden `ConfigureConventions`.
 
 ## What the interceptors do
 

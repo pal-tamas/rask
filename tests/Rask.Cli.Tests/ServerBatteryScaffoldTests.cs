@@ -313,4 +313,46 @@ public sealed class ServerBatteryScaffoldTests
         Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
         Assert.DoesNotContain("exit on a missing table", next, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// The scaffolded context derives from <c>RaskDbContext</c>, which is the only thing that maps the
+    /// models the app declares.
+    /// </summary>
+    /// <remarks>
+    /// No other gate can catch this. Over plain <c>DbContext</c> the file compiles, the app boots and the
+    /// migration succeeds — every model just quietly maps to nothing, and the first
+    /// <c>Product.Add(…)</c> throws at runtime saying the entity type was not found. So the base type is
+    /// asserted here, in text, rather than left to the build E2E.
+    /// </remarks>
+    [Fact]
+    public void The_scaffolded_context_derives_from_RaskDbContext_so_declared_models_are_mapped()
+    {
+        var context = Generate("jobs")["Features/Shared/AppDbContext.cs"];
+
+        Assert.Contains(": RaskDbContext(options)", context, StringComparison.Ordinal);
+
+        // Deriving is only half of it — the override has to chain, or ModelRegistry never runs.
+        Assert.Contains("base.OnModelCreating(modelBuilder);", context, StringComparison.Ordinal);
+
+        // Note there is no DoesNotContain(": DbContext(options)") here on purpose: that string is a
+        // substring of ": RaskDbContext(options)", so the assertion would fail on correct output.
+
+        // The conventions still have to run last, after the models the base just mapped.
+        Assert.True(
+            context.IndexOf("base.OnModelCreating", StringComparison.Ordinal)
+            < context.IndexOf("ApplyRaskConventions", StringComparison.Ordinal),
+            "base.OnModelCreating must precede ApplyRaskConventions, or the models it maps miss their conventions.");
+    }
+
+    [Fact]
+    public void The_next_steps_teach_declaring_a_model_not_adding_a_DbSet()
+    {
+        // What the reader is told to do first is what they will do. Pointing them at a DbSet teaches the
+        // one workflow this data layer exists to remove.
+        var next = ProjectGenerator.GenerateServer(
+            Root, "App", NewCommand.BatteriesOf(["jobs"]), Version).Notes ?? "";
+
+        Assert.Contains("Model<Guid>", next, StringComparison.Ordinal);
+        Assert.DoesNotContain("Add a DbSet", next, StringComparison.Ordinal);
+    }
 }
