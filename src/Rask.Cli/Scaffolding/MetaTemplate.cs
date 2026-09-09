@@ -112,6 +112,25 @@ internal sealed record MetaTemplate(
     public string? TailwindStylesheet { get; init; }
 
     /// <summary>
+    ///     The creator's own entry stylesheet, for the four frameworks that bring Tailwind themselves.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         daisyUI has to be loaded from wherever Tailwind is imported, and on these four that file
+    ///         belongs to the creator — so it is patched rather than written. Null on Nuxt and Analog,
+    ///         whose sheet Rask writes in full (<see cref="TailwindStylesheet" />) and which therefore
+    ///         carry the plugin directive already.
+    ///     </para>
+    ///     <para>
+    ///         Every path here was read off a real scaffold rather than inferred, because getting one
+    ///         wrong is a patch that silently does not apply. They are not where you would guess:
+    ///         SvelteKit's is under <c>src/routes/</c> and not <c>src/</c>, and Next's and SolidStart's
+    ///         have the same shape but different names.
+    ///     </para>
+    /// </remarks>
+    public string? DaisyUiStylesheet { get; init; }
+
+    /// <summary>
     ///     Whether Rask's Tailwind goes in through PostCSS rather than the Vite plugin.
     /// </summary>
     /// <remarks>
@@ -252,6 +271,7 @@ internal sealed record MetaTemplate(
             "--use-npm", "--skip-install", "--disable-git", "--yes",
         ],
         GeneratedDir = "app/rask",
+        DaisyUiStylesheet = "app/globals.css",
         DevServerUrl = "http://localhost:3000",
     };
 
@@ -283,6 +303,7 @@ internal sealed record MetaTemplate(
             "--add", "sveltekit-adapter=adapter:node", "tailwindcss=plugins:typography",
             "--no-install", "--no-dir-check", "--no-download-check",
         ],
+        DaisyUiStylesheet = "src/routes/layout.css",
         ViteConfigFile = "vite.config.ts",
         DevServerUrl = "http://localhost:5173",
     };
@@ -307,6 +328,10 @@ internal sealed record MetaTemplate(
             "--non-interactive", "--no-install", "--no-git",
         ],
         ViteConfigFile = "vite.config.ts",
+
+        // NOT the first @import in this file — the creator's sheet opens with a Google Fonts
+        // `@import url(...)`, and the Tailwind one is the third line.
+        DaisyUiStylesheet = "src/styles.css",
         DevServerUrl = "http://localhost:3000",
     };
 
@@ -328,6 +353,8 @@ internal sealed record MetaTemplate(
             "--solidstart", "--v2", "--ts", "-t", "with-tailwindcss",
         ],
         ViteConfigFile = "vite.config.ts",
+
+        DaisyUiStylesheet = "src/app.css",
 
         // Vite's own default is 5173, but @solidjs/start moves it — a scaffolded app reports
         // "Local: http://localhost:3000". Measured rather than assumed, because --open goes here.
