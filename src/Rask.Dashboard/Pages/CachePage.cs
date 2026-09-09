@@ -82,10 +82,10 @@ public sealed partial class CachePage(
             // hand-editing the URL.
             Div.Class("mb-4")[
                 UiSearch
+                    .Value(Search)
                     .Placeholder("Search keys")
                     .AccessibleLabel("Search cache keys")
-                    .Value(Search)
-                    .OnSearch(SearchAsync)
+                    .OnChangeAsync(SearchAsync)
             ],
             _rows.Count == 0
                 ? DashboardEmpty.Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")

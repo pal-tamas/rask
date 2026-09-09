@@ -229,10 +229,10 @@ public sealed partial class LogsPage(
 
     private Component SearchBox() =>
         UiSearch
+            .Value(Query)
             .Placeholder("Search message or exception")
             .AccessibleLabel("Search stored log entries")
-            .Value(Query)
-            .OnSearch(SearchAsync);
+            .OnChangeAsync(SearchAsync);
 
     private Task SearchAsync(string value)
     {

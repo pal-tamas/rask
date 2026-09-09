@@ -25,7 +25,7 @@ public sealed partial class EventsDemo : Component
             Div.Class("col-span-12 md:col-span-6")[
                 Div
                     .Class("border rounded p-4 text-center user-select-none")
-                    .Style(_hovering ? "background:#eef6ff" : null)
+                    .Style(_hovering ? "background:var(--color-base-200)" : null)
                     .OnMouseMove(e => { _x = e.OffsetX; _y = e.OffsetY; })
                     .OnMouseEnter(_ => _hovering = true)
                     .OnMouseLeave(_ => _hovering = false)
@@ -50,7 +50,7 @@ public sealed partial class EventsDemo : Component
                 Div
                     .Class("border rounded p-4")
                     .TabIndex(0)
-                    .Style(_focused ? "outline:2px solid #0d6efd" : null)
+                    .Style(_focused ? "outline:2px solid var(--color-primary)" : null)
                     .OnFocus(() => _focused = true)
                     .OnBlur(() => _focused = false)
                     .OnKeyDown(e => _lastKey = e.Key)[

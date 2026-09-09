@@ -210,7 +210,7 @@
 
 .guide-prevnext-link:hover {
     border-color: var(--rask-accent);
-    box-shadow: 0 6px 18px rgba(124, 58, 237, .12);
+    box-shadow: 0 6px 18px color-mix(in oklab, var(--color-primary) 12%, transparent);
     transform: translateY(-1px);
 }
 

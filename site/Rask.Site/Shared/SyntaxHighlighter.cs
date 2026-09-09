@@ -20,10 +20,15 @@ internal static class SyntaxHighlighter
     // undistinguished identifier, on the very pages that teach people to write them.
     private static readonly ILanguage TypeScript = new TypeScriptLanguage();
 
+    // Nor anything for the island front ends. .tsx / .jsx / .vue / .svelte all fell through to null and
+    // rendered as flat grey text — on the islands guide, whose whole subject is those files.
+    private static readonly ILanguage Tsx = new TsxLanguage();
+
     static SyntaxHighlighter()
     {
         Languages.Load(Shell);
         Languages.Load(TypeScript);
+        Languages.Load(Tsx);
     }
 
     // Maps a file extension (".cs") OR a markdown fence info-string ("csharp"/"bash"/"html"…) to a
@@ -32,6 +37,12 @@ internal static class SyntaxHighlighter
     public static ILanguage? LanguageFor(string key) => key.ToLowerInvariant() switch
     {
         ".ts" or "ts" or "typescript" => TypeScript,
+        // The island dialects. A .vue / .svelte single-file component is markup wrapped around a
+        // script block, which is what TsxLanguage lexes — see the note there on why one language
+        // covers all four rather than four near-identical ones.
+        ".tsx" or "tsx" or ".jsx" or "jsx" => Tsx,
+        ".vue" or "vue" => Tsx,
+        ".svelte" or "svelte" => Tsx,
         ".js" or "js" or "javascript" => Languages.JavaScript,
         ".css" or "css" => Languages.Css,
         ".cs" or "cs" or "csharp" or "c#" => Languages.CSharp,

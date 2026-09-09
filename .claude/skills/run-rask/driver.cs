@@ -110,7 +110,7 @@ static async Task GotoShowcaseAsync(IPage page, string baseUrl)
 // (Routing, Lifecycle), and Guides render first — so prefer the link that is not a guide.
 static async Task ClickSidebarAsync(IPage page, string label)
 {
-    await page.Locator(".side-nav .side-nav-filter").FillAsync(label);
+    await page.Locator(".side-nav .side-nav-filter input").FillAsync(label);
     var any = page.Locator($".side-nav a.side-nav-link:has-text(\"{label}\")");
     await any.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 15000 });
     await page.WaitForTimeoutAsync(200);

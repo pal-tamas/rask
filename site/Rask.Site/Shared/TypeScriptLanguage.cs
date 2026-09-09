@@ -24,7 +24,14 @@ internal sealed class TypeScriptLanguage : ILanguage
 
     public string? FirstLinePattern => null;
 
-    public IList<LanguageRule> Rules { get; } =
+    public IList<LanguageRule> Rules { get; } = [.. CommentsAndStrings, .. Keywords];
+
+    // Split into two groups rather than one list, because TsxLanguage has to insert its tag rules
+    // BETWEEN them. Rule order is precedence in ColorCode: put the JSX tag pattern before the string
+    // rules and a `<div>` written inside a string literal lexes as an element; put it after the keyword
+    // rules and the tag name has already been eaten as an identifier. Comments and strings first, then
+    // tags, then the language — which is the same precedence argument the rules below are ordered by.
+    internal static IReadOnlyList<LanguageRule> CommentsAndStrings { get; } =
     [
         // Comments first, so a `//` inside neither a string nor a URL is the only thing that starts one.
         new LanguageRule(
@@ -46,6 +53,10 @@ internal sealed class TypeScriptLanguage : ILanguage
             "\"(?:[^\"\\\\\\r\\n]|\\\\.)*\"",
             new Dictionary<int, string> { { 0, ScopeName.String } }),
 
+    ];
+
+    internal static IReadOnlyList<LanguageRule> Keywords { get; } =
+    [
         // The TypeScript-only keywords, listed before the shared JavaScript ones purely so this set
         // is visible as the thing that makes the language what it is.
         new LanguageRule(

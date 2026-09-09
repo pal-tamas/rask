@@ -12,7 +12,8 @@ public sealed partial class VirtualizeProviderDemo : Component
     // Sticky header on the <th> cells, kept rock-steady by the constant-height single table —
     // see VirtualizeItemsDemo for the full why (spacer rows inside tbody, not divs outside it).
     private const string StickyHead =
-        "position:sticky; top:0; z-index:1; background:#f8f9fa; box-shadow:inset 0 -1px 0 #dee2e6; ";
+        "position:sticky; top:0; z-index:1; background:var(--color-base-200); "
+        + "box-shadow:inset 0 -1px 0 var(--color-base-300); ";
 
     protected override Component? Render() =>
         Virtualize.Items(

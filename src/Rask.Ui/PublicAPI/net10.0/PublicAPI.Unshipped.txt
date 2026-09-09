@@ -202,14 +202,19 @@ Rask.Ui.RaskPending_UiRating_Label<TMode>
 Rask.Ui.RaskPending_UiRating_Label<TMode>.Group(string! Group) -> Rask.Core.Build<Rask.Ui.UiRating!, TMode>
 Rask.Ui.RaskPending_UiRating_Label<TMode>.Key(object? key) -> Rask.Ui.RaskPending_UiRating_Label<TMode>
 Rask.Ui.RaskPending_UiRating_Label<TMode>.RaskPending_UiRating_Label() -> void
-Rask.Ui.RaskPending_UiSearch_AccessibleLabel
-Rask.Ui.RaskPending_UiSearch_AccessibleLabel.Key(object? key) -> Rask.Ui.RaskPending_UiSearch_AccessibleLabel
-Rask.Ui.RaskPending_UiSearch_AccessibleLabel.Placeholder(string! Placeholder) -> Rask.Core.Build<Rask.Ui.UiSearch!>
-Rask.Ui.RaskPending_UiSearch_AccessibleLabel.RaskPending_UiSearch_AccessibleLabel() -> void
-Rask.Ui.RaskPending_UiSearch_Placeholder
-Rask.Ui.RaskPending_UiSearch_Placeholder.AccessibleLabel(string! AccessibleLabel) -> Rask.Core.Build<Rask.Ui.UiSearch!>
-Rask.Ui.RaskPending_UiSearch_Placeholder.Key(object? key) -> Rask.Ui.RaskPending_UiSearch_Placeholder
-Rask.Ui.RaskPending_UiSearch_Placeholder.RaskPending_UiSearch_Placeholder() -> void
+Rask.Ui.RaskPending_UiSearch<TMode>
+Rask.Ui.RaskPending_UiSearch<TMode>.AccessibleLabel(string! AccessibleLabel) -> Rask.Ui.RaskPending_UiSearch_AccessibleLabel<TMode>
+Rask.Ui.RaskPending_UiSearch<TMode>.Key(object? key) -> Rask.Ui.RaskPending_UiSearch<TMode>
+Rask.Ui.RaskPending_UiSearch<TMode>.Placeholder(string! Placeholder) -> Rask.Ui.RaskPending_UiSearch_Placeholder<TMode>
+Rask.Ui.RaskPending_UiSearch<TMode>.RaskPending_UiSearch() -> void
+Rask.Ui.RaskPending_UiSearch_AccessibleLabel<TMode>
+Rask.Ui.RaskPending_UiSearch_AccessibleLabel<TMode>.Key(object? key) -> Rask.Ui.RaskPending_UiSearch_AccessibleLabel<TMode>
+Rask.Ui.RaskPending_UiSearch_AccessibleLabel<TMode>.Placeholder(string! Placeholder) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
+Rask.Ui.RaskPending_UiSearch_AccessibleLabel<TMode>.RaskPending_UiSearch_AccessibleLabel() -> void
+Rask.Ui.RaskPending_UiSearch_Placeholder<TMode>
+Rask.Ui.RaskPending_UiSearch_Placeholder<TMode>.AccessibleLabel(string! AccessibleLabel) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
+Rask.Ui.RaskPending_UiSearch_Placeholder<TMode>.Key(object? key) -> Rask.Ui.RaskPending_UiSearch_Placeholder<TMode>
+Rask.Ui.RaskPending_UiSearch_Placeholder<TMode>.RaskPending_UiSearch_Placeholder() -> void
 Rask.Ui.RaskPending_UiSelect<T, TMode>
 Rask.Ui.RaskPending_UiSelect<T, TMode>.Key(object? key) -> Rask.Ui.RaskPending_UiSelect<T, TMode>
 Rask.Ui.RaskPending_UiSelect<T, TMode>.Label(string! Label) -> Rask.Ui.RaskPending_UiSelect_Label<T, TMode>
@@ -495,10 +500,10 @@ Rask.Ui.RaskSeed_UiRating.Key(object? key) -> Rask.Ui.RaskSeed_UiRating
 Rask.Ui.RaskSeed_UiRating.RaskSeed_UiRating() -> void
 Rask.Ui.RaskSeed_UiRating.Value(int Value) -> Rask.Ui.RaskPending_UiRating<Rask.Core.Forms.Controlled!>
 Rask.Ui.RaskSeed_UiSearch
-Rask.Ui.RaskSeed_UiSearch.AccessibleLabel(string! AccessibleLabel) -> Rask.Ui.RaskPending_UiSearch_AccessibleLabel
+Rask.Ui.RaskSeed_UiSearch.Bind(System.Linq.Expressions.Expression<System.Func<string!>!>! Bind) -> Rask.Ui.RaskPending_UiSearch<Rask.Core.Forms.Bound!>
 Rask.Ui.RaskSeed_UiSearch.Key(object? key) -> Rask.Ui.RaskSeed_UiSearch
-Rask.Ui.RaskSeed_UiSearch.Placeholder(string! Placeholder) -> Rask.Ui.RaskPending_UiSearch_Placeholder
 Rask.Ui.RaskSeed_UiSearch.RaskSeed_UiSearch() -> void
+Rask.Ui.RaskSeed_UiSearch.Value(string? Value) -> Rask.Ui.RaskPending_UiSearch<Rask.Core.Forms.Controlled!>
 Rask.Ui.RaskSeed_UiSelect
 Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<T>!>! Bind) -> Rask.Ui.RaskPending_UiSelect<T, Rask.Core.Forms.Bound!>
 Rask.Ui.RaskSeed_UiSelect.Of<T>() -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, Rask.Core.Forms.Controlled!>
@@ -1515,15 +1520,35 @@ Rask.Ui.UiRating.Value.set -> void
 Rask.Ui.UiSearch
 Rask.Ui.UiSearch.AccessibleLabel.get -> string!
 Rask.Ui.UiSearch.AccessibleLabel.set -> void
+Rask.Ui.UiSearch.AfterBind.get -> System.Action<string!>?
+Rask.Ui.UiSearch.AfterBind.set -> void
+Rask.Ui.UiSearch.AfterBindAsync.get -> System.Func<string!, System.Threading.Tasks.Task!>?
+Rask.Ui.UiSearch.AfterBindAsync.set -> void
+Rask.Ui.UiSearch.Bind.get -> System.Linq.Expressions.Expression<System.Func<string!>!>?
+Rask.Ui.UiSearch.Bind.set -> void
+Rask.Ui.UiSearch.Block.get -> bool?
+Rask.Ui.UiSearch.Block.set -> void
 Rask.Ui.UiSearch.Class.get -> string?
 Rask.Ui.UiSearch.Class.set -> void
-Rask.Ui.UiSearch.OnSearch.get -> System.Func<string!, System.Threading.Tasks.Task!>?
-Rask.Ui.UiSearch.OnSearch.set -> void
+Rask.Ui.UiSearch.Disabled.get -> bool?
+Rask.Ui.UiSearch.Disabled.set -> void
+Rask.Ui.UiSearch.OnChange.get -> System.Action<string!>?
+Rask.Ui.UiSearch.OnChange.set -> void
+Rask.Ui.UiSearch.OnChangeAsync.get -> System.Func<string!, System.Threading.Tasks.Task!>?
+Rask.Ui.UiSearch.OnChangeAsync.set -> void
+Rask.Ui.UiSearch.OnInput.get -> System.Action<string!>?
+Rask.Ui.UiSearch.OnInput.set -> void
+Rask.Ui.UiSearch.OnInputAsync.get -> System.Func<string!, System.Threading.Tasks.Task!>?
+Rask.Ui.UiSearch.OnInputAsync.set -> void
 Rask.Ui.UiSearch.Placeholder.get -> string!
 Rask.Ui.UiSearch.Placeholder.set -> void
 Rask.Ui.UiSearch.Size.get -> Rask.Ui.UiSize?
 Rask.Ui.UiSearch.Size.set -> void
 Rask.Ui.UiSearch.UiSearch() -> void
+Rask.Ui.UiSearch.Validate.get -> Rask.Core.Forms.Validate<string!>?
+Rask.Ui.UiSearch.Validate.set -> void
+Rask.Ui.UiSearch.ValidateAsync.get -> Rask.Core.Forms.ValidateAsync<string!>?
+Rask.Ui.UiSearch.ValidateAsync.set -> void
 Rask.Ui.UiSearch.Value.get -> string?
 Rask.Ui.UiSearch.Value.set -> void
 Rask.Ui.UiSelect<T>
@@ -1900,8 +1925,8 @@ static Rask.Ui.UiTheme.All.get -> System.Collections.Generic.IReadOnlyList<Rask.
 static Rask.Ui.UiTheme.Value(Rask.Ui.UiThemeName theme) -> string!
 static RaskBuilderSettersRask_Ui.Accept<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.Core.Build<Rask.Ui.UiFab!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiFab!>
-static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.AccessibleLabel(this Rask.Core.Build<Rask.Ui.UiSwap!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSwap!>
+static RaskBuilderSettersRask_Ui.AccessibleLabel<TMode>(this Rask.Core.Build<Rask.Ui.UiSearch!, TMode> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
 static RaskBuilderSettersRask_Ui.Action(this Rask.Core.Build<Rask.Ui.UiCard!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiCard!>
 static RaskBuilderSettersRask_Ui.Actions(this Rask.Core.Build<Rask.Ui.UiHeader!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiHeader!>
 static RaskBuilderSettersRask_Ui.Active(this Rask.Core.Build<Rask.Ui.UiButton!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
@@ -1919,6 +1944,7 @@ static RaskBuilderSettersRask_Ui.AfterBind(this Rask.Core.Build<Rask.Ui.UiOtp!, 
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, System.Action<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, System.Action<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
@@ -1931,6 +1957,7 @@ static RaskBuilderSettersRask_Ui.AfterBindAsync(this Rask.Core.Build<Rask.Ui.UiO
 static RaskBuilderSettersRask_Ui.AfterBindAsync(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBindAsync(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, System.Func<double, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBindAsync(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.AfterBindAsync(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBindAsync(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBindAsync<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.AfterBindAsync<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
@@ -1944,6 +1971,7 @@ static RaskBuilderSettersRask_Ui.Author(this Rask.Core.Build<Rask.Ui.UiChatBubbl
 static RaskBuilderSettersRask_Ui.Badge(this Rask.Core.Build<Rask.Ui.UiIndicator!> __b, Rask.Core.Component! value) -> Rask.Core.Build<Rask.Ui.UiIndicator!>
 static RaskBuilderSettersRask_Ui.Before(this Rask.Core.Build<Rask.Ui.UiDiff!> __b, Rask.Core.Component! value) -> Rask.Core.Build<Rask.Ui.UiDiff!>
 static RaskBuilderSettersRask_Ui.Block(this Rask.Core.Build<Rask.Ui.UiButton!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
+static RaskBuilderSettersRask_Ui.Block<TMode>(this Rask.Core.Build<Rask.Ui.UiSearch!, TMode> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
 static RaskBuilderSettersRask_Ui.Caption(this Rask.Core.Build<Rask.Ui.UiHeader!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiHeader!>
 static RaskBuilderSettersRask_Ui.Caption(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
 static RaskBuilderSettersRask_Ui.Caption(this Rask.Core.Build<Rask.Ui.UiStat!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiStat!>
@@ -1998,7 +2026,6 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiNavbar!> _
 static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
 static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiProgress!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiProgress!>
 static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiRadialProgress!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiRadialProgress!>
-static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiSkeleton!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiSkeleton!>
 static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiStack!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiStack!>
 static RaskBuilderSettersRask_Ui.Class(this Rask.Core.Build<Rask.Ui.UiStep!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiStep!>
@@ -2024,6 +2051,7 @@ static RaskBuilderSettersRask_Ui.Class<TMode>(this Rask.Core.Build<Rask.Ui.UiOtp
 static RaskBuilderSettersRask_Ui.Class<TMode>(this Rask.Core.Build<Rask.Ui.UiRadio!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, TMode>
 static RaskBuilderSettersRask_Ui.Class<TMode>(this Rask.Core.Build<Rask.Ui.UiRange!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiRange!, TMode>
 static RaskBuilderSettersRask_Ui.Class<TMode>(this Rask.Core.Build<Rask.Ui.UiRating!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiRating!, TMode>
+static RaskBuilderSettersRask_Ui.Class<TMode>(this Rask.Core.Build<Rask.Ui.UiSearch!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
 static RaskBuilderSettersRask_Ui.Class<TMode>(this Rask.Core.Build<Rask.Ui.UiToggle!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, TMode>
 static RaskBuilderSettersRask_Ui.Close(this Rask.Core.Build<Rask.Ui.UiFab!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiFab!>
 static RaskBuilderSettersRask_Ui.Close(this Rask.Core.Build<Rask.Ui.UiModal!> __b, System.Action? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
@@ -2040,6 +2068,7 @@ static RaskBuilderSettersRask_Ui.Disabled<T, TMode>(this Rask.Core.Build<Rask.Ui
 static RaskBuilderSettersRask_Ui.Disabled<TMode>(this Rask.Core.Build<Rask.Ui.UiCheckbox!, TMode> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiCheckbox!, TMode>
 static RaskBuilderSettersRask_Ui.Disabled<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
 static RaskBuilderSettersRask_Ui.Disabled<TMode>(this Rask.Core.Build<Rask.Ui.UiRadio!, TMode> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, TMode>
+static RaskBuilderSettersRask_Ui.Disabled<TMode>(this Rask.Core.Build<Rask.Ui.UiSearch!, TMode> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
 static RaskBuilderSettersRask_Ui.Disabled<TMode>(this Rask.Core.Build<Rask.Ui.UiToggle!, TMode> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, TMode>
 static RaskBuilderSettersRask_Ui.Dismiss(this Rask.Core.Build<Rask.Ui.UiToast!> __b, System.Action? value) -> Rask.Core.Build<Rask.Ui.UiToast!>
 static RaskBuilderSettersRask_Ui.End(this Rask.Core.Build<Rask.Ui.UiNavbar!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiNavbar!>
@@ -2136,6 +2165,7 @@ static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiOtp!, R
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Controlled!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Controlled!> __b, System.Action<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Controlled!> __b, System.Action<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiSwap!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiSwap!>
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiThemeController!> __b, System.Action<Rask.Ui.UiThemeName>? value) -> Rask.Core.Build<Rask.Ui.UiThemeController!>
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Controlled!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Controlled!>
@@ -2150,6 +2180,7 @@ static RaskBuilderSettersRask_Ui.OnChangeAsync(this Rask.Core.Build<Rask.Ui.UiOt
 static RaskBuilderSettersRask_Ui.OnChangeAsync(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Controlled!> __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChangeAsync(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Controlled!> __b, System.Func<double, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChangeAsync(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Controlled!> __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Ui.OnChangeAsync(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChangeAsync(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Controlled!> __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChangeAsync<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnChangeAsync<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Controlled!>
@@ -2162,9 +2193,10 @@ static RaskBuilderSettersRask_Ui.OnComplete<TMode>(this Rask.Core.Build<Rask.Ui.
 static RaskBuilderSettersRask_Ui.OnCompleteAsync<TMode>(this Rask.Core.Build<Rask.Ui.UiOtp!, TMode> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiOtp!, TMode>
 static RaskBuilderSettersRask_Ui.OnFiles<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
 static RaskBuilderSettersRask_Ui.OnFilesAsync<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
+static RaskBuilderSettersRask_Ui.OnInput(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Ui.OnInputAsync(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Ui.OnMonth<TMode>(this Rask.Core.Build<Rask.Ui.UiCalendar!, TMode> __b, System.Action<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, TMode>
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.Core.Build<Rask.Ui.UiAccordion!> __b, System.Action<string?>? value) -> Rask.Core.Build<Rask.Ui.UiAccordion!>
-static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, System.Action<int>? value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
@@ -2183,10 +2215,10 @@ static RaskBuilderSettersRask_Ui.Options<T, TMode>(this Rask.Core.Build<Rask.Ui.
 static RaskBuilderSettersRask_Ui.Options<T, TMode>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode> __b, System.Collections.Generic.IReadOnlyList<(T Value, string! Text)>! value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode>
 static RaskBuilderSettersRask_Ui.Pages(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, int value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
 static RaskBuilderSettersRask_Ui.Percent(this Rask.Core.Build<Rask.Ui.UiRadialProgress!> __b, int value) -> Rask.Core.Build<Rask.Ui.UiRadialProgress!>
-static RaskBuilderSettersRask_Ui.Placeholder(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.Placeholder<T, TMode>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, TMode>
 static RaskBuilderSettersRask_Ui.Placeholder<T, TMode>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode>
 static RaskBuilderSettersRask_Ui.Placeholder<T, TMode>(this Rask.Core.Build<Rask.Ui.UiTextarea<T>!, TMode> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiTextarea<T>!, TMode>
+static RaskBuilderSettersRask_Ui.Placeholder<TMode>(this Rask.Core.Build<Rask.Ui.UiSearch!, TMode> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
 static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, Rask.Ui.UiPlacement? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
 static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiModal!> __b, Rask.Ui.UiModalPlacement? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
 static RaskBuilderSettersRask_Ui.Placement(this Rask.Core.Build<Rask.Ui.UiTabs!> __b, Rask.Ui.UiPlacement? value) -> Rask.Core.Build<Rask.Ui.UiTabs!>
@@ -2206,7 +2238,6 @@ static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiKbd!> __b, 
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiLoading!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiLoading!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiMegamenu!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiMegamenu!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiMenu!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiMenu!>
-static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiStatusDot!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiStatusDot!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiTabs!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiTabs!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiThemeController!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiThemeController!>
@@ -2219,6 +2250,7 @@ static RaskBuilderSettersRask_Ui.Size<TMode>(this Rask.Core.Build<Rask.Ui.UiOtp!
 static RaskBuilderSettersRask_Ui.Size<TMode>(this Rask.Core.Build<Rask.Ui.UiRadio!, TMode> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, TMode>
 static RaskBuilderSettersRask_Ui.Size<TMode>(this Rask.Core.Build<Rask.Ui.UiRange!, TMode> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiRange!, TMode>
 static RaskBuilderSettersRask_Ui.Size<TMode>(this Rask.Core.Build<Rask.Ui.UiRating!, TMode> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiRating!, TMode>
+static RaskBuilderSettersRask_Ui.Size<TMode>(this Rask.Core.Build<Rask.Ui.UiSearch!, TMode> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, TMode>
 static RaskBuilderSettersRask_Ui.Size<TMode>(this Rask.Core.Build<Rask.Ui.UiToggle!, TMode> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, TMode>
 static RaskBuilderSettersRask_Ui.Square(this Rask.Core.Build<Rask.Ui.UiButton!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiButton!>
 static RaskBuilderSettersRask_Ui.Src(this Rask.Core.Build<Rask.Ui.UiAvatar!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiAvatar!>
@@ -2287,6 +2319,7 @@ static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiOtp!, R
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
@@ -2299,6 +2332,7 @@ static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiOt
 static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiRadio!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<double>? value) -> Rask.Core.Build<Rask.Ui.UiRange!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<int>? value) -> Rask.Core.Build<Rask.Ui.UiRating!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.ValidateAsync(this Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.Core.Build<Rask.Ui.UiToggle!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.ValidateAsync<T>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Ui.ValidateAsync<T>(this Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.Build<Rask.Ui.UiInput<T>!, Rask.Core.Forms.Bound!>
@@ -2309,7 +2343,6 @@ static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiCrumbSwitc
 static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiDetailRow!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiDetailRow!>
 static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiMetric!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiMetric!>
 static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiProgress!> __b, double value) -> Rask.Core.Build<Rask.Ui.UiProgress!>
-static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.Value(this Rask.Core.Build<Rask.Ui.UiStat!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiStat!>
 static RaskBuilderSettersRask_Ui.Variant(this Rask.Core.Build<Rask.Ui.UiAlert!> __b, Rask.Ui.UiVariant? value) -> Rask.Core.Build<Rask.Ui.UiAlert!>
 static RaskBuilderSettersRask_Ui.Variant(this Rask.Core.Build<Rask.Ui.UiButton!> __b, Rask.Ui.UiVariant? value) -> Rask.Core.Build<Rask.Ui.UiButton!>

@@ -70,10 +70,14 @@ public abstract partial class SharedSmokeTests
         // assert on.
         //
         // Asserted rather than deleted: a toggle reappearing is a change worth noticing, and so is the
-        // chrome quietly going dark again. The navigation is the kit's now, so it carries the kit's ink
-        // token — a hardcoded slate-* would mean the layout drifted back off the shared palette.
+        // chrome quietly going dark again. The navigation is the kit's now, so it carries a THEME token
+        // — a hardcoded slate-* would mean the layout drifted back off the shared palette.
+        //
+        // text-base-content, where this once read text-ui-ink: the bar was moved off the transitional
+        // ui-* aliases onto daisyUI's own names, and `--color-ui-ink` was defined as
+        // `var(--color-base-content)` all along. The colour is unchanged; only what it is called is.
         await Expect(Page.Locator("nav button[aria-label='Toggle light / dark theme']")).ToHaveCountAsync(0);
-        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
+        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-base-content\b"));
 
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();
@@ -176,7 +180,7 @@ public abstract partial class SharedSmokeTests
 
         // The filter narrows the list to matching labels (and force-opens their groups); clearing it
         // restores the accordion. Uses durable guide labels (always present).
-        var filter = Page.Locator(".side-nav .side-nav-filter");
+        var filter = Page.Locator(".side-nav .side-nav-filter input");
         await filter.FillAsync("Getting started");
         await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Getting started\")").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });

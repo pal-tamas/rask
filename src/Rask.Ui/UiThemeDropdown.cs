@@ -40,7 +40,12 @@ public sealed partial class UiThemeDropdown : Component
         Details.Class(UiClass.Compose("dropdown", Placement, Class))[
             Summary.Class("btn btn-sm")[
                 UiIcon.Name(UiIconName.Sparkles).Class("size-4 shrink-0"),
-                Span[Trigger]
+                // A stable class on the label, so a surface that DOES persist the choice has somewhere
+                // to write the active theme's name. The kit itself still cannot fill this in — it has
+                // no state and no script, which is the whole reason the picker is radios — but an app
+                // that stores a preference (as the showcase does) can, and without one a reader has no
+                // indication of which of thirty-five themes is on.
+                Span.Class("ui-theme-current")[Trigger]
             ],
             UiThemePicker
                 .GroupName(GroupName)

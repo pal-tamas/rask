@@ -8,11 +8,17 @@ namespace Rask.Site.Pages;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Light, mobile-first, and built from the same kit the operator console is — <see cref="UiMetricRow" />,
-/// <see cref="UiDetailList" />, <see cref="UiStatusDot" /> and <see cref="UiIcon" /> are the console's,
-/// unchanged. What is NOT taken from the kit is its chrome: a marketing page has no tab bar to put in a
-/// <c>UiNav</c> and no breadcrumb to switch, so the sections below are ordinary Tailwind over the kit's
-/// palette. Borrowing furniture that does not fit would have been the drift the kit was extracted to stop.
+/// Mobile-first, themed by the reader, and built from the same kit the operator console is —
+/// <see cref="UiIcon" />, <see cref="UiBadge" />, <see cref="UiSteps" /> and <see cref="UiAura" /> are
+/// the kit's, unchanged. What is NOT taken from the kit is its chrome: a marketing page has no tab bar
+/// to put in a <c>UiNav</c> and no breadcrumb to switch, so the sections below are ordinary Tailwind
+/// over the kit's palette. Borrowing furniture that does not fit would have been the drift the kit was
+/// extracted to stop.
+/// </para>
+/// <para>
+/// It used to say "light". It is not: every colour on this page resolves through a daisyUI theme token,
+/// so the page repaints with whichever of the thirty-five themes the reader picked, and the choice
+/// follows them from here into the docs.
 /// </para>
 /// <para>
 /// The page ships <b>no JavaScript</b>. The scroll reveals, the growing bars and the hero canvas are gone
@@ -32,16 +38,17 @@ public sealed partial class HomePage : Component
     private const string Wrap = "mx-auto w-full max-w-[1100px] px-5 sm:px-6";
 
     private const string Eyebrow =
-        "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ui-brand-ink";
+        "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary";
 
-    private const string Lede = "mt-5 text-lg leading-relaxed text-ui-ink";
+    private const string Lede = "mt-5 text-lg leading-relaxed text-base-content";
 
-    private const string Sub = "mt-4 text-sm leading-relaxed text-ui-muted";
+    private const string Sub = "mt-4 text-sm leading-relaxed text-base-content/70";
 
-    private const string Card = "rounded-2xl border border-ui-line bg-ui-bg";
+    private const string Card = "rounded-2xl border border-base-300 bg-base-100";
 
     private const string Badge =
-        "rounded-full border border-ui-line bg-ui-bg px-3 py-1 text-xs text-ui-muted";
+        "inline-flex items-center gap-1.5 rounded-full border border-base-300 bg-base-100 px-3 py-1 "
+        + "text-xs text-base-content/70";
 
     // Btn, not Button: a constant named Button would shadow the Button chain entry inside this markup
     // host, and every <button> on the page would then need qualifying.
@@ -53,20 +60,20 @@ public sealed partial class HomePage : Component
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold "
         + "no-underline transition-colors";
 
-    // `text-ui-bg!` — important, and not a shortcut. These are ANCHORS, and Tailwind's preflight sets
+    // `text-base-100!` — important, and not a shortcut. These are ANCHORS, and Tailwind's preflight sets
     // `a { color: inherit }` in its base layer; in this document that rule outranks the text-* utilities,
     // so the primary button took its colour from the hero instead of from its own class. It rendered
-    // ink-on-ink at a contrast ratio of 1:1 with `text-ui-bg` sitting right there in the markup, which
+    // ink-on-ink at a contrast ratio of 1:1 with `text-base-100` sitting right there in the markup, which
     // is a defect Lighthouse found and no reviewer would. The important modifier is what says "this
     // element's own colour, not the one it inherits".
-    private const string BtnPrimary = Btn + " bg-ui-ink text-ui-bg! hover:bg-ui-ink/90";
+    private const string BtnPrimary = Btn + " bg-base-content text-base-100! hover:bg-base-content/90";
 
     private const string BtnGhost =
-        Btn + " border border-ui-line bg-ui-bg text-ui-ink! hover:border-ui-brand hover:text-ui-brand-ink";
+        Btn + " border border-base-300 bg-base-100 text-base-content! hover:border-primary hover:text-primary";
 
     private const string SectionPad = "py-16 sm:py-24";
 
-    private const string H2Class = "mt-2 text-3xl font-semibold tracking-tight text-ui-ink sm:text-4xl";
+    private const string H2Class = "mt-2 text-3xl font-semibold tracking-tight text-base-content sm:text-4xl";
 
     /// <inheritdoc />
     // The front door. Its title and description are the site's, which App already carries as the
@@ -85,7 +92,7 @@ public sealed partial class HomePage : Component
     [
         TopBar(),
         Hero(),
-        BytesSection(),
+        ShapesSection(),
         HostsSection(),
         FeaturesSection(),
         WholeBackEndSection(),
@@ -95,10 +102,10 @@ public sealed partial class HomePage : Component
 
     // ---- top bar ----
     private Component TopBar() =>
-        Header.Class("sticky top-0 z-50 border-b border-ui-line bg-ui-bg/85 backdrop-blur")[
+        Header.Class("sticky top-0 z-50 border-b border-base-300 bg-base-100/85 backdrop-blur")[
             Div.Class($"{Wrap} flex h-16 items-center justify-between")[
-                Span.Class("flex items-center gap-2 text-lg font-semibold tracking-tight text-ui-ink")[
-                    UiIcon.Name(UiIconName.Bolt).Class("size-5 shrink-0 text-ui-brand-ink"), "Rask"
+                Span.Class("flex items-center gap-2 text-lg font-semibold tracking-tight text-base-content")[
+                    UiIcon.Name(UiIconName.Bolt).Class("size-5 shrink-0 text-primary"), "Rask"
                 ],
                 Nav.Class("flex items-center gap-1 text-sm sm:gap-2")[
                     // Hidden on a narrow viewport rather than wrapped: the bar is chrome, and links
@@ -117,8 +124,8 @@ public sealed partial class HomePage : Component
         A
             .Class(
                 (hideOnPhone ? "hidden sm:inline-flex " : "inline-flex ")
-                + "min-h-11 items-center gap-1 rounded-lg px-2 text-ui-muted no-underline "
-                + "hover:bg-ui-well hover:text-ui-ink")
+                + "min-h-11 items-center gap-1 rounded-lg px-2 text-base-content/70 no-underline "
+                + "hover:bg-base-200 hover:text-base-content")
             .Href(href)
             .Target("_blank")
             .Rel("noopener")[
@@ -141,9 +148,9 @@ public sealed partial class HomePage : Component
                     // rendered small and clipped rather than wrapped.
                     Div.Class("min-w-0")[
                         P.Class(Eyebrow)["The .NET One Person Framework"],
-                        H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-ui-ink sm:text-5xl")[
+                        H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-base-content sm:text-5xl")[
                             "Ship a whole product.", Br, "Just you, and ",
-                            Span.Class("text-ui-brand-ink")["C#"], "."
+                            Span.Class("text-primary")["C#"], "."
                         ],
                         P.Class(Lede)["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
                         P.Class(Sub)["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
@@ -156,10 +163,10 @@ public sealed partial class HomePage : Component
                                 .Rel("noopener")["GitHub"]
                         ],
                         Div.Class("mt-8 flex flex-wrap gap-2")[
-                            Span.Class(Badge)[B[".NET 10"]],
-                            Span.Class(Badge)["MIT"],
-                            Span.Class(Badge)[B["Server"], " · WASM"],
-                            Span.Class(Badge)[B["SQLite"], " · production DB"]
+                            Fact(UiIconName.Cube, B[".NET 10"]),
+                            Fact(UiIconName.ShieldOk, "MIT"),
+                            Fact(UiIconName.Server, B["Server"], " · WASM"),
+                            Fact(UiIconName.Database, B["SQLite"], " · production DB")
                         ]
                     ],
                     // The page proving its own thesis, on first paint: the component's source, and the
@@ -169,21 +176,32 @@ public sealed partial class HomePage : Component
             ]
         ];
 
+    // The kit's window frame, not a hand-rolled one.
+    //
+    // This used to draw its own chrome: a bordered div and three dot spans carrying macOS's traffic
+    // lights as inline styles (#ff5f57 / #febc2e / #28c840). They were the last fixed colours in the
+    // hero, and they stayed those three hues under all thirty-five themes — a detail that reads as an
+    // accident on a page where everything else repaints.
+    //
+    // daisyUI's .mockup-window draws the same three dots from a pseudo-element in currentColor, so the
+    // frame is the theme's, the markup is a component instead of a shape, and nothing here has an
+    // opinion about what colour a window is.
     private Component CodeWindow() =>
-        Div.Class($"{Card} overflow-hidden")[
-            Div.Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2.5")[
-                Dot("#ff5f57"), Dot("#febc2e"), Dot("#28c840"),
-                Span.Class("ml-2 font-mono text-xs text-ui-muted")["Counter.cs"]
+        UiMockupWindow.Class("overflow-hidden bg-base-100")[
+            Div.Class("flex items-center gap-2 border-b border-base-300 bg-base-200 px-4 py-2.5")[
+                UiIcon.Name(UiIconName.Document).Class("size-3.5 shrink-0 text-base-content/60"),
+                Span.Class("font-mono text-xs text-base-content/70")["Counter.cs"]
             ],
             Pre.Class("overflow-x-auto p-4 text-xs leading-relaxed")[
                 Code.Class("font-mono")[Raw.Value(CounterCodeHtml)]
             ]
         ];
 
-    // A window-chrome dot. The colour is an inline style because these three are macOS's traffic lights,
-    // not palette entries — putting them in the theme would invite something else to use them.
-    private static Component Dot(string color) =>
-        Span.Class("size-2.5 shrink-0 rounded-full").Style($"background:{color}");
+    private static Component Fact(UiIconName icon, params Component?[] body) =>
+        Span.Class(Badge)[
+            UiIcon.Name(icon).Class("size-3.5 shrink-0 text-primary"),
+            body
+        ];
 
     private static Component SecHead(string eyebrow, string heading, params Component?[] body) =>
         Div.Class("mb-10 max-w-3xl")[
@@ -192,67 +210,95 @@ public sealed partial class HomePage : Component
             body.Length == 0 ? null : P.Class(Lede)[body]
         ];
 
-    // ---- bytes / benchmarks ----
-    private Component BytesSection() =>
+    // ---- every shape one app can take ----
+    //
+    // This replaced a "Rask vs Blazor · CI-enforced baselines" section: four metric tiles and a table
+    // of payload sizes, Blazor's column beside ours. It went for two reasons.
+    //
+    // It argued the wrong thing. A byte count says this framework beats one other framework at one
+    // measurement; it says nothing about what a person can BUILD, which is the only question a reader
+    // on the front page is actually asking. And it made the page's central claim depend on a rival
+    // staying still — the table needed re-measuring every time either project moved, and a stale
+    // number on a marketing page is worse than no number.
+    //
+    // What replaces it is the shape of the thing: the ladder every page climbs on its own, and the
+    // five forms an app can take on top of it. Built from the kit (UiAura, UiSteps, UiStep, UiBadge,
+    // UiIcon, UiGrid) and coloured only in theme tokens, so it repaints with the reader's theme like
+    // everything else on the page.
+    private Component ShapesSection() =>
         Section.Class(SectionPad)[
             Div.Class(Wrap)[
-                SecHead("Rask vs Blazor · CI-enforced baselines",
-                    "Fewer bytes than Blazor — on every scenario.",
-                    "Rask treats the network as the real bottleneck: after first paint, a state change ships a minimal diff. Each pair below is the ", B["same"], " state change — Blazor's payload beside Rask's."),
+                SecHead("Render modes · islands · SPA · meta front ends · batteries",
+                    "One codebase. Every shape a page needs.",
+                    "None of this is a mode you put the app into. A page climbs exactly as far as its own render asks for, and every shape below composes on the same component model — chosen ", B["per page"], ", not per project."),
 
-                // The kit's metric row, unchanged from the console. Two columns on a phone, four from sm
-                // up, with the hairlines drawn as a lined background rather than per-cell borders.
-                Div.Class("mb-6")[
-                    UiMetricRow.Columns(4)[
-                        UiMetric.Key("wire").Label("Bytes on the wire").Value("~41 B")
-                            .Caption("counter on a 24 KB page · vs 186 B"),
-                        UiMetric.Key("alloc").Label("Less allocated / update").Value("~40×")
-                            .Caption("1,072 B · vs Blazor 42,972 B"),
-                        UiMetric.Key("heap").Label("Leaner retained heap").Value("~30%")
-                            .Caption("158 KB · vs 224 KB (200 rows)"),
-                        UiMetric.Key("render").Label("Faster render hot path").Value("1.76×")
-                            .Caption("598 ns · vs 1,052 ns")
-                    ]
-                ],
-
-                // A table rather than the animated bars this replaced. The bars were drawn by a script
-                // that set each one's height from a data- attribute, so with no script they were all
-                // zero — a chart of nothing, on the page's central claim.
-                Div.Class($"{Card} overflow-hidden")[
-                    Div.Class("overflow-x-auto")[
-                        Table.Class("w-full text-left text-sm")[
-                            Thead.Class("border-b border-ui-line text-xs uppercase tracking-wide text-ui-muted")[
-                                Tr[
-                                    Th.Class("px-4 py-3 font-medium")["Scenario"],
-                                    Th.Class("px-4 py-3 text-right font-medium")["Blazor"],
-                                    Th.Class("px-4 py-3 text-right font-medium")["Rask"],
-                                    Th.Class("px-4 py-3 text-right font-medium")["Fewer bytes"]
-                                ]
-                            ],
-                            Tbody[
-                                ByteRow("Counter on a 24 KB page", "186 B", "41 B", "4.5×"),
-                                ByteRow("Deep-tree tick", "1,722 B", "137 B", "12.6×"),
-                                ByteRow("Deep mutation ×200", "6,522 B", "441 B", "14.8×"),
-                                ByteRow("Remove 100 rows", "2,080 B", "37 B", "56×")
-                            ]
+                // The one idea the rest of the page rests on, and the only thing on it that glows.
+                // UiAura's own doc says to use it on a single element for exactly this reason.
+                UiAura.Style(UiAuraStyle.Glow).Size(UiSize.Lg).Class("mb-10 block rounded-3xl")[
+                    Div.Class("rounded-3xl border border-base-300 bg-base-100 p-6 sm:p-8")[
+                        Div.Class("mb-6 flex flex-wrap items-center gap-2")[
+                            UiIcon.Name(UiIconName.ArrowsUpDown).Class("size-5 shrink-0 text-primary"),
+                            Span.Class("text-sm font-semibold text-base-content")["The render ladder"],
+                            UiBadge.Label("decided, not declared").Tone("info")
+                        ],
+                        UiSteps.Class("w-full")[
+                            UiStep.Key("static").Text("Static document").Tone(UiTone.Success),
+                            UiStep.Key("prerendered").Text("Prerendered HTML").Tone(UiTone.Success),
+                            UiStep.Key("live").Text("Live session").Tone(UiTone.Primary)
+                        ],
+                        P.Class("mt-6 text-sm leading-relaxed text-base-content/70")[
+                            "A handler, a form, an element ", Code["Ref"], ", a call into JavaScript, async work still in flight — any one of them and the page keeps a live connection. None of them, and the same component ships as a plain document. ",
+                            Code["[RenderMode]"], " overrides the answer where detection cannot see it (a component that pushes from a timer does nothing during the walk), and ",
+                            Code["RenderModes"], " is the app-wide ceiling a page can never climb past."
                         ]
                     ]
                 ],
 
-                P.Class("mt-6 rounded-xl border border-ui-line bg-ui-bg p-4 text-sm text-ui-muted")["Retained heap used to be Blazor's one win — a pure-element page now keeps a compact frame snapshot instead of an object-per-element graph, so ", B.Class("text-ui-ink")["Rask leads on every measured axis."], " Numbers from the CI-enforced ", A
-                    .Class("text-ui-brand-ink underline underline-offset-2")
-                    .Href("https://github.com/pal-tamas/rask/blob/main/benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md")
-                    .Target("_blank")
-                    .Rel("noopener")["vs-blazor baselines"], " (Apple M4 Pro, .NET 10.0.5)."]
+                UiGrid[
+                    Shape(UiIconName.Sparkles, "per page", "render-modes",
+                        "Render modes",
+                        "Auto by default: the render decides. Static where a page is a document, interactive where it isn't — and a contradiction is reported rather than silently breaking your buttons."),
+                    Shape(UiIconName.Puzzle, "seven runtimes", "islands",
+                        "Islands",
+                        "React, Preact, Solid, Vue, Svelte, Angular or Lit as an ordinary Rask component — props declared in C#, callbacks re-entering C#. Its subtree is a diff boundary; the rest of the page is still yours."),
+                    Shape(UiIconName.Globe, "client-side", "spa",
+                        "SPA on WebAssembly",
+                        "The identical component tree running fully in the browser on Mono/WASM, routing client-side, installable and offline as a PWA — with every route prerendered to real HTML at publish."),
+                    Shape(UiIconName.Stack, "Node, supervised", "meta",
+                        "Meta front ends",
+                        "Nuxt, Next, SvelteKit, Start, SolidStart or Analog served beside your C# from one container. Rask.Meta.Hosting builds the front end, supervises Node and proxies to it."),
+                    Shape(UiIconName.Server, "on by default", "one-person-framework",
+                        "Batteries",
+                        "Auth, data, background jobs, email, outbox, cache and an operator console — all on the app's own SQLite file. No broker, no Redis, no second box to run."),
+                    Shape(UiIconName.Bolt, "compile time", "building-components",
+                        "Generated, not reflected",
+                        "Roslyn builds each component's chain surface and typed route URLs. Trim-safe, reflection-free, and held by 60+ compile-time diagnostics — rename a route and the build breaks, never a link.")
+                ]
             ]
         ];
 
-    private static Component ByteRow(string scenario, string blazor, string rask, string win) =>
-        Tr.Key(scenario).Class("border-b border-ui-line/60 last:border-0")[
-            Td.Class("px-4 py-3 text-ui-ink")[scenario],
-            Td.Class("px-4 py-3 text-right font-mono text-xs tabular-nums text-ui-muted")[blazor],
-            Td.Class("px-4 py-3 text-right font-mono text-xs font-semibold tabular-nums text-ui-ink")[rask],
-            Td.Class("px-4 py-3 text-right text-sm font-semibold text-ui-ok-ink")[win]
+    // A shape tile, which is also the way into the guide about it. An anchor rather than a UiCard for
+    // the same reason the buttons above are anchors: this has to be a real link a browser can open in
+    // a new tab and a crawler can follow, and UiCard renders a div.
+    private static Component Shape(
+        UiIconName icon, string badge, string guide, string title, string body) =>
+        A
+            .Key(title)
+            .Class(
+                "group flex flex-col rounded-2xl border border-base-300 bg-base-100 p-6 no-underline "
+                + "transition-colors hover:border-primary/40 hover:bg-base-200")
+            .Href(GuideHref(guide))
+            .Target("_blank")
+            .Rel("noopener")[
+            Div.Class("flex items-center gap-2")[
+                UiIcon.Name(icon).Class("size-5 shrink-0 text-primary"),
+                UiBadge.Label(badge),
+                UiIcon
+                    .Name(UiIconName.ChevronRight)
+                    .Class("ml-auto size-4 shrink-0 text-base-content/60 transition-transform group-hover:translate-x-0.5")
+            ],
+            H3.Class("mt-3 text-lg font-semibold text-base-content")[title],
+            P.Class("mt-2 text-sm leading-relaxed text-base-content/70")[body]
         ];
 
     // ---- hosts ----
@@ -261,20 +307,20 @@ public sealed partial class HomePage : Component
         A
             .Class(
                 $"{Card} guide-link group flex flex-col p-6 no-underline transition-colors "
-                + "hover:border-ui-brand/40 hover:bg-ui-well")
+                + "hover:border-primary/40 hover:bg-base-200")
             .Href(GuideHref(guide))
             .Target("_blank")
             .Rel("noopener")[
             Div.Class("flex items-center gap-2")[
-                UiIcon.Name(icon).Class("size-5 shrink-0 text-ui-brand-ink"),
-                Span.Class("font-mono text-xs text-ui-muted")[tag],
+                UiIcon.Name(icon).Class("size-5 shrink-0 text-primary"),
+                Span.Class("font-mono text-xs text-base-content/70")[tag],
                 UiIcon
                     .Name(UiIconName.ChevronRight)
-                    .Class("ml-auto size-4 shrink-0 text-ui-muted transition-transform group-hover:translate-x-0.5")
+                    .Class("ml-auto size-4 shrink-0 text-base-content/70 transition-transform group-hover:translate-x-0.5")
             ],
-            H3.Class("mt-2 text-lg font-semibold text-ui-ink")[title],
-            P.Class("mt-2 text-sm leading-relaxed text-ui-muted")[body],
-            Span.Class("mt-4 block font-mono text-xs text-ui-ink")[prev]
+            H3.Class("mt-2 text-lg font-semibold text-base-content")[title],
+            P.Class("mt-2 text-sm leading-relaxed text-base-content/70")[body],
+            Span.Class("mt-4 block font-mono text-xs text-base-content")[prev]
         ];
 
     private Component HostsSection() =>
@@ -316,18 +362,18 @@ public sealed partial class HomePage : Component
         A
             .Class(
                 $"{Card} guide-link group flex flex-col p-5 no-underline transition-colors "
-                + "hover:border-ui-brand/40 hover:bg-ui-well")
+                + "hover:border-primary/40 hover:bg-base-200")
             .Href(GuideHref(guide))
             .Target("_blank")
             .Rel("noopener")[
-            Div.Class("flex items-center gap-2 text-sm font-semibold text-ui-ink")[
-                UiIcon.Name(icon).Class("size-4 shrink-0 text-ui-brand-ink"),
+            Div.Class("flex items-center gap-2 text-sm font-semibold text-base-content")[
+                UiIcon.Name(icon).Class("size-4 shrink-0 text-primary"),
                 title,
                 UiIcon
                     .Name(UiIconName.ChevronRight)
-                    .Class("ml-auto size-4 shrink-0 text-ui-muted transition-transform group-hover:translate-x-0.5")
+                    .Class("ml-auto size-4 shrink-0 text-base-content/70 transition-transform group-hover:translate-x-0.5")
             ],
-            P.Class("mt-2 text-sm leading-relaxed text-ui-muted")[desc]
+            P.Class("mt-2 text-sm leading-relaxed text-base-content/70")[desc]
         ];
 
     /// <summary>Where a guide lives, relative to this page.</summary>
@@ -400,7 +446,7 @@ public sealed partial class HomePage : Component
 
     // ---- footer ----
     private Component FooterSection() =>
-        Footer.Class("border-t border-ui-line py-16 sm:py-20")[
+        Footer.Class("border-t border-base-300 py-16 sm:py-20")[
             Div.Class(Wrap)[
                 Div.Class("mx-auto max-w-2xl text-center")[
                     H2.Class(H2Class)["The live docs are the real tour."],
@@ -423,14 +469,14 @@ public sealed partial class HomePage : Component
                     // actually needs — and three of them 20px apart is the shape that makes a phone user
                     // hit "GitHub" when they meant "NuGet". Padding is the fix rather than a bigger font:
                     // the target grows, the type stays as designed.
-                    Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-ui-muted "
+                    Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-base-content/70 "
                               + "[&>a]:no-underline [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center "
-                              + "[&>a]:px-2 hover:[&>a]:text-ui-ink")[
+                              + "[&>a]:px-2 hover:[&>a]:text-base-content")[
                         A.Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],
-                    P.Class("mt-8 text-xs text-ui-muted")["Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
+                    P.Class("mt-8 text-xs text-base-content/70")["Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
                 ]
             ]
         ];
@@ -445,12 +491,12 @@ public sealed partial class HomePage : Component
     private const string CounterCodeHtml =
         """
         [<span class="text-ui-ok-ink">Route</span>(<span class="text-amber-700">"/counter"</span>)]
-        <span class="text-ui-brand-ink">public sealed partial class</span> <span class="text-ui-ok-ink">Counter</span> : <span class="text-ui-ok-ink">Component</span>
+        <span class="text-primary">public sealed partial class</span> <span class="text-ui-ok-ink">Counter</span> : <span class="text-ui-ok-ink">Component</span>
         {
-            <span class="text-ui-brand-ink">private int</span> _count;
+            <span class="text-primary">private int</span> _count;
 
-            <span class="text-ui-brand-ink">protected override</span> <span class="text-ui-ok-ink">Component</span>? <span class="text-ui-ink">Render</span>() =&gt;
-                <span class="text-ui-ok-ink">Button</span>.<span class="text-ui-ink">OnClick</span>(() =&gt; _count++)[<span class="text-amber-700">$"Current count: {_count}"</span>];
+            <span class="text-primary">protected override</span> <span class="text-ui-ok-ink">Component</span>? <span class="text-base-content">Render</span>() =&gt;
+                <span class="text-ui-ok-ink">Button</span>.<span class="text-base-content">OnClick</span>(() =&gt; _count++)[<span class="text-amber-700">$"Current count: {_count}"</span>];
         }
         """;
 }

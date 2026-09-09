@@ -148,7 +148,7 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     // navigation (on WASM the events coalesce and the later one wins, dropping e.g. a select change).
     protected async Task ClickSidebar(string label)
     {
-        var filter = Page.Locator(".side-nav .side-nav-filter");
+        var filter = Page.Locator(".side-nav .side-nav-filter input");
         await filter.FillAsync(label);
         // Guides-first: a label can appear as BOTH an example page and a guide (e.g. "Routing",
         // "Lifecycle"), and the Guides section renders first. The journey's example walks want the

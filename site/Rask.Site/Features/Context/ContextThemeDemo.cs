@@ -1,5 +1,4 @@
 using Rask.Core.Components;
-using Rask.Html.Components;
 
 namespace Rask.Site.Features;
 
@@ -23,7 +22,9 @@ public sealed partial class ContextThemeDemo : Component
         Context.Provide<Theme>(_theme)[
             Div
                 .Class("border rounded p-3")
-                .Style(_theme.IsDark ? "background:#212529;color:#e9ecef" : "background:#f8f9fa")[
+                .Style(_theme.IsDark
+                    ? "background:var(--color-neutral);color:var(--color-neutral-content)"
+                    : "background:var(--color-base-200);color:var(--color-base-content)")[
                 Button.Class($"{Tw.BtnOutlineSecondary} mb-3").Type("button")
                     .OnClick(() => _theme = _theme.IsDark ? Theme.Light : Theme.Dark)[
                     $"Toggle theme — currently {_theme.Name}"

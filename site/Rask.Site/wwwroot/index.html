@@ -33,11 +33,32 @@
     <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%237c3aed'/%3E%3Cpath d='M74 24 L38 66 L58 66 L53 104 L92 58 L70 58 Z' fill='%23fff'/%3E%3C/svg%3E"
           rel="icon" type="image/svg+xml"/>
     <style id="rask-scoped"></style>
+    <!--
+      PRE-BOOT theme stamp. The reader's choice is in localStorage (App.ThemeInitJs writes it), and
+      this page is what the browser paints before the runtime exists to render App's <head> at all.
+      Without it, someone who picked a dark theme got a light boot screen and then a dark page — a
+      flash caused entirely by the app knowing the answer a few hundred milliseconds too late.
+
+      Deliberately tiny and deliberately duplicated: it cannot import anything, it has to survive a
+      browser that throws on localStorage, and the copy that morphs in later re-registers the same
+      idempotent hook rather than fighting this one.
+    -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('rask-theme');
+                if (t) {
+                    document.documentElement.setAttribute('data-theme', t);
+                    document.documentElement.setAttribute('data-bs-theme', t);
+                }
+            } catch (e) { /* site data blocked — the default theme is a fine answer */ }
+        })();
+    </script>
     <style>
         /*
-          The boot screen, on the light ground the page itself uses so there is no flash between the
-          two. There is no theme-init script any more: this page has one palette, and the script that
-          stamped data-theme existed to serve a dark default and a toggle that are both gone.
+          The boot screen. It follows the theme where one is known (the stamp above runs first, and
+          the kit's tokens resolve once <html> carries data-rask-ui), and falls back to the light
+          ground the page itself uses so there is no flash between the two.
 
           On a published build almost nobody sees this — prerendering replaces the body below with the
           real page — so it is what `dotnet run` shows locally, and the fallback if the pass ever skips
@@ -52,8 +73,8 @@
             justify-content: center;
             gap: 1.25rem;
             font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-            color: #6d28d9;
-            background: #fafafa;
+            color: var(--color-primary, #6d28d9);
+            background: var(--color-base-100, #fafafa);
         }
 
         .rask-boot .rask-spin {

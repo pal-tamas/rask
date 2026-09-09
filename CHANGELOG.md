@@ -9,6 +9,71 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The showcase navbar ignored the theme picker, because a Bootstrap-era rule pinned it with
+  `!important`.** With thirty-five themes on the bar, the bar itself was the one thing that never
+  repainted. `global.css` carried `.app-navbar { background: rgba(20, 16, 31, 0.82) !important }` — a
+  violet-black from when this was a `BsNavbar` with `Theme:Dark`, which needed a dark ground under its
+  light text. The component went; the override outlived it, and `!important` meant no utility could
+  ever win.
+
+  The failure was worse than "wrong colour", because the text and border DID follow the theme: every
+  light theme drew theme-coloured text on dark navy. Measured rather than eyeballed —
+  `getComputedStyle` on `.app-navbar` returned an identical `rgba(20,16,31,0.82)` under light, dark,
+  synthwave and retro, while `color` and `border-bottom-color` changed under each. `.hamburger-btn`
+  had the same shape with a hard `color: #fff`, which is white-on-white the moment the theme is light.
+
+  Both now resolve through the theme: the bar is a `color-mix` over `--color-base-100` (translucent, so
+  the blur behind it is still worth having) and the toggle owns its colour through
+  `text-base-content/70`.
+
+- **The docs sidebar never scrolled, because its `max-height` rule selected classes that no longer
+  existed.** The only cap was `.side-nav.offcanvas-md .offcanvas-body { max-height: … }`, from when
+  the rail was a `BsOffcanvas` — and the comment two rules above it already said the container is the
+  `<aside>` itself now. Neither class was on the page, so the rule matched nothing: the aside grew to
+  its full content height (measured at **4388px against a 900px viewport**), `.side-nav-scroll` had no
+  bounded parent to scroll inside, and `position: sticky` had nothing to stick within, so the whole
+  rail scrolled away with the document. Capped on `.side-nav` itself, the same shot measures **888px**.
+
+- **The sidebar drew the "PWA" group twice, and one chevron opened both.** Entries arrive in DI
+  registration order, and `Program.cs` registers PWA, then Islands, then six UI kit, then twelve more
+  PWA. The sidebar grouped by consecutive RUN, so two runs of one name became two blocks: the heading
+  appeared twice, both derived the same `GroupKey` so the two collapsed together, and two sibling
+  `<li>` carried the same `Key` — which RASK022 holds a keyed list to as identity, leaving
+  reconciliation between them undefined. Grouped by name in first-appearance order instead, which is
+  identical for input that is already consecutive (the guide catalog).
+
+- **`RaskVersion.Current` reported `1.0.0` from every build there has ever been — local, nightly and
+  release alike.** `Directory.Build.props` references MinVer under
+  `Condition=" '$(IsPackable)' != 'false' "`, which is right for PACKING and wrong for STAMPING, and
+  `Rask.Core` is `IsPackable=false` (it ships bundled inside the host packages). Since
+  `RaskVersion.Current` reads its OWN assembly's `AssemblyInformationalVersion`, it got the SDK's
+  default and the showcase rendered `v1.0.0` beside a v0.20 codebase with nothing failing.
+
+  Verified rather than assumed: `dotnet build src/Rask.Core -p:MinVerVerbosity=diagnostic` printed no
+  MinVer output at all, while the same command on the packable `Rask.Server` calculated
+  `0.20.1-alpha.0.262`. `Rask.Core` now references MinVer too; `AssemblyVersion` stays pinned at
+  `0.0.0.0`, which is what MinVer computes for the 0.x line anyway, so the hot-reload CS7038 that the
+  pinning exists to prevent cannot return.
+
+- **A chosen theme did not survive the trip from the landing page to the docs, and nothing said which
+  theme was on.** `UiThemePicker` is radios with no script, which is what lets daisyUI switch the
+  palette in CSS alone — and also why the choice was lost: the landing page and the showcase layout
+  each mount their own picker, so navigating unmounted one set of radios and mounted another with
+  nothing checked. The kit documents the fix it cannot perform itself ("an app that wants it
+  remembered should render `data-theme` from its own stored preference"), so the site now does: the
+  value is stored, stamped on `<html>` before first paint (in `index.html` too, or a reader who picked
+  a dark theme got a light boot screen first), re-applied after every morph, and written into the
+  dropdown's trigger so the bar names the active theme instead of always reading "Theme".
+
+- **The island dialects had no syntax highlighter at all.** `.tsx`, `.jsx`, `.vue` and `.svelte` all
+  fell through `SyntaxHighlighter.LanguageFor` to `null`, which the callers render as plain encoded
+  text — on the islands guide, whose entire subject is those files, beside a fully coloured C# pane.
+  Nothing reported it, because "no lexer" and "a lexer that matched nothing" produce identical markup.
+  `TsxLanguage` adds them, built by inserting element and attribute rules BETWEEN TypeScript's
+  comment/string rules and its keyword rules — the ordering is the design, since rule order is
+  precedence: earlier and a `<div>` inside a string literal lexes as a tag, later and the tag name has
+  already been eaten as an identifier.
+
 - **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
   Every class name was present and correct in the markup; the rules never won. The hero's
   `h1.text-4xl.font-semibold` computed to **16px/400** and the primary call to action's `px-5` computed
@@ -143,6 +208,47 @@ them until tagged releases begin.
   to be equal being unequal is the entire defect, so a test naming `"client"` twice would have passed
   throughout. `docs/meta.md` stated the old default in its property table; four comments in the props
   and targets still described a PascalCase folder. (#994)
+
+### Changed
+
+- **The landing page's "Rask vs Blazor" byte table is gone, replaced by what the framework can
+  actually build.** The table argued that this framework beats one other framework at one measurement,
+  which is not the question a reader on the front page is asking, and it made the page's central claim
+  depend on a rival holding still. In its place: the render ladder (static → prerendered → live,
+  decided from the render rather than declared) and the five shapes an app can take — render modes,
+  islands, SPA-on-WebAssembly, meta front ends and batteries. Built from the kit (`UiAura`, `UiSteps`,
+  `UiBadge`, `UiIcon`) and coloured only in theme tokens.
+
+- **`UiSearch` is an `IFormControl<string>`, with the two callbacks a search box actually has.** It
+  carried a single bespoke `OnSearch` wired to the change event, which made it the one field in the
+  kit that could not be bound or validated — and, because a change fires on blur or Enter, the one
+  that could not drive a filter narrowing as you type. The showcase's sidebar had hand-rolled its own
+  label/icon/input sandwich for exactly that reason.
+
+  `OnChange` is now the commit moment (what the operator console's searches want, since they navigate
+  — one navigation per keystroke is not a feature) and `OnInput` fires per keystroke (what an in-page
+  filter wants). Both are names the factory generator already recognises, so they are excluded from
+  the bound factory for free. A `Block` property drops the default `sm:w-72`, which overflows a 256px
+  sidebar rail and cannot be corrected from the call site — two `sm:` utilities are decided by
+  stylesheet order, not by their order in the class attribute.
+
+  Being a form control gives the chain modes, so it now OPENS with `Value` or `Bind`; the two operator
+  console call sites were reordered to match.
+
+- **The showcase and landing page draw their colour from theme tokens rather than fixed hexes.** Code
+  panes were welded to `#14101f` ("always dark, both themes"), the twelve ColorCode syntax hues were
+  tuned for that one surface, `CodeSample.css` layered white-at-an-alpha over it throughout, and demo
+  pages still carried Bootstrap greys (`#f8f9fa`, `#dee2e6`, `#0d6efd`). All of it now resolves through
+  daisyUI's palette, so a code block, a window frame's traffic lights and a virtualized list's sticky
+  header repaint with the rest of the page.
+
+  `--color-ui-muted` was also aliased to daisyUI's `neutral`, which is a SURFACE colour rather than a
+  muted text colour — the same class of mistake `ui.css` already documents for `ok`/`warn`. It reached
+  294 call sites through `text-ui-muted`, and is now `base-content` stepped back.
+
+- **The mobile nav drawer covers the phone.** It was a 288px rail pinned to the left edge, leaving a
+  strip of page behind the backdrop and giving eighty guides half a screen to lay out in; it is the
+  full viewport now (measured 390x844 on a 390x844 phone), with the list scrolling inside it.
 
 ### Added
 

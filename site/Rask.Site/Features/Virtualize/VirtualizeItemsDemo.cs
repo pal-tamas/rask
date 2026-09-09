@@ -14,7 +14,8 @@ public sealed partial class VirtualizeItemsDemo : Component
     // divider. Earlier the spacers were divs *outside* the table: the table's own box was relaid out
     // every scroll frame and the header unstuck (vanished mid-scroll, snapped back on stop).
     private const string StickyHead =
-        "position:sticky; top:0; z-index:1; background:#f8f9fa; box-shadow:inset 0 -1px 0 #dee2e6; ";
+        "position:sticky; top:0; z-index:1; background:var(--color-base-200); "
+        + "box-shadow:inset 0 -1px 0 var(--color-base-300); ";
 
     protected override Component? Render() =>
         Virtualize.Items<VirtualizeRow>(

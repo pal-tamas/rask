@@ -15,6 +15,29 @@
     <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
   </PropertyGroup>
 
+  <!--
+    MinVer, even though this project is IsPackable=false.
+
+    Directory.Build.props references MinVer under `Condition=" '$(IsPackable)' != 'false' "`, which is
+    right for PACKING and wrong for STAMPING — and this assembly is the one the framework reads its own
+    version out of. RaskVersion.Current reads typeof(RaskVersion).Assembly's
+    AssemblyInformationalVersion, so with MinVer excluded it got the SDK's default and reported
+    "1.0.0" from every build there has ever been: local, nightly and release alike. The showcase's
+    navbar badge rendered `v1.0.0` next to a v0.20 codebase, and nothing failed.
+
+    Verified rather than assumed: `dotnet build src/Rask.Core -p:MinVerVerbosity=diagnostic` printed no
+    MinVer output at all, while the same command on Rask.Server (packable) calculated
+    0.20.1-alpha.0.262.
+
+    AssemblyVersion stays 0.0.0.0: Directory.Build.props pins it at evaluation time, and MinVer's target
+    computes $(MinVerMajor).0.0.0 — the same value while the major is 0 — so the two agree and the
+    hot-reload CS7038 that pinning exists to prevent cannot come back. AssemblyVersionStabilityTests is
+    what catches the day the major leaves 0.x.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all"/>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Primitives"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>

@@ -1,7 +1,6 @@
 using Rask.Core;
 using Rask.Core.Browser;
 using Rask.Core.Components;
-using Rask.Html.Components;
 
 namespace Rask.Site.Features;
 
@@ -75,7 +74,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             Span
                                 .Id("eyedropper-swatch")
                                 .Style("display:inline-block;width:1.25rem;height:1.25rem;border-radius:.25rem;"
-                                       + $"border:1px solid #ccc;background:{_color}"),
+                                       + $"border:1px solid var(--color-base-300);background:{_color}"),
                             Code.Id("eyedropper-value")[_color]]
                 ],
                 // MediaCaptureTrigger fills this <video> from the camera; PictureInPictureTrigger then pops
@@ -120,7 +119,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Ref(_preview)
                         .Id("gesture-preview")
                         .Muted(true)
-                        .Style("width:12rem;max-width:100%;border-radius:.25rem;background:#000")
+                        .Style("width:12rem;max-width:100%;border-radius:.25rem;background:var(--color-neutral)")
                 ],
                 Div.Class("text-sm text-ui-muted mt-3")[
                     "Every button runs inside its own click gesture, so they all work on the Server too. ",

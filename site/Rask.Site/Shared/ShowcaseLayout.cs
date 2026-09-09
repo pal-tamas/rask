@@ -20,6 +20,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     private static readonly IReadOnlyDictionary<string, string?> DrawerAria =
         new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle navigation" };
 
+    // The field's accessible name. Its placeholder is not one: a placeholder disappears the moment
+    // typing starts, taking the field's only description with it.
+    private static readonly IReadOnlyDictionary<string, string?> FilterAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["label"] = "Filter guides and examples",
+        };
+
     /// <summary>The shape of the two actions in the top bar's trailing edge.</summary>
     /// <remarks>
     /// <c>min-h-11</c> below <c>sm</c>: 44px is the smallest reliable touch target, and these are
@@ -81,13 +89,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // below: UiNav is a five-tab bar for a console, and this app has eighty guides in a filterable,
         // grouped rail. Forcing one into the other would have been worse than sharing neither.
         Nav.Class(
-            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-ui-line "
-            + "bg-ui-bg px-3 py-2 text-ui-ink")[
+            "app-navbar sticky top-0 z-40 flex items-center gap-3 border-b border-base-300 "
+            + "bg-base-100 px-3 py-2 text-base-content")[
             Button
                 .Type("button")
                 .Class(
-                    "hamburger-btn inline-flex min-h-11 items-center rounded-lg px-2 text-ui-muted "
-                    + "hover:bg-ui-well hover:text-ui-ink md:hidden")
+                    "hamburger-btn inline-flex min-h-11 items-center rounded-lg px-2 "
+                    + "text-base-content/70 hover:bg-base-200 hover:text-base-content md:hidden")
                 .Aria(DrawerAria)
                 .OnClick(() => _drawerOpen = !_drawerOpen)[
                 UiIcon.Name(_drawerOpen ? UiIconName.Close : UiIconName.Menu).Class("size-5 shrink-0")
@@ -95,14 +103,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             NavLink
                 .Href(Features.Routes.GuidesIndexPage())
                 .ActiveClass("")
-                .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
+                .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-base-content no-underline")[
                 RaskLogo.Size(24).GradientId("brandBolt"),
                 Span["Rask"],
                 // Both badges are hidden below sm. The bar carries a hamburger, the brand, a GitHub
                 // link and the theme picker, and on a 390px screen the row measured 399px — a
                 // 9px overflow that scrolled the whole document sideways on every page of the docs.
-                Span.Class("rask-badge hidden rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted sm:inline")["showcase"],
-                Span.Class("hidden rounded-full border border-ui-line bg-ui-well px-2 py-0.5 text-xs text-ui-muted sm:inline")[$"v{RaskVersion.Current}"]
+                Span.Class("rask-badge hidden rounded-full border border-base-300 bg-base-200 px-2 py-0.5 text-xs text-base-content/70 sm:inline")["showcase"],
+                Span.Class("hidden rounded-full border border-base-300 bg-base-200 px-2 py-0.5 text-xs text-base-content/70 sm:inline")[$"v{RaskVersion.Current}"]
             ],
             Div.Class("flex items-center gap-2 ms-auto")[
                 PathDisplay,
@@ -110,7 +118,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     .Href("https://github.com/pal-tamas/rask")
                     .Target("_blank")
                     .Rel("noopener")
-                    .Class(TopAction + " border border-ui-line bg-ui-bg text-ui-ink hover:bg-ui-well")[
+                    .Class(TopAction + " border border-base-300 bg-base-100 text-base-content hover:bg-base-200")[
                     UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"),
                     Span.Class("hidden sm:inline")["GitHub"]
                 ]
@@ -126,9 +134,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             // Always in the flow from md up; below that it slides over the page, and a backdrop
             // closes it. The open state was already Rask state — the drawer never needed script.
             Aside
+                // FULLSCREEN below md. It used to be a 288px (w-72) rail pinned to the left edge, which
+                // left a strip of the page showing behind the backdrop and gave the list barely half a
+                // phone to lay eighty guides out in. inset-0 with a full width is the whole viewport, so
+                // the drawer is the only thing on screen while it is open and the list gets the height.
                 .Class(_drawerOpen
-                    ? "side-nav flex fixed inset-y-0 left-0 z-50 w-72 bg-ui-bg p-4 "
-                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none"
+                    ? "side-nav flex fixed inset-0 z-50 w-full bg-base-100 p-4 "
+                      + "shadow-xl md:static md:inset-auto md:z-auto md:w-64 md:shadow-none"
                     : "side-nav hidden w-64 p-4 md:flex")[
                 SidebarBody()
             ],
@@ -149,11 +161,21 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
         Div.Class("side-nav-search")[
-            Input
+            // The kit's search field, which is now an IFormControl<string> like every other control in
+            // it — so this reads as a field rather than as a hand-assembled label/icon/input sandwich.
+            //
+            // OnInput, not OnChange: this filter narrows the list as it is typed. OnChange is the commit
+            // moment (blur or Enter) and is what the operator console's searches use, since those
+            // navigate. Block, because the rail is 256px and the field's default settles at 288 from sm
+            // up.
+            UiSearch
                 .Value(_filter)
-                .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…")
-                .Class($"side-nav-filter {Tw.Input}")
+                .AccessibleLabel("Filter guides and examples")
+                .OnInput(v => _filter = v)
+                .Size(UiSize.Sm)
+                .Block(true)
+                .Class("side-nav-filter")
         ],
         Div.Class("side-nav-scroll")[
             Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]
@@ -189,7 +211,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         foreach (var (section, links) in Sections())
         {
             var groups = new List<Component>();
-            foreach (var (group, items) in GroupConsecutive(links))
+            foreach (var (group, items) in GroupByName(links))
             {
                 var visible = filtering
                     ? items.Where(i => i.Label.Contains(_filter, StringComparison.OrdinalIgnoreCase)).ToList()
@@ -293,7 +315,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // landing (the interactive Examples/Bootstrap groups stay collapsed accordions until visited).
     private void OpenGuideGroups()
     {
-        foreach (var (group, _) in GroupConsecutive(GuidesNav()))
+        foreach (var (group, _) in GroupByName(GuidesNav()))
         {
             _openGroups.Add(GroupKey("Guides", group));
         }
@@ -318,33 +340,42 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     private static string GroupKey(string section, string group) => $"{section}{group}";
 
-    // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
-    // groups in the order their first item appears, exactly as the flat list was authored).
+    // Groups links by their Group label, in the order each group FIRST appears (the sidebar shows
+    // groups in the order the flat list introduces them). See the body for why this is by name rather
+    // than by consecutive run - it is the fix for the Examples section drawing "PWA" twice.
     private static IEnumerable<(string Group, List<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> Items)>
-        GroupConsecutive(IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> links)
+        GroupByName(IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> links)
     {
-        string? current = null;
-        List<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)>? bucket = null;
+        // BY NAME, not by consecutive run, and the difference is a bug the Examples section shipped.
+        //
+        // The entries arrive in DI registration order, and Program.cs registers "PWA", then "Islands",
+        // then six "UI kit", then twelve more "PWA". Grouped by run that is TWO "PWA" blocks: the
+        // sidebar drew the heading twice, both derived the same GroupKey so one chevron opened and
+        // closed both, and two sibling <li> carried the same Key - which RASK022 holds a keyed list to
+        // as identity, leaving reconciliation between them undefined.
+        //
+        // First appearance decides position, so input that is already consecutive (the guide catalog,
+        // authored in order) groups exactly as it did before.
+        var order = new List<string>();
+        var buckets =
+            new Dictionary<string, List<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)>>(
+                StringComparer.Ordinal);
 
         foreach (var link in links)
         {
-            if (link.Group != current)
+            if (!buckets.TryGetValue(link.Group, out var bucket))
             {
-                if (bucket is not null)
-                {
-                    yield return (current!, bucket);
-                }
-
-                current = link.Group;
                 bucket = [];
+                buckets.Add(link.Group, bucket);
+                order.Add(link.Group);
             }
 
-            bucket!.Add(link);
+            bucket.Add(link);
         }
 
-        if (bucket is not null)
+        foreach (var group in order)
         {
-            yield return (current!, bucket);
+            yield return (group, buckets[group]);
         }
     }
 

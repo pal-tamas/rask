@@ -4,6 +4,9 @@ using Rask.Core.Routing;
 using Rask.Site;
 using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
+using Rask.Ui;
+
+using Entry = (string Path, string Label, Rask.Ui.UiIconName Icon, string Group, string? MatchPrefix);
 
 namespace Rask.Site.Tests.Layout;
 
@@ -20,13 +23,13 @@ public sealed class ShowcaseLayoutTests
 
         // app-navbar and app-brand are hooks the scoped stylesheet and the E2E both select on.
         //
-        // The colour assertion is on the kit's token, not a Tailwind hue. It used to pin bg-slate-900 —
-        // "what makes it the dark bar now that no framework decides that for us" — and the bar is drawn
-        // from Rask.Ui's palette now, light, so a hue would only ever pin whichever one happened to be
-        // chosen. bg-ui-bg says the thing that must stay true: this chrome takes its surface from the
-        // shared palette rather than inventing one.
+        // The colour assertion is on a THEME token, not a Tailwind hue. It pinned bg-slate-900 once
+        // ("what makes it the dark bar"), then bg-ui-bg when the bar moved to the kit's palette; it is
+        // bg-base-100 now that the bar follows the reader's chosen theme. The thing that must stay true
+        // is the same throughout: this chrome takes its surface from the shared palette rather than
+        // inventing one. ui-* still resolves to exactly this token — the name changed, not the colour.
         Assert.Contains("app-navbar", html);
-        Assert.Contains("bg-ui-bg", html);
+        Assert.Contains("bg-base-100", html);
         Assert.Contains("app-brand", html);
         Assert.Contains("hamburger-btn", html);
 
@@ -55,6 +58,79 @@ public sealed class ShowcaseLayoutTests
         // to nothing. Asserted as an ABSENCE because the category list is data — an empty category
         // renders no heading, so its removal is invisible unless something looks for it.
         Assert.DoesNotContain(">Bootstrap<", html);
+    }
+
+    [Fact]
+    public void GroupByName_MergesAGroupThatAppearsTwice()
+    {
+        // Regression: the Examples section drew "PWA" TWICE.
+        //
+        // The sidebar grouped by consecutive RUN, and the entries arrive in DI registration order.
+        // Program.cs registers PWA, then Islands, then six UI kit, then twelve more PWA - two runs of
+        // the same name, so two group blocks: the heading appeared twice, both derived the same
+        // GroupKey so one chevron opened and closed both, and two sibling <li> carried the same Key,
+        // which RASK022 holds a keyed list to as identity.
+        //
+        // Exercised on the grouping function with Program.cs's actual shape rather than through a
+        // render: the entries come from DI, the test host registers none, so a rendered sidebar has no
+        // Examples groups at all and could never show the defect. That is exactly how the first version
+        // of this test passed while proving nothing.
+        var links = new List<Entry>
+        {
+            ("/pwa", "PWA demo", UiIconName.Phone, "PWA", null),
+            ("/islands", "Islands", UiIconName.Overview, "Islands", null),
+            ("/ui/actions", "Actions", UiIconName.Check, "UI kit", null),
+            ("/ui/layout", "Layout", UiIconName.Desktop, "UI kit", null),
+            ("/install-prompt", "Install prompt", UiIconName.Download, "PWA", null),
+            ("/wake-lock", "Wake lock", UiIconName.Desktop, "PWA", null),
+        };
+
+        var grouped = InvokeGroupByName(links).ToList();
+
+        Assert.Equal(new[] { "PWA", "Islands", "UI kit" }, grouped.Select(g => g.Group).ToArray());
+
+        // Merged, not merely deduplicated: every PWA entry has to end up in the one block.
+        var pwa = grouped.Single(g => g.Group == "PWA").Items.ToList();
+        Assert.Equal(3, pwa.Count);
+        Assert.Contains(pwa, e => e.Label == "PWA demo");
+        Assert.Contains(pwa, e => e.Label == "Wake lock");
+    }
+
+    [Fact]
+    public void GroupByName_KeepsFirstAppearanceOrderForAlreadyConsecutiveInput()
+    {
+        // The guide catalog is authored in order and its groups are already consecutive, so this has to
+        // behave exactly as the old run-based grouping did for it.
+        var links = new List<Entry>
+        {
+            ("/a", "A", UiIconName.Book, "Overview", null),
+            ("/b", "B", UiIconName.Book, "Overview", null),
+            ("/c", "C", UiIconName.Cube, "Core", null),
+        };
+
+        var grouped = InvokeGroupByName(links).ToList();
+
+        Assert.Equal(new[] { "Overview", "Core" }, grouped.Select(g => g.Group).ToArray());
+        Assert.Equal(2, grouped[0].Items.Count);
+    }
+
+    [Fact]
+    public void RenderThroughApp_RendersNoSidebarGroupTwice()
+    {
+        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+        var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+
+        var labels = Regex.Matches(html, "nav-group-label\"[^>]*>([^<]+)<")
+            .Select(m => m.Groups[1].Value)
+            .ToList();
+
+        Assert.NotEmpty(labels);
+        var duplicated = labels.GroupBy(l => l, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key + " x" + g.Count())
+            .ToList();
+
+        Assert.True(duplicated.Count == 0, "a sidebar group is rendered more than once: " + string.Join(", ", duplicated));
     }
 
     [Fact]
@@ -206,6 +282,15 @@ public sealed class ShowcaseLayoutTests
 
     private static string CollapseWhitespace(string s) =>
         Regex.Replace(s, @"\s+", " ");
+
+    private static IEnumerable<(string Group, List<Entry> Items)> InvokeGroupByName(
+        IEnumerable<Entry> links)
+    {
+        var mi = typeof(ShowcaseLayout).GetMethod("GroupByName",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.NotNull(mi);
+        return (IEnumerable<(string Group, List<Entry> Items)>)mi!.Invoke(null, new object[] { links })!;
+    }
 
     private static bool InvokePrivateIsActive(ShowcaseLayout layout, string href, string? matchPrefix = null)
     {

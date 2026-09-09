@@ -14,8 +14,15 @@
     --rask-accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
     --rask-gradient: linear-gradient(135deg, var(--accent), var(--accent-2));
 
-    --rask-ink: #14101f; /* deep violet-black: code panes — always dark, both themes */
-    --rask-ink-2: #211b30; /* one step lifted from ink */
+    /* The code surface, from the THEME rather than from two fixed hexes.
+
+       These were #14101f / #211b30 — "code panes, always dark, both themes". That predates the theme
+       picker: with thirty-five themes on the bar, a pane welded to one violet-black is the one part of
+       a page that ignores the reader's choice, and in a light theme it is a slab of near-black in the
+       middle of the prose. base-300 is daisyUI's deepest base step, so the pane still reads as a
+       recessed surface, and it moves with every theme. */
+    --rask-ink: var(--color-base-300);
+    --rask-ink-2: var(--color-base-200);
     --rask-mist: var(--panel-2); /* faint lifted surface for boxes (Chapters TOC, etc.) */
     --rask-line: var(--line); /* hairline */
     --rask-body: var(--ink); /* body text */
@@ -135,65 +142,65 @@ button, a, [role="button"] {
 /* From CodeSample: ColorCode emits <span class="keyword|string|comment|…"> token markup
    injected through Raw(), so those spans carry no scope attribute. Anchored under
    .sample-code so the generic class names don't leak page-wide. Dark palette tuned to
-   the #1f1d2b background / #e7e3ff base text. */
+   the theme's own base surface — see the --rask-ink note above. */
 :is(.sample-code, .markdown-body pre) .keyword,
 :is(.sample-code, .markdown-body pre) .preprocessorKeyword {
-    color: #c792ea;
+    color: var(--color-primary);
 }
 
 :is(.sample-code, .markdown-body pre) .string,
 :is(.sample-code, .markdown-body pre) .stringCSharpVerbatim {
-    color: #c3e88d;
+    color: var(--color-success);
 }
 
 :is(.sample-code, .markdown-body pre) .stringEscape {
-    color: #89ddff;
+    color: var(--color-info);
 }
 
 :is(.sample-code, .markdown-body pre) .comment {
-    color: #6b6786;
+    color: color-mix(in oklab, var(--color-base-content) 55%, transparent);
     font-style: italic;
 }
 
 :is(.sample-code, .markdown-body pre) .xmlDocComment {
-    color: #6b6786;
+    color: color-mix(in oklab, var(--color-base-content) 55%, transparent);
     font-style: italic;
 }
 
 :is(.sample-code, .markdown-body pre) .xmlDocTag {
-    color: #8b87a8;
+    color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
 }
 
 :is(.sample-code, .markdown-body pre) .number {
-    color: #f78c6c;
+    color: var(--color-warning);
 }
 
 :is(.sample-code, .markdown-body pre) .className {
-    color: #82aaff;
+    color: var(--color-secondary);
 }
 
 :is(.sample-code, .markdown-body pre) .plainText {
-    color: #e7e3ff;
+    color: var(--color-base-content);
 }
 
 /* CSS-language tokens (ColorCode's CSS lexer): selectors, property names and values. The
    JS lexer reuses the shared keyword/string/comment/number classes above. */
 :is(.sample-code, .markdown-body pre) .cssSelector {
-    color: #82aaff;
+    color: var(--color-secondary);
 }
 
 :is(.sample-code, .markdown-body pre) .cssPropertyName {
-    color: #89ddff;
+    color: var(--color-info);
 }
 
 :is(.sample-code, .markdown-body pre) .cssPropertyValue {
-    color: #c3e88d;
+    color: var(--color-success);
 }
 
 /* CodeSample: the source pane and the live result stack vertically (code first); a hairline
    divides them now that they are no longer side-by-side columns. */
 .sample-result-col {
-    border-top: 1px solid rgba(124, 58, 237, 0.15);
+    border-top: 1px solid var(--color-base-300);
 }
 
 /* ShowcaseLayout: the app shell (navbar + responsive-offcanvas sidebar + main). These rules are
@@ -204,10 +211,20 @@ button, a, [role="button"] {
    above — markup another component renders can't be component-scoped. The .side-nav* / .nav-group* /
    .app-* class names are specific enough not to leak. */
 
-/* Sticky top bar — a fixed violet-black glass (kept dark in both themes so the BsNavbar's Theme:Dark
-   light text stays readable), matching the marketing site's dark topbar. */
+/* Sticky top bar — glass over whatever surface the CHOSEN THEME defines.
+   
+   It used to read `background: rgba(20, 16, 31, 0.82) !important`: a violet-black pinned across every
+   theme, from when this bar was a BsNavbar carrying Theme:Dark and needing a dark ground under its
+   light text. The component went; the override outlived it, and `!important` meant no utility could
+   ever win. The result was a bar whose text and border tracked the picked theme while its background
+   could not — measured identical (rgba(20,16,31,0.82)) under light, dark, synthwave and retro, so
+   every light theme drew theme-coloured text on dark navy.
+
+   color-mix rather than a flat token because the blur below is only worth having if what sits behind
+   the bar shows through it. base-100 is the surface the element also names as `bg-base-100`, so the
+   utility and this rule agree instead of fighting. */
 .app-navbar {
-    background: rgba(20, 16, 31, 0.82) !important;
+    background: color-mix(in oklab, var(--color-base-100) 82%, transparent);
     backdrop-filter: saturate(180%) blur(14px);
     -webkit-backdrop-filter: saturate(180%) blur(14px);
     padding-top: calc(0.5rem + env(safe-area-inset-top));
@@ -216,6 +233,8 @@ button, a, [role="button"] {
 
 /* Hamburger toggle — a transparent icon button shown only below md (the d-md-none utility hides it
    at >=md, where the sidebar is static). */
+/* NO colour here. `color: #fff` used to live in this rule, which is white-on-white the moment the
+   theme is a light one; the element carries `text-base-content/70` and owns its own colour. */
 .hamburger-btn {
     display: inline-flex;
     align-items: center;
@@ -224,7 +243,6 @@ button, a, [role="button"] {
     min-height: 44px;
     border: 0;
     background: transparent;
-    color: #fff;
     border-radius: 0.5rem;
     margin-right: 0.25rem;
     padding: 0;
@@ -232,7 +250,7 @@ button, a, [role="button"] {
 
 .hamburger-btn:hover,
 .hamburger-btn:focus {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in oklab, var(--color-base-content) 8%, transparent);
     outline: none;
 }
 
@@ -339,9 +357,17 @@ button, a, [role="button"] {
         align-self: flex-start;
     }
 
-    /* Cap the body to the viewport minus the navbar so the inner .side-nav-scroll (not the page) is the
-       bounded scroll region — a long, fully-expanded list scrolls inside itself, filter pinned above. */
-    .side-nav.offcanvas-md .offcanvas-body {
+    /* Cap the aside to the viewport minus the navbar so the inner .side-nav-scroll (not the page) is
+       the bounded scroll region — a long, fully-expanded list scrolls inside itself, filter pinned
+       above.
+
+       ON .side-nav ITSELF, and that is the fix. This used to read `.side-nav.offcanvas-md
+       .offcanvas-body`, from when BsOffcanvas supplied the container — the comment two rules up already
+       says the container is the <aside> now, so neither class was on the page and the rule matched
+       NOTHING. With no cap the aside grew to its full content height (measured: 4388px against a 900px
+       viewport), which meant .side-nav-scroll had no bounded parent to scroll inside, `position: sticky`
+       had nothing to stick within, and the whole rail scrolled with the document instead. */
+    .side-nav {
         max-height: calc(100vh - var(--nav-h));
     }
 }
@@ -350,6 +376,11 @@ button, a, [role="button"] {
 @media (max-width: 767.98px) {
     .side-nav {
         padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
+        padding-bottom: env(safe-area-inset-bottom);
+        /* The drawer is `fixed inset-0` below md, so the box is already the viewport; dvh keeps it
+           honest while the mobile browser's own chrome slides in and out. The inner
+           .side-nav-scroll is what scrolls — the drawer itself never does. */
+        max-height: 100dvh;
     }
 }
 
@@ -416,14 +447,14 @@ button, a, [role="button"] {
 
 .markdown-body pre {
     background: var(--rask-ink);
-    color: #e7e3ff;
+    color: var(--color-base-content);
     padding: 1rem 1.2rem;
     border-radius: 0.7rem;
     overflow-x: auto;
     margin-bottom: 1.25rem;
     font-size: 0.85rem;
     line-height: 1.6;
-    border: 1px solid rgba(124, 58, 237, 0.18);
+    border: 1px solid var(--color-base-300);
 }
 
 .markdown-body pre code {
@@ -514,5 +545,5 @@ button, a, [role="button"] {
 
 .see-also-link:hover {
     background: var(--rask-accent);
-    color: #fff;
+    color: var(--color-primary-content);
 }

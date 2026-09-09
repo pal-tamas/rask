@@ -11,23 +11,49 @@ public partial class App : Component
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
     // the scoped-css link, so a page's own stylesheet still wins over them.
-    // Theme init: stamp data-theme + data-bs-theme = "light" on <html> before any stylesheet matches.
+    // Theme init: stamp the READER'S theme on <html> before any stylesheet matches, and remember it.
     //
-    // It used to read a saved choice or the OS preference and default to DARK. Both are gone with the
-    // navbar's toggle: the chrome is drawn from Rask.Ui now, whose palette is light, and a dark page
-    // inside a light shell is worse than either on its own. This app's own stylesheet is still
-    // dark-first at :root, so the attribute is what selects its light block — the pages have not been
-    // ported yet, and this is what keeps them agreeing with the chrome in the meantime.
+    // UiThemePicker is radios with no script, which is what lets daisyUI switch the palette in CSS
+    // alone — and it is also why the choice did not survive leaving the page. The landing page and the
+    // showcase layout each mount their OWN picker; navigating between them unmounts one set of radios
+    // and mounts another with nothing checked, so the theme fell back to the default on every trip
+    // between / and /docs. The kit says as much and points at exactly this fix: "an app that wants it
+    // remembered should render data-theme from its own stored preference instead."
+    //
+    // So this owns three things the kit deliberately does not:
+    //   - PERSISTENCE. The chosen value is written to localStorage on change and read back on boot.
+    //   - RE-SELECTION. The matching radio is re-checked after every morph, so a freshly-mounted
+    //     picker shows which theme is on rather than thirty-five blank circles.
+    //   - THE LABEL. .ui-theme-current (the dropdown's trigger text) is set to the theme's name, so
+    //     the bar says which one is selected without opening it.
+    //
+    // The attribute and the radio agree by construction. daisyUI emits both
+    // `[data-rask-ui]:has(input.theme-controller[value=x]:checked)` and `[data-theme=x]`, the :has form
+    // outranking the attribute, so checking the radio for the same value the attribute names means
+    // whichever one matches, the answer is the same.
     //
     // Still a script rather than a literal attribute on <html>: a full-document morph strips attributes
     // off <html> (the framework renders <html lang> and nothing else), so the hook below re-applies it
     // after every one. On Server this runs in the SSR'd <head>; on WASM the same snippet lives in
     // index.html for pre-boot (the morphed-in copy does not re-execute, but re-registers the same
-    // idempotent hook).
+    // idempotent hook). Every localStorage touch is wrapped: a browser with site data blocked throws
+    // on access, and a theme preference is not worth failing a page load over.
     private const string ThemeInitJs =
-        "(function(){var d=document.documentElement;" +
-        "function apply(){d.setAttribute('data-theme','light');d.setAttribute('data-bs-theme','light');}" +
+        "(function(){var KEY='rask-theme';var d=document.documentElement;" +
+        "function saved(){try{return localStorage.getItem(KEY);}catch(e){return null;}}" +
+        "function store(v){try{localStorage.setItem(KEY,v);}catch(e){}}" +
+        "function current(){return saved()||'light';}" +
+        "function apply(){var t=current();" +
+        "d.setAttribute('data-theme',t);d.setAttribute('data-bs-theme',t);" +
+        "var rs=document.querySelectorAll('input.theme-controller');" +
+        "for(var i=0;i<rs.length;i++){if(rs[i].value===t&&!rs[i].checked)rs[i].checked=true;}" +
+        "var ls=document.querySelectorAll('.ui-theme-current');" +
+        "for(var j=0;j<ls.length;j++){ls[j].textContent=t;}}" +
         "apply();" +
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply);}" +
+        "document.addEventListener('change',function(e){var t=e.target;" +
+        "if(t&&t.classList&&t.classList.contains('theme-controller')&&t.checked){store(t.value);apply();}" +
+        "},true);" +
         "var prev=window.raskAfterMorph;" +
         "window.raskAfterMorph=function(){apply();" +
         "if(typeof prev==='function')prev();};})();";

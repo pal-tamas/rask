@@ -14,7 +14,7 @@ public sealed partial class RatingStars : Component
         Div.Class("inline-flex gap-1")[
             Enumerable.Range(1, 5).Select(i => (Component)Button.Class($"{Tw.BtnLink} text-2xl leading-none").Type("button")
                 .Key(i)
-                .Style(i <= Value ? "color:#ffc107" : "color:#ced4da")
+                .Style(i <= Value ? "color:var(--color-warning)" : "color:var(--color-base-300)")
                 .OnClick(() => OnRate?.Invoke(i))[
                 i <= Value ? "★" : "☆"
             ])

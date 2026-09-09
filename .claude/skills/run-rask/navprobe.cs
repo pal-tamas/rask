@@ -26,7 +26,7 @@ if (label != "-")
         await page.WaitForTimeoutAsync(500);
     }
 
-    await page.Locator(".side-nav .side-nav-filter").First.FillAsync(label);
+    await page.Locator(".side-nav .side-nav-filter input").First.FillAsync(label);
     var any = page.Locator($".side-nav a.side-nav-link:has-text(\"{label}\")");
     await any.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20000 });
     await page.WaitForTimeoutAsync(300);

@@ -5,7 +5,7 @@
 
 .sample-code-col {
     background: var(--rask-ink);
-    color: #e7e3ff;
+    color: var(--color-base-content);
     display: flex;
     flex-direction: column;
 }
@@ -15,8 +15,8 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.55rem 0.9rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.18);
+    border-bottom: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+    background: color-mix(in oklab, var(--color-base-content) 6%, transparent);
 }
 
 .sample-dot {
@@ -27,21 +27,21 @@
 }
 
 .dot-r {
-    background: #ff5f57;
+    background: var(--color-error);
 }
 
 .dot-y {
-    background: #febc2e;
+    background: var(--color-warning);
 }
 
 .dot-g {
-    background: #28c840;
+    background: var(--color-success);
 }
 
 .sample-code-label {
     font-family: var(--font-mono);
     font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.45);
+    color: color-mix(in oklab, var(--color-base-content) 45%, transparent);
 }
 
 /* One tab per source file, labelled with the file name — only rendered when a sample carries
@@ -56,7 +56,7 @@
 .sample-tab {
     border: 0;
     background: transparent;
-    color: rgba(255, 255, 255, 0.5);
+    color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
     font-family: var(--font-mono);
     font-size: 0.72rem;
     padding: 0.15rem 0.55rem;
@@ -66,13 +66,13 @@
 }
 
 .sample-tab:hover {
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.06);
+    color: color-mix(in oklab, var(--color-base-content) 85%, transparent);
+    background: color-mix(in oklab, var(--color-base-content) 6%, transparent);
 }
 
 .sample-tab.active {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.12);
+    color: var(--color-base-content);
+    background: color-mix(in oklab, var(--color-base-content) 12%, transparent);
 }
 
 /* Copy-to-clipboard button, pushed to the right edge of the header. */
@@ -82,7 +82,7 @@
     align-items: center;
     border: 0;
     background: transparent;
-    color: rgba(255, 255, 255, 0.5);
+    color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
     font-size: 0.72rem;
     padding: 0.15rem 0.55rem;
     border-radius: 0.35rem;
@@ -91,12 +91,12 @@
 }
 
 .sample-copy:hover {
-    color: rgba(255, 255, 255, 0.9);
-    background: rgba(255, 255, 255, 0.06);
+    color: color-mix(in oklab, var(--color-base-content) 90%, transparent);
+    background: color-mix(in oklab, var(--color-base-content) 6%, transparent);
 }
 
 .sample-copy.copied {
-    color: #28c840;
+    color: var(--color-success);
 }
 
 .sample-code {
@@ -121,7 +121,7 @@
    be scoped — they live (anchored under .sample-code) in the app's global stylesheet,
    wwwroot/global.css. The structural styles below stay scoped to this component. */
 .sample-result-col {
-    background: #fff;
+    background: var(--color-base-100);
     display: flex;
     flex-direction: column;
 }
@@ -146,14 +146,14 @@
     height: 0.45rem;
     border-radius: 50%;
     background: var(--rask-accent);
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-primary) 50%, transparent);
     animation: sample-pulse 2.4s ease-out infinite;
 }
 
 @keyframes sample-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
-    70% { box-shadow: 0 0 0 6px rgba(124, 58, 237, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+    0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-primary) 50%, transparent); }
+    70% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-primary) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-primary) 0%, transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -168,6 +168,6 @@
 
 @media (max-width: 767.98px) {
     .sample-code-col {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
     }
 }

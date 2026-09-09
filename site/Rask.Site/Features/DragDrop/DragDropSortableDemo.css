@@ -12,7 +12,7 @@
 }
 
 .dd-drop-target {
-    outline: 2px dashed var(--rask-accent, #6610f2);
+    outline: 2px dashed var(--rask-accent);
     outline-offset: -2px;
-    background-color: var(--rask-accent-soft, #f1ebfd);
+    background-color: var(--rask-accent-soft);
 }
