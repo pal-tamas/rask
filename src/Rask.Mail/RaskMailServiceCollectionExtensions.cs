@@ -33,6 +33,13 @@ public static class RaskMailServiceCollectionExtensions
         services.TryAddSingleton<IMailSender>(sp => CreateSender(sp, options));
         services.TryAddSingleton<IMail, MailQueue<TContext>>();
 
+        // Before the processor, so an app whose model never mapped QueuedMail fails the boot with the
+        // line to type rather than on the first password reset. The processor itself tolerates a missing
+        // table — it has to, because a freshly scaffolded app boots before its first migration has run —
+        // so it is the wrong place to notice. See BatteryModelCheck: this reads the MODEL, never the
+        // database, so an app that has not run `rask db update` yet still starts.
+        services.AddHostedService<MailModelCheck<TContext>>();
+
         // AddHostedService uses TryAddEnumerable, so a repeated call registers only one processor.
         services.AddHostedService<MailProcessor<TContext>>();
         return services;

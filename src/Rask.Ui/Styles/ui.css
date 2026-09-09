@@ -38,6 +38,31 @@
 
   daisyUI's own rules are already layered (`@layer daisyui...`), so only these two needed saying.
 */
+/*
+  THE LAYER ORDER FOR THE WHOLE DOCUMENT, declared before anything can imply a different one.
+
+  CSS orders layers by FIRST APPEARANCE, across every sheet, in link order — and nothing later can
+  reorder them. This sheet is linked first, so whatever order it happens to mention layers in becomes
+  the order every other sheet is ranked by, including the app's own Tailwind output.
+
+  Without this statement that order was decided by accident. The blocks land here as
+  properties, theme, utilities, daisyui, rask, base — daisyUI emits its `base` rules last — which puts
+  `base` ABOVE `utilities` for the entire page. The consuming app then links its own Tailwind, whose
+  `@layer theme, base, components, utilities;` is a no-op because those names are already ordered, and
+  its preflight outranks every utility it emitted: `h1.text-4xl.font-semibold` computed to 16px/400
+  against `h1,h2,h3,h4,h5,h6 { font-size: inherit; font-weight: inherit }`, and `px-5` computed to
+  `padding: 0` against preflight's `*{padding:0}`. The whole showcase rendered as near-unstyled HTML
+  with every class name present and correct in the markup, on a green build.
+
+  Stated explicitly, the order is the intended one: an app's utilities beat its own preflight, and they
+  beat both daisyUI and this kit's corrections — which is the "an app keeps its own cascade" promise the
+  layer() imports below are already making. `rask` after `daisyui` because the corrections at the foot
+  of this file exist precisely to outrank the library.
+
+  UiLayerOrderTests asserts this statement is the first at-rule in the compiled sheet.
+*/
+@layer properties, theme, base, components, daisyui, rask, utilities;
+
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 

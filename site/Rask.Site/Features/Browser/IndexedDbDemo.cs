@@ -21,13 +21,13 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("grid grid-cols-12 gap-4 mb-2")[
-                    Div.Class("sm:col-span-4")[
+                    Div.Class("col-span-12 sm:col-span-4")[
                         Input
                             .Value(_key)
                             .Id("idb-key")
                             .Class(Tw.Input)
                             .OnInput(v => _key = v)],
-                    Div.Class("sm:col-span-8")[
+                    Div.Class("col-span-12 sm:col-span-8")[
                         Input
                             .Value(_value)
                             .Id("idb-value")

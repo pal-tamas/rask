@@ -292,7 +292,24 @@ export function start(doc = document) {
         }
     });
 
-    observer.observe(doc.body ?? doc, {
+    // <html>, NOT <body>, and that difference is the whole of #1035.
+    //
+    // A MutationObserver watches the NODE it was given. A full-frame render replaces <body> outright
+    // rather than patching it, so an observer bound to the body the page loaded with is left holding a
+    // detached node: it never fires again, and no island in the new body is ever hydrated. The page
+    // then shows empty <rask-external> hosts for the rest of its life.
+    //
+    // It went unnoticed because it is a race the shell happened to win. When the first response is the
+    // boot shell, this module's start() runs before there is anything to mount, WebAssembly swaps in the
+    // real body, and the islands arrive INSIDE that new body — so the observer that matters is the one
+    // attached afterwards. Serve the same page prerendered and the order inverts: the islands are in the
+    // first response, they mount, and then the swap throws them away with the body they were in.
+    //
+    // documentElement outlives the swap, and `subtree: true` reaches the same nodes it did before —
+    // plus the replacement body itself, which arrives as an addedNode and sweeps normally. The removed
+    // body sweeps out through teardown, so the discarded islands get their adapter's unmount rather
+    // than being dropped on the floor still mounted.
+    observer.observe(doc.documentElement ?? doc.body ?? doc, {
         childList: true,
         subtree: true,
         attributes: true,

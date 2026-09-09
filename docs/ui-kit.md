@@ -58,6 +58,22 @@ same reasoning is why it ships no preflight.
 `@theme` re-skins every component without overriding a single rule — which only works while your copy
 is what the cascade reads last.
 
+**The kit's sheet is linked first because it declares the layer order for the whole document.** A
+browser orders `@layer` names by *first appearance*, across every sheet on the page, and nothing later
+can reorder a name that has already been placed — so whichever sheet loads first decides the ranking
+every other sheet is judged by. The kit's opens with
+
+```css
+@layer properties, theme, base, components, daisyui, rask, utilities;
+```
+
+which puts your utilities above your own Tailwind preflight, above daisyUI, and above the kit's own
+corrections. Link it second and that statement arrives too late: the order falls out of whatever the
+sheets happen to mention first, which is how `base` once ended up outranking `utilities` for a whole
+site — every `text-4xl` and `px-*` in the markup, present and correct, and silently beaten by
+preflight's `h1 { font-size: inherit }` and `* { padding: 0 }`. `UiLayerOrderTests` holds the order in
+the compiled sheet.
+
 > **CSS layers do not merge across `<link>` elements.** If you find a kit rule beating one of your
 > utilities, or the reverse, that is why — and it is not something either sheet's source order can
 > settle.

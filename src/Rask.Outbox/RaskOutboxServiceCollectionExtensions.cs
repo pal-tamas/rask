@@ -50,6 +50,13 @@ public static class RaskOutboxServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, OutboxInterceptor>();
         }
 
+        // Before the processor, so an app whose model never mapped OutboxMessage fails the boot with the
+        // line to type rather than on the first domain event. The processor itself tolerates a missing
+        // table — it has to, because a freshly scaffolded app boots before its first migration has run —
+        // so it is the wrong place to notice. See BatteryModelCheck: this reads the MODEL, never the
+        // database, so an app that has not run `rask db update` yet still starts.
+        services.AddHostedService<OutboxModelCheck<TContext>>();
+
         services.AddHostedService<OutboxProcessor<TContext>>();
         return services;
     }

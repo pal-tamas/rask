@@ -90,6 +90,48 @@ dotnet run --project site/Rask.Site
 Open the printed URL in a browser. Useless for automation — it blocks the terminal and opens nothing
 headlessly. Ctrl-C to stop.
 
+## Both widths, every surface (`survey.cs`)
+
+`driver.cs` shoots three pages at 1280 only. That is half the site, and it is the half that never
+breaks: the showcase is read on a phone, and **nothing in this repo checked a phone width** until
+these were added — which is how a hero that overflowed 390px by 142px, guide cards that collapsed to
+16px, and an install command clipped mid-URL all shipped green.
+
+```bash
+cd .claude/skills/run-rask
+dotnet run survey.cs http://127.0.0.1:PORT before      # ./screenshots/before/
+```
+
+It walks the landing page, `/docs`, and three sidebar routes at **1280x900 and 390x844**, writing
+full-page shots per width and printing two checks per shot:
+
+- `page-overflow` — the document wider than the viewport. Anything but `ok` is a defect: it scrolls
+  the whole page sideways and shrinks every element to match.
+- `clipped=[...]` — containers whose content exceeds their box while `overflow-x` is `visible`, i.e.
+  text that is lost rather than scrollable.
+
+**Read the numbers, not the screenshot.** A clipped box and a scrolling one are pixel-identical when
+the scrollbar is an overlay — the install command looked the same before and after it became
+reachable.
+
+## One route, in detail (`navprobe.cs`)
+
+When `survey.cs` reports an overflow, this names the element responsible at 390px:
+
+```bash
+dotnet run navprobe.cs http://127.0.0.1:PORT Forms    # or "-" to stay on /docs
+```
+
+It reaches the route the way a reader does (drawer, filter, click — deep links 404 under
+`WasmAppHost`) and lists only elements that **genuinely widen the document**: wider than the viewport
+*and* with no scrolling ancestor. A `<pre>` inside `overflow-x: auto` is not a defect and is filtered
+out; the same `<pre>` in a plain `<div>` is what you are looking for.
+
+The usual culprit is an automatic minimum size. A grid or flex item's `min-width` defaults to `auto`
+— its **min-content** width — so one `white-space: pre` block sets the whole track, and
+`overflow-x-auto` on that block does not help: it makes the block scroll, it does not shrink a track
+asking to be 510px wide. The fix is `min-w-0` on the item, repeated at **every** level of the chain.
+
 ## The operator console (`dashboard-driver.cs`)
 
 The site does not mount `Rask.Dashboard`, and no app in the repo does since `samples/` was deleted. So

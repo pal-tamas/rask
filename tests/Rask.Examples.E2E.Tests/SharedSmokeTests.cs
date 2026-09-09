@@ -139,6 +139,37 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     // a SPA fallback; those must navigate via the home shell + sidebar instead.
     protected virtual Task NavigateToAsync(string path) => Page.GotoAsync(path);
 
+    /// <summary>
+    ///     Blocks until the runtime has taken the page over, so an interaction cannot be aimed at markup
+    ///     that is painted but not yet wired.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Needed because this host serves the prerendered page (#1034). Prerendering means the
+    ///         controls are in the first response, complete and on screen, before a line of script has
+    ///         run — so a click or a keystroke aimed at one of them reaches nothing until the bundle has
+    ///         downloaded, started and taken over.
+    ///     </para>
+    ///     <para>
+    ///         The wait used to be implicit and is not any more. When a route answered with the boot
+    ///         shell, the opening "an active sidebar link is visible" could not pass until WebAssembly
+    ///         had booted AND painted, so it doubled as a hydration barrier nobody had to write down.
+    ///         Serving the real page makes that assertion true immediately — correctly — and the barrier
+    ///         went with it.
+    ///     </para>
+    ///     <para>
+    ///         Reads the framework's own signal rather than a heuristic: <c>data-rask-prerendered</c> is
+    ///         stamped on <c>&lt;html&gt;</c> by the prerender pass and removed by the runtime on its
+    ///         first frame, which is exactly when handlers exist. An app styling
+    ///         <c>[data-rask-prerendered]</c> asks the same question, so there is no second mechanism to
+    ///         keep in step. A page that was never prerendered carries no such attribute and this
+    ///         returns at once rather than inventing a delay.
+    ///     </para>
+    /// </remarks>
+    protected Task WaitForInteractiveAsync(float timeoutMs = 30_000) =>
+        Assertions.Expect(Page.Locator("html[data-rask-prerendered]")).ToHaveCountAsync(
+            0, new LocatorAssertionsToHaveCountOptions { Timeout = timeoutMs });
+
     // Sidebar groups are collapsed by default, and a collapsed link is display:none — which means
     // Playwright's text engines can't even find it (they match visible text). So navigate the way a
     // user would when the list is long: type the label into the filter, which narrows the sidebar to
@@ -148,6 +179,11 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     // navigation (on WASM the events coalesce and the later one wins, dropping e.g. a select change).
     protected async Task ClickSidebar(string label)
     {
+        // The filter is a Rask handler (data-rask-on-input). On a prerendered page it is on screen and
+        // typeable before anything is listening, and the keystrokes then go nowhere: the sidebar never
+        // narrows and the link this is looking for never appears. Wait for the runtime first.
+        await WaitForInteractiveAsync();
+
         var filter = Page.Locator(".side-nav .side-nav-filter");
         await filter.FillAsync(label);
         // Guides-first: a label can appear as BOTH an example page and a guide (e.g. "Routing",

@@ -27,6 +27,167 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that
+  arrives prerendered carries its `<rask-external>` hosts in the first response, so the islands runtime
+  mounts them before WebAssembly has finished starting. The first full frame then replaces `<body>`
+  outright rather than patching it — and `rask-external.js` had its `MutationObserver` bound to the body
+  the page loaded with. That node is detached by the swap, so the observer never fired again: the
+  islands mounted before the swap went away with the old body, and the hosts in the new one were never
+  hydrated. The page kept four empty `<rask-external>` elements for the rest of its life.
+
+  The observer is now bound to `<html>`, which outlives the swap. `subtree: true` reaches everything it
+  did before, plus the replacement body — which arrives as an added node and sweeps normally — while the
+  removed body sweeps out through teardown, so a discarded island gets its adapter's `unmount` instead
+  of being dropped still mounted.
+
+  It stayed hidden because it is a race the boot shell happened to win, and the browser suite only ever
+  saw the boot shell. `StaticWwwrootHostFixture` resolved `GET /docs` to a directory, failed
+  `File.Exists`, and fell through to the SPA fallback — serving the shell instead of the prerendered
+  page that `Rask.Wasm.Hosting` serves in production (`UseDefaultFiles`). With the shell, this module
+  starts before there is anything to mount and the islands arrive inside the new body; prerendered, the
+  order inverts. The host now resolves a directory to its `index.html`, so the prerendered output has
+  browser coverage for the first time. (#1035, #1034)
+
+- **The browser journeys were racing a cold WebAssembly boot, which is what the load-dependent flakes
+  were.** Serving the boot shell for every route meant the suite's opening assertion — an active sidebar
+  link is visible — could not pass until the runtime had downloaded, started and painted. Idle that is a
+  second or two; under the full gate, with several browsers competing, it exceeded the 30s budget. Two
+  consecutive gate runs on one commit failed 10 and then 5 journeys with different membership, every one
+  of them on that same locator. Serving the prerendered page removes the race: the suite went from 68/78
+  and 73/78 to **78/78**, three runs in a row, and got faster (2m51s → 1m47s).
+
+  Serving the real page also removes an accidental synchronisation barrier, so the suite now waits on the
+  framework's own signal before interacting: the runtime clears `data-rask-prerendered` from `<html>` on
+  its first frame, which is exactly when handlers exist. (#1034, #1028, #989, #1029)
+
+- **`@onclick:preventDefault` on a hosted Blazor component leaked a `__internal_*` attribute into the
+  page.** Those directives are not attributes: the Razor compiler lowers each to a boolean frame named
+  `__internal_preventDefault_onclick` / `__internal_stopPropagation_onclick`, carrying no handler id.
+  They therefore missed `BlazorFrameWriter`'s handler branch and fell through to its boolean arm, which
+  writes a true boolean attribute bare — so `<a href="/x" @onclick:preventDefault="Pick">` shipped a
+  stray `__internal_preventDefault_onclick` that means nothing to any browser. They are now dropped.
+
+  Dropped rather than translated, because Rask's delegated listeners already give both directives what
+  they ask for — this was a naming mismatch, not a missing feature. The client cancels the default for
+  any element carrying `data-rask-on-click` (declining only for a popover invoker, whose default action
+  is the point of the control), so a hosted `<a href>` with a handler does not navigate. And the
+  listener resolves its target with `closestFrom`, the NEAREST ancestor carrying the attribute, so an
+  ancestor's handler never sees a click a descendant already claimed — which is the propagation
+  `:stopPropagation` exists to stop. What is still not covered is propagation to non-Rask listeners the
+  page installed itself. (#951)
+
+- **An enabled battery whose tables were never mapped failed only at first use, never at boot.** Every
+  battery is on by default, and a battery that is on needs its tables in the application's
+  `DbContext`. An app that forgets one compiles, boots, serves pages and signs people in — then dies on
+  the first request that touches it, with `Cannot create a DbSet for 'QueuedMail' because this type is
+  not included in the model for the context`. In practice that is the first password reset anybody asks
+  for. A sample shipped in exactly that state and it took a browser journey to find.
+
+  The background half never complains, and cannot: a worker has to tolerate a table that is not there
+  yet, because a freshly scaffolded app boots before its first migration has run and a hosted service
+  that threw on a missing table would stop the host from starting at all. So the failure surfaces in a
+  request path, in production, long after the mistake was made.
+
+  `AddRaskAuth<TContext>()`, `AddRaskMail`, `AddRaskJobs`, `AddRaskCache` and `AddRaskOutbox` now each
+  register a startup check that looks its own entity up in the model once, before that battery's worker
+  starts. A missing one fails the boot with the line to type:
+
+      The Mail battery is on, but QueuedMail is not in AppDbContext's model, so the first
+      request that uses it would fail with "Cannot create a DbSet for 'QueuedMail'".
+      Add it to OnModelCreating:
+          modelBuilder.AddRaskMail();
+
+  **The MODEL, not the database**, and that distinction is what lets this fail the boot where the
+  workers cannot. The model is built from `OnModelCreating` and needs no connection, so "the type is
+  not mapped" is a code mistake and always wrong, while "the table does not exist yet" is normal for an
+  app that has not run `rask db update` and is not checked at all. An app with no migrations still
+  starts, and there is a test that says so.
+
+  The check belongs to `AddRaskX<TContext>()` rather than to the meta-package's battery wiring, and
+  that placement is the fix rather than a detail of it. A scaffolded app references `Rask.Server` and
+  writes `builder.Services.AddRaskMail<AppDbContext>()` into its own `Program.cs`; it never goes through
+  `RaskApp`. A guard living there would have passed its own tests while firing for nothing any real app
+  does — so the tests for this go through a bare `ServiceCollection`, the way `rask new` wires it.
+  Because the batteries share no assembly (`Rask.Cache` has no Rask reference at all, and keeping it
+  that way is #1014's concern), the check is source-linked into each package and reports one battery at
+  a time. (#1015)
+- **A second `dotnet publish` into the same directory duplicated every head asset, and a third tripled
+  it.** `WasmPrerender` reads the boot shell from `index.html` — and the root route's own output IS
+  `index.html`. The pass already reasoned about that *within* a run (the shell is read once, before the
+  page loop, or page two would get the merged page one). The same argument holds *across* runs and was
+  not handled: the second publish read the first publish's merged page as its shell, so
+  `PrerenderShell.Merge` spliced the head into a document that already carried it. Every stylesheet,
+  preload, `meta` and canonical appeared twice, down to the `data-rask-key` that is meant to make them
+  one node.
+
+  The SDK does not rescue it — the prerendered `index.html` is newer than the staged shell, so the copy
+  step calls it up to date and leaves it in place. Nothing failed: green build, page renders, and the
+  only thing that noticed was a browser E2E assertion counting the `global.css` link, which fired when
+  the gate happened to run twice against the same publish and read as a flake.
+
+  The pass now tells its own output from a boot shell (`data-rask-prerendered` on `<html>`, or a keyed
+  head asset) and re-reads the untouched shell it already keeps at `404.html` for exactly this class of
+  problem. With no pristine copy to fall back on it fails the publish and says to delete the directory,
+  rather than silently appending another head. Its `robots.txt` is recognised as its own on the same
+  grounds and rewritten — an author's is still never touched — so a change to `<RaskSiteUrl>` cannot be
+  outlived by the first publish's file.
+
+  Verified on a real double publish, not on generated text: three consecutive `dotnet publish` runs of a
+  prerendered WASM app into one directory now produce 616 of 617 files byte-identical, the exception
+  being the `Last-Modified` values in `*.staticwebassets.endpoints.json`, which describe file times by
+  definition. Before the fix the same three runs gave one, two and three copies of each head asset.
+  (#1036)
+
+- **rask.sh rendered near-unstyled, and this time the cascade was inverted for the whole document.**
+  Every class name was present and correct in the markup; the rules never won. The hero's
+  `h1.text-4xl.font-semibold` computed to **16px/400** and the primary call to action's `px-5` computed
+  to **`padding: 0`**.
+
+  CSS orders `@layer` names by FIRST APPEARANCE, across every sheet on the page, in link order — and
+  nothing later can reorder a name that has already been placed. `rask-ui.css` is linked first, as
+  `docs/ui-kit.md` instructs, and it declared no order of its own, so the order fell out of where its
+  blocks happened to land: `properties, theme, utilities, daisyui, rask, base`, because daisyUI emits
+  its `base` rules last. That puts `base` ABOVE `utilities` for the entire page. The app's own Tailwind
+  then linked second with `@layer theme, base, components, utilities;`, which is a no-op once those
+  names are ordered — and its preflight (`h1..h6 { font-size: inherit }`, `* { padding: 0 }`) outranked
+  every utility it had just emitted. Any app that references `Rask.Ui` and runs its own Tailwind had
+  this, not only the showcase.
+
+  The kit's sheet now opens with the order it means: `@layer properties, theme, base, components,
+  daisyui, rask, utilities;` — your utilities beat your own preflight, daisyUI, and the kit's own
+  corrections, which is the promise the `layer()` imports beside it were already making.
+  `UiLayerOrderTests` asserts it against the COMPILED sheet, since Tailwind rewrites the statement while
+  emitting its own blocks; verified to fail without it. Documented in `docs/ui-kit.md`.
+
+  Green builds throughout: the class names were emitted and the sheet was emitted, and nothing rendered
+  the two together to read a computed style. That is the second time this site shipped unstyled for a
+  reason invisible to its source. (#1033)
+
+- **Five surfaces overflowed a phone sideways, and one of them shrank the whole landing page.** With the
+  cascade repaired, ten surfaces were measured at 390x844; five scrolled horizontally.
+
+  The landing hero was **142px too wide**, which is why its text rendered small and clipped rather than
+  wrapped: a grid item's `min-width` defaults to `auto` — its min-content size — and the code window's
+  `<pre>` carries `white-space: pre`, so its min-content is the longest source line, 510px. That sized
+  the single phone column and the document with it. `overflow-x-auto` makes the `<pre>` scroll; it does
+  not shrink a track asking to be 510 wide. Both tracks now carry `min-w-0`.
+
+  **Twenty-two call sites** put a child in `grid grid-cols-12` with only a `md:`/`sm:`/`lg:` `col-span`
+  and no base one, so on a phone each occupied **1 of 12 columns — about 16px** — with its content
+  spilling out of it. They all take `col-span-12` as the base now.
+
+  Also: markdown tables scroll rather than widening the page (Markdig emits a bare `<table>` with
+  nothing to wrap, and `width: 100%` does not stop a table growing to the sum of its columns' minimum
+  widths); long inline identifiers and bare URLs in the guides break rather than push; the guide
+  prev/next control gained the `min-width: 0` its inner body already had, so its ellipsis finally runs,
+  and stacks below `sm`; and the docs top bar drops its two brand badges and the GitHub label on a
+  phone, where the row measured 399px against a 390px screen.
+
+  The guides index is rebuilt on the kit's own card, with the group icon inline beside the title instead
+  of a 28px block above it — it is derived from the guide's GROUP, so it was the same glyph repeated
+  down a section already labelled with that group's name. The index is **23% shorter** on a phone
+  (21,025px to 16,245px). (#1033)
+
 - **A prerendered page looked interactive before it was, and clicks in that window were lost.**
   Prerendering serves real HTML, so a page's buttons and links are present and look clickable from the
   first paint — but no handler is attached until the bundle downloads, starts and takes the page over,

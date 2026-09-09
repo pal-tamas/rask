@@ -36,6 +36,57 @@ internal static class PrerenderShell
     internal const string PrerenderedAttribute = "data-rask-prerendered";
 
     /// <summary>
+    ///     The identity attribute the framework stamps on a keyed node, and so on every head asset a
+    ///     rendered document contributes.
+    /// </summary>
+    private const string KeyAttribute = "data-rask-key";
+
+    /// <summary>
+    ///     Whether a document is this pass's own OUTPUT rather than a boot shell to splice into.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The shell is read from <c>index.html</c>, and the root route's own output IS
+    ///         <c>index.html</c>. Publishing twice into the same directory therefore hands the second
+    ///         pass the first pass's merged page as its "shell", and <see cref="Merge" /> splices the
+    ///         head assets into a document that already carries every one of them. Nothing fails: the
+    ///         build is green, the page renders, and each publish appends another full copy of the head
+    ///         — every stylesheet, preload, meta and canonical — which only shows up if something counts
+    ///         the elements. A duplicated canonical or <c>og:</c> tag is an SEO defect rather than a
+    ///         cosmetic one (#1036).
+    ///     </para>
+    ///     <para>
+    ///         Two independent tells, because neither covers the whole ground alone.
+    ///         <see cref="PrerenderedAttribute" /> is stamped by every merge — but only when the shell
+    ///         had an <c>&lt;html&gt;</c> tag to stamp it onto. <see cref="KeyAttribute" /> in the head
+    ///         finds the framework's own keyed head assets, which a rendered page's head is full of and
+    ///         a boot shell — a hand-written file the SDK only fills placeholders into — never carries.
+    ///     </para>
+    /// </remarks>
+    internal static bool IsRendered(string html)
+    {
+        ArgumentNullException.ThrowIfNull(html);
+
+        var open = IndexOfTag(html, "html");
+        if (open >= 0)
+        {
+            var gt = html.AsSpan(open).IndexOf('>');
+            if (gt > 0)
+            {
+                var attributes = html.Substring(open + 5, gt - 5).Trim().TrimEnd('/').Trim();
+                if (HasAttribute(attributes, PrerenderedAttribute))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return TryFindElement(html, "head", out var head)
+               && html.AsSpan(head.InnerStart, head.InnerEnd - head.InnerStart)
+                   .Contains(KeyAttribute, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     ///     Returns <paramref name="shell" /> carrying <paramref name="document" />'s head contributions
     ///     and body, or <paramref name="document" /> unchanged when the two cannot be spliced.
     /// </summary>
