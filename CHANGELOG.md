@@ -108,15 +108,22 @@ them until tagged releases begin.
   build the kit", and is not what had happened. Found by the build gate, not by anything that reads
   strings.
 
-- **A component's project-wide `<Using>` never reached the browser companion.** The one-project build
-  generates the browser half's csproj and copied `Nullable`, `ImplicitUsings`, `LangVersion` and
-  `RootNamespace` across, but not `@(Using)` — and `ImplicitUsings` is the SDK's set, which says nothing
-  about the app's own. So a namespace an app puts in its project file rather than at the top of every
-  file did not resolve in the half that compiles those same files.
+- **A project-wide `<Using>` could not reach the browser companion at all.** The one-project build
+  generates the browser half's csproj and copies `Nullable`, `ImplicitUsings`, `LangVersion` and
+  `RootNamespace` across — but `ImplicitUsings` is the SDK's set and says nothing about the app's own.
+  So a namespace an app puts in its project file rather than at the top of every file did not resolve
+  in the half that compiles those same files, and there was no way to say it should.
 
   Invisible until publish, because that is the only time the companion is generated: the server half
   builds clean and the browser half dies on a missing type inside a generated project the author never
-  wrote. `Alias` and `Static` travel too.
+  wrote.
+
+  New `RaskBrowserUsing` item, named one at a time, `Alias` and `Static` included. **Deliberately not a
+  flow of `@(Using)`**, which is the obvious version and is wrong: that item also holds every using a
+  referenced *package* injected through its own `build/*.props`, several of which name server-only
+  namespaces — so the companion then fails to compile on names the author never typed, which is worse
+  than the problem. It mirrors `RaskBrowserPackageReference` instead, for the reason that item exists:
+  one project, two halves, and what crosses is stated rather than assumed.
 
 - **`UiFieldset` never rendered its own caption.** It declares `public new required string Text` and then
   rendered `Title` — the `<title>` *tag's* chain entry, inherited from `Component`. The one property the
