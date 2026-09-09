@@ -72,14 +72,14 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
                 Button.Class($"{Tw.BtnPrimary} mb-3").Id("sensor-start").OnClickAsync(Start)["Start"],
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("sensor-status")[_status]],
                 Div.Class("grid grid-cols-12 gap-4")[
-                    Div.Class("sm:col-span-6")[
+                    Div.Class("col-span-12 sm:col-span-6")[
                         Div.Class("font-semibold text-sm mb-1")["Orientation (°)"],
                         Div.Class("text-sm text-ui-muted")[
                             "α ", Code.Id("sensor-alpha")[Fmt(_tilt?.Alpha)],
                             " · β ", Code.Id("sensor-beta")[Fmt(_tilt?.Beta)],
                             " · γ ", Code.Id("sensor-gamma")[Fmt(_tilt?.Gamma)]]
                     ],
-                    Div.Class("sm:col-span-6")[
+                    Div.Class("col-span-12 sm:col-span-6")[
                         Div.Class("font-semibold text-sm mb-1")["Acceleration (m/s²)"],
                         Div.Class("text-sm text-ui-muted")[
                             "x ", Code.Id("sensor-ax")[Fmt(_accel?.AccelerationX)],

@@ -406,6 +406,8 @@ button, a, [role="button"] {
     color: var(--rask-accent);
     text-decoration: underline;
     text-underline-offset: 0.15em;
+    /* Bare URLs appear as link text throughout the guides; they have no break opportunity either. */
+    overflow-wrap: anywhere;
 }
 
 .markdown-body a:hover {
@@ -437,6 +439,11 @@ button, a, [role="button"] {
     padding: 0.08rem 0.34rem;
     border-radius: 4px;
     font-size: 0.86em;
+    /* The docs are full of inline identifiers with no spaces in them — `Rask.Site.Features.Routes` or
+       `AddRask() · UseRask<TApp>()` — and a token longer than the column cannot wrap at a space that
+       is not there. On a phone it pushed the paragraph, and with it the document, past the viewport.
+       anywhere rather than break-word: break-word only breaks a token that is alone on its line. */
+    overflow-wrap: anywhere;
 }
 
 .markdown-body blockquote {
@@ -451,8 +458,22 @@ button, a, [role="button"] {
     margin-bottom: 0;
 }
 
+/* A guide's tables SCROLL rather than widening the page.
+
+   Markdig emits a bare <table> with no wrapper, so there is no element to put the scroll box on — and
+   `width: 100%` does not stop a table growing past its container: a table's used width is at least the
+   sum of its columns' minimum content widths, whatever you ask for. The forms guide has a four-column
+   comparison table whose minimum is 461px, which on a 390px phone widened the WHOLE DOCUMENT to 600px
+   and shrank every other page element to match.
+
+   `display: block` makes the table its own scroll container, which is the only place the overflow can
+   go without a wrapper. `width: max-content` keeps the columns sized to their content rather than
+   collapsing to the block's width, and `max-width: 100%` is what actually caps it at the column. */
 .markdown-body table {
-    width: 100%;
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
     margin-bottom: 1.25rem;
     border-collapse: collapse;
     font-size: 0.92rem;
