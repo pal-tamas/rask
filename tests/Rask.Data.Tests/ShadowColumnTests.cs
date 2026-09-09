@@ -92,6 +92,61 @@ public sealed class ShadowColumnTests : IDisposable
         Assert.Contains("public int Version", error.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_conventions_reach_an_entity_that_is_not_a_Model_at_all()
+    {
+        // This is the ASP.NET Core Identity case in miniature. A user derives from IdentityUser, and C#
+        // has single inheritance, so it can never also be a Model<TId> — it gets no static DbSet surface
+        // and the model generator does not see it. What it CAN do is implement the markers, because those
+        // are plain interfaces and the conventions walk every mapped entity type. So an application user
+        // gets audit stamps and soft delete with nothing added to the class, exactly like a Model does.
+        await using var context = new MembershipContext(
+            new DbContextOptionsBuilder<MembershipContext>()
+                .UseSqlite($"Data Source={_dbPath}")
+                .AddInterceptors(
+                    new SoftDeleteInterceptor(TimeProvider.System),
+                    new AuditingInterceptor(TimeProvider.System))
+                .Options);
+
+        await context.Database.EnsureCreatedAsync();
+
+        var membership = context.Model.FindEntityType(typeof(Membership))!;
+        Assert.True(membership.FindProperty("CreatedAt")!.IsShadowProperty());
+        Assert.True(membership.FindProperty("DeletedAt")!.IsShadowProperty());
+
+        var row = new Membership { Id = "user-1" };
+        context.Add(row);
+        await context.SaveChangesAsync();
+
+        // Stamped by the interceptor, though the class has no such property.
+        var created = await context.Set<Membership>()
+            .Select(m => EF.Property<DateTime>(m, Columns.CreatedAt))
+            .ToListAsync();
+        Assert.NotEqual(default, created[0]);
+
+        // And soft delete still hides it behind the generated query filter.
+        context.Remove(row);
+        await context.SaveChangesAsync();
+
+        Assert.Equal(0, await context.Set<Membership>().CountAsync());
+        Assert.Equal(1, await context.Set<Membership>().IgnoreQueryFilters().CountAsync());
+    }
+
+    // Stands in for an Identity user: a string key it brought itself, no Model base, and the markers.
+    private sealed class Membership : ITimestamped, ISoftDeletable
+    {
+        public string Id { get; set; } = "";
+    }
+
+    private sealed class MembershipContext(DbContextOptions<MembershipContext> options) : DbContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Membership>();
+            modelBuilder.ApplyRaskConventions();
+        }
+    }
+
     // Deliberately NOT a Model: the generator maps every Model in the assembly into the shared model, so
     // an intentionally broken one would fail every other test in the suite. IVersioned applies to any
     // mapped entity, which is what lets this be tested in a context of its own.
