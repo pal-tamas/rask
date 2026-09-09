@@ -35,13 +35,118 @@ internal static class SpaClientSources
             import { StrictMode } from 'react'
             import { createRoot } from 'react-dom/client'
             import App from './App'
+            import Auth from './Auth'
             import './index.css'
+
+            // No router, deliberately. Which one to reach for is a decision a front-end developer has
+            // usually already made, and scaffolding one would make it for them — so this reads the path
+            // once, and the day you add a router it is three lines to delete. Deep links work already:
+            // the dev server and the host both fall back to index.html for an unknown path.
+            const path = window.location.pathname
 
             createRoot(document.getElementById('root')!).render(
               <StrictMode>
-                <App />
+                {path === '/login' ? (
+                  <Auth mode="login" />
+                ) : path === '/register' ? (
+                  <Auth mode="register" />
+                ) : (
+                  <App />
+                )}
               </StrictMode>,
             )
+
+            """),
+
+        ("src/Auth.tsx", """
+            import { useState, type FormEvent } from 'react'
+            import { login, register, type AuthFailure } from './rask/browser/auth'
+
+            /**
+             * Sign in and registration, over the endpoints Rask.Auth maps at /api/auth.
+             *
+             * The client is generated into rask/browser and typed: `login` answers
+             * `{ok: true, user}` or `{ok: false, failure}`, so there is no status code to read and no
+             * shape to guess. The cookie it sets is HttpOnly — this page never sees a token, so there
+             * is nothing here to keep in browser storage.
+             */
+            export default function Auth({ mode }: { mode: 'login' | 'register' }) {
+              const registering = mode === 'register'
+              const [email, setEmail] = useState('')
+              const [password, setPassword] = useState('')
+              const [failure, setFailure] = useState<AuthFailure | null>(null)
+              const [busy, setBusy] = useState(false)
+
+              async function submit(event: FormEvent) {
+                event.preventDefault()
+                setBusy(true)
+                setFailure(null)
+
+                const result = registering
+                  ? await register({ email, password })
+                  : await login({ email, password })
+
+                setBusy(false)
+                if (result.ok) window.location.assign('/')
+                else setFailure(result.failure)
+              }
+
+              return (
+                <main className="hero min-h-screen bg-base-200">
+                  <div className="hero-content w-full max-w-sm flex-col">
+                    <h1 className="text-2xl font-bold">
+                      {registering ? 'Create an account' : 'Sign in'}
+                    </h1>
+
+                    <form className="card bg-base-100 w-full shadow-sm" onSubmit={submit}>
+                      <div className="card-body gap-4">
+                        {failure && (
+                          <div role="alert" className="alert alert-error">
+                            <span>{failure.message ?? failure.error}</span>
+                          </div>
+                        )}
+
+                        <label className="fieldset">
+                          <span className="fieldset-legend">Email</span>
+                          <input
+                            className="input w-full"
+                            type="email"
+                            autoComplete="username"
+                            required
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                          />
+                        </label>
+
+                        <label className="fieldset">
+                          <span className="fieldset-legend">Password</span>
+                          <input
+                            className="input w-full"
+                            type="password"
+                            autoComplete={registering ? 'new-password' : 'current-password'}
+                            required
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                          />
+                        </label>
+
+                        <div className="card-actions">
+                          <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
+                            {registering ? 'Create account' : 'Sign in'}
+                          </button>
+                        </div>
+
+                        <p className="text-sm">
+                          <a className="link link-primary" href={registering ? '/login' : '/register'}>
+                            {registering ? 'Already have an account?' : 'No account yet?'}
+                          </a>
+                        </p>
+                      </div>
+                    </form>
+                  </div>
+                </main>
+              )
+            }
 
             """),
 
@@ -173,9 +278,106 @@ internal static class SpaClientSources
         ("src/main.tsx", """
             import { render } from 'preact'
             import { App } from './app'
+            import { Auth } from './auth'
             import './index.css'
 
-            render(<App />, document.getElementById('app')!)
+            // No router, deliberately — see the note in the React template. The path is read once, and
+            // deep links work because the dev server and the host both fall back to index.html.
+            const path = window.location.pathname
+            const root = document.getElementById('app')!
+
+            if (path === '/login') render(<Auth mode="login" />, root)
+            else if (path === '/register') render(<Auth mode="register" />, root)
+            else render(<App />, root)
+
+            """),
+
+        ("src/auth.tsx", """
+            import { useState } from 'preact/hooks'
+            import { login, register, type AuthFailure } from './rask/browser/auth'
+
+            /**
+             * Sign in and registration, over the endpoints Rask.Auth maps at /api/auth. The generated
+             * client is typed, so there is no status code to read and no shape to guess, and the cookie
+             * it sets is HttpOnly — this page never sees a token.
+             */
+            export function Auth({ mode }: { mode: 'login' | 'register' }) {
+              const registering = mode === 'register'
+              const [email, setEmail] = useState('')
+              const [password, setPassword] = useState('')
+              const [failure, setFailure] = useState<AuthFailure | null>(null)
+              const [busy, setBusy] = useState(false)
+
+              async function submit(event: Event) {
+                event.preventDefault()
+                setBusy(true)
+                setFailure(null)
+
+                const result = registering
+                  ? await register({ email, password })
+                  : await login({ email, password })
+
+                setBusy(false)
+                if (result.ok) window.location.assign('/')
+                else setFailure(result.failure)
+              }
+
+              return (
+                <main className="hero min-h-screen bg-base-200">
+                  <div className="hero-content w-full max-w-sm flex-col">
+                    <h1 className="text-2xl font-bold">
+                      {registering ? 'Create an account' : 'Sign in'}
+                    </h1>
+
+                    <form className="card bg-base-100 w-full shadow-sm" onSubmit={submit}>
+                      <div className="card-body gap-4">
+                        {failure && (
+                          <div role="alert" className="alert alert-error">
+                            <span>{failure.message ?? failure.error}</span>
+                          </div>
+                        )}
+
+                        <label className="fieldset">
+                          <span className="fieldset-legend">Email</span>
+                          <input
+                            className="input w-full"
+                            type="email"
+                            autoComplete="username"
+                            required
+                            value={email}
+                            onInput={(event) => setEmail((event.target as HTMLInputElement).value)}
+                          />
+                        </label>
+
+                        <label className="fieldset">
+                          <span className="fieldset-legend">Password</span>
+                          <input
+                            className="input w-full"
+                            type="password"
+                            autoComplete={registering ? 'new-password' : 'current-password'}
+                            required
+                            value={password}
+                            onInput={(event) => setPassword((event.target as HTMLInputElement).value)}
+                          />
+                        </label>
+
+                        <div className="card-actions">
+                          <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
+                            {registering ? 'Create account' : 'Sign in'}
+                          </button>
+                        </div>
+
+                        <p className="text-sm">
+                          <a className="link link-primary" href={registering ? '/login' : '/register'}>
+                            {registering ? 'Already have an account?' : 'No account yet?'}
+                          </a>
+                        </p>
+                      </div>
+                    </form>
+                  </div>
+                </main>
+              )
+            }
 
             """),
 
@@ -297,9 +499,109 @@ internal static class SpaClientSources
             /* @refresh reload */
             import { render } from 'solid-js/web'
             import App from './App'
+            import Auth from './Auth'
             import './index.css'
 
-            render(() => <App />, document.getElementById('root')!)
+            // No router, deliberately — see the note in the React template. The path is read once, and
+            // deep links work because the dev server and the host both fall back to index.html.
+            const path = window.location.pathname
+            const root = document.getElementById('root')!
+
+            if (path === '/login') render(() => <Auth mode="login" />, root)
+            else if (path === '/register') render(() => <Auth mode="register" />, root)
+            else render(() => <App />, root)
+
+            """),
+
+        ("src/Auth.tsx", """
+            import { Show, createSignal } from 'solid-js'
+            import { login, register, type AuthFailure } from './rask/browser/auth'
+
+            /**
+             * Sign in and registration, over the endpoints Rask.Auth maps at /api/auth. The generated
+             * client is typed, so there is no status code to read and no shape to guess, and the cookie
+             * it sets is HttpOnly — this page never sees a token.
+             */
+            export default function Auth(props: { mode: 'login' | 'register' }) {
+              const registering = () => props.mode === 'register'
+              const [email, setEmail] = createSignal('')
+              const [password, setPassword] = createSignal('')
+              const [failure, setFailure] = createSignal<AuthFailure | null>(null)
+              const [busy, setBusy] = createSignal(false)
+
+              async function submit(event: Event) {
+                event.preventDefault()
+                setBusy(true)
+                setFailure(null)
+
+                const credentials = { email: email(), password: password() }
+                const result = registering()
+                  ? await register(credentials)
+                  : await login(credentials)
+
+                setBusy(false)
+                if (result.ok) window.location.assign('/')
+                else setFailure(result.failure)
+              }
+
+              return (
+                <main class="hero min-h-screen bg-base-200">
+                  <div class="hero-content w-full max-w-sm flex-col">
+                    <h1 class="text-2xl font-bold">
+                      {registering() ? 'Create an account' : 'Sign in'}
+                    </h1>
+
+                    <form class="card bg-base-100 w-full shadow-sm" onSubmit={submit}>
+                      <div class="card-body gap-4">
+                        <Show when={failure()}>
+                          {(error) => (
+                            <div role="alert" class="alert alert-error">
+                              <span>{error().message ?? error().error}</span>
+                            </div>
+                          )}
+                        </Show>
+
+                        <label class="fieldset">
+                          <span class="fieldset-legend">Email</span>
+                          <input
+                            class="input w-full"
+                            type="email"
+                            autocomplete="username"
+                            required
+                            value={email()}
+                            onInput={(event) => setEmail(event.currentTarget.value)}
+                          />
+                        </label>
+
+                        <label class="fieldset">
+                          <span class="fieldset-legend">Password</span>
+                          <input
+                            class="input w-full"
+                            type="password"
+                            autocomplete={registering() ? 'new-password' : 'current-password'}
+                            required
+                            value={password()}
+                            onInput={(event) => setPassword(event.currentTarget.value)}
+                          />
+                        </label>
+
+                        <div class="card-actions">
+                          <button class="btn btn-primary btn-block" type="submit" disabled={busy()}>
+                            {registering() ? 'Create account' : 'Sign in'}
+                          </button>
+                        </div>
+
+                        <p class="text-sm">
+                          <a class="link link-primary" href={registering() ? '/login' : '/register'}>
+                            {registering() ? 'Already have an account?' : 'No account yet?'}
+                          </a>
+                        </p>
+                      </div>
+                    </form>
+                  </div>
+                </main>
+              )
+            }
 
             """),
 
@@ -411,11 +713,107 @@ internal static class SpaClientSources
     public static IReadOnlyList<(string Path, string Content)> Vue =>
     [
         ("src/main.ts", """
-            import { createApp } from 'vue'
+            import { createApp, h } from 'vue'
             import './style.css'
             import App from './App.vue'
+            import Auth from './Auth.vue'
 
-            createApp(App).mount('#app')
+            // No router, deliberately — see the note in the React template. The path is read once, and
+            // deep links work because the dev server and the host both fall back to index.html.
+            const path = window.location.pathname
+            const root =
+              path === '/login' || path === '/register'
+                ? h(Auth, { mode: path === '/register' ? 'register' : 'login' })
+                : h(App)
+
+            createApp(root).mount('#app')
+
+            """),
+
+        ("src/Auth.vue", """
+            <script setup lang="ts">
+            import { computed, ref } from 'vue'
+            import { login, register, type AuthFailure } from './rask/browser/auth'
+
+            /*
+              Sign in and registration, over the endpoints Rask.Auth maps at /api/auth. The generated
+              client is typed, so there is no status code to read and no shape to guess, and the cookie
+              it sets is HttpOnly — this page never sees a token.
+            */
+            const props = defineProps<{ mode: 'login' | 'register' }>()
+
+            const registering = computed(() => props.mode === 'register')
+            const email = ref('')
+            const password = ref('')
+            const failure = ref<AuthFailure | null>(null)
+            const busy = ref(false)
+
+            async function submit() {
+              busy.value = true
+              failure.value = null
+
+              const credentials = { email: email.value, password: password.value }
+              const result = registering.value
+                ? await register(credentials)
+                : await login(credentials)
+
+              busy.value = false
+              if (result.ok) window.location.assign('/')
+              else failure.value = result.failure
+            }
+            </script>
+
+            <template>
+              <main class="hero min-h-screen bg-base-200">
+                <div class="hero-content w-full max-w-sm flex-col">
+                  <h1 class="text-2xl font-bold">
+                    {{ registering ? 'Create an account' : 'Sign in' }}
+                  </h1>
+
+                  <form class="card bg-base-100 w-full shadow-sm" @submit.prevent="submit">
+                    <div class="card-body gap-4">
+                      <div v-if="failure" role="alert" class="alert alert-error">
+                        <span>{{ failure.message ?? failure.error }}</span>
+                      </div>
+
+                      <label class="fieldset">
+                        <span class="fieldset-legend">Email</span>
+                        <input
+                          class="input w-full"
+                          type="email"
+                          autocomplete="username"
+                          required
+                          v-model="email"
+                        />
+                      </label>
+
+                      <label class="fieldset">
+                        <span class="fieldset-legend">Password</span>
+                        <input
+                          class="input w-full"
+                          type="password"
+                          :autocomplete="registering ? 'new-password' : 'current-password'"
+                          required
+                          v-model="password"
+                        />
+                      </label>
+
+                      <div class="card-actions">
+                        <button class="btn btn-primary btn-block" type="submit" :disabled="busy">
+                          {{ registering ? 'Create account' : 'Sign in' }}
+                        </button>
+                      </div>
+
+                      <p class="text-sm">
+                        <a class="link link-primary" :href="registering ? '/login' : '/register'">
+                          {{ registering ? 'Already have an account?' : 'No account yet?' }}
+                        </a>
+                      </p>
+                    </div>
+                  </form>
+                </div>
+              </main>
+            </template>
 
             """),
 
@@ -541,9 +939,105 @@ internal static class SpaClientSources
         ("src/App.svelte", """
             <script lang="ts">
               import Greeting from './lib/Greeting.svelte'
+              import Auth from './lib/Auth.svelte'
+
+              // No router, deliberately — see the note in the React template. The path is read once,
+              // and deep links work because the dev server and the host both fall back to index.html.
+              const path = window.location.pathname
             </script>
 
-            <Greeting />
+            {#if path === '/login'}
+              <Auth mode="login" />
+            {:else if path === '/register'}
+              <Auth mode="register" />
+            {:else}
+              <Greeting />
+            {/if}
+
+            """),
+
+        ("src/lib/Auth.svelte", """
+            <script lang="ts">
+              import { login, register, type AuthFailure } from '../rask/browser/auth'
+
+              /*
+                Sign in and registration, over the endpoints Rask.Auth maps at /api/auth. The generated
+                client is typed, so there is no status code to read and no shape to guess, and the
+                cookie it sets is HttpOnly — this page never sees a token.
+              */
+              let { mode }: { mode: 'login' | 'register' } = $props()
+
+              const registering = $derived(mode === 'register')
+              let email = $state('')
+              let password = $state('')
+              let failure = $state<AuthFailure | null>(null)
+              let busy = $state(false)
+
+              async function submit(event: SubmitEvent) {
+                event.preventDefault()
+                busy = true
+                failure = null
+
+                const credentials = { email, password }
+                const result = registering ? await register(credentials) : await login(credentials)
+
+                busy = false
+                if (result.ok) window.location.assign('/')
+                else failure = result.failure
+              }
+            </script>
+
+            <main class="hero min-h-screen bg-base-200">
+              <div class="hero-content w-full max-w-sm flex-col">
+                <h1 class="text-2xl font-bold">
+                  {registering ? 'Create an account' : 'Sign in'}
+                </h1>
+
+                <form class="card bg-base-100 w-full shadow-sm" onsubmit={submit}>
+                  <div class="card-body gap-4">
+                    {#if failure}
+                      <div role="alert" class="alert alert-error">
+                        <span>{failure.message ?? failure.error}</span>
+                      </div>
+                    {/if}
+
+                    <label class="fieldset">
+                      <span class="fieldset-legend">Email</span>
+                      <input
+                        class="input w-full"
+                        type="email"
+                        autocomplete="username"
+                        required
+                        bind:value={email}
+                      />
+                    </label>
+
+                    <label class="fieldset">
+                      <span class="fieldset-legend">Password</span>
+                      <input
+                        class="input w-full"
+                        type="password"
+                        autocomplete={registering ? 'new-password' : 'current-password'}
+                        required
+                        bind:value={password}
+                      />
+                    </label>
+
+                    <div class="card-actions">
+                      <button class="btn btn-primary btn-block" type="submit" disabled={busy}>
+                        {registering ? 'Create account' : 'Sign in'}
+                      </button>
+                    </div>
+
+                    <p class="text-sm">
+                      <a class="link link-primary" href={registering ? '/login' : '/register'}>
+                        {registering ? 'Already have an account?' : 'No account yet?'}
+                      </a>
+                    </p>
+                  </div>
+                </form>
+              </div>
+            </main>
 
             """),
 
@@ -698,6 +1192,7 @@ internal static class SpaClientSources
         ("src/app/app.ts", """
             import { Component, effect, signal } from '@angular/core';
 
+            import { Auth } from './auth';
             import { rask } from '../rask/client';
             import { getGreeting, recordVisit } from '../rask/messages';
             import type { Greeting } from '../rask/contracts';
@@ -706,8 +1201,14 @@ internal static class SpaClientSources
               selector: 'app-root',
               templateUrl: './app.html',
               styleUrl: './app.css',
+              imports: [Auth],
             })
             export class App {
+              // No router, deliberately — see the note in the React template. Angular's is provided in
+              // app.config.ts and app.routes.ts is yours to fill in; this reads the path once so the
+              // starter does not decide your routing for you.
+              protected readonly route = window.location.pathname;
+
               protected readonly name = signal('world');
               protected readonly greeting = signal<Greeting | null>(null);
               protected readonly error = signal<string | null>(null);
@@ -766,6 +1267,9 @@ internal static class SpaClientSources
             """),
 
         ("src/app/app.html", """
+            @if (route === '/login' || route === '/register') {
+              <app-auth [mode]="route === '/register' ? 'register' : 'login'" />
+            } @else {
             <div class="flex min-h-screen flex-col bg-base-200">
               <nav class="navbar bg-base-100 shadow-sm">
                 <div class="navbar-start">
@@ -827,6 +1331,107 @@ internal static class SpaClientSources
                 <aside><p>Built with Rask.</p></aside>
               </footer>
             </div>
+            }
+
+            """),
+
+        ("src/app/auth.ts", """
+            import { Component, computed, input, signal } from '@angular/core';
+
+            import { login, register, type AuthFailure } from '../rask/browser/auth';
+
+            /**
+             * Sign in and registration, over the endpoints Rask.Auth maps at /api/auth. The generated
+             * client is typed, so there is no status code to read and no shape to guess, and the cookie
+             * it sets is HttpOnly — this page never sees a token.
+             *
+             * An inline template rather than a templateUrl, to keep the overlay Rask maintains by hand
+             * as small as it can be: everything else under src/ is Angular's own scaffold.
+             */
+            @Component({
+              selector: 'app-auth',
+              template: `
+                <main class="hero min-h-screen bg-base-200">
+                  <div class="hero-content w-full max-w-sm flex-col">
+                    <h1 class="text-2xl font-bold">
+                      {{ registering() ? 'Create an account' : 'Sign in' }}
+                    </h1>
+
+                    <!-- (submit), not (ngSubmit): that one is FormsModule's, and this component does
+                         not import it — the binding would simply never fire. -->
+                    <form class="card bg-base-100 w-full shadow-sm" (submit)="submit($event)">
+                      <div class="card-body gap-4">
+                        @if (failure(); as problem) {
+                          <div role="alert" class="alert alert-error">
+                            <span>{{ problem.message ?? problem.error }}</span>
+                          </div>
+                        }
+
+                        <label class="fieldset">
+                          <span class="fieldset-legend">Email</span>
+                          <input
+                            class="input w-full"
+                            type="email"
+                            autocomplete="username"
+                            required
+                            [value]="email()"
+                            (input)="email.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <label class="fieldset">
+                          <span class="fieldset-legend">Password</span>
+                          <input
+                            class="input w-full"
+                            type="password"
+                            [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
+                            required
+                            [value]="password()"
+                            (input)="password.set($any($event.target).value)"
+                          />
+                        </label>
+
+                        <div class="card-actions">
+                          <button class="btn btn-primary btn-block" type="submit" [disabled]="busy()">
+                            {{ registering() ? 'Create account' : 'Sign in' }}
+                          </button>
+                        </div>
+
+                        <p class="text-sm">
+                          <a class="link link-primary" [href]="registering() ? '/login' : '/register'">
+                            {{ registering() ? 'Already have an account?' : 'No account yet?' }}
+                          </a>
+                        </p>
+                      </div>
+                    </form>
+                  </div>
+                </main>
+              `,
+            })
+            export class Auth {
+              readonly mode = input.required<'login' | 'register'>();
+
+              protected readonly registering = computed(() => this.mode() === 'register');
+              protected readonly email = signal('');
+              protected readonly password = signal('');
+              protected readonly failure = signal<AuthFailure | null>(null);
+              protected readonly busy = signal(false);
+
+              protected async submit(event: Event): Promise<void> {
+                event.preventDefault();
+                this.busy.set(true);
+                this.failure.set(null);
+
+                const credentials = { email: this.email(), password: this.password() };
+                const result = this.registering()
+                  ? await register(credentials)
+                  : await login(credentials);
+
+                this.busy.set(false);
+                if (result.ok) window.location.assign('/');
+                else this.failure.set(result.failure);
+              }
+            }
 
             """),
     ];
@@ -837,6 +1442,7 @@ internal static class SpaClientSources
             import { LitElement, html } from 'lit'
             import { customElement, state } from 'lit/decorators.js'
             import { rask } from './rask/client'
+            import { login, register, type AuthFailure } from './rask/browser/auth'
             import { getGreeting, recordVisit } from './rask/messages'
             import type { Greeting } from './rask/contracts'
 
@@ -864,11 +1470,26 @@ internal static class SpaClientSources
               @state()
               private accessor busy = false
 
+              @state()
+              private accessor authFailure: AuthFailure | null = null
+
+              @state()
+              private accessor email = ''
+
+              @state()
+              private accessor password = ''
+
+              // No router, deliberately — see the note in the React template. Read once, so the day you
+              // add one it is this line and the branch in render() to delete. Both screens live in this
+              // element rather than a second one, because the light-DOM override above is what lets the
+              // page's stylesheet reach them and it would have to be repeated verbatim there.
+              private readonly route = window.location.pathname
+
               private inFlight: AbortController | null = null
 
               connectedCallback() {
                 super.connectedCallback()
-                void this.load()
+                if (this.route !== '/login' && this.route !== '/register') void this.load()
               }
 
               disconnectedCallback() {
@@ -876,7 +1497,92 @@ internal static class SpaClientSources
                 this.inFlight?.abort()
               }
 
+              private async submitAuth(event: Event) {
+                event.preventDefault()
+                this.busy = true
+                this.authFailure = null
+
+                const credentials = { email: this.email, password: this.password }
+                const result =
+                  this.route === '/register' ? await register(credentials) : await login(credentials)
+
+                this.busy = false
+                if (result.ok) window.location.assign('/')
+                else this.authFailure = result.failure
+              }
+
+              /**
+               * Sign in and registration, over the endpoints Rask.Auth maps at /api/auth. The generated
+               * client is typed, so there is no status code to read and no shape to guess, and the
+               * cookie it sets is HttpOnly — this page never sees a token.
+               */
+              private renderAuth() {
+                const registering = this.route === '/register'
+
+                return html`
+                  <main class="hero min-h-screen bg-base-200">
+                    <div class="hero-content w-full max-w-sm flex-col">
+                      <h1 class="text-2xl font-bold">
+                        ${registering ? 'Create an account' : 'Sign in'}
+                      </h1>
+
+                      <form class="card bg-base-100 w-full shadow-sm" @submit=${this.submitAuth}>
+                        <div class="card-body gap-4">
+                          ${this.authFailure
+                            ? html`<div role="alert" class="alert alert-error">
+                                <span>${this.authFailure.message ?? this.authFailure.error}</span>
+                              </div>`
+                            : ''}
+
+                          <label class="fieldset">
+                            <span class="fieldset-legend">Email</span>
+                            <input
+                              class="input w-full"
+                              type="email"
+                              autocomplete="username"
+                              required
+                              .value=${this.email}
+                              @input=${(event: Event) => {
+                                this.email = (event.target as HTMLInputElement).value
+                              }}
+                            />
+                          </label>
+
+                          <label class="fieldset">
+                            <span class="fieldset-legend">Password</span>
+                            <input
+                              class="input w-full"
+                              type="password"
+                              autocomplete=${registering ? 'new-password' : 'current-password'}
+                              required
+                              .value=${this.password}
+                              @input=${(event: Event) => {
+                                this.password = (event.target as HTMLInputElement).value
+                              }}
+                            />
+                          </label>
+
+                          <div class="card-actions">
+                            <button class="btn btn-primary btn-block" type="submit" ?disabled=${this.busy}>
+                              ${registering ? 'Create account' : 'Sign in'}
+                            </button>
+                          </div>
+
+                          <p class="text-sm">
+                            <a class="link link-primary" href=${registering ? '/login' : '/register'}>
+                              ${registering ? 'Already have an account?' : 'No account yet?'}
+                            </a>
+                          </p>
+                        </div>
+                      </form>
+                    </div>
+                  </main>
+                `
+              }
+
               render() {
+                if (this.route === '/login' || this.route === '/register') return this.renderAuth()
+
                 return html`
                   <div class="flex min-h-screen flex-col bg-base-200">
                     <nav class="navbar bg-base-100 shadow-sm">

@@ -137,6 +137,17 @@ public sealed class SpaTemplateTests
         // It was four while styling was a choice and Tailwind was one answer. Raising a ceiling is exactly
         // the move this test exists to make someone justify, so: the two new files are the ones Tailwind
         // needs to compile at all, and neither is a hand-maintained copy of a framework's own skeleton.
+        //
+        // Seven now, for the sign-in and registration screens. The justification is that ONE file was
+        // added per framework, not three: both screens are the same component behind a `mode`, and the
+        // path is read in the entry file each template already overlays rather than by scaffolding a
+        // router — which another test here deliberately asserts none of them does. Lit added no file at
+        // all, because its light-DOM override is what lets the page's stylesheet reach the markup and
+        // repeating that verbatim in a second element would be the copy this ceiling exists to prevent.
+        //
+        // What is NOT justified by this, and would be the signal to stop: a framework's own routing,
+        // layout or data-fetching skeleton appearing here. These screens are a form over two typed
+        // functions the build already generates, in markup that is the same in all seven.
         var ours = result.Files
             .Select(f => f.Path.Replace('\\', '/'))
             .Where(p => p.Contains("/client/", StringComparison.Ordinal))
@@ -147,7 +158,53 @@ public sealed class SpaTemplateTests
         // Angular declares its dev proxy in angular.json and gets proxy.conf.json instead — there is no
         // vite.config.ts to write, because the Vite config Angular's build runs on is Angular's own.
         Assert.Contains(Framework(key).WritesViteConfig ? "vite.config.ts" : "proxy.conf.json", ours);
-        Assert.InRange(ours.Length, 2, 6);
+        Assert.InRange(ours.Length, 2, 7);
+    }
+
+    [Fact]
+    public void Every_starter_can_sign_somebody_in()
+    {
+        // The endpoints and a typed client both already ship — Rask.Auth maps /api/auth, and the build
+        // generates rask/browser/auth into every client. What was missing was the two screens, so the
+        // first thing anyone did with accounts on this lane was write them by hand.
+        foreach (var framework in SpaFramework.All)
+        {
+            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
+
+            // The generated client, not a hand-rolled fetch: it is typed, it carries the CSRF header
+            // these endpoints require, and it answers {ok} rather than a status code to interpret.
+            Assert.Contains("rask/browser/auth", markup, StringComparison.Ordinal);
+            Assert.Contains("register(", markup, StringComparison.Ordinal);
+            Assert.Contains("login(", markup, StringComparison.Ordinal);
+
+            // Both screens, and both paths reachable.
+            Assert.Contains("'/login'", markup, StringComparison.Ordinal);
+            Assert.Contains("'/register'", markup, StringComparison.Ordinal);
+
+            // The same card the C# lane's sign-in draws.
+            foreach (var name in (string[])["hero min-h-screen", "card bg-base-100", "card-body", "btn btn-primary btn-block", "alert alert-error"])
+            {
+                Assert.Contains(name, markup, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public void No_starter_stores_a_token_of_its_own()
+    {
+        // The cookie these endpoints set is HttpOnly, which is the point: a page that cannot read it
+        // cannot leak it, and a scaffold that reached for localStorage would be teaching the opposite
+        // on the way past.
+        foreach (var framework in SpaFramework.All)
+        {
+            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
+
+            // Matched on USE — `localStorage.` — not on the word, because the templates say in prose
+            // that there is nothing to put there, and a test that failed on its own explanation would
+            // be turned off rather than fixed.
+            Assert.DoesNotContain("localStorage.", markup, StringComparison.Ordinal);
+            Assert.DoesNotContain("sessionStorage.", markup, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
