@@ -401,6 +401,27 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A finished change lands on `main` directly; the `open-pr` skill is now `land-on-main`.** Every
+  workflow document ended the definition-of-done gate with "open a PR" — `CLAUDE.md`, `AGENTS.md`,
+  `.claude/skills/README.md`, `rask-ship` step 7 and `docs/development-workflow.md` step 7 — so a
+  working session parked its work on a branch and waited for a review that is never coming. This repo
+  has one regular committer and **zero required checks**: the gates are the local `pre-commit` and
+  `pre-push` hooks, so a pull request adds ceremony and proves nothing that the push has not already
+  proven.
+
+  The gate's last step is now a gated merge and a direct push, and the skill carries the two traps
+  that make the naive version unsound. A *clean* `git merge` creates its own commit and runs
+  `pre-merge-commit` — a hook this repo does not have — so it lands with no format check, no build and
+  no tests; the flow merges `origin/main` with `--no-commit` and lets `git commit` run the gate. And
+  because a worktree cannot check `main` out (the primary checkout holds it), the change goes up as
+  `git push origin HEAD:main`, backgrounded, verified by `git ls-remote` rather than by an exit code
+  a pipe can swallow.
+
+  Pull requests keep the one job a local hook cannot do: an **external** contribution, where the PR
+  title becomes the squash commit. `commitlint.yml` triggers `on: pull_request` only, so
+  `docs/repo-administration.md` no longer claims it covers the maintainer's own commits —
+  `.githooks/commit-msg` does.
+
 - **The operator console's palette is daisyUI's, and the console is invisible in dark mode no longer.**
   `Rask.Dashboard`'s own stylesheet carried a near-white ladder in literal `oklch()` while `UiShell`
   painted the surface under it with daisyUI's `bg-base-200` / `bg-base-100` / `text-base-content`. Those
