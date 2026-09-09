@@ -1,10 +1,24 @@
 # Rask.Data
 
-A tiny, provider-agnostic data layer for **Entity Framework Core** apps — the DDD building blocks the
-[Rask tutorial](https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md) builds its CRUD slices on, packaged for reuse.
+A data layer for **Entity Framework Core** apps with one goal: **you declare models, and that is all**.
+No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
+`IDbContextFactory` injected into everything that reads a row. Underneath it is ordinary EF Core, and
+`Db.Current` is the real `DbContext` whenever you want it.
 
 - **`Model<TId>`** — a base entity with `Id`, audit stamps (`CreatedAt`/`UpdatedAt`), and a
-  domain-events buffer.
+  domain-events buffer. A source generator finds every one of them and builds the model, so nothing is
+  scanned or reflected and a trimmed publish cannot quietly drop a table.
+- **The model type is its own `DbSet`** — `Product.Where(...)`, `Product.FindAsync(id)`,
+  `Product.Add/Update/Remove(...)`, `Product.CountAsync()`. C# 14 static extension members, so an entity
+  that compiles today has them. Reads are no-tracking by default and open no context until they run.
+- **`Db.Begin()`** — one short-lived ambient `DbContext` per unit of work, committed by a single
+  `SaveChangesAsync`. Nesting joins rather than nests, so `await entity.SaveAsync()` inside a caller's
+  transaction takes part in it instead of committing half of it.
+- **Value objects** (`IValueObject`) map as EF **complex types**, not owned entities; **strongly-typed
+  ids** get a generated value converter with nothing declared; mapping rules live in a plain
+  `public static void Configure(EntityTypeBuilder<T>)` on the model.
+- **`TestDatabase.StartAsync`** — a real database for a test in one line, so behaviour on a model is
+  tested against the database it ships on rather than a mocked `DbContext`.
 - **Opt-in markers** — implement `ISoftDeletable` (adds `DeletedAt`) or `IVersioned` (adds a `Version`
   concurrency token) on your entity to turn on the behavior.
 - **Three `ISaveChangesInterceptor`s** — auditing timestamps, **transparent soft delete** (a `Remove`
@@ -25,20 +39,33 @@ public sealed class Product : Model<Guid>, ISoftDeletable, IVersioned
     public static Product Create(string name) => new() { Id = Guid.NewGuid(), Name = name };
 }
 
-// Program.cs
+// read — no context in scope, nothing left open
+var active = await Product.Where(p => p.DeletedAt == null).OrderBy(p => p.Name).ToListAsync();
+
+// write — one transaction over everything it touches
+await using var uow = Db.Begin();
+Product.Add(Product.Create("Anvil"));
+Product.Remove(discontinued);
+await uow.SaveChangesAsync();
+```
+
+In a Rask app that is the whole of it — the host builds the model and points the ambient database at it.
+Elsewhere, name the context once and hand it over after the container is built:
+
+```csharp
 builder.Services.AddRaskCqrs();
-builder.Services.AddRaskData();
+builder.Services.AddRaskData<AppDbContext>();
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseSqlite("Data Source=app.db")
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
-// AppDbContext.OnModelCreating
-protected override void OnModelCreating(ModelBuilder modelBuilder)
-{
-    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-    modelBuilder.ApplyRaskConventions();
-}
+var app = builder.Build();
+Db.Configure(app.Services);
 ```
+
+A class that does **not** derive from `Model` stays an ordinary EF Core entity: write your own context
+and configurations and use them exactly as before. Registering an `IDbContextFactory<YourContext>` is
+the whole of opting out at the app level.
 
 `db.Remove(product)` now soft-deletes; deleted rows drop out of queries (use `IgnoreQueryFilters()` to
 restore); a save against a stale `Version` throws `DbUpdateConcurrencyException`; and any
