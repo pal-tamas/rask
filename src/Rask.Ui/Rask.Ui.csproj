@@ -127,6 +127,23 @@
   <!-- The build hooks a consumer gets from the package: see build/Rask.Ui.targets. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+
+    <!--
+      The daisyUI plugin bundle itself, so a CONSUMER's Tailwind can compile daisyUI too.
+
+      This package's own sheet is compiled here and shipped whole, which is what an app linking
+      UiStylesheet.Href() gets. But that sheet contains the classes THIS project's components write,
+      and Tailwind only emits a class it can see — so an app writing `card-body` in its own markup
+      gets nothing, because nothing in the kit names it.
+
+      An app therefore has to run daisyUI itself, and the standalone Tailwind engine carries no
+      package tree to resolve `@plugin "daisyui"` the Node way. Shipping the bundle is what lets an
+      app say `@plugin "./vendor/daisyui.mjs"` with no npm install, no node_modules and no
+      package.json — the same trick this project already uses on itself, for the same reason.
+
+      Not an EmbeddedResource: the copy has to happen at BUILD time, before Tailwind runs.
+    -->
+    <None Include="Styles\vendor\daisyui.mjs" Pack="true" PackagePath="build\" Visible="false"/>
   </ItemGroup>
 
 </Project>
