@@ -249,6 +249,24 @@ set +e
 test_slots="$lane_slots"
 [ "$test_slots" -lt 1 ] && test_slots=1
 
+# It stays `dotnet test Rask.slnx`, and NOT the 51 built DLLs handed to one vstest run. That looks like
+# the obvious next saving — the browser gate already invokes its assembly directly, and a solution run
+# re-evaluates 105 projects to discover 51 test assemblies — so here is the measurement, to stop it
+# being tried a third time.
+#
+# It is SLOWER: 146s for the DLL list against 129s for the solution, same 51 assemblies, same box,
+# back to back. MSBuild running eight test projects in parallel, each in its own testhost, beats one
+# vstest process scheduling 51 assemblies at RunConfiguration.MaxCpuCount=8.
+#
+# And it is WRONG, which matters more. `MetadataUpdater.IsSupported` is a per-PROCESS feature switch
+# read from the assembly's own runtimeconfig.json, and two projects set MetadataUpdaterSupport=true
+# precisely because the SDK turns it off in Release — tests/Rask.Server.HotReload.Tests and
+# tests/Rask.Wasm.Tests. A solution run gives each project its own testhost and so its own
+# runtimeconfig; one vstest invocation over many DLLs shares testhosts, and the switch then belongs to
+# whichever assembly booted the host. Six hot-reload tests failed, including the two named
+# `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
+# with the switch off. They did their job on this experiment.
+
 dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
   --filter "FullyQualifiedName!~Rask.Examples.E2E$tsc_filter" \
   --blame-crash \
