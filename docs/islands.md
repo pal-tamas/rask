@@ -666,9 +666,27 @@ so a change in its transform is still only caught by building one.
   since Angular components need the Angular compiler rather than plain Vite.
 - **Blazor.** `.razor` components, with props staying C# and never becoming JSON — and static prerender
   needing no bundler at all.
-- **Islands in a shared library.** The client runtime resolves the manifest at the app-rooted
-  `/_rask/external/manifest.json`, so the app that serves the page is the app that has to bundle them.
-  A class library can hold the C#, but its bundle would be served under `_content/<PackageId>/` where
-  nothing looks for it.
+- **Islands in a shared library.** The app that serves the page is still the app that has to bundle
+  them. Measured against a real class library and an app referencing it, the gap is narrower than it
+  reads — and narrower than [#939](https://github.com/pal-tamas/rask/issues/939) first recorded:
+
+  - The *build* side already works inside a library. A Razor-SDK class library holding `Badge.cs`
+    (a `LitComponent`) and `Badge.ts` beside it writes its own `Badge.props.d.ts`, runs the prop
+    type-check (a renamed C# property fails the library's build with `TS2339`), bundles with Vite, and
+    registers the chunks as static web assets under `_content/<PackageId>/_rask/external/`, which the
+    referencing app then serves. None of that needs changing.
+  - Two URLs are wrong, and both are the same mistake. `rask-external.js` fetches the app-rooted
+    `/_rask/external/manifest.json`, which the `UseRask` catch-all answers with the page's own HTML
+    (`Unexpected token '<'`, nothing mounted). And `RaskExternalPublicBase` defaults to `/_rask/external/`
+    whatever project it is in, so the library's manifest points every chunk at a path under the *app's*
+    root rather than under its own `_content/` base — a URL that answers with the page's HTML too.
+  - The prop-types half of #939 only bites when a component's C# and its front-end file are in
+    *different* projects. That shape is already reported: `ReportUnbuiltIslands` warns in the project
+    that declares the island, because the module it points at is not among the files being built.
+  - **A trap for whoever fixes this.** The library's URL base cannot be derived from
+    `StaticWebAssetBasePath` or `StaticWebAssetProjectMode`. Both are empty at evaluation, and once
+    `ResolveStaticWebAssetsConfiguration` has run, the browser-WASM app resolves to
+    `_content/Rask.Site` / `Default` — character-for-character what the class library resolves to,
+    while its `wwwroot` is served at the site root. `OutputType` is what separates them.
 - **Server-side rendering** for the bundler-backed runtimes, which is what would make `Hydration.None`
   broadly useful.

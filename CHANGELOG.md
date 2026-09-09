@@ -413,6 +413,22 @@ them until tagged releases begin.
   throughout. `docs/meta.md` stated the old default in its property table; four comments in the props
   and targets still described a PascalCase folder. (#994)
 
+### Documentation
+
+- **"Islands in a shared library" now says what is actually missing.** Measured against a real
+  Razor-SDK class library holding a Lit island and an app referencing it: the library's own build
+  already writes its prop types, runs the type-check, bundles, and registers the chunks under
+  `_content/<PackageId>/_rask/external/`, which the app then serves. What is broken is two URLs, both
+  the same mistake — `rask-external.js` fetches the app-rooted `/_rask/external/manifest.json`, and
+  `RaskExternalPublicBase` defaults to that same app-rooted prefix inside a library, so the manifest
+  points every chunk under the app's root. Both answer with the page's own HTML.
+
+  The note also records the trap waiting for whoever fixes it: the library's base cannot be derived
+  from `StaticWebAssetBasePath` or `StaticWebAssetProjectMode`. Both are empty at evaluation, and once
+  `ResolveStaticWebAssetsConfiguration` has run the browser-WASM app resolves to `_content/Rask.Site` /
+  `Default` — exactly what the class library resolves to, while its `wwwroot` is served at the site
+  root. `OutputType` is what separates them. (#939)
+
 ### Changed
 
 - **The operator console's palette is daisyUI's, and the console is invisible in dark mode no longer.**
