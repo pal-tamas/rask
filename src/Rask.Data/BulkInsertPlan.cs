@@ -144,8 +144,8 @@ internal sealed class BulkInsertPlan
             return null;
         }
 
-        var createdAt = entityType.FindProperty(nameof(ITimestamped.CreatedAt));
-        var updatedAt = entityType.FindProperty(nameof(ITimestamped.UpdatedAt));
+        var createdAt = entityType.FindProperty(Rask.Data.Columns.CreatedAt);
+        var updatedAt = entityType.FindProperty(Rask.Data.Columns.UpdatedAt);
 
         return createdAt is null || updatedAt is null
             ? null

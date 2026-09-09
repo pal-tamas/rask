@@ -6,7 +6,7 @@ namespace Rask.Data;
 /// <summary>
 /// Makes deletion of an <see cref="ISoftDeletable"/> transparent: before each save, any entry marked
 /// <see cref="EntityState.Deleted"/> is rewritten to <see cref="EntityState.Modified"/> with
-/// <see cref="ISoftDeletable.DeletedAt"/> set to now, so <c>db.Remove(entity)</c> updates the row instead of
+/// <c>DeletedAt</c> set to now, so <c>db.Remove(entity)</c> updates the row instead of
 /// removing it. The global query filter added by <see cref="ModelBuilderExtensions.ApplyRaskConventions"/>
 /// then hides it. Runs before the <see cref="AuditingInterceptor"/> so the soft delete is also timestamped
 /// and versioned.
@@ -44,7 +44,7 @@ public sealed class SoftDeleteInterceptor(TimeProvider timeProvider) : SaveChang
             if (entry.State == EntityState.Deleted)
             {
                 entry.State = EntityState.Modified;
-                entry.Property(nameof(ISoftDeletable.DeletedAt)).CurrentValue = now;
+                entry.Property(Columns.DeletedAt).CurrentValue = now;
             }
         }
     }
