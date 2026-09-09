@@ -116,7 +116,12 @@ public sealed partial class DashboardLayout(
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiShell[
+        // The shell carries the kit's theme scope, so it is also where daisyUI reads data-theme. Named
+        // rather than left to default: the default is "follow prefers-color-scheme", which would repaint
+        // this subtree dark while dashboard.css's palette — a set of ratios measured on a white ground —
+        // stayed light. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place
+        // the two agree.
+        UiShell.Theme(DashboardTheme.Name)[
             UiTopBar.Trailing(UiTopLink.Label("Docs").Href("https://rask.sh/docs/"))[
                 // The wordmark and the destination are the console's, not the kit's — the kit is shared
                 // with the site and the docs now, and each says its own name.
