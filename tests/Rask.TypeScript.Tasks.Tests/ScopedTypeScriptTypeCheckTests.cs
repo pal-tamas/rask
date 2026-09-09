@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Xml.Linq;
+using Rask.External.Tasks;
 
 namespace Rask.TypeScript.Tasks.Tests;
 
@@ -304,14 +305,30 @@ public class ScopedTypeScriptTypeCheckTests
     ///     Every project directory holding at least one scoped <c>.ts</c>, with its files.
     /// </summary>
     /// <remarks>
-    ///     Projects that opt out with <c>RaskScopedTsAutoInclude=false</c> are skipped, because their
-    ///     <c>.ts</c> is not a scoped asset at all — <c>Rask.Spa.Hosting</c>'s client is vendored into
-    ///     a consumer's bundler project and compiled by their toolchain, against their dependencies,
-    ///     which are not present here.
+    ///     <para>
+    ///         Projects that opt out with <c>RaskScopedTsAutoInclude=false</c> are skipped, because their
+    ///         <c>.ts</c> is not a scoped asset at all — <c>Rask.Spa.Hosting</c>'s client is vendored into
+    ///         a consumer's bundler project and compiled by their toolchain, against their dependencies,
+    ///         which are not present here.
+    ///     </para>
+    ///     <para>
+    ///         <c>site</c> is swept alongside <c>src</c> and <c>tests</c>. It was not, and the omission
+    ///         was invisible in the way that matters: the one APP in this repository — the app whose
+    ///         scoped TypeScript is what the feature exists for — was the only tree this gate never
+    ///         looked at, and nothing said so.
+    ///     </para>
+    ///     <para>
+    ///         An island's module is excluded, because it is not a scoped asset (#938). Both are spelled
+    ///         <c>Name.ts</c> beside <c>Name.cs</c>; the island's own file imports its generated props
+    ///         through <c>@rask/Name.props</c>, a mapping that exists only in the island's tsconfig, so
+    ///         checking it here reports an unresolved module against code the build compiles correctly.
+    ///         The verdict comes from <see cref="ExternalSourceScan" /> — the same scan the build
+    ///         partitions its own file lists with — rather than from a rule restated here.
+    ///     </para>
     /// </remarks>
     private static IEnumerable<(string Project, List<string> Files)> ProjectsWithScopedTypeScript(string root)
     {
-        foreach (var directory in new[] { "src", "samples", "tests" })
+        foreach (var directory in new[] { "src", "site", "samples", "tests" })
         {
             var path = Path.Combine(root, directory);
             if (!Directory.Exists(path))
@@ -327,9 +344,14 @@ public class ScopedTypeScriptTypeCheckTests
                 }
 
                 var projectDirectory = Path.GetDirectoryName(project)!;
+                var islands = ExternalSourceScan.IslandRuntimes(
+                    Directory.EnumerateFiles(projectDirectory, "*.cs", SearchOption.AllDirectories)
+                        .Where(f => !IsExcluded(projectDirectory, f)));
+
                 var files = Directory
                     .EnumerateFiles(projectDirectory, "*.ts", SearchOption.AllDirectories)
                     .Where(f => !IsExcluded(projectDirectory, f))
+                    .Where(f => ExternalSourceScan.RuntimeOfModule(islands, f) is null)
                     .OrderBy(f => f, StringComparer.Ordinal)
                     .ToList();
 

@@ -31,6 +31,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"/>
+    <!--
+      For ExternalSourceScan, which decides whether a `.ts` beside a `.cs` is a scoped asset or an
+      island module (#938). The sweep below mirrors the build's file list, and the build's file list
+      is now partitioned by that scan — restating the rule here would be a second place for it to be
+      wrong, and the failure it produces is a red gate on code that is perfectly correct.
+    -->
+    <ProjectReference Include="..\..\src\Rask.External.Tasks\Rask.External.Tasks.csproj"/>
   </ItemGroup>
 
 </Project>

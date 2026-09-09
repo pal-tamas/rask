@@ -559,7 +559,6 @@ line 1 — naming neither Vue nor the plugin that should have handled it.
 | Property | Default | |
 |---|---|---|
 | `RaskExternalBuild` | `true` | `false` skips node entirely. They still render their host elements. |
-| `RaskExternalLitAutoPair` | `true` | `false` stops a `.ts` beside a `.cs` being assumed a Lit island. Set it in any project that also has scoped TypeScript. |
 | `RaskExternalOutputDir` | `wwwroot/_rask/external` | Under `wwwroot` so the SDK publishes it with no publish target of its own. |
 
 The bundle is written after `wwwroot` has already been globbed, so the build registers it as a
@@ -591,20 +590,36 @@ what to create — a custom element registers its own tag and nothing about the 
 > `static properties` plus `customElements.define('my-tag', MyElement)`, which is the same API with no
 > transform to depend on.
 
-> **A Lit island collides with scoped TypeScript.** Both features are spelled `Name.ts` beside
-> `Name.cs`, and nothing in MSBuild can tell them apart: the only difference is whether the class
-> derives from `LitComponent`, which Roslyn knows and a glob does not. It bites in both directions —
-> the scoped pipeline compiles an island's file as a component asset, and island discovery offers
-> every scoped file to the bundler as a Lit module that never default-exported a tag name.
->
-> Say which the project has:
->
-> - **Islands only** (no scoped TypeScript): `<RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>`.
-> - **Scoped TypeScript only**, or scoped TypeScript plus Lit islands you name yourself:
->   `<RaskExternalLitAutoPair>false</RaskExternalLitAutoPair>`, then declare each Lit island with
->   `<RaskExternal Include="widgets/gauge.ts" Runtime="lit"/>`.
->
-> The other three runtimes have extensions of their own and are never ambiguous.
+### A Lit island and scoped TypeScript in one project
+
+Both features are spelled `Name.ts` beside `Name.cs`. The only difference is whether the class derives
+from `LitComponent` — which Roslyn knows and a glob does not — so the build used to claim files in both
+directions: the scoped pipeline compiled an island's module as a component asset, and island discovery
+offered every scoped file to the bundler as a Lit module that never default-exported a tag name. Two
+opt-outs let a project say which *one* of the features it had, and a project that wanted both could not
+have them.
+
+**Nothing to set now.** The build reads the base list out of the C# and each `.ts` goes to exactly one
+pipeline. `RaskExternalLitAutoPair` is **retired**: setting it does nothing, and it can be deleted from
+any project that carries it. `RaskScopedTsAutoInclude` stays — it is Rask.Core's own switch, for a
+project whose `.ts` files are not component assets at all — but it is no longer something an islands
+project has to reach for.
+
+The reading happens *before* the compile, because the scoped-TypeScript list is compiled and handed to
+the C# compiler and so cannot wait for the assembly that compile produces. It is therefore a scan of the
+source rather than a semantic answer, and the build checks it against the real one: after the compile,
+an island whose declared module is not among the files being built is reported by name.
+
+Two consequences worth knowing:
+
+- The pairing is per **directory** and per **name**. `Gauge.ts` is `Gauge`'s module only if `Gauge.cs`
+  sits beside it, and only if `Gauge`'s runtime is one that writes a plain `.ts` — a `Chart.ts` next to
+  a `Chart : ReactComponent` stays a scoped asset, because that component's module is `./Chart.tsx`.
+- A component that overrides `Module` to name something else still has its sibling file claimed. The
+  build says so rather than leaving it silent: the declared module has no file, and that is reported.
+
+`<RaskExternal Include="widgets/gauge.ts" Runtime="lit"/>` is still there for a file the convention
+cannot reach. The other runtimes have extensions of their own and were never ambiguous.
 
 ### Both hosts, verified
 
