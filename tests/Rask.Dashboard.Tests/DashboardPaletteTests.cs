@@ -30,7 +30,7 @@ public sealed partial class DashboardPaletteTests : global::Rask.Core.RaskMarkup
     /// <summary>
     ///     daisyUI's status and neutral colours are backgrounds — each is meant to be paired with its own
     ///     <c>-content</c> on top — and every one of them fails WCAG AA read as text on a light ground:
-    ///     <c>--color-warning</c> measures 1.94:1 on white and <c>--color-error</c> 2.87:1, while
+    ///     <c>--color-warning</c> measures 1.76:1 on white and <c>--color-error</c> 2.87:1, while
     ///     <c>--color-neutral</c> is oklch(14%), DARKER than the body text it would be muting.
     /// </summary>
     private static readonly string[] SurfaceOnly =

@@ -89,7 +89,7 @@
 
   /* Status TEXT, and the reason the -ink twins exist at all: daisyUI's warning and error are SURFACE
      colours, sized to be a background with warning-content on top, and they fail badly read as text on
-     a light ground. --color-warning is oklch(82% .189 84) — 1.94:1 on white. --color-error is
+     a light ground. --color-warning is oklch(82% .189 84) — 1.76:1 on white. --color-error is
      oklch(71% .194 13) — 2.87:1. Aliasing either straight across would ship unreadable status text,
      which is the kind of defect that looks fine to anyone who already knows what the label says.
 

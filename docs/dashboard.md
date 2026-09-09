@@ -249,7 +249,7 @@ it would be two designs on one page.
 `<html>` with an explicit `data-theme`, so the console ignores both the host application's theme and
 the reader's `prefers-color-scheme`. An operator surface is a set of contrast ratios measured against
 a white ground: daisyUI's `warning` and `error` are *surface* colours that fail AA read as text on one
-(1.94:1 and 2.87:1), which is why the sheet derives darkened `-ink` twins for the text roles. Letting
+(1.76:1 and 2.87:1), which is why the sheet derives darkened `-ink` twins for the text roles. Letting
 the palette follow the OS would invalidate every one of those measurements silently.
 
 It is not a hypothetical, either — it is what the console did before this was enforced. Its own
