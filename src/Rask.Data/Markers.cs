@@ -5,7 +5,7 @@ namespace Rask.Data;
 /// <summary>
 /// An entity that records when it was created and last changed. The <see cref="AuditingInterceptor"/>
 /// stamps <see cref="CreatedAt"/> on insert and <see cref="UpdatedAt"/> on every insert/update, so the
-/// application never sets them by hand. <see cref="Entity{TId}"/> implements this for free.
+/// application never sets them by hand. <see cref="Model{TId}"/> implements this for free.
 /// </summary>
 public interface ITimestamped
 {
@@ -41,7 +41,7 @@ public interface IVersioned
 
 /// <summary>
 /// An entity that records domain events for the <see cref="DomainEventInterceptor"/> to publish (via
-/// <c>Rask.Cqrs</c>) after the change commits. <see cref="Entity{TId}"/> implements this for free.
+/// <c>Rask.Cqrs</c>) after the change commits. <see cref="Model{TId}"/> implements this for free.
 /// </summary>
 public interface IHasDomainEvents
 {
