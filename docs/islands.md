@@ -150,6 +150,9 @@ rather than leaving an ERESOLVE tree that names four Babel packages and neither 
 the [TypeScript SPA lane](spa.md) relies on — and one adapter serves both. New code should reach for
 `PreactComponent`, which imports Preact directly and needs no aliasing to be right.
 
+This is also why neither showcase carries a Preact island — both already carry a React one. It is
+covered without a browser instead; see [Preact, verified without a browser](#preact-verified-without-a-browser).
+
 ### What Angular needs
 
 Angular's plugin imports two packages it does not depend on, so both have to be installed beside it,
@@ -629,6 +632,27 @@ local state advancing together, which is what shows the adapter reconciles rathe
 
 On WASM the callback reaches C# through a `[JSExport]` call into this tab's runtime rather than over a
 socket; nothing in the front-end file knows which.
+
+### Preact, verified without a browser
+
+Preact is the one runtime with no showcase island, and it cannot have one: both showcases carry a
+React island, and [React and Preact cannot share a project](#react-and-preact-cannot-share-a-project).
+That is a constraint on a bundled **app**, not on a test — a fixture installs Preact and nothing
+else — so it is covered instead by `PreactAdapterTests` in `tests/Rask.External.Tests`, a Node harness
+that drives the shipped client runtime, the shipped adapter, real Preact and a real DOM (happy-dom):
+
+- it mounts into the island element and the component's own `useEffect` runs once;
+- a `props` attribute change **reconciles** — the heading changes while the component's own `useState`
+  keeps the value a click put there, and the mount effect does not re-run;
+- a callback called inside the component arrives on the host dispatch channel with its arguments, and
+  stops firing once C# stops passing the delegate;
+- unmount is `render(null, element)`, so the component's cleanup effects actually run.
+
+The packages are pinned and installed under `obj/` on first build; with no npm, no network, or
+`-p:RaskPreactFixture=false` the tests report **skipped** rather than passing quietly.
+
+What this does not reach is `@preact/preset-vite` itself: nothing builds a Preact island through Vite,
+so a change in its transform is still only caught by building one.
 
 ## What is not here yet
 

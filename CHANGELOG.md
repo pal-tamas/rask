@@ -41,6 +41,20 @@ them until tagged releases begin.
   type-check and the same C# callback every other island does. It could not be shown before: the site
   has scoped TypeScript, and until the collision below was fixed a project could only have one of the
   two. (#938)
+- **The Preact island runtime is now actually exercised.** `PreactComponent` shipped as one of the
+  seven island runtimes with nothing anywhere proving a Preact island mounts, takes its C# props, or
+  round-trips a callback — the other six have a showcase island, and Preact cannot have one, because
+  `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite` pins a `@babel/core@"7.x"` peer
+  and npm refuses to install both. That refusal is correct and stays; it constrains a bundled app, not
+  a test.
+
+  `PreactAdapterTests` (`tests/Rask.External.Tests`) drives the shipped client runtime, the shipped
+  `preactComponent` adapter, real Preact and a real DOM in Node: it mounts, a `props` change
+  **reconciles** — the component's own `useState` survives it and the mount effect does not re-run — a
+  callback reaches the host dispatch channel and stops firing once C# clears it, and unmount runs the
+  component's cleanup effects. Each of those fails if the adapter regresses and passes every C#-side
+  assertion while doing so. The packages are pinned and installed under `obj/` on first build; with no
+  npm or no network the tests report **skipped** rather than passing quietly. (#963)
 
 ### Fixed
 
