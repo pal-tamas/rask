@@ -19,6 +19,10 @@ Live, on this site: [Actions](/docs/ui/actions) · [Data display](/docs/ui/data-
 
 ## Wiring it up
 
+> **Every project `rask new` creates arrives wired this way already** — the two properties, the two
+> links in the right order, and the theme scope. This section is for an app that predates it, or one
+> that was not scaffolded.
+
 Two things, and forgetting either produces a page that renders structurally correct components with
 **no colour at all** — so both are worth doing before anything else.
 
@@ -77,6 +81,39 @@ the compiled sheet.
 > **CSS layers do not merge across `<link>` elements.** If you find a kit rule beating one of your
 > utilities, or the reverse, that is why — and it is not something either sheet's source order can
 > settle.
+
+## Writing daisyUI class names yourself
+
+The sheet above carries the classes **the kit's own components** write, because Tailwind emits a class
+only where it can see the name — and these names live in a compiled assembly your Tailwind cannot scan.
+So `UiCard` is styled by it and a `card-body` you write in your own markup is not: a correct-looking
+class naming a rule that exists nowhere.
+
+To write daisyUI directly, compile it yourself. The kit ships the plugin bundle for exactly this, and a
+third opt-in copies it beside your stylesheet:
+
+```xml
+<RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+```
+
+```css
+@layer properties, theme, base, components, daisyui, utilities;
+
+@import "tailwindcss";
+
+@source not "./vendor";
+@plugin "./vendor/daisyui.mjs";
+```
+
+By relative path because Tailwind resolves a plugin the way Node does, and the standalone engine a C#
+host compiles with carries no package tree — so there is still no npm and no `node_modules`.
+`@source not` matters as much: the bundle names every class daisyUI defines, and scanned it is a
+safelist for the whole library.
+
+**An app that does both carries two copies of daisyUI** — yours at `:root`, the kit's confined to
+`[data-rask-ui]`. They do not conflict, because the kit's is scoped and layered, but the page carries
+both. Reference the kit for its components, take the plugin for your own markup, and take both when you
+want both.
 
 ## Themes
 

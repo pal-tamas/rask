@@ -141,13 +141,18 @@ Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` soluti
 as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
 existing repository.
 
-**Styling is not a choice: every project is Tailwind.** Not a battery you reference, either — the
-compiler ships inside the host package, so the generated `.csproj` names no styling package at all and
-the build still compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning the project's own
-source (see [Tailwind](tailwind.md)). There is no npm, no config file, and no property that turns it
-off. `--bootstrap` and `--tailwind` are gone,
-and both are *refused* rather than ignored, because a flag the CLI accepts and then disregards is the
-most expensive kind to discover.
+**Styling is not a choice: every project is Tailwind and [daisyUI](ui-kit.md).** The compiler ships
+inside the host package, so the build compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning
+the project's own source (see [Tailwind](tailwind.md)), and daisyUI's plugin arrives with `Rask.Ui` —
+so a C# project gets the whole component vocabulary with **no npm and no `node_modules`**. There is no
+config file and no property that turns it off. `--bootstrap` and `--tailwind` are gone, and both are
+*refused* rather than ignored, because a flag the CLI accepts and then disregards is the most expensive
+kind to discover.
+
+**Every template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
+card and a footer — so a project looks the same whether its front end is C# components, React or Nuxt.
+The built-in `/login` and `/register` pages are drawn with it too, and an app with a database links
+sign-in from the starter's navbar.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately.

@@ -780,10 +780,12 @@ internal static partial class ProjectGenerator
             // through. The TypeScript the client imports is generated from these same message records at
             // build time, so the two halves cannot disagree about a payload or a result.
             //
-            // RequireAuthenticatedUser is OFF because this template has no authentication to require —
-            // left on, every message would answer 401 and nothing would work. Add AddRaskAuth()
-            // and DELETE this argument: the default is on for a reason, and a message reachable by anyone
-            // is a decision worth making per app.
+            // RequireAuthenticatedUser is OFF, and it governs DISPATCHED MESSAGES rather than the auth
+            // endpoints — those are mapped below either way. The starter's greeting is meant to answer on
+            // first load, before anybody has an account, so turning this on here would 401 the landing
+            // page for every anonymous visitor. Turn it on and mark the public messages [AllowAnonymous]
+            // once you know which are which: the default is on for a reason, and a message reachable by
+            // anyone is a decision worth making per app.
             builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
 
             builder.Services.AddSingleton<Company.RaskServer.Features.Hello.VisitCounter>();
@@ -814,6 +816,23 @@ internal static partial class ProjectGenerator
 
             app.MapHealthChecks("/healthz");
             """);
+
+        if (batteries.Data)
+        {
+            Block(sb, """
+                // Register, sign in, sign out, /me and the three recovery flows, at /api/auth.
+                //
+                // AddRaskAuth (above, with the database) registers the services; this is what puts the
+                // endpoints on the pipeline, and without it every call from the front end 404s. The
+                // client is already there: `import { login } from './rask/browser/auth'`.
+                //
+                // Before UseRaskSpa for the same reason MapRaskCqrs is — that call ends the pipeline with
+                // a fallback to index.html, so an endpoint added after it answers HTML instead of JSON.
+                app.UseAuthentication();
+                app.UseAuthorization();
+                app.MapRaskAuth();
+                """);
+        }
 
         if (batteries.Push)
         {
@@ -920,6 +939,13 @@ internal static partial class ProjectGenerator
             // built bundle and answers /_rask itself.
             proxy: {
               '/_rask': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+              },
+              // The accounts endpoints, which sit at /api/auth rather than under /_rask. A second entry
+              // rather than a wider pattern: this forwards what the host actually answers and leaves the
+              // rest of /api to the front end, which may well want routes of its own there.
+              '/api/auth': {
                 target: 'http://localhost:5000',
                 changeOrigin: true,
               },

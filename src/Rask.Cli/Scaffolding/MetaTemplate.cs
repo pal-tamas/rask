@@ -196,6 +196,8 @@ internal sealed record MetaTemplate(
             // /_rask itself.
             devProxy: {
               '/_rask': { target: 'http://localhost:5000/_rask', changeOrigin: true },
+              // The accounts endpoints, which sit at /api/auth rather than under /_rask.
+              '/api/auth': { target: 'http://localhost:5000/api/auth', changeOrigin: true },
             },
           },
         })
@@ -222,6 +224,8 @@ internal sealed record MetaTemplate(
           async rewrites() {
             return [
               { source: '/_rask/:path*', destination: 'http://localhost:5000/_rask/:path*' },
+              // The accounts endpoints, which sit at /api/auth rather than under /_rask.
+              { source: '/api/auth/:path*', destination: 'http://localhost:5000/api/auth/:path*' },
             ]
           },
         }

@@ -671,6 +671,10 @@ internal static class SpaClientSources
               "/_rask": {
                 "target": "http://localhost:5000",
                 "secure": false
+              },
+              "/api/auth": {
+                "target": "http://localhost:5000",
+                "secure": false
               }
             }
 

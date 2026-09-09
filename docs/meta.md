@@ -83,6 +83,26 @@ asks a question it will not accept an answer to, so for those two Rask installs 
 SPA lane](spa.md) does, and with the same rule: the Vite plugin where there is a Vite config Rask
 writes, `@tailwindcss/postcss` where the config belongs to the framework.
 
+**All six get [daisyUI](ui-kit.md)**, because no creator installs it. Where Rask writes the stylesheet
+it is simply in it; on the other four the creator's own sheet is **patched**, on the same principle
+that keeps their Vite configs patched — SvelteKit's carries `@plugin '@tailwindcss/typography'` because
+its add-on put it there, and TanStack's carries that plus a web-font import, so writing our own file
+over either would delete work the developer asked for.
+
+| Template | Its stylesheet | |
+|---|---|---|
+| `nuxt` | `app/assets/css/main.css` | written by Rask |
+| `analog` | `src/styles.css` | written by Rask |
+| `nextjs` | `app/globals.css` | patched |
+| `sveltekit` | `src/routes/layout.css` | patched — under `routes/`, and quoted with apostrophes |
+| `solidstart` | `src/app.css` | patched |
+| `tanstack-start` | `src/styles.css` | patched — its Tailwind import is the third line |
+
+Those paths were read off real scaffolds rather than inferred, because a patch aimed at the wrong file
+does not fail, it simply does not apply. If a creator moves its stylesheet, `rask new` says so and names
+the one line to add by hand; it does not leave you with a project whose every daisyUI class styles
+nothing.
+
 **The front end lives in `client/`, lower case** — the same directory [the SPA lane](spa.md) uses. A
 capital `Client` belongs to the WASM lane's `{name}.Client`, which is a C# project and takes .NET's
 convention instead.

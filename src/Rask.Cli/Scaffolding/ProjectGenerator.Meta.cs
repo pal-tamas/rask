@@ -399,7 +399,9 @@ internal static partial class ProjectGenerator
             // only ever sees one origin. In production this is not used at all: Kestrel owns the port
             // and answers /_rask itself.
             proxy: {
-              '/_rask': { target: 'http://localhost:5000', changeOrigin: true }
+              '/_rask': { target: 'http://localhost:5000', changeOrigin: true },
+              // The accounts endpoints, which sit at /api/auth rather than under /_rask.
+              '/api/auth': { target: 'http://localhost:5000', changeOrigin: true }
             }
           },
         """;
@@ -771,6 +773,24 @@ internal static partial class ProjectGenerator
 
             app.MapHealthChecks("/healthz");
             """);
+
+        if (batteries.Data)
+        {
+            Block(sb, """
+                // Register, sign in, sign out, /me and the three recovery flows, at /api/auth.
+                //
+                // AddRaskAuth (above, with the database) registers the services; this is what puts the
+                // endpoints on the pipeline, and without it every call from the front end 404s. The
+                // client is already there: `import { login } from '@rask/browser/auth'`.
+                //
+                // Before UseRaskMeta for the same reason MapRaskCqrs is — that call forwards everything
+                // it has not already answered to the node process, which would render a page at these
+                // routes instead of answering JSON.
+                app.UseAuthentication();
+                app.UseAuthorization();
+                app.MapRaskAuth();
+                """);
+        }
 
         Block(sb, """
             // Serves the framework's built client assets from Kestrel (one hop less per asset, and the

@@ -14,6 +14,11 @@ That is the whole setup — and there was no step you skipped. Styling is
 [not a choice `rask new` offers](cli.md#rask-new--scaffold-a-project): every project is a Tailwind
 project, with no flag to pass, nothing to turn on, and nothing to turn off.
 
+**And a daisyUI project.** [daisyUI](ui-kit.md) is a Tailwind plugin — component classes like `btn`,
+`card` and `navbar` on top of the utilities — and it arrives the same way: already there, no npm,
+nothing to install. It is what the scaffolded starter page is written in, on every template `rask new`
+can emit, so a project looks the same whether its front end is C#, React or Nuxt.
+
 It works on every template. On `wasm` the stylesheet belongs to the **browser**
 project — Tailwind scans the tree it runs in, and the components whose classes it is looking for are
 the client's. The compiler is a build-time tool with no runtime assembly, so it adds nothing to what
@@ -21,35 +26,55 @@ the browser downloads.
 
 ## What a new project starts with
 
-Two files and a link — the whole of it, and all of it already there:
+One file and two links — the whole of it, and all of it already there:
 
 1. **`Styles/app.css`** — the stylesheet Tailwind compiles:
 
    ```css
+   @layer properties, theme, base, components, daisyui, utilities;
+
    @import "tailwindcss";
+
+   @source not "./vendor";
+   @plugin "./vendor/daisyui.mjs";
 
    /* Your own CSS goes here. Anything below participates in the same build, so @apply and
       @theme work, and the output still contains only what this project actually uses. */
    ```
 
-   One import, because in v4 that is genuinely all there is: no config file, no `content` array, no
-   `tailwind.config.js`. Tailwind v4 detects its own sources.
+   Still no config file, no `content` array and no `tailwind.config.js` — v4 detects its own sources.
+   The three lines around the import are [daisyUI](ui-kit.md), and each one is load-bearing:
 
-2. **Nothing in the `.csproj`.** There is no Tailwind package to add: the compiler, its MSBuild
-   targets and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`, the way scoped
-   CSS does. Referencing a host is what puts Tailwind in your build, so an existing app picks it up on
-   its next upgrade with nothing to edit. It is build-only either way — no runtime assembly, nothing
-   in your dependency graph, nothing shipped with the app.
+   - **`@plugin`** loads daisyUI from a copy `Rask.Ui` ships and the build puts beside this file. By
+     relative path, because Tailwind resolves a plugin the way Node does — by walking up for a
+     `node_modules` — and the standalone engine below carries no package tree. **There is still no npm
+     and no `node_modules`.**
+   - **`@source not`** says the bundle is not source. Tailwind scans the directory it runs in, and that
+     file names every class daisyUI defines; scanned, it acts as a safelist for the whole library, and a
+     sheet containing too much looks exactly like a sheet containing enough.
+   - **`@layer`** declares the order before anything can imply another. daisyUI emits into a `daisyui`
+     layer that Tailwind's own import does not rank, so left alone it outranks the utilities beside it
+     and `class="btn px-8"` gives you `.btn`'s padding, not `px-8`.
 
-3. **A `<link>` in the app shell** to what the build wrote:
+2. **Two `<link>`s in the app shell**, in an order that is a contract:
 
    ```csharp
+   // The kit's sheet, FIRST — it declares the @layer order for the whole document.
+   Link.Rel("stylesheet").Href(UiStylesheet.Href(LiveOptions.PathBase)),
    // Compiled from Styles/app.css by Rask.Tailwind, scanning this project's own source.
-   Link.Rel("stylesheet").Href("/css/app.css")
+   Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
    ```
 
-   Nothing framework-specific. The build writes `wwwroot/css/app.css` before the app compiles, and
-   every host already serves `wwwroot`.
+   A browser ranks `@layer` names by first appearance across every sheet on the page, and nothing later
+   can reorder a name already placed — so linking the kit's second lets the ranking fall out of
+   whichever sheet happened to mention a name earliest. That put `base` above `utilities` for a whole
+   document once, and every `text-4xl` and `px-*` in the markup was silently beaten by preflight.
+
+**Nothing else in the `.csproj` but two opt-ins.** There is still no Tailwind package to add — the
+compiler, its MSBuild targets and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`,
+the way scoped CSS does. What a scaffolded project adds is `<RaskUiWriteStylesheet>` and
+`<RaskUiWriteDaisyUiPlugin>`, which are what write those two files into the tree. Both are build-only:
+no runtime assembly, nothing shipped with the app.
 
 ## Your C# is the source it scans
 

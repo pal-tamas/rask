@@ -346,9 +346,9 @@ A message that is never sent anywhere — a job payload, an outbox event — sho
 
 ## Styling
 
-Tailwind works here too, and it works the way this ecosystem expects rather than the way the C#
-hosts do: `@tailwindcss/vite` and `tailwindcss` land in the client's own `package.json`, the plugin
-goes into its Vite config, and the entry stylesheet imports Tailwind.
+Tailwind and [daisyUI](ui-kit.md) work here too, and they work the way this ecosystem expects rather
+than the way the C# hosts do: `tailwindcss`, its adapter and `daisyui` land in the client's own
+`package.json`, and the entry stylesheet loads them.
 
 ```bash
 rask new Shop --template react
@@ -359,26 +359,33 @@ The client already has Node, a bundler and a dev server with HMR, so routing its
 scaffolded stylesheet **replaces** create-vite's starter CSS rather than sitting beside it, because
 leaving it in would fight Tailwind's own reset.
 
-Replacing it is only half the job, though, and the half that is easy to get wrong. Part of that
-starter CSS styles the placeholder page the template has already overlaid away — but the rest styles
-`body`, `h1` and `p` **by tag**, and those tags are exactly what the starter still renders. So the
-stylesheet Rask writes puts that styling back, in a base layer:
-
 ```css
+@layer properties, theme, base, components, daisyui, utilities;
+
 @import "tailwindcss";
+@plugin "daisyui";
 
 @layer base {
-  h1 {
-    @apply text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+  body {
+    @apply bg-base-200 text-base-content antialiased;
   }
-  /* …and the other elements the starter renders */
 }
 ```
 
-These are ordinary utilities, applied by element instead of spelled out in a `class` attribute —
-the starter's markup carries no `class` attributes of its own. Move any rule into
-your own markup and delete it; that is the same page. Delete the layer entirely and the page renders
-as unstyled text, because Tailwind's preflight removes the browser's defaults on purpose.
+`@plugin "daisyui"` resolves by name here — this lane has a package tree, unlike the standalone engine
+a C# host compiles with. The **version is pinned to the copy `Rask.Ui` vendors**, so a project
+scaffolded on a front end and one scaffolded on a C# host compile the same daisyUI and render alike.
+
+The `@layer` statement is not decoration. daisyUI emits into a `daisyui` layer that Tailwind's own
+import does not rank, so its position would fall out of wherever it first appears — which lands it
+*above* utilities, and then `class="btn px-8"` gives you `.btn`'s padding and quietly ignores the
+`px-8`.
+
+**One base rule, where there used to be seven.** The starter's markup once carried no `class`
+attributes at all, so the stylesheet had to reach `body`, `h1`, `input` and the rest by tag. It is
+written in daisyUI's component classes now, so the only rule left is the one with nowhere else to live:
+daisyUI paints `base-100` on `:root`, and something has to put the page's own background behind it.
+Delete it and the page loses its ground, because preflight removes the browser's defaults on purpose.
 
 ## Browser APIs
 
@@ -518,9 +525,14 @@ answers with an empty key and `subscribeToPush()` returns `null` rather than thr
 
 ## Signing people in
 
-The [accounts battery](authentication.md) is on in the host, so the four endpoints it maps are already
-there. A TypeScript front end talks to them directly — there is no Rask client to install, because
-there is nothing to install: they are ordinary JSON over ordinary `fetch`.
+The [accounts battery](authentication.md) is on in the host, and `rask new` maps its endpoints — an app
+with a database gets `app.MapRaskAuth()` in its `Program.cs`, before `UseRaskSpa()`, because that call
+ends the pipeline with a fallback to `index.html` and an endpoint added after it would answer HTML
+instead of JSON. The `rask dev` proxy forwards `/api/auth` alongside `/_rask`, so a sign-in works the
+same in development, where the browser is talking to the bundler rather than to Kestrel.
+
+A TypeScript front end talks to them directly — there is no Rask client to install, because there is
+nothing to install: they are ordinary JSON over ordinary `fetch`.
 
 ```
 POST /api/auth/register          { email, password, firstRunToken? }
