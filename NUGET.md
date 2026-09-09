@@ -73,7 +73,7 @@ SQLite native bundles.
 a `modelBuilder.AddRaskX()` schema line:
 
 ```bash
-dotnet add package Rask.Data              # base entity + EF interceptors (soft delete, concurrency, events)
+dotnet add package Rask.Data              # declare a model and that is the data layer (no DbContext to write)
 dotnet add package Rask.Api               # host API controllers and minimal APIs, with a real 404 under /api
 dotnet add package Rask.Api.Client        # typed clients generated from those endpoints — no URL at the call site
 dotnet add package Rask.Wire              # reflection-free JSON primitives the generated codecs call
