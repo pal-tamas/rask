@@ -134,6 +134,6 @@ public sealed partial class ValidatingIndicator : Component
         }
 
         var acc = ExpressionAccessor.Parse(For);
-        return ctx.ShouldShowValidatingIndicator(acc.Field) ? Template!() : new Fragment();
+        return ctx.ShouldShowValidatingIndicator(acc.Field) ? Template!()! : new Fragment();
     }
 }

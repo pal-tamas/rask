@@ -22,7 +22,7 @@ public sealed partial class UiSearch : Component
 
     public UiSize? Size { get; set; }
 
-    public Func<string, Task>? OnSearch { get; set; }
+    public Callback<string>? OnSearch { get; set; }
 
     public string? Class { get; set; }
 

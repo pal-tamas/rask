@@ -47,6 +47,26 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The optional delegate props that were left — templates, selectors and the async-only handlers — are
+  carriers now.** `Authorize.Authorized`, `ErrorBoundary.Fallback`, `DragDrop.Body`,
+  `VirtualizeModel.Body`, `UiSelect`'s `OptionDisabled`/`OptionGroup`, `GestureTrigger`'s result
+  handlers, `UiSearch.OnSearch`, `UiCrumbSwitcher.OnSelect` and the dashboard's `Resume`. Value-returning
+  props take `Fn<…>`; the async-only handlers take `Callback<…>` and gain a synchronous overload they
+  never had.
+
+  **A required prop does NOT need a carrier, and this change stops short of them deliberately.** A
+  carrier exists so a chain step can share a property's name without the property swallowing it
+  (CS1593). A required prop's step is an instance method on the generated seed struct, and the seed
+  declares no property of that name — so the collision cannot arise there. Making the required templates
+  carriers bought nothing and cost every call site an explicit constructor, because a lambda can never
+  reach a struct through a conversion. `Template` on `GestureTrigger`, `ValidationMessage`, `ToastOutlet`
+  and `Shareable` stays an ordinary `Func<…>`.
+
+  For the same reason, internal seams keep taking bare delegates and wrap at the boundary:
+  `ErrorBoundary.SetProps` still accepts a `Func<…>` and constructs the carrier itself, rather than
+  pushing `new Fn<…>(…)` onto everything that calls it.
+
+
 - **Every callback in the framework is one property now, and RASK027 is retired.** BREAKING: the
   remaining `OnXAsync` siblings are gone — `IFormControl<T>`'s `OnChange` and `AfterBind`, `Input`'s
   `OnInput` and `OnFiles`, `Form`'s three submit callbacks, `UiOtp`'s completion, and the twelve kit

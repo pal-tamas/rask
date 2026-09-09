@@ -792,7 +792,7 @@ Rask.Ui.UiCrumbSwitcher.Icon.get -> Rask.Ui.UiIconName?
 Rask.Ui.UiCrumbSwitcher.Icon.set -> void
 Rask.Ui.UiCrumbSwitcher.Label.get -> string!
 Rask.Ui.UiCrumbSwitcher.Label.set -> void
-Rask.Ui.UiCrumbSwitcher.OnSelect.get -> System.Func<string!, System.Threading.Tasks.Task!>?
+Rask.Ui.UiCrumbSwitcher.OnSelect.get -> Rask.Core.Callback<string!>?
 Rask.Ui.UiCrumbSwitcher.OnSelect.set -> void
 Rask.Ui.UiCrumbSwitcher.UiCrumbSwitcher() -> void
 Rask.Ui.UiCrumbSwitcher.Value.get -> string!
@@ -1475,7 +1475,7 @@ Rask.Ui.UiSearch.AccessibleLabel.get -> string!
 Rask.Ui.UiSearch.AccessibleLabel.set -> void
 Rask.Ui.UiSearch.Class.get -> string?
 Rask.Ui.UiSearch.Class.set -> void
-Rask.Ui.UiSearch.OnSearch.get -> System.Func<string!, System.Threading.Tasks.Task!>?
+Rask.Ui.UiSearch.OnSearch.get -> Rask.Core.Callback<string!>?
 Rask.Ui.UiSearch.OnSearch.set -> void
 Rask.Ui.UiSearch.Placeholder.get -> string!
 Rask.Ui.UiSearch.Placeholder.set -> void
@@ -1501,9 +1501,9 @@ Rask.Ui.UiSelect<T>.Native.get -> bool?
 Rask.Ui.UiSelect<T>.Native.set -> void
 Rask.Ui.UiSelect<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Ui.UiSelect<T>.OnChange.set -> void
-Rask.Ui.UiSelect<T>.OptionDisabled.get -> System.Func<T, bool>?
+Rask.Ui.UiSelect<T>.OptionDisabled.get -> Rask.Core.Fn<T, bool>?
 Rask.Ui.UiSelect<T>.OptionDisabled.set -> void
-Rask.Ui.UiSelect<T>.OptionGroup.get -> System.Func<T, string!>?
+Rask.Ui.UiSelect<T>.OptionGroup.get -> Rask.Core.Fn<T, string!>?
 Rask.Ui.UiSelect<T>.OptionGroup.set -> void
 Rask.Ui.UiSelect<T>.Options.get -> System.Collections.Generic.IReadOnlyList<(T Value, string! Text)>!
 Rask.Ui.UiSelect<T>.Options.set -> void
@@ -2141,7 +2141,11 @@ static RaskBuilderSettersRask_Ui.OnFiles<TMode>(this Rask.Core.Build<Rask.Ui.UiF
 static RaskBuilderSettersRask_Ui.OnFiles<TMode>(this Rask.Core.Build<Rask.Ui.UiFileInput!, TMode> __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiFileInput!, TMode>
 static RaskBuilderSettersRask_Ui.OnMonth<TMode>(this Rask.Core.Build<Rask.Ui.UiCalendar!, TMode> __b, System.Action<System.DateOnly>? value) -> Rask.Core.Build<Rask.Ui.UiCalendar!, TMode>
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.Core.Build<Rask.Ui.UiAccordion!> __b, System.Action<string?>? value) -> Rask.Core.Build<Rask.Ui.UiAccordion!>
+static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, Rask.Core.Callback<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Core.Build<Rask.Ui.UiSearch!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiSearch!>
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, Rask.Core.Callback<string!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Ui.UiCrumbSwitcher!>
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Core.Build<Rask.Ui.UiPagination!> __b, System.Action<int>? value) -> Rask.Core.Build<Rask.Ui.UiPagination!>
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, System.Action<bool>? value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
@@ -2154,7 +2158,9 @@ static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiDropdown!> 
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiModal!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiModal!>
 static RaskBuilderSettersRask_Ui.Open(this Rask.Core.Build<Rask.Ui.UiTooltip!> __b, bool? value) -> Rask.Core.Build<Rask.Ui.UiTooltip!>
 static RaskBuilderSettersRask_Ui.OpenOn(this Rask.Core.Build<Rask.Ui.UiDropdown!> __b, Rask.Ui.UiOpenOn? value) -> Rask.Core.Build<Rask.Ui.UiDropdown!>
+static RaskBuilderSettersRask_Ui.OptionDisabled<T, TMode>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode> __b, Rask.Core.Fn<T, bool>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode>
 static RaskBuilderSettersRask_Ui.OptionDisabled<T, TMode>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode> __b, System.Func<T, bool>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode>
+static RaskBuilderSettersRask_Ui.OptionGroup<T, TMode>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode> __b, Rask.Core.Fn<T, string!>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode>
 static RaskBuilderSettersRask_Ui.OptionGroup<T, TMode>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode> __b, System.Func<T, string!>? value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode>
 static RaskBuilderSettersRask_Ui.Options<T, TMode>(this Rask.Core.Build<Rask.Ui.UiFilter<T>!, TMode> __b, System.Collections.Generic.IReadOnlyList<(T Value, string! Text)>! value) -> Rask.Core.Build<Rask.Ui.UiFilter<T>!, TMode>
 static RaskBuilderSettersRask_Ui.Options<T, TMode>(this Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode> __b, System.Collections.Generic.IReadOnlyList<(T Value, string! Text)>! value) -> Rask.Core.Build<Rask.Ui.UiSelect<T>!, TMode>

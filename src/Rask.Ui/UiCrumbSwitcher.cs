@@ -26,7 +26,7 @@ public sealed partial class UiCrumbSwitcher : Component
 
     public required IReadOnlyList<(string Value, string Text)> Choices { get; set; }
 
-    public Func<string, Task>? OnSelect { get; set; }
+    public Callback<string>? OnSelect { get; set; }
 
     public UiIconName? Icon { get; set; }
 

@@ -1345,8 +1345,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
                 .Append(typeArgs).Append("(this ").Append(self).Append(" __b, ").Append(shape)
                 .Append("? value)").Append(where);
+            // `null` only where the property can hold it. A REQUIRED carrier — a template a component
+            // cannot render without — is a non-nullable struct, and `default` is its unset value.
+            var empty = typeFqn.EndsWith("?", StringComparison.Ordinal) ? "null" : "default";
+
             sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(prop)
-                .Append(" = value is null ? null : new ").Append(carrier)
+                .Append(" = value is null ? ").Append(empty).Append(" : new ").Append(carrier)
                 .AppendLine("(" + value + "); return __b; }");
         }
     }

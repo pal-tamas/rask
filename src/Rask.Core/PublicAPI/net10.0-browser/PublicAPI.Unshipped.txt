@@ -1472,7 +1472,7 @@ Rask.Core.Components.A.Type.get -> string?
 Rask.Core.Components.A.Type.set -> void
 Rask.Core.Components.Authorize
 Rask.Core.Components.Authorize.Authorize() -> void
-Rask.Core.Components.Authorize.Authorized.get -> System.Func<System.Security.Claims.ClaimsPrincipal!, Rask.Core.Component!>?
+Rask.Core.Components.Authorize.Authorized.get -> Rask.Core.Fn<System.Security.Claims.ClaimsPrincipal!, Rask.Core.Component!>?
 Rask.Core.Components.Authorize.Authorized.set -> void
 Rask.Core.Components.Authorize.Authorizing.get -> Rask.Core.Component?
 Rask.Core.Components.Authorize.Authorizing.set -> void
@@ -1540,19 +1540,19 @@ Rask.Core.Components.Div.Div() -> void
 Rask.Core.Components.DoctypeComponent
 Rask.Core.Components.DoctypeComponent.DoctypeComponent() -> void
 Rask.Core.Components.DragDrop
-Rask.Core.Components.DragDrop.Body.get -> System.Func<Rask.Core.DragAndDrop.DragDropContext!, Rask.Core.Component!>?
+Rask.Core.Components.DragDrop.Body.get -> Rask.Core.Fn<Rask.Core.DragAndDrop.DragDropContext!, Rask.Core.Component!>?
 Rask.Core.Components.DragDrop.Body.set -> void
 Rask.Core.Components.DragDrop.DragDrop() -> void
 Rask.Core.Components.DragDrop.OnDrop.get -> Rask.Core.Callback<Rask.Core.DragAndDrop.DragDropMove!>?
 Rask.Core.Components.DragDrop.OnDrop.set -> void
 Rask.Core.Components.ErrorBoundary
 Rask.Core.Components.ErrorBoundary.ErrorBoundary() -> void
-Rask.Core.Components.ErrorBoundary.Fallback.get -> System.Func<System.Exception!, System.Action!, Rask.Core.Component!>?
+Rask.Core.Components.ErrorBoundary.Fallback.get -> Rask.Core.Fn<System.Exception!, System.Action!, Rask.Core.Component!>?
 Rask.Core.Components.ErrorBoundary.Fallback.set -> void
 Rask.Core.Components.ErrorBoundary.Recover() -> void
 Rask.Core.Components.EyeDropperTrigger
 Rask.Core.Components.EyeDropperTrigger.EyeDropperTrigger() -> void
-Rask.Core.Components.EyeDropperTrigger.OnColor.get -> System.Func<string?, System.Threading.Tasks.Task!>?
+Rask.Core.Components.EyeDropperTrigger.OnColor.get -> Rask.Core.Callback<string?>?
 Rask.Core.Components.EyeDropperTrigger.OnColor.set -> void
 Rask.Core.Components.EyeDropperTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.EyeDropperTrigger.Template.set -> void
@@ -1567,7 +1567,7 @@ Rask.Core.Components.GestureTrigger
 Rask.Core.Components.GestureTrigger.Capability.get -> string!
 Rask.Core.Components.GestureTrigger.Capability.set -> void
 Rask.Core.Components.GestureTrigger.GestureTrigger() -> void
-Rask.Core.Components.GestureTrigger.OnResult.get -> System.Func<string?, System.Threading.Tasks.Task!>?
+Rask.Core.Components.GestureTrigger.OnResult.get -> Rask.Core.Callback<string?>?
 Rask.Core.Components.GestureTrigger.OnResult.set -> void
 Rask.Core.Components.GestureTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.GestureTrigger.Template.set -> void
@@ -1587,7 +1587,7 @@ Rask.Core.Components.IRaskRuntimeScript
 Rask.Core.Components.IRaskRuntimeScript.Render() -> Rask.Core.Component!
 Rask.Core.Components.InstallTrigger
 Rask.Core.Components.InstallTrigger.InstallTrigger() -> void
-Rask.Core.Components.InstallTrigger.OnOutcome.get -> System.Func<string?, System.Threading.Tasks.Task!>?
+Rask.Core.Components.InstallTrigger.OnOutcome.get -> Rask.Core.Callback<string?>?
 Rask.Core.Components.InstallTrigger.OnOutcome.set -> void
 Rask.Core.Components.InstallTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.InstallTrigger.Template.set -> void
@@ -1599,9 +1599,9 @@ Rask.Core.Components.MediaCaptureTrigger.FacingMode.set -> void
 Rask.Core.Components.MediaCaptureTrigger.For.get -> Rask.Core.ElementRef!
 Rask.Core.Components.MediaCaptureTrigger.For.set -> void
 Rask.Core.Components.MediaCaptureTrigger.MediaCaptureTrigger() -> void
-Rask.Core.Components.MediaCaptureTrigger.OnResult.get -> System.Func<string?, System.Threading.Tasks.Task!>?
+Rask.Core.Components.MediaCaptureTrigger.OnResult.get -> Rask.Core.Callback<string?>?
 Rask.Core.Components.MediaCaptureTrigger.OnResult.set -> void
-Rask.Core.Components.MediaCaptureTrigger.OnStream.get -> System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.Task!>?
+Rask.Core.Components.MediaCaptureTrigger.OnStream.get -> Rask.Core.Callback<Rask.Core.Browser.MediaStreamId>?
 Rask.Core.Components.MediaCaptureTrigger.OnStream.set -> void
 Rask.Core.Components.MediaCaptureTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.MediaCaptureTrigger.Template.set -> void
@@ -1727,7 +1727,7 @@ Rask.Core.Components.Title
 Rask.Core.Components.Title.Title() -> void
 Rask.Core.Components.Virtualize
 Rask.Core.Components.VirtualizeModel
-Rask.Core.Components.VirtualizeModel.Body.get -> System.Func<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>?
+Rask.Core.Components.VirtualizeModel.Body.get -> Rask.Core.Fn<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>?
 Rask.Core.Components.VirtualizeModel.Body.set -> void
 Rask.Core.Components.VirtualizeModel.InitialClientHeight.get -> int?
 Rask.Core.Components.VirtualizeModel.InitialClientHeight.set -> void
@@ -3540,10 +3540,13 @@ static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.FormBuild<T!> __
 static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.FormBuild<T!> __b, string! name) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Attributes<T>(this Rask.Core.FormBuild<T!> __b, string! name, string? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.Audio(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, bool value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
+static RaskBuilderSettersRask_Core.Authorized(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, Rask.Core.Fn<System.Security.Claims.ClaimsPrincipal!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
 static RaskBuilderSettersRask_Core.Authorized(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, System.Func<System.Security.Claims.ClaimsPrincipal!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
 static RaskBuilderSettersRask_Core.Authorizing(this Rask.Core.Build<Rask.Core.Components.Authorize!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Core.Components.Authorize!>
 static RaskBuilderSettersRask_Core.Autofocus(this Rask.Core.Build<Rask.Core.Components.Button!> __b, bool? value) -> Rask.Core.Build<Rask.Core.Components.Button!>
+static RaskBuilderSettersRask_Core.Body(this Rask.Core.Build<Rask.Core.Components.DragDrop!> __b, Rask.Core.Fn<Rask.Core.DragAndDrop.DragDropContext!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.DragDrop!>
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Build<Rask.Core.Components.DragDrop!> __b, System.Func<Rask.Core.DragAndDrop.DragDropContext!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.DragDrop!>
+static RaskBuilderSettersRask_Core.Body(this Rask.Core.Build<Rask.Core.Components.VirtualizeModel!> __b, Rask.Core.Fn<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.VirtualizeModel!>
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Build<Rask.Core.Components.VirtualizeModel!> __b, System.Func<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.VirtualizeModel!>
 static RaskBuilderSettersRask_Core.Capability(this Rask.Core.Build<Rask.Core.Components.GestureTrigger!> __b, string! value) -> Rask.Core.Build<Rask.Core.Components.GestureTrigger!>
 static RaskBuilderSettersRask_Core.Charset(this Rask.Core.Build<Rask.Core.Components.Meta!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.Meta!>
@@ -3578,6 +3581,7 @@ static RaskBuilderSettersRask_Core.Draggable<T, TMode>(this Rask.Core.Build<T!, 
 static RaskBuilderSettersRask_Core.Draggable<T>(this Rask.Core.Build<T!> __b, bool? value) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Draggable<T>(this Rask.Core.FormBuild<T!> __b, bool? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.FacingMode(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
+static RaskBuilderSettersRask_Core.Fallback(this Rask.Core.Build<Rask.Core.Components.ErrorBoundary!> __b, Rask.Core.Fn<System.Exception!, System.Action!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.ErrorBoundary!>
 static RaskBuilderSettersRask_Core.Fallback(this Rask.Core.Build<Rask.Core.Components.ErrorBoundary!> __b, System.Func<System.Exception!, System.Action!, Rask.Core.Component!>? value) -> Rask.Core.Build<Rask.Core.Components.ErrorBoundary!>
 static RaskBuilderSettersRask_Core.For(this Rask.Core.Build<Rask.Core.Components.FullscreenTrigger!> __b, Rask.Core.ElementRef? value) -> Rask.Core.Build<Rask.Core.Components.FullscreenTrigger!>
 static RaskBuilderSettersRask_Core.For(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, Rask.Core.ElementRef! value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
@@ -3650,6 +3654,8 @@ static RaskBuilderSettersRask_Core.OnClick<T>(this Rask.Core.Build<T!> __b, Syst
 static RaskBuilderSettersRask_Core.OnClick<T>(this Rask.Core.FormBuild<T!> __b, Rask.Core.Callback? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnClick<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnClick<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.OnColor(this Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!> __b, Rask.Core.Callback<string?>? value) -> Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!>
+static RaskBuilderSettersRask_Core.OnColor(this Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!> __b, System.Action<string?>? value) -> Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!>
 static RaskBuilderSettersRask_Core.OnColor(this Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.EyeDropperTrigger!>
 static RaskBuilderSettersRask_Core.OnContextMenu<T, TMode>(this Rask.Core.Build<T!, TMode> __b, Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnContextMenu<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
@@ -3870,6 +3876,8 @@ static RaskBuilderSettersRask_Core.OnMouseUp<T>(this Rask.Core.Build<T!> __b, Sy
 static RaskBuilderSettersRask_Core.OnMouseUp<T>(this Rask.Core.FormBuild<T!> __b, Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseUp<T>(this Rask.Core.FormBuild<T!> __b, System.Action<Rask.Core.Live.MouseEventArgs!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnMouseUp<T>(this Rask.Core.FormBuild<T!> __b, System.Func<Rask.Core.Live.MouseEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.OnOutcome(this Rask.Core.Build<Rask.Core.Components.InstallTrigger!> __b, Rask.Core.Callback<string?>? value) -> Rask.Core.Build<Rask.Core.Components.InstallTrigger!>
+static RaskBuilderSettersRask_Core.OnOutcome(this Rask.Core.Build<Rask.Core.Components.InstallTrigger!> __b, System.Action<string?>? value) -> Rask.Core.Build<Rask.Core.Components.InstallTrigger!>
 static RaskBuilderSettersRask_Core.OnOutcome(this Rask.Core.Build<Rask.Core.Components.InstallTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.InstallTrigger!>
 static RaskBuilderSettersRask_Core.OnPaste<T, TMode>(this Rask.Core.Build<T!, TMode> __b, Rask.Core.Callback<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnPaste<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.ClipboardEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
@@ -3961,7 +3969,11 @@ static RaskBuilderSettersRask_Core.OnReset<T>(this Rask.Core.Build<T!> __b, Syst
 static RaskBuilderSettersRask_Core.OnReset<T>(this Rask.Core.FormBuild<T!> __b, Rask.Core.Callback? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnReset<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnReset<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.GestureTrigger!> __b, Rask.Core.Callback<string?>? value) -> Rask.Core.Build<Rask.Core.Components.GestureTrigger!>
+static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.GestureTrigger!> __b, System.Action<string?>? value) -> Rask.Core.Build<Rask.Core.Components.GestureTrigger!>
 static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.GestureTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.GestureTrigger!>
+static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, Rask.Core.Callback<string?>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
+static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, System.Action<string?>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.OnResult(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.OnScroll<T, TMode>(this Rask.Core.Build<T!, TMode> __b, Rask.Core.Callback<Rask.Core.Live.ScrollEvent!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnScroll<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.ScrollEvent!>? value) -> Rask.Core.Build<T!, TMode>
@@ -3981,6 +3993,8 @@ static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.Build<T!> __b, Sys
 static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.FormBuild<T!> __b, Rask.Core.Callback? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
+static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, Rask.Core.Callback<Rask.Core.Browser.MediaStreamId>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
+static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, System.Action<Rask.Core.Browser.MediaStreamId>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>
 static RaskBuilderSettersRask_Core.OnToggle<T, TMode>(this Rask.Core.Build<T!, TMode> __b, Rask.Core.Callback<Rask.Core.Live.ToggleEventArgs!>? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.OnToggle<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action<Rask.Core.Live.ToggleEventArgs!>? value) -> Rask.Core.Build<T!, TMode>

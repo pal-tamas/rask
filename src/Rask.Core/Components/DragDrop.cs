@@ -31,7 +31,7 @@ public sealed class DragDrop : Component
     /// <summary>
     ///     Your markup for the drop region, given the current drag state so it can show a hover style.
     /// </summary>
-    public new Func<DragDropContext, Component>? Body { get; set; }
+    public new Fn<DragDropContext, Component>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone, in whichever shape the consumer wrote — the
     // carrier holds a sync or an async handler under the one name. Calling it back is
@@ -113,6 +113,6 @@ public sealed class DragDrop : Component
                 + "receiving the drag context: DragDrop(Body: ctx => Div()[ … ]).");
         }
 
-        return body(new DragDropContext(this));
+        return body.Invoke(new DragDropContext(this))!;
     }
 }

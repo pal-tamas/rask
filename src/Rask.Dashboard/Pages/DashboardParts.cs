@@ -112,7 +112,7 @@ internal sealed partial class DashboardParked : Component
 {
     public bool Parked { get; set; }
 
-    public Func<Task>? Resume { get; set; }
+    public Callback? Resume { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>

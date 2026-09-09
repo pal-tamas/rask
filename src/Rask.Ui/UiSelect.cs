@@ -85,14 +85,14 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     ///     Marks options unselectable. The keyboard cursor skips them rather than landing on one.
     /// </summary>
     /// <remarks>Non-native only — a native <c>&lt;select&gt;</c> disables its options itself.</remarks>
-    public Func<T, bool>? OptionDisabled { get; set; }
+    public Fn<T, bool>? OptionDisabled { get; set; }
 
     /// <summary>Buckets options under headers, in first-seen order.</summary>
     /// <remarks>
     ///     Grouping reorders the flat option list rather than nesting it, so the arrow keys still move
     ///     to the next option a reader can SEE.
     /// </remarks>
-    public Func<T, string>? OptionGroup { get; set; }
+    public Fn<T, string>? OptionGroup { get; set; }
 
     /// <summary>
     ///     Posts the value from a plain HTML form.
@@ -207,7 +207,9 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
         }
 
         var current = acc is not null ? acc.Getter() is T v ? v : default : Value;
-        var layout = UiSelectNav.Build(Options, OptionGroup is { } g ? o => g(o.Value) : null);
+        var layout = UiSelectNav.Build(
+            Options,
+            OptionGroup is { } g ? o => g.Invoke(o.Value) ?? string.Empty : null);
         var flat = layout.Flat;
         var disabled = Disabledness(flat);
         var cursor = UiSelectNav.Normalize(_cursor, flat.Count, disabled);
@@ -440,7 +442,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     }
 
     private Func<int, bool> Disabledness(IReadOnlyList<(T Value, string Text)> flat) =>
-        OptionDisabled is { } off ? i => off(flat[i].Value) : _ => false;
+        OptionDisabled is { } off ? i => off.Invoke(flat[i].Value) : _ => false;
 
     private int IndexOf(IReadOnlyList<(T Value, string Text)> flat, T? current)
     {
