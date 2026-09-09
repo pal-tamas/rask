@@ -37,6 +37,9 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
 
+    /// <summary>The base every island derives from, whose module is not a scoped asset.</summary>
+    private const string ExternalComponentFullName = "Rask.External.ExternalComponent";
+
     /// <summary>The metadata carrying the <c>.ts</c> a compiled file came from.</summary>
     private const string SourceMetadataKey = "build_metadata.AdditionalFiles.RaskTsSource";
 
@@ -170,7 +173,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         }
 
         var fqn = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return new ComponentInfo(symbol.Name, fqn, path);
+        return new ComponentInfo(symbol.Name, fqn, path, InheritsFromExternalComponent(symbol));
     }
 
     private static bool InheritsFromComponent(INamedTypeSymbol symbol)
@@ -178,6 +181,43 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         for (var t = symbol.BaseType; t is not null; t = t.BaseType)
         {
             if (t.OriginalDefinition.ToDisplayString() == ComponentFullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Whether this component is an ISLAND, whose sibling <c>.ts</c> belongs to the bundler.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A Lit or Angular island is declared by putting <c>Gauge.ts</c> beside <c>Gauge.cs</c>,
+    ///         which is character-for-character how a scoped asset is declared too — the only
+    ///         difference is the base class, and this is the one place that can see it (#938).
+    ///     </para>
+    ///     <para>
+    ///         The build already keeps an island's module out of <c>@(_RaskScopedTs)</c>, so in an
+    ///         ordinary build this file never reaches the generator at all. It is still checked here,
+    ///         because the two are not equally reliable: MSBuild has to read the C# as TEXT before the
+    ///         compile, while this is the compiler. What MSBuild spares is a wasted transpile; what
+    ///         this prevents is the island's module being registered as
+    ///         <c>window.Rask["Gauge"]</c> and injected as a second <c>&lt;script&gt;</c> on a
+    ///         component that already mounts it through the island runtime.
+    ///     </para>
+    ///     <para>
+    ///         Islands stay in the pairing map rather than being dropped from it, which is what keeps
+    ///         RASK017 quiet: an island's module has a component of that name right beside it, and
+    ///         "no matching component class" would be a false and unfixable error.
+    ///     </para>
+    /// </remarks>
+    private static bool InheritsFromExternalComponent(INamedTypeSymbol symbol)
+    {
+        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
+        {
+            if (t.OriginalDefinition.ToDisplayString() == ExternalComponentFullName)
             {
                 return true;
             }
@@ -259,6 +299,14 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             }
 
             var match = matches[0];
+
+            // An island's front-end file is its MODULE, not a scoped asset. Skipped silently: the
+            // component is right there, so nothing is orphaned and there is nothing to report.
+            if (match.IsExternal)
+            {
+                continue;
+            }
+
             if (!emittedFqns.Add(match.FullyQualifiedName))
             {
                 continue;
@@ -435,7 +483,20 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         sb.Append('"');
     }
 
-    private readonly record struct ComponentInfo(string TypeName, string FullyQualifiedName, string FilePath);
+    /// <summary>A component class the pairing can match a scoped asset against.</summary>
+    /// <param name="TypeName">The simple type name, which is what a file name pairs with.</param>
+    /// <param name="FullyQualifiedName">The name written into the generated registration.</param>
+    /// <param name="FilePath">Where Roslyn says the class is declared, which fixes the folder.</param>
+    /// <param name="IsExternal">
+    ///     Whether the component is an island. Its sibling front-end file is the module the bundler
+    ///     builds, so it is never registered as a scoped asset — see
+    ///     <see cref="InheritsFromExternalComponent" />.
+    /// </param>
+    private readonly record struct ComponentInfo(
+        string TypeName,
+        string FullyQualifiedName,
+        string FilePath,
+        bool IsExternal);
 
     /// <summary>One compiled scoped asset: where it came from, and what it compiled to.</summary>
     /// <remarks>

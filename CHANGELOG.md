@@ -36,7 +36,39 @@ them until tagged releases begin.
   reading a problem document, so a 400 arrived with nothing to show the user and nothing anywhere
   said why. (#988)
 
+- **A Lit island on the showcase.** `LitBadge.ts` is a plain custom element that imports nothing at
+  all — no framework, no npm package — and it takes the same generated props, the same build-time
+  type-check and the same C# callback every other island does. It could not be shown before: the site
+  has scoped TypeScript, and until the collision below was fixed a project could only have one of the
+  two. (#938)
+
 ### Fixed
+
+- **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
+  `Name.ts` beside `Name.cs`, and the only thing separating them is whether the class derives from
+  `LitComponent` — which Roslyn knows and a glob does not. So in a project with both, island discovery
+  offered every scoped file to the bundler as a Lit module that never default-exported a tag name, and
+  the scoped glob compiled every island's module as a component asset: registered as
+  `window.Rask["Gauge"]`, injected as a `<script>` the component never asked for, and type-checked
+  against a `@rask/Gauge.props` mapping that exists only in the island's own tsconfig.
+
+  The build now reads the base list out of the C# source and sends each `.ts` down exactly one
+  pipeline. It has to be the SOURCE and not the compiled assembly, which knows exactly: the
+  scoped-TypeScript list is compiled and handed to the C# compiler, so it cannot wait for the assembly
+  that compile produces, and reusing the previous build's would make a clean build differ from the one
+  after it. The approximation is checked against the real answer on the same build — an island whose
+  declared module is not among the files being built is already reported by name.
+
+  `RaskExternalLitAutoPair` is **retired**. It existed only to say which one of the two features a
+  project had; a project can now have both, which is what the knob could never deliver. Delete it
+  wherever it appears — the showcase carried it, and now carries a Lit island instead.
+  `RaskScopedTsAutoInclude` stays: it is Rask.Core's own switch for a `.ts` that is not a component
+  asset at all. (#938)
+
+- **The repository-wide scoped-TypeScript type-check never looked at `site/`.** The one app in the
+  repo — the app whose scoped TypeScript the feature exists for — was the only tree the sweep skipped,
+  and nothing said so. It sweeps `site` now, and skips island modules, which are not scoped assets.
+  (#938)
 
 - **The showcase's top bar was near-black text on a near-black bar, on markup whose class names were
   entirely correct.** `wwwroot/global.css` still carried `.app-navbar { background: rgba(20, 16, 31,

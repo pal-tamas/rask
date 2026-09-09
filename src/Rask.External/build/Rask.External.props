@@ -34,20 +34,15 @@
     <RaskExternalBuild Condition="'$(RaskExternalBuild)' == ''">true</RaskExternalBuild>
 
     <!--
-      Whether a `.ts` beside a `.cs` of the same name is assumed to be a LIT island.
+      RaskExternalLitAutoPair is RETIRED (#938), and there is nothing to set in its place.
 
-      That rule is what lets a Lit component be found by convention — and it is character-for-character
-      the rule Rask's SCOPED TypeScript already uses. Nothing in MSBuild can separate them: the only
-      difference is whether the C# class derives from LitComponent, which Roslyn knows and a glob does
-      not. So in a project holding both, every scoped `.ts` is also offered to the bundler as a Lit
-      island, and the build fails on a module that never default-exported a tag name.
-
-      A project with scoped TypeScript and no Lit islands sets this false and loses nothing. A project
-      with both sets it false and declares its Lit islands explicitly, which is what
-      <RaskExternal Include="widgets/gauge.ts" Runtime="lit"/> has always been for. The other three
-      runtimes have extensions of their own and are never ambiguous.
+      It existed because `Name.ts` beside `Name.cs` is character-for-character how BOTH a Lit island
+      and a scoped TypeScript asset are spelled, and a glob could not tell them apart — so a project
+      had to say which of the two features it had. It now does not: FindExternalIslandsTask reads the
+      C# base list, which is where the difference is actually written, and each `.ts` goes to exactly
+      one of the two pipelines. A project can have both conventions inferred, which is what the knob
+      could never deliver.
     -->
-    <RaskExternalLitAutoPair Condition="'$(RaskExternalLitAutoPair)' == ''">true</RaskExternalLitAutoPair>
 
     <!--
       Where the built chunks land. Under wwwroot on purpose: the SDK already publishes wwwroot, so the
