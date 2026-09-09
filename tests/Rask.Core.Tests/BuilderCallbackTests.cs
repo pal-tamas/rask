@@ -128,7 +128,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 
         Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).Value.OnDrop!.Value.Handler);
 
-        Assert.Same(changed, Input.Of<string>().OnChange(changed).Value.OnChange);
+        Assert.Same(changed, Input.Of<string>().OnChange(changed).Value.OnChange!.Value.Handler);
     }
 
     // A null argument reads back as null — which every `is not null` a component asks about its own

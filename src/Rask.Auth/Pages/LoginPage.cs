@@ -49,7 +49,7 @@ public sealed partial class LoginPage(IAuth auth) : AuthPage
         Fragment[
             H1["Sign in"],
             _error is AuthError.None ? null : Div.Class("rask-auth-error").Id("login-error")[AuthMessages.For(_error)],
-            Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+            Form.Model(_model).OnValidSubmit(SubmitAsync)[
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email)),
                 Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)),
                 Button.Type("submit").Id("login-submit")["Sign in"]

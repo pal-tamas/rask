@@ -79,7 +79,7 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
         // a post-bind hook no longer compiles, which is the point.
         var control = Input.Bind(() => probe.Model.Name).AfterBind(hook).Value;
 
-        Assert.Same(hook, control.AfterBind);
+        Assert.Same(hook, control.AfterBind!.Value.Handler);
     }
 
     // Plain assignment must still work — a component built by a chain is an ordinary object afterwards.

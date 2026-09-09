@@ -27,22 +27,29 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
 
     // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
-    // factory, and (for Bind/AfterBind/AfterBindAsync) emitted as params on the synthesized bound factory.
+    // factory, and (for Bind/AfterBind) emitted as params on the synthesized bound factory.
     // Validate/ValidateAsync are not direct params — they drive the none/sync/async validator fan-out.
+    //
+    // `AfterBindAsync` is gone from this list because it is gone from the interface: the post-bind hook
+    // is one `Callback<T>` taking either shape. The list is matched by NAME, so a stale entry here is not
+    // a compile error — it is a member that quietly stops being mode-gated.
     private static readonly string[] BoundInterfaceMembers =
-        { "Bind", "Validate", "ValidateAsync", "AfterBind", "AfterBindAsync" };
+        { "Bind", "Validate", "ValidateAsync", "AfterBind" };
 
     // The mirror set: the members that belong to CONTROLLED mode, excluded from the synthesized bound
     // factory. In bound mode the model owns the value and the framework owns the write-back handler, so a
     // control reads none of these — accepting them next to Bind would take a value and silently drop it.
     //
     // Recognised by name, like every other form-control member (see Rask.Core.Forms.IFormControl<T>).
-    // Value/OnChange/OnChangeAsync are the interface's own controlled members. OnInput/OnInputAsync and
-    // Checked are not on the interface — a control declares them itself (Input, Textarea) — but they mean
-    // the same thing wherever they appear on an IFormControl<T>: the per-keystroke DOM handler that bound
-    // mode replaces with its write-back, and the checkbox's value, which bound mode derives from the model.
+    // Value/OnChange are the interface's own controlled members. OnInput and Checked are not on the
+    // interface — a control declares them itself (Input, Textarea) — but they mean the same thing wherever
+    // they appear on an IFormControl<T>: the per-keystroke DOM handler that bound mode replaces with its
+    // write-back, and the checkbox's value, which bound mode derives from the model.
+    //
+    // The `…Async` siblings are gone because the callbacks are one `Callback<T>` each now, taking either
+    // shape. Matched by NAME, so a stale entry stops gating a member without failing anything.
     private static readonly string[] ControlledMembers =
-        { "Value", "Checked", "OnChange", "OnChangeAsync", "OnInput", "OnInputAsync" };
+        { "Value", "Checked", "OnChange", "OnInput" };
 
     private static readonly DiagnosticDescriptor Rask001 = new(
         "RASK001",
@@ -911,10 +918,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ("Bind", "global::System.Linq.Expressions.Expression<global::System.Func<" + t + ">>?"),
             ("Validate", "global::Rask.Core.Forms.Validate<" + t + ">?"),
             ("ValidateAsync", "global::Rask.Core.Forms.ValidateAsync<" + t + ">?"),
-            ("AfterBind", "global::System.Action<" + t + ">?"),
-            ("AfterBindAsync",
-                "global::System.Func<" + t
-                + ", global::System.Threading.Tasks.Task>?"),
+            // One post-bind hook taking either shape. Typed as the CARRIER, which is what gives it the
+            // sync and async step overloads (see EmitCarrierOverloads) in place of the sibling that used
+            // to sit beside it here.
+            ("AfterBind", CallbackFqn + "<" + t + ">?"),
         };
 
         foreach (var (name, typeFqn) in members)

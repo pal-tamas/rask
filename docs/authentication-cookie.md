@@ -56,7 +56,7 @@ public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) 
         Div.Class("mx-auto").Style("max-width:24rem")[
             H1["Sign in"],
             _error is null ? null : Div.Class("rounded-lg px-4 py-3 text-sm bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200")[_error],
-            Form.Model(_model).OnValidSubmitAsync(SubmitAsync).Class("flex flex-col gap-3")[
+            Form.Model(_model).OnValidSubmit(SubmitAsync).Class("flex flex-col gap-3")[
                 Input.Bind(() => _model.Username).Id("username").Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"),
                 Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"),
                 Button.Type("submit").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500")["Sign in"]

@@ -118,10 +118,8 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     public T? Value { get; set; }
 
     /// <inheritdoc />
-    public Action<T>? OnChange { get; set; }
+    public Callback<T>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<T, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<T>>? Bind { get; set; }
@@ -133,10 +131,8 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     public ValidateAsync<T>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
-    public Action<T>? AfterBind { get; set; }
+    public Callback<T>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Func<T, Task>? AfterBindAsync { get; set; }
 
     private string Prefix => "uisel-" + _instance.ToString(CultureInfo.InvariantCulture);
 
@@ -166,7 +162,6 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
                 .Validate(Validate)
                 .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
-                .AfterBindAsync(AfterBindAsync)
                 .Aria(Aria(expanded: null))
                 .Disabled(Disabled == true)
                 .Class(BoxClass())[options];
@@ -175,7 +170,6 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
         return Select
             .Value(Value)
             .OnChange(OnChange)
-            .OnChangeAsync(OnChangeAsync)
             .Aria(Aria(expanded: null))
             .Disabled(Disabled == true)
             .Class(BoxClass())[options];

@@ -2013,19 +2013,15 @@ Rask.Core.Forms.IFieldValidator.Validate(Rask.Core.Forms.EditContext! context) -
 Rask.Core.Forms.IFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field) -> void
 Rask.Core.Forms.IFormControl
 Rask.Core.Forms.IFormControl<T>
-Rask.Core.Forms.IFormControl<T>.AfterBind.get -> System.Action<T>?
+Rask.Core.Forms.IFormControl<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Core.Forms.IFormControl<T>.AfterBind.set -> void
-Rask.Core.Forms.IFormControl<T>.AfterBindAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Core.Forms.IFormControl<T>.AfterBindAsync.set -> void
 Rask.Core.Forms.IFormControl<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.Core.Forms.IFormControl<T>.Bind.set -> void
 Rask.Core.Forms.IFormControl<T>.ControlledChangeHandler() -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.InvokeAfterBindAsync(T value) -> System.Threading.Tasks.Task!
 Rask.Core.Forms.IFormControl<T>.InvokeOnChangeAsync(T value) -> System.Threading.Tasks.Task!
-Rask.Core.Forms.IFormControl<T>.OnChange.get -> System.Action<T>?
+Rask.Core.Forms.IFormControl<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Core.Forms.IFormControl<T>.OnChange.set -> void
-Rask.Core.Forms.IFormControl<T>.OnChangeAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Core.Forms.IFormControl<T>.OnChangeAsync.set -> void
 Rask.Core.Forms.IFormControl<T>.RegisterValidator(Rask.Core.Forms.ExpressionAccessor.Accessor! accessor, Rask.Core.Forms.EditContext? context) -> void
 Rask.Core.Forms.IFormControl<T>.Validate.get -> Rask.Core.Forms.Validate<T>?
 Rask.Core.Forms.IFormControl<T>.Validate.set -> void
@@ -3306,7 +3302,7 @@ static Rask.Core.ElementRefInterop.FocusAsync(this Rask.Core.ElementRef! element
 static Rask.Core.ElementRefInterop.ScrollIntoViewAsync(this Rask.Core.ElementRef! element, Microsoft.JSInterop.IJSRuntime! js) -> System.Threading.Tasks.ValueTask
 static Rask.Core.FormBuild<T>.implicit operator T!(Rask.Core.FormBuild<T!> chain) -> T!
 static Rask.Core.Forms.BindingHelpers.BoolSetHandler(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<string!, System.Threading.Tasks.Task!>!
-static Rask.Core.Forms.BindingHelpers.BuildAfterBind<TProp>(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, System.Action<TProp>? sync, System.Func<TProp, System.Threading.Tasks.Task!>? asyncFn) -> System.Func<System.Threading.Tasks.Task!>?
+static Rask.Core.Forms.BindingHelpers.BuildAfterBind<TProp>(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Callback<TProp>? hook) -> System.Func<System.Threading.Tasks.Task!>?
 static Rask.Core.Forms.BindingHelpers.DefaultInputType(System.Type! propType) -> string!
 static Rask.Core.Forms.BindingHelpers.DefaultStep(System.Type! propType) -> string?
 static Rask.Core.Forms.BindingHelpers.FormatValue(object? value) -> string!

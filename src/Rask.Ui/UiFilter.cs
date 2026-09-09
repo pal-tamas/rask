@@ -43,10 +43,8 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
     public T? Value { get; set; }
 
     /// <inheritdoc />
-    public Action<T>? OnChange { get; set; }
+    public Callback<T>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<T, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<T>>? Bind { get; set; }
@@ -58,10 +56,8 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
     public ValidateAsync<T>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
-    public Action<T>? AfterBind { get; set; }
+    public Callback<T>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Func<T, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -75,7 +71,7 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
             Input
                 .Value(string.Empty)
                 .Checked(IsChosen(default, current))
-                .OnChangeAsync(_ => UiFormCommit.CommitAsync(this, acc, ctx, default!))
+                .OnChange(_ => UiFormCommit.CommitAsync(this, acc, ctx, default!))
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Class("btn btn-square filter-reset")
@@ -89,7 +85,7 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
                 return Input
                     .Value(text)
                     .Checked(IsChosen(value, current))
-                    .OnChangeAsync(_ => UiFormCommit.CommitAsync(this, acc, ctx, value))
+                    .OnChange(_ => UiFormCommit.CommitAsync(this, acc, ctx, value))
                     .Key(text)
                     .Type(InputType.Radio)
                     .Name(Group)

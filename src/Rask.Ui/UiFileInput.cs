@@ -36,10 +36,8 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
     ///         Re-check them on the server before storing anything.
     ///     </para>
     /// </summary>
-    public Action<IReadOnlyList<RaskFile>>? OnFiles { get; set; }
+    public Callback<IReadOnlyList<RaskFile>>? OnFiles { get; set; }
 
-    /// <summary>The <see langword="async" /> form of <see cref="OnFiles" />.</summary>
-    public Func<IReadOnlyList<RaskFile>, Task>? OnFilesAsync { get; set; }
 
     /// <summary>Lets the reader choose more than one file. The value reports the first.</summary>
     public bool? Multiple { get; set; }
@@ -69,10 +67,8 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
     public string? Value { get; set; }
 
     /// <inheritdoc />
-    public Action<string>? OnChange { get; set; }
+    public Callback<string>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<string, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<string>>? Bind { get; set; }
@@ -84,10 +80,8 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
     public ValidateAsync<string>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
-    public Action<string>? AfterBind { get; set; }
+    public Callback<string>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Func<string, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -99,13 +93,11 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
         // instead of by Input<T>, and the box is left for the platform to fill.
         return Input
             .Of<string>()
-            .OnFilesAsync(async files =>
+            .OnFiles(async files =>
             {
-                OnFiles?.Invoke(files);
-
-                if (OnFilesAsync is { } handler)
+                if (OnFiles?.Invoke(files) is { } handler)
                 {
-                    await handler(files).ConfigureAwait(false);
+                    await handler.ConfigureAwait(false);
                 }
 
                 var name = files.Count > 0 ? files[0].Name : string.Empty;

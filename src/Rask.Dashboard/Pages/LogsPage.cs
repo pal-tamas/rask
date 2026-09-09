@@ -218,7 +218,7 @@ public sealed partial class LogsPage(
                 + "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-brand "
                 + "sm:min-h-0 sm:w-auto")
             .Aria(new Dictionary<string, string?> { ["label"] = "Filter by category" })
-            .OnChangeAsync(CategoryChangedAsync)[options];
+            .OnChange(CategoryChangedAsync)[options];
     }
 
     private Task CategoryChangedAsync(string value)

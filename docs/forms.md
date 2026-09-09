@@ -59,7 +59,7 @@ A control's value comes from exactly one place, and the step you open the chain 
 | Opened with | Mode | Then adds | Does **not** offer |
 | --- | --- | --- | --- |
 | `.Bind(() => model.Field)` | bound | `Validate` / `ValidateAsync`, `AfterBind` / `AfterBindAsync` | `Checked`, `OnInput`, `OnChange` |
-| `.Value(v)` or `.Of<T>()` | controlled | `Checked`, `OnInput` / `OnInputAsync`, `OnChange` / `OnChangeAsync` | `Validate`, `AfterBind` |
+| `.Value(v)` or `.Of<T>()` | controlled | `Checked`, `OnInput`, `OnChange` | `Validate`, `AfterBind` |
 
 `Bind` and `Value` are the *openings* themselves, not steps you take later — taking one is what rules
 the other out, so neither appears again on the chain. `Of<T>()` opens a controlled chain for a control
@@ -260,7 +260,7 @@ Children are normally a fixed list. Give the form a **function** instead and it 
 render with whether a submit is in flight, so the markup can say so without the page tracking it:
 
 ```csharp
-Form.Model(_model).OnValidSubmitAsync(SaveAsync)[submitting => [
+Form.Model(_model).OnValidSubmit(SaveAsync)[submitting => [
     Input.Bind(() => _model.Username).Disabled(submitting),
     Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
 ]]

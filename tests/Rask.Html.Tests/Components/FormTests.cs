@@ -51,7 +51,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnSubmitAsyncInsideLiveContext_EmitsDataRaskOnSubmit()
     {
-        var view = new StubComponent(() => Form.Model(Empty).OnSubmitAsync(async _ => { await Task.Yield(); }));
+        var view = new StubComponent(() => Form.Model(Empty).OnSubmit(async _ => { await Task.Yield(); }));
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
             view.RenderAsLiveRoot());
@@ -125,7 +125,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         var seen = new List<bool>();
 
         var view = new StubComponent(() => Form.Model(p)
-            .OnValidSubmitAsync(async _ => await release.Task)[submitting =>
+            .OnValidSubmit(async _ => await release.Task)[submitting =>
         {
             seen.Add(submitting);
             return [];
@@ -155,7 +155,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         var seen = new List<bool>();
 
         var view = new StubComponent(() => Form.Model(p)
-            .OnValidSubmitAsync(_ => throw new InvalidOperationException("boom"))[submitting =>
+            .OnValidSubmit(_ => throw new InvalidOperationException("boom"))[submitting =>
         {
             seen.Add(submitting);
             return [];

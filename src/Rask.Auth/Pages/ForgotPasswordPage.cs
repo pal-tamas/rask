@@ -54,7 +54,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
                 ? null
                 : Div.Class("rask-auth-error").Id("forgot-error")[AuthMessages.For(_error)],
             P["Tell us the address you signed up with and we will send you a link."],
-            Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+            Form.Model(_model).OnValidSubmit(SubmitAsync)[
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email)),
                 Button.Type("submit").Id("forgot-submit")["Send the link"]
             ],

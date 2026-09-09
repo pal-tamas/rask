@@ -49,7 +49,7 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
                     "This app has no accounts yet, so this one becomes the administrator. "
                     + "The one-time token is in the startup log."]
                 : null,
-            Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+            Form.Model(_model).OnValidSubmit(SubmitAsync)[
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email)),
                 Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)),
                 firstRun.IsPending

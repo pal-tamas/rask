@@ -19,7 +19,7 @@ namespace Rask.Core.Forms;
 // derives the checkbox state from the model and installs its own oninput write-back, so a control
 // reads neither. Before the exclusion they were accepted next to Bind and silently dropped. `Validate<T>`/`ValidateAsync<T>` (this namespace) and `Action<T>`/`Func<T, Task>`
 // (Rask.Core) are the framework's named delegate types; the generator collapses the sync/async
-// validator pair into the none/sync/async factory fan-out, and auto-wraps OnChange/OnChangeAsync
+// validator pair into the none/sync/async factory fan-out, and auto-wraps OnChange
 // (AutoCallback) so invoking them re-renders the consumer.
 //
 // The framework's own component-style controls (samples MultiSelect/CheckboxGroup/RadioGroup) are
@@ -85,13 +85,7 @@ public interface IFormControl<T> : IFormControl
     ///         <see cref="OnChange" />.
     ///     </para>
     /// </summary>
-    Action<T>? AfterBind { get; set; }
-
-    /// <summary>
-    ///     The <see langword="async" /> form of <see cref="AfterBind" />. Both run when both are set — this
-    ///     one after the synchronous hook, and awaited before the re-render.
-    /// </summary>
-    Func<T, Task>? AfterBindAsync { get; set; }
+    Callback<T>? AfterBind { get; set; }
 
     // Controlled mode — the parent owns Value and is notified of changes.
 
@@ -111,13 +105,7 @@ public interface IFormControl<T> : IFormControl
     ///     pass it back through <see cref="Value" /> — the re-render is automatic, so no
     ///     <c>StateHasChanged</c> call is needed.
     /// </summary>
-    Action<T>? OnChange { get; set; }
-
-    /// <summary>
-    ///     The <see langword="async" /> form of <see cref="OnChange" />. Both run when both are set — this
-    ///     one after the synchronous handler.
-    /// </summary>
-    Func<T, Task>? OnChangeAsync { get; set; }
+    Callback<T>? OnChange { get; set; }
 
     // The single delegate the EditContext dispatches — sync or async, whichever the consumer set.
     Delegate? Validator => (Delegate?)Validate ?? ValidateAsync;
@@ -144,34 +132,21 @@ public interface IFormControl<T> : IFormControl
             accessor.Owner as Component ?? BindingConsumerRegistry.Resolve(this));
     }
 
-    // Runs the post-bind hooks with the freshly-bound value.
-    async Task InvokeAfterBindAsync(T value)
-    {
-        AfterBind?.Invoke(value);
-        if (AfterBindAsync is { } hook)
-        {
-            await hook(value).ConfigureAwait(false);
-        }
-    }
+    // Runs the post-bind hook with the freshly-bound value. `Invoke` hands back null for a synchronous
+    // hook, so the sync path never acquires a Task it did not need.
+    Task InvokeAfterBindAsync(T value) => AfterBind?.Invoke(value) ?? Task.CompletedTask;
 
-    // Notifies the controlled-mode consumer of a new value (sync + async).
-    async Task InvokeOnChangeAsync(T value)
-    {
-        OnChange?.Invoke(value);
-        if (OnChangeAsync is { } notify)
-        {
-            await notify(value).ConfigureAwait(false);
-        }
-    }
+    // Notifies the controlled-mode consumer of a new value, in whichever shape they wrote it.
+    Task InvokeOnChangeAsync(T value) => OnChange?.Invoke(value) ?? Task.CompletedTask;
 
-    // Bridges a DOM string change to the typed OnChange/OnChangeAsync — parse the raw value to T (identity
+    // Bridges a DOM string change to the typed OnChange — parse the raw value to T (identity
     // for string; enums / IParsable<T> round-trip via BindingHelpers.TryParseValue), then notify. Shared by
     // every control's controlled mode; returns null when no controlled change handler is wired. Call it
     // through the interface (`((IFormControl<T>)this).ControlledChangeHandler()`) and register the result as
     // the element's `data-rask-on-change` handler.
     Delegate? ControlledChangeHandler()
     {
-        if (OnChange is null && OnChangeAsync is null)
+        if (OnChange is null)
         {
             return null;
         }
@@ -190,7 +165,7 @@ public interface IFormControl<T> : IFormControl
         // closures) to find the defining component, which is the same rule RegisterHandler and
         // AutoCallback already apply. It also refuses to resolve to an Element, so it cannot regress to
         // dirty-marking the control itself.
-        var consumer = DelegateOwner.Resolve(OnChange) ?? DelegateOwner.Resolve(OnChangeAsync);
+        var consumer = DelegateOwner.Resolve(OnChange?.Handler);
 
         return new Func<string, Task>(async raw =>
         {

@@ -72,7 +72,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         Fragment[
             H1["Choose a new password"],
             Message is null ? null : Div.Class("rask-auth-error").Id("reset-error")[Message],
-            Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+            Form.Model(_model).OnValidSubmit(SubmitAsync)[
                 Field(
                     "password",
                     "New password",

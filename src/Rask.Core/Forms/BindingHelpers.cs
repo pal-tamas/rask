@@ -190,22 +190,17 @@ public static class BindingHelpers
     // user's callback always sees the new value.
     public static Func<Task>? BuildAfterBind<TProp>(
         ExpressionAccessor.Accessor acc,
-        Action<TProp>? sync,
-        Func<TProp, Task>? asyncFn)
+        Callback<TProp>? hook)
     {
-        if (sync is null && asyncFn is null)
+        if (hook is null)
         {
             return null;
         }
 
-        return async () =>
+        return () =>
         {
             var v = (TProp)acc.Getter()!;
-            sync?.Invoke(v);
-            if (asyncFn is not null)
-            {
-                await asyncFn(v).ConfigureAwait(false);
-            }
+            return hook.Value.Invoke(v) ?? Task.CompletedTask;
         };
     }
 

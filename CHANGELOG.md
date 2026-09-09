@@ -47,6 +47,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every callback in the framework is one property now, and RASK027 is retired.** BREAKING: the
+  remaining `OnXAsync` siblings are gone — `IFormControl<T>`'s `OnChange` and `AfterBind`, `Input`'s
+  `OnInput` and `OnFiles`, `Form`'s three submit callbacks, `UiOtp`'s completion, and the twelve kit
+  controls that implement the interface. Each is a single `Callback<T>` whose step takes either shape.
+
+  This finishes what the DOM events started. RASK027 existed to stop you setting both halves of a pair;
+  with no pairs left it has nothing to report, so it is retired (the ID is never reused, and its section
+  keeps its anchor — the help link is in shipped packages and IDE hover cards). Writing a step twice is
+  now an ordinary duplicated step, RASK044.
+
+  The form callbacks were subtler than the DOM ones: both halves genuinely *ran*, sync then async, which
+  the interface documented and RASK027 called an error at the same time. One slot removes the
+  contradiction. `UiOtp` was relying on it — chaining its own completion onto the async half while
+  passing the consumer's through the sync one — and now calls the consumer's handler itself.
+
+  `InvokeAfterBindAsync` and `InvokeOnChangeAsync` collapse from an await-both ladder to a single
+  `Invoke` that hands back null when nothing needs awaiting, so a synchronous handler keeps its
+  allocation-free path. `BuildAfterBind` takes the carrier instead of a sync/async pair.
+
+  One cost worth stating: a lambda cannot reach a carrier through an object initializer (CS1660), so
+  `new UiFilter<string> { OnChange = v => … }` needs `new Callback<string>(v => …)`. That only affects
+  code constructing components directly — RASK014 forbids `new` outside the framework, so the chain,
+  where the overloads live, is unaffected.
+
+
 - **Every DOM event is one property now, and `Button.OnClick` takes a sync *or* an async handler.**
   BREAKING: the 58 `OnXAsync` siblings on `Element` and `HtmlMediaElement` are gone. Write the handler
   you mean:
@@ -2448,7 +2473,7 @@ them until tagged releases begin.
   the model:
 
   ```csharp
-  Form.Model(_model).OnValidSubmitAsync(SaveAsync)[submitting => [
+  Form.Model(_model).OnValidSubmit(SaveAsync)[submitting => [
       Input.Bind(() => _model.Username).Disabled(submitting),
       Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
   ]]

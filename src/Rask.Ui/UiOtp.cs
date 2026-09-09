@@ -45,10 +45,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>
     ///     On the transition INTO a complete code, not on every keystroke while it is complete: a caller
     ///     that submits from here would otherwise submit on every edit.
     /// </remarks>
-    public Action<string>? OnComplete { get; set; }
-
-    /// <summary>The <see langword="async" /> form of <see cref="OnComplete" />.</summary>
-    public Func<string, Task>? OnCompleteAsync { get; set; }
+    public Callback<string>? OnComplete { get; set; }
 
     /// <summary>Draws the boxes joined into one block rather than separated.</summary>
     public bool? Joined { get; set; }
@@ -63,10 +60,8 @@ public sealed partial class UiOtp : Component, IFormControl<string>
     public string? Value { get; set; }
 
     /// <inheritdoc />
-    public Action<string>? OnChange { get; set; }
+    public Callback<string>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<string, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<string>>? Bind { get; set; }
@@ -78,10 +73,8 @@ public sealed partial class UiOtp : Component, IFormControl<string>
     public ValidateAsync<string>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
-    public Action<string>? AfterBind { get; set; }
+    public Callback<string>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Func<string, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -94,12 +87,14 @@ public sealed partial class UiOtp : Component, IFormControl<string>
                 .Bind(bind)
                 .Validate(Validate)
                 .ValidateAsync(ValidateAsync)
-                .AfterBind(AfterBind)
-                .AfterBindAsync(async value =>
+                // The consumer's hook runs first, then completion. This used to be two steps — the
+                // consumer's on `AfterBind` and ours on `AfterBindAsync` — which worked only because both
+                // ran. One slot means one handler, so ours calls theirs.
+                .AfterBind(async value =>
                 {
-                    if (AfterBindAsync is { } after)
+                    if (AfterBind?.Invoke(value) is { } hook)
                     {
-                        await after(value).ConfigureAwait(false);
+                        await hook.ConfigureAwait(false);
                     }
 
                     await CompleteAsync(value).ConfigureAwait(false);
@@ -112,12 +107,11 @@ public sealed partial class UiOtp : Component, IFormControl<string>
 
         return Input
             .Value(Value ?? string.Empty)
-            .OnChange(OnChange)
-            .OnChangeAsync(async value =>
+            .OnChange(async value =>
             {
-                if (OnChangeAsync is { } changed)
+                if (OnChange?.Invoke(value) is { } notify)
                 {
-                    await changed(value).ConfigureAwait(false);
+                    await notify.ConfigureAwait(false);
                 }
 
                 await CompleteAsync(value).ConfigureAwait(false);
@@ -139,11 +133,9 @@ public sealed partial class UiOtp : Component, IFormControl<string>
             return;
         }
 
-        OnComplete?.Invoke(value);
-
-        if (OnCompleteAsync is { } complete)
+        if (OnComplete?.Invoke(value) is { } complete)
         {
-            await complete(value).ConfigureAwait(false);
+            await complete.ConfigureAwait(false);
         }
     }
 

@@ -51,7 +51,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
             return Task.CompletedTask;
         };
 
-        var page = RaskTest.Render(() => Input.Value<string>(null).OnFilesAsync(handler), services);
+        var page = RaskTest.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
         await page.InvokeAsync("h0", """
                                      { "id": "h0", "type": "files", "files": [

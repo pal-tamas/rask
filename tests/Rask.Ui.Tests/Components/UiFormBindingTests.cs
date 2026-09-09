@@ -235,7 +235,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
             Group = "t",
             Options = [],
             Bind = () => model.Tag,
-            AfterBind = v => after = v,
+            AfterBind = new Rask.Core.Callback<string>(v => after = v),
         };
 
         var (acc, ctx, _) = UiFormCommit.Resolve<string>(control);
@@ -249,7 +249,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public async Task CommitAsync_reports_to_the_parent_when_the_control_is_controlled()
     {
         var seen = "";
-        var control = new UiFilter<string> { Group = "t", Options = [], Value = "bug", OnChange = v => seen = v };
+        var control = new UiFilter<string> { Group = "t", Options = [], Value = "bug", OnChange = new Rask.Core.Callback<string>(v => seen = v) };
 
         var (acc, ctx, _) = UiFormCommit.Resolve<string>(control);
         await UiFormCommit.CommitAsync(control, acc, ctx, "docs");

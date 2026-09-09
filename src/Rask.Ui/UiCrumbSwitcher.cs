@@ -55,7 +55,7 @@ public sealed partial class UiCrumbSwitcher : Component
 
         if (OnSelect is { } select_)
         {
-            select = select.OnChangeAsync(select_);
+            select = select.OnChange(select_);
         }
 
         return Div.Class("relative flex min-w-0 max-w-[9rem] items-center sm:max-w-[16rem]")[

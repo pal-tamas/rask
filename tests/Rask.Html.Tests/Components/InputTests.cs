@@ -150,8 +150,8 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnInputAsyncAndOnChangeAsyncInsideLiveContext_EmitSequentialIds()
     {
-        var view = new StubComponent(() => Input.Of<string>().OnInputAsync(async _ => { await Task.Yield(); })
-            .OnChangeAsync(async _ => { await Task.Yield(); }));
+        var view = new StubComponent(() => Input.Of<string>().OnInput(async _ => { await Task.Yield(); })
+            .OnChange(async _ => { await Task.Yield(); }));
         Assert.Equal(
             "<input data-rask-on-input=\"h0\" data-rask-on-change=\"h1\" />",
             view.RenderAsLiveRoot());

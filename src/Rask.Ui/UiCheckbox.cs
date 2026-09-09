@@ -53,10 +53,8 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
     public bool Value { get; set; }
 
     /// <inheritdoc />
-    public Action<bool>? OnChange { get; set; }
+    public Callback<bool>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<bool, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<bool>>? Bind { get; set; }
@@ -68,10 +66,8 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
     public ValidateAsync<bool>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
-    public Action<bool>? AfterBind { get; set; }
+    public Callback<bool>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Func<bool, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -88,7 +84,6 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
                 .Validate(Validate)
                 .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
-                .AfterBindAsync(AfterBindAsync)
                 .Disabled(Disabled == true)
                 .Class(BoxClass());
         }
@@ -99,7 +94,6 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
             .Of<bool>()
             .Checked(Value)
             .OnChange(OnChange)
-            .OnChangeAsync(OnChangeAsync)
             .Disabled(Disabled == true)
             .Class(BoxClass());
     }

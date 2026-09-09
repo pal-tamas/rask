@@ -287,18 +287,12 @@ Rask.Html.Components.Form<TModel>.Name.get -> string?
 Rask.Html.Components.Form<TModel>.Name.set -> void
 Rask.Html.Components.Form<TModel>.Novalidate.get -> bool?
 Rask.Html.Components.Form<TModel>.Novalidate.set -> void
-Rask.Html.Components.Form<TModel>.OnInvalidSubmit.get -> System.Action<TModel>?
+Rask.Html.Components.Form<TModel>.OnInvalidSubmit.get -> Rask.Core.Callback<TModel>?
 Rask.Html.Components.Form<TModel>.OnInvalidSubmit.set -> void
-Rask.Html.Components.Form<TModel>.OnInvalidSubmitAsync.get -> System.Func<TModel, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Form<TModel>.OnInvalidSubmitAsync.set -> void
-Rask.Html.Components.Form<TModel>.OnSubmit.get -> System.Action<Rask.Core.Live.FormData!>?
+Rask.Html.Components.Form<TModel>.OnSubmit.get -> Rask.Core.Callback<Rask.Core.Live.FormData!>?
 Rask.Html.Components.Form<TModel>.OnSubmit.set -> void
-Rask.Html.Components.Form<TModel>.OnSubmitAsync.get -> System.Func<Rask.Core.Live.FormData!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Form<TModel>.OnSubmitAsync.set -> void
-Rask.Html.Components.Form<TModel>.OnValidSubmit.get -> System.Action<TModel>?
+Rask.Html.Components.Form<TModel>.OnValidSubmit.get -> Rask.Core.Callback<TModel>?
 Rask.Html.Components.Form<TModel>.OnValidSubmit.set -> void
-Rask.Html.Components.Form<TModel>.OnValidSubmitAsync.get -> System.Func<TModel, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Form<TModel>.OnValidSubmitAsync.set -> void
 Rask.Html.Components.Form<TModel>.Rel.get -> string?
 Rask.Html.Components.Form<TModel>.Rel.set -> void
 Rask.Html.Components.Form<TModel>.Target.get -> string?
@@ -474,10 +468,8 @@ Rask.Html.Components.Img.Width.set -> void
 Rask.Html.Components.Input<T>
 Rask.Html.Components.Input<T>.Accept.get -> string?
 Rask.Html.Components.Input<T>.Accept.set -> void
-Rask.Html.Components.Input<T>.AfterBind.get -> System.Action<T>?
+Rask.Html.Components.Input<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Html.Components.Input<T>.AfterBind.set -> void
-Rask.Html.Components.Input<T>.AfterBindAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Input<T>.AfterBindAsync.set -> void
 Rask.Html.Components.Input<T>.Alt.get -> string?
 Rask.Html.Components.Input<T>.Alt.set -> void
 Rask.Html.Components.Input<T>.Autocomplete.get -> string?
@@ -527,18 +519,12 @@ Rask.Html.Components.Input<T>.Multiple.get -> bool?
 Rask.Html.Components.Input<T>.Multiple.set -> void
 Rask.Html.Components.Input<T>.Name.get -> string?
 Rask.Html.Components.Input<T>.Name.set -> void
-Rask.Html.Components.Input<T>.OnChange.get -> System.Action<T>?
+Rask.Html.Components.Input<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Html.Components.Input<T>.OnChange.set -> void
-Rask.Html.Components.Input<T>.OnChangeAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Input<T>.OnChangeAsync.set -> void
-Rask.Html.Components.Input<T>.OnFiles.get -> System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>?
+Rask.Html.Components.Input<T>.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>?
 Rask.Html.Components.Input<T>.OnFiles.set -> void
-Rask.Html.Components.Input<T>.OnFilesAsync.get -> System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Input<T>.OnFilesAsync.set -> void
-Rask.Html.Components.Input<T>.OnInput.get -> System.Action<string!>?
+Rask.Html.Components.Input<T>.OnInput.get -> Rask.Core.Callback<string!>?
 Rask.Html.Components.Input<T>.OnInput.set -> void
-Rask.Html.Components.Input<T>.OnInputAsync.get -> System.Func<string!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Input<T>.OnInputAsync.set -> void
 Rask.Html.Components.Input<T>.Pattern.get -> string?
 Rask.Html.Components.Input<T>.Pattern.set -> void
 Rask.Html.Components.Input<T>.Placeholder.get -> string?
@@ -916,10 +902,8 @@ Rask.Html.Components.Search.Search() -> void
 Rask.Html.Components.Section
 Rask.Html.Components.Section.Section() -> void
 Rask.Html.Components.Select<T>
-Rask.Html.Components.Select<T>.AfterBind.get -> System.Action<T>?
+Rask.Html.Components.Select<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Html.Components.Select<T>.AfterBind.set -> void
-Rask.Html.Components.Select<T>.AfterBindAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Select<T>.AfterBindAsync.set -> void
 Rask.Html.Components.Select<T>.Autocomplete.get -> string?
 Rask.Html.Components.Select<T>.Autocomplete.set -> void
 Rask.Html.Components.Select<T>.Autofocus.get -> bool?
@@ -934,10 +918,8 @@ Rask.Html.Components.Select<T>.Multiple.get -> bool?
 Rask.Html.Components.Select<T>.Multiple.set -> void
 Rask.Html.Components.Select<T>.Name.get -> string?
 Rask.Html.Components.Select<T>.Name.set -> void
-Rask.Html.Components.Select<T>.OnChange.get -> System.Action<T>?
+Rask.Html.Components.Select<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Html.Components.Select<T>.OnChange.set -> void
-Rask.Html.Components.Select<T>.OnChangeAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Select<T>.OnChangeAsync.set -> void
 Rask.Html.Components.Select<T>.Required.get -> bool?
 Rask.Html.Components.Select<T>.Required.set -> void
 Rask.Html.Components.Select<T>.Select() -> void
@@ -1140,10 +1122,8 @@ Rask.Html.Components.TextPath.StartOffset.get -> string?
 Rask.Html.Components.TextPath.StartOffset.set -> void
 Rask.Html.Components.TextPath.TextPath() -> void
 Rask.Html.Components.Textarea<T>
-Rask.Html.Components.Textarea<T>.AfterBind.get -> System.Action<T>?
+Rask.Html.Components.Textarea<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Html.Components.Textarea<T>.AfterBind.set -> void
-Rask.Html.Components.Textarea<T>.AfterBindAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Textarea<T>.AfterBindAsync.set -> void
 Rask.Html.Components.Textarea<T>.Autocomplete.get -> string?
 Rask.Html.Components.Textarea<T>.Autocomplete.set -> void
 Rask.Html.Components.Textarea<T>.Autofocus.get -> bool?
@@ -1164,14 +1144,10 @@ Rask.Html.Components.Textarea<T>.MinLength.get -> int?
 Rask.Html.Components.Textarea<T>.MinLength.set -> void
 Rask.Html.Components.Textarea<T>.Name.get -> string?
 Rask.Html.Components.Textarea<T>.Name.set -> void
-Rask.Html.Components.Textarea<T>.OnChange.get -> System.Action<T>?
+Rask.Html.Components.Textarea<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Html.Components.Textarea<T>.OnChange.set -> void
-Rask.Html.Components.Textarea<T>.OnChangeAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Textarea<T>.OnChangeAsync.set -> void
-Rask.Html.Components.Textarea<T>.OnInput.get -> System.Action<string!>?
+Rask.Html.Components.Textarea<T>.OnInput.get -> Rask.Core.Callback<string!>?
 Rask.Html.Components.Textarea<T>.OnInput.set -> void
-Rask.Html.Components.Textarea<T>.OnInputAsync.get -> System.Func<string!, System.Threading.Tasks.Task!>?
-Rask.Html.Components.Textarea<T>.OnInputAsync.set -> void
 Rask.Html.Components.Textarea<T>.Placeholder.get -> string?
 Rask.Html.Components.Textarea<T>.Placeholder.set -> void
 Rask.Html.Components.Textarea<T>.ReadOnly.get -> bool?
@@ -1311,12 +1287,15 @@ static RaskBuilderSettersRask_Html.Accept<T, TMode>(this Rask.Core.Build<Rask.Ht
 static RaskBuilderSettersRask_Html.AcceptCharset<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, string? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.ActiveClass(this Rask.Core.Build<Rask.Html.Components.NavLink!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.NavLink!>
 static RaskBuilderSettersRask_Html.ActiveMatch(this Rask.Core.Build<Rask.Html.Components.NavLink!> __b, Rask.Html.Components.NavLinkMatch? value) -> Rask.Core.Build<Rask.Html.Components.NavLink!>
+static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Callback<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Callback<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, Rask.Core.Callback<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Html.AfterBindAsync<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Html.AfterBindAsync<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Bound!>
-static RaskBuilderSettersRask_Html.AfterBindAsync<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
+static RaskBuilderSettersRask_Html.AfterBind<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Bound!>
 static RaskBuilderSettersRask_Html.Allow(this Rask.Core.Build<Rask.Html.Components.Iframe!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Iframe!>
 static RaskBuilderSettersRask_Html.Alt(this Rask.Core.Build<Rask.Html.Components.Area!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Area!>
 static RaskBuilderSettersRask_Html.Alt(this Rask.Core.Build<Rask.Html.Components.Img!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Img!>
@@ -1776,12 +1755,15 @@ static RaskBuilderSettersRask_Html.NoModule(this Rask.Core.Build<Rask.Html.Compo
 static RaskBuilderSettersRask_Html.Nonce(this Rask.Core.Build<Rask.Html.Components.Style!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Style!>
 static RaskBuilderSettersRask_Html.Novalidate<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, bool? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.Offset(this Rask.Core.Build<Rask.Html.Components.Stop!> __b, string? value) -> Rask.Core.Build<Rask.Html.Components.Stop!>
+static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, Rask.Core.Callback<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!> __b, Rask.Core.Callback<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, Rask.Core.Callback<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Action<T>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
-static RaskBuilderSettersRask_Html.OnChangeAsync<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
-static RaskBuilderSettersRask_Html.OnChangeAsync<T>(this Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Select<T>!, Rask.Core.Forms.Controlled!>
-static RaskBuilderSettersRask_Html.OnChangeAsync<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnChange<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnDurationChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
@@ -1794,14 +1776,18 @@ static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Compon
 static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnEnded(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnFiles<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
 static RaskBuilderSettersRask_Html.OnFiles<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
-static RaskBuilderSettersRask_Html.OnFilesAsync<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
+static RaskBuilderSettersRask_Html.OnFiles<T, TMode>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode> __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, TMode>
+static RaskBuilderSettersRask_Html.OnInput<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, Rask.Core.Callback<string!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnInput<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnInput<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnInput<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, Rask.Core.Callback<string!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Html.OnInput<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Action<string!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
-static RaskBuilderSettersRask_Html.OnInputAsync<T>(this Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Input<T>!, Rask.Core.Forms.Controlled!>
-static RaskBuilderSettersRask_Html.OnInputAsync<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnInput<T>(this Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Textarea<T>!, Rask.Core.Forms.Controlled!>
+static RaskBuilderSettersRask_Html.OnInvalidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, Rask.Core.Callback<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnInvalidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Action<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
-static RaskBuilderSettersRask_Html.OnInvalidSubmitAsync<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.OnInvalidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnLoadedMetadata(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
@@ -1844,16 +1830,18 @@ static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Comp
 static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnSeeking(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, Rask.Core.Callback<Rask.Core.Live.FormData!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Action<Rask.Core.Live.FormData!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
-static RaskBuilderSettersRask_Html.OnSubmitAsync<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<Rask.Core.Live.FormData!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.OnSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<Rask.Core.Live.FormData!, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Video!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
 static RaskBuilderSettersRask_Html.OnTimeUpdate(this Rask.Core.Build<Rask.Html.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Video!>
+static RaskBuilderSettersRask_Html.OnValidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, Rask.Core.Callback<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnValidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Action<TModel>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
-static RaskBuilderSettersRask_Html.OnValidSubmitAsync<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
+static RaskBuilderSettersRask_Html.OnValidSubmit<TModel>(this Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!> __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<Rask.Html.Components.Form<TModel>!>
 static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>
 static RaskBuilderSettersRask_Html.OnVolumeChange(this Rask.Core.Build<Rask.Html.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Html.Components.Audio!>

@@ -58,8 +58,8 @@ internal sealed partial class WrapFormChild : Component
             // The naive migration of the line below: the handler set through the chain, with no wrapping
             // anywhere. `SaveAsync` returns Task, so it is the async handler on both arms — what differs
             // is which surface registered it.
-            ? Form.Model(owner.Model).OnValidSubmitAsync(owner.SaveAsync)[Input.Bind(() => owner.Model.Name)]
-            : Form.Model(owner.Model).OnValidSubmitAsync(owner.SaveAsync)[
+            ? Form.Model(owner.Model).OnValidSubmit(owner.SaveAsync)[Input.Bind(() => owner.Model.Name)]
+            : Form.Model(owner.Model).OnValidSubmit(owner.SaveAsync)[
                 Input.Bind(() => owner.Model.Name)
             ];
     }

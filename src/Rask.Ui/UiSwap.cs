@@ -41,7 +41,7 @@ public sealed partial class UiSwap : Component
     public UiSwapAnimation? Animation { get; set; }
 
     /// <summary>Runs when it is pressed, with the state the reader is asking for.</summary>
-    public Action<bool>? OnChange { get; set; }
+    public Callback<bool>? OnChange { get; set; }
 
     public string? Class { get; set; }
 
@@ -64,7 +64,7 @@ public sealed partial class UiSwap : Component
         if (OnChange is { } change)
         {
             var next = Active != true;
-            button = button.OnClick(() => change(next));
+            button = button.OnClick(() => change.Invoke(next) ?? Task.CompletedTask);
         }
 
         return button[

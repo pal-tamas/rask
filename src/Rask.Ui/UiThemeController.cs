@@ -36,7 +36,7 @@ public sealed partial class UiThemeController : Component
     public UiSize? Size { get; set; }
 
     /// <summary>Runs when it is chosen, with the theme the reader asked for.</summary>
-    public Action<UiThemeName>? OnChange { get; set; }
+    public Callback<UiThemeName>? OnChange { get; set; }
 
     public string? Class { get; set; }
 
@@ -54,7 +54,7 @@ public sealed partial class UiThemeController : Component
 
         if (OnChange is { } change)
         {
-            button = button.OnClick(() => change(Theme));
+            button = button.OnClick(() => change.Invoke(Theme) ?? Task.CompletedTask);
         }
 
         return button[Span[Label]];

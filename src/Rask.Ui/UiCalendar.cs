@@ -62,10 +62,8 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
     public DateOnly Value { get; set; }
 
     /// <inheritdoc />
-    public Action<DateOnly>? OnChange { get; set; }
+    public Callback<DateOnly>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<DateOnly, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<DateOnly>>? Bind { get; set; }
@@ -77,10 +75,8 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
     public ValidateAsync<DateOnly>? ValidateAsync { get; set; }
 
     /// <inheritdoc />
-    public Action<DateOnly>? AfterBind { get; set; }
+    public Callback<DateOnly>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Func<DateOnly, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()

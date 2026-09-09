@@ -15,7 +15,6 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK014** | rewrites `new Widget()` into the bare entry `Widget` |
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
-| **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 | **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
 
@@ -63,7 +62,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
-| [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
+| [RASK027](#rask027) | — | *Retired* — both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
@@ -439,30 +438,16 @@ a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasCh
 *different* component, is left alone. Suppressible like any analyzer.
 
 ## RASK027
-**Both the sync and async handler are set for one event** · Error
+**Retired** — both the sync and async handler are set for one event
 
-A callback that still ships as a **pair** — a sync `OnX` and an async `OnXAsync` — maps to a single
-handler slot, so wiring both is a mistake: the runtime keeps the sync one and silently ignores the
-async one, which is rarely what the author intended. Set exactly one.
+Reported while every callback shipped as a PAIR: a sync `OnX` beside an async `OnXAsync`, two views over
+one handler slot. Wiring both was a mistake the runtime resolved by keeping the sync one and silently
+dropping the async one, so this rule existed to stop anyone reaching that state.
 
-```csharp
-// ✗ both set — OnChangeAsync is silently dropped at runtime:
-Input.Bind(() => m.Name).OnChange(v => Touch(v)).OnChangeAsync(async v => await SaveAsync(v))
-// ✓ pick one — the async handler, since it awaits:
-Input.Bind(() => m.Name).OnChangeAsync(async v => await SaveAsync(v))
-// ✓ passing null for the sibling is allowed (a deliberate "at most one" conditional):
-Input.Bind(() => m.Name).OnChange(useAsync ? null : Sync).OnChangeAsync(useAsync ? Async : null)
-```
-
-**Fix:** remove one of the two (keep the async `OnXAsync` if it awaits, else the sync `OnX`). The error
-fires only when both siblings are passed as non-`null` arguments; passing `null` for one is left alone.
-
-**No longer applies to DOM events.** `Element`'s events are one `Callback`-typed property each, whose
-step takes either shape — `Button.OnClick(Refresh)` or `Button.OnClick(SaveAsync)`. Setting "both" is
-not expressible there, so nothing is left to diagnose; writing the step twice is an ordinary duplicated
-step, [RASK044](#rask044), and the last one wins. What remains in this rule's scope is the form and kit
-callbacks that are still declared as pairs (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, the
-submit callbacks). Suppressible like any analyzer.
+Every callback is now a single `Callback`-typed property whose step takes either shape —
+`Button.OnClick(Refresh)` or `Button.OnClick(SaveAsync)`. "Both set" is not a mistake that can be made,
+so there is nothing left to report. Writing the step twice is an ordinary duplicated step,
+[RASK044](#rask044), and the last one wins. The ID is not reused.
 
 ## RASK028
 **Ambiguous request handler** · Error

@@ -102,7 +102,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     {
         var captured = string.Empty;
         var view = new StubComponent(() => Input.Value<string>(null)
-            .OnInputAsync(async v =>
+            .OnInput(async v =>
         {
             await Task.Yield();
             captured = v;
@@ -120,7 +120,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     public async Task TryInvokeHandlerAsync_FuncFormDataTaskHandler_ReceivesForm()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form.Model(new object()).OnSubmitAsync(async f =>
+        var view = new StubComponent(() => Form.Model(new object()).OnSubmit(async f =>
         {
             await Task.Yield();
             captured = f;
