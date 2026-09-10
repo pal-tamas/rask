@@ -48,10 +48,12 @@ offending=""
 push_refs="$(cat)"
 
 pushes_content=0
+ref_lines=0
 
 # shellcheck disable=SC2086
 while read -r _local_ref local_sha _remote_ref remote_sha; do
   [ -n "$local_sha" ] || continue          # the empty line a here-string appends
+  ref_lines=$((ref_lines + 1))
   [ "$local_sha" = "$zero" ] && continue   # branch deletion — nothing to inspect
   pushes_content=1
 
@@ -104,6 +106,26 @@ fi
 # attribution loop above had the right idea all along (`local_sha = $zero` -> nothing to inspect); it
 # just kept the conclusion to itself.
 #
+# NO REF LINES AT ALL is a different thing, and saying "deletion" for it was wrong (#1047).
+#
+# git hands this hook one line per ref it is about to send. It hands it NOTHING when it has already
+# decided to send nothing — a non-fast-forward it will reject client-side, or a push that is simply up
+# to date. `pushes_content` cannot tell that apart from "every line was a deletion", because both leave
+# the loop body unrun, so the deletion message below was printed for a push that deleted nothing.
+#
+# Why the wrong message is worse than no message: the reader's next move after a rejection is
+# `git fetch && git merge origin/main`, and a CLEAN merge auto-commits without the pre-commit gate
+# (git runs `pre-merge-commit`, which this repo does not have). So "Skipping the gates" sat in front of
+# a sequence in which nothing had been gated, while reading as though gating had been unnecessary.
+if [ "$ref_lines" -eq 0 ]; then
+  echo "pre-push: git is sending no refs — nothing to build or test. This is what an up-to-date push"
+  echo "          looks like, and also what a non-fast-forward looks like just before git rejects it."
+  echo "          If a rejection follows, NOTHING has been gated: fetch, merge, and let the merge's own"
+  echo "          commit run the gate before pushing again."
+  rmdir "$gate_logs" 2>/dev/null || true
+  exit 0
+fi
+
 # Only when EVERY ref is a deletion. A push that deletes one branch and updates another still has
 # content on it, and that content gets the gate.
 if [ "$pushes_content" -eq 0 ]; then

@@ -106,6 +106,21 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A rejected push was reported as a deletion, in front of a sequence that gates nothing.** git hands
+  `pre-push` one line per ref it is about to send, and hands it *nothing* when it has already decided to
+  send nothing — a non-fast-forward it will reject client-side, or a push that is up to date. The hook
+  counted only refs carrying content, so "no lines at all" and "every line a deletion" were the same
+  number, and an ordinary rejected push answered with `every ref in this push is a DELETION — … Skipping
+  the gates`.
+
+  The wrong message matters because of what follows it. After a rejection the next move is
+  `git fetch && git merge origin/main`, and a CLEAN merge auto-commits **without** the pre-commit gate —
+  git runs `pre-merge-commit`, which this repository does not have. So the one line the reader got said
+  gating had been unnecessary, immediately before a step in which nothing was gated at all. The hook now
+  distinguishes the two, and the empty case says plainly that nothing has been gated and what to do next.
+  `scripts/tests/pre-push-ref-classes.test.sh` pins all three ref classes against the real hook, and
+  fails on three assertions without the fix. (#1047)
+
 - **The scaffolded `AppDbContext` applied Rask's conventions before the batteries mapped their tables**,
   so anything they mapped missed the audit stamps, the soft-delete filter and the concurrency token. The
   template's own comment described the correct order — "it has to follow the configurations… or entities
