@@ -130,6 +130,21 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
+    public void ThePublicApiGateDoesNotCoverTheCompanion()
+    {
+        // The gate in Directory.Build.targets covers every project under src/, and the companion is
+        // GENERATED into the app's obj/ — which is under src/. It can never carry a baseline, because
+        // nothing tracks a file the build rewrites, and the app's own opt-out does not reach a project
+        // generated from it. Missing, the gate failed the publish with "no baseline for net10.0" and
+        // took the entire browser E2E gate down before one test ran. It only shows on a clean obj/,
+        // so a warm one hides it — which is exactly why it is pinned here and not left to the gate.
+        Assert.Contains(
+            "<RaskPublicApiTracked>false</RaskPublicApiTracked>",
+            Generate(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheSdksOwnResourceGlobIsOff()
     {
         // The companion's project directory sits inside the app's obj/. Left on, the SDK's default

@@ -148,6 +148,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The public-API gate covered the prerender companion, so the browser E2E gate could not run at
+  all.** `Rask.Wasm.Prerender.targets` GENERATES a companion project into the app's `obj/` — which is
+  under `src/`, where the repo-wide gate in `Directory.Build.targets` applies. It can never carry a
+  `PublicAPI` baseline, because nothing tracks a file the build rewrites on every publish, and
+  `Rask.Site`'s own `RaskPublicApiTracked=false` does not reach a project generated *from* it. So the
+  publish died with *"Rask.Site.Prerender is covered by the public-API gate but has no baseline for
+  net10.0"*, and `scripts/run-e2e-local.sh` failed before a single browser test ran.
+
+  The companion already turns off analyzers and warnings-as-errors for the same reason — it is a
+  render-only build, not a shipped library — and now turns off the API gate beside them. What hid this
+  is that it only reproduces on a clean `obj/`: any worktree with a warm one keeps publishing happily,
+  so the failure arrives with a fresh checkout rather than with the change that caused it.
+  `PrerenderCompanionGenerationTests.ThePublicApiGateDoesNotCoverTheCompanion` pins the property.
+
 - **Two demos settle after mount and their golden entries are racy.** `virtualize-provider` (an empty
   cell becomes a `td`) and `lifecycle-hooks` (an empty slot becomes an `li`) both change their markup
   skeleton later than the 250ms `NoDemoSkeleton_ChangesOnATimer` waits (#1046), so on a slow enough machine

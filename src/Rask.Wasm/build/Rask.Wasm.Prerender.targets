@@ -96,6 +96,15 @@
       <!-- The app's own analyzers would re-report what the real build already reported. -->
       <_RaskPrerenderLine Include="    &lt;RunAnalyzers&gt;false&lt;/RunAnalyzers&gt;"/>
       <!--
+        Nor is the companion a shippable library, so the repo-wide public-API gate must not cover it.
+        It is GENERATED into the app's obj\, which is under src\ where that gate applies, and it can
+        never carry a PublicAPI baseline of its own — nothing tracks a file the build writes afresh.
+        The app opting out does NOT reach a project generated from it, so without this the gate failed
+        the publish with "no baseline for net10.0" and took the whole browser E2E gate down with it,
+        before a single test ran. Deterministic on any clean obj\, which is why a warm one hid it.
+      -->
+      <_RaskPrerenderLine Include="    &lt;RaskPublicApiTracked&gt;false&lt;/RaskPublicApiTracked&gt;"/>
+      <!--
         Nor may a warning fail this build, for the same reason and one stronger one: the companion's
         reference closure is NOT the app's. It targets net10.0, so a multi-targeted dependency resolves
         its non-browser face — and the Rask metapackage's net10.0 face carries the server-only pieces
