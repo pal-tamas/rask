@@ -24,20 +24,34 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_label_wraps_its_control_so_the_association_needs_no_id()
+    public void A_label_points_at_its_control_and_the_id_is_derived_when_absent()
     {
+        // for/id rather than wrapping, and the reason is daisyUI: it reveals a validator message with a
+        // GENERAL SIBLING selector, so a control moved inside its label stops being a sibling of its own
+        // message — which rendered, carried the right text, and stayed hidden for the life of the page.
         var html = UiInput.Value("").Label("Username").ToHtml();
 
-        var label = html.IndexOf("<label", StringComparison.Ordinal);
-        var input = html.IndexOf("<input", StringComparison.Ordinal);
-        var close = html.IndexOf("</label>", StringComparison.Ordinal);
-
-        Assert.True(label >= 0, "no <label> was rendered for a field that was given one.");
-        Assert.True(label < input && input < close, "the control is not inside its label.");
+        Assert.Contains("for=\"f-username\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"f-username\"", html, StringComparison.Ordinal);
         Assert.Contains("Username", html, StringComparison.Ordinal);
 
-        // No `for`, and nothing to point it at: the nesting IS the association.
-        Assert.DoesNotContain("for=", html, StringComparison.Ordinal);
+        // The control is NOT inside the label; they are siblings.
+        var close = html.IndexOf("</label>", StringComparison.Ordinal);
+        var input = html.IndexOf("<input", StringComparison.Ordinal);
+        Assert.True(close >= 0 && input > close, "the control is inside its label again.");
+    }
+
+    [Fact]
+    public void A_bound_field_derives_its_id_from_the_member_it_binds()
+    {
+        // Deterministic, so the markup is the same across renders — a fresh GUID per instance would change
+        // the markup on every pass and make the golden files unreproducible.
+        var model = new Model();
+
+        Assert.Contains(
+            "id=\"f-name\"",
+            UiInput.Bind(() => model.Name).Label("Full name").ToHtml(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,6 +97,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var hint = html.IndexOf("At least 12 characters", StringComparison.Ordinal);
 
         Assert.True(close >= 0 && hint > close, "the hint is inside the label.");
+        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -152,10 +167,11 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
             .ToHtml();
 
         var label = html.IndexOf("<label", StringComparison.Ordinal);
-        var select = html.IndexOf("<select", StringComparison.Ordinal);
         var close = html.IndexOf("</label>", StringComparison.Ordinal);
+        var select = html.IndexOf("<select", StringComparison.Ordinal);
 
-        Assert.True(label >= 0 && label < select && select < close, "the select is not inside its label.");
+        Assert.True(label >= 0 && close >= 0 && select > close, "the select is inside its label.");
+        Assert.Contains("for=", html, StringComparison.Ordinal);
         Assert.Contains("Country", html, StringComparison.Ordinal);
         Assert.Contains("Where you are billed", html, StringComparison.Ordinal);
     }
@@ -194,5 +210,21 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
             "id=\"name\"",
             UiInput.Bind(() => model.Name).Label("Name").Id("name").ToHtml(),
             StringComparison.Ordinal);
+    }
+    [Fact]
+    public void A_textarea_is_a_field_too_and_renders_its_id()
+    {
+        // Added after the showcase's controlled textarea lost its change handler in a migration — not
+        // because the handler was dropped, but because UiTextarea never rendered the Id the test selected
+        // on, so the assertion could not find the element to look at. Every control in the family needs
+        // the same two things wired, and "I fixed input and select" is how the third one is missed.
+        var html = UiTextarea.Value("").Label("Notes").Id("notes").Rows(3).ToHtml();
+
+        Assert.Contains("id=\"notes\"", html, StringComparison.Ordinal);
+        Assert.Contains("<label", html, StringComparison.Ordinal);
+        Assert.Contains("Notes", html, StringComparison.Ordinal);
+
+        // One name, not two: the visible label is the name, so no aria-label duplicates it.
+        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
     }
 }

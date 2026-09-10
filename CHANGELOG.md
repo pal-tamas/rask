@@ -38,6 +38,38 @@ them until tagged releases begin.
   RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
   is it documented — and nothing asked whether a documented rule existed.
 
+### Changed
+
+- **A form field associates its label by `for`/`id`, not by wrapping the control — and a controlled field
+  can carry its own error.** The field shape in 0.21.0 wrapped the control in its label, which is tidier
+  and breaks daisyUI: it reveals a validator message with a GENERAL SIBLING selector,
+  `.validator:user-invalid ~ .validator-hint`, so a control inside its label is no longer a sibling of its
+  own message. The message rendered, carried the right text, and stayed `visibility: hidden` for the life
+  of the page — and the same broke a `UiValidator` a call site places itself. A browser test caught it;
+  nothing that reads markup could have.
+
+  The id is derived when the caller gives none — from the bound member's name, else the label text —
+  deterministically, so the markup is reproducible across renders rather than a fresh GUID per instance.
+
+  New `Error` comes from the same finding: a controlled field had no way to show its own message, so the
+  only option was a detached `UiValidator` relying on DOM adjacency that survived exactly as long as a
+  field was a bare control.
+
+  `UiTextarea` joins `UiInput` and `UiSelect` on the base, and had the same unrendered `Id` the other two
+  did. `UiInput` gains what a real form needs and could not express through the kit: `OnInput`, `Min`,
+  `Max`, `Step`, `MaxLength`, `Autofocus`, `List` and `Ref`.
+
+  `KitFieldWriteBackTests` is coverage this family never had: every existing binding test asserts the
+  RENDERED value, so they read in one direction only and a control that wrote nowhere passed the suite.
+  These drive the handler and assert the MODEL, inside a `Form` and outside one, with a raw element in the
+  same harness as the guard.
+
+  Arrived alongside an independent fix for the same defect (see *A validation message the kit renders is
+  visible*, below): that one keeps the wrapping and stops the kit's own messages depending on daisyUI's
+  sibling selector at all. Both are in place, and they are complementary rather than alternatives — the
+  `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
+  makes the kit's own messages independent of it.
+
 ### Fixed
 
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
@@ -105,8 +137,8 @@ them until tagged releases begin.
 
   **The association is the reason, not the duplication.** A label reaches its control by `for`/`id` or by
   wrapping it, and both are easy to get wrong in a way nothing reports: the text renders, the control
-  renders, clicking the text does nothing and a screen reader announces an unnamed field. The base
-  WRAPS — so there is no id to mint, keep unique down a list, or thread through a template.
+  renders, clicking the text does nothing and a screen reader announces an unnamed field. The base WRAPS —
+  so there is no id to mint, keep unique down a list, or thread through a template.
 
   `Label` is **optional**: a search box whose placeholder is its whole affordance, a control in a table
   cell, a field labelled by a column header all render the bare control exactly as before, which is what

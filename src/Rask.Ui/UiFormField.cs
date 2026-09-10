@@ -19,8 +19,23 @@ namespace Rask.Ui;
 /// THE ASSOCIATION IS THE REASON THIS EXISTS, not the duplication. A label reaches its control either by
 /// <c>for</c>/<c>id</c> or by wrapping it, and both are easy to get wrong in a way nothing reports: the
 /// text renders, the control renders, clicking the text does nothing and a screen reader announces an
-/// unnamed field. Doing it once, by WRAPPING — no ids to mint, keep unique across a list, or thread
-/// through a template — is what makes it right everywhere instead of right where someone remembered.
+/// unnamed field. Doing it once is what makes it right everywhere instead of right where someone
+/// remembered.
+/// </para>
+/// <para>
+/// BY <c>for</c>/<c>id</c>, NOT BY WRAPPING, and that was learnt the hard way. Wrapping is tidier — the
+/// nesting is the association, so there is no id to mint or keep unique — and it breaks daisyUI. Its
+/// validator message is revealed by a GENERAL SIBLING selector,
+/// <c>.validator:user-invalid ~ .validator-hint</c>, so a control moved inside a label is no longer a
+/// sibling of its own message: the message rendered, carried the right text, and stayed
+/// <c>visibility: hidden</c> for the life of the page. It breaks a <see cref="UiValidator" /> the call
+/// site places itself the same way, which is an existing pairing this had no business changing. A browser
+/// test caught it; nothing that reads markup could have.
+/// </para>
+/// <para>
+/// So the id matters, and <see cref="Id" /> is optional — when it is not given one is DERIVED: from the
+/// bound member's name, or failing that from the label text. Deterministic on purpose, so the markup is
+/// reproducible across renders and in the golden files, rather than a fresh GUID per instance.
 /// </para>
 /// <para>
 /// <see cref="Label" /> is OPTIONAL. A search box whose placeholder is its whole affordance, a control
@@ -58,6 +73,31 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     ///     or one message for a group of fields — so the same error is not said twice.
     /// </remarks>
     public bool? ShowValidation { get; set; }
+
+    /// <summary>
+    ///     The message to show when what was typed is not acceptable, for a CONTROLLED field.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     A bound field needs none of this: it names a model property, so it looks its own messages up and
+    ///     <see cref="ShowValidation" /> is all there is to decide. A controlled field's parent owns the
+    ///     value, so it owns the verdict too — and until this existed the only way to show it was to place a
+    ///     <see cref="UiValidator" /> as a SIBLING of the control and rely on daisyUI's
+    ///     <c>.validator ~ .validator-hint</c> reaching it.
+    ///     </para>
+    ///     <para>
+    ///     That adjacency is exactly the fragility this type exists to remove. It survived as long as a
+    ///     field was a bare control; the moment one grew a label and a wrapper, the message was no longer a
+    ///     sibling and silently stopped appearing. Given here it is rendered next to the control, inside the
+    ///     wrapper, so the relationship the CSS needs is the component's business rather than the call
+    ///     site's.
+    ///     </para>
+    ///     <para>
+    ///     Pair it with <c>Tone(UiTone.Error)</c>: the tone is what marks the control invalid, and the
+    ///     invalid state is what reveals the message.
+    ///     </para>
+    /// </remarks>
+    public string? Error { get; set; }
 
     /// <summary>Help text under the control — a format, a constraint, why it is being asked for.</summary>
     /// <remarks>
@@ -149,6 +189,35 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
                 .Template(messages => P.Class("label text-ui-danger-ink")[messages[0]])
                 .For(bind);
 
+    /// <summary>
+    ///     The id the label points at — the caller's, or one derived from what the field is.
+    /// </summary>
+    /// <remarks>
+    ///     Derived rather than minted so it is the SAME across renders: a fresh GUID per instance would
+    ///     change the markup on every pass, which breaks diffing and makes the golden files unreproducible.
+    ///     The bound member's name is the best source (it is what the field IS), the label text the
+    ///     fallback. Two fields bound to the same member on one page would collide, which is what
+    ///     <see cref="Id" /> is for.
+    /// </remarks>
+    /// <summary>The id the label points at, for the derived control to put on its element.</summary>
+    protected string FieldId => Id ?? "f-" + Slug(BoundMemberName() ?? Label ?? AccessibleLabel ?? "field");
+
+    private string? BoundMemberName() =>
+        Bind?.Body is MemberExpression member ? member.Member.Name : null;
+
+    private static string Slug(string text)
+    {
+        var slug = new char[text.Length];
+        var n = 0;
+
+        foreach (var c in text)
+        {
+            slug[n++] = char.IsAsciiLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-';
+        }
+
+        return new string(slug, 0, n).Trim('-');
+    }
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -158,26 +227,24 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         // Nothing to wrap it in. Keeps a bare control's markup exactly as it was, which is what a control
         // in a table cell or a toolbar wants — and means adding this base changed no rendered output for
         // any call site that had no label, no hint and nothing to validate.
-        if (Label is null && Hint is null && validation is null)
+        if (Label is null && Hint is null && validation is null && Error is null)
         {
             return control;
         }
 
         return Div.Class("fieldset")[
-            // WRAPPED, not `for`/`id`: the association comes from the nesting, so there is no id to mint,
-            // keep unique down a list, or thread through a template.
-            Label is null
-                ? control
-                // RaskMarkup.Label, qualified: this type has a Label PROPERTY, which shadows the
-                // <label> chain entry of the same name — the "Color Color" problem. UiCheckbox avoids it
-                // by calling its own property Text; a form field's label should be called Label, so the
-                // entry is reached through the base that declares it instead.
-                : RaskMarkup.Label[
-                    Span.Class("fieldset-legend")[Label],
-                    control
-                ],
-            Hint is null ? null : P.Class("label")[Hint],
-            validation
+            // RaskMarkup.Label, qualified: this type has a Label PROPERTY, which shadows the <label> chain
+            // entry of the same name — the "Color Color" problem. UiCheckbox avoids it by calling its own
+            // property Text; a form field's label should be called Label, so the entry is reached through
+            // the base that declares it instead.
+            Label is null ? null : RaskMarkup.Label.For(FieldId).Class("fieldset-legend")[Label],
+            control,
+            // A SIBLING of the control, which is what daisyUI's `.validator ~ .validator-hint` requires.
+            validation,
+            // daisyUI's own class, so the reveal-on-invalid behaviour is the library's rather than a second
+            // implementation of it.
+            Error is null ? null : P.Class("validator-hint")[Error],
+            Hint is null ? null : P.Class("label")[Hint]
         ];
     }
 }
