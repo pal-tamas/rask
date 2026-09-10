@@ -70,7 +70,10 @@ public sealed class DevStatusServerTests
         Assert.NotNull(first);
         Assert.NotNull(second);
         Assert.NotEqual(first.Port, second.Port);
-        Assert.StartsWith("http://127.0.0.1:", first.Url, StringComparison.Ordinal);
+        // `localhost`, not the dotted form: an IP-literal prefix makes HttpListener resolve the
+        // machine's own hostname inside Start(), which is a 5s timeout on any box whose hostname is
+        // not in /etc/hosts. Pinned here so the fast spelling cannot be "tidied" back.
+        Assert.StartsWith("http://localhost:", first.Url, StringComparison.Ordinal);
         Assert.EndsWith("/status", first.Url, StringComparison.Ordinal);
     }
 

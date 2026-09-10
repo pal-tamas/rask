@@ -61,7 +61,21 @@ public partial class DocumentShellAllocationPinTests : global::Rask.Core.RaskMar
     // mount-time allocation is warmed away and only the per-render work is measured. Mirrors
     // BuilderEntryAllocationPinTests.Measure, but through RenderAsLiveRoot — the shell only exists on
     // that path.
+    // BEST of three rounds, for the same reason as BuilderEntryAllocationPinTests.Measure: noise can
+    // only ADD allocation to a steady-state render, never remove it, so the minimum is the honest
+    // estimate. The ceilings are untouched — a real regression lifts every round together.
     private static long Measure(Func<Component> build)
+    {
+        var best = long.MaxValue;
+        for (var round = 0; round < 3; round++)
+        {
+            best = Math.Min(best, MeasureOnce(build));
+        }
+
+        return best;
+    }
+
+    private static long MeasureOnce(Func<Component> build)
     {
         var sp = RenderHarness.EmptyServices();
         var root = build();

@@ -191,7 +191,12 @@ public sealed class DevCommandTests
         await command.ExecuteAsync([], CancellationToken.None);
 
         var url = runner.LastRun!.Environment![DevCommand.DevStatusEnvironmentVariable];
-        Assert.StartsWith("http://127.0.0.1:", url, StringComparison.Ordinal);
+
+        // `localhost`, and it has to match what DevStatusServer actually BOUND: a listener bound
+        // through localhost does not answer 127.0.0.1, so stamping the dotted form onto the page
+        // would give the browser a status endpoint that refuses every poll. The spelling is also
+        // what keeps `rask dev` from paying a 5s hostname-resolution timeout on every start.
+        Assert.StartsWith("http://localhost:", url, StringComparison.Ordinal);
         Assert.EndsWith("/status", url, StringComparison.Ordinal);
     }
 

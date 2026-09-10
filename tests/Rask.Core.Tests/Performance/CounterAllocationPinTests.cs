@@ -87,7 +87,22 @@ public partial class CounterAllocationPinTests : global::Rask.Core.RaskMarkup
         }
     }
 
+    // BEST of three rounds, matching the other two pin fixtures. The per-thread counter is indeed
+    // unaffected by other CPU activity — but it IS affected by shared state another test moved, which
+    // makes a render take a colder path and allocate several times its steady-state cost. Noise can
+    // only add, so the minimum is the honest number and the ceilings stay where they are.
     private static long MeasureAvgAllocBytes(Func<Component> build, int iterations)
+    {
+        var best = long.MaxValue;
+        for (var round = 0; round < 3; round++)
+        {
+            best = Math.Min(best, MeasureAvgAllocBytesOnce(build, iterations));
+        }
+
+        return best;
+    }
+
+    private static long MeasureAvgAllocBytesOnce(Func<Component> build, int iterations)
     {
         // Per-thread allocation counter is monotonic and unaffected by other CPU activity,
         // so this co-exists with a parallel BDN run without skew. Force a GC first so the

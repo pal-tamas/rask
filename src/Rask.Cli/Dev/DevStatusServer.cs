@@ -34,14 +34,36 @@ internal sealed class DevStatusServer : IDisposable
     {
         _watcher = watcher;
         Port = port;
-        _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+
+        // `localhost`, NOT `127.0.0.1`, and this is a five-second fix rather than a style choice.
+        //
+        // .NET's HttpListener on Unix resolves the MACHINE'S OWN HOSTNAME inside Start() when the
+        // prefix is an IP literal. On any box whose hostname is not in /etc/hosts and not answered by
+        // DNS — which is the default state of a corporate laptop off the VPN — that lookup runs to a
+        // five-second timeout and then throws, every single time. Measured here, four fresh processes:
+        //
+        //     http://127.0.0.1:{port}/   Start = 5031 / 5003 / 5022 / 5003 ms
+        //     http://localhost:{port}/   Start = 16 / 0 / 10 ms
+        //
+        // `localhost` is answered out of /etc/hosts, so it never reaches the resolver. That is five
+        // seconds off EVERY `rask dev` start, and it was also ~65 s of the local test suite.
+        //
+        // Url below must use the same name. A localhost prefix binds the loopback address localhost
+        // resolves to and leaves the other family free, so a client asking for http://127.0.0.1:{port}
+        // against a localhost-bound listener is refused — verified, not assumed.
+        _listener.Prefixes.Add($"http://localhost:{port}/");
     }
 
     /// <summary>The port it is listening on.</summary>
     public int Port { get; }
 
     /// <summary>The URL the browser polls.</summary>
-    public string Url => $"http://127.0.0.1:{Port}/status";
+    /// <remarks>
+    ///     Must name the same host as the prefix above. A listener bound through <c>localhost</c> does
+    ///     not answer <c>127.0.0.1</c> — only one loopback family is claimed — so handing the browser
+    ///     the dotted form would produce a status endpoint that exists and refuses every poll.
+    /// </remarks>
+    public string Url => $"http://localhost:{Port}/status";
 
     /// <summary>
     ///     Starts a status server, or returns <c>null</c> when one could not be bound.
@@ -60,7 +82,12 @@ internal sealed class DevStatusServer : IDisposable
             int port;
             try
             {
-                var probe = new TcpListener(IPAddress.Loopback, 0);
+                // Probe on the family `localhost` will claim, not always IPv4. Where IPv6 is up,
+                // localhost resolves to ::1 first and the listener takes that; a port picked because
+                // 127.0.0.1 had it free says nothing about whether ::1 does, so the probe would hand
+                // back a busy port and Start would throw for a reason the retry below cannot explain.
+                var probe = new TcpListener(
+                    Socket.OSSupportsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, 0);
                 probe.Start();
                 port = ((IPEndPoint)probe.LocalEndpoint).Port;
                 probe.Stop();

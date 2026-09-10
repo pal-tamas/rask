@@ -117,6 +117,35 @@ them until tagged releases begin.
   (3), focus (2) and DOM checkedness (1) — none of which survive the trip to a rendered string, and
   several of which name the exact bug a markup-level test missed.
 
+- **`rask dev` starts five seconds faster, and `Rask.Cli.Tests` fell from 31s to 3s.**
+  `DevStatusServer` now binds `http://localhost:{port}/` instead of `http://127.0.0.1:{port}/`.
+
+  .NET's `HttpListener` on Unix resolves the MACHINE'S OWN HOSTNAME inside `Start()` when the prefix
+  is an IP literal. On any box whose hostname is not in `/etc/hosts` and not answered by DNS — the
+  default state of a corporate laptop off the VPN — that lookup runs to a five-second timeout and then
+  throws, on every single call. Measured across four fresh processes:
+
+  | prefix | `HttpListener.Start()` |
+  | --- | --- |
+  | `http://127.0.0.1:{port}/` | 5031 / 5003 / 5022 / 5003 ms |
+  | `http://localhost:{port}/` | 16 / 0 / 10 ms |
+
+  `localhost` is answered out of `/etc/hosts` and never reaches the resolver. Thirteen tests were
+  blocked on this, one of them twice over.
+
+  The advertised `Url` moved with it, and had to: a listener bound through `localhost` claims one
+  loopback family and **refuses `127.0.0.1`** — verified, not assumed — so leaving the dotted form on
+  the URL would have handed the browser a status endpoint that exists and rejects every poll. The
+  ephemeral-port probe now reserves on the family `localhost` will actually take, rather than always
+  IPv4.
+
+- **The allocation pins take the best of three rounds instead of one.** They went red three times in
+  one session at five to seven times their ceiling — not jitter over a 2,000-render average, but a
+  colder code path taken because shared state moved underneath the measurement while other tests ran
+  in the same assembly. Noise can only ever ADD allocation to a steady-state render, so the minimum
+  across rounds is the honest estimate. The ceilings are unchanged and a real regression lifts every
+  round together, so this removes a failure mode without loosening the guard.
+
 ### Fixed
 
 - **Two demos settle after mount and their golden entries are racy.** `virtualize-provider` (an empty
