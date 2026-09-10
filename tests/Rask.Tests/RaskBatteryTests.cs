@@ -11,6 +11,59 @@ using Rask.Outbox;
 namespace Rask.Tests;
 
 /// <summary>
+///     The account type this app declares. Rask ships none — a generator finds the one
+///     <see cref="Microsoft.AspNetCore.Identity.IdentityUser" /> in the project and wires Identity to it
+///     — so a test app that asserts "auth is on by default" has to be an app that has one, the same way
+///     a scaffolded app does.
+/// </summary>
+public sealed class TestUser : Microsoft.AspNetCore.Identity.IdentityUser;
+
+/// <summary>Collects log messages so a test can assert on what the host said at startup.</summary>
+internal sealed class CapturingLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider
+{
+    private readonly List<string> _messages = [];
+
+    public IReadOnlyList<string> Messages
+    {
+        get
+        {
+            lock (_messages)
+            {
+                return _messages.ToArray();
+            }
+        }
+    }
+
+    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => new Sink(_messages);
+
+    public void Dispose()
+    {
+    }
+
+    private sealed class Sink(List<string> messages) : Microsoft.Extensions.Logging.ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel,
+            Microsoft.Extensions.Logging.EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            var line = formatter(state, exception);
+            lock (messages)
+            {
+                messages.Add(line);
+            }
+        }
+    }
+}
+
+/// <summary>
 ///     Every battery the <c>Rask</c> package brings is on; <c>Program.cs</c> is where one is turned off.
 /// </summary>
 /// <remarks>
@@ -98,6 +151,45 @@ public sealed class RaskBatteryTests
     }
 
     [Fact]
+    public void An_app_with_no_account_type_is_told_that_auth_is_not_wired()
+    {
+        // The one battery that cannot switch itself on: Rask ships no user class, so an app declaring
+        // none leaves Identity nothing to close over. Silence would read exactly like a working auth
+        // battery right up until the first sign-in, so the host says it at startup.
+        //
+        // AuthUser is process-wide and this assembly declares TestUser, so the "no account type" state
+        // has to be arranged rather than found — which is also the only way to test it without a second
+        // test assembly that deliberately has no user.
+        var declared = AuthUser.Type;
+        AuthUser.Reset();
+
+        try
+        {
+            var logs = new CapturingLoggerProvider();
+            var app = RaskApp.Create([], b =>
+            {
+                b.WebHost.UseSetting("urls", "http://127.0.0.1:0");
+                b.Logging.Services.AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider>(logs);
+            });
+
+            app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+            app.Build<TestApp>();
+
+            Assert.Contains(logs.Messages, m => m.Contains("declares no account type", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (declared is not null)
+            {
+                // Put it back for whatever runs next in this process.
+                typeof(AuthUser).GetMethod(nameof(AuthUser.Use))!
+                    .MakeGenericMethod(declared)
+                    .Invoke(null, null);
+            }
+        }
+    }
+
+    [Fact]
     public void Turning_auth_off_takes_the_flows_with_it()
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
@@ -138,14 +230,32 @@ public sealed class RaskBatteryTests
     }
 
     [Fact]
-    public void An_app_with_no_DbContext_gets_no_database_batteries_and_still_starts()
+    public void An_app_with_no_DbContext_of_its_own_gets_Rask_s_and_the_database_batteries_with_it()
     {
-        // Nothing is guessed at and nothing throws: an app that registered no context simply has no
-        // pillars, and the rest of it runs.
+        // The contract this replaces was "no context, no pillars". It changed deliberately: an app now
+        // declares entities and nothing else, and RaskAppDbContext maps them — so there is always a
+        // database to hang the pillars on, and no app is silently missing its jobs and outbox because it
+        // never wrote a context class. Turning the database off is still how an app has none, which
+        // Turning_the_database_off_takes_its_dependents_with_it pins.
         var workers = Workers(withDatabase: false);
 
-        Assert.DoesNotContain(Jobs, workers);
-        Assert.DoesNotContain(Outbox, workers);
+        Assert.Contains(Jobs, workers);
+        Assert.Contains(Outbox, workers);
+    }
+
+    [Fact]
+    public void The_app_s_own_DbContext_still_wins_over_Rask_s()
+    {
+        // Registering a context is the whole of opting out: the default is never constructed, and the
+        // pillars bind to the app's type. Otherwise an app that outgrew the default would quietly end up
+        // with two databases and its jobs running against the empty one.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
+        var built = app.Build<TestApp>();
+
+        Assert.NotNull(built.Services.GetService<IDbContextFactory<TestDbContext>>());
+        Assert.Null(built.Services.GetService<IDbContextFactory<RaskAppDbContext>>());
     }
 
     [Fact]

@@ -124,7 +124,7 @@ public sealed class FirstUserIsAdminTests
         var results = await Task.WhenAll(Enumerable.Range(0, racers).Select(i => Task.Run(async () =>
         {
             using var scope = harness.NewScope();
-            var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+            var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
 
             // Line every racer up so they hit the claim at the same moment.
             gate.SignalAndWait();
@@ -155,7 +155,7 @@ public sealed class FirstUserIsAdminTests
         AuthHarness harness, string email, string? token = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         var outcome = await accounts.RegisterAsync(email, Password, token);
         return outcome.Result;
     }

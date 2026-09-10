@@ -59,6 +59,7 @@ Rask.Auth.AuthOptions.SlidingExpiration.get -> bool
 Rask.Auth.AuthOptions.SlidingExpiration.set -> void
 Rask.Auth.AuthOptions.TokenLifetime.get -> System.TimeSpan
 Rask.Auth.AuthOptions.TokenLifetime.set -> void
+Rask.Auth.AuthUser
 Rask.Auth.FirstRunToken
 Rask.Auth.FirstRunToken.FirstRunToken() -> void
 Rask.Auth.FirstRunToken.IsPending.get -> bool
@@ -133,10 +134,6 @@ Rask.Auth.RaskAuthDefaults
 Rask.Auth.RaskAuthEndpointExtensions
 Rask.Auth.RaskAuthServiceCollectionExtensions
 Rask.Auth.RaskRoles
-Rask.Auth.RaskUser
-Rask.Auth.RaskUser.CreatedUtc.get -> System.DateTime
-Rask.Auth.RaskUser.CreatedUtc.set -> void
-Rask.Auth.RaskUser.RaskUser() -> void
 RaskBuilderSettersRask_Auth
 RaskEntriesRask_Auth
 abstract Rask.Auth.Pages.AuthPage.Content.get -> Rask.Core.Component?
@@ -148,6 +145,10 @@ override Rask.Auth.Pages.AuthPage.HeadAssets.get -> Rask.Core.Component?
 override sealed Rask.Auth.Pages.AuthPage.Render() -> Rask.Core.Component?
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth<TUser>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Auth.AuthUser.Exists.get -> bool
+static Rask.Auth.AuthUser.Reset() -> void
+static Rask.Auth.AuthUser.Type.get -> System.Type?
+static Rask.Auth.AuthUser.Use<TUser>() -> void
 static Rask.Auth.Pages.AuthPage.Field(string! id, string! label, Rask.Core.Component! input) -> Rask.Core.Component!
 static Rask.Auth.Pages.Routes.ConfirmEmailPage(string? UserId = null, string? Token = null) -> Rask.Core.Routing.RouteUrl
 static Rask.Auth.Pages.Routes.ForgotPasswordPage() -> Rask.Core.Routing.RouteUrl

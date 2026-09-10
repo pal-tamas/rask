@@ -75,14 +75,7 @@ public sealed class KitStylesheetResolutionTests
 
     private static string ReadTargets()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-        {
-            dir = dir.Parent;
-        }
-
-        Assert.NotNull(dir);
-        var path = Path.Combine(dir!.FullName, "src", "Rask.Ui", "build", "Rask.Ui.targets");
+        var path = Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "build", "Rask.Ui.targets");
         Assert.True(File.Exists(path), $"the kit's targets moved: {path}");
 
         // Comments stripped, because the file DOCUMENTS the old literal path as the bug it was — and a

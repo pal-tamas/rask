@@ -23,7 +23,7 @@ what's new.
 ```csharp
 namespace Shop.Features.Products;
 
-public sealed class Product : Entity<Guid>
+public sealed class Product : Model<Guid>
 {
     private Product() { } // EF Core materialization
 
@@ -52,8 +52,21 @@ public sealed class Product : Entity<Guid>
 }
 ```
 
-`Entity<Guid>` comes from [Rask.Data](../data.md). It supplies the `Id` and the audit fields
-(`CreatedAt`/`UpdatedAt`) that the interceptors fill in for you.
+`Model<Guid>` comes from [Rask.Data](../data.md). It supplies the `Id`, and mapping the class needs
+nothing else — no `DbSet` property, no configuration class, no registration.
+
+Audit stamps are opt-in, and opting in costs nothing in the class: add `ITimestamped` and the
+`CreatedAt`/`UpdatedAt` columns exist and are filled in for you, without appearing on the type.
+
+```csharp
+// stamped on every write, with nothing added to the class
+public sealed class Product : Model<Guid>, ITimestamped
+{
+    public string Name { get; private set; } = "";
+}
+```
+
+Declare `public DateTime CreatedAt { get; private set; }` only when a screen needs to show it.
 
 ## 2. The form model
 

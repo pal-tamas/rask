@@ -51,6 +51,43 @@ public sealed class ServerBatteryScaffoldTests
     [InlineData("data")]
     [InlineData("jobs")]
     [InlineData("cache")]
+    public void Every_app_with_a_database_gets_a_User_of_its_own(string flag)
+    {
+        // Rask ships no user type. A generator wires Identity to whichever IdentityUser subclass the app
+        // declares, so the app has to declare one — and retrofitting it later is a migration plus a
+        // change to every UserManager<> in the app, which is why it is here from the first commit.
+        var files = Generate(flag);
+
+        var user = files["Features/Shared/User.cs"];
+        Assert.Contains("public class User : IdentityUser", user, StringComparison.Ordinal);
+        Assert.Contains("using Microsoft.AspNetCore.Identity;", user, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("data")]
+    [InlineData("jobs")]
+    public void The_conventions_are_applied_after_every_battery_maps_its_tables(string flag)
+    {
+        // The ordering the template's own comment always described and the template did not do: the
+        // battery maps were appended AFTER ApplyRaskConventions, so anything they mapped missed the
+        // audit stamps, the soft-delete filter and the concurrency token. Harmless while no battery
+        // entity carried a marker — and silently wrong the moment a User declares ITimestamped.
+        var context = Generate(flag)["Features/Shared/AppDbContext.cs"];
+
+        var conventions = context.IndexOf("ApplyRaskConventions()", StringComparison.Ordinal);
+        var accounts = context.IndexOf("AddRaskAuth()", StringComparison.Ordinal);
+
+        Assert.True(conventions >= 0, "the context should apply the Rask conventions");
+        Assert.True(accounts >= 0, "the context should map the account tables");
+        Assert.True(
+            accounts < conventions,
+            "ApplyRaskConventions must come last, or the tables mapped after it miss the conventions");
+    }
+
+    [Theory]
+    [InlineData("data")]
+    [InlineData("jobs")]
+    [InlineData("cache")]
     public void Every_app_with_a_database_maps_the_account_tables(string flag)
     {
         // Not conditional on any flag, unlike the pillars above. The auth battery is ON by default in
