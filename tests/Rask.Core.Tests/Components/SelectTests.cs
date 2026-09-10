@@ -348,6 +348,87 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         Assert.Equal("red", model.Color);
     }
 
+    [Fact]
+    public async Task BoundMultiSelect_StatedTypeArgument_OverAList_AssignsAList()
+    {
+        // The type argument is STATED here, not inferred, so it is `ICollection<string>` while the
+        // property is `List<string>`. That divergence used to reach the "satisfied by an array" branch
+        // and assign a string[] to a List<string> property, which threw ArgumentException from inside
+        // the change handler -- so it arrived as a failed frame rather than at the call site.
+        var model = new ListTagsModel();
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind<ICollection<string>>(() => model.Tags).Multiple(true)[
+                Option.Value("a"), Option.Value("b"), Option.Value("c")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\",\"c\"]}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(["a", "c"], model.Tags);
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_StatedTypeArgument_OverASet_AssignsASet()
+    {
+        var model = new SetTagsModel();
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind<ICollection<string>>(() => model.Tags).Multiple(true)[
+                Option.Value("a"), Option.Value("b"), Option.Value("c")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"b\",\"values\":[\"b\",\"c\"]}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(["b", "c"], model.Tags.OrderBy(t => t, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_StatedTypeArgument_OverAnArray_AssignsAnArray()
+    {
+        // The declared type decides, in both directions: an array property still gets an array.
+        var model = new TagsModel { Tags = [] };
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind<IEnumerable<string>>(() => model.Tags).Multiple(true)[
+                Option.Value("a"), Option.Value("b")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\",\"b\"]}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(["a", "b"], model.Tags);
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_AnInterfaceProperty_GetsACollectionThatCanStillGrow()
+    {
+        // An array satisfies ICollection<string>, so assigning one never threw here -- it just left the
+        // model holding a FIXED-SIZE collection, and the next Add threw somewhere else entirely. A list
+        // satisfies the same property and stays growable.
+        var model = new InterfaceTagsModel();
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\"]}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(["a"], model.Tags);
+        model.Tags.Add("b");
+        Assert.Equal(["a", "b"], model.Tags);
+    }
+
     private sealed class ColorPicker
     {
         public string? Color { get; set; }
@@ -361,6 +442,21 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     private sealed class OwnedTagsModel
     {
         public List<string> Tags { get; } = [];
+    }
+
+    private sealed class ListTagsModel
+    {
+        public List<string> Tags { get; set; } = [];
+    }
+
+    private sealed class SetTagsModel
+    {
+        public HashSet<string> Tags { get; set; } = [];
+    }
+
+    private sealed class InterfaceTagsModel
+    {
+        public ICollection<string> Tags { get; set; } = new List<string>();
     }
 
     private sealed class ChoiceModel

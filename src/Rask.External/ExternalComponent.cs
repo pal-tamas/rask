@@ -66,6 +66,24 @@ public abstract partial class ExternalComponent : Component
     /// <summary>The name the client runtime resolves a module by. Generated from the type name.</summary>
     protected abstract string ComponentName { get; }
 
+    /// <summary>
+    ///     The manifest that resolves <see cref="ComponentName" /> to a chunk, or <c>null</c> for the
+    ///     app's own.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Virtual with a null default rather than abstract, so an island in an APP -- every island
+    ///         there has ever been -- generates nothing and writes no attribute. It is only a class
+    ///         library that needs it: a library's static web assets are served under
+    ///         <c>_content/&lt;PackageId&gt;/</c>, so its bundle and manifest sit somewhere the client
+    ///         cannot guess from the island's name.
+    ///     </para>
+    ///     <para>
+    ///         Generated from <c>RaskExternalPublicBase</c>, which the build defaults per project kind.
+    ///     </para>
+    /// </remarks>
+    protected virtual string? ManifestUrl => null;
+
     /// <summary>The host element a front-end framework mounts into.</summary>
     protected sealed override string? TagName => ExternalDefaults.HostTag;
 
@@ -129,6 +147,14 @@ public abstract partial class ExternalComponent : Component
         AppendAttr(sb, ExternalDefaults.NameAttribute, ComponentName);
         AppendAttr(sb, ExternalDefaults.ModuleAttribute, Module);
         AppendAttr(sb, ExternalDefaults.RuntimeAttribute, Runtime);
+
+        // Only when it is not the app's own: the client already assumes that one, so writing it would
+        // put the same string on every island on the page for no reader's benefit.
+        if (ManifestUrl is { Length: > 0 } manifest
+            && !string.Equals(manifest, ExternalDefaults.DefaultManifestUrl, StringComparison.Ordinal))
+        {
+            AppendAttr(sb, ExternalDefaults.ManifestAttribute, manifest);
+        }
 
         if (Hydration is { } declared && ExternalDefaults.Wire(declared) is { } hydrate)
         {

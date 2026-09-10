@@ -122,7 +122,8 @@ internal static class PrerenderShell
         builder.Append(MergeHtmlAttributes(shell[..shellHead.InnerStart], document));
         builder.Append(HasTitle(documentHeadInner) ? RemoveTitle(shellHeadInner) : shellHeadInner);
         builder.Append(StripShellOwnedTags(documentHeadInner));
-        builder.Append(shell, shellHead.InnerEnd, shellBody.InnerStart - shellHead.InnerEnd);
+        AppendBetweenHeadAndBody(
+            builder, shell.AsSpan(shellHead.InnerEnd, shellBody.InnerStart - shellHead.InnerEnd));
 
         // --- the rendered body, then the shell's own scripts ---
         // The shell's body is a boot placeholder plus the script that boots the bundle. The placeholder
@@ -134,6 +135,60 @@ internal static class PrerenderShell
         builder.Append(shell, shellBody.InnerEnd, shell.Length - shellBody.InnerEnd);
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    ///     Emits the shell's <c>&lt;/head&gt; … &lt;body …&gt;</c> region with the whitespace
+    ///     <em>between</em> those two tags removed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The SDK pretty-prints <c>index.html</c>, so this region reads
+    ///         <c>&lt;/head&gt;\n&lt;body …&gt;</c>. That newline is not inert. Per the HTML parser's
+    ///         <em>after head</em> insertion mode it is inserted into the <c>&lt;html&gt;</c> element,
+    ///         so the served document's <c>&lt;html&gt;</c> has children <c>[HEAD, #text, BODY]</c>
+    ///         while a runtime full-frame payload — <c>HtmlSerializer</c> emits no newlines at all —
+    ///         parses to <c>[HEAD, BODY]</c>.
+    ///     </para>
+    ///     <para>
+    ///         The morph pairs those children positionally, so <c>#text</c> met <c>BODY</c>, their node
+    ///         names differed, and the body was <b>replaced</b> rather than morphed. A freshly created
+    ///         <c>&lt;body&gt;</c> has no resolved style yet, so hydration painted one completely
+    ///         unstyled frame.
+    ///     </para>
+    ///     <para>
+    ///         <c>rask-morph.ts</c> now ignores formatting whitespace when pairing the children of
+    ///         <c>&lt;html&gt;</c> and <c>&lt;head&gt;</c>, and that is the real fix — it holds whatever
+    ///         the shell happens to look like. This keeps the published bytes and the payload agreeing
+    ///         at the source too, so the two never have to disagree in the first place.
+    ///     </para>
+    /// </remarks>
+    private static void AppendBetweenHeadAndBody(StringBuilder builder, ReadOnlySpan<char> span)
+    {
+        for (var i = 0; i < span.Length; i++)
+        {
+            if (!char.IsWhiteSpace(span[i]))
+            {
+                builder.Append(span[i]);
+                continue;
+            }
+
+            var run = i;
+            while (run < span.Length && char.IsWhiteSpace(span[run]))
+            {
+                run++;
+            }
+
+            // Whitespace wedged between two tags is formatting. Anything else -- and there should be
+            // nothing else in this region -- is content, and is carried over untouched.
+            var betweenTags = i > 0 && span[i - 1] == '>' && run < span.Length && span[run] == '<';
+            if (!betweenTags)
+            {
+                builder.Append(span[i..run]);
+            }
+
+            i = run - 1;
+        }
     }
 
     /// <summary>

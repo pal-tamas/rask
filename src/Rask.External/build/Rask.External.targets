@@ -23,6 +23,32 @@
 
   <PropertyGroup>
     <!--
+      A class library's islands publish under its own content base, not the app's (#939).
+
+      The SDK serves a Razor class library's static web assets from `_content/<PackageId>/`, so a
+      library-built bundle and its manifest land there — while the client, which assumed the app's
+      `/_rask/external/`, looked somewhere else entirely. The manifest URL derived here travels to the
+      island component as a generated `ManifestUrl` and from there onto each host element, so one page
+      can carry islands from the app AND from any number of libraries at once.
+
+      Decided HERE rather than beside the app default in the .props, because that file is imported
+      before OutputType is set and cannot tell an app from a library. Applied only when the author did
+      not name a base themselves.
+    -->
+    <_RaskExternalContentBase Condition="'$(_RaskExternalContentBase)' == ''">$(PackageId)</_RaskExternalContentBase>
+    <_RaskExternalContentBase Condition="'$(_RaskExternalContentBase)' == ''">$(AssemblyName)</_RaskExternalContentBase>
+    <RaskExternalPublicBase Condition="'$(_RaskExternalPublicBaseIsDefault)' == 'true' AND '$(OutputType)' == 'Library'">/_content/$(_RaskExternalContentBase)/_rask/external/</RaskExternalPublicBase>
+
+    <!-- What the client fetches. Handed to the generator, which writes it onto the component. -->
+    <RaskExternalManifestUrl Condition="'$(RaskExternalManifestUrl)' == ''">$(RaskExternalPublicBase)manifest.json</RaskExternalManifestUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskExternalManifestUrl"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!--
       ABSOLUTE, deliberately. IntermediateOutputPath is relative to the project, and these paths are
       written into generated JavaScript as import specifiers — where a relative path with no leading
       './' is not a relative path at all but a BARE specifier, which the bundler resolves against

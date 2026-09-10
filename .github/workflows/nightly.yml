@@ -32,43 +32,11 @@ jobs:
       - name: Restore
         run: dotnet restore Rask.slnx
 
+      # ONE pack, for the whole solution -- see release.yml for why the hand-written list went.
+      # Keeping the two in step by hand is what let 16 projects reach nightly and never reach a stable
+      # release (#1044); neither has a list now, so neither can drift from the other.
       - name: Pack (prerelease)
-        run: |
-          dotnet pack src/Rask/Rask.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Server/Rask.Server.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Meta.Hosting/Rask.Meta.Hosting.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Blazor/Rask.Blazor.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.External/Rask.External.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Wire/Rask.Wire.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Api/Rask.Api.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Api.Client/Rask.Api.Client.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Query/Rask.Query.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Cqrs.Server/Rask.Cqrs.Server.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Signaling/Rask.Signaling.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.SQLite/Rask.SQLite.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Data/Rask.Data.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Outbox/Rask.Outbox.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Auth/Rask.Auth.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Auth.Client/Rask.Auth.Client.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Cache/Rask.Cache.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Logging/Rask.Logging.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Ui/Rask.Ui.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Cli/Rask.Cli.csproj -c Release -o ./artifacts
+        run: dotnet pack Rask.slnx -c Release -o ./artifacts
 
       - name: Push prerelease to nuget.org
         run: >-

@@ -131,10 +131,20 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         // Driven straight off the compilation rather than a cached model, matching CqrsCodecGenerator:
         // the walk produces symbols, and symbols must not be held across an incremental-pipeline
         // boundary. Everything happens inside the output callback, so nothing outlives its compilation.
-        context.RegisterSourceOutput(context.CompilationProvider, static (spc, compilation) => Execute(spc, compilation));
+        // The manifest URL comes from the build (RaskExternalPublicBase, which the targets default per
+        // project kind), because only MSBuild knows whether this project is an app or a class library
+        // -- and a library's static web assets are served from somewhere the client cannot guess.
+        var manifest = context.AnalyzerConfigOptionsProvider.Select(static (provider, _) =>
+            provider.GlobalOptions.TryGetValue("build_property.RaskExternalManifestUrl", out var url)
+                ? url
+                : null);
+
+        context.RegisterSourceOutput(
+            context.CompilationProvider.Combine(manifest),
+            static (spc, pair) => Execute(spc, pair.Left, pair.Right));
     }
 
-    private static void Execute(SourceProductionContext spc, Compilation compilation)
+    private static void Execute(SourceProductionContext spc, Compilation compilation, string? manifestUrl)
     {
         // Resolved one at a time and kept only if present, rather than required all-or-nothing. An
         // older Rask.External that predates a runtime would return null for it, and a combined guard
@@ -206,10 +216,18 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             islands.Add(model);
         }
 
+        // Only carried when it is not the app's default -- the client already assumes that one, so
+        // stamping it on every island in every app would be noise on the wire and in the markup.
+        var libraryManifest =
+            manifestUrl is { Length: > 0 }
+            && !string.Equals(manifestUrl, "/_rask/external/manifest.json", StringComparison.Ordinal)
+                ? manifestUrl
+                : null;
+
         foreach (var island in islands)
         {
             spc.AddSource($"{island.Fqn.Replace("global::", string.Empty)}.External.g.cs",
-                SourceText.From(Emit(island), Encoding.UTF8));
+                SourceText.From(Emit(island, libraryManifest), Encoding.UTF8));
         }
 
         if (islands.Count > 0)
@@ -653,7 +671,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     }
 
 
-    private static string Emit(ComponentModel island)
+    private static string Emit(ComponentModel island, string? manifestUrl)
     {
         var emitter = new PropsWriterEmitter();
         var body = new StringBuilder();
@@ -730,6 +748,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         sb.AppendLine("    /// <summary>The name the client runtime resolves this component's module by.</summary>");
         sb.AppendLine($"    protected override string ComponentName => \"{island.Name}\";");
         sb.AppendLine();
+
+        // Only when it is not the app's own. An island in an app -- the overwhelmingly common case --
+        // generates nothing here, and the base class's null means the host element carries no attribute
+        // and the client uses its default.
+        if (manifestUrl is { Length: > 0 })
+        {
+            sb.AppendLine("    /// <summary>The manifest that resolves this island, when it is not the app's own.</summary>");
+            sb.AppendLine($"    protected override string? ManifestUrl => \"{manifestUrl}\";");
+            sb.AppendLine();
+        }
 
         if (!island.DeclaresModule)
         {
@@ -866,6 +894,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
         /// <summary>Whether the author wrote their own <c>Module</c>, so the generator must not.</summary>
         public bool DeclaresModule { get; set; }
+
+        /// <summary>
+        ///     The manifest this island resolves through, or null for the app's own.
+        /// </summary>
+        /// <remarks>
+        ///     Set from the build rather than discovered from the symbol: whether a project is an app or
+        ///     a class library is an MSBuild fact, and a library's static web assets are served under
+        ///     <c>_content/&lt;PackageId&gt;/</c> where the client cannot guess them.
+        /// </remarks>
+        public string? ManifestUrl { get; set; }
 
         public List<IslandProp> Props { get; } = new();
         public List<IslandHandler> Handlers { get; } = new();

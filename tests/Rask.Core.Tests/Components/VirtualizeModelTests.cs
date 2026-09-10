@@ -88,6 +88,95 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void ItemsProvider_InitialTotalCount_DrawsAFullPlaceholderWindowOnTheFirstRender()
+    {
+        // Without an estimate the first render has no total, so there is no window and the caller draws
+        // NOTHING -- an empty box that pops into a full list when the fetch resolves. That is a layout
+        // shift on every load, and on a prerendered page it makes the markup's very shape depend on when
+        // it was sampled (#1046).
+        //
+        // The provider here never completes, so this pins what the FIRST render alone produces.
+        VirtualizationContext<string>? captured = null;
+        var view = new StubComponent(() => Virtualize.Items<string>(
+            ctx =>
+            {
+                captured = ctx;
+                return Div;
+            },
+            ItemsProvider: _ => new ValueTask<ItemsProviderResult<string>>(
+                new TaskCompletionSource<ItemsProviderResult<string>>().Task),
+            ItemSize: 20,
+            OverscanCount: 2,
+            InitialClientHeight: 100,
+            InitialTotalCount: 50));
+
+        view.RenderAsLiveRoot();
+
+        Assert.NotNull(captured);
+        Assert.Equal(50, captured!.TotalCount);
+
+        // A full window, every row a placeholder -- so a body already written to render a pending row
+        // needs no new branch.
+        Assert.NotEmpty(captured.VisibleItems);
+        Assert.All(captured.VisibleItems, v => Assert.True(v.IsPlaceholder));
+
+        // ceil((0 + 100) / 20) + 2 overscan, from index 0.
+        Assert.Equal(7, captured.VisibleItems.Count);
+        Assert.Equal(0, captured.OffsetBefore);
+        Assert.Equal((50 - 7) * 20, captured.OffsetAfter);
+    }
+
+    [Fact]
+    public void ItemsProvider_InitialTotalCount_IsReplacedByTheRealTotalOnceTheProviderAnswers()
+    {
+        // The estimate is only ever a stand-in for the first paint. A provider that reports a different
+        // total wins immediately -- otherwise a wrong guess would be a permanent lie about the scrollbar.
+        VirtualizationContext<string>? captured = null;
+        var view = new StubComponent(() => Virtualize.Items<string>(
+            ctx =>
+            {
+                captured = ctx;
+                return Div;
+            },
+            ItemsProvider: req => new ValueTask<ItemsProviderResult<string>>(
+                new ItemsProviderResult<string>(
+                    Enumerable.Range(req.StartIndex, req.Count).Select(i => $"row-{i}").ToList(), 12)),
+            ItemSize: 20,
+            OverscanCount: 2,
+            InitialClientHeight: 100,
+            InitialTotalCount: 500));
+
+        view.RenderAsLiveRoot();
+        Assert.Equal(500, captured!.TotalCount);   // the estimate, on the first paint
+
+        view.RenderAsLiveRoot();
+        Assert.Equal(12, captured.TotalCount);     // the truth, as soon as it exists
+    }
+
+    [Fact]
+    public void InitialTotalCount_IsIgnoredWhenItemsAreSuppliedDirectly()
+    {
+        // Items are counted, never estimated. An estimate that could override them would be a way to
+        // render a window over rows that do not exist.
+        VirtualizationContext<string>? captured = null;
+        var view = new StubComponent(() => Virtualize.Items(
+            ctx =>
+            {
+                captured = ctx;
+                return Div;
+            },
+            Items: new[] { "a", "b", "c" },
+            ItemSize: 20,
+            OverscanCount: 0,
+            InitialClientHeight: 100,
+            InitialTotalCount: 999));
+
+        view.RenderAsLiveRoot();
+
+        Assert.Equal(3, captured!.TotalCount);
+    }
+
+    [Fact]
     public void ItemsProvider_FirstRender_NoItems_SecondRender_LoadedFromCache()
     {
         // Synchronously-completing provider so cache fills inside the first Render(); the

@@ -10,13 +10,27 @@
 // instead of letting it land as an attribute nobody reads.
 
 const HOST_TAG = "RASK-EXTERNAL";
-const MANIFEST_URL = "/_rask/external/manifest.json";
+
+/**
+ * Where an app's own islands publish their manifest. Used when a host element names no other one,
+ * which is every island owned by the app being served.
+ */
+const DEFAULT_MANIFEST_URL = "/_rask/external/manifest.json";
 
 /** element -> {adapter, handle, fns, name} for everything currently mounted. */
 const mounted = new WeakMap();
 
-/** Cached manifest fetch. One request per page however many islands are on it. */
-let manifest = null;
+/**
+ * Manifest URL -> Promise of its table. One request per manifest per page, however many islands
+ * resolve through it.
+ *
+ * Keyed rather than a single cached promise, because a page can legitimately have MORE THAN ONE
+ * manifest. A class library that owns islands publishes its bundle under its own
+ * `_content/<PackageId>/` base, so its manifest is a different document from the app's -- and both
+ * can be on screen at once. A single cached fetch made the first manifest to load the only one that
+ * existed, and every island from the other library failed to resolve.
+ */
+const manifests = new Map();
 
 /** Cached @vite/client import. One per page, and only under `rask dev`. */
 let hmrClient = null;
@@ -71,9 +85,15 @@ function resolver() {
     return (globalThis.__raskExternal && globalThis.__raskExternal.resolve) || defaultResolve;
 }
 
-async function defaultResolve(name) {
-    manifest ??= fetch(MANIFEST_URL, {credentials: "same-origin"})
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`islands manifest: HTTP ${r.status}`))));
+async function defaultResolve(name, _module, manifestUrl) {
+    const url = manifestUrl || DEFAULT_MANIFEST_URL;
+
+    if (!manifests.has(url)) {
+        manifests.set(url, fetch(url, {credentials: "same-origin"})
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`islands manifest: HTTP ${r.status}`)))));
+    }
+
+    const manifest = manifests.get(url);
 
     // ONE resolution path in dev and in production. The manifest is the only thing that differs: under
     // `rask dev` the build writes absolute dev-server URLs into it instead of hashed chunk paths, so
@@ -84,14 +104,16 @@ async function defaultResolve(name) {
     }
 
     const table = await manifest;
-    const url = table[name];
-    if (!url) {
+    const chunk = table[name];
+    if (!chunk) {
         throw new Error(
-            `Rask islands: '${name}' is not in the manifest. The build writes one entry per island; ` +
-            "a missing one usually means the front-end file was added without a rebuild.");
+            `Rask islands: '${name}' is not in the manifest at ${url}. The build writes one entry per ` +
+            "island; a missing one usually means the front-end file was added without a rebuild, or " +
+            "that the island is owned by a library whose manifest attribute did not reach the host " +
+            "element.");
     }
 
-    return import(/* @vite-ignore */ url);
+    return import(/* @vite-ignore */ chunk);
 }
 
 /** The dispatch channel the host runtime published. Absent until the runtime has booted. */
@@ -208,7 +230,8 @@ async function hydrate(element) {
     let cancel = () => {};
     const start = async () => {
         try {
-            const module = await resolver()(name, element.getAttribute("module"));
+            const module = await resolver()(
+                name, element.getAttribute("module"), element.getAttribute("manifest"));
             const adapter = module.default ?? module.adapter;
             if (!adapter || typeof adapter.mount !== "function") {
                 throw new Error(

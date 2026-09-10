@@ -185,7 +185,159 @@ them until tagged releases begin.
   is the *absence* of a choice — selecting it removes `data-theme` rather than stamping a value daisyUI
   compiled no block for.
 
+### Added
+
+- **An island can be owned by a shared class library.** The library bundles it once and any app that
+  references it just renders the component — where before, the app that served the page was the app
+  that had to bundle it, so two apps showing the same island each built their own copy.
+
+  The build side always worked: a Razor-SDK class library holding `Badge.cs` and `Badge.ts` writes its
+  own `.props.d.ts`, runs the prop type-check, bundles with Vite and registers the chunks as static web
+  assets. Two URLs were wrong, and both were the same mistake. `RaskExternalPublicBase` defaulted to
+  `/_rask/external/` in every project, so a library's manifest pointed every chunk under the *app's*
+  root; and `rask-external.js` fetched that same app-rooted manifest, which the `UseRask` catch-all
+  answers with the page's own HTML (`Unexpected token '<'`, nothing mounted).
+
+  A class library now defaults to `/_content/<PackageId>/_rask/external/`, and each island's host
+  element carries the manifest it resolves through as a `manifest` attribute. An app's own islands
+  write no attribute at all — the client already assumes the app's manifest. Naming it per element is
+  what lets **one page carry islands from the app and from several libraries at once**: "the manifest"
+  is not a single document, and a single cached fetch made the first one to load the only one that
+  could exist. The client caches one fetch per distinct URL.
+
+  The default is chosen in the targets rather than the props, because `OutputType` is the only thing
+  that separates the two cases and it is not set when the props are imported. `StaticWebAssetBasePath`
+  and `StaticWebAssetProjectMode` cannot be used: both are empty at evaluation, and afterwards a
+  browser-WASM app resolves to character-for-character what a class library does.
+
+- **RASK076 warns about a grid column with no field token, in a grid that hides, reorders or groups
+  columns by name.** A `UiDataGrid` addresses a column by the field token it was opened with.
+  `c.Field(...)` always has one; `c.Column()` deliberately has none, which is right for an actions
+  column. The token is also the only name the column chooser, the group panel, `HiddenColumns`,
+  `ColumnOrder` and `Grouped` have — so a token-less column under any of them can be **shown and never
+  hidden, moved or grouped**. Nothing throws and nothing is logged: the menu is simply missing a row,
+  which reads as a bug in the grid rather than in the call site.
+
+  Silence it by giving the column a token, or by saying it is deliberately fixed —
+  `Hideable(false)` / `Reorderable(false)` / `Groupable(false)`, whichever axes the grid turned on. A
+  column chooser drives **both** hiding and reordering (the grid's own `ReorderEnabled` reads
+  `ColumnChooser is true || OrderControlled`), so a column under a chooser needs both of the first two.
+  A grid with none of those features on is not reported.
+
+  This is the successor to the retired RASK034, which said the same thing about `BsDataGrid` — and
+  which **stopped firing when the grid moved to a chain**, with nothing noticing. So this one is proved
+  against the real `UiDataGrid` chain rather than only against a stand-in, and its tests fail the build
+  if the analyzed source stops compiling, since a file with a compile error reports no diagnostics at
+  all and would pass every "is not reported" case for the wrong reason.
+
+- **`Virtualize.Items` takes an `InitialTotalCount`.** The row count to assume before an
+  `ItemsProvider` has reported the real one — the provider-mode sibling of `InitialClientHeight`, and
+  for the same reason: the first render happens before the thing that knows the answer has answered.
+  Without it a provider-backed list renders **no rows at all** until the first fetch resolves, so an
+  empty box pops into a full table: a layout shift on every load, and on a prerendered page, markup
+  whose very shape depends on when it was sampled. The rows it produces are ordinary placeholders, so a
+  body already written to draw a pending row needs no new branch, and the real count replaces the
+  estimate as soon as the provider answers. Ignored in items mode, where the count is never in doubt.
+
 ### Fixed
+
+- **A release publishes every packable project, and proves a scaffolded app can restore.**
+  `Rask.Cli` 0.20.0 shipped and pinned every scaffolded project to 0.20.0 — while `Rask.Query` 0.20.0
+  and `Rask.Auth` 0.20.0, both on the **default** battery set, had never reached nuget.org. So
+  `rask new Shop` from the released CLI could not restore, and the release that caused it looked
+  entirely green: a tag, a GitHub release, and a CLI on nuget.
+
+  The cause was not a throttled or partial push, which is what it looked like. Both `release.yml` and
+  `nightly.yml` carried a **hand-maintained list** of `dotnet pack` steps, one per project. At the
+  `v0.20.0` tag the release list held 24 projects, and **16 packable projects have been added since** —
+  `Rask`, `Rask.Ui`, `Rask.Query`, `Rask.Auth`, `Rask.Auth.Client`, `Rask.Cqrs.Client`,
+  `Rask.Cqrs.Server`, `Rask.Meta.Hosting`, `Rask.Spa.Hosting`, `Rask.Api`, `Rask.Api.Client`,
+  `Rask.Blazor`, `Rask.External`, `Rask.Signaling`, `Rask.Wire`, `Rask.SQLite.Browser`. They were
+  never packed by a *tagged* run, which is exactly why they had nightly prereleases and no stable line.
+
+  Both workflows pack the **solution** now, so there is no list left to go stale: a project carrying
+  `IsPackable=false` is skipped by the SDK and everything else is packed because it exists. Verified to
+  produce exactly the 35 packable projects and no others, and a test fails the build if either workflow
+  starts naming individual projects again — which would read as a tidy-up and would silently restore
+  the failure.
+
+  A release also now runs the user's first command against nuget.org: install the released CLI,
+  `rask new`, and restore with a **cold package cache and nuget.org as the only source**, so a package
+  cached by an earlier build cannot satisfy a reference that nuget.org cannot. It waits out nuget.org's
+  asynchronous indexing rather than racing it, because a gate that flakes for a reason nobody can act
+  on is a gate that gets disabled.
+
+- **The data-grid page no longer tells readers the grid's chain is `GridBuild<T, TKey>`.** That type is
+  gone — the chain receives on the component itself, and the indexer is declared on
+  `UiDataGrid<T, TKey>`. `docs/data-grid.md` already said so; the page did not.
+
+- **Two demos no longer change their markup's *shape* as they settle.** `lifecycle-hooks` appended to a
+  growing hook log, so the row count was a function of how many times it had rendered and of whether a
+  450 ms await had resolved; `virtualize-provider` had no window until its 350 ms fetch returned, so
+  every `<tr>` and `<td>` in it arrived on a timer. Both made their entry in `DemoMarkup.golden.txt` a
+  race against the wall clock — the shape recorded there depended on which side of the settle the
+  snapshot landed on, and nothing reported which.
+
+  The contract that file has always stated is that a demo may change as it settles, but the moving part
+  has to live in **text, an `id` or a `data-*` attribute** — never a tag name or a class, because those
+  cannot be snapshotted by anyone. Both demos now hold to it: the lifecycle probe reserves one row per
+  hook and moves only each row's status text, and the provider demo draws its window at full size from
+  the first paint. `TheDemosThatSettleLate_KeepTheirSkeletonAcrossTheSettle` holds those two to the
+  strict shape — mount, wait past everything they await, re-read — which is stricter than the general
+  per-demo check can be.
+
+  Reading the hooks as a fixed table is also the better demo: the full order is visible before anything
+  has fired, a hook that has not run yet says so rather than being absent, and the counts make it
+  obvious which hooks run once per mount and which run on every render.
+
+  `NoDemoSkeleton_ChangesOnATimer` is deliberately **not** widened to the strict shape. A third demo
+  the old 250 ms window was too short to reveal, `data-http-fetch`, swaps a spinner for an alert when
+  its fetch settles — a real loading→loaded transition, whose alert five cases in `HttpPageTests`
+  assert on. Flattening it would mean rewriting the tests that prove its behaviour.
+
+- **Hydrating a prerendered WASM page no longer paints one unstyled frame.** The published site
+  flickered on `/` and `/docs` as the prerendered document handed over to the runtime: sampled every
+  50 ms through the handover, one frame had a transparent background, UA serif and **13x** the document
+  height. ~19 ms on a warm local static server, and proportionally longer on a cold cache or a slower
+  device, which is where it was actually being noticed.
+
+  The trigger was a single whitespace text node. The SDK pretty-prints `index.html`, so a published
+  page contains `</head>\n<body …>`, and per the HTML parser's *after head* insertion mode that
+  newline is inserted into the `<html>` element. The served document's `<html>` therefore had children
+  `[HEAD, #text, BODY]`, while the runtime's full-frame payload — `HtmlSerializer` emits no newlines at
+  all — parsed to `[HEAD, BODY]`. Neither child is keyed, so the morph paired them positionally:
+  `HEAD` with `HEAD`, then **`#text` with `BODY`**, whose node names differ, so the body was *replaced*
+  with a brand-new element and the old one removed. A freshly created `<body>` has no resolved style
+  yet, so the first paint after the swap was unstyled.
+
+  The morph now drops formatting whitespace from both sides when pairing the children of `<html>` and
+  `<head>` — the containers where such text is never rendered. Deliberately not every element:
+  whitespace between inline elements *is* rendered, so a blanket filter would pair around visible nodes
+  and drop them. `PrerenderShell` additionally emits no whitespace between `</head>` and `<body>`, so
+  the published bytes and the payload agree at the source too; a comment in that region is still
+  carried over untouched.
+
+  The head was never at fault and was ruled out by measurement, along with two other plausible
+  suspects: it stays the same element with its stylesheet `<link>` nodes still connected, the font
+  `<link>` swap causes no reflow, and the theme bootstrap writes no `<html>` attributes when the reader
+  has chosen nothing.
+
+- **A multi-select whose type argument is stated, not inferred, binds again.**
+  `BindingHelpers.TrySetSelection<T>` chose the collection to build from the *type argument* `T`, which
+  is only the property's own type when inference supplied it. State it instead —
+  `Select.Bind<ICollection<string>>(() => model.Tags)` over a `List<string> Tags` — and
+  `ExpressionAccessor.Parse` strips the compiler's `Convert` node, so `T` stays `ICollection<string>`
+  while the property stays `List<string>`. The build then fell through to "everything else is satisfied
+  by an array", which is true of the type argument and false of the property, and
+  `PropertyInfo.SetValue` threw `ArgumentException` from inside the change handler — arriving as a
+  failed frame rather than at the call site.
+
+  The collection is now built from `acc.PropertyType`, the type the setter actually has to accept, the
+  way `UiFormCommit.TryWriteSelection` already did and the way the scalar path (`TrySetTyped`) always
+  has. Two consequences beyond the crash: a property declared `ISet<string>` or `IReadOnlySet<string>`
+  now gets a set rather than an array, and the fallback is a `List<string>` rather than `string[]` — an
+  array satisfies an `IList<string>` property but is fixed-size, so it merely moved the failure to the
+  next `Add`. Every instantiation stays written literally, so the AOT compiler still sees all of them.
 
 - **The 500-writer SQLite stress test no longer flakes in a solution-wide run.** Root-caused in July to
   `SqliteConnection.ClearAllPools()` — process-global, and it disposes the `sqlite3` handle of

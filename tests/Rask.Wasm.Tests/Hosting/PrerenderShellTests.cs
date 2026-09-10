@@ -201,6 +201,56 @@ public class PrerenderShellTests
     }
 
     [Fact]
+    public void NoWhitespaceSurvivesBetweenHeadCloseAndBodyOpen()
+    {
+        // The SDK pretty-prints index.html, so the shell reads `</head>\n<body …>` -- and that newline
+        // is not inert. Per the HTML parser's "after head" insertion mode it is inserted into the
+        // <html> element, so the served document's <html> has children [HEAD, #text, BODY] while the
+        // runtime's full-frame payload -- HtmlSerializer emits no newlines -- parses to [HEAD, BODY].
+        //
+        // The morph pairs those children positionally, so #text met BODY, the node names differed, and
+        // the body was REPLACED rather than morphed. A brand-new <body> has no resolved style yet: the
+        // published site painted one completely unstyled frame on every hydration.
+        //
+        // rask-morph.ts ignores formatting whitespace in <html>/<head> now, which is the fix that holds
+        // whatever a shell looks like. This keeps the two agreeing at the source as well.
+        var merged = PrerenderShell.Merge(Shell, Document);
+
+        var headClose = merged.IndexOf("</head>", StringComparison.Ordinal);
+        Assert.True(headClose >= 0, "the merged document has no </head>");
+
+        var bodyOpen = merged.IndexOf("<body", headClose, StringComparison.Ordinal);
+        Assert.True(bodyOpen >= 0, "the merged document has no <body> after </head>");
+
+        var between = merged[(headClose + "</head>".Length)..bodyOpen];
+        Assert.Equal(string.Empty, between);
+    }
+
+    [Fact]
+    public void ContentBetweenHeadAndBodyIsNotSwallowedWithTheWhitespace()
+    {
+        // Only whitespace wedged BETWEEN TWO TAGS goes. A comment in that region is still part of the
+        // document the author wrote, and dropping it would be a second, unasked-for change -- the kind
+        // that turns a targeted fix into a behaviour nobody can predict from its commit message.
+        const string commentedShell =
+            """
+            <!doctype html>
+            <html lang="en">
+            <head><title>Rask</title></head>
+            <!-- boot shell -->
+            <body data-rask-root>
+            <div class="rask-boot">Loading…</div>
+            </body>
+            </html>
+            """;
+
+        var merged = PrerenderShell.Merge(commentedShell, Document);
+
+        Assert.Contains("<!-- boot shell -->", merged, StringComparison.Ordinal);
+        Assert.Contains("</head><!-- boot shell --><body", merged, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheRenderedMarkupReplacesTheBootPlaceholder()
     {
         var merged = PrerenderShell.Merge(Shell, Document);

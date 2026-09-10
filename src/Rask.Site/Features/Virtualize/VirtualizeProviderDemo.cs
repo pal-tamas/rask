@@ -38,7 +38,17 @@ public sealed partial class VirtualizeProviderDemo : Component
             ItemsProvider: FetchRowsAsync,
             ItemSize: 32,
             OverscanCount: 4,
-            InitialClientHeight: 360);
+            InitialClientHeight: 360,
+            // Without this the provider has reported no total on the first render, so there is no
+            // window and the tbody holds nothing but its two spacer rows -- an empty box that pops
+            // into a full table 350ms later, when the fetch resolves. Every <tr> and <td> in the
+            // window would be a tag that ARRIVES ON A TIMER, which is what makes a markup snapshot of
+            // this demo a race against the wall clock.
+            //
+            // With it the window renders at full size immediately, every row a placeholder showing
+            // "—", and the fetch fills in the TEXT. An estimate is all this needs; the real count
+            // replaces it as soon as the provider answers, and only the spacer heights change.
+            InitialTotalCount: VirtualizeData.Rows.Length);
 
     // tbody = top spacer + visible window + bottom spacer, every child keyed so the whole tbody
     // stays on the trusted keyed-diff path (spacers patch only their height; rows move by index).

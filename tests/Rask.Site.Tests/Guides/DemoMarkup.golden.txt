@@ -2885,12 +2885,25 @@ h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
 ol .divide-ui-line .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
 code .text-sm
+span .ms-2 .text-ui-muted
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
 code .text-sm
+span .ms-2 .text-ui-muted
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
 code .text-sm
+span .ms-2 .text-ui-muted
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
 code .text-sm
+span .ms-2 .text-ui-muted
+li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+code .text-sm
+span .ms-2 .text-ui-muted
+li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+code .text-sm
+span .ms-2 .text-ui-muted
+li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+code .text-sm
+span .ms-2 .text-ui-muted
 
 === localization-formats ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4443,6 +4456,86 @@ th
 th
 tbody
 tr
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
 td
 tr
 td

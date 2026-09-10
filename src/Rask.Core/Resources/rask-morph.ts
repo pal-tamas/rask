@@ -64,6 +64,33 @@ export function isElement(n: Node | null | undefined): n is Element {
 }
 
 /**
+ * True for a text node that is nothing but whitespace.
+ */
+function isFormattingText(n: Node): boolean {
+    return n.nodeType === 3 && !/\S/.test(n.nodeValue || "");
+}
+
+/**
+ * Whether whitespace between this element's children is pure formatting, and so may be ignored when
+ * pairing the two sides of a morph.
+ *
+ * Only <html> and <head>, and deliberately not "any element": whitespace BETWEEN INLINE ELEMENTS is
+ * rendered -- `<p>a <b>b</b> c</p>` -- so a blanket filter would pair around real, visible nodes and
+ * silently drop them. These two are where a document PARSED from HTML meets a payload SERIALIZED by
+ * HtmlSerializer, which is the only place the two sides can disagree about whitespace at all.
+ *
+ * The case that forced this: a prerendered page is served with a newline between `</head>` and
+ * `<body>`, and the parser puts that text node in <html> (the "after head" insertion mode). The live
+ * <html> therefore had [HEAD, #text, BODY] while the runtime's full-frame payload had [HEAD, BODY],
+ * so the positional walk paired #text against BODY, found the names different, and REPLACED the body
+ * with a brand-new element. A fresh <body> has no resolved style yet, so hydration painted one
+ * completely unstyled frame -- UA serif on a transparent ground, at 13x the height.
+ */
+function ignoresFormattingText(el: Element): boolean {
+    return el.nodeName === "HTML" || el.nodeName === "HEAD";
+}
+
+/**
  * The nearest ancestor of an event's target matching `selector`, or null.
  *
  * Replaces the `(e.target && e.target.closest) ? … : null` dance the runtime repeated at every
@@ -594,13 +621,22 @@ export function morph(fromNode: Node, toNode: Node): void {
     // so the marker contradicts itself. Skipping it makes that mistake a harmless
     // no-op; without this, the from-side node is filtered out but the to-side one
     // isn't, so every morph appends a fresh unpaired copy (unbounded DOM growth).
+    //
+    // Formatting whitespace is dropped from BOTH sides in the containers where it cannot be rendered
+    // (see ignoresFormattingText). It has to be symmetric for the same reason the marker filter above
+    // does: dropping it on one side only would shift every following child by one and pair each
+    // against its neighbour. `from` and `to` share a nodeName by the guard at the top of morph(), so
+    // one predicate answers for both.
+    const dropFormattingText = ignoresFormattingText(from);
     const fc: Node[] = [], tc: Node[] = [];
     for (let n = from.firstChild; n; n = n.nextSibling) {
         if (isElement(n) && n.hasAttribute("data-rask-managed")) continue;
+        if (dropFormattingText && isFormattingText(n)) continue;
         fc.push(n);
     }
     for (let m = to.firstChild; m; m = m.nextSibling) {
         if (isElement(m) && m.hasAttribute("data-rask-managed")) continue;
+        if (dropFormattingText && isFormattingText(m)) continue;
         tc.push(m);
     }
 

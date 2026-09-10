@@ -29,8 +29,10 @@ abstract Rask.External.ExternalComponent.ComponentName.get -> string!
 abstract Rask.External.ExternalComponent.Module.get -> string!
 abstract Rask.External.ExternalComponent.Runtime.get -> string!
 abstract Rask.External.ExternalComponent.WriteProps() -> string!
+const Rask.External.ExternalDefaults.DefaultManifestUrl = "/_rask/external/manifest.json" -> string!
 const Rask.External.ExternalDefaults.HostTag = "rask-external" -> string!
 const Rask.External.ExternalDefaults.HydrateAttribute = "hydrate" -> string!
+const Rask.External.ExternalDefaults.ManifestAttribute = "manifest" -> string!
 const Rask.External.ExternalDefaults.ModuleAttribute = "module" -> string!
 const Rask.External.ExternalDefaults.NameAttribute = "name" -> string!
 const Rask.External.ExternalDefaults.PropsAttribute = "props" -> string!
@@ -50,3 +52,4 @@ override sealed Rask.External.SvelteComponent.Runtime.get -> string!
 override sealed Rask.External.VueComponent.Runtime.get -> string!
 static Rask.External.ExternalDefaults.Wire(Rask.External.ExternalHydration hydration) -> string?
 static Rask.External.ExternalHandlers.Register(Rask.Core.Component! owner, System.Delegate! handler) -> string!
+virtual Rask.External.ExternalComponent.ManifestUrl.get -> string?

@@ -381,4 +381,62 @@ public sealed class SiteExampleTests
             await context.CloseAsync();
         }
     }
+
+    [Fact]
+    public async Task Hydration_MorphsTheBodyRatherThanReplacingIt()
+    {
+        // The published site painted one COMPLETELY UNSTYLED frame as the prerendered document handed
+        // over to the runtime -- UA serif on a transparent ground, at 13x the document height. Sampled
+        // through the handover it lasted ~19ms on a warm local static server, and proportionally longer
+        // on a cold cache or a slower device, which is where it was actually noticed.
+        //
+        // The cause was one whitespace text node. A prerendered page is served with `</head>\n<body>`,
+        // and per the HTML parser's "after head" insertion mode that newline lands in <html> -- so the
+        // live <html> had [HEAD, #text, BODY] while the runtime's full-frame payload had [HEAD, BODY].
+        // The morph pairs children positionally, so #text met BODY, the node names differed, and the
+        // body was REPLACED. A freshly created <body> has no resolved style yet.
+        //
+        // Asserted by COUNTING BODY REMOVALS from a MutationObserver installed before any page script,
+        // because the symptom is a single frame: an assertion that merely samples styles has to catch
+        // it mid-flight, and one that waits for an <h1> proves nothing at all -- the prerendered HTML
+        // already has one, so it reports a clean boot it never observed.
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.AddInitScriptAsync("""
+                (function attach() {
+                    if (!document.documentElement) { requestAnimationFrame(attach); return; }
+                    window.__raskBodyReplaced = 0;
+                    new MutationObserver(function (records) {
+                        for (const r of records) {
+                            for (const n of r.removedNodes) {
+                                if (n.nodeName === 'BODY') window.__raskBodyReplaced++;
+                            }
+                        }
+                    }).observe(document.documentElement, { childList: true });
+                })();
+                """);
+
+            await page.GotoAsync("/index.html");
+
+            // Hydrated: the prerender marker is cleared by the runtime on its first frame.
+            await Expect(page.Locator("html[data-rask-prerendered]"))
+                .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
+
+            // The observer has to have been installed, or a zero below would mean nothing.
+            Assert.NotNull(await page.EvaluateAsync<int?>("() => window.__raskBodyReplaced"));
+            Assert.Equal(0, await page.EvaluateAsync<int>("() => window.__raskBodyReplaced"));
+
+            // And the page is styled, which is the thing the reader actually noticed. A replaced body
+            // resolves to the UA default -- a transparent background.
+            var background = await page.EvaluateAsync<string>(
+                "() => getComputedStyle(document.body).backgroundColor");
+            Assert.NotEqual("rgba(0, 0, 0, 0)", background);
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
 }

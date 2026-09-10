@@ -32,9 +32,11 @@ public sealed partial class UiKitDataGridPage : Component
             "lambda's parameter is the grid itself. That is not a style choice: C# infers a method's ",
             "type arguments from its own arguments and never from the target type of the indexer it ",
             "sits in, so a column written as a flat child has nothing to tell it what ", Code["p"],
-            " is. It is also why the grid's chain is ", Code["GridBuild<T, TKey>"], " rather than the ",
-            "usual ", Code["Build<T>"], " — an indexer cannot be constrained, so offering a ",
-            "column-factory indexer on a grid and nowhere else takes a chain type of its own."
+            " is. The indexer is declared on ", Code["UiDataGrid<T, TKey>"], " itself, which scopes it ",
+            "to a grid and nowhere else. It used to take a chain type of its own — ",
+            Code["GridBuild<T, TKey>"], " — purely because an indexer cannot be constrained; the chain ",
+            "receives on the component now, so declaring it there does the same job and costs no type ",
+            "parameter."
         ],
         P.Class("mt-2 text-ui-muted")[
             "Every state axis is controlled or uncontrolled independently. Say nothing and the grid ",
