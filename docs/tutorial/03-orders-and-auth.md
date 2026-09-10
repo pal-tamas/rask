@@ -13,7 +13,7 @@ get a second `DbContext`. It maps through the one the app already has.
 ```csharp
 namespace Shop.Features.Orders;
 
-public sealed class Order : Entity<Guid>
+public sealed class Order : Model<Guid>
 {
     private Order() { } // EF Core materialization
 

@@ -9,6 +9,67 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` builds the project it just scaffolded**, between the restore and the first migration:
+
+  ```
+  Restoring packages…
+  Building…
+  Creating the first migration…
+  Applying it to the database…
+  ```
+
+  The ordering is the point. The migration step was already what first compiled a new project — `dotnet
+  ef` builds it to load the `DbContext` — so a scaffold emitting code that did not compile surfaced as an
+  EF failure under a line reading "Creating the first migration…", naming neither the file nor the error.
+  A build says it plainly and stops before EF runs against a project that cannot load. It reuses the
+  front-end skip the migration step already used, so scaffolding a front-end template does not sit
+  through a production bundler run. `--no-restore` skips it too: there is nothing to build against.
+
+- **A migration end-to-end test.** `rask db add Init` is what `rask new` runs for you and what the
+  next-steps text falls back to, and nothing exercised it — the only assertions were that the *sentence*
+  appears in the output. `MigrationE2ETests` scaffolds a real app against the local package feed, adds
+  the migration through `DbCommand` and applies it, then asserts the database exists: a model that
+  compiles can still be rejected when the DDL is emitted.
+
+### Changed
+
+- **`RaskUser` is gone; your app declares its own account type and Rask finds it.** Rask no longer ships
+  a user class. `rask new` writes `Features/Shared/User.cs`:
+
+  ```csharp
+  public class User : IdentityUser
+  {
+  }
+  ```
+
+  A source generator finds the one `IdentityUser` subclass in the compilation and emits a
+  `[ModuleInitializer]` naming it to `AuthUser`, so `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` keep
+  working with no type argument — the binding closes over the type at compile time, so nothing is
+  reflected and a trimmed publish cannot lose the account tables. Two user types are reported as
+  **RASK074** rather than one being picked; none means the app has no accounts and auth is simply not
+  wired, which is the honest outcome now that there is no type to invent.
+
+  The five `where TUser : RaskUser, new()` constraints relax to `IdentityUser`, and the named overloads
+  (`AddRaskAuth<TUser>`, `AddRaskAuth<TContext, TUser>`) remain for an app that would rather say which.
+
+  **Breaking, and it is a schema change**: `RaskUser.CreatedUtc` went with it — a column written once at
+  registration and read nowhere in the repo. Audit stamps now come from the same convention as every
+  model: add `ITimestamped` to your `User` and `CreatedAt`/`UpdatedAt` are stamped on every write, as
+  shadow columns unless you declare them. Do **not** add `IVersioned` — Identity already maintains
+  `ConcurrencyStamp`, and a second token on the same row is a race rather than a guard.
+
+### Fixed
+
+- **The scaffolded `AppDbContext` applied Rask's conventions before the batteries mapped their tables**,
+  so anything they mapped missed the audit stamps, the soft-delete filter and the concurrency token. The
+  template's own comment described the correct order — "it has to follow the configurations… or entities
+  registered afterwards silently miss out" — and the code did the opposite, appending every `AddRaskX()`
+  after `ApplyRaskConventions()`. Harmless while no battery entity carried a marker, and silently wrong
+  the moment a scaffolded `User` declares `ITimestamped`. The conventions now come last, with a scaffold
+  test pinning the order.
+
+### Added
+
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an
   `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
   run on a controller action or a minimal API, and no *asynchronous* rule ran on either, because MVC's
@@ -35,6 +96,65 @@ them until tagged releases begin.
   `RemoteDispatchException.Errors` carries. `ApiCall` previously skipped the `errors` object while
   reading a problem document, so a 400 arrived with nothing to show the user and nothing anywhere
   said why. (#988)
+
+- **Declare a model, and that is the whole data layer.** `Rask.Data` gains an active-record surface over
+  EF Core: a class deriving from `Model<TId>` is mapped, queryable and writable with no `DbContext`
+  class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
+  `IDbContextFactory` injected into every page that reads a row.
+
+  - **The model type is its own `DbSet`.** `Product.Where(…)`, `Product.OrderBy(…)`, `Product.Include(…)`,
+    `Product.FindAsync(id)`, `Product.CountAsync()`, `Product.Add/Update/Remove(…)` and the rest of EF's
+    vocabulary are C# 14 static extension members over `Model`, so an entity that compiles today has them
+    — no second base class and no generated partial. A member declared on the model itself always wins,
+    so your own `Create` or `Find` is untouched.
+  - **Reads need no ceremony.** A query composes without holding a context open; the terminal call opens
+    one, runs and disposes it before returning, so `await Product.Where(p => p.Active).ToListAsync()` is a
+    complete statement inside `OnMountAsync`. Rows come back **untracked by default** — `.AsTracking()`
+    opts in, and `Product.Update(entity)` is the ordinary way to write one back.
+  - **Writes are a unit of work.** `Db.Begin()` makes one short-lived context ambient; `Add`/`Remove`/
+    `Update` track against it and one `SaveChangesAsync` commits them together. They are EF's verbs with
+    EF's meanings, so outside a unit of work they say so rather than appearing to work. Nesting *joins*
+    rather than nests, so a helper can open one unconditionally and still take part in its caller's
+    transaction. The context is created lazily and is never session-scoped, which is what keeps a
+    long-lived Rask session away from a shared `DbContext`.
+  - **`Db` is the ambient database**, reachable from anywhere including inside a model: `Db.Current` is
+    the real `DbContext`, `Db.Set<T>()` its sets, `Db.SaveChangesAsync()` the ambient commit.
+  - **A model can save itself.** `await this.SaveAsync()` lets behaviour on the model finish the job —
+    `order.Cancel(now)` then persist — with no unit of work around it. It **inserts** a model that has
+    never been persisted and **updates** one that has, and `DeleteAsync()` is its counterpart, so a
+    single write of any kind is a one-liner and `Db.Begin()` is left for the thing it is actually for:
+    putting several models in one transaction. Inside one, both *join* rather than commit, so a caller
+    who wrapped several models still gets one transaction and a model's own method can never commit half
+    of its caller's work. Insert and update are told apart by `CreatedAt` — stamped on insert and written
+    by nothing else — so there is no extra `SELECT` and no guessing from a client-assigned key, which is
+    always set and therefore says nothing.
+  - **Batch update and delete.** `ExecuteUpdateAsync` and `ExecuteDeleteAsync` on a query are one
+    set-based statement over every matching row, with setters that can read the row they update. They
+    bypass the interceptors, as EF's do, so the docs state what that skips — no `UpdatedAt`, no `Version`
+    bump, no domain events — and that a batch *soft* delete is an `ExecuteUpdateAsync` of `DeletedAt`,
+    because `ExecuteDeleteAsync` really deletes an `ISoftDeletable` row.
+  - **Models are testable as plain objects.** Behaviour that only changes the model needs no database and
+    no mock; behaviour that reads one gets a real database in a line via `TestDatabase.StartAsync`, which
+    builds the generated model, creates the schema, wires the auditing and soft-delete interceptors, and
+    clears the ambient database on dispose. Provider-agnostic, so `Rask.Data` gains no provider
+    dependency and a test runs against the database the app ships on.
+  - **Mapping rules live on the model**, as a plain `public static void Configure(EntityTypeBuilder<T>)`
+    — no attribute, no interface, no separate class. It runs last, so it can overrule Rask's conventions
+    rather than being overwritten by them.
+  - **Value objects** marked `IValueObject` are mapped as EF **complex types** (part of the row) rather
+    than owned entities (a joined table with hidden identity), nested ones included.
+  - **Strongly-typed ids** work with nothing declared: `Model<ProductId>` registers a generated value
+    converter once for the type, so the key, foreign keys and nullable occurrences are all converted.
+  - **Generated, never reflected.** A source generator builds the model at compile time, so a trimmed
+    publish cannot drop an entity and leave a missing table behind a green build.
+
+  Two diagnostics keep the conventions from failing silently: **RASK072** when a `Configure` method will
+  not be called because its signature does not match, and **RASK073** when a strongly-typed id has no
+  value the generator can convert.
+
+  None of it is compulsory. A class that does not derive from `Model` is an ordinary EF Core entity, and
+  registering an `IDbContextFactory<YourContext>` binds the ambient database and every database-backed
+  battery to your own context instead. See [docs/data.md](docs/data.md).
 
 - **A Lit island on the showcase.** `LitBadge.ts` is a plain custom element that imports nothing at
   all — no framework, no npm package — and it takes the same generated props, the same build-time
@@ -71,6 +191,32 @@ them until tagged releases begin.
   set in the shipped bytes must be the bundle's own — the same reason `UiLayerOrderTests` reads the
   compiled sheet instead of the `@layer` line it was built from. (#1039)
 ### Changed
+
+- **`CreatedAt`/`UpdatedAt` are now opt-in, and no marker puts anything on your class.** `Model<TId>`
+  carries only `Id` and the domain-events buffer. `ITimestamped`, `ISoftDeletable` and `IVersioned` are
+  now **pure markers**: the columns they imply are added as EF shadow properties, so a domain model can
+  carry audit stamps and soft delete without a line of infrastructure in the type you wrote. Declaring
+  the property is how you opt into *reading* it, and mixing is fine — declare `CreatedAt` and leave
+  `UpdatedAt` a shadow column. Breaking for any model that relied on inheriting `CreatedAt`/`UpdatedAt`,
+  and for anything that referenced them through the interfaces.
+
+  `IVersioned` is the one exception and must declare `public int Version`: optimistic concurrency exists
+  to round-trip the token through an edit form, and a value the application cannot read is one it cannot
+  send back. A shadow token is refused while the model is built, naming the model and the fix, instead of
+  surfacing later as EF's "expected to affect 1 row(s), but actually affected 0".
+
+  `entity.SaveAsync()` still tells an insert from an update for free when the model declares `CreatedAt`,
+  and asks the database with one `SELECT` by key when it does not.
+
+- **`Rask.Data.Entity<TId>` is now `Rask.Data.Model<TId>`**, with the non-generic `Model` as the base the
+  active-record surface is keyed on. Breaking for anything deriving from the old name.
+
+- **An app with no `DbContext` of its own now gets one.** Previously it got no database and therefore no
+  jobs, outbox, mail, cache or auth; it now gets `RaskAppDbContext` — the generated model plus every
+  battery's tables — so declaring a model is enough to have a working database. Registering an
+  `IDbContextFactory<YourContext>` still wins and is the way to opt out. Every battery's tables are
+  mapped whether or not the battery is on, matching what Auth already promised, so toggling one is not a
+  destructive migration.
 
 - **CS0108 no longer costs you a `new`: RASKSUP001 suppresses it when the hidden member is a builder
   entry.** Every component contributes an entry named after itself, and the ~170 HTML/SVG tags land on
@@ -118,6 +264,12 @@ them until tagged releases begin.
   `Rask.Core.Components`. This undoes the namespace half of #710.
 
 ### Fixed
+
+- **A `UnitOfWork` disposed with `await using` never left the ambient scope.** `DisposeAsync` was an
+  `async` method, so its `AsyncLocal` write landed on the state machine's own execution context and never
+  reached the caller's. The scope stayed open forever and the next `Db.Begin()` handed back a handle onto
+  the disposed context. The pop now happens in a synchronous body; only the context's disposal is
+  awaited.
 
 - **A component named after an HTML tag silently rendered the tag instead.** Found by the merge above and
   fixed with it: the per-host collision filter skipped an own entry whose name the host already had —

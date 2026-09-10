@@ -37,6 +37,12 @@
     <!-- The meta-package under test. It brings Rask.Server and every battery transitively, which is the
          property these tests exist to check. -->
     <ProjectReference Include="..\..\src\Rask\Rask.csproj"/>
+    <!-- Finds this project's account type, exactly as it finds a scaffolded app's. Without it these
+         tests would assert that auth is on for an app that declares no user, which is no longer true
+         and is not the shape any real app has. -->
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
     <!-- Rask.Core arrives transitively at runtime, but a ProjectReference does not flow
          analyzers, so the factory/routes generators have to be asked for by name to compile a Component. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
