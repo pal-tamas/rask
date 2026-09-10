@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Local E2E gate.
 #
-# The browser-journey E2E (tests/Rask.Examples.E2E.Tests, Playwright) no longer runs in CI — it runs
+# The browser-journey E2E (tests/Rask.Site.E2E.Tests, Playwright) no longer runs in CI — it runs
 # here, locally, and the
 # pre-push hook (.githooks/pre-push) enforces this browser gate before code leaves the machine.
 #
@@ -207,7 +207,7 @@ fi
 # leave that race uncovered. It is the same serialisation as before over 39 projects instead of 105.
 #
 # THE GRAPH, NOT THE SOLUTION. This used to be `dotnet build Rask.slnx -m:1` — 105 projects, serially,
-# on one core, before a single browser opened. The suite does not need them. Rask.Examples.E2E.Tests
+# on one core, before a single browser opened. The suite does not need them. Rask.Site.E2E.Tests
 # has NO ProjectReference at all (it is a leaf that drives a served bundle over HTTP), and every
 # fixture in it boots exactly one app: `src/Rask.Site`. Transitively that is 39 projects. The other
 # 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled by this gate
@@ -263,7 +263,7 @@ dotnet publish src/Rask.Site -c Release -m:1 -p:WasmBuildNative=false -p:MinVerS
 
 if [ "$build_status" -eq 0 ]; then
   echo "==> Build the browser-journey project (leaf; bundles BrowserFixtures/*.ts with esbuild)"
-  dotnet build tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj \
+  dotnet build tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj \
     -c Release -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
     | tee -a "$build_log" || build_status=$?
 fi
@@ -294,13 +294,13 @@ echo "==> Ensure Playwright browsers are installed"
 # inside an `if` condition, so running the install there would swallow a failed download into the else
 # branch and let the gate continue having installed nothing. Only the lookup belongs in the condition,
 # where "not found" genuinely is not fatal; the install then runs under `set -e` and stops the gate.
-if pw_driver="$(rask_playwright_driver tests/Rask.Examples.E2E.Tests/bin/Release)"; then
+if pw_driver="$(rask_playwright_driver tests/Rask.Site.E2E.Tests/bin/Release)"; then
   pw_node="$(printf '%s\n' "$pw_driver" | sed -n 1p)"
   pw_cli="$(printf '%s\n' "$pw_driver" | sed -n 2p)"
   "$pw_node" "$pw_cli" install chromium
 else
   echo "   (skipped auto-install: no bundled Playwright driver under"
-  echo "    tests/Rask.Examples.E2E.Tests/bin/Release — build the E2E project once, then:"
+  echo "    tests/Rask.Site.E2E.Tests/bin/Release — build the E2E project once, then:"
   echo "      scripts/playwright.sh install chromium)"
 fi
 
@@ -314,12 +314,12 @@ fi
 # the eight sample publishes — ran with a partial claim alongside whatever else the machine was doing.
 rask_e2e_await_slots
 
-e2e_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Examples.E2E.Tests}"
+e2e_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Site.E2E.Tests}"
 if [ -n "${RASK_E2E_FILTER:-}" ]; then
   echo "==> Browser journey E2E (FILTERED: $e2e_filter)"
   echo "    Not the full gate. Clear RASK_E2E_FILTER before trusting a green run."
 else
-  echo "==> Browser journey E2E (Rask.Examples.E2E.Tests)"
+  echo "==> Browser journey E2E (Rask.Site.E2E.Tests)"
 fi
 # Not bare, and `set -e` is why this needs saying: this used to be the script's last statement, so a
 # red suite propagated dotnet's exit code with no layer above it — unlike the build step, which is
@@ -328,7 +328,7 @@ fi
 # as a defect. Naming the suspicion at the moment of failure is the cheapest thing that attacks that,
 # and it adds a line rather than making a decision, so it has no false-positive cost.
 set +e
-dotnet test tests/Rask.Examples.E2E.Tests/bin/Release/net10.0/Rask.Examples.E2E.Tests.dll \
+dotnet test tests/Rask.Site.E2E.Tests/bin/Release/net10.0/Rask.Site.E2E.Tests.dll \
   --filter "$e2e_filter" \
   --logger "console;verbosity=normal"
 e2e_status=$?

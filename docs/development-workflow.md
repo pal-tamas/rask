@@ -48,11 +48,11 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
    API review — read it against [api-style.md](api-style.md) before you commit.
 3. **Tests** — unit-test every feature/fix (`tests/Rask.*.Tests`); add E2E only when a unit test
    can't reach the path. **Every `src/Rask.Site` change gets an E2E** journey update
-   (`tests/Rask.Examples.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
+   (`tests/Rask.Site.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
    each run doesn't rebuild the whole solution (test execution itself is fast; the build dominates):
    ```bash
    dotnet build Rask.slnx -c Release
-   dotnet test Rask.slnx -c Release --no-build --filter "FullyQualifiedName!~Rask.Examples.E2E"
+   dotnet test Rask.slnx -c Release --no-build --filter "FullyQualifiedName!~Rask.Site.E2E"
    ```
    Narrow further to one project (`dotnet test tests/Rask.Core.Tests --no-build`) or one class
    (`--filter FullyQualifiedName~ATests`) while iterating. The build runs in parallel by default —
@@ -186,7 +186,7 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   gets the full gate.
 
 - **E2E runs locally, enforced before push.** The browser-journey E2E
-  (`tests/Rask.Examples.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
+  (`tests/Rask.Site.E2E.Tests`, Playwright) was moved out of the CI pipeline. Run it with
   `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
   with `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`).
   While iterating on **one** journey, narrow the run with `RASK_E2E_FILTER` — the sample publishes still
@@ -196,7 +196,7 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 
   **It builds the graph the suite runs, not the solution.** This gate used to open with
   `dotnet build Rask.slnx -m:1` — 105 projects, serially, on one core, before a browser opened.
-  `Rask.Examples.E2E.Tests` has no `ProjectReference` at all (it drives a served bundle over HTTP) and
+  `Rask.Site.E2E.Tests` has no `ProjectReference` at all (it drives a served bundle over HTTP) and
   every fixture in it boots exactly one app, `src/Rask.Site`; transitively that is 39 projects. The
   other 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled here and
   never loaded, after `pre-commit` had already built **and run** them on the way in. The gate now

@@ -75,7 +75,20 @@ internal sealed class RaskTestHost : IDisposable
         // static, which lets them run in parallel.
         builder.Services.AddRask(
             configure: live => live.DiffMode = diffMode,
-            configureServer: configureServer,
+            // A TEST does not inherit the production shutdown budget. RaskServerOptions.ShutdownDrainTimeout
+            // defaults to 5 SECONDS, which is right for a real server draining real sessions and pure cost
+            // here: every test that calls StopAsync() without an opinion about the budget paid it in full.
+            // Five tests in ShutdownDrainTests did exactly that at ~7s each (5s drain + a 2s receive), which
+            // was 35s of the 65s this assembly took — the single longest pole in the whole unit gate.
+            //
+            // Applied BEFORE the caller's own configureServer, so a test that DOES have an opinion still
+            // wins: the ones asserting the budget set 200ms or Zero explicitly and are unaffected. Nothing
+            // asserts the default through this host — the options tests construct RaskServerOptions directly.
+            configureServer: o =>
+            {
+                o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200);
+                configureServer?.Invoke(o);
+            },
             configureCulture: configureCulture);
         configureServices?.Invoke(builder.Services);
 

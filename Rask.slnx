@@ -58,6 +58,7 @@
         <Project Path="tests/Rask.Api.Generators.Tests/Rask.Api.Generators.Tests.csproj" />
         <Project Path="tests/Rask.Api.Tests/Rask.Api.Tests.csproj" />
         <Project Path="tests/Rask.Cache.Tests/Rask.Cache.Tests.csproj" />
+        <Project Path="tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj" />
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj" />
         <Project Path="tests/Rask.Cqrs.Tests/Rask.Cqrs.Tests.csproj" />
@@ -77,7 +78,7 @@
         <Project Path="tests/Rask.Logging.Tests/Rask.Logging.Tests.csproj" />
         <Project Path="tests/Rask.Mail.Tests/Rask.Mail.Tests.csproj" />
         <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj" />
-        <Project Path="tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj" />
+        <Project Path="tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj" />
     <Project Path="tests/Rask.ScopedAssets.Fixture/Rask.ScopedAssets.Fixture.csproj" />
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj" />
         <Project Path="tests/Rask.Server.HotReload.Tests/Rask.Server.HotReload.Tests.csproj" />
@@ -86,6 +87,7 @@
         <Project Path="tests/Rask.Site.Tests/Rask.Site.Tests.csproj" />
         <Project Path="tests/Rask.Signaling.Tests/Rask.Signaling.Tests.csproj" />
         <Project Path="tests/Rask.Query.Tests/Rask.Query.Tests.csproj" />
+        <Project Path="tests/Rask.Meta.Hosting.E2E.Tests/Rask.Meta.Hosting.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Meta.Hosting.Tests/Rask.Meta.Hosting.Tests.csproj" />
         <Project Path="tests/Rask.Spa.Hosting.Tests/Rask.Spa.Hosting.Tests.csproj" />
         <Project Path="tests/Rask.Spa.Tasks.Tests/Rask.Spa.Tasks.Tests.csproj" />

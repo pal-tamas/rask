@@ -72,7 +72,7 @@ if [ "$status" -eq 0 ]; then
   # while the gate reported success. Every class it now selects gates itself on its own env var and
   # skips when that is unset, so widening it costs nothing. CliGateFilterTests keeps this honest.
   NUGET_PACKAGES="$gate_packages" \
-  dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release --no-build \
+  dotnet test tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release --no-build \
     --filter "FullyQualifiedName~E2ETests" \
     --logger "console;verbosity=normal" 2>&1 | tee -a "$log" || status=$?
 fi

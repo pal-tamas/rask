@@ -1,0 +1,1741 @@
+using System.Text.RegularExpressions;
+using Microsoft.Playwright;
+using static Microsoft.Playwright.Assertions;
+
+namespace Rask.Site.E2E.Tests;
+
+// One comprehensive journey per hosting project (the user's directive: "1 e2e test per hosting
+// project that walks through every page and tests every feature, plus every unusual user activity").
+//
+// The fine-grained framework/component LOGIC the old per-feature facts asserted (every validation
+// attribute message, every nullable binding case, lifecycle hook ordering, diff codec, route-value
+// parsing, …) is covered in-process by the unit suites (Rask.Core.Tests/Forms, Rask.Server.Tests,
+// Rask.Validation.*.Tests, Rask.Site.Tests). What only a browser can prove — real DOM
+// rendering, the live morph, scoped-CSS computed styles, JS interop, focus, drag events, history,
+// reconnect, slow links — lives here, exercised once end-to-end against each host.
+public abstract partial class SharedSmokeTests
+{
+    // Per-host gating. The showcase app is identical across hosts; only the *transport* and the
+    // host's routing capabilities differ, so a flag toggles the steps a given host can run.
+    protected sealed class ShowcaseJourneyOptions
+    {
+        // Host installs a SPA fallback, so deep links / refresh on a non-root route resolve
+        // (Server, Wasm.Host). StandaloneWasm (WasmAppHost) 404s those — it walks via the sidebar.
+        public bool DeepLink { get; init; }
+
+        // Server holds session state over a WebSocket; dropping and restoring the socket must
+        // preserve it. WASM runs in-process, so there is no socket to drop.
+        public bool OfflineReconnect { get; init; }
+
+        // Emulate a slow link (Chromium CDP) and confirm loading/placeholder states still settle.
+        public bool Slow3g { get; init; }
+
+        // No-SPA-fallback hosts (StandaloneWasm) can't refresh a deep route, but reloading the
+        // /index.html shell must still boot the runtime cleanly.
+        public bool ReloadShellBoots { get; init; }
+
+        // The ISignaling relay is ASP.NET-side (Rask.Signaling). The Server and WASM showcases both map
+        // it; StandaloneWasm is served by a bare static-file host with no app services, so it can't. The
+        // demo says so in its own UI on a host without one.
+        public bool SignalingRelay { get; init; }
+    }
+
+    protected const int HighlightSettleTimeoutMs = 35_000;
+
+    // The heart of every host's single [Fact]. Sequential on purpose: it is a user session, not a
+    // set — earlier steps establish the SPA context later ones rely on.
+    protected async Task RunShowcaseJourneyAsync(ShowcaseJourneyOptions opts)
+    {
+        // Boot the shell once, at the SHOWCASE root rather than the site root. "/" is the marketing
+        // landing page — one app serves both now — and this journey walks the showcase: its sidebar, its
+        // guides, its demos. From here the walk stays in-SPA via the sidebar.
+        await NavigateToAsync(Docs);
+        // The showcase root is the guides index; its PageHeader renders an <h1 class="h2">Guides</h1>.
+        await Expect(Page.Locator("main h1"))
+            .ToContainTextAsync("Guides",
+                new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+
+        // The shell has loaded its stylesheets by now. Check them before walking the layout: every
+        // responsive assertion below is meaningless if the CSS never arrived.
+        AssertStylesheetsLoaded();
+
+        // Plant a sentinel on window — every in-SPA nav below must preserve it (proves no full
+        // reload happened and the SPA context survived).
+        await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
+
+        // There is no theme toggle any more. The showcase is light, on the palette Rask.Ui declares, so
+        // that the operator console, the landing site and these pages are one visual language rather
+        // than three — and with the second theme went the only reason ShowcaseLayout injected
+        // IJSRuntime, and its scoped module, whose sole export flipped the attribute this used to
+        // assert on.
+        //
+        // Asserted rather than deleted: a toggle reappearing is a change worth noticing, and so is the
+        // chrome quietly going dark again. The navigation is the kit's now, so it carries the kit's ink
+        // token — a hardcoded slate-* would mean the layout drifted back off the shared palette.
+        await Expect(Page.Locator("nav button[aria-label='Toggle light / dark theme']")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
+        // …and daisyUI's navbar draws it, rather than a hand-rolled flex row shaped like one.
+        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\bnavbar\b"));
+        await AssertTopBarIsLegibleAsync();
+
+        await TestSidebarNavAsync();
+        await WalkUserComponentsGuideAsync();
+        await TestCompositionGuideAsync();
+        await WalkLifecycleGuideAsync();
+        await WalkRoutingGuideAsync();
+        await WalkJsInteropGuideAsync();
+        await WalkLocalizationGuideAsync();
+        await WalkElementsGuideAsync();
+        await WalkHttpAndFilesGuideAsync();
+        await WalkCqrsGuideAsync();
+        await WalkAuthGuideAsync();
+        await WalkFormsPagesAsync();
+        await WalkStylingDataAndAppPagesAsync(opts);
+        await TestGuidesAsync();
+
+        await TestInSessionNotFoundAsync();
+
+        // The SPA sentinel must have survived the entire in-SPA walk.
+        Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
+
+        await AssertNoDuplicateScopedHeadLinksAsync();
+
+        await RunUnusualActivityAsync(opts);
+    }
+
+    // ---- helpers -------------------------------------------------------------------------------
+
+    // In-SPA navigation via the sidebar + heading assertion. Works on every host once the shell is
+    // loaded; on StandaloneWasm the sidebar click is the only navigation path available.
+    protected async Task SideAsync(string label, string heading, string headingSelector = "main h1")
+    {
+        await ClickSidebar(label);
+        await Expect(Page.Locator(headingSelector).First).ToContainTextAsync(heading,
+            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        // Global error-handling guard: no navigation in the walk may trip the framework's
+        // top-level RootErrorBoundary ("Something went wrong"). A page that throws during render
+        // would surface it here instead of its heading.
+        await AssertNoGlobalCrashAsync();
+    }
+
+    // The framework's root error boundary renders its "Something went wrong" shell — a div with the
+    // distinctive .rask-error-boundary class (DefaultErrorPage) — when an error escapes every user
+    // boundary. Outside the deliberate /boom demos it must never appear. Match that class precisely:
+    // a bare main:has-text("Something went wrong") false-positives on legitimate page content that
+    // merely contains the phrase — e.g. the BsToast element and Toaster demos' CodeSample shows
+    // ToastDemo.cs / ToasterDemo.cs source whose "Danger"/"Error" message is literally "Something went wrong.".
+    protected async Task AssertNoGlobalCrashAsync() =>
+        Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
+
+    // The top bar's wordmark, measured against what is actually behind it.
+    //
+    // This exists because every class name on that bar was already right when it was illegible. The
+    // showcase moved onto Rask.Ui's light palette and the markup said `bg-ui-bg text-ui-ink`, but
+    // global.css still carried `.app-navbar { background: rgba(20, 16, 31, .82) }` from the dark-first
+    // design — UNLAYERED, and therefore ahead of every layered utility on the page. The bar rendered
+    // near-black behind near-black text, at about 1.4:1, and a class-name assertion cannot see any of
+    // it: `text-ui-ink` was present and correct throughout. Same shape as #1033, one layer up.
+    //
+    // So: composite the real background (the bar's own colour is translucent, so the ancestors behind it
+    // count), composite the text over that, and compare luminance. WCAG 1.4.3 wants 4.5:1 for text this
+    // size; the bar reads about 15:1 when it is drawn from the palette it claims to use.
+    private async Task AssertTopBarIsLegibleAsync()
+    {
+        // Colours are read through a 1x1 canvas rather than parsed: a computed background is whatever
+        // colour space the author wrote, and this one comes back as `oklab(1 0 0 / 0.85)`, which no
+        // rgb() regex reads. Drawing it and reading the pixel is the browser doing the conversion.
+        var probe = await Page.EvaluateAsync<string>(
+            """
+            () => {
+              const el = document.querySelector('.app-navbar .app-brand');
+              if (!el) return JSON.stringify({ error: 'no .app-navbar .app-brand' });
+
+              const cv = document.createElement('canvas');
+              cv.width = cv.height = 1;
+              const ctx = cv.getContext('2d', { willReadFrequently: true });
+              const rgba = css => {
+                ctx.clearRect(0, 0, 1, 1);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+                ctx.fillStyle = css;
+                ctx.fillRect(0, 0, 1, 1);
+                const d = ctx.getImageData(0, 0, 1, 1).data;
+                return [d[0], d[1], d[2], d[3] / 255];
+              };
+
+              // Vacuous-pass guard. An unparsed colour leaves fillStyle at the transparent reset, which
+              // would quietly drop a DARK bar out of the composite and report the light page behind it.
+              const plain = rgba('rgb(1, 2, 3)');
+              const modern = rgba('oklab(0 0 0 / 0.5)');
+              if (plain[0] !== 1 || plain[1] !== 2 || plain[2] !== 3 || Math.abs(modern[3] - 0.5) > 0.02) {
+                return JSON.stringify({ error: 'canvas cannot parse the colours this page uses' });
+              }
+
+              const over = (fg, bg) => [
+                fg[0] * fg[3] + bg[0] * (1 - fg[3]),
+                fg[1] * fg[3] + bg[1] * (1 - fg[3]),
+                fg[2] * fg[3] + bg[2] * (1 - fg[3]),
+                1,
+              ];
+              const chain = [];
+              for (let n = el; n; n = n.parentElement) chain.push(n);
+              let bg = [255, 255, 255, 1];
+              for (let i = chain.length - 1; i >= 0; i--) {
+                bg = over(rgba(getComputedStyle(chain[i]).backgroundColor), bg);
+              }
+              const fg = over(rgba(getComputedStyle(el).color), bg);
+
+              const lum = c => {
+                const s = [c[0], c[1], c[2]].map(v => {
+                  v /= 255;
+                  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+                });
+                return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2];
+              };
+              const l1 = lum(fg), l2 = lum(bg);
+              const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+              return JSON.stringify({ ratio: Math.round(ratio * 100) / 100, fg, bg });
+            }
+            """);
+
+        Assert.DoesNotContain("error", probe, StringComparison.Ordinal);
+        var ratio = double.Parse(
+            Regex.Match(probe, "\"ratio\":([0-9.]+)").Groups[1].Value,
+            System.Globalization.CultureInfo.InvariantCulture);
+        Assert.True(ratio >= 4.5,
+            $"The top bar's wordmark is at {ratio}:1 against the bar behind it (WCAG 1.4.3 wants 4.5:1). "
+            + $"Its classes are almost certainly still correct — look for a rule outranking them: {probe}");
+    }
+
+    /// <summary>One number out of a small JSON object an in-page probe returned.</summary>
+    /// <remarks>
+    ///     Invariant culture on purpose: JSON writes 61.5, and on a machine whose locale uses a comma
+    ///     the default parse reads that as 615.
+    /// </remarks>
+    private static double JsonNumber(string json, string name)
+    {
+        var m = Regex.Match(json, $"\"{Regex.Escape(name)}\"\\s*:\\s*(-?[0-9.]+)");
+        Assert.True(m.Success, $"no \"{name}\" in the probe's result: {json}");
+        return double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    // After walking every page, each scoped component's keyed stylesheet (<link data-rask-key>) must
+    // appear in <head> exactly once. On hosts that deliver scoped CSS per component via a full reply
+    // (Server), the FOUC preload (rask-scoped.js clones the incoming keyed <link> before the morph)
+    // must reconcile against the clone by key rather than duplicate it — a regression here silently
+    // leaks one <link> per scoped component ever mounted and re-applies unmounted pages' CSS. This also
+    // guards the foreign-head-preservation observer against wrongly tagging a keyed framework link.
+    protected async Task AssertNoDuplicateScopedHeadLinksAsync()
+    {
+        var duplicateKeys = await Page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const counts = {};
+                for (const l of document.querySelectorAll('head link[rel="stylesheet"][data-rask-key]')) {
+                    const k = l.getAttribute('data-rask-key');
+                    counts[k] = (counts[k] || 0) + 1;
+                }
+                return Object.keys(counts).filter(k => counts[k] > 1);
+            }
+            """);
+        Assert.True(duplicateKeys.Length == 0,
+            $"Duplicate scoped stylesheet <link>s in <head> (leaked): {string.Join(", ", duplicateKeys)}");
+    }
+
+    // The redesigned sidebar: collapsible groups (only the active route's group open by default), a
+    // search filter, and — below md — a hamburger-driven offcanvas drawer. Exercised once per host.
+    protected async Task TestSidebarNavAsync()
+    {
+        // Guides-first: the guide category groups are expanded by default (the narrative spine), while the
+        // demoted Examples group stays collapsed so the long item list isn't dumped at once.
+        await Expect(Page.Locator(".side-nav .nav-group-toggle").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // A collapsed group renders NO items element at all now, where BsCollapse rendered one and hid
+        // it with .collapse — so "expanded" is the presence of the items container, not a class on it.
+        var open = await Page.Locator(".side-nav .nav-group-items").CountAsync();
+        Assert.True(open >= 5, $"expected the guide groups expanded by default, got {open}");
+        var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
+        // The five guide groups (Overview + the four GuideCatalog categories) plus the surviving Examples
+        // groups (most example pages are now folded into guides). Keep this a "many groups" floor.
+        Assert.True(groups >= 6, $"expected the nav split into many collapsible groups, got {groups}");
+
+        // Collapse/expand toggle: the guide category groups are open by default (guides-first), so
+        // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
+        // across the whole example→guide migration.
+        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Core\")").First;
+        var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing\"]");
+        await core.ClickAsync(); // collapse
+        await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await core.ClickAsync(); // re-expand
+        await Expect(routingGuide).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The filter narrows the list to matching labels (and force-opens their groups); clearing it
+        // restores the accordion. Uses durable guide labels (always present).
+        var filter = Page.Locator(".side-nav .side-nav-filter");
+        await filter.FillAsync("Getting started");
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Getting started\")").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Composition\")"))
+            .ToHaveCountAsync(0);
+        await filter.FillAsync("");
+
+        // Mobile: the sidebar collapses to an offcanvas drawer behind the hamburger. The static
+        // desktop column gives way to an off-screen drawer toggled open, then dismissed by the backdrop.
+        await Page.SetViewportSizeAsync(390, 844);
+        await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync();
+        await Page.Locator(".hamburger-btn").ClickAsync();
+        await Expect(Page.Locator(".side-nav")).ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        // Dismiss by tapping the backdrop. A real tap lands on the visible backdrop strip beside the
+        // drawer, but Playwright's centre-click would be intercepted by the panel that overlays it —
+        // so dispatch the click straight to the backdrop element (its data-rask-on-click still fires).
+        await Page.Locator(".nav-backdrop").DispatchEventAsync("click");
+        await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        await Page.SetViewportSizeAsync(1280, 720);
+    }
+
+    // The CQRS guide (docs/cqrs.md) embeds the counter slice. Driving it end-to-end proves the
+    // source-generated dispatch works on this host: OnMount runs a query, the button sends a command
+    // that returns a value and publishes a notification, and a pipeline behaviour logs every dispatch.
+    // If AddRaskCqrs / the generated ModuleInitializer hadn't wired up on this transport, the demo
+    // would throw "No handler is registered" and trip the root error boundary instead.
+    protected async Task WalkCqrsGuideAsync()
+    {
+        await ClickSidebar("CQRS");
+        await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("CQRS",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        // Forward navigation moves focus into the new page's <main> and announces the route via the
+        // aria-live region, so keyboard/screen-reader users continue from the new page (not the stale
+        // nav link) and hear the change. Server live-runtime only (rask.js) for now; the WASM host's
+        // navigation path is a follow-up.
+        if (FixtureName == "Server")
+        {
+            await Expect(Page.Locator("main.page-main")).ToBeFocusedAsync(
+                new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
+            await Expect(Page.Locator(".rask-route-announcer")).Not.ToBeEmptyAsync(
+                new LocatorAssertionsToBeEmptyOptions { Timeout = 3_000 });
+        }
+
+        var count = Page.Locator("#cqrs-count");
+        await Expect(count).ToHaveTextAsync("0", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // Command → notification → query round-trip: the count increments and the dispatch log renders.
+        await Page.Locator("#cqrs-increment").ClickAsync();
+        await Expect(count).ToHaveTextAsync("1", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#cqrs-log")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        await AssertNoGlobalCrashAsync();
+    }
+
+    // ---- page walk -----------------------------------------------------------------------------
+
+    // The Guides section: the repo's docs/*.md rendered on-site by the Markdown component, now in the
+    // Narrative-guide chrome (Chapters TOC, on-this-page rail, prev/next) with live demos embedded
+    // inline via <!-- demo:key --> markers. Verify a guide renders to a .markdown-body, cross-links are
+    // SPA-routed, the Chapters TOC is present, and an embedded demo actually mounted its live result.
+    protected async Task TestGuidesAsync()
+    {
+        await SideAsync("All guides", "Guides");
+        // A guide card links to /guides/{slug}; open the Routing guide.
+        await Page.Locator($"main a[href$='{Docs}/guides/routing']").First.ClickAsync();
+        await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("Routing",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        // The markdown's relative .md cross-links are rewritten to SPA-routed /guides/* anchors.
+        Assert.True(
+            await Page.Locator($".markdown-body a[data-rask-nav][href^='{Docs}/guides/']").CountAsync() > 0,
+            "expected the rendered guide to carry SPA-routed cross-links");
+
+        // The guide chrome: a Chapters TOC linking in-page anchors, and prev/next book-nav.
+        await Expect(Page.Locator(".guide-chapters .guide-chapters-list a[href^='#']").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        Assert.True(await Page.Locator(".guide-prevnext .guide-prevnext-link").CountAsync() > 0,
+            "expected prev/next navigation on the guide");
+
+        // A demo embedded via <!-- demo:key --> mounted its CodeSample inline — the marker resolved to a
+        // real component, not dropped as an HTML comment.
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() > 0,
+            "expected the Routing guide to embed at least one live demo");
+        Assert.Equal(0, await Page.Locator("text=Unknown demo").CountAsync());
+
+        await AssertNoGlobalCrashAsync();
+    }
+
+    protected async Task WalkUserComponentsGuideAsync()
+    {
+        // User components (generated factories, DI-via-ctor, [SkipFactory]) — the standalone /components
+        // page was folded into the Getting started guide's factory-generation section as live demos.
+        // (The DSL primitives / tag factories / universal props / SVG and the HTML-element catalog were
+        // folded into the Elements guide — see WalkElementsGuideAsync.)
+        await SideAsync("Getting started", "Getting started", "main .markdown-body h1");
+        var greeting = Page.Locator(".guide-demo .sample-result-body p")
+            .Filter(new LocatorFilterOptions { HasText = "Hello," }).First;
+        await Expect(greeting).ToContainTextAsync("Dr.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(greeting.Locator("strong")).ToHaveTextAsync("Ada");
+        var skip = Page.Locator("#skipfactory-counter");
+        await Expect(skip).ToContainTextAsync("Clicks: 7",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await skip.ClickAsync();
+        await skip.ClickAsync();
+        await skip.ClickAsync();
+        await Expect(skip).ToContainTextAsync("Clicks: 10",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    }
+
+
+    // Every `<!-- demo:key -->` marker on a guide page must become a live demo, not inert markdown.
+    // Asserts through Expect (which retries) rather than a bare CountAsync (which does not) — the demos
+    // hydrate after the markdown paints, so a one-shot count races the slower transports.
+    protected async Task AssertGuideDemosAsync(int atLeast, string page)
+    {
+        var cards = Page.Locator(".guide-demo .sample-card");
+        try
+        {
+            await cards.Nth(atLeast - 1).WaitForAsync(
+                new LocatorWaitForOptions { State = WaitForSelectorState.Attached, Timeout = 45_000 });
+        }
+        catch (PlaywrightException)
+        {
+            Assert.Fail(
+                $"docs/{page}.md declares {atLeast} <!-- demo: --> markers but only " +
+                $"{await cards.CountAsync()} rendered as live demos. Either a demo lost its DemoRegistry " +
+                "key, or the markers moved to another page and this walk needs to follow them.");
+        }
+    }
+
+    // Composition guide. The demos live across THREE pages since the guide was split into a hub plus
+    // subpages: the hub carries the component tiers, "callbacks & context" carries the folded events,
+    // callback and context demos, and "lists & more" carries virtualize, keyed lists, toasts, drag &
+    // drop and the error boundaries. Walk each in turn and drive its demos in place; locators are
+    // scoped by unique #id or by the enclosing .guide-demo (badges/result panes repeat within a page).
+    //
+    // The per-page counts below are the `<!-- demo: -->` markers in the matching docs/composition*.md.
+    // Keep them in step: a demo that moves between pages without the walk following it is exactly how
+    // this check went stale last time — it asserted 14 demos on a hub the split had left with one, and
+    // failed every run on every transport until someone read past "flaky".
+    protected async Task TestCompositionGuideAsync()
+    {
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
+
+        // ---- hub (docs/composition.md) ----
+        await SideAsync("Composition", "Composition", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "composition");
+
+        // Component tiers: the three ways to author a unit (static method · stateless · stateful) side
+        // by side. Tier 0's inlined badge and Tier 1's stateless greeting render statically; only the
+        // Tier-2 counter holds state — clicking it re-renders in place with no StateHasChanged. Scoped
+        // by the demo's #component-tiers container.
+        var tiers = Page.Locator("#component-tiers");
+        await Expect(tiers).ToContainTextAsync("inlined", contains);   // Tier 0 static helper badge
+        await Expect(tiers).ToContainTextAsync("Hello, Ada", contains); // Tier 1 stateless greeting
+        var tierCounter = tiers.Locator("button:has-text('Clicked')");
+        await tierCounter.ClickAsync();
+        await tierCounter.ClickAsync();
+        await Expect(tierCounter).ToContainTextAsync("Clicked 2 times", contains);
+
+        // ---- callbacks & context (docs/composition-callbacks-context.md) ----
+        await SideAsync("Composition — callbacks & context", "callbacks & context", "main .markdown-body h1");
+        await AssertGuideDemosAsync(7, "composition-callbacks-context");
+
+        // Context: toggling a provider updates a deep consumer straight through a render-cached
+        // intermediate. Scope to this demo — badges appear in other demos on the page too.
+        var ctxDemo = Page.Locator(".guide-demo:has(button:has-text('Toggle theme'))");
+        var ctxBadge = ctxDemo.Locator(".theme-badge");
+        await Expect(ctxBadge).ToContainTextAsync("Light", contains);
+        await ctxDemo.Locator("button:has-text('Toggle theme')").ClickAsync();
+        await Expect(ctxBadge).ToContainTextAsync("Dark", contains);
+
+        // Action: a child's click invokes the parent's plain delegate and the framework auto-wraps it
+        // to re-render the parent. Scoped by the demo's #callback-rating container.
+        var cb = Page.Locator("#callback-rating");
+        await cb.Locator("button").Nth(3).ClickAsync();
+        await Expect(cb.Locator("p")).ToContainTextAsync("You rated: 4/5", contains);
+
+        // Events (the full GlobalEventHandlers surface — its standalone /events page folded into this
+        // guide). Scope each interaction to its own .guide-demo; result panes/inputs repeat across demos.
+        var eClick = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "Clicks:" })
+            .Locator("button:has-text('Clicks:')").First;
+        await eClick.ClickAsync();
+        await eClick.ClickAsync();
+        await Expect(eClick).ToContainTextAsync("Clicks: 2", contains);
+
+        var eInput = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "You typed:" });
+        await eInput.Locator("input[type=text]").First.FillAsync("Hello Rask");
+        await Expect(eInput).ToContainTextAsync("You typed: \"Hello Rask\"", contains);
+
+        // Form (onSubmit → FormData): fill the named field and submit; OnSubmit reads it off a FormData and
+        // echoes it. This is reliable now that the morph no longer wipes an uncontrolled input's value on a
+        // full reply (it previously landed "(blank)" on the busy co-mounted guide — see the uncontrolled-input
+        // reconnect guard in RunUnusualActivityAsync). The readout wraps the value in <strong>.
+        var eForm = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "Last submitted:" });
+        await eForm.Locator("input[name=name]").FillAsync("Ada");
+        await eForm.Locator("button[type=submit]").ClickAsync();
+        await Expect(eForm).ToContainTextAsync("Last submitted: Ada", contains);
+
+        // Full surface demo: OnDoubleClick (MouseEventArgs) + OnFocus (parameterless) reach C# and re-render
+        // — proving the universal event store dispatches over both transports, not just OnClick.
+        var eSurface = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "double-clicks:" });
+        await eSurface.Locator("button:has-text('Double-click')").DblClickAsync();
+        await Expect(eSurface).ToContainTextAsync("double-clicks: 1", contains);
+        await eSurface.Locator("div[tabindex='0']").ClickAsync();
+        await Expect(eSurface).ToContainTextAsync("focused", contains);
+
+        // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
+        await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");
+        await AssertGuideDemosAsync(9, "composition-lists");
+        // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
+        // interaction, so a fill/click never races the page still hydrating on the slower transports.
+        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // The toast walk that stood here drove BsToast / the dismissible BsAlert it rendered. Both went
+        // with Rask.Bootstrap, and no sample raises an IToaster message any more.
+
+        // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
+        var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
+            .EvaluateAsync<string>("el => getComputedStyle(el).position");
+        Assert.Equal("sticky", thPosition);
+
+        // Keyed lists: reversing the list re-orders the live rows through keyed structural moves — the
+        // first row flips from Apple to Elderberry. (The finer contract — an uncommitted input value and
+        // caret riding its keyed row across the move — is exercised by the keyed-reconciliation unit
+        // tests in Rask.Core.Tests; asserting it through the browser on the co-mounted guide is
+        // timing-fragile, so the E2E proves the reverse re-renders the live keyed list instead.)
+        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
+            .ToContainTextAsync("Apple", contains);
+        await Page.Locator("#kl-reverse").ClickAsync();
+        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
+            .ToContainTextAsync("Elderberry", contains);
+
+        // Master-detail (its /master-detail page folded into this section): expanding a row inserts a keyed
+        // detail <tr> hosting a nested, independently sortable table; collapse removes it via the keyed diff.
+        // The #md-orders / expander-{id} / inner-{id} ids are unique on the guide page.
+        await Expect(Page.Locator("#md-orders tbody tr.md-row")).ToHaveCountAsync(14,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.Locator("[data-testid='expander-1']").ClickAsync();
+        await Expect(Page.Locator("[data-testid='inner-1']")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.True(await Page.Locator("[data-testid='inner-1'] tbody tr").CountAsync() > 0,
+            "expanded order should reveal line items");
+        await Page.Locator("[data-testid='inner-1'] th button:has-text('Qty')").First.ClickAsync();
+        await Page.WaitForTimeoutAsync(200);
+        Assert.False(
+            string.IsNullOrWhiteSpace(await Page.Locator("[data-testid='inner-1'] tbody tr").First
+                .Locator("td").Nth(2).InnerTextAsync()),
+            "inner grid should still render after sort");
+        await Page.Locator("[data-testid='expander-1']").ClickAsync();
+        await Expect(Page.Locator("[data-testid='inner-1']")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // Drag & drop: native HTML5 drag events fire the C# handlers; the live diff morphs the DOM.
+        await Expect(Page.Locator("#dd-fruit-list .dd-item")).ToHaveCountAsync(5,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await HtmlDragDropAsync("[data-testid='fruit-0']", "[data-testid='fruit-2']");
+        await Expect(Page.Locator("#dd-fruit-list .dd-item").Nth(2)).ToContainTextAsync("Apple", contains);
+        await HtmlDragDropAsync("[data-testid='card-2']", "[data-testid='card-5']");
+        await Expect(Page.Locator("[data-testid='col-done'] [data-testid='card-2']")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Error boundaries: a handler-throw and a render-throw each trip the nearest boundary's fallback
+        // — the error is contained, the navbar (outside the user boundary) survives, Recover restores.
+        await Page.Locator("#boom-throw").ClickAsync();
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — handler boundary demo", contains);
+        await Expect(Page.Locator(".app-navbar .app-brand")).ToContainTextAsync("Rask"); // root boundary not tripped
+        await Page.Locator("#boom-recover").First.ClickAsync();
+        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Render-time throw: the serializer rewinds the partial output and the boundary catches it once.
+        await Page.Locator("#boom-render-trigger").ClickAsync();
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — render-time boundary demo", contains);
+        await Page.Locator("#boom-recover").First.ClickAsync();
+        await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
+    protected async Task WalkAuthGuideAsync()
+    {
+        // The BsToast element, Toast-messages and User & auth example pages were folded into their guides:
+        // Toast messages + events → TestCompositionGuideAsync. This walks the
+        // Authentication guide's two gating demos (imperative UserGate + declarative Authorize).
+        await SideAsync("Authentication", "Authentication", "main .markdown-body h1");
+
+        // User & auth: imperative gate (UserGate) + declarative Authorize slots, both re-rendering
+        // live on IUserProvider.Changed with no reload. The demo #ids are unique on the guide page.
+        var gate = Page.Locator("#user-gate");
+        await Expect(gate).ToContainTextAsync("signed out", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await gate.Locator("button:has-text('Sign in as user')").ClickAsync();
+        await Expect(gate).ToContainTextAsync("Signed in as", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(gate).Not.ToContainTextAsync("Admin-only panel");
+        await gate.Locator("button:has-text('Sign out')").ClickAsync();
+
+        var demo = Page.Locator("#authorize-demo");
+        await Expect(demo).ToContainTextAsync("Sign in to see member content",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await demo.Locator("button:has-text('Sign in as admin')").ClickAsync();
+        await Expect(demo).ToContainTextAsync("Admin-only content",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // The Authorized slot delegate re-runs with the fresh principal on Changed (no reload), so the
+        // greeting names the admin who just signed in.
+        await Expect(demo).ToContainTextAsync("welcome, rootadmin",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await demo.Locator("button:has-text('Sign out')").ClickAsync();
+    }
+
+    // Lifecycle guide: the Lifecycle / Disposal / Cancellation / Background-service example pages were
+    // folded into docs/lifecycle.md as inline live demos, so the whole cluster is one guide page now.
+    // Open it once and drive each demo in place — locators are scoped by unique #id.
+    protected async Task WalkLifecycleGuideAsync()
+    {
+        await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
+        await AssertGuideDemosAsync(6, "lifecycle");
+        // Guide prose code fences are syntax-highlighted server-side (runs on every host, including
+        // StandaloneWasm which can't deep-link): the ```csharp blocks carry ColorCode token spans.
+        await Expect(Page.Locator("main .markdown-body pre code span[class]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        // The guide co-mounts every lifecycle demo on one page; wait for the LAST demo's control before
+        // driving any interaction so clicks never race hydration on the slower transports. That used to
+        // be the background-service chart at the end of the page; both it and the live ticker have been
+        // removed (#1030), so the cancellation demo is now last and its mount button is the signal.
+        await Expect(Page.Locator("#cancel-mount")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // A live-ticker walk sat here — a poll loop in OnMountAsync, plus a symbol switch to prove
+        // OnPropsChanged refired. Removed with the demo: an unbounded loop awaited by a lifecycle hook is
+        // a first render that never settles, which cost this page its prerendered HTML entirely. The
+        // OnPropsChanged contract it also exercised is asserted by the mount/unmount cycle below.
+
+        // Lifecycle hooks: the awaited OnMountAsync continuation must run, and "Trigger re-render" bumps
+        // the render counter (an event-handler render — it does not re-fire OnMount / OnPropsChanged).
+        await Expect(Page.Locator("li code:has-text('OnMountAsync (after')"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var badge = Page.GetByText(new Regex("Render #\\d+")).First;
+        var before = ExtractRenderCount(await badge.TextContentAsync());
+        await Page.Locator("button:has-text('Trigger re-render')").ClickAsync();
+        await Expect(badge).Not.ToContainTextAsync($"Render #{before}",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Mount / unmount cycle: mounting then unmounting the probe fires OnUnmount / OnUnmountAsync,
+        // logged into the parent-held list (which survives the unmount).
+        await Page.Locator("#lifecycle-cycle-mount").ClickAsync();
+        await Page.Locator("#lifecycle-cycle-unmount").ClickAsync();
+        await Expect(Page.Locator("#lifecycle-cycle-log")).ToContainTextAsync("OnUnmount",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Disposal: sync IDisposable + async IAsyncDisposable both fire on unmount.
+        await Page.Locator("#dispose-sync-mount").ClickAsync();
+        await Expect(Page.Locator(".dispose-probe-pill")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator("#dispose-sync-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-sync-log")).ToContainTextAsync("disposed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#dispose-async-mount").ClickAsync();
+        await Page.Locator("#dispose-async-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-async-log")).ToContainTextAsync("async-disposed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Cancellation: unmount a probe mid-delay → its CancellationToken fires and it logs cancelled.
+        await Page.Locator("#cancel-mount").ClickAsync();
+        await Expect(Page.Locator(".cancel-probe-pill")).ToContainTextAsync("running",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#cancel-unmount").ClickAsync();
+        await Expect(Page.Locator(".cancel-log")).ToContainTextAsync("cancelled",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // A background-service walk sat here, asserting a tick badge climbed with no user interaction.
+        // Its demo went with the live ticker (#1030) — the guide teaches ongoing work as prose now, and
+        // no demo on this page runs a timer.
+    }
+
+    // Routing guide: the Routing / Route+query / Navigator example pages folded into docs/routing.md.
+    // The guide is otherwise code-only (navigating the showcase itself IS the live routing); the one
+    // live demo is the Navigator query mutators, which operate on this guide's own URL.
+    protected async Task WalkRoutingGuideAsync()
+    {
+        await SideAsync("Routing", "Routing", "main .markdown-body h1");
+        await AssertGuideDemosAsync(3, "routing");
+        var navDemo = Page.Locator(".guide-demo:has(#nav-query)");
+        await Expect(navDemo.Locator("#nav-query")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        // SetQuery mutates this page's own query; the URL and the live readout both update.
+        await navDemo.Locator("#nav-set-sort").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[?&]sort=asc.*"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Expect(navDemo.Locator("#nav-query")).ToContainTextAsync("sort=asc",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await navDemo.Locator("#nav-clear").ClickAsync();
+        await Expect(navDemo.Locator("#nav-query")).ToContainTextAsync("(empty)",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    }
+
+    // JS-interop guide, across its two pages since the hub/subpage split: the hub carries scoped CSS and
+    // the asset-loading/bundle demos, and "JS interop — runtime" carries IJSRuntime, element refs and the
+    // wrappers. Hydration-gate each page on a late demo, then drive by #id / scoped
+    // locator. Counts are the `<!-- demo: -->` markers in the matching docs/js-interop*.md.
+    /// <summary>
+    ///     The localization guide: the culture table formats per language, or says why it cannot.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Both outcomes are asserted, because both are real. A WASM bundle built without the native
+    ///         relink (which is how this gate builds, for speed) carries no ICU data, and the demo is
+    ///         designed to say so rather than render four identical columns that look like a bug. The
+    ///         Server host always has culture data, so the "formats differ" assertion below does run —
+    ///         on the host where it can.
+    ///     </para>
+    ///     <para>
+    ///         That difference is what no unit test reaches: a component reading the ambient culture
+    ///         rather than the session's would look correct in isolation and produce four identical
+    ///         columns in a browser.
+    ///     </para>
+    /// </remarks>
+    protected async Task WalkLocalizationGuideAsync()
+    {
+        await SideAsync("Localization", "Localization", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "localization");
+
+        var rows = Page.Locator(".guide-demo tbody tr[data-culture]");
+        var warning = Page.Locator(".guide-demo [role='alert']");
+
+        // Wait for the demo to settle into one of its two shapes before deciding which to assert.
+        await Expect(rows.First.Or(warning.First)).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        if (await rows.CountAsync() > 0)
+        {
+            await Expect(rows).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+            // The point of the table: the SAME value reads differently per language.
+            //
+            // Compared against GERMAN rather than the Hungarian row above it, and that is not
+            // arbitrary. This gate builds WASM without the native relink (for speed), and ICU file
+            // selection needs that relink — so those bundles carry the runtime pack's default ICU
+            // shard, which covers EFIGS only: English, French, Italian, German, Spanish. Hungarian
+            // resolves there and formats in English, so asserting en != hu would fail for a reason
+            // that has nothing to do with the code under test. German is in the shard on every host,
+            // which makes this assertion mean the same thing everywhere it runs.
+            var english = await rows.Nth(0).Locator("td").Nth(1).InnerTextAsync();
+            var german = await rows.Nth(2).Locator("td").Nth(1).InnerTextAsync();
+            Assert.NotEqual(english.Trim(), german.Trim());
+        }
+        else
+        {
+            // No culture data. The demo has to explain that rather than mislead, and it has to name the
+            // property that fixes it — a reader seeing identical columns would file a bug instead.
+            await Expect(warning.First).ToContainTextAsync("RaskGlobalization");
+        }
+
+        // The document declares a language. This app names none, so it stays the framework default —
+        // the guarantee that localization costs nothing until an app asks for it.
+        Assert.Equal("en", await Page.EvaluateAsync<string>("() => document.documentElement.lang"));
+        Assert.Equal(
+            string.Empty,
+            await Page.EvaluateAsync<string>("() => document.documentElement.getAttribute('dir') ?? ''"));
+    }
+
+    protected async Task WalkJsInteropGuideAsync()
+    {
+        await ClearJsRuntimeStorageAsync();
+
+        // ---- hub (docs/js-interop.md) ----
+        await SideAsync("JavaScript interop", "JavaScript interop", "main .markdown-body h1");
+        await AssertGuideDemosAsync(5, "js-interop");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" })).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Scoped CSS: two components declare the same `.box` selector; each is scoped, so the computed
+        // background colours differ and neither is the transparent default.
+        var boxes = Page.Locator(".guide-demo .sample-result-body .box");
+        await Expect(boxes).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        var bg0 = await boxes.Nth(0).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        var bg1 = await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        Assert.NotEqual(bg0, bg1);
+        Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
+
+        // Asset loading: scoped CSS/JS each ship as ONE content-addressed bundle, so a lazily-mounted
+        // component is styled the instant its node is inserted — no extra <link>, no FOUC.
+        var cssLinkSel = "head link[rel='stylesheet'][href^='/_rask/a/']";
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+        Assert.Equal(1, await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync());
+        await Page.EvaluateAsync(@"() => {
+            window.__raskLazyApplied = null;
+            const obs = new MutationObserver(() => {
+                if (window.__raskLazyApplied !== null) return;
+                if (!document.querySelector('.lazy-child')) return;
+                let applied = false;
+                document.head.querySelectorAll('link[rel=""stylesheet""]').forEach((l) => {
+                    if (!l.sheet) return;
+                    try { for (const r of l.sheet.cssRules) if (r.cssText.indexOf('lazy-child') >= 0) applied = true; } catch (e) {}
+                });
+                window.__raskLazyApplied = applied;
+                obs.disconnect();
+            });
+            obs.observe(document.documentElement, {
+                childList: true, subtree: true, attributes: true, attributeFilter: ['class']
+            });
+        }");
+        await Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+        await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true"),
+            "LazyChild's scoped rule (from the bundle) must be applied when the node is inserted (no FOUC)");
+        await Page.GetByRole(AriaRole.Button, new() { NameString = "Hide LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+
+        // ---- runtime subpage (docs/js-interop-runtime.md) ----
+        await SideAsync("JS interop — runtime", "IJSRuntime, typed APIs & refs", "main .markdown-body h1");
+        await AssertGuideDemosAsync(2, "js-interop-runtime");
+        await Expect(Page.Locator("button:has-text('Measure the box')").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Element refs: focus a built-in, then measure the box via the sibling scoped JS.
+        var elDemo = Page.Locator(".guide-demo:has(button:has-text('Measure the box'))");
+        await elDemo.Locator("button:has-text('Focus the input')").ClickAsync();
+        await Expect(elDemo.Locator(".sample-result-body input"))
+            .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+        await elDemo.Locator("button:has-text('Measure the box')").ClickAsync();
+        await Expect(elDemo.Locator(".sample-result-body p"))
+            .ToContainTextAsync("Box width:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Scoped JS namespace is present (the measure invoked window.Rask.ElementRefDemo.width).
+        Assert.True(
+            await Page.EvaluateAsync<bool>("() => typeof window.Rask === 'object' && window.Rask !== null"),
+            "scoped JS namespace window.Rask is missing — component JS did not load");
+
+        // CodeSample tabs + copy on the Element refs demo's source pane: switching tabs swaps one Raw
+        // highlighted pane for another (must reparse into real token <span>s, not escaped text); copy
+        // flashes "Copied!".
+        var codeCard = Page.Locator(".sample-code-col:has(.sample-tab:has-text('ElementRefDemo.ts'))").First;
+        await codeCard.Locator(".sample-tab:has-text('ElementRefDemo.ts')").ClickAsync();
+        await Expect(codeCard.Locator(".sample-code"))
+            .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(codeCard.Locator(".sample-code code span[class]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The copy click round-trips (handler → InvokeVoidAsync → scoped JS flashes "Copied!"); a single
+        // message can be dropped, and the copy action is idempotent, so retry the click a couple of times
+        // before failing. The flash restores after 1.5s.
+        var copyButton = codeCard.Locator(".sample-copy");
+        for (var attempt = 1; ; attempt++)
+        {
+            await copyButton.ClickAsync();
+            try
+            {
+                await Expect(copyButton).ToContainTextAsync("Copied!",
+                    new LocatorAssertionsToContainTextOptions { Timeout = attempt < 3 ? 3_000 : 10_000 });
+                break;
+            }
+            catch (PlaywrightException) when (attempt < 3)
+            {
+                // Bridge dropped the round-trip; click again.
+            }
+        }
+
+        // IJSRuntime: sessionStorage set/read/remove round-trip through the unified IJSRuntime.
+        await Page.Locator("#demo-input").FillAsync("hello-rask");
+        await Page.Locator("#demo-set").ClickAsync();
+        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Set to: hello-rask",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#demo-read").ClickAsync();
+        await Expect(Page.Locator("#demo-last-read")).ToHaveTextAsync("hello-rask",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.Locator("#demo-remove").ClickAsync();
+        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Removed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+    }
+
+    /// <summary>
+    ///     Deliver a forced click and prove the page acted on it, re-aiming and clicking again until it
+    ///     does. For targets that must be clicked with <c>Force</c>, which skips every actionability
+    ///     check Playwright would otherwise run and so cannot report a click that went nowhere.
+    /// </summary>
+    /// <param name="owner">
+    ///     Selector for what the click legitimately belongs to. Anything inside it counts as a hit, because
+    ///     a sibling overlapping within the same interactive group still delivers the event — an SVG bar's
+    ///     own label is exactly that, and is why the click cannot simply drop <c>Force</c>.
+    /// </param>
+    /// <param name="landed">Runs after each click; throws if the page has not yet acted on it.</param>
+    /// <remarks>
+    ///     Two things have to be true, and neither is enough on its own.
+    ///     <para>
+    ///     The click has to be AIMED. ScrollIntoViewIfNeeded — and Playwright's own pre-click scroll — use
+    ///     "nearest" semantics, which are satisfied by a position underneath sticky chrome, here the
+    ///     showcase's <c>sticky-top</c> <c>.app-navbar</c>. Nothing reports a problem: the forced click
+    ///     lands on the navbar and the target never sees it. Clicking again does not help, because the
+    ///     element IS in the viewport and neither Playwright nor <c>scrollIntoView</c> finds anything to
+    ///     correct; the page itself has to be moved, hence the hit-tested <c>window.scrollBy</c>.
+    ///     </para>
+    ///     <para>
+    ///     And the click has to be CONFIRMED, because a hit test only describes the instant it ran. This
+    ///     page is thousands of pixels tall and still settling, so the layout can move between the aim and
+    ///     the click — observed with the aim reporting a clean hit and the chart's own popup never opening,
+    ///     which is proof the library was never sent the event. So: aim, click, check, and on failure
+    ///     re-aim against the layout as it is now. Re-clicking is safe by construction — a click that DID
+    ///     land has already satisfied <paramref name="landed" /> and never reaches the retry.
+    ///     </para>
+    /// </remarks>
+    private async Task ForceClickUntilLandedAsync(ILocator target, string owner, Func<Task> landed)
+    {
+        var probe = $$"""
+            el => {
+                const r = el.getBoundingClientRect();
+                const cx = r.left + (r.width / 2), cy = r.top + (r.height / 2);
+                const inX = cx >= 0 && cx <= window.innerWidth;
+                const inY = cy >= 0 && cy <= window.innerHeight;
+                const hit = inX && inY ? document.elementFromPoint(cx, cy) : null;
+                if (hit && hit.closest({{JsStringLiteral(owner)}})) return '';
+                // Not reachable. Bring it to the middle of the viewport, the furthest point from chrome
+                // stuck to either edge, and let the next round re-measure.
+                window.scrollBy(0, cy - (window.innerHeight / 2));
+                if (hit) return hit.tagName.toLowerCase() + '.' + (hit.getAttribute('class') || '');
+                return inY
+                    ? 'nothing (the centre is off the side of the viewport)'
+                    : 'nothing (the centre is above or below the viewport)';
+            }
+            """;
+
+        var covering = "nothing (the element was never measured)";
+
+        for (var delivery = 0; delivery < 5; delivery++)
+        {
+            for (var aim = 0; aim < 25 && covering.Length != 0; aim++)
+            {
+                covering = await target.EvaluateAsync<string>(probe);
+                if (covering.Length != 0)
+                {
+                    await Page.WaitForTimeoutAsync(100);
+                }
+            }
+
+            if (covering.Length != 0)
+            {
+                break;
+            }
+
+            await target.ClickAsync(new LocatorClickOptions { Force = true });
+
+            try
+            {
+                await landed();
+                return;
+            }
+            catch (PlaywrightException)
+            {
+                // Aimed, clicked, and the page still did not act on it: it moved between the two. Re-aim
+                // against the layout as it is now and deliver the click again.
+                covering = "nothing (the element was never measured)";
+            }
+        }
+
+        Assert.Fail(
+            covering.Length == 0
+                ? "a forced click was aimed at this element and delivered five times over, and the page "
+                  + "never acted on any of them — so the click is arriving somewhere it does not belong, "
+                  + "or what it drives is broken."
+                : $"nothing could be clicked at the centre of this element — <{covering}> is over it. A "
+                  + "forced click there is swallowed silently, so this fails here rather than in whatever "
+                  + "assertion was waiting for the click to arrive.");
+    }
+
+    private static string JsStringLiteral(string value) =>
+        "'" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal) + "'";
+
+    protected async Task WalkElementsGuideAsync()
+    {
+        await SideAsync("Elements & the DSL", "Elements & the DSL", "main .markdown-body h1");
+        await AssertGuideDemosAsync(28, "elements");
+        // Gate on a late demo's distinctive element (the Interactive-elements demo, near the end).
+        await Expect(Page.Locator(".guide-demo .sample-result-body details[open] summary").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Primitives: Text/Raw escaping — the "Already safe" run renders a real <strong>safe</strong>.
+        await Expect(Page.Locator(".guide-demo .sample-result-body p")
+                .Filter(new LocatorFilterOptions { HasText = "Already" }).First.Locator("strong"))
+            .ToHaveTextAsync("safe", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Tag factories: the text-and-semantic demo renders a blockquote.
+        await Expect(Page.Locator(".guide-demo .sample-result-body blockquote").First)
+            .ToContainTextAsync("A small DSL", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Universal props: data-* expansion (incl. a bare null attribute) + ARIA / role / tabindex.
+        var dataDiv = Page.Locator(".guide-demo .sample-result-body div[data-role='card']").First;
+        await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
+        await Expect(dataDiv).ToHaveAttributeAsync("data-new", ""); // bare null attribute
+        var ariaBtn = Page.Locator(".guide-demo .sample-result-body button[role='switch']").First;
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-label", "Toggle dark mode");
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-pressed", "false");
+        await Expect(ariaBtn).ToHaveAttributeAsync("tabindex", "0");
+
+        // HTML element catalog: spot-check distinctive elements from a few category demos.
+        await Expect(Page.Locator(".guide-demo .sample-result-body ruby").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body ol[start='2'][reversed]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body meter").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // SVG: the shapes demo renders a live <svg> (typed factories, no Raw()).
+        await Expect(Page.Locator(".guide-demo .sample-result-body svg").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
+    protected async Task WalkHttpAndFilesGuideAsync()
+    {
+        // The HttpClient+DI, file-upload and file-download example pages were folded into
+        // docs/http-and-files.md as inline live demos. Drive the guide and assert each demo mounted.
+        await SideAsync("HTTP & files", "HTTP & files", "main .markdown-body h1");
+        await AssertGuideDemosAsync(4, "http-and-files");
+
+        // HttpClient + DI: the injected client loads a post card in OnMountAsync. This also guards the
+        // WASM base-address fix — the relative fetch must resolve against the app root from the two-segment
+        // /guides/http-and-files route (not against /guides/), or it 404s and the error banner shows instead.
+        await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        // File upload: the typed file picker renders its input.
+        await Expect(Page.Locator(".guide-demo .sample-result-body #upload-input").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // File download: the download button renders (the download sink itself is unit-tested).
+        await Expect(Page.Locator(".guide-demo .sample-result-body #download-report").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
+    protected async Task WalkFormsPagesAsync()
+    {
+        // Forms & validation guide: the seven standalone forms example pages (binding, form controls,
+        // validation, floating labels, complex models, radio/checkbox groups, multi-select) were folded
+        // into docs/forms.md as inline live demos in the guides-first migration, so the whole section is
+        // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
+        // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
+        await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
+        await AssertGuideDemosAsync(14, "forms");
+        // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
+        // floating-label form, the last marker on the page) before driving any interaction so clicks
+        // never race hydration.
+        await Expect(Page.Locator("#ff-FullName")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Two-way binding: typed bind echo (the per-type / nullable / clear-to-null matrix is unit-
+        // tested in Rask.Core.Tests/Forms — here we prove the live round trip for a text + a
+        // change-only checkbox). The typed-bind demo's Name input is the first on the page (section 1).
+        await Page.Locator("input[name=Name]").First.FillAsync("Ada");
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Hello," }))
+            .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Scope to the live result pane — the embedded sample source (.sample-code) now shows the
+        // demo's full class, which also contains "Subscribe =" in its echo template.
+        var subscribeEcho = Page.Locator(".sample-result-body pre code").Filter(new LocatorFilterOptions { HasText = "Subscribe =" });
+        var checkbox = Page.Locator("#bind-subscribe");
+        await checkbox.ClickAsync();
+        await Expect(subscribeEcho).ToContainTextAsync("Subscribe = true",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Highlighting is server-side: the code samples on this page must carry token spans after
+        // the in-SPA morph (the morph must not flatten the Raw spans).
+        await Expect(Page.Locator("pre code.language-csharp span").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Floating labels: the reusable Floating* wrappers (input/select/textarea). An empty submit
+        // surfaces .field-error under a field (always shown -- there is no is-invalid
+        // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
+        // unit-tested.)
+        var floatingForm = Page.Locator("form:has(#ff-FullName)");
+        await floatingForm.Locator("button[type=submit]").ClickAsync();
+        await Expect(floatingForm.Locator(".field-error").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await floatingForm.Locator("#ff-FullName").FillAsync("Ada Lovelace");
+        await floatingForm.Locator("#ff-Email").FillAsync("ada@example.com");
+        await floatingForm.Locator("#ff-Age").FillAsync("30");
+        await floatingForm.Locator("#ff-Plan").SelectOptionAsync("pro");
+        await floatingForm.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.Locator(".sample-result-body [role='status']")
+                .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // ---- advanced subpage (docs/forms-advanced.md) ----
+        // Nested models. The control groups and the multi-select that also lived here were
+        // BsRadioGroup/BsCheckboxGroup/BsMultiSelect, and went with Rask.Bootstrap.
+        await SideAsync("Forms — advanced", "nested models & control groups", "main .markdown-body h1");
+        await AssertGuideDemosAsync(5, "forms-advanced");
+
+        // ---- back to the hub for the form-controls demos (docs/forms.md) ----
+        await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
+        await Expect(Page.Locator("#fc-select-controlled")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Form controls page: every control in controlled (Value + OnChange) and bound (two-way) shape,
+        // each with a derived readout rendered OUTSIDE the control / Form. Each readout must update live
+        // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
+        // BsCheckboxGroup / BsMultiSelect) whose bound writes re-render the host via the binding owner.
+
+        // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
+        await Page.Locator("#fc-select-controlled").SelectOptionAsync("Blazor");
+        await Expect(Page.Locator("#fc-select-controlled-out")).ToContainTextAsync("Blazor",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#fc-select-bound").SelectOptionAsync("htmx");
+        await Expect(Page.Locator("#fc-select-bound-out")).ToContainTextAsync("htmx",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Input — bound streams per keystroke into a readout outside the Form.
+        await Page.Locator("#fc-input-bound").FillAsync("neo");
+        await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Submit-state children — the form's children are a function of whether a submit is in flight,
+        // so the button's own label is the assertion: "Saving…" while the (deliberately slow) handler
+        // runs, back to "Sign up" once it returns, with the readout outside the form showing what was
+        // saved. This is the browser half of the feature; the flag itself is unit-tested in FormTests.
+        await Page.Locator("#fss-input").FillAsync("ada");
+        await Page.Locator("#fss-submit").ClickAsync();
+        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Saving",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#fss-out")).ToContainTextAsync("ada",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // The BsRadioGroup / BsCheckboxGroup / BsMultiSelect walks that followed are gone with the
+        // controls themselves; docs/building-form-controls.md is the path for building one back.
+        // ---- validation subpage (docs/forms-validation.md) ----
+        await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
+        await AssertGuideDemosAsync(11, "forms-validation");
+
+        // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
+        // the async validator shows "Checking…" then "taken". (Attribute-specific messages and the
+        // latest-wins cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
+        await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
+        await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
+            .ToContainTextAsync("required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        var asyncForm = Page.Locator("form:has(#v3-username)");
+        await asyncForm.Locator("#v3-username").FillAsync("admin");
+        await asyncForm.Locator("#v3-username").BlurAsync();
+        await Expect(asyncForm.Locator(".validating-indicator"))
+            .ToContainTextAsync("Checking",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
+        await Expect(asyncForm.Locator(".text-danger"))
+            .ToContainTextAsync("taken",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+    }
+
+    protected async Task WalkStylingDataAndAppPagesAsync(ShowcaseJourneyOptions opts)
+    {
+        // Global (non-scoped) styles live in wwwroot/global.css, linked from App's <Head> — not in a
+        // scoped {Component}.css (there is no :global() opt-out). On WASM the App's <Head> <link>s are
+        // injected client-side after boot, so both the link and its computed effect may lag the first
+        // read — poll for each rather than asserting once.
+        await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // The brand palette is applied, and it is the SHARED one. --accent used to be a violet the
+        // showcase published on its own, asserted as one of two hard-coded hexes that tracked the theme
+        // toggle. Both are gone: the showcase draws from Rask.Ui's palette now, so --accent is an alias
+        // for --color-ui-brand and the useful claim is that the alias resolves to it — a hex would only
+        // pin whichever colour the kit happens to ship today, and would go red on a re-skin that is
+        // working perfectly.
+        //
+        // Both are read and compared in the browser so the comparison is of COMPUTED values, whatever
+        // spelling it uses for the colour. Non-empty is asserted too: two undefined custom properties
+        // both read as "" and would otherwise compare equal, which is exactly the "silently gone
+        // palette" this step exists to catch.
+        await Page.WaitForFunctionAsync(
+            "() => { const s = getComputedStyle(document.documentElement);"
+            + " const norm = n => s.getPropertyValue(n).replace(/\\s+/g, '').toLowerCase();"
+            + " const accent = norm('--accent'), brand = norm('--color-ui-brand');"
+            + " return accent.length > 0 && accent === brand; }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = 10_000 });
+
+        // The top bar's height is centralised in a single --nav-h custom property, and it has to be
+        // TRUE: the sticky sidebar's `top`, the mobile drawer's top padding and every guide heading's
+        // scroll-margin are all calc()'d from it, so a value that disagrees with the bar tucks content
+        // under the bar rather than clearing it.
+        //
+        // This used to pin the literal text "56px", which checked the wrong half. It stayed green while
+        // the bar rendered 61px underneath it — the drawer's filter box sat 5px under the bar it was
+        // meant to clear — and it would go red on a purely notational change from 56px to 3.5rem.
+        //
+        // Resolved through a probe element rather than read as text, and that is load-bearing twice
+        // over: a custom property's computed value is its TEXT, so parseFloat("4rem") is 4, which is
+        // what the `bounded` check below used to lean on and would have quietly loosened to nearly
+        // nothing the moment the unit changed.
+        var navMetrics = await Page.EvaluateAsync<string>(
+            """
+            () => {
+              const probe = document.createElement('div');
+              probe.style.cssText = 'position:absolute;visibility:hidden;height:var(--nav-h)';
+              document.body.appendChild(probe);
+              const declared = probe.getBoundingClientRect().height;
+              probe.remove();
+              const bar = document.querySelector('nav.app-navbar');
+              return JSON.stringify({ declared, measured: bar ? bar.getBoundingClientRect().height : -1 });
+            }
+            """);
+        var declaredNavH = JsonNumber(navMetrics, "declared");
+        var measuredNavH = JsonNumber(navMetrics, "measured");
+        Assert.True(declaredNavH > 0, $"--nav-h resolves to nothing: {navMetrics}");
+        Assert.True(Math.Abs(declaredNavH - measuredNavH) <= 1,
+            $"--nav-h says {declaredNavH}px and the top bar measures {measuredNavH}px. Everything "
+            + $"positioned under the bar is calc()'d from the first number: {navMetrics}");
+
+        // On desktop the sidebar's list (.side-nav-scroll) is an independent, viewport-bounded scroll
+        // region, so it scrolls inside itself rather than stretching the page — the "navbar too tall"
+        // fix. The filter above it is a pinned flex header (the body itself does not scroll — a
+        // sticky-in-flex child would not stick in Safari).
+        var navScroll = await Page.Locator(".side-nav .side-nav-scroll").First.EvaluateAsync<string>(
+            @"(el, navH) => {
+                const cs = getComputedStyle(el);
+                const body = getComputedStyle(el.closest('.side-nav'));
+                return JSON.stringify({
+                    overflowY: cs.overflowY,
+                    bodyOverflowY: body.overflowY,
+                    bounded: el.clientHeight <= window.innerHeight - navH + 1,
+                });
+            }", declaredNavH);
+        Assert.Contains("\"overflowY\":\"auto\"", navScroll);
+        // The body itself must not scroll — only the inner list does, so the filter stays pinned.
+        Assert.Contains("\"bodyOverflowY\":\"hidden\"", navScroll);
+        Assert.Contains("\"bounded\":true", navScroll);
+
+        // HttpClient + DI, file upload and file download moved to the HTTP & files guide
+        // (WalkHttpAndFilesGuideAsync).
+
+        // Todos: full CRUD + URL-driven dialog. Add, edit, toggle, delete.
+        await SideAsync("Todos", "Todos");
+        await Expect(Page.Locator("#todo-list li")).ToHaveCountAsync(2,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.Locator("button:has-text('New todo')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
+        // The dialog opens centered over its own backdrop; clicking the backdrop outside it cancels.
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Expect(Page.Locator(".dialog-backdrop")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        // Escape closes. A non-modal <dialog> fires no `cancel` event, so the page reads the key from a
+        // keydown handler ON THE DIALOG and routes back through the same cancel the backdrop uses — no
+        // client script. Focus has to be inside the dialog for that handler to hear the key, which any
+        // interaction gives it: `autofocus` is rendered but browsers only honour it for elements present
+        // at parse time, not ones the live diff inserts. Click the field first, as a user would.
+        await Page.Locator("dialog[open] #todo-title").ClickAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
+        // Reopen, then dismiss via the Cancel button (BsModal's backdrop/close-button dismiss mechanics are
+        // covered by the Bootstrap modal demo E2E; here we just need a reliable route-driven close).
+        await Page.Locator("button:has-text('New todo')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Page.Locator("dialog[open] button:has-text('Cancel')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
+        // Reopen for the rest of the flow.
+        await Page.Locator("button:has-text('New todo')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
+        // Empty submit → [Required].
+        await Page.Locator("button:has-text('Add')").ClickAsync();
+        await Expect(Page.Locator(".field-error")).ToContainTextAsync("Title is required",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Page.Locator("#todo-title").FillAsync("Wire up reconnect");
+        await Page.Locator("button:has-text('Add')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#todo-list li")).ToHaveCountAsync(3,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // Toggle the first item's checkbox → completed class.
+        var firstTitle = await Page.Locator("#todo-list li .todo-title").First.InnerTextAsync();
+        await Page.Locator("#todo-list li").First.Locator("input[type='checkbox']").CheckAsync();
+        await Expect(Page.Locator(".todo-title.completed", new PageLocatorOptions { HasTextString = firstTitle }))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        // Delete one row.
+        var rowsBefore = await Page.Locator("#todo-list li").CountAsync();
+        await Page.Locator("button[aria-label^='Delete ']").First.ClickAsync();
+        await Expect(Page.Locator("#todo-list li")).ToHaveCountAsync(rowsBefore - 1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // Page-source CodeSample card is present.
+        await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await TestBrowserApisAsync(opts);
+    }
+
+    // Browser APIs guide: the 27 typed wrappers folded into docs/browser-apis.md. Browser APIs are
+    // device/permission-dependent and mostly no-op headless, and co-mounting 27 live JS-interop demos on
+    // one page contends for the shared JS channel — so the guide embeds each wrapper as an inline *code
+    // sample* (highlighted source, no auto-mounted live result). Verify the guide renders those samples;
+    // per-wrapper behaviour is covered by the demo unit tests and the WASM PWA/hardware showcase.
+    protected async Task TestBrowserApisAsync(ShowcaseJourneyOptions opts)
+    {
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
+        var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
+
+        // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
+        // enumerable is materialised at render time so each demo's component instance is reconciled and
+        // keeps its state across renders — see Component's IEnumerable<Component> indexer). Open the guide,
+        // wait for the LAST demo's control so no interaction races hydration, then drive a representative
+        // set: one-shot reads, storage/clipboard round-trips, and JS→C# push. Exhaustive per-wrapper
+        // behaviour is covered by the demo unit tests.
+        // The demos all live on the reference subpage — the hub is prose and carries none, so walking it
+        // would assert nothing (docs/browser-apis.md has zero `<!-- demo: -->` markers).
+        await SideAsync("Browser APIs — reference & demos", "reference & live demos", "main .markdown-body h1");
+        await AssertGuideDemosAsync(36, "browser-apis-reference");
+        await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Storage — localStorage round-trip via IBrowserStorage.
+        await Page.Locator("#storage-input").FillAsync("persist-me");
+        await Page.Locator("#storage-set").ClickAsync();
+        await Expect(Page.Locator("#storage-status")).ToContainTextAsync("Stored: persist-me", contains);
+        await Page.Locator("#storage-read").ClickAsync();
+        await Expect(Page.Locator("#storage-read-value")).ToHaveTextAsync("persist-me",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Cookies — set then read back via ICookies.
+        await Page.Locator("#cookie-input").FillAsync("choco");
+        await Page.Locator("#cookie-set").ClickAsync();
+        await Page.Locator("#cookie-get").ClickAsync();
+        await Expect(Page.Locator("#cookie-read-value")).ToHaveTextAsync("choco",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Clipboard — copy then read back (granted on the context in InitializeAsync).
+        await Page.Locator("#clipboard-copy").ClickAsync();
+        await Page.Locator("#clipboard-paste").ClickAsync();
+        await Expect(Page.Locator("#clipboard-read-value")).ToContainTextAsync("Copied from Rask!", contains);
+
+        // Geolocation — one-shot position (fixed fix granted on the context).
+        await Page.Locator("#geo-get").ClickAsync();
+        await Expect(Page.Locator("#geo-value")).ToContainTextAsync("lat 51.5", contains);
+
+        // Browser info / media queries / screen info — one-shot property reads populate their readouts.
+        await Page.Locator("#nav-read").ClickAsync();
+        await Expect(Page.Locator("#nav-value")).ToContainTextAsync("online:", contains);
+        await Page.Locator("#media-read").ClickAsync();
+        await Expect(Page.Locator("#media-value")).ToContainTextAsync("prefersDark:", contains);
+        await Page.Locator("#screen-read").ClickAsync();
+        await Expect(Page.Locator("#screen-value")).ToContainTextAsync("DPR", contains);
+
+        // Vibration / speech are device-dependent (no-op headless) — smoke-check the control renders.
+        await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
+        await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
+        // Speech recognition needs a real microphone (and Chromium's cloud recognizer) — can't round-trip
+        // headless, so smoke-check the control renders.
+        await Expect(Page.Locator("#speech-recognize-start")).ToBeVisibleAsync(visible);
+
+        // Broadcast channel — full JS→C# push round-trip (BroadcastChannel.onmessage → [JSInvokable] →
+        // handler → StateHasChanged), on every host including trimmed WASM.
+        await Page.Locator("#bc-send").ClickAsync();
+        await Expect(Page.Locator("#bc-log")).ToContainTextAsync("Message #1", contains);
+
+        // Web Locks — a full C#→JS→C# round-trip that runs headlessly (navigator.locks needs no permission
+        // or gesture): TryRequestAsync acquires the free lock, runs the callback, and releases, all through
+        // the __raskLocks helper under a C#-minted id.
+        await Page.Locator("#locks-try").ClickAsync();
+        await Expect(Page.Locator("#locks-status")).ToContainTextAsync("acquired", contains);
+
+        // WebRTC — the whole peer-to-peer round trip, headless and with no network: two RTCPeerConnections
+        // in one page exchange a real offer/answer, gather host candidates (no STUN configured, and none
+        // needed on loopback), connect, and carry a message over a real RTCDataChannel. The received text
+        // arriving proves the batched push path end to end — JS buffer → [JSInvokable] → C# callback.
+        // WebRTC — asserts the wrapper's full round trip, deliberately stopping short of a completed peer
+        // connection. Creating the peers runs createOffer/createAnswer/setLocal/setRemote through
+        // IJSRuntime, and the candidate count is the batch the browser PUSHED BACK into C# through
+        // WebRtcInterop — so a non-zero count proves gather → coalesce → [JSInvokable] → callback end to
+        // end, in a real browser, on both hosts.
+        //
+        // What it deliberately does NOT assert is a message crossing the channel. That needs ICE to
+        // actually connect, which needs UDP the gate's browser doesn't have (its console shows
+        // net::ERR_FAILED for outbound requests) — two local peers here reach "connecting" and then
+        // "failed". Asserting connectivity would make this test a property of the machine's network
+        // rather than of the framework. Message decoding, batching, dropped-message counting and
+        // per-connection routing are covered deterministically in Rask.Core.Tests.Browser.WebRtcTests.
+        await Page.Locator("#rtc-connect").ClickAsync();
+        await Expect(Page.Locator("#rtc-candidates")).ToHaveTextAsync(
+            new Regex("^[1-9][0-9]*$"), new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Signaling — unlike the peer connection above, this one runs the whole way: the relay is a plain
+        // WebSocket, so it needs none of the UDP the harness lacks. Joining the same room twice exercises
+        // the JS client, the C# wrapper, and the server relay together — the second connection is told who
+        // was already there, and a payload addressed to the first peer comes out at the first peer.
+        if (opts.SignalingRelay)
+        {
+            await Page.Locator("#signal-join").ClickAsync();
+            await Expect(Page.Locator("#signal-log")).ToContainTextAsync("second joined", contains);
+            await Expect(Page.Locator("#signal-log")).ToContainTextAsync("saw 1 peer(s)", contains);
+            await Page.Locator("#signal-send").ClickAsync();
+            await Expect(Page.Locator("#signal-log"))
+                .ToContainTextAsync("first received \"payload #1\"", contains);
+        }
+
+        // Battery — one-shot read of navigator.getBattery (headless Chromium provides a mock manager, so
+        // GetStatusAsync resolves rather than returning null); the read label flips to "read".
+        //
+        // Asserted on #battery-status, which ONLY the read writes. The demo used to share one label with
+        // the watch subscription, so a push arriving after this click replaced "read" with "live" and
+        // never restored it — an intermittent red on the longest test in the gate (#661).
+        await Page.Locator("#battery-read").ClickAsync();
+        await Expect(Page.Locator("#battery-status")).ToContainTextAsync("read", contains);
+
+        // Intersection observer — another push: scroll the target in and the browser pushes the change.
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
+        await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
+
+        // Gesture bridge (GestureBridgeDemo) — the declarative triggers stamp a data-rask-gesture attribute
+        // that runs an activation-gated API inside the click, so they work on this Server host too. The
+        // gestures themselves need a real display / permission and can't fire headlessly (same ceiling as
+        // fullscreen/eyedropper), so assert the wiring is present, not the effect.
+        var gestureAttr = new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 };
+        await Expect(Page.Locator("#orientation-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("orientation\\.lock"), gestureAttr);
+        await Expect(Page.Locator("#install-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("install\\.prompt"), gestureAttr);
+        await Expect(Page.Locator("#camera-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("media\\.start"), gestureAttr);
+        // The capture trigger now posts a result back (the stream id for OnStream), so it must carry a
+        // callback id — a fire-and-forget bundle would leave OnStream permanently silent.
+        await Expect(Page.Locator("#camera-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("\"rid\":[0-9]+"), gestureAttr);
+        // Stop stays disabled until a stream exists. Starting one needs a camera permission the harness
+        // can't grant, so this asserts the gating renders, not the stop itself.
+        await Expect(Page.Locator("#camera-stop-btn")).ToBeDisabledAsync(
+            new LocatorAssertionsToBeDisabledOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#pip-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("pip\\.request"), gestureAttr);
+    }
+
+    protected async Task TestInSessionNotFoundAsync()
+    {
+        await Page.EvaluateAsync(@"() => {
+            history.pushState({ rask: true }, '', '/in-session-missing');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        }");
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Page not found",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator(".side-nav a.side-nav-link.active")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // "Back to guides" is an in-session nav to "/" — returns us to a known page so the journey
+        // can continue, and proves recovery from the not-found state.
+        await Page.Locator("main button:has-text(\"Back to guides\")").ClickAsync();
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Guides",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+    }
+
+    // ---- unusual user activity -----------------------------------------------------------------
+
+    protected async Task RunUnusualActivityAsync(ShowcaseJourneyOptions opts)
+    {
+        // Back / forward: history navigation must preserve the SPA sentinel and resolve both ends.
+        await SideAsync("Todos", "Todos");
+        await Page.GoBackAsync();
+        Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
+        await Page.GoForwardAsync();
+        await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // The [QueryParam]-driven data table that stood here was the BsDataGrid showcase at /table.
+        // It went with Rask.Bootstrap, and the route is gone with it.
+
+        // The HTTP demo reached by a HARD navigation, on every host. This is what exercises the WASM
+        // base-address fix: the relative data/posts-1.json fetch must resolve against the app root from
+        // the two-segment /guides/http-and-files route, not against /guides/.
+        //
+        // It lives HERE rather than in WalkHttpAndFilesGuideAsync because that walk is asserted to stay
+        // inside the SPA — window.__raskSentinel must survive it — and a GotoAsync reboots the app and
+        // wipes the sentinel. It used to ride along inside the Slow3g step instead, which is where it
+        // became unrunnable on WASM; see the note there.
+        await Page.GotoAsync(Docs + "/guides/http-and-files");
+        await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        if (opts.DeepLink)
+        {
+            // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)
+            // and re-emit server-highlighted spans. Todos is the page used here now: its only
+            // language-code block is its own highlighted page source, so every match must carry spans.
+            await Page.GotoAsync(Docs + "/todos");
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+            await Page.ReloadAsync();
+            Assert.Equal(0, await Page.Locator(".rask-error-boundary h1:has-text(\"Something went wrong\")").CountAsync());
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Todos",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+            await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
+            var total = await Page.Locator("pre code[class*='language-']").CountAsync();
+            var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
+            Assert.True(total > 0 && total == highlighted,
+                $"/todos after refresh: {highlighted}/{total} highlighted.");
+
+            // Guide prose code fences are syntax-highlighted server-side (Markdig has no highlighter, so
+            // Markdown.HighlightCodeBlocks runs ColorCode) — a fresh load must carry token spans.
+            await Page.GotoAsync(Docs + "/guides/getting-started");
+            await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            await Expect(Page.Locator("main .markdown-body pre code[class*='language-']:has(span[class])").First)
+                .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            // Deep link with a #fragment: on a hard load, GuideChrome.scrollToHash must scroll to the
+            // section (not sit at the top). Use a real late-heading id so the anchor always exists.
+            var deepAnchor = await Page.Locator(".markdown-body :is(h2, h3)[id]").Last.GetAttributeAsync("id");
+            Assert.False(string.IsNullOrEmpty(deepAnchor), "no anchored heading to deep-link to");
+            await Page.GotoAsync($"{Docs}/guides/getting-started#{deepAnchor}");
+            await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            await Page.WaitForFunctionAsync("() => window.scrollY > 0",
+                null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+
+            // A deep link to an unknown route renders the [NotFound] page. NOT inside the layout shell:
+            // the catch-all is top-level, because the showcase layout is rooted at /docs and a nested
+            // catch-all would only answer inside it — leaving every unknown URL at the site root with no
+            // match at all. So this page has its own <main> and, deliberately, no sidebar.
+            await Page.GotoAsync("/this-route-definitely-does-not-exist");
+            await Expect(Page.Locator("main h1")).ToHaveTextAsync("Page not found",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+            await Expect(Page.Locator(".side-nav")).ToHaveCountAsync(0,
+                new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+            // Back to the showcase, because the steps after this one drive the sidebar and the 404 has
+            // none. It used to be unnecessary — the catch-all rendered inside the layout, so the sidebar
+            // was still on screen.
+            await NavigateToAsync(Docs);
+            await Expect(Page.Locator("main h1")).ToContainTextAsync("Guides",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        }
+
+        if (opts.ReloadShellBoots)
+        {
+            // WasmAppHost serves only /index.html; a reload there must always boot the runtime.
+            await Page.GotoAsync("/index.html");
+            await Page.ReloadAsync();
+            await Expect(Page.Locator("main h1"))
+                .ToContainTextAsync("Guides",
+                    new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+        }
+
+        if (opts.Slow3g)
+        {
+            // Emulate a slow link via Chromium CDP and confirm the HTTP demo still settles on it. Then
+            // restore full speed so later steps aren't penalized.
+            //
+            // NAVIGATED CLIENT-SIDE, deliberately. This step used to Page.GotoAsync the route while
+            // throttled, which on a WASM host means re-downloading the whole .NET runtime at
+            // 50 KB/s — 71 MB of _framework, about twenty-four minutes, against a sixty-second
+            // assertion. It could only ever pass when the browser happened to serve the boot from
+            // cache, which made the journey a coin flip rather than a test (#972). The hard-navigation
+            // half of what it covered — the base-address fix on a two-segment route — now lives
+            // unthrottled in WalkHttpAndFilesGuideAsync, where it holds on every host.
+            var cdp = await Page.Context.NewCDPSessionAsync(Page);
+            await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
+            {
+                ["offline"] = false,
+                ["latency"] = 400,
+                ["downloadThroughput"] = 50 * 1024,
+                ["uploadThroughput"] = 50 * 1024,
+            });
+            await SideAsync("HTTP & files", "HTTP & files", "main .markdown-body h1");
+            await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
+
+            if (opts.OfflineReconnect)
+            {
+                // Server only: on a high-latency link a handler round-trip should surface the
+                // slow-link pending bar (it appears past the ~300ms threshold) and then clear
+                // when the ack/render lands. 1.5s latency keeps the bar up long enough to assert
+                // without racing the reply.
+                await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
+                {
+                    ["offline"] = false,
+                    ["latency"] = 1500,
+                    ["downloadThroughput"] = 50 * 1024,
+                    ["uploadThroughput"] = 50 * 1024,
+                });
+                await Page.GotoAsync(Docs + "/guides/composition-callbacks-context");
+                var bump = Page.Locator(".guide-demo .sample-result-body button:has-text('Clicks:')").First;
+                await Expect(bump).ToBeVisibleAsync(
+                    new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
+                await bump.ClickAsync();
+                await Expect(Page.Locator(".rask-pending[data-show]")).ToBeVisibleAsync(
+                    new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+                await Expect(Page.Locator(".rask-pending[data-show]")).ToBeHiddenAsync(
+                    new LocatorAssertionsToBeHiddenOptions { Timeout = 15_000 });
+            }
+            else
+            {
+                // WASM only: the boot shell must carry the download-progress markup that main.js
+                // drives via onDownloadResourceProgress. A full throttled re-boot is impractical
+                // (multi-MB at 50 KB/s), so assert the shipped shell rather than the live fill.
+                var shell = await Page.APIRequest.GetAsync("/index.html");
+                Assert.Contains("rask-boot__progress", await shell.TextAsync());
+            }
+
+            await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
+            {
+                ["offline"] = false,
+                ["latency"] = 0,
+                ["downloadThroughput"] = -1,
+                ["uploadThroughput"] = -1,
+            });
+        }
+
+        if (opts.OfflineReconnect)
+        {
+            // Drop and restore the WebSocket; server-held state must survive the reconnect. The events
+            // click-counter demo lives on the Composition guide's callbacks & context subpage (its
+            // standalone /events page was folded in, then moved here by the hub/subpage split).
+            await Page.GotoAsync(Docs + "/guides/composition-callbacks-context");
+            await Expect(Page.Locator("main .markdown-body h1")).ToContainTextAsync("callbacks & context",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+            var clicks = Page.Locator(".guide-demo .sample-result-body button:has-text('Clicks:')").First;
+            await clicks.ClickAsync();
+            await clicks.ClickAsync();
+            await Expect(clicks).ToContainTextAsync("Clicks: 2",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+            // An *uncontrolled* input's value is client-owned (the framework renders no `value` attribute
+            // for it). A reconnect forces a full-HTML resend that morphs the whole document — and that
+            // morph must NOT reset the uncontrolled input to "" (regression: it did, wiping any in-progress
+            // typed value on every full reply — scoped-CSS delivery, reconnect, …). The events-form demo's
+            // name field is uncontrolled; type into it, then reconnect and assert the value survived.
+            var uncontrolled = Page.Locator(".guide-demo")
+                .Filter(new LocatorFilterOptions { HasText = "Last submitted:" }).Locator("input[name=name]");
+            await uncontrolled.FillAsync("survive-the-reconnect");
+            await Page.Context.SetOfflineAsync(true);
+            await Page.Context.SetOfflineAsync(false);
+            await clicks.ClickAsync();
+            await Expect(clicks).ToContainTextAsync("Clicks: 3",
+                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 }); // server-held state survived
+            await Expect(uncontrolled).ToHaveValueAsync("survive-the-reconnect",
+                new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });   // client-owned value survived the resync morph
+        }
+
+        // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
+        var baseline = await SampleJsHeapAsync();
+        var labels = new[] { "Composition", "Getting started", "JavaScript interop", "Routing", "Browser APIs" };
+        for (var i = 0; i < 6; i++)
+        {
+            foreach (var label in labels)
+            {
+                await ClickSidebar(label);
+                await Page.WaitForTimeoutAsync(120);
+            }
+        }
+        await Page.EvaluateAsync("() => new Promise(r => { if (window.gc) { window.gc(); } setTimeout(r, 200); })");
+        var after = await SampleJsHeapAsync();
+        Assert.True(after > 0, $"no heap reading. baseline={baseline} after={after}");
+        Assert.True(after < (baseline * 3) + 25_000_000 && after < 250_000_000,
+            $"JS heap grew unexpectedly. baseline={baseline:N0} after={after:N0}.");
+
+        await AssertNavigationScrollAsync();
+    }
+
+    // Scroll behaviour on forward navigation. The runtime resets window scroll to the top on a
+    // "push" (a sidebar Navigator.NavigateTo or a data-rask-nav link click), and when the link
+    // carried a "#fragment" it scrolls to that element instead. Both transports share the JS
+    // runtime path (rask.js / rask.wasm.js applyNavScroll), so every host exercises it here.
+    protected async Task AssertNavigationScrollAsync()
+    {
+        // --- a forward nav resets scroll to the top ---------------------------------------------
+        // Any page reliably taller than the viewport will do; a guide is. (The data table that used to
+        // serve this purpose was the BsDataGrid showcase and went with Rask.Bootstrap.) Scroll to the
+        // bottom and confirm the document actually moved before navigating away.
+        await Page.GotoAsync(Docs + "/guides/getting-started");
+        await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await Page.EvaluateAsync("() => window.scrollTo(0, document.documentElement.scrollHeight)");
+        await Page.WaitForFunctionAsync("() => window.scrollY > 0",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+
+        await SideAsync("Todos", "Todos");
+        // The new page must land at the top (the reset can lag a CSS-deferred body commit, so poll).
+        await Page.WaitForFunctionAsync("() => Math.round(window.scrollY) === 0",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+
+        // --- a data-rask-nav link with a #fragment scrolls to that element ----------------------
+        // The showcase navigates via sidebar buttons, so inject a real NavLink-style anchor to drive
+        // the click-interceptor + fragment path. The Routing guide is a long page and its last section
+        // (#not-found-and-auth-gating, an AutoIdentifiers heading anchor) sits well below the fold, so
+        // reaching it must move the scroll.
+        await SideAsync("All guides", "Guides");
+        await Page.EvaluateAsync($@"() => {{
+            const a = document.createElement('a');
+            a.id = '__rask_anchor_probe';
+            a.setAttribute('data-rask-nav', '');
+            a.setAttribute('href', '{Docs}/guides/routing#not-found-and-auth-gating');
+            a.textContent = 'probe';
+            document.querySelector('main').appendChild(a);
+        }}");
+        await Page.Locator("#__rask_anchor_probe").ClickAsync();
+        await Expect(Page.Locator("main .markdown-body h1")).ToHaveTextAsync("Routing",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        // The fragment is preserved in the pushed URL (it never reaches the server, so the client
+        // re-appends it) …
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/guides/routing#not-found-and-auth-gating$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        // … and the target is scrolled into view (top within the viewport) with the page actually
+        // moved to get there (proving it was below the fold, not a no-op).
+        await Page.WaitForFunctionAsync(@"() => {
+            const el = document.getElementById('not-found-and-auth-gating');
+            if (!el) return false;
+            const r = el.getBoundingClientRect();
+            return window.scrollY > 0 && r.top >= -2 && r.top < window.innerHeight;
+        }", null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+    }
+
+    // ---- low-level helpers (shared by the journey) ---------------------------------------------
+
+    private static int ExtractRenderCount(string? text) =>
+        int.Parse(Regex.Match(text ?? "0", @"\d+").Value);
+
+    protected async Task HtmlDragDropAsync(string sourceSelector, string targetSelector)
+    {
+        var source = Page.Locator(sourceSelector);
+        var target = Page.Locator(targetSelector);
+        await source.ScrollIntoViewIfNeededAsync();
+        var dataTransfer = await Page.EvaluateHandleAsync("() => new DataTransfer()");
+        var init = new Dictionary<string, object>
+        {
+            ["dataTransfer"] = dataTransfer,
+            ["bubbles"] = true,
+            ["cancelable"] = true,
+        };
+        await source.DispatchEventAsync("dragstart", init);
+        await target.DispatchEventAsync("dragover", init);
+        await target.DispatchEventAsync("drop", init);
+        await source.DispatchEventAsync("dragend", init);
+    }
+
+    protected async Task ClearJsRuntimeStorageAsync()
+    {
+        try
+        {
+            await Page.EvaluateAsync(
+                "() => { try { sessionStorage.removeItem('rask.jsruntime.demo'); } catch (_) {} }");
+        }
+        catch
+        {
+            // No page loaded yet — ignore.
+        }
+    }
+
+    protected async Task WaitForHighlightedSpansAsync(int timeoutMs)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < deadline)
+        {
+            var settled = await Page.EvaluateAsync<bool>(
+                "() => { const all = Array.from(document.querySelectorAll('pre code[class*=\"language-\"]')); " +
+                "return all.length > 0 && all.every(c => c.querySelector('span[class]') !== null); }");
+            if (settled)
+            {
+                return;
+            }
+
+            await Task.Delay(150);
+        }
+    }
+
+    private Task<long> SampleJsHeapAsync() => Page.EvaluateAsync<long>(
+        "() => (performance.memory && performance.memory.usedJSHeapSize) || 0");
+}

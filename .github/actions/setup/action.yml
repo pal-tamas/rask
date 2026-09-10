@@ -73,5 +73,5 @@ runs:
       uses: actions/cache@v6
       with:
         path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ hashFiles('tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj') }}
+        key: playwright-${{ runner.os }}-${{ hashFiles('tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj') }}
         restore-keys: playwright-${{ runner.os }}-

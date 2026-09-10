@@ -124,9 +124,17 @@
          companion resolves through this same line rather than needing one of its own.
 
          A missing entry here does not read as a missing property — it reads as several hundred CS0246s
-         in a tree that was only moved, which is a long way from the one line that caused it. -->
+         in a tree that was only moved, which is a long way from the one line that caused it.
+
+         NOT the E2E suite, and that exclusion is the whole reason this is not a bare prefix any more.
+         The browser suite was Rask.Examples.E2E.Tests until every project took its area's name;
+         renaming it to Rask.Site.E2E.Tests made it match this prefix for the first time, and it
+         promptly failed to compile with CS0234 on Rask.Core, Rask.Cqrs and Rask.Validation —
+         assemblies it does not reference and should not, because it drives a PUBLISHED BUNDLE over
+         HTTP and never renders a C# component. A prefix condition is a name-shaped assumption, and
+         this is what it costs when the names change. -->
     <_RaskInRepoImplicitUsings>false</_RaskInRepoImplicitUsings>
-    <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Site')) ">true</_RaskInRepoImplicitUsings>
+    <_RaskInRepoImplicitUsings Condition=" $(_RaskUsingsName.StartsWith('Rask.Site')) AND !$(_RaskUsingsName.Contains('.E2E')) ">true</_RaskInRepoImplicitUsings>
 
     <!--
       FluentValidation and Rask.Cqrs each inject their own global using (imported below). A downstream

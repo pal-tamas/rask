@@ -12,7 +12,7 @@ or send a pull request (fork → branch → PR). Review and merge are handled by
 ## Prerequisites
 
 - .NET 10 SDK (`net10.0`; `net10.0-browser` for the WASM projects).
-- For the E2E suite: Playwright browsers (`pwsh tests/Rask.Examples.E2E.Tests/bin/.../playwright.ps1 install`).
+- For the E2E suite: Playwright browsers (`pwsh tests/Rask.Site.E2E.Tests/bin/.../playwright.ps1 install`).
 
 ## Build & test loop
 
@@ -21,7 +21,7 @@ dotnet build Rask.slnx
 
 # The inner loop. Bare `dotnet test` pulls in the Playwright browser suite, which needs published
 # samples and takes minutes — this is what you want while you work:
-dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Examples.E2E"
+dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Site.E2E"
 
 # A single class:
 dotnet test Rask.slnx --filter FullyQualifiedName~SessionUploadStoreTests
@@ -115,7 +115,7 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   those DLLs no source generator runs and the routing tests fail with CS1503. Run `dotnet format Rask.slnx`
   by hand at least once after a Release-only build and you'll see the same thing — build the generators in
   Debug first. Bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`.
-- **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Examples.E2E.Tests`, Playwright)
+- **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Site.E2E.Tests`, Playwright)
   is not part of the CI pipeline. Run it with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for
   you on `git push`; bypass a docs-only push with `git push --no-verify` or `RASK_SKIP_E2E=1`).
 - **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR descriptions.

@@ -125,12 +125,24 @@ done
 # The reason is always PRINTED: a gate that silently narrows itself is the failure mode this
 # repository has paid for most often, so a scoped run says what it scoped to and a full run says why
 # it could not.
+#
+# Two callers, two ways of asking "what changed":
+#   * pre-commit has an index, so it scopes to the STAGED files.
+#   * pre-push has no index — the commits already exist — so it sets RASK_SCOPE_RANGE to a git range
+#     (origin/main...HEAD) and the whole push is scoped as one unit. Scoping a push to only its tip
+#     commit would be unsound: a file changed in an earlier commit of the same push would go untested.
 scope_projects=""
 if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
-  scope_changed="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep . || true)"
+  if [ -n "${RASK_SCOPE_RANGE:-}" ]; then
+    scope_changed="$(git diff --name-only --diff-filter=ACMR "$RASK_SCOPE_RANGE" | grep . || true)"
+    scope_source="the push range $RASK_SCOPE_RANGE"
+  else
+    scope_changed="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep . || true)"
+    scope_source="the staged change"
+  fi
 
   if [ -z "$scope_changed" ]; then
-    echo "==> Scope: nothing staged — running the full solution."
+    echo "==> Scope: nothing changed in $scope_source — running the full solution."
   else
     scope_out="$(printf '%s\n' "$scope_changed" | python3 "$root/scripts/lib/affected_projects.py" "$root")"
 
@@ -368,7 +380,10 @@ if [ -n "$scope_projects" ]; then
   # per project so each assembly keeps its own testhost and therefore its own runtimeconfig.json —
   # the MetadataUpdaterSupport point above applies here exactly as it does to the solution run, so
   # this must never collapse into one vstest invocation over several DLLs.
-  scope_tests="$(printf '%s\n' $scope_projects | grep -E '\.Tests/[^/]+\.csproj$' | grep -v 'Rask\.Examples\.E2E' || true)"
+  # `*.Tests` selects the test projects; `*.E2E.Tests` is then taken back out, because that suffix
+  # matches BOTH and an end-to-end suite is not part of a commit-time gate. The benchmarks need no
+  # exclusion of their own — tests/Rask.Benchmarks* does not end in `.Tests` at all.
+  scope_tests="$(printf '%s\n' $scope_projects | grep -E '\.Tests/[^/]+\.csproj$' | grep -v '\.E2E\.Tests/' || true)"
 
   if [ -z "$scope_tests" ]; then
     echo "==> No test project is reachable from the staged change — nothing to run."
@@ -403,8 +418,15 @@ if [ -n "$scope_projects" ]; then
     done
   fi
 else
+  # Excluded by the PROJECT-SHAPED suffix, not by one suite's name. Every end-to-end suite lives in a
+  # `*.E2E.Tests` project and therefore a `*.E2E.Tests.*` namespace, so this one pattern covers all of
+  # them — Rask.Site.E2E.Tests, Rask.Cli.E2E.Tests, Rask.Meta.Hosting.E2E.Tests — and covers the next
+  # one without anybody remembering to widen it. Naming a single suite here is how a newly-added E2E
+  # project silently starts running inside the unit gate, which is exactly what
+  # Rask.Meta.Hosting's publish gate did: it had no guard and no exclusion, and cost the unit gate
+  # 14.9s of `dotnet publish` on every commit.
   dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
-    --filter "FullyQualifiedName!~Rask.Examples.E2E$tsc_filter" \
+    --filter "FullyQualifiedName!~.E2E.Tests.$tsc_filter" \
     --blame-crash \
     --results-directory "$root/artifacts/test-blame" \
     --logger "console;verbosity=normal"

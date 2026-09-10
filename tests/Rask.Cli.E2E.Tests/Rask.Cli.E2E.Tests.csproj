@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The CLI's END-TO-END gate: the tests that scaffold a real project with `rask new`, then build,
+    publish or deploy it for real. They are separated from Rask.Cli.Tests because they are a different
+    kind of test with a different cost — one runs in milliseconds against a string, the other spends
+    minutes on `dotnet publish` and containers — and mixing them meant the only thing telling them
+    apart was a class-name suffix that scripts/run-cli-build-e2e.sh had to filter on.
+
+    They stay ENV-GUARDED as they were: each skips itself unless its gate variable is set, so a plain
+    solution test run does not start building projects. The project boundary is what makes the gate
+    selectable; the guards are what keep it from running by accident.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Spectre.Console.Testing"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="Xunit.SkippableFact"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Cli"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Cli\Rask.Cli.csproj"/>
+    <!-- Same reason as Rask.Cli.Tests: AddRask's optional parameters are typed in Rask.Core, and the
+         deploy ladder is checked against the options AddRask actually produces. -->
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Source-linked rather than duplicated, and they stay OWNED by Rask.Cli.Tests because the unit
+         tests are their main consumer: CliBuildE2E.FeedPackages/FindRepoRoot and DeployE2E.RunAsync
+         are used by eight files over there. They are shared infrastructure that happens to be named
+         after the gate it was written for, not tests themselves — neither declares a [Fact]. -->
+    <Compile Include="..\Rask.Cli.Tests\CliBuildE2E.cs" Link="CliBuildE2E.cs"/>
+    <Compile Include="..\Rask.Cli.Tests\RepoPins.cs" Link="RepoPins.cs"/>
+    <Compile Include="..\Rask.Cli.Tests\DeployE2E.cs" Link="DeployE2E.cs"/>
+    <Compile Include="..\Rask.Cli.Tests\DeployHostFixture.cs" Link="DeployHostFixture.cs"/>
+    <Compile Include="..\Rask.Cli.Tests\TestDoubles.cs" Link="TestDoubles.cs"/>
+    <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <Using Include="Rask.TestFiles"/>
+    <!-- The linked files above declare namespace Rask.Cli.Tests; the tests here are Rask.Cli.E2E.Tests. -->
+    <Using Include="Rask.Cli.Tests"/>
+  </ItemGroup>
+
+</Project>

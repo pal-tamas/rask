@@ -17,9 +17,13 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 
 Standing rules: do your best every change, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E
-only when unreachable); E2E for every `src/Rask.Site` change — **tests run locally, not in CI**: `dotnet
-format` + unit via `scripts/run-unit-local.sh` (enforced by `.githooks/pre-commit`), browser E2E via
-`scripts/run-e2e-local.sh` (enforced by `.githooks/pre-push`); benchmark every framework-code change;
+only when unreachable); E2E for every `src/Rask.Site` change — **tests run locally, not in CI**.
+**BOTH HOOKS ARE HELD TO A HARD ONE-MINUTE BUDGET**, at any scope: `.githooks/pre-commit` and
+`.githooks/pre-push` each run `scripts/run-unit-local.sh` scoped to what changed (staged files /
+`origin/main...HEAD`). When a gate goes over budget the answer is to **make the tests faster, never to
+skip or narrow a gate** — a slow gate beats a lying one. Everything that could not fit runs BY HAND:
+`scripts/run-all-gates.sh` (browser E2E, CLI build, watch, deploy, meta publish, installer).
+**Benchmarks run ONLY when you ask** — `scripts/run-benchmarks-local.sh`, in no hook and no CI;
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
 `scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
 **user-facing change → update `src/Rask.Site` + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
@@ -76,7 +80,7 @@ is the one commit that skips the gate.
 ## Commands
 ```bash
 dotnet build Rask.slnx
-dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Examples.E2E"   # fast inner loop
+dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Site.E2E"   # fast inner loop
 dotnet test Rask.slnx --filter FullyQualifiedName~ATests                 # one class
 dotnet run --project src/Rask.Site
 ```

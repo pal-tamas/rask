@@ -54,6 +54,43 @@ them until tagged releases begin.
   the browser E2E and benchmark gates. The trade is "every commit proves the whole tree" for "every
   push does".
 
+- **Both git hooks are now held to a hard one-minute budget, and the heavy gates moved out from under
+  them.** `pre-commit` and `pre-push` each run the unit suite scoped to what changed — the staged files
+  and `origin/main...HEAD` respectively. A typical commit or push finishes in **~15-55s**; a change
+  that touches a repo-root import, the solution or a hook still falls back to the whole solution.
+
+  What no longer runs automatically, and where it went. All of these are now **run by hand** via the
+  new `scripts/run-all-gates.sh`: the browser E2E journeys, the CLI build gate, the watch hot-reload
+  gate, the deploy gate, the new meta publish gate and the installer gate. **Benchmarks run only when
+  you ask for them** — `scripts/run-benchmarks-local.sh`, in no hook and in no CI workflow.
+
+  Be clear about the cost: nothing proves a browser journey before code reaches main any more. The
+  browser suite cannot fit in a minute — its first step is `dotnet publish src/Rask.Site -c Release`,
+  a WASM bundle, before Chromium even opens. `pre-push` prints what it did not run on every push, so
+  the gap is stated rather than discovered. Run `scripts/run-all-gates.sh` before a release.
+
+- **The end-to-end tests live in their own `*.E2E.Tests` projects.** `tests/Rask.Cli.E2E.Tests` (ten
+  build/deploy/watch suites lifted out of `Rask.Cli.Tests`), `tests/Rask.Meta.Hosting.E2E.Tests`, and
+  `tests/Rask.Site.E2E.Tests` (renamed from `Rask.Examples.E2E.Tests` — "Examples" was stale, since
+  `samples/` is gone and it drives the site bundle). The unit gate now excludes them by the
+  project-shaped `.E2E.Tests.` suffix rather than by one suite's name, so a newly-added E2E project
+  cannot silently start running inside it.
+
+  `MetaPublishBuildE2ETests` was the case that shape was hiding: it had no env guard and no exclusion,
+  so the ordinary unit gate paid **14.9s of `dotnet publish`** for it on every commit. It is now
+  opt-in behind `RASK_META_PUBLISH_E2E` with a gate script of its own.
+
+  `CliGateFilterTests` is replaced by `E2EGateCoverageTests`, which asserts the invariant that now
+  matters: every `*.E2E.Tests` project is invoked by some script under `scripts/`. It checks for the
+  **.csproj path**, not the project name, because a name also matches a comment — and a comment naming
+  a gate is not evidence the gate exists. It lives in a unit-test project deliberately, since putting
+  it in an `*.E2E.Tests` project would exclude it from the unit gate by the very rule it checks.
+
+- **`Rask.Server.Tests` fell from 65s to 42s.** `RaskTestHost` no longer lets a test inherit the
+  production `ShutdownDrainTimeout` of 5 seconds; it defaults to 200ms, applied before the caller's own
+  `configureServer` so any test with an opinion about the budget still wins. Five tests in
+  `ShutdownDrainTests` were paying the full 5s each for a number they did not care about.
+
 ### Fixed
 
 - **Two demos settle after mount and their golden entries are racy.** `virtualize-provider` (an empty

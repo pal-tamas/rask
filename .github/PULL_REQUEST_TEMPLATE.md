@@ -12,8 +12,8 @@
 ## Testing
 
 - [ ] Unit tests added/updated (`tests/Rask.*.Tests`)
-- [ ] E2E updated for any `src/Rask.Site` change (`tests/Rask.Examples.E2E.Tests`)
-- [ ] `dotnet test --filter "FullyQualifiedName!~Rask.Examples.E2E"` is green
+- [ ] E2E updated for any `src/Rask.Site` change (`tests/Rask.Site.E2E.Tests`)
+- [ ] `dotnet test --filter "FullyQualifiedName!~Rask.Site.E2E"` is green
 
 <!-- Paste relevant results. -->
 

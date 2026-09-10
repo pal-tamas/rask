@@ -830,7 +830,7 @@ Assert.Equal("wal", cmd.ExecuteScalar());
 ```
 
 See `tests/Rask.SQLite.Tests` for the unit + integration coverage, and
-`tests/Rask.Examples.E2E.Tests/SqliteExampleTests.cs` for the end-to-end concurrent-writes check.
+`tests/Rask.Site.E2E.Tests/SqliteExampleTests.cs` for the end-to-end concurrent-writes check.
 
 > **Careful with `SqliteConnection.ClearAllPools()`.** It is process-global and disposes the underlying
 > `sqlite3` handle of connections that are *currently leased and in use*, not just idle ones — so calling

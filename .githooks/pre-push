@@ -1,26 +1,18 @@
 #!/usr/bin/env bash
-# Pre-push gate: run the local browser-journey E2E and the CLI build gate before anything leaves the machine.
+# Pre-push gate: the attribution guard, then the unit suite scoped to this push.
 #
-# The E2E suites (browser) were moved OUT of CI — they run locally instead, and this
-# hook enforces the browser gate on push. Enable it once with:  git config core.hooksPath .githooks
+# HARD BUDGET: under a minute, the same one .githooks/pre-commit runs to. That budget is the whole
+# design of this file. Every gate that could not fit moved out — the browser E2E, the CLI build gate,
+# watch, deploy, meta publish and the installer are now run by hand (scripts/run-all-gates.sh runs the
+# set), and the benchmark byte-gates run only when you ask for them. The list and the
+# reasons are repeated at the gate itself, and printed on every push, so nobody has to read this file
+# to learn what is no longer covered.
 #
-# The CLI build gate is here too because it is the only thing proving the code `rask new` / `rask generate`
-# writes actually COMPILES — every other CLI test asserts on generated strings. It is too slow for
-# pre-commit (it packs 19 packages and runs full builds), so push is the right boundary.
-#
-# Bypass for docs-only or emergency pushes:  git push --no-verify
-# Per-gate bypass: RASK_SKIP_E2E=1 (browser) · RASK_SKIP_CLI_BUILD_E2E=1 (CLI build)
-#                  RASK_SKIP_WATCH_E2E=1 (hot reload, both halves) · RASK_SKIP_DEPLOY_E2E=1 (deploy)
-#                  RASK_SKIP_INSTALL_E2E=1 (the public installer, on a bare container)
+# Enable the hooks once with:  git config core.hooksPath .githooks
+# Bypass:  git push --no-verify
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
-
-# shellcheck source=../scripts/lib/build-failure.sh
-. "$root/scripts/lib/build-failure.sh"
-
-gate_logs="${TMPDIR:-/tmp}/rask-pre-push-$$"
-mkdir -p "$gate_logs"
 
 # --- Attribution guard (cheap, and first) ------------------------------------
 #
@@ -109,190 +101,65 @@ fi
 if [ "$pushes_content" -eq 0 ]; then
   echo "pre-push: every ref in this push is a DELETION — no commits reach the remote, so there is"
   echo "          nothing to build or test. Skipping the gates."
-  rmdir "$gate_logs" 2>/dev/null || true
   exit 0
 fi
 # -----------------------------------------------------------------------------
 
-# Run one gate, keep its full output, and — if it fails — say something TRUE about why.
+# --- The unit gate, scoped to this push -------------------------------------
 #
-# Every gate below builds. When the wasm-tools workload is momentarily unresolvable, every
-# browser-targeting project fails at EVALUATION with NETSDK1147 and the gate goes red without a single
-# compiler error. Reporting that as "the code the CLI writes doesn't compile" names the wrong culprit,
-# and it sent two people hunting a scaffolder bug that did not exist (#718). So the verdict is READ OFF
-# THE LOG rather than assumed, by the shared classifier in scripts/lib/build-failure.sh — which is table
-# tested (scripts/tests/build-failure-kind.test.sh), because four predicates over two counts is exactly
-# the kind of thing that is quietly wrong until it costs someone an afternoon.
+# ONE gate now, and a hard budget: this hook must finish in under a minute, the same budget
+# .githooks/pre-commit runs to. Everything that could not fit has moved, and where it went is spelled
+# out below rather than left for someone to discover.
 #
-#   $1 label · $2 script · $3 what a COMPILE failure means for this gate · $4 what a non-compile one means
+# What runs: the unit/integration suite, scoped to the projects THIS PUSH can reach.
+# scripts/run-unit-local.sh does the scoping (scripts/lib/affected_projects.py owns the graph) and
+# falls back to the whole solution for anything it cannot map precisely.
 #
-# The two machine kinds (workload, sdk) get neither message: the whole point is that this gate cannot
-# tell you anything about your branch when the branch is not what failed.
+# The range is origin/main...HEAD, not the tip commit. A push is many commits, and scoping to the last
+# one would leave a file changed earlier in the same push untested — the exact shape of gap this hook
+# exists to prevent.
 #
-# The output goes to a FILE as well as the terminal. `cmd | tail` reports tail's status, so a gate whose
-# exit code is swallowed is a false green; `tee` is only safe here because `pipefail` is set above.
-run_gate() {
-  gate_label="$1"
-  gate_script="$2"
-  gate_code_hint="$3"
-  gate_other_hint="$4"
-  gate_log="$gate_logs/$(basename "$gate_script" .sh).log"
+# WHAT THIS HOOK NO LONGER RUNS, and where it went:
+#
+#   * The browser E2E journeys   -> scripts/run-e2e-local.sh          (run it by hand)
+#   * The benchmark byte-gates   -> scripts/run-benchmarks-local.sh   (ONLY when you ask; no hook,
+#                                                                     no CI, not in run-all-gates)
+#   * The CLI build gate         -> scripts/run-cli-build-e2e.sh      (run it by hand)
+#   * The watch hot-reload gate  -> scripts/run-watch-e2e.sh          (run it by hand)
+#   * The deploy gate            -> scripts/run-deploy-e2e-local.sh   (run it by hand)
+#   * The meta publish gate      -> scripts/run-meta-publish-e2e.sh   (run it by hand)
+#   * The installer gate         -> scripts/run-install-e2e-local.sh  (run it by hand)
+#
+# Be clear about the cost of that: NONE of those run automatically any more. The browser suite in
+# particular has caught most of the false greens in this repository's casebook, and it cannot fit in a
+# minute — its first step is `dotnet publish src/Rask.Site -c Release`, a WASM bundle, before Chromium
+# even opens. `scripts/run-all-gates.sh` runs the whole set when you want the old guarantee back;
+# before a release, run it.
+if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
+  echo "pre-push: RASK_SKIP_UNIT=1 set — skipping the unit gate."
+else
+  set +e
+  RASK_TEST_SCOPE=affected \
+  RASK_SCOPE_RANGE="origin/main...HEAD" \
+  "$root/scripts/run-unit-local.sh"
+  unit_status=$?
+  set -e
 
-  # RASK_GATE_WRAPPED tells the gate script that something is capturing its log and will deliver the
-  # verdict, so a failure is explained once rather than twice. Exported to the child only.
-  if RASK_GATE_WRAPPED=1 "$root/$gate_script" 2>&1 | tee "$gate_log"; then
-    return 0
+  if [ "$unit_status" -ne 0 ]; then
+    echo >&2
+    echo "pre-push: the unit gate FAILED — push aborted." >&2
+    echo "          Fix it, or bypass with 'git push --no-verify' or RASK_SKIP_UNIT=1." >&2
+    # A flat 1, not the gate's own status. `dotnet test` and a missing script report different
+    # non-zero codes (1 vs 127), and a hook that leaks those makes "did the gate fail or did it fail
+    # to RUN?" indistinguishable to anything scripting around it.
+    exit 1
   fi
-
-  echo >&2
-  rask_explain_build_failure \
-    "$(rask_build_failure_kind "$gate_log")" \
-    "pre-push: $gate_label" \
-    "FAILED — push aborted. $gate_code_hint" \
-    "$gate_other_hint"
-
-  echo >&2
-  echo "pre-push: full gate output kept at $gate_log" >&2
-  exit 1
-}
-
-if [ "${RASK_SKIP_E2E:-}" = "1" ]; then
-  echo "pre-push: RASK_SKIP_E2E=1 set — skipping the local browser E2E gate."
-else
-  echo "pre-push: running the local E2E gate (browser journeys)."
-  echo "          bypass with 'git push --no-verify' or RASK_SKIP_E2E=1 (e.g. docs-only pushes)."
-
-  run_gate "E2E gate (browser journeys)" scripts/run-e2e-local.sh \
-    "The E2E graph doesn't compile." \
-    "Fix the failing journey, or bypass with --no-verify."
 fi
 
-# The benchmark gates: both payload-bytes baselines, plus the live-session capacity smokes. This is
-# the ONLY place they run: the CI job that used to
-# duplicate them was nothing but a second opinion nobody was required to listen to, and it rode red
-# through three merges before anyone noticed (#919). Here is where it bites.
-#
-# UNPATH-FILTERED, unlike the gates below it. They cost minutes and are scoped to the pushes they can
-# say something about; this costs about one, and a hand-listed filter is itself a way for a gate to
-# stop running silently — see the `generator_paths` note below, where exactly that happened.
-if [ "${RASK_SKIP_BENCHMARKS:-}" = "1" ]; then
-  echo "pre-push: RASK_SKIP_BENCHMARKS=1 set — skipping the benchmark gates."
-else
-  echo "pre-push: running the benchmark gates (payload-bytes x2 + the live-session capacity smokes)."
-  echo "          bypass with 'git push --no-verify' or RASK_SKIP_BENCHMARKS=1."
-
-  run_gate "Benchmark gates" scripts/run-benchmarks-local.sh \
-    "The benchmark projects don't compile." \
-    "The wire got heavier, a scenario's markup changed and its baseline needs refreshing, or a disposed session is being retained — the gate's own output says which."
-fi
-
-# Like the deploy gate below, this one is scoped to the pushes it can actually say something about:
-# it packs 19 packages and runs several full builds, and only the CLI's generators, the packages a
-# generated project references, or the tutorial it reproduces can change its answer. Running it on
-# every push (a docs typo, a Bootstrap component) is minutes of tax for a foregone conclusion.
-# The test-file arm matches *BuildE2ETests by SHAPE rather than by name. A hand-listed set rots
-# silently: SpaTailwindBuildE2ETests arrived with the SPA Tailwind proof and was never added, so nothing
-# in this push could trigger the gate that runs it — the filter is itself one of the ways a gate stops
-# running without saying so. run-cli-build-e2e.sh is here for the same reason: a change to the gate
-# script must run the gate.
-generator_paths='^(src/Rask\.Cli/(Scaffolding|Templates)/|src/Rask\.[A-Za-z.]+/|docs/tutorial/|Directory\.Packages\.props|scripts/run-cli-build-e2e\.sh|tests/Rask\.Cli\.Tests/([A-Za-z.]*BuildE2ETests|CliBuildE2E|TutorialWalkthroughE2ETests)\.cs)'
-
-if [ "${RASK_SKIP_CLI_BUILD_E2E:-}" = "1" ]; then
-  echo "pre-push: RASK_SKIP_CLI_BUILD_E2E=1 set — skipping the CLI build gate."
-elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
-  echo "pre-push: no origin/main to diff against — running the CLI build gate to be safe."
-  run_gate "CLI build gate" scripts/run-cli-build-e2e.sh \
-    "The code the CLI writes doesn't compile." \
-    "A scaffolded project built, but a gate assertion failed — read the failure above."
-elif ! git diff --name-only origin/main...HEAD | grep -E "$generator_paths" >/dev/null; then
-  echo "pre-push: CLI build gate SKIPPED — nothing in this push matches the generator paths."
-else
-  echo "pre-push: this push touches the generators or the packages they emit — running the CLI build gate."
-  echo "          bypass with 'git push --no-verify' or RASK_SKIP_CLI_BUILD_E2E=1."
-
-  run_gate "CLI build gate" scripts/run-cli-build-e2e.sh \
-    "The code the CLI writes doesn't compile." \
-    "A scaffolded project built, but a gate assertion failed — read the failure above."
-fi
-
-# The watch gate runs a real `dotnet watch` session with 2-minute ceilings, so like the others it runs
-# only when this push touches the hot-reload path: the coordinator, the registries it refreshes, the
-# generators that emit them, the client branch, or `rask dev` itself.
-#
-# src/Rask.Core/Resources/ is in scope as a whole. The client branch used to live entirely in each
-# host's own file, so naming those two was enough; both hosts now IMPORT the indicator, the morph and
-# the diff codec from there, and an edit to any of them changes what an edit does to a running app.
-# src/Rask.Core/build/ is in scope because Rask.Core.targets is where @(Watch) is BUILT: `dotnet watch`
-# collects @(Compile), @(EmbeddedResource), the project file and Razor content and never @(None), so a
-# scoped asset reaches the watcher only through the items that file adds. A change to the watch list
-# itself was the one hot-reload change this filter did not select (found while fixing #862).
-watch_paths='^(src/Rask\.Core/(HotReload|ScopedAssets|ScopedCss|Live|Routing|Resources|build)/|src/Rask\.Server/(LiveSessionStore|RaskEndpointExtensions)\.cs|src/Rask\.Server/Resources/rask\.ts|src/Rask\.Wasm/(HotReload/|Resources/rask\.wasm\.ts|Browser/main\.ts)|src/Rask\.(Generators|Cqrs\.Generators|Generators\.Shared)/|src/Rask\.Cli/(Commands/DevCommand|DevTarget|IBrowserLauncher)\.cs|tests/Rask\.Cli\.Tests/WatchHotReloadE2ETests\.cs)'
-
-if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
-  echo "pre-push: RASK_SKIP_WATCH_E2E=1 set — skipping the watch hot-reload gate."
-elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
-  echo "pre-push: no origin/main to diff against — skipping the watch hot-reload gate."
-elif ! git diff --name-only origin/main...HEAD | grep -E "$watch_paths" >/dev/null; then
-  echo "pre-push: watch hot-reload gate SKIPPED — nothing in this push matches the hot-reload paths."
-else
-  echo "pre-push: this push touches the hot-reload loop — running the watch gate."
-  echo "          bypass with 'git push --no-verify' or RASK_SKIP_WATCH_E2E=1."
-
-  run_gate "watch hot-reload gate" scripts/run-watch-e2e.sh \
-    "The hot-reload path doesn't compile." \
-    "An edit no longer reaches a running app."
-
-  # The browser half is GONE, not merely unrun. It drove samples/Rask.Example.Wasm — writing a probe
-  # source file into it for the duration of the run — and that app no longer exists. Its last act was
-  # to demonstrate the failure mode it was itself written to fix: with WasmWatchHotReloadTests deleted,
-  # `dotnet test --filter` matched nothing, printed "No test matches the given testcase filter",
-  # exited 0, and this hook announced "WASM watch hot-reload gate passed."
-  #
-  # So Mono applying a metadata delta to a live WASM runtime is now covered by nothing. The rest of the
-  # WASM channel still is — StaticWebAssetsManifestFileProviderTests for serving the bundle,
-  # WasmHotReloadBridgeTests for the announcement, HotReloadClientContractTests for the shared
-  # indicator, DevCommandTests for the dev-bundle switch — but the final hop into the runtime is not.
-  # Restoring it needs a browser app to edit, which is what src/Rask.Site could become; tracked so the
-  # loss is a decision rather than a discovery.
-fi
-
-# The deploy gate boots a privileged container, so it runs only when this push actually touches the
-# deploy path — the alternative (always, or never) is either a tax on every unrelated push or a gate
-# that quietly never runs. Changing how a production box is deployed to is exactly when it must run.
-deploy_paths='^(src/Rask\.Cli/(Commands/DeployCommand|Host(Probe|Setup|Bootstrap)|SshTarget|DockerProbe)\.cs|src/Rask\.Cli/Scaffolding/(DeployConfig|GitHubActionsWorkflow)\.cs|tests/Rask\.Cli\.Tests/Deploy)'
-
-if [ "${RASK_SKIP_DEPLOY_E2E:-}" = "1" ]; then
-  echo "pre-push: RASK_SKIP_DEPLOY_E2E=1 set — skipping the deploy gate."
-elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
-  echo "pre-push: no origin/main to diff against — skipping the deploy gate."
-elif ! git diff --name-only origin/main...HEAD | grep -E "$deploy_paths" >/dev/null; then
-  echo "pre-push: deploy gate SKIPPED — nothing in this push matches the deploy paths."
-else
-  echo "pre-push: this push changes the deploy path — running the deploy gate against a container host."
-  echo "          bypass with 'git push --no-verify' or RASK_SKIP_DEPLOY_E2E=1."
-
-  run_gate "deploy gate" scripts/run-deploy-e2e-local.sh \
-    "The deploy path doesn't compile." \
-    "Fix it, or bypass with RASK_SKIP_DEPLOY_E2E=1."
-fi
-
-# The install gate downloads a .NET SDK into a container per case, so like the others it is path-gated:
-# it runs when this push changes the public installer or the gate itself. scripts/tests/install-script.test.sh
-# already runs on every commit and covers the logic; this one covers the thing that test structurally
-# cannot — that a box with no .NET, no Node and no tools ends up with a working `rask`.
-install_paths='^(rask\.sh|rask\.ps1|scripts/run-install-e2e-local\.sh)$'
-
-if [ "${RASK_SKIP_INSTALL_E2E:-}" = "1" ]; then
-  echo "pre-push: RASK_SKIP_INSTALL_E2E=1 set — skipping the install gate."
-elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
-  echo "pre-push: no origin/main to diff against — skipping the install gate."
-elif ! git diff --name-only origin/main...HEAD | grep -E "$install_paths" >/dev/null; then
-  echo "pre-push: install gate SKIPPED — nothing in this push matches the installer paths."
-else
-  echo "pre-push: this push changes the public installer — running it on a bare container."
-  echo "          bypass with 'git push --no-verify' or RASK_SKIP_INSTALL_E2E=1."
-
-  run_gate "install gate" scripts/run-install-e2e-local.sh \
-    "The installer is broken." \
-    "curl | sh no longer produces a working rask — read the failing case above."
-fi
+# Said on every push, deliberately. A gate that quietly stopped covering something is this
+# repository's most expensive recurring failure, and the fix for it is not silence.
+echo
+echo "pre-push: unit gate passed. NOT run here (see .githooks/pre-push for why):"
+echo "          browser E2E · CLI build · watch · deploy · meta publish · installer."
+echo "          Benchmarks run ONLY on request: scripts/run-benchmarks-local.sh"
+echo "          Run the full set with: scripts/run-all-gates.sh"

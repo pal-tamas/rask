@@ -19,14 +19,14 @@ cd "$root"
 . "$root/scripts/lib/playwright.sh"
 
 for cfg in Release Debug; do
-  if driver="$(rask_playwright_driver "tests/Rask.Examples.E2E.Tests/bin/$cfg")"; then
+  if driver="$(rask_playwright_driver "tests/Rask.Site.E2E.Tests/bin/$cfg")"; then
     pw_node="$(printf '%s\n' "$driver" | sed -n 1p)"
     pw_cli="$(printf '%s\n' "$driver" | sed -n 2p)"
     exec "$pw_node" "$pw_cli" "$@"
   fi
 done
 
-echo "playwright: no bundled driver under tests/Rask.Examples.E2E.Tests/bin/{Release,Debug}." >&2
+echo "playwright: no bundled driver under tests/Rask.Site.E2E.Tests/bin/{Release,Debug}." >&2
 echo "            Build the E2E project once first:" >&2
-echo "              dotnet build tests/Rask.Examples.E2E.Tests -c Release" >&2
+echo "              dotnet build tests/Rask.Site.E2E.Tests -c Release" >&2
 exit 1

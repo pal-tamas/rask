@@ -67,12 +67,12 @@ Policy: **unit-test first** for every new feature/bug fix; add E2E **only** when
 can't reach the path (E2E is heavy). **Any `src/Rask.Site` change requires an E2E** journey update.
 
 - Add/adjust unit tests in the sibling `tests/Rask.*.Tests` project (e.g. `tests/Rask.Core.Tests`).
-- For `src/Rask.Site` changes, extend the journey in `tests/Rask.Examples.E2E.Tests`
+- For `src/Rask.Site` changes, extend the journey in `tests/Rask.Site.E2E.Tests`
   (one comprehensive journey — see `SharedSmokeTests` / `SharedSmokeTests.Journey.cs`).
 
 Run:
 ```bash
-dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Examples.E2E"   # fast inner loop
+dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Site.E2E"   # fast inner loop
 # the site changed → the browser suite, which needs the published bundle:
 bash scripts/run-e2e-local.sh
 ```
@@ -84,7 +84,7 @@ showcase.
 ## 3b. User-facing changes → sample + docs (keep everything up to date)
 If the change is visible to app authors (new/changed component, API, prop, default, behavior):
 - **Add or update a demo** in `src/Rask.Site` (and extend the E2E journey in
-  `tests/Rask.Examples.E2E.Tests` — every `src/Rask.Site` change needs E2E).
+  `tests/Rask.Site.E2E.Tests` — every `src/Rask.Site` change needs E2E).
 - **Update the docs**: the relevant `docs/*.md` guide, the matching section of `README.md`, and
   `docs/diagnostics.md` if a RASK0xx changed. Keep the AI guides current too
   (`docs/ai-agents.md`, root `llms.txt`, and the `AGENTS.md` in the repo root).

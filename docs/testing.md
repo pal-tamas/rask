@@ -410,7 +410,7 @@ Assert.StartsWith("<!DOCTYPE html>", html);
 dotnet build
 dotnet test                                                   # everything
 
-dotnet test --filter "FullyQualifiedName!~Rask.Examples.E2E"  # skip e2e (faster inner loop)
+dotnet test --filter "FullyQualifiedName!~Rask.Site.E2E"  # skip e2e (faster inner loop)
 dotnet test --filter FullyQualifiedName~ButtonTests           # one class
 ```
 
@@ -418,7 +418,7 @@ dotnet test --filter FullyQualifiedName~ButtonTests           # one class
 
 ## 6. When to reach for E2E
 
-Prefer a unit test. The Playwright E2E suite (`tests/Rask.Examples.E2E.Tests/`) is heavy — it spins
+Prefer a unit test. The Playwright E2E suite (`tests/Rask.Site.E2E.Tests/`) is heavy — it spins
 up a real host and a browser — so reserve it for paths a unit test genuinely can't reach:
 
 - the actual JS transports (WebSocket dispatch on Server; JSImport/JSExport on WASM),

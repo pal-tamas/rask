@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The meta-framework END-TO-END gate: it runs a real `dotnet publish` and asserts that a Nitro or
+    Next build lands beside the app. That costs seconds per case and needs node on the machine.
+
+    Split out of Rask.Meta.Hosting.Tests because it was the one E2E suite in this repo with NO env
+    guard, so it ran inside the ordinary unit gate on every commit — 14.9s of `dotnet publish` in a
+    suite whose next-slowest assembly is under a second. Its own project makes it selectable; the
+    guard added alongside makes it opt-in, matching every other E2E suite here.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="Xunit.SkippableFact"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Meta.Hosting\Rask.Meta.Hosting.csproj"/>
+  </ItemGroup>
+
+</Project>

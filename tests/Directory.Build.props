@@ -54,7 +54,7 @@
        individual tests — the original advice, and still right. A suite that only passes at low
        parallelism is telling you something.
 
-       'conservative' matches what tests/Rask.Examples.E2E.Tests already chose: it does not spin up
+       'conservative' matches what tests/Rask.Site.E2E.Tests already chose: it does not spin up
        extra threads when a test blocks, which is the behaviour that makes the ceiling mean something.
 
        Skipped for any project that ships its own file, so the E2E suite keeps its 4 — a browser

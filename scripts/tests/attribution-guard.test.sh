@@ -42,7 +42,16 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OB
 
 # Pinned so the last assertion can prove this run left the real repository exactly as it found it.
 repo_head_before="$(git rev-parse HEAD)"
-repo_status_before="$(git status --porcelain)"
+# TRACKED files only (-uno). What this snapshot is for is the bug in section 3: a leaked GIT_DIR that
+# makes this test's commits land on the REAL repository instead of its throwaway one. That shows up as
+# staged or modified tracked paths, which -uno still reports in full.
+#
+# Untracked paths are excluded because they are not this test's to observe. run-unit-local.sh runs the
+# gate scripts CONCURRENTLY, so another test's transient temp file lands inside this before/after
+# window and fails a check about a git env var with a message about a git env var — a red gate for a
+# reason that has nothing to do with the thing it is guarding. Seen exactly that: green standalone,
+# red under the gate, green again on re-run.
+repo_status_before="$(git status --porcelain -uno)"
 
 # And the committing identity, which is the half that got away the first time. HEAD and the working
 # tree were both checked and both looked clean, because the damage was in .git/config: this suite
@@ -173,8 +182,7 @@ assert_pre_push() {
   actual="$(
     cd "$push_repo" || exit 9
     printf 'refs/heads/main %s refs/heads/main %s\n' "$2" "$base" \
-      | RASK_SKIP_E2E=1 RASK_SKIP_BENCHMARKS=1 RASK_SKIP_CLI_BUILD_E2E=1 RASK_SKIP_WATCH_E2E=1 \
-        RASK_SKIP_DEPLOY_E2E=1 RASK_SKIP_INSTALL_E2E=1 \
+      | RASK_SKIP_UNIT=1 \
         bash .githooks/pre-push origin https://example.invalid >/dev/null 2>&1
     echo $?
   )"
@@ -187,12 +195,11 @@ assert_pre_push "lets a clean push through"          "$clean" 0
 
 # A deletion-only push must never reach the gates.
 #
-# Deliberately driven WITHOUT the RASK_SKIP_* variables the assertions above pass, and that omission
-# is the whole assertion. $push_repo contains the hook and the two libs it sources — and no
-# scripts/run-*.sh at all — so a hook that gets as far as the E2E gate necessarily fails trying to run
-# a script that is not there. Exit 0 with nothing skipped therefore means it returned BEFORE the
-# gates, which is the claim; asserting it with the skips set would have passed just as well against a
-# hook that ran every one of them.
+# Deliberately driven WITHOUT the RASK_SKIP_UNIT the assertions above pass, and that omission is the
+# whole assertion. $push_repo contains the hook and the one lib it sources — and no scripts/run-*.sh
+# at all — so a hook that gets as far as the unit gate necessarily fails trying to run a script that
+# is not there. Exit 0 with nothing skipped therefore means it returned BEFORE the gate, which is the
+# claim; asserting it with the skip set would have passed just as well against a hook that ran it.
 #
 # assert_pre_push_unskipped <name> <local-sha> <remote-sha> <expected-exit>
 assert_pre_push_unskipped() {
@@ -252,7 +259,7 @@ else
 fi
 
 checked=$((checked + 1))
-if [ "$(git status --porcelain)" = "$repo_status_before" ]; then
+if [ "$(git status --porcelain -uno)" = "$repo_status_before" ]; then
   pass "the working tree is where it was"
 else
   fail "the working tree is where it was" "-> status changed; a git env var leaked into the temp repo"

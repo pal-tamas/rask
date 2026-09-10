@@ -1,0 +1,383 @@
+using System.Runtime.CompilerServices;
+using Microsoft.Playwright;
+using Rask.Site.E2E.Tests.Infrastructure;
+
+namespace Rask.Site.E2E.Tests;
+
+// Browser-journey harness shared by every showcase host (Server, Wasm.Host, StandaloneWasm).
+// The actual test is a single comprehensive journey per host — see SharedSmokeTests.Journey.cs
+// (RunShowcaseJourneyAsync). This file holds only the per-test browser lifecycle, navigation
+// primitives, and failure diagnostics that the journey builds on.
+//
+// Path navigation goes through NavigateToAsync, whose default calls Page.GotoAsync(path) — right for
+// any host that answers a deep link, which is every host this suite still drives.
+//
+// Nothing overrides it today. The seam is kept rather than inlined because the case it exists for is
+// real and recurring: a host with no SPA fallback 404s a deep link, so its journeys have to navigate
+// home-then-sidebar instead. StandaloneWasmExampleTests did exactly that over WasmAppHost until the
+// samples consolidation removed it, and the meta-hosting epic would bring the shape back.
+public abstract partial class SharedSmokeTests : IAsyncLifetime
+{
+    private readonly List<string> _console = new();
+    private readonly List<string> _stylesheetFailures = new();
+    private readonly PlaywrightFixture _pw;
+    private IBrowserContext _ctx = default!;
+
+    protected IPage Page = default!;
+
+    protected SharedSmokeTests(PlaywrightFixture pw) => _pw = pw;
+
+    protected abstract string BaseUrl { get; }
+
+    /// <summary>
+    ///     Where the showcase is mounted inside the one site app: the landing page owns "/", and
+    ///     everything these journeys drive — the guides, the demos, the islands — hangs off here.
+    /// </summary>
+    /// <remarks>
+    ///     A named prefix rather than twelve literals. The showcase has moved once already (it was a
+    ///     separate app published under /docs/, then a layout at "/", now a layout at /docs), and each
+    ///     time the cost was every hard-coded path in this suite quietly addressing a URL that no longer
+    ///     existed — which a browser test reports as "element not found", never as "wrong page".
+    /// </remarks>
+    public const string Docs = "/docs";
+    protected abstract string FixtureName { get; }
+    protected abstract string ServerLog { get; }
+
+    public async Task InitializeAsync()
+    {
+        _ctx = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = BaseUrl,
+            // Grant the browser-gated APIs the /browser showcase exercises so their journey step is
+            // deterministic in headless Chromium: clipboard read/write, plus a fixed geolocation fix.
+            Permissions = ["clipboard-read", "clipboard-write", "geolocation"],
+            Geolocation = new Geolocation { Latitude = 51.5074f, Longitude = -0.1278f, Accuracy = 50 }
+        });
+        // Record a Playwright trace for the whole journey and keep it only if the journey fails (see
+        // RunAsync). The console dump below explains a page that *threw*; it says nothing about a page
+        // that is merely never still, which is how #625 presented — a 30s "element is not stable" naming
+        // the element and nothing about what was moving. A trace's DOM snapshots do name it.
+        //
+        // Always-on rather than behind a flag, deliberately: the failure this is for did not reproduce on
+        // demand, so the only trace worth having is the one from the run that happened to fail.
+        //
+        // Snapshots only, and the reason is the whole of #625. Capturing a screenshot on every action puts
+        // a small pause and a rendering-pipeline flush in front of each one, which was quietly settling the
+        // page — with screenshots on this suite ran 3/3 green and with them off 4/4 red, same machine, same
+        // commit, back to back. That is a gate passing for a reason unrelated to the code under test, which
+        // is worse than a gate that fails: the page really was unstable (see the font routing below), and
+        // the harness was hiding it. Turning them off is what made the failure reproducible enough to fix.
+        //
+        // Nothing is lost. TestArtifacts already writes a full-page PNG for every test, and what a stuck
+        // journey needs is the DOM, which is what a snapshot is. Sources are off too: the C# stack is
+        // already in the test output.
+        await _ctx.Tracing.StartAsync(new TracingStartOptions
+        {
+            Screenshots = false,
+            Snapshots = true,
+            Sources = false
+        });
+
+        // Serve the showcase's web fonts from nowhere, so the gate does not depend on a CDN.
+        //
+        // App.cs links three Google Font families with `display=swap`. Swap means: paint with the fallback
+        // now, and REFLOW when each webfont lands — three families, several weights, over the public
+        // internet, on a page the journey throttles to Slow-3G. Every arrival moves the text and therefore
+        // the bounding box of everything below it, and Playwright's actionability check requires a box that
+        // is identical across two consecutive animation frames. That is #625: "element is not stable" for
+        // the full 30s, on whichever guide page the walk had reached, on every sample host (they share
+        // this shell), with the text assertions on the very same subtree passing because innerText does not care
+        // what font it is in.
+        //
+        // Aborting the requests makes the page render in the fallback font immediately and settle once.
+        // It costs the gate nothing — no assertion is about typography — and it removes a third-party CDN
+        // from the definition of "the browser gate is green".
+        await _ctx.RouteAsync("**://fonts.googleapis.com/**", route => route.AbortAsync());
+        await _ctx.RouteAsync("**://fonts.gstatic.com/**", route => route.AbortAsync());
+
+        Page = await _ctx.NewPageAsync();
+        // Capture the browser console + uncaught page errors so a failing test can surface
+        // the real client-side cause (e.g. a scoped-JS "Could not find … on target" force-fault
+        // that trips RootErrorBoundary) in the CI log — the C# stack alone only shows the wait
+        // timeout, not why the app never became interactive.
+        Page.Console += (_, msg) =>
+        {
+            lock (_console)
+            {
+                _console.Add($"[{msg.Type}] {msg.Text}");
+            }
+        };
+        Page.PageError += (_, err) =>
+        {
+            lock (_console)
+            {
+                _console.Add($"[pageerror] {err}");
+            }
+        };
+
+        // A stylesheet that 404s is INVISIBLE: the page still renders, just with none of its CSS, and
+        // nothing throws. The showcase shipped that way -- it linked /css/app.css while the file is
+        // published under _content/{assembly}/ -- and every layout assertion that should have caught it
+        // instead failed as "element unexpectedly in viewport", which reads like a selector problem.
+        // The font CDNs are aborted deliberately above, so they are not failures.
+        Page.Response += (_, res) =>
+        {
+            if (res.Ok || !res.Url.Contains(".css", StringComparison.OrdinalIgnoreCase)
+                || res.Url.Contains("fonts.googleapis.com", StringComparison.Ordinal)
+                || res.Url.Contains("fonts.gstatic.com", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            lock (_console)
+            {
+                _stylesheetFailures.Add($"{res.Status} {res.Url}");
+            }
+        };
+    }
+
+    public async Task DisposeAsync() => await _ctx.DisposeAsync();
+
+    // Default = direct deep link. Overridden by hosts (e.g. WasmAppHost) that don't install
+    // a SPA fallback; those must navigate via the home shell + sidebar instead.
+    protected virtual Task NavigateToAsync(string path) => Page.GotoAsync(path);
+
+    /// <summary>
+    ///     Blocks until the runtime has taken the page over, so an interaction cannot be aimed at markup
+    ///     that is painted but not yet wired.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Needed because this host serves the prerendered page (#1034). Prerendering means the
+    ///         controls are in the first response, complete and on screen, before a line of script has
+    ///         run — so a click or a keystroke aimed at one of them reaches nothing until the bundle has
+    ///         downloaded, started and taken over.
+    ///     </para>
+    ///     <para>
+    ///         The wait used to be implicit and is not any more. When a route answered with the boot
+    ///         shell, the opening "an active sidebar link is visible" could not pass until WebAssembly
+    ///         had booted AND painted, so it doubled as a hydration barrier nobody had to write down.
+    ///         Serving the real page makes that assertion true immediately — correctly — and the barrier
+    ///         went with it.
+    ///     </para>
+    ///     <para>
+    ///         Reads the framework's own signal rather than a heuristic: <c>data-rask-prerendered</c> is
+    ///         stamped on <c>&lt;html&gt;</c> by the prerender pass and removed by the runtime on its
+    ///         first frame, which is exactly when handlers exist. An app styling
+    ///         <c>[data-rask-prerendered]</c> asks the same question, so there is no second mechanism to
+    ///         keep in step. A page that was never prerendered carries no such attribute and this
+    ///         returns at once rather than inventing a delay.
+    ///     </para>
+    /// </remarks>
+    protected Task WaitForInteractiveAsync(float timeoutMs = 30_000) =>
+        Assertions.Expect(Page.Locator("html[data-rask-prerendered]")).ToHaveCountAsync(
+            0, new LocatorAssertionsToHaveCountOptions { Timeout = timeoutMs });
+
+    // Sidebar groups are collapsed by default, and a collapsed link is display:none — which means
+    // Playwright's text engines can't even find it (they match visible text). So navigate the way a
+    // user would when the list is long: type the label into the filter, which narrows the sidebar to
+    // the matching link at the top. Wait for that link to render (the controlled-input morph) and
+    // settle before clicking. The filter is left set (the next nav's FillAsync replaces it) — clearing
+    // it here would fire an extra input event that can race with the page interaction that follows the
+    // navigation (on WASM the events coalesce and the later one wins, dropping e.g. a select change).
+    protected async Task ClickSidebar(string label)
+    {
+        // The filter is a Rask handler (data-rask-on-input). On a prerendered page it is on screen and
+        // typeable before anything is listening, and the keystrokes then go nowhere: the sidebar never
+        // narrows and the link this is looking for never appears. Wait for the runtime first.
+        await WaitForInteractiveAsync();
+
+        var filter = Page.Locator(".side-nav .side-nav-filter");
+        await filter.FillAsync(label);
+        // Guides-first: a label can appear as BOTH an example page and a guide (e.g. "Routing",
+        // "Lifecycle"), and the Guides section renders first. The journey's example walks want the
+        // example page, so prefer a link that isn't a /guides/* one; guide-only labels (Composition,
+        // Forms & validation, Browser APIs, …) have no example link and fall back to the guide.
+        var escaped = label.Replace("\"", "\\\"");
+        var any = Page.Locator($".side-nav a.side-nav-link:has-text(\"{escaped}\")");
+        await any.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
+        await Page.WaitForTimeoutAsync(200);
+        // The guide-href prefix is built from Docs, not written out. It was the literal "/guides/", and
+        // when the showcase moved under /docs the selector stopped excluding anything — so every label
+        // that names both a guide and a demo clicked the GUIDE, and the test failed looking for a
+        // control on a page it was never on.
+        var example = Page.Locator(
+            $".side-nav a.side-nav-link:has-text(\"{escaped}\"):not([href^=\"{Docs}/guides/\"])");
+        var link = await example.CountAsync() > 0 ? example.First : any.First;
+        await link.ClickAsync();
+    }
+
+    protected async Task RunAsync(Func<Task> body, [CallerMemberName] string testName = "")
+    {
+        var traced = false;
+        try
+        {
+            await RaceAgainstBootFailureAsync(body);
+        }
+        catch
+        {
+            traced = true;
+            await SaveTraceAsync(testName);
+            await DumpDiagnosticsAsync(testName);
+            throw;
+        }
+        finally
+        {
+            if (!traced)
+            {
+                // Stop with no path: the trace is discarded, so a green run leaves nothing behind.
+                try { await _ctx.Tracing.StopAsync(); }
+                catch
+                {
+                    /* context may already be gone */
+                }
+            }
+
+            string[] console;
+            lock (_console)
+            {
+                console = _console.ToArray();
+            }
+
+            await TestArtifacts.DumpAsync(Page, FixtureName, testName, ServerLog, console);
+        }
+    }
+
+    /// <summary>
+    ///     Runs the journey, but gives up the moment the app says it failed to boot.
+    /// </summary>
+    /// <remarks>
+    ///     Every WASM journey opens with a 60-120 second wait on a selector that only exists once the app
+    ///     has mounted, so a boot failure used to cost the full timeout and then report the missing
+    ///     selector — which names nothing about the cause and reads as a hang. That is most of why #817
+    ///     was expensive: the test could not tell "the app is broken" from "the network is slow".
+    ///     <para>
+    ///         main.js now marks a dead boot with <c>[data-rask-boot-error]</c> and puts the reason on the
+    ///         page. Racing the journey against that element turns the same failure into a few seconds and
+    ///         an exception that quotes what went wrong. A hook nothing waits on would only have moved the
+    ///         evidence somewhere nobody looks.
+    ///     </para>
+    ///     <para>
+    ///         Harmless on the Server hosts: they have no boot screen, so the watcher simply never
+    ///         resolves and the journey is awaited exactly as before.
+    ///     </para>
+    /// </remarks>
+    private async Task RaceAgainstBootFailureAsync(Func<Task> body)
+    {
+        var journey = body();
+
+        // Timeout 0 = wait indefinitely: this resolves only if the app actually reports a dead boot, so
+        // it can never be the thing that fails a healthy run.
+        var bootFailed = Page.WaitForSelectorAsync(
+            "[data-rask-boot-error]", new PageWaitForSelectorOptions { Timeout = 0 });
+
+        var finished = await Task.WhenAny(journey, bootFailed);
+        if (finished != bootFailed)
+        {
+            // The journey settled first, which is every healthy run. The watcher is abandoned here and
+            // faults when the context closes; observe it so it cannot surface as an unhandled exception
+            // in an unrelated test.
+            _ = bootFailed.ContinueWith(static t => _ = t.Exception, TaskScheduler.Default);
+            await journey;
+            return;
+        }
+
+        var reason = await ReadBootFailureAsync();
+        // Observe the journey's own failure too — it is about to be abandoned mid-flight, and an
+        // unobserved timeout from it would otherwise land on a later test.
+        _ = journey.ContinueWith(static t => _ = t.Exception, TaskScheduler.Default);
+        throw new InvalidOperationException(
+            $"The app reported that it failed to boot, so the journey was abandoned rather than waiting "
+            + $"for elements that will never appear.\n{reason}");
+    }
+
+    private async Task<string> ReadBootFailureAsync()
+    {
+        try
+        {
+            var text = await Page.Locator(".rask-boot__error").InnerTextAsync(
+                new LocatorInnerTextOptions { Timeout = 5_000 });
+            return text.Trim();
+        }
+        catch (Exception ex)
+        {
+            return $"(the boot-failure panel could not be read: {ex.GetType().Name}) — "
+                + "the browser console dump below has the error.";
+        }
+    }
+
+    // Writes the journey's trace next to the rest of its artifacts and prints the command that opens it —
+    // a trace nobody knows how to look at is not evidence.
+    private async Task SaveTraceAsync(string testName)
+    {
+        try
+        {
+            var path = Path.Combine(TestArtifacts.DirectoryFor(FixtureName, testName), "trace.zip");
+            await _ctx.Tracing.StopAsync(new TracingStopOptions { Path = path });
+            Console.WriteLine($"  trace: {path}");
+            Console.WriteLine($"    open with: scripts/playwright.sh show-trace {path}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  trace: could not be saved ({ex.GetType().Name}: {ex.Message})");
+        }
+    }
+
+    // On failure, print the browser console + whether the app fell back to the
+    // RootErrorBoundary directly into the test process stdout, so it lands in the CI
+    // log (which captures stdout) without having to download the test-results artifact.
+    private async Task DumpDiagnosticsAsync(string testName)
+    {
+        string[] console;
+        lock (_console)
+        {
+            console = _console.ToArray();
+        }
+
+        string? boundary = null;
+        try
+        {
+            var html = await Page.ContentAsync();
+            if (html.Contains("Something went wrong", StringComparison.Ordinal))
+            {
+                boundary = "RootErrorBoundary fallback PRESENT (\"Something went wrong\") — the app crashed";
+            }
+        }
+        catch
+        {
+            /* page may be closed */
+        }
+
+        Console.WriteLine($"===== E2E DIAG {FixtureName}.{testName} =====");
+        Console.WriteLine($"  url: {Page.Url}");
+        if (boundary is not null)
+        {
+            Console.WriteLine($"  {boundary}");
+        }
+
+        Console.WriteLine($"  browser console ({console.Length} msgs):");
+        foreach (var line in console.TakeLast(40))
+        {
+            Console.WriteLine($"    {line}");
+        }
+
+        Console.WriteLine($"===== /E2E DIAG {FixtureName}.{testName} =====");
+    }
+
+    /// <summary>
+    ///     Fails if any stylesheet the page asked for did not come back OK. Separate from the console
+    ///     dump because a 404 stylesheet does not throw — the only symptom is that nothing is styled.
+    /// </summary>
+    protected void AssertStylesheetsLoaded()
+    {
+        string[] failures;
+        lock (_console)
+        {
+            failures = _stylesheetFailures.ToArray();
+        }
+
+        Assert.True(
+            failures.Length == 0,
+            "a stylesheet failed to load, so the page rendered unstyled:\n  " + string.Join("\n  ", failures));
+    }
+}

@@ -55,6 +55,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cli.Tests" />
+    <InternalsVisibleTo Include="Rask.Cli.E2E.Tests" />
   </ItemGroup>
 
 </Project>

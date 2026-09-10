@@ -270,7 +270,7 @@ mistake, the rule notes the ID.
   DI). Drive handlers via the `data-rask-on-*` id + `TryInvokeHandlerAsync`, and assert exact
   attribute order. See [testing](testing.md).
 - **Every `src/Rask.Site` change gets an E2E test.** Add a Playwright journey to
-  `tests/Rask.Examples.E2E.Tests`.
+  `tests/Rask.Site.E2E.Tests`.
 
 ## Common pitfalls
 
