@@ -3,22 +3,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Auth;
 
-/// <summary>
-/// An account. Derives from ASP.NET Core Identity's user, so it carries the password hash, the
-/// security stamp, the lockout counters and the confirmation flags without Rask reimplementing any
-/// of them.
-/// </summary>
-/// <remarks>
-/// Add your own columns by deriving from this type and mapping it instead — the ordinary Identity
-/// pattern. Rask deliberately has no user type of its own beyond this one: everything the framework
-/// reads at render time comes from the <c>ClaimsPrincipal</c>, not from the entity.
-/// </remarks>
-public class RaskUser : IdentityUser
-{
-    /// <summary>When the account was created (UTC).</summary>
-    public DateTime CreatedUtc { get; set; }
-}
-
 /// <summary>The roles a Rask app has out of the box.</summary>
 /// <remarks>
 /// Two, deliberately: the first account to register is an <see cref="Admin"/> and every account after
@@ -49,15 +33,23 @@ public static class AuthModelBuilderExtensions
     /// an app keeps one plain <c>DbContext</c> that every battery adds its own tables to, rather than
     /// having to inherit from Identity's context and give up that base class.
     /// </remarks>
-    public static ModelBuilder AddRaskAuth(this ModelBuilder modelBuilder) =>
-        modelBuilder.AddRaskAuth<RaskUser>();
+    public static ModelBuilder AddRaskAuth(this ModelBuilder modelBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(modelBuilder);
+
+        // The app's account type, found at compile time. Nothing mapped when it declared none: an app
+        // with no user has no accounts, and mapping Identity's tables for a type that does not exist
+        // would be a schema nobody asked for.
+        return AuthUser.Binding?.Map(modelBuilder) ?? modelBuilder;
+    }
 
     /// <summary>
-    /// Maps Identity's tables for an application-supplied user type deriving from <see cref="RaskUser"/>.
+    /// Maps Identity's tables for a named user type, when an app would rather say which than let the
+    /// generator find it.
     /// </summary>
     /// <typeparam name="TUser">The application's user entity.</typeparam>
     public static ModelBuilder AddRaskAuth<TUser>(this ModelBuilder modelBuilder)
-        where TUser : RaskUser
+        where TUser : IdentityUser
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 

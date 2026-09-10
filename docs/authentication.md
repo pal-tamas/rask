@@ -54,6 +54,57 @@ in through it — which is what [identity providers](authentication-providers.md
 
 ---
 
+## Your `User`
+
+Rask ships no user class. Your app declares one — `rask new` writes it into
+`Features/Shared/User.cs` — and that is the account:
+
+```csharp
+using Microsoft.AspNetCore.Identity;
+
+public class User : IdentityUser
+{
+}
+```
+
+Everything an account already has comes from Identity: the password hash, the security stamp, the
+lockout counters, the confirmation flags, and `ConcurrencyStamp`. Add the columns your app needs —
+a display name, a locale, a team id — then `rask db add AddUserColumns && rask db update`.
+
+**Nothing has to name it.** A source generator finds the one `IdentityUser` subclass in your project and
+wires Identity to it, so `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument. Two user
+types is [RASK074](diagnostics.md#rask074) — with two, picking either would map one set of account tables
+and silently strand the other. Declare none and you have no accounts, and auth is not wired.
+
+An app that would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and
+`modelBuilder.AddRaskAuth<User>()` still exist.
+
+### Audit stamps on an account
+
+Accounts take the same convention as every [model](data.md): add `ITimestamped` and `CreatedAt` /
+`UpdatedAt` are stamped on every write, as shadow columns unless you declare them.
+
+```csharp
+public class User : IdentityUser, ITimestamped
+{
+}
+```
+
+**Do not add `IVersioned`.** Identity already maintains `ConcurrencyStamp` as its optimistic-concurrency
+token, and a second token on the same row is a race rather than a guard.
+
+Your `User` is an Identity type, not a `Model<TId>` — C# has single inheritance, so it cannot be both.
+That means no `User.Where(…)` static surface: accounts go through `UserManager<User>`, which is the right
+tool for them anyway, since it owns password hashing, lockout and the security stamp. Your own models
+reference an account by its key, which Identity types as a `string`:
+
+```csharp
+public sealed class Order : Model<Guid>, ITimestamped
+{
+    public string OwnerId { get; private set; } = "";   // AspNetUsers.Id
+}
+```
+
 ## Concepts
 
 | Piece | What it is |

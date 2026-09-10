@@ -100,7 +100,7 @@ public sealed class AccountServiceTests
         AuthHarness harness, string email, string password = Password, string? firstRunToken = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         var outcome = await accounts.RegisterAsync(email, password, firstRunToken);
         return outcome.Result;
     }
@@ -108,7 +108,7 @@ public sealed class AccountServiceTests
     private static async Task<AuthResult> SignInAsync(AuthHarness harness, string email, string password)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<RaskUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
         var outcome = await accounts.ValidateAsync(email, password);
         return outcome.Result;
     }

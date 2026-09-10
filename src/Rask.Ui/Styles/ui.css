@@ -81,6 +81,13 @@
   daisyUI 5.7.27 verbatim (MIT), taken from its pinned GitHub release, which is byte-identical to the
   `latest` download at that version. It is build-time input only and ships in nothing.
 
+  THE VERSION IN THAT SENTENCE IS CHECKED. It is the pin's second statement — the first is
+  `var version = "…"` inside the bundle — and a bump that replaces the file and forgets the prose
+  leaves this comment naming a version the repository no longer ships. DaisyUiVersionPinTests reads
+  both and fails when they disagree, and ties them to the COMPILED sheet besides: the themes daisyUI
+  defines and the themes the shipped bytes carry have to be the same set, or the sheet an application
+  receives was not built by the bundle whose version this claims.
+
   themes: light is the default and dark follows the OS. Both are daisyUI's own, which is what makes the
   theme switch work with NO JavaScript — daisyUI matches `input.theme-controller[value=x]:checked` and
   `[data-theme=x]`, so a checkbox or a radio flips the whole palette through CSS alone.
