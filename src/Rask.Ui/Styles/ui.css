@@ -593,3 +593,45 @@
   }
 }
 
+/*
+  A VALIDATION MESSAGE THIS KIT RENDERED HAS TO BE VISIBLE.
+
+  daisyUI reveals `.validator-hint` with `.validator:user-invalid ~ .validator-hint` -- a SIBLING
+  selector, and one that answers to the BROWSER's own constraint validation. Neither half survives a
+  form field:
+
+    * UiFormField wraps a labelled control in <label>, so the control is no longer a sibling of the
+      hint. The selector stops matching and the message renders `display: none` -- present in the DOM,
+      correct text, invisible. That is the shape of failure worth being loud about: the markup reads
+      right, the value is right, the build is green, and the reader is told nothing.
+    * `:user-invalid` is the browser's judgement. This kit's messages come from C#, and the element is
+      rendered ONLY while the value is actually invalid -- so its presence is already the signal, and
+      making it wait for a second, unrelated opinion is how a valid-per-the-browser but
+      invalid-per-the-model value ends up silently unexplained.
+
+  So: a hint the kit put in a fieldset shows. Layered with the rest of the kit's corrections, so an
+  app's own utilities still outrank it.
+*/
+@layer rask-ui-corrections {
+  /*
+    A validation message THIS KIT rendered has to be visible.
+
+    daisyUI reveals `.validator-hint` with `.validator:user-invalid ~ .validator-hint`: a CSS-only
+    mechanism that asks the BROWSER whether the value is acceptable, and that needs the hint to be a
+    SIBLING of the input. Neither half survives contact with the kit. UiValidator is rendered by C#
+    and only while the value is actually wrong, so its presence is already the answer; and UiFormField
+    wraps a labelled control in a <label>, so a validator placed beside the field is not a sibling of
+    anything that selector can see. The message then renders with the right text, in the right place,
+    and invisible.
+
+    Scoped to the kit's own marker rather than to `.validator-hint`, so hand-written daisyUI markup
+    keeps the CSS-only behaviour exactly as documented.
+
+    VISIBILITY, not display: daisyUI hides it with `visibility: hidden` and keeps its box, so the
+    message reserves its line either way and revealing it shifts nothing. Setting `display` here reads
+    correctly in the sheet and changes nothing on screen — which is how the first attempt at this went.
+  */
+  .validator-shown {
+    visibility: visible;
+  }
+}

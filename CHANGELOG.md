@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
+  right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,
+  `.validator:user-invalid ~ .validator-hint`. That selector asks the *browser* whether the value is
+  acceptable and needs the hint to be a *sibling* of the input — and the kit holds neither assumption.
+  Its messages come from C# and are rendered only while the value is actually wrong, and `UiFormField`
+  wraps a labelled control in a `<label>`, so a validator beside the field is nobody's sibling. The kit
+  now marks the messages it decides to render and shows those; hand-written daisyUI markup keeps the
+  CSS-only behaviour unchanged.
+
 - **The prerendered page no longer paints an unstyled frame at all.** The `<body>` replacement fixed
   earlier was real but was **not** what the reader saw: after it, the flash was still there. Measured
   on the published bundle, `document.styleSheets` collapsed from 6 to 1 for ~37 ms at exactly that

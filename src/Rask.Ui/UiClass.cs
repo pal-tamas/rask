@@ -21,6 +21,18 @@ namespace Rask.Ui;
 /// </remarks>
 internal static class UiClass
 {
+    /// <summary>
+    ///     Marks a validation message the KIT decided to render, so the sheet can show it.
+    /// </summary>
+    /// <remarks>
+    ///     daisyUI keeps <c>.validator-hint</c> hidden until a sibling input is <c>:user-invalid</c> —
+    ///     a CSS-only mechanism that asks the browser, and needs the hint to be a sibling. The kit
+    ///     renders its message from C#, only while the value is wrong, and a field wraps its control in
+    ///     a <c>&lt;label&gt;</c>. So the message would be correct, in place, and invisible. Its own
+    ///     marker keeps hand-written daisyUI markup behaving exactly as daisyUI documents.
+    /// </remarks>
+    internal const string ValidatorShown = "validator-shown";
+
     internal static string Compose(params string?[] parts)
     {
         var sb = new StringBuilder();
