@@ -82,10 +82,8 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     ///         one <c>data-rask-on-change</c> attribute, so a control cannot have two.
     ///     </para>
     /// </remarks>
-    public Action<IReadOnlyList<string>>? OnSelect { get; set; }
+    public Callback<IReadOnlyList<string>>? OnSelect { get; set; }
 
-    /// <summary>The <see langword="async" /> form of <see cref="OnSelect" />.</summary>
-    public Func<IReadOnlyList<string>, Task>? OnSelectAsync { get; set; }
 
     /// <summary>
     ///     The selected value. Prefer <c>Bind</c>, which keeps it in step with your model in both
@@ -322,17 +320,9 @@ public sealed partial class Select<T> : Element, IFormControl<T>
         }
     }
 
-    // The values-shaped change handler, or null when the caller wired neither. Handed over as the
-    // caller's own delegate rather than wrapped: HandlerFrameShape.ShapeOf matches Action and Func alike
-    // for this shape, and Component's dispatch has an arm for each, so wrapping would only cost an
-    // allocation and a frame.
-    private Delegate? SelectionHandler()
-    {
-        if (OnSelectAsync is { } asyncHandler)
-        {
-            return asyncHandler;
-        }
-
-        return OnSelect;
-    }
+    // The values-shaped change handler, or null when none was wired. Handed over as the caller's own
+    // delegate rather than wrapped: HandlerFrameShape.ShapeOf matches Action and Func alike for this
+    // shape, and Component's dispatch has an arm for each, so wrapping would only cost an allocation and
+    // a frame. The carrier holds exactly one of them, so there is no longer a pair to pick between.
+    private Delegate? SelectionHandler() => OnSelect?.Handler;
 }

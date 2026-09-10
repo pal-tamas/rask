@@ -9,7 +9,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_NoError_RendersChildren()
     {
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(new Component[] { Span[Text.Value("ok")] }, null);
 
         Assert.Equal("<span>ok</span>", boundary.ToHtml());
@@ -18,7 +18,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_DescendantRenderThrows_RendersFallback()
     {
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(
             new Component[] { new ThrowingRender("kaboom") },
             (ex, _) => Span[Text.Value(ex.Message)]);
@@ -32,7 +32,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
         // The throwing child emits its opening <div> before the inner throw fires. The
         // boundary's rewind must remove that partial output so nothing leaks into the
         // serialized HTML around the fallback.
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(
             new Component[] { new ThrowMidwayComponent() },
             (ex, _) => Span[Text.Value("fb")]);
@@ -45,7 +45,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_FallbackOmitted_UsesDefaultErrorPage()
     {
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(
             new Component[] { new ThrowingRender("dflt") },
             null);
@@ -60,12 +60,12 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     public void Render_NestedBoundaries_InnerCatchesFirst()
     {
         var outerCaught = false;
-        var inner = ErrorBoundary.Value;
+        var inner = ErrorBoundary;
         inner.SetProps(
             new Component[] { new ThrowingRender("inner") },
             (ex, _) => Span[Text.Value("INNER:" + ex.Message)]);
 
-        var outer = ErrorBoundary.Value;
+        var outer = ErrorBoundary;
         outer.SetProps(
             new Component[] { inner },
             (_, _) =>
@@ -82,12 +82,12 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_NestedBoundaries_OuterCatchesWhenInnerFallbackThrows()
     {
-        var inner = ErrorBoundary.Value;
+        var inner = ErrorBoundary;
         inner.SetProps(
             new Component[] { new ThrowingRender("first") },
             (_, _) => throw new InvalidOperationException("fallback-broke"));
 
-        var outer = ErrorBoundary.Value;
+        var outer = ErrorBoundary;
         outer.SetProps(
             new Component[] { inner },
             (ex, _) => Span[Text.Value("OUTER:" + ex.Message)]);
@@ -98,7 +98,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Recover_ClearsErrorAndNextRenderShowsChildren()
     {
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(
             new Component[] { new ConditionalThrow(true) },
             (ex, recover) => Button.OnClick(recover)[Text.Value("retry:" + ex.Message)]);
@@ -124,7 +124,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
         // This test asserts the stamp happens.
         var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(new Component[] { probe }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
@@ -142,7 +142,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
         // walk — that would lose the link when nested boundaries swap fallbacks.
         var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
-        var first = ErrorBoundary.Value;
+        var first = ErrorBoundary;
         first.SetProps(new Component[] { probe }, null);
         using (LiveRenderContext.Begin(first, sp))
         {
@@ -152,7 +152,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
         Assert.Same(first, probe.CapturedBoundary);
 
         // Now reparent the probe under a different boundary. The stamp should NOT change.
-        var second = ErrorBoundary.Value;
+        var second = ErrorBoundary;
         second.SetProps(new Component[] { probe }, null);
         using (LiveRenderContext.Begin(second, sp))
         {

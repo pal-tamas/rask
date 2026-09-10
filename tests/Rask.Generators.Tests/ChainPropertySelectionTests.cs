@@ -41,7 +41,7 @@ public class ChainPropertySelectionTests
     }
 
     private static bool HasSetter(string output, string name) =>
-        output.Contains($"> {name}(this global::Rask.Core.Build<global::Demo.Widget>", StringComparison.Ordinal);
+        output.Contains($" {name}(this global::Demo.Widget", StringComparison.Ordinal);
 
     [Fact]
     public void A_settable_property_becomes_a_step() =>
@@ -137,7 +137,7 @@ public class ChainPropertySelectionTests
 
         Assert.Equal(
             1,
-            output.Split("> Title(this global::Rask.Core.Build<global::Demo.Widget>").Length - 1);
+            output.Split(" Title(this global::Demo.Widget").Length - 1);
     }
 
     // ---- RASK001 / RASK002 ------------------------------------------------------------------------

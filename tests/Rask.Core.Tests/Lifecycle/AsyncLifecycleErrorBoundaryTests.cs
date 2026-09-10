@@ -14,7 +14,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
     {
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(new Component[] { child }, null);
 
         // Drive a render so the descendant gets stamped with its Boundary, then its
@@ -35,7 +35,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
     {
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.PropsAsync);
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         boundary.SetProps(new Component[] { child }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
@@ -86,7 +86,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
         // Without a render request, the live root would never re-render with the fallback.
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
-        var boundary = ErrorBoundary.Value;
+        var boundary = ErrorBoundary;
         var handle = new RecordingHandle();
         boundary.RenderHandle = handle;
         boundary.SetProps(new Component[] { child }, null);

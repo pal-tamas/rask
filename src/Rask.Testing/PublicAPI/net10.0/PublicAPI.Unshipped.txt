@@ -153,10 +153,7 @@ static Rask.Testing.Markup.Attr(string! html, string! name) -> string?
 static Rask.Testing.Markup.Attrs(string! html, string! name) -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Testing.RaskTest.EditContextProbe(System.Action<Rask.Core.Forms.EditContext!>! capture) -> Rask.Core.Component!
 static Rask.Testing.RaskTest.Render(System.Func<Rask.Core.Component?>! factory, System.IServiceProvider? services = null) -> Rask.Testing.RenderedComponent!
-static Rask.Testing.RaskTest.Render<T, TMode>(Rask.Core.Build<T!, TMode> chain, System.IServiceProvider? services = null) -> Rask.Testing.RenderedComponent<T!>!
-static Rask.Testing.RaskTest.Render<T>(Rask.Core.Build<T!> chain, System.IServiceProvider? services = null) -> Rask.Testing.RenderedComponent<T!>!
 static Rask.Testing.RaskTest.Render<T>(T! component, System.IServiceProvider? services = null) -> Rask.Testing.RenderedComponent<T!>!
-static Rask.Testing.RaskTest.RenderDocument<T>(Rask.Core.Build<T!> chain, System.IServiceProvider? services = null) -> Rask.Testing.RenderedComponent<T!>!
 static Rask.Testing.RaskTest.RenderDocument<T>(T! app, System.IServiceProvider? services = null) -> Rask.Testing.RenderedComponent<T!>!
 static Rask.Testing.StagedDownload.operator !=(Rask.Testing.StagedDownload? left, Rask.Testing.StagedDownload? right) -> bool
 static Rask.Testing.StagedDownload.operator ==(Rask.Testing.StagedDownload? left, Rask.Testing.StagedDownload? right) -> bool

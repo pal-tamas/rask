@@ -28,7 +28,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         // `p` is a Product because the factory's parameter is the grid, and the grid's type argument was
         // fixed by Data. Written as a flat child this would be CS0411.
-        var html = UiDataGrid.Data(Catalog)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Field(p => p.Name).Title("Product"),
             c.Field(p => p.Price).Title("Price")
                 .Cell(p => Span[p.Price.ToString("0.00", CultureInfo.InvariantCulture)]),
@@ -55,7 +55,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     public void A_null_column_is_dropped_rather_than_rendered()
     {
         // One arm of a conditional — `admin ? column : null` — is the reason a column is a component.
-        var html = UiDataGrid.Data(Catalog)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Field(p => p.Name).Title("Product"),
             null,
         ]].ToHtml();
@@ -66,7 +66,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_empty_set_says_so_across_every_column()
     {
-        var html = UiDataGrid.Data(Array.Empty<Product>())[c => [
+        var html = UiDataGrid.Data(Array.Empty<Product>()).RowKey(p => p.Id)[c => [
             c.Field(p => p.Name).Title("Product"),
             c.Field(p => p.Price).Title("Price"),
         ]].ToHtml();
@@ -78,7 +78,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_empty_component_replaces_the_default_words()
     {
-        var html = UiDataGrid.Data(Array.Empty<Product>()).Empty(P["No products yet."])[c => [
+        var html = UiDataGrid.Data(Array.Empty<Product>()).RowKey(p => p.Id).Empty(P["No products yet."])[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -91,7 +91,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_sortable_header_is_a_button_and_an_unsortable_one_is_not()
     {
-        var html = UiDataGrid.Data(Catalog)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Field(p => p.Name).Title("Product").Sortable(true),
             c.Field(p => p.Price).Title("Price"),
         ]].ToHtml();
@@ -104,7 +104,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         // It could not be sorted if it tried: the sort is carried as a field TOKEN, and a column with no
         // field has none. Offering the control anyway would be a button that does nothing.
-        var html = UiDataGrid.Data(Catalog)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Column().Title("Actions").Sortable(true).Cell(_ => Span["edit"]),
         ]].ToHtml();
 
@@ -114,7 +114,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Every_sortable_header_announces_its_sort_state()
     {
-        var html = UiDataGrid.Data(Catalog).Sort("name")[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Sort("name")[c => [
             c.Field(p => p.Name).Title("Product").Sortable(true),
             c.Field(p => p.Price).Title("Price").Sortable(true),
         ]].ToHtml();
@@ -126,7 +126,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_controlled_descending_sort_says_descending()
     {
-        var html = UiDataGrid.Data(Catalog).Sort("name").SortDescending(true)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Sort("name").SortDescending(true)[c => [
             c.Field(p => p.Name).Title("Product").Sortable(true),
         ]].ToHtml();
 
@@ -136,14 +136,14 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_uncontrolled_sort_orders_the_rows_in_memory()
     {
-        var grid = (UiDataGrid<Product>)UiDataGrid.Data(Catalog)[c => [
+        var grid = (UiDataGrid<Product, int>)UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Field(p => p.Name).Title("Product").Sortable(true),
         ]];
 
         // Unsorted, the rows keep the order they were given.
         Assert.True(Position(grid.ToHtml(), "Anvil") < Position(grid.ToHtml(), "Bread"));
 
-        var sorted = ((UiDataGrid<Product>)UiDataGrid.Data(Catalog).Sort("price")[c => [
+        var sorted = ((UiDataGrid<Product, int>)UiDataGrid.Data(Catalog).RowKey(p => p.Id).Sort("price")[c => [
             c.Field(p => p.Name).Title("Product"),
             c.Field(p => p.Price).Title("Price").Sortable(true),
         ]]).ToHtml();
@@ -157,7 +157,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Paging_slices_the_rows_and_counts_the_pages()
     {
-        var html = UiDataGrid.Data(Catalog).PageSize(2)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).PageSize(2)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -169,7 +169,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_controlled_page_shows_that_page()
     {
-        var html = UiDataGrid.Data(Catalog).PageSize(2).Page(1).OnPageChange(_ => { })[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).PageSize(2).Page(1).OnPageChange(_ => { })[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -182,7 +182,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         // The parent fetched one page itself. The grid must not slice it again — doing so would show two
         // of the ten rows it was handed — and the pager counts in what it was told.
-        var html = UiDataGrid.Data(Catalog).PageSize(2).TotalCount(40)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).PageSize(2).TotalCount(40)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -194,7 +194,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void One_page_of_rows_needs_no_pager()
     {
-        var html = UiDataGrid.Data(Catalog).PageSize(10)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).PageSize(10)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -208,7 +208,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         Order[] orders = [new(new Supplier("Acme"))];
 
-        var html = UiDataGrid.Data(orders).Sort("name")[c => [
+        var html = UiDataGrid.Data(orders).RowKey(o => o.Supplier is { } s ? s.Name : "(none)").Sort("name")[c => [
             c.Field(o => o.Supplier.Name).Title("Supplier").Sortable(true),
         ]].ToHtml();
 
@@ -221,7 +221,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         Order[] orders = [new(null!)];
 
-        var html = UiDataGrid.Data(orders)[c => [
+        var html = UiDataGrid.Data(orders).RowKey(o => o.Supplier is { } s ? s.Name : "(none)")[c => [
             c.Field(o => o.Supplier.Name).Title("Supplier"),
         ]].ToHtml();
 
@@ -235,7 +235,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         // Field is the column's identity as well as its value, so a computed one could be neither
         // sorted nor grouped and would render blank. Refusing it names the step that was meant.
         var error = Assert.Throws<ArgumentException>(() =>
-            UiDataGrid.Data(Catalog)[c => [
+            UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
                 c.Field(p => p.Price * 2).Title("Double"),
             ]].ToHtml());
 
@@ -255,7 +255,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_query_is_ordered_and_sliced_by_the_provider()
     {
-        var html = UiDataGrid.Data(Catalog.AsQueryable()).PageSize(2).Sort("price")[c => [
+        var html = UiDataGrid.Data(Catalog.AsQueryable()).RowKey(p => p.Id).PageSize(2).Sort("price")[c => [
             c.Field(p => p.Name).Title("Product"),
             c.Field(p => p.Price).Title("Price").Sortable(true),
         ]].ToHtml();
@@ -273,7 +273,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         // The rows come back in id order, which interleaves the categories. Without the group key
         // leading the provider's ORDER BY, each band would open twice.
-        var html = UiDataGrid.Data(Interleaved.AsQueryable())
+        var html = UiDataGrid.Data(Interleaved.AsQueryable()).RowKey(p => p.Id)
             .Grouped(["category"])
             .OnGroupedChange(_ => { })[c => [
                 c.Field(p => p.Category).Title("Category").Groupable(true),
@@ -297,7 +297,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_footer_totals_over_every_row_rather_than_the_page()
     {
-        var html = UiDataGrid.Data(Catalog).PageSize(2)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).PageSize(2)[c => [
             c.Field(p => p.Name).Title("Product"),
             c.Field(p => p.Price).Title("Price").Footer(rows => rows.Sum(r => r.Price)),
         ]].ToHtml();
@@ -339,7 +339,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         // Two layouts now exist, so the labels the stacked one needed would be dead weight — and the
         // table hides below sm instead of restyling.
-        var html = UiDataGrid.Data(Catalog).Card(p => Span[p.Name])[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Card(p => Span[p.Name])[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -351,18 +351,17 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     // ---- selection ------------------------------------------------------------------------------
 
     [Fact]
-    public void Selection_appears_only_once_a_row_key_and_a_selection_are_named()
+    public void Selection_appears_only_once_a_selection_is_named()
     {
-        // RowKey alone is an identity, not an invitation to select: the checkboxes arrive with the
-        // selection itself.
+        // The row key is an identity, not an invitation to select. Every grid has one now — it is
+        // required — so it cannot be what decides whether the checkboxes appear; the selection itself is.
         var keyed = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
         Assert.DoesNotContain("checkbox", keyed, StringComparison.Ordinal);
 
-        var selectable = UiDataGrid.Data(Catalog)
-            .RowKey(p => p.Id)
+        var selectable = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .Selected([2])[c => [
                 c.Field(p => p.Name).Title("Product"),
             ]].ToHtml();
@@ -374,8 +373,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_selected_rows_are_the_ones_whose_keys_were_named()
     {
-        var html = UiDataGrid.Data(Catalog)
-            .RowKey(p => p.Id)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .Selected([1, 3])[c => [
                 c.Field(p => p.Name).Title("Product"),
             ]].ToHtml();
@@ -387,8 +385,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Selecting_every_row_on_the_page_ticks_the_header_box_too()
     {
-        var html = UiDataGrid.Data(Catalog)
-            .RowKey(p => p.Id)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .Selected([1, 2, 3, 4])[c => [
                 c.Field(p => p.Name).Title("Product"),
             ]].ToHtml();
@@ -401,7 +398,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_row_with_detail_gets_an_expander_and_the_detail_stays_shut()
     {
-        var html = UiDataGrid.Data(Catalog).Detail(p => P[p.Category])[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Detail(p => P[p.Category])[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -412,7 +409,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_row_whose_detail_is_null_gets_no_expander()
     {
-        var html = UiDataGrid.Data(Catalog)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .Detail(p => p.Category == "Grocery" ? P["fresh"] : null)[c => [
                 c.Field(p => p.Name).Title("Product"),
             ]].ToHtml();
@@ -425,7 +422,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Grouping_bands_the_rows_and_takes_the_grouped_column_out_of_the_table()
     {
-        var html = UiDataGrid.Data(Catalog).Grouped(["category"]).OnGroupedChange(_ => { })[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Grouped(["category"]).OnGroupedChange(_ => { })[c => [
             c.Field(p => p.Category).Title("Category").Groupable(true),
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
@@ -439,7 +436,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_grouped_column_can_be_kept_in_the_table()
     {
-        var html = UiDataGrid.Data(Catalog)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .Grouped(["category"])
             .OnGroupedChange(_ => { })
             .ShowGroupedColumns(true)[c => [
@@ -453,7 +450,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Subtotals_repeat_a_column_footer_per_band()
     {
-        var html = UiDataGrid.Data(Catalog)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .Grouped(["category"])
             .OnGroupedChange(_ => { })
             .GroupSubtotals(true)[c => [
@@ -473,7 +470,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         // The case a single grouping level cannot expose: the OUTER subtotal has to span every inner
         // band beneath it, while the inner one spans only its own run. A walk carrying one "where did
         // this band start" index reports the outer total as the last inner band's — 30 here, not 38.
-        var html = UiDataGrid.Data(Catalog)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .Grouped(["category", "name"])
             .OnGroupedChange(_ => { })
             .GroupSubtotals(true)[c => [
@@ -497,7 +494,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         // previous row would merge them into one band the moment they landed adjacent.
         Place[] places = [new("Avon", "Bristol"), new("Wiltshire", "Bristol")];
 
-        var html = UiDataGrid.Data(places)
+        var html = UiDataGrid.Data(places).RowKey(p => p.County)
             .Grouped(["county", "town"])
             .OnGroupedChange(_ => { })[c => [
                 c.Field(p => p.County).Title("County").Groupable(true),
@@ -512,7 +509,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_groupable_column_offers_a_group_button_in_its_header()
     {
-        var html = UiDataGrid.Data(Catalog)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Field(p => p.Category).Title("Category").Groupable(true),
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
@@ -526,7 +523,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_hidden_column_leaves_the_table()
     {
-        var html = UiDataGrid.Data(Catalog)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .HiddenColumns(["price"])
             .OnHiddenColumnsChange(_ => { })[c => [
                 c.Field(p => p.Name).Title("Product"),
@@ -540,7 +537,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_column_order_puts_the_named_columns_first()
     {
-        var html = UiDataGrid.Data(Catalog)
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)
             .ColumnOrder(["price"])
             .OnColumnOrderChange(_ => { })[c => [
                 c.Field(p => p.Name).Title("Product"),
@@ -553,7 +550,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_chooser_is_shut_until_it_is_opened()
     {
-        var html = UiDataGrid.Data(Catalog).ColumnChooser(true)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).ColumnChooser(true)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -564,7 +561,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_group_panel_says_what_to_do_when_nothing_is_grouped()
     {
-        var html = UiDataGrid.Data(Catalog).GroupPanel(true)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).GroupPanel(true)[c => [
             c.Field(p => p.Category).Title("Category").Groupable(true),
         ]].ToHtml();
 
@@ -576,7 +573,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_busy_grid_announces_itself_rather_than_only_dimming()
     {
-        var html = UiDataGrid.Data(Catalog).Loading(true)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Loading(true)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -588,7 +585,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         // The two live in one aria bag, and a second Aria call would have replaced the first outright —
         // which is exactly what RASK044 reports.
-        var html = UiDataGrid.Data(Catalog).Label("Catalog").Loading(true)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Label("Catalog").Loading(true)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -601,7 +598,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [InlineData(UiSize.Lg, "table-lg")]
     public void Every_size_writes_its_own_class(UiSize size, string expected)
     {
-        var html = UiDataGrid.Data(Catalog).Size(size)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Size(size)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -611,7 +608,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Zebra_and_a_sticky_header_write_daisy_classes()
     {
-        var html = UiDataGrid.Data(Catalog).Zebra(true).StickyHeader(true).MaxHeight("20rem")[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Zebra(true).StickyHeader(true).MaxHeight("20rem")[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -623,7 +620,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_row_class_reaches_the_row_it_was_computed_from()
     {
-        var html = UiDataGrid.Data(Catalog).RowClass(p => p.Price > 10m ? "text-error" : null)[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).RowClass(p => p.Price > 10m ? "text-error" : null)[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -637,7 +634,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         // The asymmetry is a safety rule: the client cancels the default action of a click it dispatches,
         // so a link or a button inside a clickable cell would silently stop working.
-        var html = UiDataGrid.Data(Catalog).OnRowClick(_ => { })[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).OnRowClick(_ => { })[c => [
             c.Field(p => p.Name).Title("Product"),
             c.Field(p => p.Price).Title("Price").Cell(p => A.Href("/x")[$"{p.Price}"]),
         ]].ToHtml();
@@ -648,7 +645,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_custom_cell_can_opt_back_in()
     {
-        var html = UiDataGrid.Data(Catalog).OnRowClick(_ => { })[c => [
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).OnRowClick(_ => { })[c => [
             c.Field(p => p.Name).Title("Product").Cell(p => Span[p.Name]).RowClickable(true),
         ]].ToHtml();
 
@@ -686,7 +683,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     }
 
     private static string Grid() =>
-        UiDataGrid.Data(Catalog)[c => [
+        UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
             c.Field(p => p.Name).Title("Product"),
             c.Field(p => p.Price).Title("Price"),
         ]].ToHtml();

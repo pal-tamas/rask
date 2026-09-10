@@ -85,7 +85,7 @@ public sealed class InputTypeMismatchAnalyzer : DiagnosticAnalyzer
         if (IsBuilderSetter(method) && string.Equals(method.Name, TypeParameter, StringComparison.Ordinal))
         {
             // The setter's receiver is the CHAIN, so the control is inside it: `Build<Input<bool>>`.
-            control = BuilderEntry.ChainedComponent(method.ReceiverType) as INamedTypeSymbol;
+            control = method.ReceiverType as INamedTypeSymbol;
             typeArg = invocation.ArgumentList.Arguments.Count == 1
                 ? invocation.ArgumentList.Arguments[0].Expression
                 : null;

@@ -207,7 +207,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void Of_opens_controlled_mode_so_the_parent_still_owns_the_value()
     {
         var seen = "";
-        var control = UiInput.Of<string>().Label("Search").OnChange(v => seen = v).Value;
+        var control = UiInput.Of<string>().Label("Search").OnChange(v => seen = v);
 
         Assert.Null(control.Bind);
         control.OnChange?.Invoke("typed");

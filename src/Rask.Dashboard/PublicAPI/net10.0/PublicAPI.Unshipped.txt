@@ -352,28 +352,28 @@ static Rask.Dashboard.Panels.QueueRow.operator ==(Rask.Dashboard.Panels.QueueRow
 static Rask.Dashboard.Panels.RecurringJobRow.operator !=(Rask.Dashboard.Panels.RecurringJobRow? left, Rask.Dashboard.Panels.RecurringJobRow? right) -> bool
 static Rask.Dashboard.Panels.RecurringJobRow.operator ==(Rask.Dashboard.Panels.RecurringJobRow? left, Rask.Dashboard.Panels.RecurringJobRow? right) -> bool
 static Rask.Dashboard.RaskDashboardServiceCollectionExtensions.AddRaskDashboard<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Dashboard.RaskDashboardOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-static RaskBuilderSettersRask_Dashboard.Category(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
-static RaskBuilderSettersRask_Dashboard.Level(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
-static RaskBuilderSettersRask_Dashboard.Page(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, int? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
-static RaskBuilderSettersRask_Dashboard.Query(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
-static RaskBuilderSettersRask_Dashboard.Queue(this Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!> __b, string! value) -> Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!>
-static RaskBuilderSettersRask_Dashboard.Search(this Rask.Core.Build<Rask.Dashboard.Pages.CachePage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.CachePage!>
-static RaskBuilderSettersRask_Dashboard.Show(this Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!>
-static RaskBuilderSettersRask_Dashboard.View(this Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!> __b, string? value) -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
+static RaskBuilderSettersRask_Dashboard.Category(this Rask.Dashboard.Pages.LogsPage! __b, string? value) -> Rask.Dashboard.Pages.LogsPage!
+static RaskBuilderSettersRask_Dashboard.Level(this Rask.Dashboard.Pages.LogsPage! __b, string? value) -> Rask.Dashboard.Pages.LogsPage!
+static RaskBuilderSettersRask_Dashboard.Page(this Rask.Dashboard.Pages.LogsPage! __b, int? value) -> Rask.Dashboard.Pages.LogsPage!
+static RaskBuilderSettersRask_Dashboard.Query(this Rask.Dashboard.Pages.LogsPage! __b, string? value) -> Rask.Dashboard.Pages.LogsPage!
+static RaskBuilderSettersRask_Dashboard.Queue(this Rask.Dashboard.Pages.QueuePage! __b, string! value) -> Rask.Dashboard.Pages.QueuePage!
+static RaskBuilderSettersRask_Dashboard.Search(this Rask.Dashboard.Pages.CachePage! __b, string? value) -> Rask.Dashboard.Pages.CachePage!
+static RaskBuilderSettersRask_Dashboard.Show(this Rask.Dashboard.Pages.QueuePage! __b, string? value) -> Rask.Dashboard.Pages.QueuePage!
+static RaskBuilderSettersRask_Dashboard.View(this Rask.Dashboard.Pages.LogsPage! __b, string? value) -> Rask.Dashboard.Pages.LogsPage!
 static RaskBuilderSettersRask_Dashboard.__RaskResetEager_Rask_Dashboard_Pages_CachePage(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskResetEager_Rask_Dashboard_Pages_LogsPage(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskResetEager_Rask_Dashboard_Pages_QueuePage(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_CachePage(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_LogsPage(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_QueuePage(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskEntriesRask_Dashboard.CachePage.get -> Rask.Core.Build<Rask.Dashboard.Pages.CachePage!>
-static RaskEntriesRask_Dashboard.DashboardLayout.get -> Rask.Core.Build<Rask.Dashboard.Pages.DashboardLayout!>
-static RaskEntriesRask_Dashboard.LogsPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.LogsPage!>
-static RaskEntriesRask_Dashboard.NotFoundPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.NotFoundPage!>
-static RaskEntriesRask_Dashboard.OverviewPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.OverviewPage!>
-static RaskEntriesRask_Dashboard.QueuePage.get -> Rask.Core.Build<Rask.Dashboard.Pages.QueuePage!>
-static RaskEntriesRask_Dashboard.RaskDashboardShell.get -> Rask.Core.Build<Rask.Dashboard.RaskDashboardShell!>
-static RaskEntriesRask_Dashboard.SystemPage.get -> Rask.Core.Build<Rask.Dashboard.Pages.SystemPage!>
+static RaskEntriesRask_Dashboard.CachePage.get -> Rask.Dashboard.Pages.CachePage!
+static RaskEntriesRask_Dashboard.DashboardLayout.get -> Rask.Dashboard.Pages.DashboardLayout!
+static RaskEntriesRask_Dashboard.LogsPage.get -> Rask.Dashboard.Pages.LogsPage!
+static RaskEntriesRask_Dashboard.NotFoundPage.get -> Rask.Dashboard.Pages.NotFoundPage!
+static RaskEntriesRask_Dashboard.OverviewPage.get -> Rask.Dashboard.Pages.OverviewPage!
+static RaskEntriesRask_Dashboard.QueuePage.get -> Rask.Dashboard.Pages.QueuePage!
+static RaskEntriesRask_Dashboard.RaskDashboardShell.get -> Rask.Dashboard.RaskDashboardShell!
+static RaskEntriesRask_Dashboard.SystemPage.get -> Rask.Dashboard.Pages.SystemPage!
 ~override Rask.Dashboard.Panels.CacheStats.Equals(object obj) -> bool
 ~override Rask.Dashboard.Panels.CacheStats.ToString() -> string
 ~override Rask.Dashboard.Panels.QueueCounts.Equals(object obj) -> bool

@@ -58,7 +58,7 @@ public partial class ComponentTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Indexer_AssignsChildren_AndReturnsThis()
     {
-        var div = Div.Value;
+        var div = Div;
         var returned = div[Text.Value("a")];
 
         Assert.Same(div, returned);

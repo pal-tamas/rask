@@ -341,12 +341,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // the grid shape put 120 extensions no grid can call into every compilation that
                 // references Rask.Core, and 240 unreachable entries into its recorded public API. The one
                 // that remains is Key, which every chain needs.
-                foreach (var mode in ChainShapesFor(s.Owner))
-                {
-                    EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
-                        fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
-                        pendingBit: Bit(sharedBits, s.Name), summary: s.Summary, mode: mode);
-                }
+                EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
+                    fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
+                    pendingBit: Bit(sharedBits, s.Name), summary: s.Summary);
             }
         }
 
@@ -394,15 +391,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     p.IsAutoRerenderDelegate || folded, generic: false,
                     !folded && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
                     AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name),
-                    p.Summary,
-                    // A form control's chain carries its mode, so its steps are written over it: the
-                    // controlled-mode props (Checked, OnInput, OnChange) only on Controlled, everything
-                    // else — the display and constraint props — over an open TMode. A grid's carries its
-                    // key the same way, and every one of its own steps is legal whether or not a row key
-                    // has been named, so all of them are written over an open TKey.
-                    c.ColumnHost ? GridOpenKey
-                    : c.SubmitAware ? FormChainMode
-                    : c.FormControl is null ? null : ModeOf(p.Name));
+                    p.Summary);
             }
 
             EmitBoundSetters(sb, c, visibility);
@@ -973,7 +962,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // Build<…, Controlled>, where before it compiled and the hook simply never ran.
             EmitSetter(sb, name, typeFqn, c.FullyQualifiedName, isDelegate: false, wrap: false, generic: false,
                 fold: false, AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility,
-                pendingBit: -1, summary: summary, mode: ModeOf(name));
+                pendingBit: -1, summary: summary);
         }
     }
 
@@ -1075,11 +1064,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string constraints = "",
         string visibility = "public",
         int pendingBit = -1,
-        string summary = "",
-        // null for an ordinary component's chain (`Build<T>`); for a form control, the mode argument its
-        // chain carries — OpenMode when the step is legal in either mode, one of the two mode types when
-        // it belongs to only one. See Rask.Core.Build{T,TMode}.
-        string? mode = null)
+        string summary = "")
     {
         EmitDocComment(sb, summary, "    ");
         var setterName = name;
@@ -1095,23 +1080,26 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // instance the key is about to discard. RASK046 reports that at the call site.
         if (generic && string.Equals(name, "Key", StringComparison.Ordinal))
         {
-            // Mode-aware like every other shared step: the shared surface is emitted once per chain
-            // SHAPE (`Build<T>` and a form control's `Build<T, TMode>`), so writing `Build<T>` literally
-            // here emitted the same `Key<T>` twice — CS0111. A form control is as keyable as anything
-            // else, and its chain has to keep its mode across the claim.
-            var self = BuildOf("T", mode);
+            // Emitted ONCE, over the component's own type parameter. This used to be emitted per chain
+            // SHAPE, and writing `Build<T>` literally here produced the same `Key<T>` twice — CS0111.
+            var self = "T";
             sb.Append("    ").Append(visibility).Append(" static ")
-                .Append(self).Append(" Key").Append(WithMode("<T>", mode)).Append("(this ").Append(self)
+                .Append(self).Append(" Key").Append("<T>").Append("(this ").Append(self)
                 .Append(" __b, ")
-                .Append(typeFqn).Append(" value) where T : ").Append(ConstraintFor(receiver, mode));
-            sb.Append(" { var __c = global::Rask.Core.BuilderRuntime.ClaimKey(__b.Value, value); ");
+                .Append(typeFqn).Append(" value) where T : ").Append(receiver);
+            sb.Append(" { var __c = global::Rask.Core.BuilderRuntime.ClaimKey(__b, value); ");
             if (pendingBit >= 0)
             {
                 sb.Append("global::Rask.Core.BuilderRuntime.Written(__c, ")
                     .Append(MaskLiteral(new[] { pendingBit })).Append("); ");
             }
 
-            sb.Append("__c.Key = value; return new ").Append(self).AppendLine("(__c); }");
+            // Returns what ClaimKey handed back, NOT the receiver: settling identity can swap in the
+            // instance the key already owns, and returning `__b` would hand on the one it discarded —
+            // silently losing every step written after `.Key(…)`. Wrapping it in `new T(…)` is also not
+            // available any more (CS0304: T has no new() constraint), which is what makes the mistake
+            // easy to make by hand.
+            sb.AppendLine("__c.Key = value; return __c; }");
             return;
         }
 
@@ -1175,31 +1163,31 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append("    ").Append(visibility).Append(" static ");
         if (generic)
         {
-            var self = BuildOf("T", mode);
+            var self = "T";
             sb.Append(self).Append(' ').Append(EscapeIdentifier(setterName))
-                .Append(WithMode("<T>", mode)).Append("(this ")
+                .Append("<T>").Append("(this ")
                 .Append(self).Append(" __b, ").Append(paramType)
-                .Append(" value) where T : ").Append(ConstraintFor(receiver, mode));
-            sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
+                .Append(" value) where T : ").Append(receiver);
+            sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
                 .Append(" = ").Append(assigned).AppendLine("; return __b; }");
             EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
-                generic: true, mode);
+                generic: true);
             EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
-                generic: true, mode);
+                generic: true);
             return;
         }
 
-        var target = BuildOf(receiver, mode);
+        var target = receiver;
         sb.Append(target).Append(' ').Append(EscapeIdentifier(setterName))
-            .Append(WithMode(typeParameters, mode))
+            .Append(typeParameters)
             .Append("(this ").Append(target).Append(" __b, ").Append(paramType).Append(" value)")
             .Append(constraints);
-        sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
+        sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
             .Append(" = ").Append(assigned).AppendLine("; return __b; }");
         EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
-            generic: false, mode, typeParameters, constraints);
+            generic: false, typeParameters, constraints);
         EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
-            generic: false, mode, typeParameters, constraints);
+            generic: false, typeParameters, constraints);
     }
 
     private const string CallbackFqn = "global::Rask.Core.Callback";
@@ -1326,7 +1314,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     /// </remarks>
     private static void EmitCarrierOverloads(
         StringBuilder sb, string setterName, string propertyName, string typeFqn, string receiver,
-        bool wrap, int pendingBit, string visibility, bool generic, string? mode = null,
+        bool wrap, int pendingBit, string visibility, bool generic,
         string typeParameters = "", string constraints = "")
     {
         var shapes = CarrierDelegates(typeFqn);
@@ -1347,9 +1335,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ? "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); "
             : "global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); ";
 
-        var self = BuildOf(generic ? "T" : receiver, mode);
-        var typeArgs = WithMode(generic ? "<T>" : typeParameters, mode);
-        var where = generic ? " where T : " + ConstraintFor(receiver, mode) : constraints;
+        var self = (generic ? "T" : receiver);
+        var typeArgs = (generic ? "<T>" : typeParameters);
+        var where = generic ? " where T : " + receiver : constraints;
 
         foreach (var shape in shapes)
         {
@@ -1369,7 +1357,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // cannot render without — is a non-nullable struct, and `default` is its unset value.
             var empty = typeFqn.EndsWith("?", StringComparison.Ordinal) ? "null" : "default";
 
-            sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(prop)
+            sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(prop)
                 .Append(" = value is null ? ").Append(empty).Append(" : new ").Append(carrier)
                 .AppendLine("(" + value + "); return __b; }");
         }
@@ -1388,7 +1376,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     /// </remarks>
     private static void EmitAttrBagOverloads(
         StringBuilder sb, string setterName, string propertyName, string typeFqn, string receiver,
-        bool fold, int pendingBit, string visibility, bool generic, string? mode = null,
+        bool fold, int pendingBit, string visibility, bool generic,
         string typeParameters = "", string constraints = "")
     {
         if (!IsAttrBag(typeFqn))
@@ -1409,15 +1397,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             track += "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); ";
         }
 
-        var self = BuildOf(generic ? "T" : receiver, mode);
+        var self = (generic ? "T" : receiver);
         // The component's own type parameters are carried here too — a generic component's bag setter that
         // declared none would not compile. Non-generic components (every one that has a bag prop today)
         // are unaffected: the list is empty either way.
-        var typeArgs = WithMode(generic ? "<T>" : typeParameters, mode);
+        var typeArgs = (generic ? "<T>" : typeParameters);
         // …and with them their CONSTRAINTS, or a constrained generic component with a bag prop emits
         // `Foo<TValue>(this Build<Widget<TValue>, TMode> …)` with no `where TValue : …` and fails to
         // compile (CS0314). Carrying the parameters without the constraints was half a fix.
-        var where = generic ? " where T : " + ConstraintFor(receiver, mode) : constraints;
+        var where = generic ? " where T : " + receiver : constraints;
 
         // The body is assigned here rather than forwarded to the dictionary overload. Every component's
         // setters are extension methods on Build<…> in one static class, so a forwarding `Data(__b, …)`
@@ -1472,85 +1460,37 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
                 .Append(typeArgs).Append("(this ").Append(self).Append(" __b, ").Append(parameters).Append(')')
                 .Append(where)
-                .Append(" { var __c = __b.Value; var __bag = ").Append(expression).Append("; ").Append(track)
+                .Append(" { var __c = __b; var __bag = ").Append(expression).Append("; ").Append(track)
                 .Append("__c.").Append(prop).AppendLine(" = __bag; return __b; }");
         }
     }
 
-    // The chain's receiver and result for a component type — `Rask.Core.Build<TComponent>`, or
-    // `Rask.Core.Build<TComponent, TMode>` for a form control, whose chain carries the mode its entry
-    // step opened in. See Rask.Core.Build{T,TMode}.
-    private static string BuildOf(string componentFqn, string? mode = null) =>
-        mode is null ? "global::Rask.Core.Build<" + componentFqn + ">"
-        : string.Equals(mode, FormChainMode, StringComparison.Ordinal)
-            ? "global::Rask.Core.FormBuild<" + componentFqn + ">"
-        : IsGridChain(mode)
-            ? "global::Rask.Core.GridBuild<" + componentFqn + ", " + KeyArgument(mode) + ">"
-        : "global::Rask.Core.Build<" + componentFqn + ", " + mode + ">";
-
-    // Not a mode in the Bound/Controlled sense — it names the third chain SHAPE rather than a mode that
-    // shape carries, and FormBuild<T> takes no mode argument. It rides the same parameter because every
-    // site that has to know which shape it is emitting over already threads it. See Rask.Core.FormBuild{T}.
-    private const string FormChainMode = "__formchain";
-
-    // The FOURTH shape, GridBuild<T, TKey>, which unlike the form shape DOES take an argument — so it
-    // rides the mode parameter as a prefix plus the key type to write, rather than as a bare marker.
-    // Two spellings, and the difference is the whole reason the prefix is needed: an ENTRY pins the key
-    // to NoKey (a chain has to be a closed type the moment it is handed back, or its type argument is
-    // uninferrable — CS0411), while a STEP written over an existing chain leaves it open so the chain
-    // keeps whatever key a RowKey step already pinned. See Rask.Core.GridBuild{T,TKey}.
-    private const string GridChainPrefix = "__gridchain:";
-    private const string GridOpenKey = GridChainPrefix + "TKey";
-    private const string GridNoKey = GridChainPrefix + "global::Rask.Core.NoKey";
-
-    // The chain shapes a shared member is emitted over. Everything reaches the three COMPONENT shapes;
-    // the grid shape is offered only to what a Component-derived host can actually satisfy, since a
-    // step constrained to Element is unreachable from a column host and costs every consumer the code
-    // and every recorded API the entry. See the loop that calls this.
-    private static string?[] ChainShapesFor(string owner) =>
-        string.Equals(owner, "global::" + ComponentFullName, StringComparison.Ordinal)
-            ? [null, OpenMode, FormChainMode, GridOpenKey]
-            : [null, OpenMode, FormChainMode];
-
-    private static bool IsGridChain(string? mode) =>
-        mode is not null && mode.StartsWith(GridChainPrefix, StringComparison.Ordinal);
-
-    private static string KeyArgument(string mode) => mode.Substring(GridChainPrefix.Length);
-
-    // The shape a candidate's FINISHED chain hands back. Every call site of this is a way IN — an entry,
-    // an `Of<T>()`, the step that completes a component's required set — so a column host pins NoKey
-    // here; the open-key spelling belongs to the setter emissions, which are handed their mode directly.
-    // A submit-aware component is on the form shape whatever else it is; everything else keeps the mode
-    // (or none) it already had.
-    private static string? ChainModeOf(Candidate c, string? mode) =>
-        c.ColumnHost ? GridNoKey
-        : c.SubmitAware ? FormChainMode
-        : mode;
-
-    // FormBuild<T> constrains T to ISubmitAware, and GridBuild<T, TKey> to IColumnHost, so a step written
-    // over either shape has to repeat the constraint or the receiver does not satisfy its own type
-    // parameter (CS0314).
-    private static string ConstraintFor(string receiver, string? mode) =>
-        string.Equals(mode, FormChainMode, StringComparison.Ordinal)
-            ? receiver + ", global::Rask.Core.Forms.ISubmitAware"
-        : IsGridChain(mode)
-            ? receiver + ", global::Rask.Core.IColumnHost"
-            : receiver;
-
-    private const string BoundMode = "global::Rask.Core.Forms.Bound";
-    private const string ControlledMode = "global::Rask.Core.Forms.Controlled";
-
-    // The mode argument a step that is legal in EITHER mode is written over: left open, so the chain
-    // keeps whichever mode it is in rather than being pinned to one by an ordinary display prop.
-    private const string OpenMode = "TMode";
-
-    // Which mode a form control's member belongs to, or OpenMode when it belongs to both. The two
-    // name lists are the whole rule (see BoundInterfaceMembers / ControlledMembers): everything else —
-    // Placeholder, Rows, Options, the Element surface — is shared and stays reachable either way.
-    private static string ModeOf(string memberName) =>
-        Array.IndexOf(ControlledMembers, memberName) >= 0 ? ControlledMode
-        : Array.IndexOf(BoundInterfaceMembers, memberName) >= 0 ? BoundMode
-        : OpenMode;
+    // THE CHAIN'S RECEIVER IS THE COMPONENT. There is one shape, and a step hands back exactly what it
+    // was called on.
+    //
+    // Four types used to wrap it — `Build<T>`, the mode-carrying `Build<T, TMode>`, `FormBuild<T>` and
+    // `GridBuild<T, TKey>` — and each existed to carry in the TYPE something the component could not: a
+    // form control's bound/controlled mode, a form's submit-state children indexer, a grid's row key.
+    // What replaced each one is worth stating, because none of it is the same mechanism:
+    //
+    //   - the two INDEXERS are declared on the components themselves (Form and UiDataGrid<T>), which
+    //     scopes them exactly as well and costs no type parameter. An indexer cannot be constrained,
+    //     which is the only reason they ever needed a shape of their own;
+    //   - BIND-VERSUS-VALUE still does not compile, and needs no diagnostic to say so. The two openings
+    //     are declared on the SEED and neither is emitted as a setter on the control, so taking one
+    //     hands back the control and the other is simply not a member of it (CS1929). The mode types
+    //     were never what ruled the pair out — the seed was, and the seed is still here.
+    //
+    // The GRID's row key is the one guarantee that really was lost, and it is worth being honest about:
+    // `GridBuild<T, TKey>` opened carrying NoKey and declared the selection steps only over a pinned one,
+    // so a grid that never said what identifies a row was not a grid whose selection was rejected — it
+    // was one where selection was not offered. `Selected` and `OnSelectionChange` are now ordinary
+    // extensions on UiDataGrid<TRow>, reachable before any RowKey step, and SelectionOf fabricates a
+    // strategy with no selector installed when they are.
+    //
+    // With the component as the receiver a generic self-type does the rest: `T` infers to whatever it was
+    // called on and returns exactly that. Emitting a shared step over more than one shape is CS0111 —
+    // they all collapse to the same signature — so one shape is load-bearing, not tidying.
 
     // One more type argument on a `<…>` list — or the whole list, when there was none.
     private static string Append(string typeArgs, string? extra) =>
@@ -1558,30 +1498,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         : typeArgs.Length == 0 ? "<" + extra + ">"
         : typeArgs.Substring(0, typeArgs.Length - 1) + ", " + extra + ">";
 
-    // A method's type parameter list with TMode appended, for a step written over the OPEN mode. A step
-    // pinned to one mode names that mode in its receiver and declares no parameter of its own — and the
-    // grid chain's open key is the same arrangement under a different name.
-    private static string WithMode(string typeParameters, string? mode) =>
-        string.Equals(mode, OpenMode, StringComparison.Ordinal)
-            ? Append(typeParameters, OpenMode)
-        : string.Equals(mode, GridOpenKey, StringComparison.Ordinal)
-            ? Append(typeParameters, GridKeyParameter)
-            : typeParameters;
-
     // The name the open key is DECLARED under. Kept beside GridOpenKey rather than re-derived from it,
     // because the two are only incidentally the same word: one is a mode marker, the other a C# type
     // parameter that has to agree with what BuildOf wrote into the receiver.
     private const string GridKeyParameter = "TKey";
-
-    // The mode a form control's chain is in once the given opening step has been taken. `Bind` is the
-    // bound mode by definition; every other way in (`Value`, and `Of` for a control given no value at
-    // all) leaves the parent owning the value, which is the controlled mode.
-    private static string? OpeningMode(Candidate c, EntryInference opening) =>
-        c.FormControl is null
-            ? null
-            : string.Equals(opening.PropertyName, "Bind", StringComparison.Ordinal)
-                ? BoundMode
-                : ControlledMode;
 
     // The two ways into a form control, as steps. A GENERIC control's Bind and Value already open its
     // chain because they pin the value type (see PinCandidates); a non-generic one — BsCheck, whose value
@@ -1775,22 +1695,22 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             //
             // The entry opens a chain, so it hands back `Build<TComponent>` and not the component: the
             // steps after it are extension methods on the chain, which is what keeps a delegate-typed
-            // property from swallowing its own setter (see Rask.Core.Build{T}).
+            // property from swallowing its own setter (see Rask.Core.Callback).
             EmitEntryDoc(sb, c);
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-                .Append(BuildOf(c.FullyQualifiedName, ChainModeOf(c, null))).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
+                .Append(c.FullyQualifiedName).Append(' ')
+                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
-            sb.AppendLine("));");
+            sb.AppendLine(");");
 
             EmitEntryDoc(shared, c);
             shared.Append(c.IsPublic ? "    public static " : "    internal static ")
-                .Append(BuildOf(c.FullyQualifiedName, ChainModeOf(c, null))).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
+                .Append(c.FullyQualifiedName).Append(' ')
+                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(shared, c, host.AssemblyName);
-            shared.AppendLine("));");
+            shared.AppendLine(");");
         }
 
         sb.AppendLine("}");
@@ -1893,22 +1813,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var required = RequiredSteps(c);
         var openings = Openings(c);
 
-        // A form control's stages and states carry the mode forward as a type parameter of their own: the
-        // opening step fixed it, everything between passes it along, and the chain it finally hands back
-        // is in the mode the chain opened in. Anything else is `null` here and nothing changes for it.
-        var carriedMode = c.FormControl is null ? null : OpenMode;
-
-        // The shape the FINISHED chain hands back, which is not always what the intermediate states
-        // carry: a mode is a type parameter the states pass along, whereas the form shape is a different
-        // struct with no extra type argument at all. Kept apart so appending one never appends the other.
-        //
-        // A grid is the third arrangement again. Its states carry NOTHING extra — carriedMode stays null
-        // — because a chain reaches one before any RowKey step and so is still on the NoKey the entry
-        // pinned; declaring a TKey type parameter on those structs would leave it uninferrable. The
-        // finished chain names that pinned key outright.
-        var chainMode = c.ColumnHost ? GridNoKey
-            : c.SubmitAware ? FormChainMode
-            : carriedMode;
 
         sb.Append(pad).Append("/// <summary>Where a ").Append(c.TypeName)
             .AppendLine(" chain starts. Take one of its steps to begin.</summary>");
@@ -1952,7 +1856,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 {
                     EmitBuildingStep(
                         sb, c, pad + "    ", assemblyName, runtimePrefix, first, [],
-                        new HashSet<string>(StringComparer.Ordinal) { first.PropertyName }, mode: null,
+                        new HashSet<string>(StringComparer.Ordinal) { first.PropertyName },
                         seedCarriesKey);
                 }
 
@@ -1965,10 +1869,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // chose — the chain is in one from here on.
                 var stageParams = TypeParametersFor(c, opening[0]);
                 sb.Append(pad).Append("    public ")
-                    .Append(StageFqn(c, opening[0], Append(stageParams, OpeningMode(c, opening[0])))).Append(' ')
+                    .Append(StageFqn(c, opening[0], stageParams)).Append(' ')
                     .Append(EscapeIdentifier(opening[0].ParamName)).Append(AnnotateDecl(c, stageParams)).Append('(')
                     .Append(StepParamType(opening[0])).Append(' ')
-                    .Append(EscapeIdentifier(opening[0].ParamName)).AppendLine(")");
+                    .Append(EscapeIdentifier(opening[0].ParamName)).Append(')')
+                    .AppendLine(ConstraintsDeclaredBy(c, stageParams));
                 sb.Append(pad).Append("        => new(").Append(EscapeIdentifier(opening[0].ParamName))
                     .AppendLine(");");
                 continue;
@@ -1976,7 +1881,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             EmitBuildingStep(
                 sb, c, pad + "    ", assemblyName, runtimePrefix, opening[0], [],
-                SatisfiedBy(c, opening), OpeningMode(c, opening[0]), seedCarriesKey);
+                SatisfiedBy(c, opening), seedCarriesKey);
         }
 
         sb.Append(pad).AppendLine("}");
@@ -1988,7 +1893,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(opening[1].ParamName).AppendLine(", which fixes the rest of its type.</summary>");
             sb.Append(pad).AppendLine(hidden);
             sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StageName(c, opening[0]))
-                .Append(Append(AnnotateDecl(c, stageParams), carriedMode)).AppendLine();
+                .Append(AnnotateDecl(c, stageParams))
+                .AppendLine(ConstraintsDeclaredBy(c, stageParams));
             sb.Append(pad).AppendLine("{");
             sb.Append(pad).Append("    internal ").Append(StageName(c, opening[0])).Append('(')
                 .Append(StepParamType(opening[0])).Append(" value) => ")
@@ -2001,9 +1907,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             EmitBuildingStep(
                 sb, c, pad + "    ", assemblyName, runtimePrefix, opening[1],
                 [(opening[0], "this." + EscapeIdentifier(opening[0].ParamName))],
-                SatisfiedBy(c, opening), carriedMode);
+                SatisfiedBy(c, opening));
 
-            EmitIdentityStep(sb, c, pad + "    ", assemblyName, runtimePrefix, opening, carriedMode);
+            EmitIdentityStep(sb, c, pad + "    ", assemblyName, runtimePrefix, opening);
 
             sb.Append(pad).AppendLine("}");
         }
@@ -2016,7 +1922,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .AppendLine(".</summary>");
             sb.Append(pad).AppendLine(hidden);
             sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StateName(c, state))
-                .Append(Append(AnnotateDecl(c, c.TypeParameters), carriedMode)).AppendLine();
+                .Append(AnnotateDecl(c, c.TypeParameters))
+                .AppendLine(ConstraintsDeclaredBy(c, c.TypeParameters));
             sb.Append(pad).AppendLine("{");
             sb.Append(pad).Append("    internal ").Append(StateName(c, state)).Append('(')
                 .Append(c.FullyQualifiedName).AppendLine(" component) => Component = component;");
@@ -2034,7 +1941,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(pad).AppendLine(
                 "    /// <summary>Sets the reconciliation identity. Name it FIRST — see RASK046.</summary>");
             sb.Append(pad).Append("    public ").Append(StateName(c, state))
-                .Append(Append(c.TypeParameters, carriedMode))
+                .Append(c.TypeParameters)
                 .AppendLine(" Key(object? key)");
             sb.Append(pad).AppendLine("    {");
             sb.Append(pad).AppendLine(
@@ -2051,17 +1958,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitDocComment(sb, step.Summary, pad + "    ");
                 sb.Append(pad).Append("    public ")
                     .Append(done
-                        ? BuildOf(c.FullyQualifiedName, chainMode)
-                        : StateFqn(c, next) + Append(c.TypeParameters, carriedMode))
+                        ? c.FullyQualifiedName
+                        : StateFqn(c, next) + c.TypeParameters)
                     .Append(' ').Append(EscapeIdentifier(step.ParamName)).Append('(')
                     .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName))
                     .AppendLine(")");
                 sb.Append(pad).AppendLine("    {");
                 sb.Append(pad).AppendLine("        var __c = Component;");
                 EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad + "    ");
-                // Either way a target-typed `new`: the last step wraps the component in its chain, an
-                // earlier one hands on the state still waiting for something.
-                sb.Append(pad).AppendLine("        return new(__c);");
+                // The last step hands back the COMPONENT, which is what the chain is now — so it returns
+                // the receiver rather than wrapping it. An earlier one still hands on the state struct
+                // that is waiting for the rest, and that is a target-typed `new` as it always was.
+                sb.Append(pad).AppendLine(done ? "        return __c;" : "        return new(__c);");
                 sb.Append(pad).AppendLine("    }");
             }
 
@@ -2096,7 +2004,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
         List<EntryInference> required)
     {
-        if (c.TypeParameters.Length == 0 || (required.Count != 0 && c.FormControl is null))
+        if (c.TypeParameters.Length == 0)
         {
             return;
         }
@@ -2104,7 +2012,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // A control opened this way was given no value at all, so the parent still owns whatever it ends
         // up with: that is the controlled mode, and `Of` is the way into it for a control that wants only
         // the element half — `Input.Of<string>().Type(Search).Placeholder("…")`.
-        var result = BuildOf(c.FullyQualifiedName, ChainModeOf(c, c.FormControl is null ? null : ControlledMode));
+        //
+        // With required steps outstanding it hands back the STATE that still owes them rather than the
+        // component, so stating the type argument never skips them. That is what lets a component whose
+        // type no step can pin be built at all: UiDataGrid's rows can arrive through `Source`, whose
+        // carrier infers nothing (see IsFuncLikeDelegate), and withholding `Of` outright left that grid
+        // with no way in once RowKey became required.
+        var pending = required.Count != 0;
+
+        // …but only where that state is one the chain can actually be in. A component whose OPENING is
+        // its required step — `Form.Model(m)` — never owes everything at once, so no such state is
+        // emitted and naming one here would be a reference to a type that does not exist.
+        if (pending && !ReachableStates(c).Any(static s => s.Count == 0))
+        {
+            return;
+        }
+
+        var result = pending
+            ? StateFqn(c, []) + c.TypeParameters
+            : c.FullyQualifiedName;
 
         sb.Append(pad).Append("/// <summary>Opens a ").Append(c.TypeName)
             .AppendLine(" whose type argument is stated rather than inferred.</summary>");
@@ -2115,7 +2041,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(c.FullyQualifiedName).Append(">(");
         EmitResetArguments(sb, c, assemblyName, c.TypeParameters);
         sb.AppendLine(");");
-        sb.Append(pad).AppendLine("    return new(__c);");
+        sb.Append(pad).AppendLine(pending ? "    return new(__c);" : "    return __c;");
         sb.Append(pad).AppendLine("}");
         sb.AppendLine();
     }
@@ -2133,7 +2059,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // ambiguous (CS0121) — which is what made the two-arity design look impossible in the first place.
     private static void EmitIdentityStep(
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
-        List<EntryInference> opening, string? mode)
+        List<EntryInference> opening)
     {
         var names = OrderedTypeParameters(c.TypeParameters);
         if (names.Count != 2)
@@ -2168,7 +2094,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var unified = RenameTypeParameter(c.FullyQualifiedName, item, value);
-        sb.Append(pad).Append("public ").Append(BuildOf(unified, ChainModeOf(c, mode))).Append(' ')
+        sb.Append(pad).Append("public ").Append(unified).Append(' ')
             .Append(EscapeIdentifier(opening[1].ParamName)).Append('(')
             .Append(RenameTypeParameter(StepParamType(opening[1]), item, value)).Append(' ')
             .Append(EscapeIdentifier(opening[1].ParamName)).AppendLine(")");
@@ -2193,7 +2119,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             projection with { ParamTypeFqn = RenameTypeParameter(projection.ParamTypeFqn, item, value) },
             "static __x => __x",
             pad);
-        sb.Append(pad).AppendLine("    return new(__c);");
+        sb.Append(pad).AppendLine("    return __c;");
         sb.Append(pad).AppendLine("}");
     }
 
@@ -2213,13 +2139,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitBuildingStep(
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
         EntryInference step, IReadOnlyList<(EntryInference Pin, string Value)> carried,
-        HashSet<string> satisfied, string? mode, bool carriesKey = false)
+        HashSet<string> satisfied, bool carriesKey = false)
     {
         var required = RequiredSteps(c);
         var done = satisfied.Count == required.Count;
         var result = done
-            ? BuildOf(c.FullyQualifiedName, ChainModeOf(c, mode))
-            : StateFqn(c, satisfied) + Append(c.TypeParameters, mode);
+            ? c.FullyQualifiedName
+            : StateFqn(c, satisfied) + c.TypeParameters;
         // A step on a STAGE declares only the type parameters the stage has not already fixed: the stage
         // is generic over what the first step pinned, and re-declaring those would shadow them (CS0693),
         // while declaring none leaves the ones this step pins unresolved.
@@ -2234,7 +2160,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(pad).Append("public ").Append(result).Append(' ')
             .Append(EscapeIdentifier(step.ParamName)).Append(AnnotateDecl(c, methodParams)).Append('(')
             .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName)).Append(')')
-            .Append(methodParams.Length == 0 ? string.Empty : c.TypeParameterConstraints).AppendLine();
+            .AppendLine(ConstraintsDeclaredBy(c, methodParams));
         sb.Append(pad).AppendLine("{");
         sb.Append(pad).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c))
             .Append(c.FullyQualifiedName).Append(">(");
@@ -2257,9 +2183,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad);
-        // Target-typed either way — the chain when this step completed the component, otherwise the
-        // state that still wants something.
-        sb.Append(pad).AppendLine("    return new(__c);");
+        // The component itself when this step completed it — the chain is the component now — otherwise
+        // a target-typed `new` for the state that still wants something.
+        sb.Append(pad).AppendLine(done ? "    return __c;" : "    return new(__c);");
         sb.Append(pad).AppendLine("}");
     }
 
@@ -2764,7 +2690,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         foreach (var first in candidates)
         {
-            if (!seen.Add(first.ParamName))
+            // Nothing is pinned yet, so a step whose argument cannot supply a type parameter itself —
+            // a lambda, whose parameter types would have nowhere to come from — cannot open a chain.
+            // It can still COMPLETE one below.
+            if (LambdaInputTypeParameters(first.ParamTypeFqn, names).Count != 0 || !seen.Add(first.ParamName))
             {
                 continue;
             }
@@ -2787,7 +2716,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
                 var mentioned = MentionedTypeParameters(next.ParamTypeFqn, names);
                 if (string.Equals(next.ParamName, first.ParamName, StringComparison.Ordinal)
-                    || !mentioned.Overlaps(unpinned))
+                    || !mentioned.Overlaps(unpinned)
+                    || LambdaInputTypeParameters(next.ParamTypeFqn, names).Overlaps(unpinned))
                 {
                     continue;
                 }
@@ -2827,8 +2757,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         foreach (var p in c.Properties)
         {
-            if (p.IsInitOnly || p.IsSharedSurfaceProp || !IsParamProperty(p) || p.IsDelegate
-                || p.IsBoundInterfaceProp)
+            // A delegate is offered only when a lambda passed to it can infer something — see
+            // LambdaInputTypeParameters. Whether it may pin HERE is the caller's question, and both
+            // callers ask it the same way: never first, and only once its inputs are pinned.
+            if (p.IsInitOnly || p.IsSharedSurfaceProp || !IsParamProperty(p) || p.IsBoundInterfaceProp
+                || (p.IsDelegate && !IsFuncLikeDelegate(p.TypeFqn)))
             {
                 continue;
             }
@@ -2876,7 +2809,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             var mentioned = MentionedTypeParameters(pin.ParamTypeFqn, names);
-            if (!mentioned.Overlaps(unpinned))
+            if (!mentioned.Overlaps(unpinned)
+                || LambdaInputTypeParameters(pin.ParamTypeFqn, names).Overlaps(unpinned))
             {
                 continue;
             }
@@ -2886,6 +2820,62 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         return pins.Count != 0 && unpinned.Count == 0 ? pins : null;
+    }
+
+    // A REAL delegate whose last type argument is a return, so a lambda passed to it can infer that
+    // argument once the ones before it are known.
+    //
+    // `System.Func<…>` and nothing else. Rask's own `Fn<TIn, TOut>` reads like one and is not: it is a
+    // readonly STRUCT that a lambda reaches through a user-defined conversion, and C# infers no type
+    // argument through one of those (CS0411). A carrier can therefore never pin, which is why every
+    // `Fn`/`Callback` prop stays excluded here.
+    private static bool IsFuncLikeDelegate(string typeFqn) =>
+        typeFqn.StartsWith("global::System.Func<", StringComparison.Ordinal);
+
+    // The type parameters an argument of this type cannot itself supply, and so must already be pinned
+    // before a step taking it can pin anything.
+    //
+    // For an ordinary value there are none: `IEnumerable<T>` is written out at the call site, so it
+    // supplies T. For a delegate the answer is its PARAMETER positions, because the caller writes a
+    // lambda and those types appear nowhere in what they wrote — `r => r.Id` states neither.
+    //
+    // This is the whole rule for when a delegate may pin. `Func<TItem, TValue>` cannot OPEN a chain:
+    // the lambda's parameter has no type and its body cannot be bound, which is the BsSelect trap the
+    // greedy loop below carries a note about. The same property as a LATER pin, with TItem fixed by the
+    // step before it, infers TValue perfectly well — which is what `UiDataGrid.Data(rows).RowKey(r =>
+    // r.Id)` needs, and what kept a REQUIRED delegate step from being able to pin anything at all.
+    // A delegate whose inputs are all concrete — `Fn<UiGridRequest, Task<UiGridPage<T>>>` — opens one
+    // perfectly well, so the test is the inputs rather than the delegate-ness.
+    private static HashSet<string> LambdaInputTypeParameters(string typeFqn, HashSet<string> names)
+    {
+        // The nullable annotation an optional prop carries — `Fn<T, Component?>?` — is not part of the
+        // type argument list, and leaving it on made every optional delegate look like something this
+        // could not read, which is the opposite of the truth about it.
+        var bare = typeFqn.TrimEnd('?');
+        var open = bare.IndexOf('<');
+        if (!IsFuncLikeDelegate(bare) || open < 0 || !bare.EndsWith(">", StringComparison.Ordinal))
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
+
+        var inner = bare.Substring(open + 1, bare.Length - open - 2);
+        var depth = 0;
+        var lastComma = -1;
+        for (var i = 0; i < inner.Length; i++)
+        {
+            switch (inner[i])
+            {
+                case '<': depth++; break;
+                case '>': depth--; break;
+                case ',' when depth == 0: lastComma = i; break;
+                default: break;
+            }
+        }
+
+        // No comma at the top level means there is only a return and nothing to supply — `Func<T>`.
+        return lastComma < 0
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : MentionedTypeParameters(inner.Substring(0, lastComma), names);
     }
 
     // Which of `names` appear as a whole identifier in a fully-qualified type string — so
@@ -3136,6 +3126,39 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     // "<TValue, TItem>" → { "TValue", "TItem" }; empty for a non-generic type.
+    // The subset of a component's constraint clauses that applies to the type parameters a generated
+    // struct actually DECLARES.
+    //
+    // A stage declares only what its opening step pinned — `RaskStage_UiDataGrid_Selected<TKey>` — so the
+    // component's whole clause would name type parameters the struct does not have (CS0699), while no
+    // clause at all drops a constraint the component requires the moment the struct names the component
+    // again (CS8714). Both of those were live: the constraint was being written onto the STEP inside the
+    // stage, where TKey is not the method's to constrain.
+    //
+    // Nothing had a CONSTRAINED type parameter pinned by a step until UiDataGrid<T, TKey>'s `where TKey :
+    // notnull`, which is why a generator this heavily tested had no reason to have got it right.
+    private static string ConstraintsDeclaredBy(Candidate c, string typeParameters)
+    {
+        if (c.TypeParameterConstraints.Length == 0 || typeParameters.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var declared = ParseTypeParameters(typeParameters);
+        var kept = new StringBuilder();
+        foreach (var clause in c.TypeParameterConstraints.Split(
+                     [" where "], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var space = clause.IndexOf(' ');
+            if (space > 0 && declared.Contains(clause.Substring(0, space)))
+            {
+                kept.Append(" where ").Append(clause);
+            }
+        }
+
+        return kept.ToString();
+    }
+
     private static HashSet<string> ParseTypeParameters(string list)
     {
         var result = new HashSet<string>(StringComparer.Ordinal);
@@ -3441,15 +3464,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             // The entry opens a chain, so it hands back `Build<TComponent>` rather than the component:
-            // the steps that follow are extension methods on the chain, which is what keeps a
-            // delegate-typed property from swallowing its own setter (see Rask.Core.Build{T}).
+            // the steps that follow are extension methods on the component, and a carrier-typed property
+            // is what keeps one from swallowing its own setter (see Rask.Core.Callback).
             EmitEntryDoc(sb, c);
-            sb.Append("    ").Append(visibility).Append(" static ").Append(BuildOf(c.FullyQualifiedName, ChainModeOf(c, null)))
-                .Append(' ').Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime)
+            sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
+                .Append(' ').Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime)
                 .Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
-            sb.AppendLine("));");
+            sb.AppendLine(");");
         }
 
         sb.AppendLine("}");
@@ -3543,7 +3566,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             refs.Add(new EntryRef(
                 hostFqn,
                 c.TypeName,
-                NeedsSeed(c) ? SeedFqn(c) : BuildOf(c.FullyQualifiedName, ChainModeOf(c, null)),
+                NeedsSeed(c) ? SeedFqn(c) : c.FullyQualifiedName,
                 string.Empty,
                 string.Empty,
                 string.Empty,

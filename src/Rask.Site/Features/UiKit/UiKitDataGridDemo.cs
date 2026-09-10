@@ -36,7 +36,7 @@ public sealed partial class UiKitDataGridDemo : Component
             "The indexer takes a lambda whose parameter is the grid, and that is what fixes the row "
             + "type. Written as a flat child, a column would have nothing to infer its own lambda from.",
             Div.Data(Testid("ui-grid-basic"))[
-                UiDataGrid.Data(Catalog).Zebra(true).Label("Packages")[c => [
+                UiDataGrid.Data(Catalog).RowKey(r => r.Id).Zebra(true).Label("Packages")[c => [
                     c.Field(r => r.Name).Title("Package").Sortable(true),
                     c.Field(r => r.Channel).Title("Channel")
                         .Cell(r => UiBadge.Label(r.Channel).Tone(r.Channel == "stable" ? "success" : "info")),
@@ -46,13 +46,14 @@ public sealed partial class UiKitDataGridDemo : Component
             ]),
 
         Section(
-            "Selection is typed, and staged behind the row key",
-            "RowKey pins the chain's key type, so the selection steps are offered only once a row can "
-            + "be named — and the keys arriving back are an IReadOnlyList<int>, not boxed objects.",
+            "Selection is typed",
+            "RowKey says what identifies a row. It is required, so every grid has one, and the type it "
+            + "pins is what the selection is expressed in: the keys arriving back are an "
+            + "IReadOnlyList<int> rather than boxed objects, inferred from the lambda.",
             Div.Data(Testid("ui-grid-selection"))[
                 UiDataGrid.Data(Catalog)
-                    .Label("Packages to publish")
                     .RowKey(r => r.Id)
+                    .Label("Packages to publish")
                     .Selected(_selected)
                     .OnSelectionChange(keys => _selected = keys)[c => [
                         c.Field(r => r.Name).Title("Package"),
@@ -72,6 +73,7 @@ public sealed partial class UiKitDataGridDemo : Component
             + "because HTML5 drag fires on neither touch nor a keyboard.",
             Div.Data(Testid("ui-grid-grouped"))[
                 UiDataGrid.Data(Catalog)
+                    .RowKey(r => r.Id)
                     .Label("Packages by channel")
                     .GroupPanel(true)
                     .ColumnChooser(true)
@@ -92,6 +94,7 @@ public sealed partial class UiKitDataGridDemo : Component
             + "page do; the expander and the column layout carry on holding their own.",
             Div.Data(Testid("ui-grid-controlled"))[
                 UiDataGrid.Data(Catalog)
+                    .RowKey(r => r.Id)
                     .Label("Packages, paged by the page")
                     .PageSize(3)
                     .Page(_page)

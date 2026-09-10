@@ -99,7 +99,7 @@ public sealed class ResolveTailwindCliTask : Task
         }
 
         var path = TailwindCli.CachePath(CacheRoot, Version, assetName);
-        if (File.Exists(path))
+        if (TailwindCli.ReuseCached(path, m => Log.LogMessage(MessageImportance.High, m)))
         {
             ToolPath = path;
             return true;
@@ -192,7 +192,7 @@ public sealed class ResolveTailwindCliTask : Task
         // binary that every later build then tries to execute.
         var partial = path + ".partial";
         File.WriteAllBytes(partial, bytes);
-        MakeExecutable(partial);
+        TailwindCli.MakeExecutable(partial);
         if (File.Exists(path))
         {
             File.Delete(path);
@@ -205,24 +205,6 @@ public sealed class ResolveTailwindCliTask : Task
     {
         using var sha = SHA256.Create();
         return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", string.Empty).ToLowerInvariant();
-    }
-
-    private static void MakeExecutable(string path)
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return;
-        }
-
-        // Arguments rather than ArgumentList: this targets netstandard2.0, where the list form does not
-        // exist. The path is ours and quoted, so a space in the cache directory is still safe.
-        using var chmod = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("chmod")
-        {
-            Arguments = "+x \"" + path + "\"",
-            UseShellExecute = false,
-        });
-
-        chmod?.WaitForExit();
     }
 
     private static string? AssetForThisMachine()

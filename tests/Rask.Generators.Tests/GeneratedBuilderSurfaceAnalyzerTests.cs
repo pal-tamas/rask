@@ -100,7 +100,7 @@ public class GeneratedBuilderSurfaceAnalyzerTests
         // is what lets `.Note(…)` be followed by another setter — assert that shape here rather than
         // trusting the mirror in RequiredBuilderPropertyAnalyzerTests to still describe it.
         Assert.Contains(
-            "public static global::Rask.Core.Build<global::Demo.Card> Note(this global::Rask.Core.Build<global::Demo.Card>",
+            "public static global::Demo.Card Note(this global::Demo.Card",
             BuilderGeneratorHarness.Run(Chain).Source("RaskBuilderSetters.g.cs"),
             StringComparison.Ordinal);
 

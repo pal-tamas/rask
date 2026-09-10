@@ -38,7 +38,7 @@ internal sealed partial class ResetBuilderHost : Component
     internal ResetLeaf? Leaf;
 
     protected override Component? Render() =>
-        Div[Leaf = Full ? ResetLeaf.Word("w").Note("L").Count(3).OnPing(() => { }).Value : ResetLeaf];
+        Div[Leaf = Full ? ResetLeaf.Word("w").Note("L").Count(3).OnPing(() => { }) : ResetLeaf];
 }
 
 // The element half: attributes AND the DOM-event surface, which is where the omitted-prop bug is
@@ -230,7 +230,7 @@ internal sealed partial class KeyedResetHost : Component
     internal bool Keyed = true;
     internal ResetLeaf? Leaf;
 
-    protected override Component? Render() => Div[Leaf = Keyed ? ResetLeaf.Key(7).Value : ResetLeaf];
+    protected override Component? Render() => Div[Leaf = Keyed ? ResetLeaf.Key(7) : ResetLeaf];
 }
 
 // A RASK001-required prop: non-nullable, no member initializer. A chain makes it a STEP rather than a
@@ -262,7 +262,7 @@ internal sealed partial class RequiredResetHost : Component
 #pragma warning restore RASK039
         // Both branches complete the chain: a required property is a step, so a branch that skipped one
         // would not produce a component at all.
-        return Div[Leaf = Full ? leaf.Word("w").Count(3).Value : leaf.Word("-").Count(0)];
+        return Div[Leaf = Full ? leaf.Word("w").Count(3) : leaf.Word("-").Count(0)];
     }
 }
 

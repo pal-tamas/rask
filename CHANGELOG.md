@@ -9,6 +9,62 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The chain's mode types are gone.** A form control's chain was a `Build<TControl, Bound>` or a
+  `Build<TControl, Controlled>`, and each mode's steps were declared only on their own mode. That type
+  argument was threaded through every emitted signature, brought the ordering rules that came with it,
+  and kept accumulating members that were silently unreachable inside it. `Build<T>`, `Build<T, TMode>`,
+  `FormBuild<T>` and `GridBuild<T, TKey>` are all removed — **the chain's receiver is the component** —
+  along with `Rask.Core.Forms.Bound` and `Rask.Core.Forms.Controlled`.
+
+  What that machinery was actually holding up is smaller than it looked, and each piece is now carried by
+  something simpler. The two shape-specific INDEXERS — a form's submit-state children, a grid's column
+  factory — are declared on `Form` and `UiDataGrid` themselves, which scopes them exactly as well and
+  costs no type parameter; an indexer cannot be constrained, which was the only reason they needed a type
+  of their own. **`Bind` versus `Value` is still a compile error**, because both openings live on the
+  chain's entry and neither is a setter on the control: taking one hands the control back and the other
+  is simply not a member of it. What is no longer enforced is which steps *follow* an opening — a
+  `Validate` on a controlled control now compiles and does nothing, as an unread property always could.
+
+- **A data grid's `RowKey` is required, and the grid carries its key type**: `UiDataGrid<T>` is now
+  `UiDataGrid<T, TKey>`. Optional was worse than it looked. The key arrived through a hand-written step,
+  and a grid that never took it still rendered — rows fell back to their **index** for identity, so the
+  live diff reordered by position rather than by row, and `Selected`/`OnSelectionChange` were reachable
+  regardless and quietly built a selection strategy with no selector in it. Naming the key is now the only
+  way to build a grid, and the selection is expressed in exactly those keys.
+
+  `RowKey`, `Selected` and `OnSelectionChange` are ordinary properties now, so `UiDataGridSteps` and the
+  `UiGridKeys` strategy are gone. Call sites take the key immediately after the step that supplies the
+  rows: `UiDataGrid.Data(rows).RowKey(p => p.Id)`.
+
+### Fixed
+
+- **A generated chain lost the constraints on the type parameters it declares.** A stage carried its
+  component's whole `where` clause on the STEP inside it rather than on the struct that declares the type
+  parameter (CS0699), and the pending state carried none at all (CS8714). Nothing in the repo had a
+  constrained type parameter pinned by a step until the grid's `where TKey : notnull`, so a generator this
+  heavily tested had no occasion to be right about it.
+
+- **A `Func<…>` step could never pin a type argument.** Every delegate was excluded from the pin
+  candidates, which is correct for an OPENING — a lambda's parameter would have no type to be, so the call
+  site infers nothing — and wrong for a step after one. With the rows already fixing `T`,
+  `.RowKey(p => p.Id)` infers `TKey` perfectly well. The rule is now the delegate's INPUT positions rather
+  than its delegate-ness, so a carrier still never pins: `Fn<TIn, TOut>` is a struct a lambda reaches by a
+  user-defined conversion, and C# infers nothing through one of those.
+
+- **`Of` was withheld from every component with a required step**, which left one whose type no step can
+  pin — a grid fed by `Source`, whose carrier infers nothing — with no way in at all. It now hands back the
+  state that still owes the required steps, so stating a type argument is never a way past them.
+  `UiInput.Of<string>()` used to hand back the control itself and skip its required `Label`.
+
+- **A partially restored Tailwind CLI poisoned every later build.** The cached binary was trusted on
+  `File.Exists` alone, so a cache restore that failed part way — `actions/cache` reports a failed untar as
+  a warning and carries on — left a file that exists and cannot run. The build reported it as MSB3073 with
+  the whole command line in it, which reads as though the CLI rejected its arguments; the real cause was
+  **exit code 126**, the executable bit lost in the restore. It recurred on every later build on that
+  machine, because the broken file kept satisfying the check and the download that would have replaced it
+  was never reached. A cache hit is now checked for usability, and an empty file is dropped rather than
+  executed.
+
 - **The local format + unit gate is roughly 2.4x faster — ~325s to ~136s on a 14-core box.** Nothing
   it checks was dropped; the time was going to four things that measurement, not intuition, found.
 

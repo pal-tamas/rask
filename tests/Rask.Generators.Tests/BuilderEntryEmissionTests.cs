@@ -105,7 +105,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("Entry<global::Demo.Orders.Card>", entry, StringComparison.Ordinal);
         Assert.Contains("__RaskResetEager_Demo_Orders_Card", entry, StringComparison.Ordinal);
         Assert.Contains(
-            "    private static global::Rask.Core.Build<global::Demo.Orders.Card> Card => global::RaskEntriesTestAssembly.Card;",
+            "    private static global::Demo.Orders.Card Card => global::RaskEntriesTestAssembly.Card;",
             run.Source(Entries),
             StringComparison.Ordinal);
 
@@ -173,7 +173,7 @@ public class BuilderEntryEmissionTests
         // canonical entry there and forward to it, rather than re-emitting it per host.
         var host = run.Source("RaskBuilderEntryHost.g.cs");
         Assert.Contains(
-            "global::Rask.Core.Build<global::Demo.Pick<TItem>, global::Rask.Core.Forms.Bound> Bind<TItem>(",
+            "global::Demo.Pick<TItem> Bind<TItem>(",
             host, StringComparison.Ordinal);
         Assert.DoesNotContain("Pick<TValue, TItem> Bind", host, StringComparison.Ordinal);
     }
@@ -273,7 +273,7 @@ public class BuilderEntryEmissionTests
 
         // `T?`, not `T`: a step takes the property's DECLARED type, so a nullable one stays nullable and
         // a chain that passes a `string?` still infers `string` rather than `string?`.
-        Assert.Contains("global::Rask.Core.Build<global::Demo.Holder<T>> Item<T>(T? Item)", host, StringComparison.Ordinal);
+        Assert.Contains("global::Demo.Holder<T> Item<T>(T? Item)", host, StringComparison.Ordinal);
 
         // …and it leaves the property exactly as the property's own setter would. Folding the change
         // keeps propsChanged honest; clearing the pending bit stops the deferred reset putting back the
@@ -311,7 +311,7 @@ public class BuilderEntryEmissionTests
 
         var host = run.Source("RaskBuilderEntryHost.g.cs");
         Assert.Contains("RaskSeed_Grid", host, StringComparison.Ordinal);
-        Assert.Contains("global::Rask.Core.Build<global::Demo.Grid<T>> Rows<T>(", host, StringComparison.Ordinal);
+        Assert.Contains("global::Demo.Grid<T> Rows<T>(", host, StringComparison.Ordinal);
 
         // …and a non-generic component with nothing required still hands back the component itself, so
         // the seed is only ever paid for where something has to be settled first.
@@ -371,7 +371,7 @@ public class BuilderEntryEmissionTests
                                                   }
                                                   """).Source(Setters);
 
-        Assert.Equal(1, Count(setters, " Note(this global::Rask.Core.Build<global::Demo.Widget>"));
+        Assert.Equal(1, Count(setters, " Note(this global::Demo.Widget"));
         Assert.Equal(1, Count(setters, " __RaskResetEager_Demo_Widget("));
     }
 
@@ -397,7 +397,7 @@ public class BuilderEntryEmissionTests
         var host = run.Source("RaskBuilderEntryHost.g.cs");
         Assert.Contains("public static class RaskEntriesTestAssembly", host, StringComparison.Ordinal);
         Assert.Contains(
-            "public static global::Rask.Core.Build<global::Demo.Card> Card => new(global::Rask.Core.BuilderRuntime.Entry<global::Demo.Card>("
+            "public static global::Demo.Card Card => global::Rask.Core.BuilderRuntime.Entry<global::Demo.Card>("
             + "global::RaskBuilderSettersTestAssembly.__RaskResetEager_Demo_Card, "
             + "global::RaskBuilderSettersTestAssembly.__RaskResetPending_Demo_Card, ",
             host,
@@ -406,7 +406,7 @@ public class BuilderEntryEmissionTests
         // The injected member: the same entry, reached by name.
         var entries = run.Source(Entries);
         Assert.Contains(
-            "    private static global::Rask.Core.Build<global::Demo.Card> Card => global::RaskEntriesTestAssembly.Card;",
+            "    private static global::Demo.Card Card => global::RaskEntriesTestAssembly.Card;",
             entries,
             StringComparison.Ordinal);
         Assert.DoesNotContain("__RaskResetEager_Demo_Card", entries, StringComparison.Ordinal);
@@ -456,7 +456,7 @@ public class BuilderEntryEmissionTests
                                                   """).Source(Entries);
 
         Assert.Contains(
-            "private static new global::Rask.Core.Build<global::Demo.Section> Section",
+            "private static new global::Demo.Section Section",
             entries,
             StringComparison.Ordinal);
     }
@@ -479,7 +479,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class SectionTests : global::Rask.Core.RaskMarkup", entries,
             StringComparison.Ordinal);
         Assert.Contains(
-            "private static new global::Rask.Core.Build<global::Demo.Section> Section",
+            "private static new global::Demo.Section Section",
             entries,
             StringComparison.Ordinal);
     }
@@ -497,10 +497,10 @@ public class BuilderEntryEmissionTests
                                                   """).Source(Entries);
 
         Assert.Contains(
-            "private static global::Rask.Core.Build<global::Demo.Sidebar> Sidebar",
+            "private static global::Demo.Sidebar Sidebar",
             entries,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("new global::Rask.Core.Build<global::Demo.Sidebar>", entries, StringComparison.Ordinal);
+        Assert.DoesNotContain("new global::Demo.Sidebar", entries, StringComparison.Ordinal);
     }
 
     // Rask.Core's tags are members of Component, which every component everywhere already inherits.
@@ -544,7 +544,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class PanelBase\n", entries.Replace("\r\n", "\n", StringComparison.Ordinal),
             StringComparison.Ordinal);
         Assert.Contains(
-            "    private static global::Rask.Core.Build<global::Demo.Card> Card => global::RaskEntriesTestAssembly.Card;",
+            "    private static global::Demo.Card Card => global::RaskEntriesTestAssembly.Card;",
             entries,
             StringComparison.Ordinal);
 
@@ -585,7 +585,7 @@ public class BuilderEntryEmissionTests
                                                   public partial class Card : Component { }
                                                   """).Source(Entries);
 
-        Assert.Equal(2, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
+        Assert.Equal(2, Count(entries, "private static global::Demo.Card Card =>"));
     }
 
     // RASK036 is the diagnostic for a component that cannot receive entries because there is no partial
@@ -620,7 +620,7 @@ public class BuilderEntryEmissionTests
         // Card itself cannot carry an entry named Card (CS0542) and does not need one, so the markup
         // host is the only place the forwarder lands.
         Assert.Contains("partial class CardTests", entries, StringComparison.Ordinal);
-        Assert.Equal(1, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
+        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
     }
 
     // A markup host is one that names RaskMarkup DIRECTLY. A subclass of one already has the framework
@@ -717,7 +717,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class CardTests : global::Rask.Core.RaskMarkup", entries,
             StringComparison.Ordinal);
         Assert.DoesNotContain("global::RaskEntriesRask_Core.", entries, StringComparison.Ordinal);
-        Assert.Equal(1, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
+        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
     }
 
     // The shape the attribute exists for: the base slot belongs to someone else, so no amount of
@@ -738,10 +738,10 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class CardTests\n", entries.Replace("\r\n", "\n", StringComparison.Ordinal),
             StringComparison.Ordinal);
         Assert.Contains(
-            "private static global::Rask.Core.Build<global::Rask.Core.Components.Div> Div => global::RaskEntriesRask_Core.Div;", entries,
+            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
             StringComparison.Ordinal);
         // The consumer's own components come the usual way, alongside them.
-        Assert.Equal(1, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
+        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
     }
 
     // A `static class` can derive from nothing at all, which is why DemoRegistry had to stop being one.
@@ -761,7 +761,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("static partial class Demos", entries, StringComparison.Ordinal);
         Assert.DoesNotContain("static partial class Demos : ", entries, StringComparison.Ordinal);
         Assert.Contains(
-            "private static global::Rask.Core.Build<global::Rask.Core.Components.Div> Div => global::RaskEntriesRask_Core.Div;", entries,
+            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
             StringComparison.Ordinal);
     }
 

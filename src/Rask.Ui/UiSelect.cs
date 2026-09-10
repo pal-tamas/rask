@@ -104,7 +104,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     ///         stays worth supplying.
     ///     </para>
     /// </remarks>
-    public Func<T, Component>? OptionTemplate { get; set; }
+    public Fn<T, Component>? OptionTemplate { get; set; }
 
     /// <summary>
     ///     Posts the value from a plain HTML form.
@@ -369,7 +369,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
 
         // menu-disabled goes on the <li>, unlike menu-active and menu-focus, which go on the child.
         return Li.Key(row.FlatIndex).Class(off ? "menu-disabled" : "")[
-            option[OptionTemplate is { } template ? template(value) : text]
+            option[OptionTemplate is { } template && template.Invoke(value) is { } drawn ? drawn : text]
         ];
     }
 

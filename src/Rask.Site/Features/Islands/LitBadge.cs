@@ -32,5 +32,5 @@ public sealed partial class LitBadge : Rask.External.LitComponent
     public int Value { get; set; }
 
     /// <summary>Runs with the element's own nudge count whenever it changes.</summary>
-    public Action<int>? OnNudged { get; set; }
+    public Callback<int>? OnNudged { get; set; }
 }

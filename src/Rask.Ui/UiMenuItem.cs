@@ -14,7 +14,7 @@ public sealed partial class UiMenuItem : Component
     /// <summary>The page this entry leads to is the page being shown.</summary>
     public bool? Active { get; set; }
 
-    public Action? OnClick { get; set; }
+    public Callback? OnClick { get; set; }
 
     public string? Class { get; set; }
 

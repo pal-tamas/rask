@@ -40,7 +40,7 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_entry_infers_the_value_type_from_the_bind_expression()
     {
-        var html = BoundBuilderProbe.Value.ToHtml();
+        var html = BoundBuilderProbe.ToHtml();
         Assert.Contains("<input id=\"age\" type=\"number\" name=\"Age\" value=\"36\"", html, StringComparison.Ordinal);
         Assert.Contains("<input id=\"name\" class=\"field\" type=\"text\" name=\"Name\" value=\"Ada\"", html,
             StringComparison.Ordinal);
@@ -57,8 +57,8 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
         // There is ONE `Validate` step now, with an overload per shape. What used to be the pair's spec —
         // two properties, and which of them the setter wrote — is this: both shapes land in the same slot,
         // and the slot remembers which one it was handed.
-        var sync = Input.Bind(() => model.Name).Validate(global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty).Value;
-        var async = Input.Bind(() => model.Name).Validate(CheckAsync).Value;
+        var sync = Input.Bind(() => model.Name).Validate(global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty);
+        var async = Input.Bind(() => model.Name).Validate(CheckAsync);
 
         Assert.Same((Validate<string>)global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty, sync.Validate?.Rule);
         Assert.IsType<ValidateAsync<string>>(async.Validate?.Rule);
@@ -73,13 +73,13 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_bound_setters_never_auto_wrap()
     {
-        var probe = BoundBuilderProbe.Value;
+        var probe = BoundBuilderProbe;
         Action<string> hook = probe.Note;
 
         // Through Bind, not Of: AfterBind is a BOUND step, so it exists only on a chain that opened in
         // bound mode. `Input.Of<string>()` is controlled — the parent owns the value — and asking it for
         // a post-bind hook no longer compiles, which is the point.
-        var control = Input.Bind(() => probe.Model.Name).AfterBind(hook).Value;
+        var control = Input.Bind(() => probe.Model.Name).AfterBind(hook);
 
         Assert.Same(hook, control.AfterBind!.Value.Handler);
     }
@@ -89,7 +89,7 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
     public void A_bound_member_takes_a_plain_assignment()
     {
         Validate<string> rule = global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty;
-        var control = Input.Of<string>().Value;
+        var control = Input.Of<string>();
         // A lambda cannot reach a carrier through a conversion (CS1660), so a plain assignment names it.
         // The chain STEP is where the shapes are implicit; this is the escape hatch underneath it.
         control.Validate = new Validator<string>(rule);

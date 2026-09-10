@@ -270,11 +270,21 @@ public sealed class BlazorGenerator : IIncrementalGenerator
             return "this." + p.Name;
         }
 
-        // A plain Rask delegate becomes the EventCallback the hosted component declared. The factory
+        // A Rask `Callback` becomes the EventCallback the hosted component declared. The factory
         // overload is public and takes the receiver, so no reflection is involved.
+        //
+        // Always through the ASYNCHRONOUS factory overload, because a carrier does not say statically
+        // which shape it holds: `Invoke` returns null when the handler was synchronous, and
+        // `?? Task.CompletedTask` makes that the completed task the overload wants. No state machine is
+        // created for a synchronous handler — the null IS the fast path. Blazor awaits the callback
+        // either way, so nothing downstream can tell the difference.
         return p.EventArg is null
-            ? $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, this.{p.Name})"
-            : $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create<{p.EventArg}>(this, this.{p.Name})";
+            ? "global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, "
+              + $"(global::System.Func<global::System.Threading.Tasks.Task>)(() => this.{p.Name}!.Value.Invoke() "
+              + "?? global::System.Threading.Tasks.Task.CompletedTask))"
+            : $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create<{p.EventArg}>(this, "
+              + $"(global::System.Func<{p.EventArg}, global::System.Threading.Tasks.Task>)"
+              + $"(__v => this.{p.Name}!.Value.Invoke(__v) ?? global::System.Threading.Tasks.Task.CompletedTask))";
     }
 
     /// <summary>The types <paramref name="type" /> is nested in, innermost first.</summary>

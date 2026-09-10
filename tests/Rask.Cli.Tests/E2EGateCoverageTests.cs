@@ -36,11 +36,18 @@ public sealed class E2EGateCoverageTests
     {
         var root = CliBuildE2E.FindRepoRoot();
 
+        // A PROJECT, not merely a directory whose name ends that way. Deleting a suite leaves its bin/
+        // and obj/ behind — they are ignored, so nothing sweeps them — and matching on the name alone
+        // then reports a phantom for ever: the suite this named had been gone for months, and the
+        // failure surfaced only when an unrelated change first pulled this project into the gate's
+        // scope. A gate that fails for a reason that cannot be fixed by adding the thing it asks for is
+        // worse than one that misses.
         var e2eProjects = Directory
             .GetDirectories(Path.Combine(root, "tests"), "*.E2E.Tests")
             .Select(Path.GetFileName)
             .Where(name => !string.IsNullOrEmpty(name))
             .Select(name => name!)
+            .Where(name => File.Exists(Path.Combine(root, "tests", name, name + ".csproj")))
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
 

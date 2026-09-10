@@ -4,14 +4,14 @@ using System.Reflection;
 namespace Rask.Ui;
 
 /// <summary>
-/// One column of a <see cref="UiDataGrid{T}" />: what it is titled, how each cell renders, and whether it
+/// One column of a <see cref="UiDataGrid{T,TKey}" />: what it is titled, how each cell renders, and whether it
 /// can be sorted, grouped, hidden or reordered.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Built from inside the grid's column factory — <c>UiDataGrid.Data(rows)[c =&gt; [ c.Field(p =&gt; p.Name)
 /// … ]]</c> — because that is what fixes the row type. A column written as a flat child of the grid has
-/// nothing to infer its lambda's parameter from and does not compile; see <see cref="IColumnHost" />.
+/// nothing to infer its lambda's parameter from and does not compile; see the grid's column indexer.
 /// </para>
 /// <para>
 /// It renders nothing itself. The grid reads its properties and draws the header, the cells, the footer
@@ -39,9 +39,9 @@ public sealed partial class UiColumn<T> : Component
     ///     <c>"category"</c>, and supplies each cell's value when <see cref="Value" /> says nothing else.
     /// </summary>
     /// <remarks>
-    ///     That token is what <see cref="UiDataGrid{T}.OnSortChange" />,
-    ///     <see cref="UiDataGrid{T}.OnGroupedChange" />, <see cref="UiDataGrid{T}.HiddenColumns" /> and
-    ///     <see cref="UiDataGrid{T}.ColumnOrder" /> speak in. A column with no <c>Field</c> has no token,
+    ///     That token is what <see cref="UiDataGrid{T,TKey}.OnSortChange" />,
+    ///     <see cref="UiDataGrid{T,TKey}.OnGroupedChange" />, <see cref="UiDataGrid{T,TKey}.HiddenColumns" /> and
+    ///     <see cref="UiDataGrid{T,TKey}.ColumnOrder" /> speak in. A column with no <c>Field</c> has no token,
     ///     so it can be shown but never sorted, grouped, hidden or reordered by name — which is right for
     ///     an actions column and wrong for anything else.
     ///     <para>
@@ -127,16 +127,16 @@ public sealed partial class UiColumn<T> : Component
     ///     The result is rendered as encoded text. Use it for a computed value; use <see cref="Cell" />
     ///     when the cell needs markup.
     /// </remarks>
-    public Func<T, object?>? Value { get; set; }
+    public Fn<T, object?>? Value { get; set; }
 
     /// <summary>Custom markup for the cell, when plain text is not enough.</summary>
-    public Func<T, Component>? Cell { get; set; }
+    public Fn<T, Component>? Cell { get; set; }
 
     /// <summary>Lets the reader sort by this column.</summary>
     public bool? Sortable { get; set; }
 
     /// <summary>The key this column sorts by in memory, when it is not the displayed value.</summary>
-    public Func<T, IComparable?>? SortKey { get; set; }
+    public Fn<T, IComparable?>? SortKey { get; set; }
 
     /// <summary>
     ///     What this column orders by in a query, when it differs from <see cref="Field" />.
@@ -153,11 +153,11 @@ public sealed partial class UiColumn<T> : Component
     public bool? Groupable { get; set; }
 
     /// <summary>The value rows are banded by when grouped, when it is not the displayed value.</summary>
-    public Func<T, object?>? GroupKey { get; set; }
+    public Fn<T, object?>? GroupKey { get; set; }
 
     /// <summary>Custom markup for a band's header row.</summary>
     /// <param>The band's key and its rows.</param>
-    public Func<object?, IReadOnlyList<T>, Component>? GroupHeader { get; set; }
+    public Fn<object?, IReadOnlyList<T>, Component>? GroupHeader { get; set; }
 
     /// <summary>A summary value shown in the column's footer, computed over every row.</summary>
     /// <remarks>
@@ -167,10 +167,10 @@ public sealed partial class UiColumn<T> : Component
     ///     set to compute it, where a grid without one only ever fetches a page. Worth knowing before
     ///     putting a footer on a grid over a large table.
     /// </remarks>
-    public Func<IReadOnlyList<T>, object?>? Footer { get; set; }
+    public Fn<IReadOnlyList<T>, object?>? Footer { get; set; }
 
     /// <summary>Custom markup for the column's footer.</summary>
-    public Func<IReadOnlyList<T>, Component>? FooterCell { get; set; }
+    public Fn<IReadOnlyList<T>, Component>? FooterCell { get; set; }
 
     /// <summary>Whether the column chooser may hide this column. Unset is yes.</summary>
     public bool? Hideable { get; set; }
@@ -179,7 +179,7 @@ public sealed partial class UiColumn<T> : Component
     public bool? Reorderable { get; set; }
 
     /// <summary>
-    ///     Whether <see cref="UiDataGrid{T}.OnRowClick" /> fires from this column's cells. Unset is AUTO:
+    ///     Whether <see cref="UiDataGrid{T,TKey}.OnRowClick" /> fires from this column's cells. Unset is AUTO:
     ///     a plain-text column is clickable, a <see cref="Cell" /> column is not.
     /// </summary>
     /// <remarks>
@@ -221,7 +221,7 @@ public sealed partial class UiColumn<T> : Component
     {
         if (Value is not null)
         {
-            return Value(row);
+            return Value.Value.Invoke(row);
         }
 
         object? value = row;
@@ -238,21 +238,21 @@ public sealed partial class UiColumn<T> : Component
         return ReferenceEquals(value, row) ? null : value;
     }
 
-    internal object? Band(T row) => GroupKey is not null ? GroupKey(row) : Read(row);
+    internal object? Band(T row) => GroupKey is { } group ? group.Invoke(row) : Read(row);
 
     // Ordering key for a band. Banding compares keys by equality, but the rows have to ARRIVE grouped,
     // and that ordering needs an IComparable — the same shape SortOf uses for a sorted column.
     internal IComparable? BandOrder(T row) => Band(row) as IComparable;
 
     internal IComparable? SortOf(T row) =>
-        SortKey is not null ? SortKey(row) : Read(row) as IComparable;
+        SortKey is { } sort ? sort.Invoke(row) : Read(row) as IComparable;
 
     internal Component Body(T row) =>
-        Cell is not null ? Cell(row) : (Read(row)?.ToString() ?? "");
+        Cell is { } cell && cell.Invoke(row) is { } built ? built : (Read(row)?.ToString() ?? "");
 
     internal Component Foot(IReadOnlyList<T> rows) =>
-        FooterCell is not null ? FooterCell(rows)
-        : Footer is not null ? (Footer(rows)?.ToString() ?? "")
+        FooterCell is { } cell && cell.Invoke(rows) is { } built ? built
+        : Footer is { } foot ? (foot.Invoke(rows)?.ToString() ?? "")
         : "";
 
     /// <inheritdoc />

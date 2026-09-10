@@ -32,22 +32,29 @@ the point you made it, not a null at runtime.
 ## Bound and controlled
 
 A form control is either **bound** to a model expression or **controlled** by a value you hold. You choose
-at the first step, and the choice is the type:
+at the first step:
 
 ```csharp
 Input.Bind(() => _form.Name).Validate(ProductName.Check).Id("name")   // bound
 Input.Value(_text).OnChange(v => _text = v)                           // controlled
 ```
 
-Having picked one, the other mode is not offered — not the opening step, and not the steps that belong
-to it. A bound chain has `Validate` and the `AfterBind` hooks; a controlled one has `Checked` and the
-`OnInput`/`OnChange` callbacks; neither can reach the other's. A control bound to an expression *and*
-handed a value has two sources of truth and nothing decides which wins — and one told to bind *and*
-given an `OnInput` is worse, because bound mode installs its own write-back and the handler simply never
-runs. So the surface does not let you write either.
+**The two openings are mutually exclusive**, and the compiler still says so. They live on the chain's
+entry and nowhere else, so taking one hands back the control itself and the other is simply not a member
+of it. A control bound to an expression *and* handed a value would have two sources of truth with nothing
+to decide between them, and the chain cannot express it.
 
-Everything that belongs to neither mode — `Placeholder`, `Type`, `Required`, `OnFiles`, the whole
-`Class`/`Id`/`Aria` element surface — stays reachable from both.
+Everything after the opening is an ordinary step on the control, in any order — `Validate`, `AfterBind`,
+`Checked`, `OnInput`, `OnChange`, `Placeholder`, `Type`, `Required`, and the whole `Class`/`Id`/`Aria`
+element surface.
+
+That is a change: each mode's steps used to be declared only on that mode, so a `Validate` on a
+controlled chain did not compile. The chain carried a `Bound` or `Controlled` type argument to arrange
+it, and that type argument had to be threaded through every generated signature, forced the ordering
+rules that came with it, and kept accumulating members that were silently unreachable. What it bought is
+narrower than it looks: choosing a mode is still enforced, because the openings are exclusive. What is
+no longer enforced is which steps *follow* one — a `Validate` on a controlled control compiles and does
+nothing, as an unread property always could.
 
 Both spellings infer the type from what you passed, so `Input<string>()` is never needed. Where the value
 alone cannot say — `null` names no type — write it once:
@@ -67,10 +74,10 @@ UiSelect.Bind(() => _m.Country)                       // T — what the model ho
         .Label("Country")
 ```
 
-**The opening step is the one that pins the type argument**, and for a form control it fixes the mode
-with it: `Bind` opens the bound chain, `Value` the controlled one, and the two are mutually exclusive
-because a control with both would have two sources of truth for one field. Everything else — `Label`,
-`Options`, `Placeholder` — follows in any order, because none of them says anything about `T`.
+**The opening step is the one that pins the type argument**, and for a form control it is also where the
+mode is chosen: `Bind` opens a bound control, `Value` a controlled one, and the two are mutually
+exclusive because a control with both would have two sources of truth for one field. Everything else —
+`Label`, `Options`, `Placeholder` — follows in any order, because none of them says anything about `T`.
 
 That is a language constraint rather than a house rule: a step whose type mentions `T` cannot be
 written before something has said what `T` is.

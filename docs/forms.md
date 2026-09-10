@@ -68,18 +68,25 @@ you are giving no value at all; if you want to supply one, that is `.Value(v)`.
 Everything else — `Placeholder`, `Type`, `Required`, `Min`/`Max`, `OnFiles`, the whole `Class`/`Id`/
 `Aria` element surface — belongs to neither and is reachable from both.
 
-This is enforced by the type, not by a convention: the chain is a
-`Build<TControl, Bound>` or a `Build<TControl, Controlled>`, and a step from the other mode is not
-offered in completion and does not compile.
+**Choosing a mode is enforced by the type**: the two openings live on the control's entry and nowhere
+else, so taking one hands back the control and the other is not a member of it.
 
 ```csharp
-Input.Bind(() => _model.Name).OnInput(v => _log = v)   // ✗ no such step on a bound chain
-Input.Value(_typed).AfterBind(v => Save(v))            // ✗ no such step on a controlled chain
+Input.Bind(() => _model.Name).Value(_typed)   // ✗ no such step: Bind already answered this
 ```
 
-The reason is that bound mode already owns those: it derives the rendered value (and a checkbox's
-`checked`) from the model and installs its own `oninput`/`onchange` write-back. Setting `OnInput`
-alongside `Bind` used to compile and then be dropped at render time, silently. Want a side effect on
+The steps that FOLLOW an opening are not gated, and that is a deliberate trade. Each mode's steps used
+to be declared only on that mode, which took a `Bound`/`Controlled` type argument threaded through every
+generated signature to arrange — for a rule that only ever caught a property being set and then not
+read. So this compiles now, and does nothing:
+
+```csharp
+Input.Bind(() => _model.Name).OnInput(v => _log = v)   // compiles; the handler never runs
+```
+
+The reason it does nothing is that bound mode already owns those: it derives the rendered value (and a
+checkbox's `checked`) from the model and installs its own `oninput`/`onchange` write-back. Want a side
+effect on
 each bound write? That is what `AfterBind` is for.
 
 The generated factories carry the same split — `Input(() => m.Name, OnInput: …)` has no such
@@ -279,9 +286,11 @@ The fixed-list forms are untouched and still bind exactly as before:
 Form.Model(_model)[Input.Bind(() => _model.Username), Button.Type("submit")["Sign up"]]
 ```
 
-Only a form offers the function form. It lives on `FormBuild<T>`, the chain `Form.Model(…)` hands
-back, so `Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to
-report. See [`ISubmitAware`](../src/Rask.Core/Forms/ISubmitAware.cs).
+Only a form offers the function form. It is an indexer declared on `Form` itself, so
+`Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to report. It used
+to need a chain type of its own (`FormBuild<T>`) purely because an indexer cannot be constrained;
+declaring it on the component scopes it exactly as well and costs no type parameter. See
+[`ISubmitAware`](../src/Rask.Core/Forms/ISubmitAware.cs).
 
 ### Auto-created vs explicit `Context`
 

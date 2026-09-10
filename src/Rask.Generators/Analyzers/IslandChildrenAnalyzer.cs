@@ -88,7 +88,7 @@ public sealed class IslandChildrenAnalyzer : DiagnosticAnalyzer
 
         // The receiver of a chain's children indexer is `Build<T>`, never the component — unwrap it or
         // every spelling the chain teaches slips past. Same seam RASK019 uses.
-        var receiverType = BuilderEntry.ChainedComponent(ModelExtensions
+        var receiverType = (ModelExtensions
             .GetTypeInfo(context.SemanticModel, node.Expression, context.CancellationToken).Type);
         if (receiverType is null || !DerivesFromIsland(receiverType, bases))
         {

@@ -61,7 +61,7 @@ public sealed partial class UiModal : Component
     ///     Runs on the close button and on a click outside. State-driven path only — on the popover path
     ///     the browser closes it and no callback is involved.
     /// </summary>
-    public Action? Close { get; set; }
+    public Callback? Close { get; set; }
 
     /// <summary>The actions, trailing-aligned on a pointer and stacked on a phone.</summary>
     public Component? Footer { get; set; }
@@ -103,7 +103,7 @@ public sealed partial class UiModal : Component
                 .Size(UiSize.Sm)
                 .Square(true)
                 .Icon(UiIconName.Close)
-                .OnClick(() => Close?.Invoke()),
+                .OnClick(() => Close?.Invoke() ?? Task.CompletedTask),
             // A pointer convenience, not the only way out: the header's close button is the keyboard
             // path, which is why this carries no role and no label of its own.
             backdrop: Close is null
@@ -113,7 +113,7 @@ public sealed partial class UiModal : Component
                     .Class("modal-backdrop")
                     .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
                     .TabIndex(-1)
-                    .OnClick(() => Close.Invoke())["close"]);
+                    .OnClick(() => Close?.Invoke() ?? Task.CompletedTask)["close"]);
 
     private string Classes() =>
         UiClass.Compose(
@@ -125,10 +125,10 @@ public sealed partial class UiModal : Component
                 : "modal-bottom sm:modal-middle",
             Class);
 
-    // Takes the half-built chain rather than a finished component: only Build<T> carries the indexer
-    // that adds children, and the two paths differ in how the dialog OPENS, not in what is inside it.
-    private Component Shell(
-        global::Rask.Core.Build<Dialog> dialog, Component closeControl, Component? backdrop) =>
+    // Takes the dialog itself. It used to take `Build<Dialog>`, because the chain receiver was the only
+    // thing carrying the children indexer; the component carries it now. The two paths differ in how the
+    // dialog OPENS, not in what is inside it.
+    private Component Shell(Dialog dialog, Component closeControl, Component? backdrop) =>
         // No `role="dialog"`: the element IS a dialog and carries that role implicitly, so stating it
         // again is the redundant-ARIA that guidance tells you not to write. The NAME is not implicit,
         // though — a dialog with a heading inside is still an unnamed dialog to a screen reader, which

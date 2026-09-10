@@ -56,9 +56,9 @@ internal static class BuilderEntry
             _ => null,
         };
 
-        // An entry hands back the CHAIN over its component, so unwrap before asking whether the member is
-        // named after what it produces — `Build` is never the name of anything an author wrote.
-        return ChainedComponent(produced) is INamedTypeSymbol named
+        // An entry hands back the component itself, so the name test is direct. It used to hand back a
+        // `Build<T>` over it, which had to be unwrapped first — `Build` being a name no author writes.
+        return produced is INamedTypeSymbol named
                && string.Equals(member.Name, named.Name, StringComparison.Ordinal)
                && DerivesFromComponent(named, component)
             ? named
@@ -111,32 +111,42 @@ internal static class BuilderEntry
     }
 
     /// <summary>
-    ///     The component a chain is building, for a <c>Rask.Core.Build&lt;T&gt;</c>; otherwise the type
-    ///     unchanged.
+    ///     Whether <paramref name="method" /> is a step on the markup chain.
     /// </summary>
     /// <remarks>
-    ///     Every analyzer here asks "is this expression a component?" of something that is now usually a
-    ///     CHAIN over one — the entry, and every step after it, hand back <c>Build&lt;T&gt;</c>. Unwrapping
-    ///     in one place is what keeps RASK025/038/044 answering about the component rather than about the
-    ///     struct carrying it; each of them went quiet when the receiver changed, which is the failure mode
-    ///     an analyzer cannot report on its own.
+    ///     <para>
+    ///         This replaced <c>ChainedComponent</c>, which answered "what does this chain build" by
+    ///         recognising the receiver's SHAPE — <c>Build&lt;T&gt;</c>, <c>Build&lt;T, TMode&gt;</c>,
+    ///         <c>FormBuild&lt;T&gt;</c> — and handing back its first type argument. The chain receives on
+    ///         the component itself now, so there is no shape left to recognise and no unwrapping to do:
+    ///         a chain expression's type simply IS the component.
+    ///     </para>
+    ///     <para>
+    ///         That makes the old question unanswerable by type alone and the new one easy to get wrong in
+    ///         the opposite direction: with no wrapper to look for, "is this a chain?" would match ANY
+    ///         extension method that takes a component and hands one back, and an analyzer written that way
+    ///         reports on unrelated fluent code. So a step is identified by where it is DECLARED — the
+    ///         generator emits every one of them as a reduced extension on a single static class per
+    ///         assembly, named <c>RaskBuilderSetters&lt;Assembly&gt;</c>.
+    ///     </para>
+    ///     <para>
+    ///         Deliberately NOT testing <c>ReducedFrom</c>. It reads like the right way to say "written as
+    ///         <c>x.Step(…)</c>, not <c>RaskBuilderSettersX.Step(x, …)</c>", and it silently never matches
+    ///         here: an <c>IInvocationOperation</c>'s <c>TargetMethod</c> is the UNREDUCED symbol even when
+    ///         the source is written in reduced form, so <c>ReducedFrom</c> is null and the receiver is
+    ///         <c>Arguments[0]</c> rather than <c>Instance</c>. (The symbol-info API answers the opposite
+    ///         way for the same call, which is what makes the mistake easy.) Requiring it stood every
+    ///         analyzer on this helper down without failing anything — the exact failure mode this file
+    ///         exists to prevent.
+    ///     </para>
     /// </remarks>
-    // Both chain shapes: an ordinary component's `Build<T>`, and a form control's mode-carrying
-    // `Build<T, TMode>`. The component is the FIRST type argument either way — the second is the phantom
-    // mode (see Rask.Core.Build{T,TMode}) and says nothing about what is being built. Missing the
-    // two-arity form left every analyzer that asks "what does this chain build" answering with the chain
-    // itself for form controls, which silently stood down RASK025 on `Input.Bind(…).Type(…)`.
-    // A form's chain is a THIRD shape, `FormBuild<T>` — it exists because an indexer cannot be
-    // constrained, so the submit-state children indexer can only be offered by a distinct type. Missing
-    // it left every analyzer that asks "what does this chain build" answering with the chain itself for
-    // a form, which is how RASK046 stopped reporting `Form.Model(m).Class("x").Key(1)` — a chain where
-    // the Class step really is lost.
-    public static ITypeSymbol? ChainedComponent(ITypeSymbol? type) =>
-        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 or 2 } named
-        && named.ConstructedFrom.ToDisplayString() is "Rask.Core.Build<T>" or "Rask.Core.Build<T, TMode>"
-            or "Rask.Core.FormBuild<T>"
-            ? named.TypeArguments[0]
-            : type;
+    public static bool IsChainStep(IMethodSymbol? method) =>
+        method is { IsExtensionMethod: true }
+        && method.ContainingType?.Name.StartsWith(SettersPrefix, StringComparison.Ordinal) == true;
+
+    // The generated class every chain step lives on, spelled the way ComponentFactoryGenerator spells it
+    // ("RaskBuilderSetters" + the assembly's identifier-safe name).
+    private const string SettersPrefix = "RaskBuilderSetters";
 
     /// <summary>
     ///     Reads a chain from its OUTERMOST link down to the entry that opened it: what it builds, and
@@ -242,47 +252,32 @@ internal static class BuilderEntry
             return true;
         }
 
-        if (ChainedComponent(property.Type) is not INamedTypeSymbol built1
-            || SymbolEqualityComparer.Default.Equals(built1, property.Type))
+        // A COMPONENT-opened chain. The entry used to be recognised by its type being one of the chain
+        // shapes, which no longer exist — an entry hands back the component itself now. So it is
+        // recognised the way EntryTypeOf always recognised one: a static member named after the component
+        // it produces. That distinction is the whole point of the test, and it is what keeps an ordinary
+        // markup helper (`Ui.Badge(x)`) — a method whose name is NOT its return type — from being read as
+        // something that could have taken a key.
+        if (property.Type is not INamedTypeSymbol produced
+            || !property.IsStatic
+            || !string.Equals(produced.Name, name.Identifier.ValueText, StringComparison.Ordinal)
+            || model.Compilation.GetTypeByMetadataName(ComponentMetadataName) is not { } component
+            || !DerivesFromComponent(produced, component))
         {
             return false;
         }
 
         entry = name;
-        built = built1;
+        built = produced;
         return true;
     }
 
-    /// <summary>The metadata name of the chain's receiver, for a one-off <c>GetTypeByMetadataName</c>.</summary>
-    public const string BuildMetadataName = "Rask.Core.Build`1";
-
-    /// <summary>
-    ///     The component a <c>Build&lt;T&gt;</c> is building, or <c>null</c> when the type is anything else —
-    ///     including a component that is not wrapped in one.
-    /// </summary>
-    /// <remarks>
-    ///     Distinct from <see cref="ChainedComponent" />, which hands the type back UNCHANGED when it is not
-    ///     a <c>Build&lt;T&gt;</c>. That is the right answer for "unwrap if needed", and the wrong one for
-    ///     "is this actually a chain?" — a caller asking the second question with the first answer accepts
-    ///     the children indexer, which is typed <c>Component</c>, and reports every row twice.
-    ///     <para>
-    ///         Takes the resolved <c>Build&lt;T&gt;</c> symbol rather than comparing display strings. These
-    ///         callers run on <c>OperationKind.PropertyReference</c>, which fires for every property read in
-    ///         the compilation, so a <c>ToDisplayString()</c> on each arity-1 generic — every
-    ///         <c>List&lt;T&gt;</c>, <c>Task&lt;T&gt;</c>, <c>Nullable&lt;T&gt;</c> — allocated a string per
-    ///         keystroke in the IDE. Resolve it once in <c>RegisterCompilationStartAction</c> and pass it in.
-    ///     </para>
-    /// </remarks>
-    public static INamedTypeSymbol? BuildOf(ITypeSymbol? type, INamedTypeSymbol? build) =>
-        build is not null
-        && type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
-        && SymbolEqualityComparer.Default.Equals(named.ConstructedFrom, build)
-            ? named.TypeArguments[0] as INamedTypeSymbol
-            : null;
+    /// <summary>The metadata name of <c>Component</c>, for a one-off <c>GetTypeByMetadataName</c>.</summary>
+    public const string ComponentMetadataName = "Rask.Core.Component";
 
     public static bool DerivesFromComponent(ITypeSymbol? type, INamedTypeSymbol component)
     {
-        for (var current = ChainedComponent(type); current is not null; current = current.BaseType)
+        for (var current = type; current is not null; current = current.BaseType)
         {
             if (SymbolEqualityComparer.Default.Equals(current, component))
             {

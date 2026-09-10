@@ -75,6 +75,72 @@ internal static class TailwindCli
     public static string CachePath(string cacheRoot, string version, string assetName) =>
         Path.Combine(cacheRoot, version, assetName);
 
+    /// <summary>Whether the binary already at <paramref name="path" /> can be reused as it stands.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         Not the same question as whether it is there, which is what this used to ask. On CI the
+    ///         cache is restored by untarring it, and an untar that fails part way leaves a file that
+    ///         exists and cannot run — actions/cache reports that as a warning and the build carries on.
+    ///         Two shapes, and the build names neither as itself: the executable bit is gone, so Exec's
+    ///         own shell exits <c>126</c> and MSBuild reports MSB3073 with the whole command line in it,
+    ///         reading as though the CLI rejected its arguments; or the file is truncated, so it is not an
+    ///         executable at all.
+    ///     </para>
+    ///     <para>
+    ///         Either one used to be permanent, because the broken file kept satisfying
+    ///         <see cref="File.Exists" /> and the checksummed download that would have replaced it was
+    ///         never reached. So an empty file is deleted and reported as a miss, and the mode bits are
+    ///         re-asserted on every hit — one short-lived process against a Tailwind compile.
+    ///     </para>
+    /// </remarks>
+    public static bool ReuseCached(string path, Action<string>? note = null)
+    {
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+
+        if (new FileInfo(path).Length == 0)
+        {
+            note?.Invoke(
+                $"Rask.Tailwind: the cached CLI at '{path}' is empty — a partial cache restore leaves this "
+                + "behind. Fetching it again.");
+
+            try
+            {
+                File.Delete(path);
+            }
+            catch (IOException)
+            {
+                // Left to the fetch, which writes beside it and moves over it anyway.
+            }
+
+            return false;
+        }
+
+        MakeExecutable(path);
+        return true;
+    }
+
+    /// <summary>Gives a file the executable bit, where the platform has one.</summary>
+    public static void MakeExecutable(string path)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return;
+        }
+
+        // Arguments rather than ArgumentList: this targets netstandard2.0, where the list form does not
+        // exist. The path is ours and quoted, so a space in the cache directory is still safe.
+        using var chmod = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("chmod")
+        {
+            Arguments = "+x \"" + path + "\"",
+            UseShellExecute = false,
+        });
+
+        chmod?.WaitForExit();
+    }
+
     /// <summary>The release URL for a pinned version.</summary>
     public static string DownloadUrl(string version, string assetName) =>
         string.Format(

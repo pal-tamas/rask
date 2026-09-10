@@ -50,7 +50,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
         // neither prove nor disprove this. The server renders in waves and sends the settled one.
         QuiescenceScope.ResetSyncForTests();
 
-        var island = SlowIsland.Heading("Hello").Value;
+        var island = SlowIsland.Heading("Hello");
         var services = Services();
 
         var result = await QuiescentRender.RunAsync(

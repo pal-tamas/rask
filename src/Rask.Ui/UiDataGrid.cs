@@ -13,7 +13,7 @@ namespace Rask.Ui;
 /// <b>Columns are the chain's children, and they arrive through a factory:</b>
 /// <c>UiDataGrid.Data(_products)[c =&gt; [ c.Field(p =&gt; p.Name).Title("Product").Sortable(true) ]]</c>.
 /// The lambda's parameter is the grid, which is what fixes the row type — a column written as a flat
-/// child has nothing to infer its own lambda from and does not compile. See <see cref="IColumnHost" />.
+/// child has nothing to infer its own lambda from and does not compile. See the grid's column indexer.
 /// </para>
 /// <para>
 /// <b>Where the sorting and paging happen is decided by what it is given.</b>
@@ -49,7 +49,9 @@ namespace Rask.Ui;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">The row type.</typeparam>
-public sealed partial class UiDataGrid<T> : Component, IColumnHost
+/// <typeparam name="TKey">What identifies one row, as returned by <see cref="RowKey" />.</typeparam>
+public sealed partial class UiDataGrid<T, TKey> : Component
+    where TKey : notnull
 {
     // Per-instance, so two id-less grids on one page cannot collide on the ids their detail rows are
     // announced by — aria-controls points at them, and a collision aims it at the wrong row.
@@ -69,21 +71,53 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     private string? _sortField;
     private bool _sortDescending;
 
-    // The column factory, kept as a Delegate because IColumnHost cannot name this type without becoming
-    // generic in it. Cast once per render rather than adapted through a closure, so naming columns costs
-    // no allocation. See IColumnHost.SetColumnFactory.
+    // The column factory. It was kept as a Delegate because the IColumnHost interface could not name
+    // this type without becoming generic itself; the indexer is declared right here on the grid now, so
+    // the field could be typed — it stays a Delegate only because nothing reads it in a typed way and
+    // widening it would cost an allocation at every call.
     private Delegate? _columnFactory;
 
-    // The selection strategy, which owns the key selector AND the uncontrolled selection set. Typed in
-    // the key rather than in `object`, so a membership test per row per render boxes nothing. It
-    // survives across renders — the RowKey step reuses it when the key type is unchanged, which is what
-    // keeps an uncontrolled selection alive from one render to the next.
-    private UiGridKeys<T>? _keys;
+    // The UNCONTROLLED selection. Typed in the key rather than in `object`, so a membership test per row
+    // per render boxes nothing, and a field rather than state rebuilt per render because it is the one
+    // piece of the selection that has to survive one.
+    //
+    // It used to live in a UiGridKeys<T, TKey> strategy hanging off an untyped UiGridKeys<T> base, and
+    // that whole arrangement existed for one reason: the grid was UiDataGrid<T> and could not name TKey.
+    // It can now, so there is nothing left for the strategy to hide.
+    private readonly HashSet<TKey> _own = [];
 
     // The last page an async Source handed back, and what was asked for to get it. Compared rather than
     // re-fetched: Render runs far more often than the request changes.
     private UiGridPage<T>? _fetched;
     private UiGridRequest? _fetchedFor;
+
+    /// <summary>Reads a row's identity — <c>p =&gt; p.Id</c>.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         Required, and the type argument it pins is what the selection is expressed in:
+    ///         <see cref="Selected" /> is an <c>IReadOnlyList&lt;TKey&gt;</c> of exactly these.
+    ///     </para>
+    ///     <para>
+    ///         Not <c>Key</c>: that is already the chain's step for reconciliation identity — which
+    ///         instance of the GRID is being built — and has to be able to come first (RASK046). This one
+    ///         is about the rows inside it.
+    ///     </para>
+    ///     <para>
+    ///         It is required rather than optional because the alternative was worse than it looked. The
+    ///         key used to reach the chain through a hand-written <c>RowKey&lt;TRow, TKey&gt;</c> step, and
+    ///         a grid that never took it still rendered: rows fell back to their INDEX for identity, so the
+    ///         live diff reordered by position, and the selection steps — which were reachable regardless —
+    ///         fabricated a strategy with no selector in it. Naming the key is now the only way to build a
+    ///         grid at all.
+    ///     </para>
+    /// </remarks>
+    public required Func<T, TKey> RowKey { get; set; }
+
+    /// <summary>The selected rows, by key. Setting it hands selection to the parent.</summary>
+    public IReadOnlyList<TKey>? Selected { get; set; }
+
+    /// <summary>Called with the selection after the reader changed it.</summary>
+    public Callback<IReadOnlyList<TKey>>? OnSelectionChange { get; set; }
 
     /// <summary>The rows, in memory or as a query.</summary>
     /// <remarks>
@@ -103,7 +137,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     ///     grid does no sorting or paging of its own, and <see cref="UiGridPage{T}.Total" /> is what the
     ///     pager counts in.
     /// </remarks>
-    public Func<UiGridRequest, Task<UiGridPage<T>>>? Source { get; set; }
+    public Fn<UiGridRequest, Task<UiGridPage<T>>>? Source { get; set; }
 
     /// <summary>The accessible name of the table.</summary>
     /// <remarks>
@@ -120,10 +154,8 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     public int? Page { get; set; }
 
     /// <summary>Called with the page the reader asked for.</summary>
-    public Action<int>? OnPageChange { get; set; }
+    public Callback<int>? OnPageChange { get; set; }
 
-    /// <summary>Called with the page the reader asked for, awaited.</summary>
-    public Func<int, Task>? OnPageChangeAsync { get; set; }
 
     /// <summary>
     ///     How many rows stand behind the ones given, when <see cref="Data" /> holds one already-sliced
@@ -144,10 +176,8 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     public bool? SortDescending { get; set; }
 
     /// <summary>Called with the sort the reader asked for.</summary>
-    public Action<UiGridSort>? OnSortChange { get; set; }
+    public Callback<UiGridSort>? OnSortChange { get; set; }
 
-    /// <summary>Called with the sort the reader asked for, awaited.</summary>
-    public Func<UiGridSort, Task>? OnSortChangeAsync { get; set; }
 
     /// <summary>Shades alternate rows.</summary>
     public bool? Zebra { get; set; }
@@ -172,20 +202,18 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     public Component? Empty { get; set; }
 
     /// <summary>An expandable detail row under each row. Returning null gives that row no expander.</summary>
-    public Func<T, Component?>? Detail { get; set; }
+    public Fn<T, Component?>? Detail { get; set; }
 
     /// <summary>Extra classes for one row, from the row.</summary>
-    public Func<T, string?>? RowClass { get; set; }
+    public Fn<T, string?>? RowClass { get; set; }
 
     /// <summary>Called with the row that was clicked.</summary>
     /// <remarks>
     ///     Only the cells of columns that are <see cref="UiColumn{T}.RowClickable" /> fire it, which by
     ///     default is every column that is not a custom cell — see that property for why.
     /// </remarks>
-    public Action<T>? OnRowClick { get; set; }
+    public Callback<T>? OnRowClick { get; set; }
 
-    /// <summary>Called with the row that was clicked, awaited.</summary>
-    public Func<T, Task>? OnRowClickAsync { get; set; }
 
     /// <summary>
     ///     Draws a row as a card below <c>sm</c>, replacing the automatic one.
@@ -204,7 +232,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     ///         merely the same cells stacked.
     ///     </para>
     /// </remarks>
-    public Func<T, Component>? Card { get; set; }
+    public Fn<T, Component>? Card { get; set; }
 
     /// <summary>Markup above the table — filters, actions, a count.</summary>
     public Component? Toolbar { get; set; }
@@ -216,29 +244,23 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     public IReadOnlyList<string>? HiddenColumns { get; set; }
 
     /// <summary>Called with the hidden columns after the reader changed them.</summary>
-    public Action<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
+    public Callback<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
 
-    /// <inheritdoc cref="OnHiddenColumnsChange" />
-    public Func<IReadOnlyList<string>, Task>? OnHiddenColumnsChangeAsync { get; set; }
 
     /// <summary>The column order, by field token. Setting it hands that axis over.</summary>
     /// <remarks>Tokens it does not name keep their declared position, after the ones it does.</remarks>
     public IReadOnlyList<string>? ColumnOrder { get; set; }
 
     /// <summary>Called with the column order after the reader changed it.</summary>
-    public Action<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
+    public Callback<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
 
-    /// <inheritdoc cref="OnColumnOrderChange" />
-    public Func<IReadOnlyList<string>, Task>? OnColumnOrderChangeAsync { get; set; }
 
     /// <summary>The columns grouped by, outermost first. Setting it hands that axis over.</summary>
     public IReadOnlyList<string>? Grouped { get; set; }
 
     /// <summary>Called with the grouping after the reader changed it.</summary>
-    public Action<IReadOnlyList<string>>? OnGroupedChange { get; set; }
+    public Callback<IReadOnlyList<string>>? OnGroupedChange { get; set; }
 
-    /// <inheritdoc cref="OnGroupedChange" />
-    public Func<IReadOnlyList<string>, Task>? OnGroupedChangeAsync { get; set; }
 
     /// <summary>Shows the panel that groups, ungroups and reorders the grouping.</summary>
     public bool? GroupPanel { get; set; }
@@ -269,7 +291,35 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
-    void IColumnHost.SetColumnFactory(Delegate factory) => _columnFactory = factory;
+    /// <summary>
+    ///     Describes the grid's columns, ending the chain:
+    ///     <c>UiDataGrid.Rows(_rows)[c =&gt; [ c.Field(r =&gt; r.Name), c.Column()[ … ] ]]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This lived on a chain type of its own (<c>GridBuild&lt;T, TKey&gt;</c>) for exactly one
+    ///         reason: an indexer cannot be constrained, so offering it on a grid and nowhere else meant
+    ///         giving the grid's chain a different TYPE. The chain receives on the component now, so the
+    ///         indexer is declared on the only component it was ever meant for.
+    ///     </para>
+    ///     <para>
+    ///         The lambda takes the GRID rather than a row, which is what gives <c>c.Field(…)</c> a type
+    ///         to infer from — a bare <c>UiColumn.Field(…)</c> written as a flat child has nothing.
+    ///     </para>
+    ///     <para>
+    ///         The factory is stored, not called: it runs on every render, inside the render walk, so a
+    ///         column it builds keeps its identity across renders.
+    ///     </para>
+    /// </remarks>
+    /// <param name="columns">Builds the columns, given the grid they belong to.</param>
+    public Component this[Func<UiDataGrid<T, TKey>, IEnumerable<Component?>> columns]
+    {
+        get
+        {
+            _columnFactory = columns;
+            return this;
+        }
+    }
 
     // ---- what is controlled, and what the grid is holding itself ---------------------------------
 
@@ -282,18 +332,16 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     private bool PageControlled => Page is not null;
 
     private bool SortControlled =>
-        Sort is not null || OnSortChange is not null || OnSortChangeAsync is not null;
+        Sort is not null || OnSortChange is not null;
 
     private bool GroupControlled =>
-        Grouped is not null || OnGroupedChange is not null || OnGroupedChangeAsync is not null;
+        Grouped is not null || OnGroupedChange is not null;
 
     private bool HideControlled =>
-        HiddenColumns is not null || OnHiddenColumnsChange is not null
-        || OnHiddenColumnsChangeAsync is not null;
+        HiddenColumns is not null || OnHiddenColumnsChange is not null;
 
     private bool OrderControlled =>
-        ColumnOrder is not null || OnColumnOrderChange is not null
-        || OnColumnOrderChangeAsync is not null;
+        ColumnOrder is not null || OnColumnOrderChange is not null;
 
     private int CurrentPage => Page ?? _page;
 
@@ -312,7 +360,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
 
     private bool Expandable => Detail is not null;
 
-    private bool SelectionEnabled => _keys is { Selectable: true };
+    private bool SelectionEnabled => Selected is not null || OnSelectionChange is not null;
 
     private bool Busy => Loading is true;
 
@@ -343,23 +391,20 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
         }
 
         _fetchedFor = request;
-        _fetched = await source(request).ConfigureAwait(false);
+        // `Fn.Invoke` is nullable because an UNSET carrier has nothing to hand back; this one was just
+        // matched non-null, so the task it returns is the source's own.
+        _fetched = await source.Invoke(request)!.ConfigureAwait(false);
     }
 
     // ---- handlers -------------------------------------------------------------------------------
 
     // Whichever the caller supplied. Both set would be a call-site bug, and the async one wins because
     // it is the one that does work.
-    private static Task Raise<TArg>(Action<TArg>? sync, Func<TArg, Task>? async, TArg arg)
-    {
-        if (async is not null)
-        {
-            return async(arg);
-        }
-
-        sync?.Invoke(arg);
-        return Task.CompletedTask;
-    }
+    // One handler, either shape. This used to take the sync and async halves of a pair and decide which
+    // won; the carrier holds exactly one, and `Invoke` hands back null when it was the synchronous one —
+    // so the completed task is supplied here rather than a state machine being created for it.
+    private static Task Raise<TArg>(Callback<TArg>? handler, TArg arg) =>
+        handler?.Invoke(arg) ?? Task.CompletedTask;
 
     // Ascending, descending, then off. The third state is not decoration: it is the only way back to the
     // order the source itself chose, which for a query is whatever the store returns and for a list is
@@ -385,7 +430,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             _page = 0;
         }
 
-        await Raise(OnSortChange, OnSortChangeAsync, new UiGridSort(field, descending))
+        await Raise(OnSortChange, new UiGridSort(field, descending))
             .ConfigureAwait(false);
         await FetchAsync().ConfigureAwait(false);
     }
@@ -403,7 +448,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             _page = target;
         }
 
-        await Raise(OnPageChange, OnPageChangeAsync, target).ConfigureAwait(false);
+        await Raise(OnPageChange, target).ConfigureAwait(false);
         await FetchAsync().ConfigureAwait(false);
     }
 
@@ -434,7 +479,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             _page = 0;
         }
 
-        return Raise(OnGroupedChange, OnGroupedChangeAsync, next);
+        return Raise(OnGroupedChange, next);
     }
 
     private Task SetHiddenAsync(IReadOnlyList<string> next)
@@ -445,7 +490,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             _hidden.AddRange(next);
         }
 
-        return Raise(OnHiddenColumnsChange, OnHiddenColumnsChangeAsync, next);
+        return Raise(OnHiddenColumnsChange, next);
     }
 
     private Task SetOrderAsync(IReadOnlyList<string> next)
@@ -456,7 +501,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             _order.AddRange(next);
         }
 
-        return Raise(OnColumnOrderChange, OnColumnOrderChangeAsync, next);
+        return Raise(OnColumnOrderChange, next);
     }
 
     private Task ToggleHiddenAsync(string token)
@@ -542,7 +587,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     ///     flat child would have nothing to infer one from.
     /// </remarks>
     /// <param name="field">The member this column is about.</param>
-    public Build<UiColumn<T>> Field(Expression<Func<T, object?>> field) => UiColumn.Field(field);
+    public UiColumn<T> Field(Expression<Func<T, object?>> field) => UiColumn.Field(field);
 
     /// <summary>
     ///     Opens a column bound to no member — an actions column, or one computed from the whole row.
@@ -551,14 +596,14 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     ///     It has no field token, so it can be shown but never sorted, grouped, hidden or reordered by
     ///     name. Give it a <see cref="UiColumn{T}.Cell" /> and a <see cref="UiColumn{T}.Title" />.
     /// </remarks>
-    public Build<UiColumn<T>> Column() => UiColumn.Of<T>();
+    public UiColumn<T> Column() => UiColumn.Of<T>();
 
     // The columns, built once per render. ONCE is load-bearing: each `c.Field(…)` takes the next entry
     // slot under this grid, so calling the factory a second time in one render would hand every column a
     // different instance from the one the first pass built — and grow the slot list every frame.
     private List<UiColumn<T>> ResolveColumns()
     {
-        if (_columnFactory is not Func<UiDataGrid<T>, IEnumerable<Component?>> factory)
+        if (_columnFactory is not Func<UiDataGrid<T, TKey>, IEnumerable<Component?>> factory)
         {
             return [];
         }
@@ -811,38 +856,82 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
 
     // ---- selection ------------------------------------------------------------------------------
 
-    // Reached only from the RowKey step. Reuses the strategy it already holds when the key type is
-    // unchanged, which is what keeps an UNCONTROLLED selection alive across renders — the step runs
-    // every render, and a fresh strategy each time would forget what was ticked.
-    internal UiGridKeys<T, TKey> Keys<TKey>(Func<T, TKey> of)
-        where TKey : notnull
+    private bool IsSelected(T row) =>
+        Selected is { } controlled ? controlled.Contains(RowKey(row)) : _own.Contains(RowKey(row));
+
+    private bool AllSelected(IReadOnlyList<T> rows)
     {
-        if (_keys is not UiGridKeys<T, TKey> keys)
+        if (rows.Count == 0)
         {
-            keys = new UiGridKeys<T, TKey>();
-            _keys = keys;
+            return false;
         }
 
-        keys.Reset(of);
-        return keys;
-    }
-
-    // The strategy RowKey already installed, for the selection steps that follow it. It does NOT reset:
-    // resetting is RowKey's job, done once at the head of the chain, and doing it again here would wipe
-    // the selector — and the step that was setting the selection — on the way past.
-    internal UiGridKeys<T, TKey> SelectionOf<TKey>()
-        where TKey : notnull
-    {
-        if (_keys is not UiGridKeys<T, TKey> keys)
+        foreach (var row in rows)
         {
-            keys = new UiGridKeys<T, TKey>();
-            _keys = keys;
+            if (!IsSelected(row))
+            {
+                return false;
+            }
         }
 
-        return keys;
+        return true;
     }
 
-    private object RowIdentity(T row, int index) => _keys?.KeyOf(row) ?? index;
+    private Task ToggleAsync(T row, bool on)
+    {
+        var next = CurrentSelection();
+        if (on)
+        {
+            next.Add(RowKey(row));
+        }
+        else
+        {
+            next.Remove(RowKey(row));
+        }
+
+        return CommitSelectionAsync(next);
+    }
+
+    private Task SetPageSelectionAsync(IReadOnlyList<T> rows, bool on)
+    {
+        var next = CurrentSelection();
+        foreach (var row in rows)
+        {
+            if (on)
+            {
+                next.Add(RowKey(row));
+            }
+            else
+            {
+                next.Remove(RowKey(row));
+            }
+        }
+
+        return CommitSelectionAsync(next);
+    }
+
+    private HashSet<TKey> CurrentSelection() => Selected is { } c ? [.. c] : [.. _own];
+
+    private Task CommitSelectionAsync(HashSet<TKey> next)
+    {
+        // The uncontrolled half is only ours to hold while the parent is not holding it.
+        if (Selected is null)
+        {
+            _own.Clear();
+            foreach (var key in next)
+            {
+                _own.Add(key);
+            }
+        }
+
+        return OnSelectionChange?.Invoke(next.ToList()) ?? Task.CompletedTask;
+    }
+
+    // A row's identity for the live diff. It is the row KEY now, never the index: an index makes two
+    // rows that swapped places look like two rows that changed contents, which is the reordering bug
+    // the key was always meant to prevent — and before RowKey was required, an index was the fallback
+    // every grid that had not named one silently got.
+    private object RowIdentity(T row) => RowKey(row);
 
     // ---- render ---------------------------------------------------------------------------------
 
@@ -1018,14 +1107,13 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     {
         // "Select all" would be a lie wherever a pager is: the grid holds one page and can only name the
         // keys it has.
-        var keys = _keys!;
-
+        //
         // Of<bool>() rather than a value: the type argument is what makes the input a checkbox and
         // OnChange a bool, the same way UiCheckbox opens.
         return Input
             .Of<bool>()
-            .Checked(keys.AllSelected(pageRows))
-            .OnChange(on => keys.SetPageAsync(pageRows, on))
+            .Checked(AllSelected(pageRows))
+            .OnChange(on => SetPageSelectionAsync(pageRows, on))
             .Class("checkbox checkbox-sm")
             .Aria("label", "Select all rows on this page")
             .Disabled(Busy);
@@ -1068,14 +1156,14 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
         for (var i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
-            var key = RowIdentity(row, offset + i);
+            var key = RowIdentity(row);
             var open = Expandable && _expanded.Contains(key);
 
             yield return Tr
                 .Key(key)
                 .Class(UiClass.Compose(
                     StackedCards ? "max-sm:block max-sm:border-b max-sm:border-base-300" : "",
-                    Hover ?? (OnRowClick is not null || OnRowClickAsync is not null)
+                    Hover ?? OnRowClick is not null
                         ? "hover:bg-base-200"
                         : "",
                     RowClass?.Invoke(row)))[
@@ -1116,18 +1204,17 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
         return cell[column.Body(row)];
     }
 
+    // One handler either way. `Invoke` returns null for a synchronous one, so the completed task is
+    // supplied here rather than a state machine being created for it.
     private Func<Task>? RowClickHandler(T row) =>
-        OnRowClickAsync is { } async ? () => async(row)
-        : OnRowClick is { } sync ? () => { sync(row); return Task.CompletedTask; }
-    : null;
+        OnRowClick is { } click ? () => click.Invoke(row) ?? Task.CompletedTask : null;
 
     private Component SelectBox(T row)
     {
-        var keys = _keys!;
         return Input
             .Of<bool>()
-            .Checked(keys.IsSelected(row))
-            .OnChange(on => keys.ToggleAsync(row, on))
+            .Checked(IsSelected(row))
+            .OnChange(on => ToggleAsync(row, on))
             .Class("checkbox checkbox-sm")
             .Aria("label", "Select row")
             .Disabled(Busy);
@@ -1241,8 +1328,8 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
         UiColumn<T> column, object? key, IReadOnlyList<T> band, string path, int level, int span)
     {
         var collapsed = _collapsed.Contains(path);
-        var heading = column.GroupHeader is { } custom
-            ? custom(key, band)
+        var heading = column.GroupHeader is { } custom && custom.Invoke(key, band) is { } drawn
+            ? drawn
             : (Component)Span.Class("font-medium")[
                 (column.Title ?? "") + ": " + (key?.ToString() ?? "—")
                 + " (" + band.Count.ToString(CultureInfo.InvariantCulture) + ")"
@@ -1489,8 +1576,8 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             ? null
             : Div.Class("max-sm:flex max-sm:flex-col max-sm:gap-2 sm:hidden")[
                 rows.Select((row, i) =>
-                    Div.Key(RowIdentity(row, i))
-                        .Class("rounded-xl border border-base-300 bg-base-100 p-3")[card(row)])
+                    Div.Key(RowIdentity(row))
+                        .Class("rounded-xl border border-base-300 bg-base-100 p-3")[card.Invoke(row)])
             ];
 
     private Component? Pager(Resolved rows)
@@ -1512,194 +1599,3 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     }
 }
 
-// The selection state, split so the grid can hold it without knowing the key type. The abstract half is
-// everything the render walk asks for; the closed half owns the selector, the selected set and the
-// callbacks, all typed — so a membership test per row per render boxes nothing.
-internal abstract class UiGridKeys<T>
-{
-    internal abstract bool Selectable { get; }
-
-    internal abstract object KeyOf(T row);
-
-    internal abstract bool IsSelected(T row);
-
-    internal abstract Task ToggleAsync(T row, bool on);
-
-    internal abstract Task SetPageAsync(IReadOnlyList<T> rows, bool on);
-
-    internal abstract bool AllSelected(IReadOnlyList<T> rows);
-}
-
-internal sealed class UiGridKeys<T, TKey> : UiGridKeys<T>
-    where TKey : notnull
-{
-    // The uncontrolled selection. It is the one piece of this that must survive a render, which is why
-    // the grid reuses the strategy rather than rebuilding it.
-    private readonly HashSet<TKey> _own = [];
-
-    private Func<T, TKey> _of = static _ => throw new InvalidOperationException("No row key.");
-
-    internal IReadOnlyList<TKey>? Controlled { get; set; }
-
-    internal Action<IReadOnlyList<TKey>>? OnChange { get; set; }
-
-    internal Func<IReadOnlyList<TKey>, Task>? OnChangeAsync { get; set; }
-
-    // Called by the RowKey step on every render. It CLEARS the controlled half deliberately: a chain
-    // that names RowKey but not Selected this time round is uncontrolled this time round, and leaving
-    // last render's list in place would be the chain quietly meaning something it no longer says. The
-    // type system makes that safe to rely on — TKey is pinned by RowKey and nothing else, so a selection
-    // step can only ever appear after it in the same chain.
-    internal void Reset(Func<T, TKey> of)
-    {
-        _of = of;
-        Controlled = null;
-        OnChange = null;
-        OnChangeAsync = null;
-    }
-
-    internal override bool Selectable =>
-        Controlled is not null || OnChange is not null || OnChangeAsync is not null;
-
-    internal override object KeyOf(T row) => _of(row);
-
-    internal override bool IsSelected(T row) =>
-        Controlled is { } controlled ? controlled.Contains(_of(row)) : _own.Contains(_of(row));
-
-    internal override Task ToggleAsync(T row, bool on)
-    {
-        var next = Current();
-        if (on)
-        {
-            next.Add(_of(row));
-        }
-        else
-        {
-            next.Remove(_of(row));
-        }
-
-        return CommitAsync(next);
-    }
-
-    internal override Task SetPageAsync(IReadOnlyList<T> rows, bool on)
-    {
-        var next = Current();
-        foreach (var row in rows)
-        {
-            if (on)
-            {
-                next.Add(_of(row));
-            }
-            else
-            {
-                next.Remove(_of(row));
-            }
-        }
-
-        return CommitAsync(next);
-    }
-
-    internal override bool AllSelected(IReadOnlyList<T> rows)
-    {
-        if (rows.Count == 0)
-        {
-            return false;
-        }
-
-        foreach (var row in rows)
-        {
-            if (!IsSelected(row))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private HashSet<TKey> Current() => Controlled is { } c ? [.. c] : [.. _own];
-
-    private Task CommitAsync(HashSet<TKey> next)
-    {
-        if (Controlled is null)
-        {
-            _own.Clear();
-            foreach (var key in next)
-            {
-                _own.Add(key);
-            }
-        }
-
-        var list = next.ToList();
-        if (OnChangeAsync is { } async)
-        {
-            return async(list);
-        }
-
-        OnChange?.Invoke(list);
-        return Task.CompletedTask;
-    }
-}
-
-/// <summary>
-/// The <see cref="UiDataGrid{T}" /> chain steps that carry the row key.
-/// </summary>
-/// <remarks>
-/// Hand-written rather than generated, because each one's type is the KEY the grid was told to identify
-/// a row by, and that type reaches the chain through <see cref="RowKey{TRow,TKey}" /> rather than
-/// through a property. Everything else on the grid is an ordinary generated step.
-/// </remarks>
-public static class UiDataGridSteps
-{
-    /// <summary>
-    ///     Says what identifies a row, and opens the selection steps.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Not <c>Key</c>: that is already the chain's step for reconciliation identity — which
-    ///         instance of the GRID is being built — and has to be able to come first (RASK046). This one
-    ///         is about the rows inside it.
-    ///     </para>
-    ///     <para>
-    ///         It also pins the chain's key type, which is why <see cref="Selected{TRow,TKey}" /> and the
-    ///         change callbacks are not offered before it: a grid that cannot name a row cannot report
-    ///         which rows are selected, so the steps that would say so do not exist yet.
-    ///     </para>
-    /// </remarks>
-    /// <param name="chain">The grid's chain.</param>
-    /// <param name="key">Reads a row's identity — <c>p =&gt; p.Id</c>.</param>
-    public static GridBuild<UiDataGrid<TRow>, TKey> RowKey<TRow, TKey>(
-        this GridBuild<UiDataGrid<TRow>, NoKey> chain, Func<TRow, TKey> key)
-        where TKey : notnull
-    {
-        chain.Value.Keys(key);
-        return new GridBuild<UiDataGrid<TRow>, TKey>(chain.Value);
-    }
-
-    /// <summary>The selected rows, by key. Setting it hands selection to the parent.</summary>
-    public static GridBuild<UiDataGrid<TRow>, TKey> Selected<TRow, TKey>(
-        this GridBuild<UiDataGrid<TRow>, TKey> chain, IReadOnlyList<TKey> selected)
-        where TKey : notnull
-    {
-        chain.Value.SelectionOf<TKey>().Controlled = selected;
-        return chain;
-    }
-
-    /// <summary>Called with the selection after the reader changed it.</summary>
-    public static GridBuild<UiDataGrid<TRow>, TKey> OnSelectionChange<TRow, TKey>(
-        this GridBuild<UiDataGrid<TRow>, TKey> chain, Action<IReadOnlyList<TKey>>? handler)
-        where TKey : notnull
-    {
-        chain.Value.SelectionOf<TKey>().OnChange = AutoCallback.Wrap(handler);
-        return chain;
-    }
-
-    /// <inheritdoc cref="OnSelectionChange{TRow,TKey}" />
-    public static GridBuild<UiDataGrid<TRow>, TKey> OnSelectionChangeAsync<TRow, TKey>(
-        this GridBuild<UiDataGrid<TRow>, TKey> chain, Func<IReadOnlyList<TKey>, Task>? handler)
-        where TKey : notnull
-    {
-        chain.Value.SelectionOf<TKey>().OnChangeAsync = AutoCallback.Wrap(handler);
-        return chain;
-    }
-}

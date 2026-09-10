@@ -19,7 +19,7 @@ public sealed partial class UiToast : Component
     /// <summary><see cref="UiTone.Error" /> when the action failed. Anything else reads as done.</summary>
     public UiTone? Tone { get; set; }
 
-    public Action? Dismiss { get; set; }
+    public Callback? Dismiss { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>

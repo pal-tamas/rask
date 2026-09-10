@@ -297,11 +297,10 @@ public abstract partial class Component : RaskMarkup
             case null:
                 list.Add(null);
                 break;
+            // A chain IS a Component now — this arm used to unwrap the `Build<T>` struct through
+            // IComponentChain, and both are gone with the receiver change.
             case Component component:
                 list.Add(component);
-                break;
-            case IComponentChain chain:
-                list.Add(chain.Unwrap());
                 break;
             // Ahead of the IEnumerable arm: a string IS a sequence of chars, and flattening it would
             // turn one text node into one node per character.

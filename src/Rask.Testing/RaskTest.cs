@@ -42,41 +42,6 @@ public static class RaskTest
     }
 
     /// <summary>
-    ///     Renders a finished markup chain — <c>RaskTest.Render(BsAlert.Color(BsColor.Danger)["boom"])</c>.
-    /// </summary>
-    /// <remarks>
-    ///     An overload rather than a conversion at the call site: <c>T</c> above is constrained to
-    ///     <see cref="Component" />, and a generic type parameter is inferred before any user-defined
-    ///     conversion is considered, so a chain cannot reach it (CS0315). Taking the chain directly keeps
-    ///     the test reading as the markup it renders, and the handle stays typed as the component so
-    ///     <see cref="RenderedComponent{T}.Instance" /> is still the thing under test.
-    /// </remarks>
-    /// <typeparam name="T">The component the chain built.</typeparam>
-    /// <param name="chain">The markup under test.</param>
-    /// <param name="services">Services available to the component. Defaults to an empty provider.</param>
-    public static RenderedComponent<T> Render<T>(Build<T> chain, IServiceProvider? services = null)
-        where T : Component
-        => Render(chain.Value, services);
-
-    /// <summary>
-    ///     Renders a finished FORM CONTROL chain — <c>RaskTest.Render(Input.Bind(() =&gt; model.Name))</c>.
-    /// </summary>
-    /// <remarks>
-    ///     A form control's chain carries the mode it opened in (<see cref="Build{T, TMode}" />), so it is
-    ///     a different type from the one above and needs its own overload for the same reason that one
-    ///     exists: inference runs before any user-defined conversion, so the chain cannot reach a
-    ///     <c>Component</c>-constrained parameter on its own. The mode is irrelevant once the markup is
-    ///     built, so it is inferred and discarded.
-    /// </remarks>
-    /// <typeparam name="T">The control the chain built.</typeparam>
-    /// <typeparam name="TMode">The mode the chain opened in — bound or controlled.</typeparam>
-    /// <param name="chain">The markup under test.</param>
-    /// <param name="services">Services available to the component. Defaults to an empty provider.</param>
-    public static RenderedComponent<T> Render<T, TMode>(Build<T, TMode> chain, IServiceProvider? services = null)
-        where T : Component
-        => Render(chain.Value, services);
-
-    /// <summary>
     ///     Renders the component produced by <paramref name="factory" /> as a live root and returns a handle
     ///     to the result. The factory runs on <b>every</b> render, so the tree is rebuilt from your current
     ///     state each time — use this (rather than the <see cref="Render{T}(T, IServiceProvider)" />
@@ -122,22 +87,6 @@ public static class RaskTest
         // rather than reimplementing the composition is the point — a test asserts what a browser gets.
         return new RenderedComponent<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);
     }
-
-    /// <summary>
-    ///     Renders an app root built by a chain as a whole document — <c>RaskTest.RenderDocument(App)</c>.
-    /// </summary>
-    /// <remarks>
-    ///     The overload exists for the same reason <see cref="Render{T}(Build{T}, IServiceProvider)" /> does:
-    ///     a generic type parameter is inferred before any user-defined conversion is considered, so a chain
-    ///     cannot reach a <see cref="Component" />-constrained parameter on its own (CS0315). An app root is
-    ///     never a form control, so there is no mode-carrying counterpart.
-    /// </remarks>
-    /// <typeparam name="T">The app root the chain built.</typeparam>
-    /// <param name="chain">The app root the host would mount.</param>
-    /// <param name="services">Services available to the app. Defaults to an empty provider.</param>
-    public static RenderedComponent<T> RenderDocument<T>(Build<T> chain, IServiceProvider? services = null)
-        where T : Component
-        => RenderDocument(chain.Value, services);
 
     /// <summary>
     ///     A zero-markup component that hands <paramref name="capture" /> the <see cref="EditContext" /> the
