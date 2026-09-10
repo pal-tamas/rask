@@ -106,6 +106,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A multi-select whose type argument is stated, not inferred, binds again.**
+  `BindingHelpers.TrySetSelection<T>` chose the collection to build from the *type argument* `T`, which
+  is only the property's own type when inference supplied it. State it instead —
+  `Select.Bind<ICollection<string>>(() => model.Tags)` over a `List<string> Tags` — and
+  `ExpressionAccessor.Parse` strips the compiler's `Convert` node, so `T` stays `ICollection<string>`
+  while the property stays `List<string>`. The build then fell through to "everything else is satisfied
+  by an array", which is true of the type argument and false of the property, and
+  `PropertyInfo.SetValue` threw `ArgumentException` from inside the change handler — arriving as a
+  failed frame rather than at the call site.
+
+  The collection is now built from `acc.PropertyType`, the type the setter actually has to accept, the
+  way `UiFormCommit.TryWriteSelection` already did and the way the scalar path (`TrySetTyped`) always
+  has. Two consequences beyond the crash: a property declared `ISet<string>` or `IReadOnlySet<string>`
+  now gets a set rather than an array, and the fallback is a `List<string>` rather than `string[]` — an
+  array satisfies an `IList<string>` property but is fixed-size, so it merely moved the failure to the
+  next `Add`. Every instantiation stays written literally, so the AOT compiler still sees all of them.
+
 - **The 500-writer SQLite stress test no longer flakes in a solution-wide run.** Root-caused in July to
   `SqliteConnection.ClearAllPools()` — process-global, and it disposes the `sqlite3` handle of
   connections that are currently *leased and in use* — and "fixed" then with

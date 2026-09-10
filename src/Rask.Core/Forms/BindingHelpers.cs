@@ -367,19 +367,33 @@ public static class BindingHelpers
             return true;
         }
 
+        // Built from the property's DECLARED type, never from T. The two disagree whenever the type
+        // argument is stated rather than inferred -- `Select.Bind<ICollection<string>>(() => m.Tags)`
+        // over a `List<string> Tags` gives T = ICollection<string>, because ExpressionAccessor.Parse
+        // strips the Convert node the compiler inserted. T is what the CHAIN accepts; the property is
+        // what acc.Setter has to assign to, and only the latter decides what will fit.
+        //
+        // Every instantiation stays written literally, for the AOT reason IsBindableSelectionType
+        // documents: no Array.CreateInstance, no MakeGenericType.
+        var declared = acc.PropertyType;
         object value;
-        if (typeof(T) == typeof(List<string>))
+        if (declared == typeof(string[]))
         {
-            value = new List<string>(picked);
+            value = picked.ToArray();
         }
-        else if (typeof(T) == typeof(HashSet<string>))
+        else if (declared == typeof(HashSet<string>) || declared == typeof(ISet<string>)
+                                                     || declared == typeof(IReadOnlySet<string>))
         {
             value = new HashSet<string>(picked, StringComparer.Ordinal);
         }
         else
         {
-            // Everything else in the supported set is satisfied by an array.
-            value = picked.ToArray();
+            // A list satisfies everything else the chain can bind: List<string> itself and the
+            // IList / ICollection / IEnumerable / IReadOnlyList / IReadOnlyCollection interfaces it
+            // implements. An ARRAY would satisfy those interfaces too, which is what the code here used
+            // to build -- but it is fixed-size, so a later Add on a property typed as one of them
+            // throws. A list is the strictly better answer for the same assignment.
+            value = new List<string>(picked);
         }
 
         acc.Setter(value);
