@@ -74,9 +74,7 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
     {
         if (_error is not null)
         {
-            return Div.Class($"{Tw.AlertDanger} mb-0")[
-                Strong["Error: "], _error
-            ];
+            return UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("mb-0")[Strong["Error: "], _error];
         }
 
         if (_post is null)

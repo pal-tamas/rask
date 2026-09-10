@@ -47,42 +47,6 @@ public static class Tw
     // button, so the hovered contrast depended on the page instead of the token. The muted tier is
     // held to 4.5:1 against the ground, and contrast is symmetric, so the ground reads on it.
 
-    private const string AlertBase = "rounded-lg px-4 py-3 text-sm";
-
-    public const string AlertPrimary = AlertBase + " bg-ui-brand-surface text-ui-brand-ink";
-
-    public const string AlertSecondary = AlertBase + " bg-ui-well text-ui-ink";
-
-    public const string AlertSuccess = AlertBase + " bg-ui-ok-surface text-ui-ok-ink";
-
-    public const string AlertDanger = AlertBase + " bg-ui-danger-surface text-ui-danger-ink";
-
-    public const string AlertWarning = AlertBase + " bg-ui-warn-surface text-ui-warn-ink";
-
-    public const string AlertInfo = AlertBase + " bg-ui-info-surface text-ui-info-ink";
-
-    public const string AlertLight = AlertBase + " bg-ui-bg text-ui-ink ring-1 ring-ui-line";
-
-    public const string AlertDark = AlertBase + " bg-ui-ink text-ui-bg";
-
-    private const string BadgeBase = "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium";
-
-    public const string BadgePrimary = BadgeBase + " bg-ui-brand-surface text-ui-brand-ink";
-
-    public const string BadgeSecondary = BadgeBase + " bg-ui-well text-ui-muted";
-
-    public const string BadgeSuccess = BadgeBase + " bg-ui-ok-surface text-ui-ok-ink";
-
-    public const string BadgeDanger = BadgeBase + " bg-ui-danger-surface text-ui-danger-ink";
-
-    public const string BadgeWarning = BadgeBase + " bg-ui-warn-surface text-ui-warn-ink";
-
-    public const string BadgeInfo = BadgeBase + " bg-ui-info-surface text-ui-info-ink";
-
-    public const string BadgeLight = BadgeBase + " bg-ui-bg text-ui-ink ring-1 ring-ui-line";
-
-    public const string BadgeDark = BadgeBase + " bg-ui-ink text-ui-bg";
-
     /// <summary>A text input, and the controls that share its shape.</summary>
     /// <remarks>
     /// <c>min-h-11</c> below <c>sm</c>, like every control in the kit: 44px is the smallest reliable

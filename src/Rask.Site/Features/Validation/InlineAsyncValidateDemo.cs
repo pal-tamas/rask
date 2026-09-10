@@ -31,9 +31,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             return null;
         }
 
-        return Div.Class($"{Tw.AlertDanger} text-sm mb-0")[
-            Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
-        ];
+        return UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]];
     }
 
     private static async ValueTask<IEnumerable<string>> CheckCodeAsync(string code, CancellationToken ct)
@@ -73,7 +71,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
+            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
     ];
 }
 

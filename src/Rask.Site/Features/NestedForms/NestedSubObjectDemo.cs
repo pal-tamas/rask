@@ -62,8 +62,7 @@ public sealed partial class NestedSubObjectDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-result")[
-                UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
+            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-result")[_submission]
     ];
 }
 

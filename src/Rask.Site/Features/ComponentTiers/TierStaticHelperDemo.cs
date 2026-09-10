@@ -10,7 +10,7 @@ namespace Rask.Site.Features;
 internal static partial class TierStaticHelper
 {
     public static Component Badge(string label) =>
-        Span.Class(Tw.BadgeSecondary)[label];
+        UiBadge.Label(label).Tone(UiTone.Neutral).Variant(UiVariant.Soft);
 }
 
 // Call site: invoke it like any method — no generated factory, no reconciliation identity.

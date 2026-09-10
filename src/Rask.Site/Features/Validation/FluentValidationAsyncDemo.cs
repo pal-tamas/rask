@@ -34,7 +34,7 @@ public sealed partial class FluentValidationAsyncDemo : Component
         ],
         _submission is null
             ? null
-            : Div.Role("status").Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle).Class("me-2"), _submission]
+            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
     ];
 }
 

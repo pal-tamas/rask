@@ -124,7 +124,8 @@ button .btn .btn-warning
 span
 button .btn .btn-outline
 span
-div .bg-ui-well .mb-0 .px-4 .py-2 .py-3 .rounded-lg .text-sm .text-ui-ink
+div .alert .alert-soft .mb-0 .py-2
+span
 
 === auth-user-gate ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -855,7 +856,7 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 span .text-sm .text-ui-muted
 p .mb-2 .text-sm .text-ui-muted
 div
@@ -1579,9 +1580,9 @@ div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
 h6 .font-semibold .mb-1
 p .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
+span .badge .badge-neutral .badge-soft
+span .badge .badge-neutral .badge-soft
 div .col-span-12 .md:col-span-4
 div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
 h6 .font-semibold .mb-1
@@ -1683,7 +1684,7 @@ button .btn .btn-outline .mb-3
 span
 div .flex .flex-wrap .gap-2 .items-center .items-center
 span .text-sm .text-ui-muted
-span .bg-amber-100 .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-amber-900 .text-ui-muted .text-xs .theme-badge
+span .badge .badge-neutral .badge-soft .bg-amber-100 .text-amber-900 .theme-badge
 
 === cqrs-counter ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1924,7 +1925,7 @@ div .col-span-12
 div .dd-column .h-full
 div .dd-column-header .flex .items-center .justify-between
 span .font-semibold
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2
@@ -1945,7 +1946,7 @@ div .col-span-12
 div .dd-column .h-full
 div .dd-column-header .flex .items-center .justify-between
 span .font-semibold
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2
@@ -1956,7 +1957,7 @@ div .col-span-12
 div .dd-column .h-full
 div .dd-column-header .flex .items-center .justify-between
 span .font-semibold
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 div .dd-column-body
 div .card .dd-card
 div .flex .gap-2 .items-center .p-2
@@ -2807,23 +2808,23 @@ path
 span
 ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
-span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
+span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 
@@ -2876,7 +2877,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .mb-3
-span .bg-ui-brand-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-base .text-ui-brand-ink .text-xs
+span .badge .badge-primary .badge-soft .text-base
 button .btn .btn-primary
 svg .shrink-0 .size-4
 path
@@ -3015,7 +3016,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-brand-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-brand-ink .text-xs
+span .badge .badge-primary .badge-soft
 td .text-ui-muted
 td
 tr .md-row
@@ -3026,7 +3027,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-warn-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-warn-ink .text-xs
+span .badge .badge-soft .badge-warning
 td .text-ui-muted
 td
 tr .md-row
@@ -3037,7 +3038,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-danger-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger-ink .text-xs
+span .badge .badge-error .badge-soft
 td .text-ui-muted
 td
 tr .md-row
@@ -3048,7 +3049,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-ok-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
+span .badge .badge-soft .badge-success
 td .text-ui-muted
 td
 tr .md-row
@@ -3059,7 +3060,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-brand-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-brand-ink .text-xs
+span .badge .badge-primary .badge-soft
 td .text-ui-muted
 td
 tr .md-row
@@ -3070,7 +3071,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-ok-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
+span .badge .badge-soft .badge-success
 td .text-ui-muted
 td
 tr .md-row
@@ -3081,7 +3082,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-brand-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-brand-ink .text-xs
+span .badge .badge-primary .badge-soft
 td .text-ui-muted
 td
 tr .md-row
@@ -3092,7 +3093,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-danger-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger-ink .text-xs
+span .badge .badge-error .badge-soft
 td .text-ui-muted
 td
 tr .md-row
@@ -3103,7 +3104,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-warn-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-warn-ink .text-xs
+span .badge .badge-soft .badge-warning
 td .text-ui-muted
 td
 tr .md-row
@@ -3114,7 +3115,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-warn-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-warn-ink .text-xs
+span .badge .badge-soft .badge-warning
 td .text-ui-muted
 td
 tr .md-row
@@ -3125,7 +3126,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-danger-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger-ink .text-xs
+span .badge .badge-error .badge-soft
 td .text-ui-muted
 td
 tr .md-row
@@ -3136,7 +3137,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-danger-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-danger-ink .text-xs
+span .badge .badge-error .badge-soft
 td .text-ui-muted
 td
 tr .md-row
@@ -3147,7 +3148,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-ok-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
+span .badge .badge-soft .badge-success
 td .text-ui-muted
 td
 tr .md-row
@@ -3158,7 +3159,7 @@ path
 td .font-semibold
 td .text-sm .text-ui-muted
 td
-span .bg-ui-ok-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-ok-ink .text-xs
+span .badge .badge-soft .badge-success
 td .text-ui-muted
 td
 

@@ -34,8 +34,11 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
-                    Span.Class(_visible ? $"{Tw.BadgeSuccess}" : $"{Tw.BadgeSecondary}").Id("io-status")[
-                        _visible ? "in view" : "out of view"],
+                    UiBadge
+                        .Label(_visible ? "in view" : "out of view")
+                        .Tone(_visible ? UiTone.Success : UiTone.Neutral)
+                        .Variant(UiVariant.Soft)
+                        .Id("io-status"),
                     Span.Class("text-sm text-ui-muted").Id("io-changes")[$"{_changes} change(s)"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")["Scroll down — the target reports when it enters the viewport."],

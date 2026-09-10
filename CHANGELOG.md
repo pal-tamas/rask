@@ -40,6 +40,26 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every alert and badge in the showcase is a kit component.** 35 alerts and 20 badges move off the
+  class-string vocabulary onto `UiAlert` and `UiBadge`, and 18 `Alert*`/`Badge*` constants are deleted —
+  `Tw.cs` is down from 215 lines to 115.
+
+  `UiAlert.Message` is **optional** now, which is what had kept rich alerts out of the kit: twenty-six of
+  the thirty-five carry an icon, a `<strong>` lead-in, a `<code>` span or an exception message beside the
+  text, and a required string has nowhere to put any of that. The children were always rendered; only the
+  required `Message` made them unreachable. A leading `UiIcon` child becomes `Icon`, and `UiAlert` gains an
+  `Id` like the form controls.
+
+  Fourteen alerts were also passing their own `role`. The component chooses it from the TONE — `alert` for
+  an error or a warning, which interrupts a screen reader, and `status` for anything else, which does not —
+  so a call site repeating it is at best redundant and at worst wrong in the rude direction. They stop
+  saying it.
+
+  `MasterDetailDemo` mapped an order status to a badge CLASS; it maps to a `UiTone` now, so the call site
+  says what a status MEANS and the component decides how a tone looks. Three test assertions that matched
+  on the old class string match daisyUI's `alert-error`/`alert-success` instead — the same contract ("an
+  error banner appeared"), stated against the vocabulary that now renders it.
+
 - **A form field associates its label by `for`/`id`, not by wrapping the control — and a controlled field
   can carry its own error.** The field shape in 0.21.0 wrapped the control in its label, which is tidier
   and breaks daisyUI: it reveals a validator message with a GENERAL SIBLING selector,
