@@ -390,9 +390,9 @@ public sealed partial class LogsPage(
         .Label(level.ToString())
         .Tone(level switch
         {
-            LogLevel.Critical or LogLevel.Error => "danger",
-            LogLevel.Warning => "warn",
-            LogLevel.Information => "info",
+            LogLevel.Critical or LogLevel.Error => UiTone.Error,
+            LogLevel.Warning => UiTone.Warning,
+            LogLevel.Information => UiTone.Info,
             _ => null,
         });
 

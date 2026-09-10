@@ -51,7 +51,7 @@ public sealed partial class UiKitLayoutDemo : Component
                     UiButton.Key("3").Label("»")
                 ],
                 Div.Class("flex flex-wrap items-center gap-6")[
-                    UiIndicator.Key("i").Badge(UiBadge.Label("9").Tone("error"))[
+                    UiIndicator.Key("i").Badge(UiBadge.Label("9").Tone(UiTone.Error))[
                         UiButton.Label("Inbox")
                     ],
                     UiAvatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round(true)

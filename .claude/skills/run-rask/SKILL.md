@@ -171,6 +171,33 @@ being *replaced* rather than morphed, while `<head>` reconciled correctly.
 a wait is satisfied before the runtime exists and reports a clean boot it never observed. This waits for
 the runtime's own `raskAfterMorph` hook and says `NEVER HYDRATED` rather than implying a verdict.
 
+## Do the kit's corrections win? (`toneprobe.cs`, `navlist.cs`)
+
+```bash
+dotnet run toneprobe.cs http://127.0.0.1:PORT     # every daisyUI tone, every palette, measured
+dotnet run navlist.cs   http://127.0.0.1:PORT     # what the sidebar ACTUALLY renders, with hrefs
+```
+
+`toneprobe.cs` exists because a stylesheet can contain a correct value and still lose. The kit corrects
+daisyUI's filled components (`.btn-primary`, `.badge-error`, …) in `@layer rask-ui-corrections`, and those
+overrides are *lower specificity* than the rules they correct — so the layer is the whole mechanism, and a
+wrong one loses silently while every number computed from the tokens still looks right. That is not a
+hypothetical: written in `@layer rask` (which the kit's order statement puts BEFORE `utilities`, where
+daisyUI actually emits its components), `.btn-primary` measured **3.29:1 on `corporate`** with the fix
+present in the shipped bytes and the entire unit suite green. This probe is what found it.
+
+It **injects** one element per tone instead of navigating to a page that renders them, then flips through
+nine palettes and measures each label against the background it is actually read on. The question is about
+CSS, so anything the probe has to find in the markup first is a second thing that can go wrong.
+
+`navlist.cs` prints the sidebar's real link text and hrefs. Reach for it the moment a driver times out on
+`:has-text('…')`: **the rows under "PWA", "UI kit" and "Islands" are contributed by the HOST at boot**
+(`ShowcaseNavEntry` in `Program.cs`), so they are not in the shell the parser sees — a probe that waits for
+the first `.side-nav a.side-nav-link` and then reads the list finds only the guide links and times out on a
+label that is genuinely not there yet. Wait for the specific `href`. A deep link is not an alternative
+under `dotnet run`: `WasmAppHost` installs no SPA fallback, so `/docs/ui/actions` is a 404 until the app is
+running.
+
 ## The operator console (`dashboard-driver.cs`)
 
 The site does not mount `Rask.Dashboard`, and no app in the repo does since `samples/` was deleted. So
