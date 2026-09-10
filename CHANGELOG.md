@@ -157,6 +157,126 @@ them until tagged releases begin.
 
 ### Added
 
+- **A data grid, and a fourth chain shape to hold it.** `UiDataGrid<T>` joins the UI kit with sortable
+  headers, paging, typed selection, expandable detail rows, multi-level grouping with collapsible bands
+  and subtotals, a column chooser, sticky headers, column footers, and a card layout on a phone.
+
+  **Columns arrive through a factory, and that is forced by C#** rather than chosen for looks:
+  `UiDataGrid.Data(rows)[c => [ c.Field(p => p.Name).Title("Product").Sortable(true) ]]`. A method's
+  type arguments are inferred from its own arguments and never from the target type of the indexer the
+  call sits in, so `UiColumn.Field(p => p.Name)` written as a flat child has nothing at all to say what
+  `p` is and fails CS0411. Handing the grid to a lambda fixes the row type before a column is written.
+
+  That needs a children indexer no other component should have, and an indexer cannot be constrained —
+  so the grid's chain is a new `GridBuild<T, TKey>` in `Rask.Core`, beside `Build<T>`,
+  `Build<T, TMode>` and `FormBuild<T>`, claimed by implementing `IColumnHost`. Exactly the reasoning
+  that gave `Form` its own shape. The generator emits the shared surface over it, but only the
+  **Component-owned** half: 120 of the 121 shared members are constrained to `Element`, and a grid
+  renders a table rather than being one — emitting those would have put 120 uncallable extensions into
+  every compilation that references `Rask.Core`, and 240 unreachable entries into its recorded API.
+
+  **Three data sources.** A list sorts and pages in memory; an `IQueryable<T>` handed to the *same*
+  `Data` step does it in the store through `ORDER BY`/`Skip`/`Take` (one step, because an `IQueryable`
+  *is* an `IEnumerable` and a second name for one slot is a second thing to get wrong); and
+  `Source(request => Task<UiGridPage<T>>)`, opened with `Of<T>()`, is the awaited one. Every state axis
+  — sort, page, selection, grouping, hidden columns, column order — is controlled or uncontrolled
+  independently: name the state *and* its callback and that one axis moves to the page.
+
+  **Selection is typed and staged.** `.RowKey(p => p.Id)` pins the chain's key type and the selection
+  steps are declared only over a pinned one, so a grid that cannot name a row is not one whose selection
+  is rejected — it is one where selection is not offered, in completion or at compile time. Keys reach
+  the callback as `IReadOnlyList<int>`, and a membership test per row per render boxes nothing. It is
+  not spelled `Key`: that is already the reconciliation identity of the grid itself (RASK046).
+
+  **Below `sm` the table restyles into stacked, labelled lines** — the same markup under different
+  utilities, with each cell keeping its column title through `data-label` and
+  `max-sm:before:content-[attr(data-label)]`, so the phone layout costs only classes. Every responsive
+  class is a `max-sm:` variant rather than a base utility with an `sm:` override: the kit's sheet and the
+  app's are separate `<link>`s whose layers do not merge, so an app that writes `hidden` anywhere emits
+  an unconditional `.hidden` that lands later in the cascade and would hide the header at every width. `Card(p => …)` replaces
+  it with authored markup, and *that* renders both layouts. Grouping and the column chooser are driven
+  by **buttons** with drag added on top, because HTML5 drag fires on neither touch nor a keyboard. A
+  custom `Cell` does not fire `OnRowClick` by default: the client cancels the default action of any
+  click it dispatches, so a link or button inside a clickable cell silently stops working.
+
+  Documented in `docs/data-grid.md`, live at `/docs/ui/data-grid`, and covered by 62 unit tests — fifteen of
+  them driving the real handlers through `RaskTest`, no browser involved — plus a browser suite that
+  checks the card layout at 390px, which no markup assertion can.
+
+- **`rask new` builds the project it just scaffolded**, between the restore and the first migration:
+
+  ```
+  Restoring packages…
+  Building…
+  Creating the first migration…
+  Applying it to the database…
+  ```
+
+  The ordering is the point. The migration step was already what first compiled a new project — `dotnet
+  ef` builds it to load the `DbContext` — so a scaffold emitting code that did not compile surfaced as an
+  EF failure under a line reading "Creating the first migration…", naming neither the file nor the error.
+  A build says it plainly and stops before EF runs against a project that cannot load. It reuses the
+  front-end skip the migration step already used, so scaffolding a front-end template does not sit
+  through a production bundler run. `--no-restore` skips it too: there is nothing to build against.
+
+- **A migration end-to-end test.** `rask db add Init` is what `rask new` runs for you and what the
+  next-steps text falls back to, and nothing exercised it — the only assertions were that the *sentence*
+  appears in the output. `MigrationE2ETests` scaffolds a real app against the local package feed, adds
+  the migration through `DbCommand` and applies it, then asserts the database exists: a model that
+  compiles can still be rejected when the DDL is emitted.
+
+### Changed
+
+- **`RaskUser` is gone; your app declares its own account type and Rask finds it.** Rask no longer ships
+  a user class. `rask new` writes `Features/Shared/User.cs`:
+
+  ```csharp
+  public class User : IdentityUser
+  {
+  }
+  ```
+
+  A source generator finds the one `IdentityUser` subclass in the compilation and emits a
+  `[ModuleInitializer]` naming it to `AuthUser`, so `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` keep
+  working with no type argument — the binding closes over the type at compile time, so nothing is
+  reflected and a trimmed publish cannot lose the account tables. Two user types are reported as
+  **RASK074** rather than one being picked; none means the app has no accounts and auth is simply not
+  wired, which is the honest outcome now that there is no type to invent.
+
+  The five `where TUser : RaskUser, new()` constraints relax to `IdentityUser`, and the named overloads
+  (`AddRaskAuth<TUser>`, `AddRaskAuth<TContext, TUser>`) remain for an app that would rather say which.
+
+  **Breaking, and it is a schema change**: `RaskUser.CreatedUtc` went with it — a column written once at
+  registration and read nowhere in the repo. Audit stamps now come from the same convention as every
+  model: add `ITimestamped` to your `User` and `CreatedAt`/`UpdatedAt` are stamped on every write, as
+  shadow columns unless you declare them. Do **not** add `IVersioned` — Identity already maintains
+  `ConcurrencyStamp`, and a second token on the same row is a race rather than a guard.
+
+### Fixed
+
+- **A rejected push was reported as a deletion, in front of a sequence that gates nothing.** git hands
+  `pre-push` one line per ref it is about to send, and hands it *nothing* when it has already decided to
+  send nothing — a non-fast-forward it will reject client-side, or a push that is up to date. The hook
+  counted only refs carrying content, so "no lines at all" and "every line a deletion" were the same
+  number, and an ordinary rejected push answered with `every ref in this push is a DELETION — … Skipping
+  the gates`.
+
+  The wrong message matters because of what follows it. After a rejection the next move is
+  `git fetch && git merge origin/main`, and a CLEAN merge auto-commits **without** the pre-commit gate —
+  git runs `pre-merge-commit`, which this repository does not have. So the one line the reader got said
+  gating had been unnecessary, immediately before a step in which nothing was gated at all. The hook now
+  distinguishes the two, and the empty case says plainly that nothing has been gated and what to do next.
+  `scripts/tests/pre-push-ref-classes.test.sh` pins all three ref classes against the real hook, and
+  fails on three assertions without the fix. (#1047)
+
+- **The scaffolded `AppDbContext` applied Rask's conventions before the batteries mapped their tables**,
+  so anything they mapped missed the audit stamps, the soft-delete filter and the concurrency token. The
+  template's own comment described the correct order — "it has to follow the configurations… or entities
+  registered afterwards silently miss out" — and the code did the opposite, appending every `AddRaskX()`
+  after `ApplyRaskConventions()`. Harmless while no battery entity carried a marker, and silently wrong
+  the moment a scaffolded `User` declares `ITimestamped`. The conventions now come last, with a scaffold
+  test pinning the order.
+
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an
   `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
   run on a controller action or a minimal API, and no *asynchronous* rule ran on either, because MVC's
@@ -183,6 +303,65 @@ them until tagged releases begin.
   `RemoteDispatchException.Errors` carries. `ApiCall` previously skipped the `errors` object while
   reading a problem document, so a 400 arrived with nothing to show the user and nothing anywhere
   said why. (#988)
+
+- **Declare a model, and that is the whole data layer.** `Rask.Data` gains an active-record surface over
+  EF Core: a class deriving from `Model<TId>` is mapped, queryable and writable with no `DbContext`
+  class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
+  `IDbContextFactory` injected into every page that reads a row.
+
+  - **The model type is its own `DbSet`.** `Product.Where(…)`, `Product.OrderBy(…)`, `Product.Include(…)`,
+    `Product.FindAsync(id)`, `Product.CountAsync()`, `Product.Add/Update/Remove(…)` and the rest of EF's
+    vocabulary are C# 14 static extension members over `Model`, so an entity that compiles today has them
+    — no second base class and no generated partial. A member declared on the model itself always wins,
+    so your own `Create` or `Find` is untouched.
+  - **Reads need no ceremony.** A query composes without holding a context open; the terminal call opens
+    one, runs and disposes it before returning, so `await Product.Where(p => p.Active).ToListAsync()` is a
+    complete statement inside `OnMountAsync`. Rows come back **untracked by default** — `.AsTracking()`
+    opts in, and `Product.Update(entity)` is the ordinary way to write one back.
+  - **Writes are a unit of work.** `Db.Begin()` makes one short-lived context ambient; `Add`/`Remove`/
+    `Update` track against it and one `SaveChangesAsync` commits them together. They are EF's verbs with
+    EF's meanings, so outside a unit of work they say so rather than appearing to work. Nesting *joins*
+    rather than nests, so a helper can open one unconditionally and still take part in its caller's
+    transaction. The context is created lazily and is never session-scoped, which is what keeps a
+    long-lived Rask session away from a shared `DbContext`.
+  - **`Db` is the ambient database**, reachable from anywhere including inside a model: `Db.Current` is
+    the real `DbContext`, `Db.Set<T>()` its sets, `Db.SaveChangesAsync()` the ambient commit.
+  - **A model can save itself.** `await this.SaveAsync()` lets behaviour on the model finish the job —
+    `order.Cancel(now)` then persist — with no unit of work around it. It **inserts** a model that has
+    never been persisted and **updates** one that has, and `DeleteAsync()` is its counterpart, so a
+    single write of any kind is a one-liner and `Db.Begin()` is left for the thing it is actually for:
+    putting several models in one transaction. Inside one, both *join* rather than commit, so a caller
+    who wrapped several models still gets one transaction and a model's own method can never commit half
+    of its caller's work. Insert and update are told apart by `CreatedAt` — stamped on insert and written
+    by nothing else — so there is no extra `SELECT` and no guessing from a client-assigned key, which is
+    always set and therefore says nothing.
+  - **Batch update and delete.** `ExecuteUpdateAsync` and `ExecuteDeleteAsync` on a query are one
+    set-based statement over every matching row, with setters that can read the row they update. They
+    bypass the interceptors, as EF's do, so the docs state what that skips — no `UpdatedAt`, no `Version`
+    bump, no domain events — and that a batch *soft* delete is an `ExecuteUpdateAsync` of `DeletedAt`,
+    because `ExecuteDeleteAsync` really deletes an `ISoftDeletable` row.
+  - **Models are testable as plain objects.** Behaviour that only changes the model needs no database and
+    no mock; behaviour that reads one gets a real database in a line via `TestDatabase.StartAsync`, which
+    builds the generated model, creates the schema, wires the auditing and soft-delete interceptors, and
+    clears the ambient database on dispose. Provider-agnostic, so `Rask.Data` gains no provider
+    dependency and a test runs against the database the app ships on.
+  - **Mapping rules live on the model**, as a plain `public static void Configure(EntityTypeBuilder<T>)`
+    — no attribute, no interface, no separate class. It runs last, so it can overrule Rask's conventions
+    rather than being overwritten by them.
+  - **Value objects** marked `IValueObject` are mapped as EF **complex types** (part of the row) rather
+    than owned entities (a joined table with hidden identity), nested ones included.
+  - **Strongly-typed ids** work with nothing declared: `Model<ProductId>` registers a generated value
+    converter once for the type, so the key, foreign keys and nullable occurrences are all converted.
+  - **Generated, never reflected.** A source generator builds the model at compile time, so a trimmed
+    publish cannot drop an entity and leave a missing table behind a green build.
+
+  Two diagnostics keep the conventions from failing silently: **RASK072** when a `Configure` method will
+  not be called because its signature does not match, and **RASK073** when a strongly-typed id has no
+  value the generator can convert.
+
+  None of it is compulsory. A class that does not derive from `Model` is an ordinary EF Core entity, and
+  registering an `IDbContextFactory<YourContext>` binds the ambient database and every database-backed
+  battery to your own context instead. See [docs/data.md](docs/data.md).
 
 - **A Lit island on the showcase.** `LitBadge.ts` is a plain custom element that imports nothing at
   all — no framework, no npm package — and it takes the same generated props, the same build-time
@@ -219,6 +398,32 @@ them until tagged releases begin.
   set in the shipped bytes must be the bundle's own — the same reason `UiLayerOrderTests` reads the
   compiled sheet instead of the `@layer` line it was built from. (#1039)
 ### Changed
+
+- **`CreatedAt`/`UpdatedAt` are now opt-in, and no marker puts anything on your class.** `Model<TId>`
+  carries only `Id` and the domain-events buffer. `ITimestamped`, `ISoftDeletable` and `IVersioned` are
+  now **pure markers**: the columns they imply are added as EF shadow properties, so a domain model can
+  carry audit stamps and soft delete without a line of infrastructure in the type you wrote. Declaring
+  the property is how you opt into *reading* it, and mixing is fine — declare `CreatedAt` and leave
+  `UpdatedAt` a shadow column. Breaking for any model that relied on inheriting `CreatedAt`/`UpdatedAt`,
+  and for anything that referenced them through the interfaces.
+
+  `IVersioned` is the one exception and must declare `public int Version`: optimistic concurrency exists
+  to round-trip the token through an edit form, and a value the application cannot read is one it cannot
+  send back. A shadow token is refused while the model is built, naming the model and the fix, instead of
+  surfacing later as EF's "expected to affect 1 row(s), but actually affected 0".
+
+  `entity.SaveAsync()` still tells an insert from an update for free when the model declares `CreatedAt`,
+  and asks the database with one `SELECT` by key when it does not.
+
+- **`Rask.Data.Entity<TId>` is now `Rask.Data.Model<TId>`**, with the non-generic `Model` as the base the
+  active-record surface is keyed on. Breaking for anything deriving from the old name.
+
+- **An app with no `DbContext` of its own now gets one.** Previously it got no database and therefore no
+  jobs, outbox, mail, cache or auth; it now gets `RaskAppDbContext` — the generated model plus every
+  battery's tables — so declaring a model is enough to have a working database. Registering an
+  `IDbContextFactory<YourContext>` still wins and is the way to opt out. Every battery's tables are
+  mapped whether or not the battery is on, matching what Auth already promised, so toggling one is not a
+  destructive migration.
 
 - **CS0108 no longer costs you a `new`: RASKSUP001 suppresses it when the hidden member is a builder
   entry.** Every component contributes an entry named after itself, and the ~170 HTML/SVG tags land on
@@ -267,6 +472,51 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **rask.sh no longer flickers when it hydrates, and its links navigate like the SPA it is.** Three
+  defects on the published site, all visible on the front door.
+
+  The **flicker** was a font reflow the framework's own morph re-triggered. The three faces arrived
+  from a font CDN through the standard non-blocking pattern — `<link media="print"
+  onload="this.media='all'">` — and that pattern is quietly incompatible with a full-document morph: a
+  head asset reconciles by key, so the WASM first frame put `media` back to the rendered `print`,
+  un-applied the faces, reflowed the page to fallback metrics, and reflowed back when the `onload`
+  re-fired. Measured: 5757px → 5705px → 5757px of document height and an `<h1>` line box of 56px →
+  61px, in about 8ms — and again on every cross-route navigation, because each of those is another
+  morph. Inter, Space Grotesk and JetBrains Mono are now **self-hosted** (variable `woff2`, latin +
+  latin-ext, in `wwwroot/fonts`, OFL, attributed in `wwwroot/fonts/LICENSE.md`), declared in
+  `global.css` and preloaded from the head. The real face is drawn on the first paint: no swap, no
+  reflow, nothing for a morph to revert — and one cross-origin DNS + TLS + round trip fewer, measured
+  at 802ms of a 2.9s first paint, plus a font CDN that no longer sees who reads the docs.
+
+  **Navigation** was not client-side at all. The landing page's shared `NavItem` stamped
+  `target="_blank"` on every entry, internal ones included, so "Docs" opened a second tab and
+  cold-booted the whole WASM bundle — runtime download, boot screen, hydration and all. The guide
+  cards did the same. Worse, the links that had no target were still bare `<a href>`, and the runtime
+  intercepts `a[data-rask-nav]`, which only `NavLink` writes — so those reloaded the app too. Every
+  in-app link on the page is a `NavLink` over a type-safe `RouteUrl` now; only genuinely external
+  links keep a target, and they keep the external-link glyph with it.
+
+  **The theme is remembered**, and light is still the default. The picker stays daisyUI's CSS-only
+  `theme-controller`, which could not persist anything on its own — no script to store a choice, and a
+  radio that renders unchecked on every pass, so the next render put the theme back. The boot script in
+  `<head>` now owns the whole feature: it applies the saved theme *before the first paint*, stores a new
+  one from a delegated `change` listener, and re-marks the reader's radio after every morph.
+
+  Doing it from JavaScript rather than from a C# component is a **correctness** requirement, not a
+  preference, and it is worth writing down. A C# picker was built first and withdrawn: handler ids are
+  handed out in render order, so putting even one handler into the chrome of every docs page shifted
+  every id after it — and the islands page broke silently, because a Vue or Lit island captures its
+  callback id from the prerendered markup and the ids had moved underneath it. Its clicks reached
+  nothing while the page still looked perfectly alive. Measured on the published bundle: the island's
+  pre-boot callback id went `h28` → `h63` with thirty-five theme buttons rendered, and `h28` → `h29`
+  with a single one. One handler is already too many. The kit's picker adds none. (#1058)
+
+- **A `UnitOfWork` disposed with `await using` never left the ambient scope.** `DisposeAsync` was an
+  `async` method, so its `AsyncLocal` write landed on the state machine's own execution context and never
+  reached the caller's. The scope stayed open forever and the next `Db.Begin()` handed back a handle onto
+  the disposed context. The pop now happens in a synchronous body; only the context's disposal is
+  awaited.
+
 - **A component named after an HTML tag silently rendered the tag instead.** Found by the merge above and
   fixed with it: the per-host collision filter skipped an own entry whose name the host already had —
   and once the tags were inherited from `RaskMarkup`, "already had" included every tag. A Svelte island
@@ -282,6 +532,24 @@ them until tagged releases begin.
 
   CS0108 for a member of your own named after a tag now covers ~170 names rather than the 15 Core used
   to keep — and no longer needs answering at all; see RASKSUP001 below.
+- **The unbuilt-island warning now carries a diagnostic code, `RASKISLAND004`.** It had none, and a task
+  warning with no code cannot be suppressed by anybody — not `MSBuildWarningsAsMessages`, not `NoWarn`,
+  not a consumer with one island mid-refactor. The only lever was `RaskExternalPropTypes=false`, which
+  also switches off the generated prop types, so quieting the warning meant giving up the type-check it
+  sits beside.
+
+  This surfaced as `tests/Rask.External.Tests` being unable to build with `-warnaserror`: thirteen of
+  its fourteen islands are declared inline in a test source with no front-end file on purpose, so the
+  build was right about all thirteen and there was nothing to fix. That project now demotes the code to
+  a message and says why; every other project, `site/Rask.Site` included, keeps the warning at full
+  strength, and `Dial` — the one fixture that has a module — is still named if its module ever stops
+  being claimed, which is the #938 cross-check.
+
+  Also corrected: the task's own remarks claimed "this repository builds with `-warnaserror`, so in its
+  own gate this does stop the build". It does not. `Directory.Build.props` sets
+  `TreatWarningsAsErrors`, which is the **Roslyn** switch and says nothing about a warning an MSBuild
+  task logs; promoting one needs `-warnaserror` on the command line or `MSBuildTreatWarningsAsErrors`,
+  and `scripts/run-unit-local.sh` passes neither. (#1042)
 
 - **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
   `Name.ts` beside `Name.cs`, and the only thing separating them is whether the class derives from

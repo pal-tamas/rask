@@ -17,6 +17,34 @@
          the scoped-TS convention would report each as an orphan (RASK017). Same reason
          Rask.Core.Tests and Rask.Wasm.Tests set it. -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+
+    <!--
+      RASKISLAND004 demoted to a message, and ONLY in this project (#1042).
+
+      Thirteen of the fourteen islands below are declared inline in a test source with no front-end file
+      beside them on purpose — they exist to be RENDERED, so that the attribute is discovered, the
+      partial generated, the host element serialized and the props JSON checked against what a front end
+      would be typed against. A module would add nothing any of those assert, and for a .vue or a
+      .svelte it would drag vue-tsc, svelte-check and an npm install into a project that deliberately
+      builds with nothing installed. So the build is right that their chunks will not exist, and there
+      is nothing here to fix.
+
+      DEMOTED, NOT DISABLED, and the distinction is the whole point. RaskExternalPropTypes=false silences
+      all thirteen in one line — it is what tests/Rask.Site.Tests legitimately does, having the site's .cs
+      without its front-end files (#938) — but it also turns off the prop-types WRITE, and Dial.ts's
+      type-check is exactly that write: rename Value on Dial in C# and Dial.ts stops compiling, which
+      fails this build. Turning the switch off to quiet a warning would disable the thing one of these
+      tests asserts.
+
+      Dial keeps the signal. It is the one island here with a module, so if island discovery ever stopped
+      claiming Dial.ts — the #938 failure this check is the Roslyn-side guard against — the message still
+      names it, and the type-check silently stopping is what the message would be reporting.
+
+      MSBuildWarningsAsMessages rather than NoWarn: NoWarn is the Roslyn switch and does not reach a
+      warning an MSBuild task logs. This is also why the code exists at all — until #1042 the warning had
+      none, and a codeless task warning cannot be suppressed by anybody, here or in a consumer's app.
+    -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);RASKISLAND004</MSBuildWarningsAsMessages>
   </PropertyGroup>
 
   <ItemGroup>

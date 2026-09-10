@@ -75,7 +75,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // Chapter 2: every file it hands the reader.
             var slice = Path.Combine(projectDir, "Features", "Products");
             fs.CreateDirectory(slice);
-            Write(fs, slice, "Product.cs", Fence("class Product : Entity<Guid>"));
+            Write(fs, slice, "Product.cs", Fence("class Product : Model<Guid>"));
             Write(fs, slice, "ProductRequest.cs", Fence("class ProductRequest"));
             Write(fs, slice, "ProductConfiguration.cs", Fence("ProductConfiguration"));
             Write(fs, slice, "UpdateProduct.cs", Fence("UpdateProductCommandHandler"));
@@ -108,7 +108,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // --- Chapter 3: a second slice on the same database ---
             var orders = Path.Combine(projectDir, "Features", "Orders");
             fs.CreateDirectory(orders);
-            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Entity<Guid>", "3"));
+            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Model<Guid>", "3"));
 
             context = Strip(Pick(ch3, "using Shop.Features.Orders;", "3")) + "\n" + fs.ReadAllText(contextPath);
             fs.WriteAllText(

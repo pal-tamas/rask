@@ -104,21 +104,50 @@ public sealed partial class HomePage : Component
                     // Hidden on a narrow viewport rather than wrapped: the bar is chrome, and links
                     // stacking over two lines push the hero below the fold on a phone.
                     NavItem("Docs", Rask.Site.Features.Routes.GuidesIndexPage(), hideOnPhone: true),
-                    NavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false),
+                    ExternalNavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false),
 
-                    // Every theme the kit ships, switched in CSS. It works on this page precisely
-                    // because the page ships no JavaScript — daisyUI matches the checked radio itself.
+                    // Every theme the kit ships, switched in CSS — and now REMEMBERED, by the boot
+                    // script rather than by this component (see App.ThemeInitJs). It stays the kit's
+                    // handler-free picker on purpose: a C# one puts handlers in the chrome of every
+                    // page, and handler ids are positional, which silently broke the islands.
                     UiThemeDropdown.Placement("dropdown-end")
                 ]
             ]
         ];
 
-    private static Component NavItem(string label, string href, bool hideOnPhone) =>
+    private const string NavItemClass =
+        "min-h-11 items-center gap-1 rounded-lg px-2 text-ui-muted no-underline "
+        + "hover:bg-ui-well hover:text-ui-ink";
+
+    /// <summary>
+    ///     A link to another page OF THIS APP — so it stays in the tab and navigates as an SPA.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         There used to be one NavItem, and it stamped <c>target="_blank"</c> and an external-link
+    ///         glyph on everything, "Docs" included. That is what made the front door's own Docs link open
+    ///         a SECOND TAB and cold-boot the entire WASM app — several MB of runtime, a boot screen, and
+    ///         the hydration reflow all over again.
+    ///     </para>
+    ///     <para>
+    ///         <b>NavLink, not A, and that is the whole difference.</b> The runtime intercepts clicks on
+    ///         <c>a[data-rask-nav]</c>, and NavLink is what writes that attribute — a bare
+    ///         <c>&lt;a href&gt;</c> is a plain document navigation no matter how internal its URL is, so
+    ///         every link on this page reloaded the app from scratch. It also takes a type-safe
+    ///         <c>RouteUrl</c>, so a renamed route is a build error rather than a dead link.
+    ///         <c>ActiveClass("")</c> opts out of active styling: this is chrome, not a section nav.
+    ///     </para>
+    /// </remarks>
+    private static Component NavItem(string label, RouteUrl href, bool hideOnPhone) =>
+        NavLink
+            .Href(href)
+            .ActiveClass("")
+            .Class((hideOnPhone ? "hidden sm:inline-flex " : "inline-flex ") + NavItemClass)[label];
+
+    /// <summary>A link that leaves the site — new tab, and it says so.</summary>
+    private static Component ExternalNavItem(string label, string href, bool hideOnPhone) =>
         A
-            .Class(
-                (hideOnPhone ? "hidden sm:inline-flex " : "inline-flex ")
-                + "min-h-11 items-center gap-1 rounded-lg px-2 text-ui-muted no-underline "
-                + "hover:bg-ui-well hover:text-ui-ink")
+            .Class((hideOnPhone ? "hidden sm:inline-flex " : "inline-flex ") + NavItemClass)
             .Href(href)
             .Target("_blank")
             .Rel("noopener")[
@@ -148,7 +177,11 @@ public sealed partial class HomePage : Component
                         P.Class(Lede)["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
                         P.Class(Sub)["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
-                            A.Id("cta-docs").Class(BtnPrimary).Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
+                            NavLink
+                                .Href(Rask.Site.Features.Routes.GuidesIndexPage())
+                                .Id("cta-docs")
+                                .ActiveClass("")
+                                .Class(BtnPrimary)["Docs"],
                             A
                                 .Class(BtnGhost)
                                 .Href("https://github.com/pal-tamas/rask")
@@ -258,13 +291,12 @@ public sealed partial class HomePage : Component
     // ---- hosts ----
     private static Component Host(
         UiIconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
-        A
+        NavLink
+            .Href(Rask.Site.Features.Routes.GuidePage(guide))
+            .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-6 no-underline transition-colors "
-                + "hover:border-ui-brand/40 hover:bg-ui-well")
-            .Href(GuideHref(guide))
-            .Target("_blank")
-            .Rel("noopener")[
+                + "hover:border-ui-brand/40 hover:bg-ui-well")[
             Div.Class("flex items-center gap-2")[
                 UiIcon.Name(icon).Class("size-5 shrink-0 text-ui-brand-ink"),
                 Span.Class("font-mono text-xs text-ui-muted")[tag],
@@ -313,13 +345,12 @@ public sealed partial class HomePage : Component
     /// </para>
     /// </remarks>
     private static Component Feature(UiIconName icon, string title, string guide, params Component?[] desc) =>
-        A
+        NavLink
+            .Href(Rask.Site.Features.Routes.GuidePage(guide))
+            .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-5 no-underline transition-colors "
-                + "hover:border-ui-brand/40 hover:bg-ui-well")
-            .Href(GuideHref(guide))
-            .Target("_blank")
-            .Rel("noopener")[
+                + "hover:border-ui-brand/40 hover:bg-ui-well")[
             Div.Class("flex items-center gap-2 text-sm font-semibold text-ui-ink")[
                 UiIcon.Name(icon).Class("size-4 shrink-0 text-ui-brand-ink"),
                 title,
@@ -336,8 +367,6 @@ public sealed partial class HomePage : Component
     /// published <c>&lt;base href&gt;</c> is what decides the prefix, so the same markup is correct at the
     /// origin root and under a sub-path.
     /// </remarks>
-    internal static string GuideHref(string guide) => "docs/guides/" + guide;
-
     private Component FeaturesSection() =>
         Section.Class(SectionPad)[
             Div.Class(Wrap)[
@@ -409,7 +438,7 @@ public sealed partial class HomePage : Component
                         // "Docs", not "Open the live demo". The hero's CTA was renamed when calling the
                         // docs "the live demo" left the docs themselves with no name; this one was
                         // missed, so the same page called the same destination two different things.
-                        A.Class(BtnPrimary).Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
+                        NavLink.Href(Rask.Site.Features.Routes.GuidesIndexPage()).ActiveClass("").Class(BtnPrimary)["Docs"],
                         A
                             .Class(BtnGhost)
                             .Href("https://github.com/pal-tamas/rask")
@@ -426,7 +455,7 @@ public sealed partial class HomePage : Component
                     Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-ui-muted "
                               + "[&>a]:no-underline [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center "
                               + "[&>a]:px-2 hover:[&>a]:text-ui-ink")[
-                        A.Href(Rask.Site.Features.Routes.GuidesIndexPage())["Docs"],
+                        NavLink.Href(Rask.Site.Features.Routes.GuidesIndexPage()).ActiveClass("")["Docs"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],

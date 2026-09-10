@@ -4,11 +4,15 @@ namespace Rask.Data.Tests;
 
 // A test entity exercising all three opt-ins: audit stamps (via the base), soft delete, and a
 // concurrency version — and it raises a domain event when renamed.
-public sealed class Widget : Entity<Guid>, ISoftDeletable, IVersioned
+public sealed class Widget : Model<Guid>, ITimestamped, ISoftDeletable, IVersioned
 {
     private Widget() { } // EF materialization
 
     public string Name { get; private set; } = "";
+
+    public DateTime CreatedAt { get; private set; }
+
+    public DateTime UpdatedAt { get; private set; }
 
     public DateTime? DeletedAt { get; private set; }
 

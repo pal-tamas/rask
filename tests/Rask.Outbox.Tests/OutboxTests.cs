@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 namespace Rask.Outbox.Tests;
 
 // An entity that raises an outbox event on creation.
-public sealed class Order : Entity<Guid>
+public sealed class Order : Model<Guid>
 {
     private Order() { }
 

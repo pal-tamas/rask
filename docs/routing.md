@@ -104,6 +104,17 @@ Button.OnClick(() => UserPage.Go(42))["View user"];
 instead of pushing a new one, and it navigates through the ambient `Navigator.Current` — so, like `Navigator`
 itself, it may only be called **from an event handler**.
 
+> **`NavLink`, not `A`, for anywhere in your own app — and never a `target` on one.** The runtime intercepts
+> clicks on `a[data-rask-nav]`, and `NavLink` is the only thing that writes that attribute. An
+> `A.Href("/orders")` renders a perfectly valid link that the browser handles itself: a full document
+> navigation that downloads and boots the whole app again, discarding every piece of client state on the way.
+> Nothing warns you, because nothing is wrong with the markup — the link works, it is just not client-side.
+> `target="_blank"` has the same effect from the other end: interception deliberately skips a link with a
+> target, because the reader asked for a new browsing context. Reserve both for URLs that genuinely leave the
+> app. This is worth being blunt about because it cost the framework's own site every internal link on its
+> front door, and the symptom — a boot screen and a re-render on a link that "works" — reads as a
+> performance problem rather than a markup one.
+
 > **Inside a markup host, the bare page name is the chain's builder entry, not the type.** Every component —
 > a page included — has a builder entry of the same name, and within a component class that entry wins name
 > resolution and *constructs* the component. So `HomePage.Go()` written inside another page's `Render()` or

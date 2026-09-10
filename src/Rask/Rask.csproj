@@ -137,6 +137,7 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
     <Compile Remove="RaskApp.cs"/>
     <Compile Remove="RaskAppOptions.cs"/>
+    <Compile Remove="RaskAppDbContext.cs"/>
     <Compile Remove="RaskBatteryWiring.cs"/>
     <!-- Endpoint and MVC filters: ASP.NET hosting types, so the server half only. -->
     <Compile Remove="ApiValidation.cs"/>

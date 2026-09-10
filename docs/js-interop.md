@@ -59,6 +59,17 @@ component CSS.
 > An orphan `.css` with no matching component, or two that match ambiguously, raises
 > **RASK015 / RASK016**. See [diagnostics](diagnostics.md).
 
+> **Don't let a script mutate a `<Head>` element Rask renders.** Head contributions are reconciled by key
+> on every full-document morph — the WASM first frame, and every cross-route navigation — so an attribute
+> some JavaScript changed at runtime is put *back* to what your component rendered, and then changed again
+> when whatever mutated it runs a second time. The pattern this bites is the common one for a
+> render-blocking third-party stylesheet: `<link media="print" onload="this.media='all'">`. On a Rask page
+> that link un-applies at every morph and re-applies a frame later — a full-page reflow that reads as a
+> flicker "when it hydrates", which is exactly what it cost rask.sh's own type. If you need an asset the
+> framework must not touch, either **host it yourself** and link it plainly (a same-origin file preloaded
+> from the head needs no deferral trick at all), or inject it from a script so the head observer tags it
+> `data-rask-managed` and the reconciler leaves it alone.
+
 Two components declare the **same** `.box` selector in their own `.css`; each is scoped to its own
 `data-r-{id}`, so they never collide — one paints red, the other blue:
 

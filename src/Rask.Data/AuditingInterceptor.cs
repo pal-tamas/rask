@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Rask.Data;
 
 /// <summary>
-/// Maintains the framework-owned columns before every save: stamps <see cref="ITimestamped.CreatedAt"/> /
-/// <see cref="ITimestamped.UpdatedAt"/>, and bumps the <see cref="IVersioned.Version"/> concurrency token on
+/// Maintains the framework-owned columns before every save: stamps <c>CreatedAt</c> /
+/// <c>UpdatedAt</c>, and bumps the <c>Version</c> concurrency token on
 /// each update so the stored value changes (SQLite has no native rowversion). Registered by
 /// <see cref="RaskDataServiceCollectionExtensions.AddRaskData"/> after the <see cref="SoftDeleteInterceptor"/>,
 /// so a soft delete (rewritten to <see cref="EntityState.Modified"/>) is stamped and versioned too.
@@ -42,12 +42,12 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Property(nameof(ITimestamped.CreatedAt)).CurrentValue = now;
-                entry.Property(nameof(ITimestamped.UpdatedAt)).CurrentValue = now;
+                entry.Property(Columns.CreatedAt).CurrentValue = now;
+                entry.Property(Columns.UpdatedAt).CurrentValue = now;
             }
             else if (entry.State == EntityState.Modified)
             {
-                entry.Property(nameof(ITimestamped.UpdatedAt)).CurrentValue = now;
+                entry.Property(Columns.UpdatedAt).CurrentValue = now;
             }
         }
 
@@ -55,7 +55,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         {
             if (entry.State == EntityState.Modified)
             {
-                var version = entry.Property(nameof(IVersioned.Version));
+                var version = entry.Property(Columns.Version);
                 version.CurrentValue = (int)(version.CurrentValue ?? 0) + 1;
             }
         }
