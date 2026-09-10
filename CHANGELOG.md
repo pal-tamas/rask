@@ -9,6 +9,32 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A form field is one component: `UiFormField<T>` owns the label, the hint and the validation
+  message.** `UiInput<T>` and `UiSelect<T>` derive from it and implement only their own control, so a
+  field is no longer three siblings a call site has to keep associated.
+
+  **The association is the reason, not the duplication.** A label reaches its control by `for`/`id` or by
+  wrapping it, and both are easy to get wrong in a way nothing reports: the text renders, the control
+  renders, clicking the text does nothing and a screen reader announces an unnamed field. The base
+  WRAPS — so there is no id to mint, keep unique down a list, or thread through a template.
+
+  `Label` is **optional**: a search box whose placeholder is its whole affordance, a control in a table
+  cell, a field labelled by a column header all render the bare control exactly as before, which is what
+  makes the base safe to add. `AccessibleLabel` names an unlabelled control (a placeholder is not a name
+  — it disappears when typing starts), and a visible label wins over it, because two names on one control
+  is worse than one. `Hint` sits outside the label, since a label's text becomes the accessible name and
+  one that recites the hint every time is worse than one that does not. A bound field renders its own
+  validation message; `ShowValidation(false)` opts out for a form that shows errors in one summary.
+
+  Not on `IFormControl<T>`, deliberately: that is the *binding* contract, its members are recognised by
+  NAME by the factory generator, it lives in Core which has no markup vocabulary — and an interface
+  cannot render the wrapper, so every control would still implement it itself. Nor on the core `Input`
+  and `Select`: those are HTML elements, one C# type per tag, and a `Label` property would make `Input`
+  render two elements and break the attribute-order contract the whole element family rests on.
+
+  Also settled by this: the factory generator DOES offer a base class's properties as chain steps, so
+  `UiInput.Value("").Label("Email").Size(UiSize.Sm)` composes across the inheritance boundary.
+
 - **The card wrappers are `UiCard`.** 59 `Div.Class(Tw.Card)[Div.Class(Tw.CardBody)[…]]` pairs collapse
   into one component — `UiStyles.Card` already carries the padding the inner div supplied — which is 118
   constant references and 42 lines of rendered markup gone. Six `Card*` constants are deleted. Four sites

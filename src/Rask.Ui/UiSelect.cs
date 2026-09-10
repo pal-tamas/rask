@@ -16,19 +16,19 @@ namespace Rask.Ui;
 /// see the property for what that buys and what it costs.
 /// </para>
 /// <para>
-/// Both modes are the same control. <see cref="Options" />, <see cref="Value" />, <see cref="Bind" />,
-/// <see cref="OnChange" />, <see cref="Placeholder" />, <see cref="Tone" />, <see cref="Size" /> and
-/// <see cref="Disabled" /> mean exactly the same thing either way; the flag chooses how the list is
+/// Both modes are the same control. <see cref="Options" />, <c>Value</c>, <c>Bind</c>,
+/// <c>OnChange</c>, <see cref="Placeholder" />, <c>Tone</c>, <c>Size</c> and
+/// <c>Disabled</c> mean exactly the same thing either way; the flag chooses how the list is
 /// DRAWN, not what the control is.
 /// </para>
 /// <para>
 /// It is a form control: <c>.Bind(() =&gt; model.Country)</c> two-way binds and drives the surrounding
-/// <c>Form</c>'s validation, or <see cref="Value" /> with <see cref="OnChange" /> lets the parent own
+/// <c>Form</c>'s validation, or <c>Value</c> with <c>OnChange</c> lets the parent own
 /// the value. The two are mutually exclusive at the call site — the generator emits a factory for each
 /// and excludes the other mode's members from it.
 /// </para>
 /// </remarks>
-public sealed partial class UiSelect<T> : Component, IFormControl<T>
+public sealed partial class UiSelect<T> : UiFormField<T>
 {
     // Per-instance, so two id-less selects on one page cannot collide on option ids —
     // aria-activedescendant points at them by id, and a collision aims it at the wrong list.
@@ -39,15 +39,12 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     private bool _open;
     private int _cursor = -1;
 
-    /// <summary>The accessible name.</summary>
-    public required string Label { get; set; }
-
     /// <summary>
     ///     The options: the value stored, and the words shown.
     /// </summary>
     /// <remarks>
     ///     Not the step that pins <typeparamref name="T" /> — the chain's OPENING does that, and for a
-    ///     form control the opening is <see cref="Value" /> or <see cref="Bind" />, which fix the type
+    ///     form control the opening is <c>Value</c> or <c>Bind</c>, which fix the type
     ///     and the mode together. So a call site reads
     ///     <c>UiSelect.Value(x).Options(…).Label(…)</c>, and <c>Label</c>/<c>Options</c> may come in
     ///     either order after it.
@@ -116,34 +113,6 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     /// </remarks>
     public string? Name { get; set; }
 
-    public UiTone? Tone { get; set; }
-
-    public UiSize? Size { get; set; }
-
-    public UiVariant? Variant { get; set; }
-
-    public bool? Disabled { get; set; }
-
-    public string? Class { get; set; }
-
-    /// <inheritdoc />
-    public T? Value { get; set; }
-
-    /// <inheritdoc />
-    public Callback<T>? OnChange { get; set; }
-
-
-    /// <inheritdoc />
-    public Expression<Func<T>>? Bind { get; set; }
-
-    /// <inheritdoc />
-    public Validator<T>? Validate { get; set; }
-
-
-    /// <inheritdoc />
-    public Callback<T>? AfterBind { get; set; }
-
-
     private string Prefix => "uisel-" + _instance.ToString(CultureInfo.InvariantCulture);
 
     private string ListId => Prefix + "-list";
@@ -157,7 +126,8 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     private bool DrawsOwnList => Native is { } native ? !native : OptionTemplate is not null;
 
     /// <inheritdoc />
-    protected override Component? Render() => DrawsOwnList ? Custom() : NativeSelect();
+    /// <inheritdoc />
+    protected override Component Control() => DrawsOwnList ? Custom() : NativeSelect();
 
     // The platform's control. Everything form-shaped is forwarded to Rask.Core's Select<T>, which is
     // itself an IFormControl<T> — so binding, validation registration and the change parse are the
@@ -174,6 +144,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
         {
             return Select
                 .Bind(bind)
+                .Id(Id)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
                 .Aria(Aria(expanded: null))
@@ -183,6 +154,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
 
         return Select
             .Value(Value)
+            .Id(Id)
             .OnChange(OnChange)
             .Aria(Aria(expanded: null))
             .Disabled(Disabled == true)
