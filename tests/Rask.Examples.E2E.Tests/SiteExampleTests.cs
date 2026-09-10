@@ -303,25 +303,28 @@ public sealed class SiteExampleTests
             Assert.Null(await page.EvaluateAsync<string?>("() => localStorage.getItem('rask-theme')"));
 
             await page.Locator("details.dropdown > summary").First.ClickAsync();
-            await page.Locator("details.dropdown button:has-text('dracula')").First.ClickAsync();
+            await page.Locator("input.theme-controller[value='dracula']").First.CheckAsync();
 
             await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dracula");
             Assert.Equal("dracula", await page.EvaluateAsync<string?>("() => localStorage.getItem('rask-theme')"));
 
-            // The 35-item list must not be left hanging over the page after a pick. Uncontrolled
-            // <details> sets its own `open`; this renders none, so the re-render morphs it away.
-            await Expect(page.Locator("details.dropdown[open]")).ToHaveCountAsync(0);
-
-            // Survives a reload — and is already right BEFORE the runtime is back.
+            // Survives a reload — and is already right BEFORE the runtime is back, because the boot
+            // script applies it in <head> rather than a component applying it after the first frame.
             await page.ReloadAsync();
             await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dracula");
             await Expect(page.Locator("body[data-rask-root='wasm']"))
                 .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
             await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dracula");
 
-            // …and the picker says which one is showing, which it can only do by reading it back.
-            await Expect(page.Locator("details.dropdown button[aria-pressed='true']").First)
-                .ToContainTextAsync("dracula");
+            // …and the picker shows WHICH one, which is the half the CSS-only control cannot do for
+            // itself: it renders every radio unchecked, so without the script's mark() a reader coming
+            // back to a dracula page would find the list claiming nothing was chosen.
+            await Expect(page.Locator("input.theme-controller[value='dracula']")).ToBeCheckedAsync();
+
+            // And the picker adds NO handlers to the page — the property the islands depend on. Any
+            // C# handler in this chrome shifts every handler id after it, and an island holds the id it
+            // read from the prerendered markup. (h28 -> h63 with 35 buttons; h28 -> h29 with one.)
+            Assert.Equal(0, await page.Locator("details.dropdown [data-rask-on-click]").CountAsync());
         }
         finally
         {

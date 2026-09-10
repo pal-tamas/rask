@@ -129,12 +129,20 @@ them until tagged releases begin.
   in-app link on the page is a `NavLink` over a type-safe `RouteUrl` now; only genuinely external
   links keep a target, and they keep the external-link glyph with it.
 
-  **The theme is remembered**, and light is still the default. The picker was daisyUI's CSS-only
-  `theme-controller`, which cannot persist anything — no script to store a choice, and a radio that
-  renders unchecked on every pass, so the next render put the theme back. The new `ThemeMenu` owns the
-  value and hands it to the boot script, which writes `localStorage` and stamps `<html>` — before the
-  first paint, so a saved theme is on the page from the first frame rather than corrected into it.
-  (#1058)
+  **The theme is remembered**, and light is still the default. The picker stays daisyUI's CSS-only
+  `theme-controller`, which could not persist anything on its own — no script to store a choice, and a
+  radio that renders unchecked on every pass, so the next render put the theme back. The boot script in
+  `<head>` now owns the whole feature: it applies the saved theme *before the first paint*, stores a new
+  one from a delegated `change` listener, and re-marks the reader's radio after every morph.
+
+  Doing it from JavaScript rather than from a C# component is a **correctness** requirement, not a
+  preference, and it is worth writing down. A C# picker was built first and withdrawn: handler ids are
+  handed out in render order, so putting even one handler into the chrome of every docs page shifted
+  every id after it — and the islands page broke silently, because a Vue or Lit island captures its
+  callback id from the prerendered markup and the ids had moved underneath it. Its clicks reached
+  nothing while the page still looked perfectly alive. Measured on the published bundle: the island's
+  pre-boot callback id went `h28` → `h63` with thirty-five theme buttons rendered, and `h28` → `h29`
+  with a single one. One handler is already too many. The kit's picker adds none. (#1058)
 
 - **A component named after an HTML tag silently rendered the tag instead.** Found by the merge above and
   fixed with it: the per-host collision filter skipped an own entry whose name the host already had —

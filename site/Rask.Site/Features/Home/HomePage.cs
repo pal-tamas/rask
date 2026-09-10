@@ -106,10 +106,11 @@ public sealed partial class HomePage : Component
                     NavItem("Docs", Rask.Site.Features.Routes.GuidesIndexPage(), hideOnPhone: true),
                     ExternalNavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false),
 
-                    // Every theme the kit ships — and the choice is REMEMBERED. See ThemeMenu: the
-                    // CSS-only picker that used to be here could not persist anything, so the theme
-                    // reset on the next render.
-                    ThemeMenu.Placement("dropdown-end")
+                    // Every theme the kit ships, switched in CSS — and now REMEMBERED, by the boot
+                    // script rather than by this component (see App.ThemeInitJs). It stays the kit's
+                    // handler-free picker on purpose: a C# one puts handlers in the chrome of every
+                    // page, and handler ids are positional, which silently broke the islands.
+                    UiThemeDropdown.Placement("dropdown-end")
                 ]
             ]
         ];

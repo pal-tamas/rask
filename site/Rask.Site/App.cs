@@ -16,11 +16,23 @@ public partial class App : Component
     //
     // Light is the default, and stays the default: the chrome is drawn from Rask.Ui, whose palette is
     // light, and a dark page inside a light shell is worse than either on its own. What is new is that
-    // a reader who picks another one KEEPS it. The picker used to be daisyUI's CSS-only
-    // theme-controller radios, which is genuinely free and genuinely cannot remember anything: no
-    // script means no storage, and the input renders `checked=false` every time, so the choice was
-    // dropped by the next render — a navigation, or the WASM first frame. ThemeMenu owns the value now
-    // and calls raskSetTheme below.
+    // a reader who picks another one KEEPS it.
+    //
+    // ALL of it lives in this snippet, and that placement is forced rather than stylistic. The picker
+    // is daisyUI's CSS-only theme-controller (UiThemeDropdown) — a radio group the stylesheet matches
+    // with no script and, crucially, NO C# EVENT HANDLERS. A C# picker was written first and had to be
+    // withdrawn: handler ids are handed out in render order, so putting even one handler into the
+    // chrome of every docs page shifted every id after it, and the islands page broke SILENTLY — a Vue
+    // or Lit island captures its callback id from the prerendered markup, and once the ids moved
+    // underneath it the island's clicks reached nothing at all, on a page that still looked perfectly
+    // alive. Measured: the island's pre-boot callback id went h28 -> h63 with thirty-five theme buttons
+    // rendered, and h28 -> h29 with just one. One is already too many. Owning the value from JavaScript
+    // costs zero handler slots, so the islands are left exactly as they were.
+    //
+    // What the CSS-only picker cannot do alone is REMEMBER: no script means nothing to store a choice
+    // with, and the radio renders unchecked on every pass, so a navigation or the WASM first frame
+    // dropped it. The delegated change listener below stores it, and mark() puts the tick back on the
+    // reader's radio after every morph.
     //
     // <html> is owned HERE rather than rendered from C#, and that is deliberate. This snippet is the
     // only code that runs before the first paint, so it is the only place a saved dark theme can be
@@ -36,12 +48,18 @@ public partial class App : Component
         "(function(){var d=document.documentElement,K='rask-theme',D='light',R=/^[a-z0-9-]{1,32}$/;" +
         "function read(){try{var v=localStorage.getItem(K);return v&&R.test(v)?v:D;}catch(e){return D;}}" +
         "function apply(t){d.setAttribute('data-theme',t);}" +
+        "function mark(){var t=read(),i=document.querySelectorAll('input.theme-controller');" +
+        "for(var n=0;n<i.length;n++)i[n].checked=i[n].value===t;}" +
         "apply(read());" +
         "window.raskTheme=read;" +
         "window.raskSetTheme=function(t){if(!t||!R.test(t))return read();" +
-        "try{localStorage.setItem(K,t);}catch(e){}apply(t);return t;};" +
+        "try{localStorage.setItem(K,t);}catch(e){}apply(t);mark();return t;};" +
+        "document.addEventListener('change',function(e){var t=e.target;" +
+        "if(t&&t.classList&&t.classList.contains('theme-controller'))window.raskSetTheme(t.value);});" +
+        "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mark);" +
+        "else mark();" +
         "var prev=window.raskAfterMorph;" +
-        "window.raskAfterMorph=function(){apply(read());" +
+        "window.raskAfterMorph=function(){apply(read());mark();" +
         "if(typeof prev==='function')prev();};})();";
 
     // The three self-hosted faces, preloaded. @font-face lives in global.css; these say "fetch it now"
