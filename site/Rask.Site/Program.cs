@@ -62,6 +62,7 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Islands.Route
 // components themselves, live, which is the half a paragraph cannot do.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitActionsPage(), "Actions", UiIconName.Check, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataDisplayPage(), "Data display", UiIconName.Overview, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataGridPage(), "Data grid", UiIconName.Stack, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitNavigationPage(), "Navigation", UiIconName.Menu, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitFeedbackPage(), "Feedback", UiIconName.Warning, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataInputPage(), "Data input", UiIconName.Pencil, "UI kit"));

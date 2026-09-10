@@ -83,7 +83,7 @@ and a reset arriving from a library restyles pages that never asked for it.
 | | |
 | --- | --- |
 | Actions | `UiButton` `UiDropdown` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
-| Data display | `UiAccordion` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiStat` `UiStatusDot` `UiTable` `UiTextRotate` `UiTimeline` |
+| Data display | `UiAccordion` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiTextRotate` `UiTimeline` |
 | Navigation | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMenu` `UiNavbar` `UiPagination` `UiSteps` `UiTabs` |
 | Feedback | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
 | Data input | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiFloatingLabel` `UiOtp` `UiFilter` `UiCalendar` |

@@ -9,6 +9,48 @@ them until tagged releases begin.
 
 ### Added
 
+- **A data grid, and a fourth chain shape to hold it.** `UiDataGrid<T>` joins the UI kit with sortable
+  headers, paging, typed selection, expandable detail rows, multi-level grouping with collapsible bands
+  and subtotals, a column chooser, sticky headers, column footers, and a card layout on a phone.
+
+  **Columns arrive through a factory, and that is forced by C#** rather than chosen for looks:
+  `UiDataGrid.Data(rows)[c => [ c.Field(p => p.Name).Title("Product").Sortable(true) ]]`. A method's
+  type arguments are inferred from its own arguments and never from the target type of the indexer the
+  call sits in, so `UiColumn.Field(p => p.Name)` written as a flat child has nothing at all to say what
+  `p` is and fails CS0411. Handing the grid to a lambda fixes the row type before a column is written.
+
+  That needs a children indexer no other component should have, and an indexer cannot be constrained —
+  so the grid's chain is a new `GridBuild<T, TKey>` in `Rask.Core`, beside `Build<T>`,
+  `Build<T, TMode>` and `FormBuild<T>`, claimed by implementing `IColumnHost`. Exactly the reasoning
+  that gave `Form` its own shape. The generator emits the shared surface over it, but only the
+  **Component-owned** half: 120 of the 121 shared members are constrained to `Element`, and a grid
+  renders a table rather than being one — emitting those would have put 120 uncallable extensions into
+  every compilation that references `Rask.Core`, and 240 unreachable entries into its recorded API.
+
+  **Three data sources.** A list sorts and pages in memory; an `IQueryable<T>` handed to the *same*
+  `Data` step does it in the store through `ORDER BY`/`Skip`/`Take` (one step, because an `IQueryable`
+  *is* an `IEnumerable` and a second name for one slot is a second thing to get wrong); and
+  `Source(request => Task<UiGridPage<T>>)`, opened with `Of<T>()`, is the awaited one. Every state axis
+  — sort, page, selection, grouping, hidden columns, column order — is controlled or uncontrolled
+  independently: name the state *and* its callback and that one axis moves to the page.
+
+  **Selection is typed and staged.** `.RowKey(p => p.Id)` pins the chain's key type and the selection
+  steps are declared only over a pinned one, so a grid that cannot name a row is not one whose selection
+  is rejected — it is one where selection is not offered, in completion or at compile time. Keys reach
+  the callback as `IReadOnlyList<int>`, and a membership test per row per render boxes nothing. It is
+  not spelled `Key`: that is already the reconciliation identity of the grid itself (RASK046).
+
+  **Below `sm` the table restyles into stacked, labelled lines** — the same markup under different
+  utilities, with each cell keeping its column title through `data-label` and
+  `before:content-[attr(data-label)]`, so the phone layout costs only classes. `Card(p => …)` replaces
+  it with authored markup, and *that* renders both layouts. Grouping and the column chooser are driven
+  by **buttons** with drag added on top, because HTML5 drag fires on neither touch nor a keyboard. A
+  custom `Cell` does not fire `OnRowClick` by default: the client cancels the default action of any
+  click it dispatches, so a link or button inside a clickable cell silently stops working.
+
+  Documented in `docs/data-grid.md`, live at `/docs/ui/data-grid`, and covered by 55 unit tests — the
+  interaction half driving the real handlers through `RaskTest`, no browser involved.
+
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an
   `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
   run on a controller action or a minimal API, and no *asynchronous* rule ran on either, because MVC's

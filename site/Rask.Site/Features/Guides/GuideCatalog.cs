@@ -119,6 +119,7 @@ public static class GuideCatalog
         new("localization", "Localization", "Ship in more than one language: negotiated culture, typed catalogs, plurals.", "Integration"),
         new("dashboard", "Dashboard", "An operator dashboard over every battery's table.", "Integration"),
         new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.", "Integration"),
+        new("data-grid", "Data grid", "Sorting, paging, typed selection, grouping and a card layout on a phone.", "Integration"),
         new("logging", "Logging", "A durable log store in a database of its own.", "Integration"),
         new("observability", "Observability", "Logging, tracing, diagnostics.", "Integration"),
         new("configuration", "Configuration", "App configuration and settings.", "Integration"),

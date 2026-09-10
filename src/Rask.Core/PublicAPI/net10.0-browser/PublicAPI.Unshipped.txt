@@ -3493,8 +3493,16 @@ Rask.Core.Globalization.SessionCulture.SetAsync(System.Globalization.CultureInfo
 Rask.Core.Globalization.SessionCulture.SetAsync(string! name) -> System.Threading.Tasks.Task<bool>!
 Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
+Rask.Core.GridBuild<T, TKey>
+Rask.Core.GridBuild<T, TKey>.GridBuild() -> void
+Rask.Core.GridBuild<T, TKey>.GridBuild(T! component) -> void
+Rask.Core.GridBuild<T, TKey>.ToHtml() -> string!
+Rask.Core.GridBuild<T, TKey>.Value.get -> T!
+Rask.Core.GridBuild<T, TKey>.this[System.Func<T!, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! columns].get -> Rask.Core.Component!
 Rask.Core.Http.IPageResponse
 Rask.Core.Http.IPageResponse.SetStatus(int statusCode) -> void
+Rask.Core.IColumnHost
+Rask.Core.IColumnHost.SetColumnFactory(System.Delegate! factory) -> void
 Rask.Core.IComponentChain
 Rask.Core.IComponentChain.Unwrap() -> Rask.Core.Component!
 Rask.Core.InputType
@@ -3934,6 +3942,7 @@ Rask.Core.MouseModifiers.MouseModifiers() -> void
 Rask.Core.MouseModifiers.MouseModifiers(bool Shift, bool Ctrl, bool Alt, bool Meta) -> void
 Rask.Core.MouseModifiers.Shift.get -> bool
 Rask.Core.MouseModifiers.Shift.init -> void
+Rask.Core.NoKey
 Rask.Core.RaskHostContracts
 Rask.Core.RaskMarkup
 Rask.Core.RaskMarkup.RaskMarkup() -> void
@@ -4728,6 +4737,7 @@ static Rask.Core.Globalization.RaskCultureResolver.TryResolve(string? name, out 
 static Rask.Core.Globalization.RaskCultureServiceCollectionExtensions.AddRaskCulture(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Globalization.RaskCultureOptions!>? configure = null, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime = Microsoft.Extensions.DependencyInjection.ServiceLifetime.Scoped) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Core.Globalization.RaskStrings.Get(Rask.Core.Globalization.RaskString key, string! fallback) -> string!
 static Rask.Core.Globalization.RaskStrings.UseSource(Rask.Core.Globalization.IRaskStringSource! source) -> void
+static Rask.Core.GridBuild<T, TKey>.implicit operator T!(Rask.Core.GridBuild<T!, TKey> chain) -> T!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Core.Live.ClipboardEventArgs.operator !=(Rask.Core.Live.ClipboardEventArgs? left, Rask.Core.Live.ClipboardEventArgs? right) -> bool
 static Rask.Core.Live.ClipboardEventArgs.operator ==(Rask.Core.Live.ClipboardEventArgs? left, Rask.Core.Live.ClipboardEventArgs? right) -> bool
@@ -5548,6 +5558,7 @@ static RaskBuilderSettersRask_Core.K1(this Rask.Core.Build<Rask.Core.Components.
 static RaskBuilderSettersRask_Core.K2(this Rask.Core.Build<Rask.Core.Components.FeComposite!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.FeComposite!>
 static RaskBuilderSettersRask_Core.K3(this Rask.Core.Build<Rask.Core.Components.FeComposite!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.FeComposite!>
 static RaskBuilderSettersRask_Core.K4(this Rask.Core.Build<Rask.Core.Components.FeComposite!> __b, string? value) -> Rask.Core.Build<Rask.Core.Components.FeComposite!>
+static RaskBuilderSettersRask_Core.Key<T, TKey>(this Rask.Core.GridBuild<T!, TKey> __b, object? value) -> Rask.Core.GridBuild<T!, TKey>
 static RaskBuilderSettersRask_Core.Key<T, TMode>(this Rask.Core.Build<T!, TMode> __b, object? value) -> Rask.Core.Build<T!, TMode>
 static RaskBuilderSettersRask_Core.Key<T>(this Rask.Core.Build<T!> __b, object? value) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.Key<T>(this Rask.Core.FormBuild<T!> __b, object? value) -> Rask.Core.FormBuild<T!>

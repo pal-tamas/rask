@@ -24,6 +24,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
     private const string SubmitAwareFullName = "Rask.Core.Forms.ISubmitAware";
+    private const string ColumnHostFullName = "Rask.Core.IColumnHost";
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
 
     // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
@@ -310,12 +311,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // No reachability skip, and none needed anywhere any more: the setter's receiver is the
                 // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
                 //
-                // Twice, because there are two chain shapes and the shared surface belongs to both: an
-                // ordinary component's `Build<T>` and a form control's mode-carrying `Build<T, TMode>`. The
-                // second is written over an OPEN TMode, so `Input.Bind(…).Class("x")` keeps the mode it was
-                // in and the next step still knows it. A form control that could not say `.Class(…)` would
-                // be no trade at all.
-                foreach (var mode in new string?[] { null, OpenMode, FormChainMode })
+                // Once per chain SHAPE, because the shared surface belongs to all of them: an ordinary
+                // component's `Build<T>`, a form control's mode-carrying `Build<T, TMode>`, a form's
+                // `FormBuild<T>` and a grid's `GridBuild<T, TKey>`. The ones carrying an argument are
+                // written over an OPEN one, so `Input.Bind(…).Class("x")` keeps the mode it was in and
+                // `UiDataGrid.Data(…).RowKey(…).Class("x")` keeps its key — and the next step still knows
+                // it. A form control or a grid that could not say `.Class(…)` would be no trade at all.
+                //
+                // The GRID shape takes only the COMPONENT-owned half, and that is a measurement rather
+                // than a policy: of the 121 shared members, 120 are constrained `where T : Element` and a
+                // column host is a Component — a grid renders a table, it is not one. Emitting those over
+                // the grid shape put 120 extensions no grid can call into every compilation that
+                // references Rask.Core, and 240 unreachable entries into its recorded public API. The one
+                // that remains is Key, which every chain needs.
+                foreach (var mode in ChainShapesFor(s.Owner))
                 {
                     EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
                         fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
@@ -371,8 +380,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     p.Summary,
                     // A form control's chain carries its mode, so its steps are written over it: the
                     // controlled-mode props (Checked, OnInput, OnChange) only on Controlled, everything
-                    // else — the display and constraint props — over an open TMode.
-                    c.SubmitAware ? FormChainMode
+                    // else — the display and constraint props — over an open TMode. A grid's carries its
+                    // key the same way, and every one of its own steps is legal whether or not a row key
+                    // has been named, so all of them are written over an open TKey.
+                    c.ColumnHost ? GridOpenKey
+                    : c.SubmitAware ? FormChainMode
                     : c.FormControl is null ? null : ModeOf(p.Name));
             }
 
@@ -1281,6 +1293,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         mode is null ? "global::Rask.Core.Build<" + componentFqn + ">"
         : string.Equals(mode, FormChainMode, StringComparison.Ordinal)
             ? "global::Rask.Core.FormBuild<" + componentFqn + ">"
+        : IsGridChain(mode)
+            ? "global::Rask.Core.GridBuild<" + componentFqn + ", " + KeyArgument(mode) + ">"
         : "global::Rask.Core.Build<" + componentFqn + ", " + mode + ">";
 
     // Not a mode in the Bound/Controlled sense — it names the third chain SHAPE rather than a mode that
@@ -1288,16 +1302,48 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // site that has to know which shape it is emitting over already threads it. See Rask.Core.FormBuild{T}.
     private const string FormChainMode = "__formchain";
 
-    // The shape a candidate's FINISHED chain hands back. A submit-aware component is on the form
-    // shape whatever else it is; everything else keeps the mode (or none) it already had.
-    private static string? ChainModeOf(Candidate c, string? mode) =>
-        c.SubmitAware ? FormChainMode : mode;
+    // The FOURTH shape, GridBuild<T, TKey>, which unlike the form shape DOES take an argument — so it
+    // rides the mode parameter as a prefix plus the key type to write, rather than as a bare marker.
+    // Two spellings, and the difference is the whole reason the prefix is needed: an ENTRY pins the key
+    // to NoKey (a chain has to be a closed type the moment it is handed back, or its type argument is
+    // uninferrable — CS0411), while a STEP written over an existing chain leaves it open so the chain
+    // keeps whatever key a RowKey step already pinned. See Rask.Core.GridBuild{T,TKey}.
+    private const string GridChainPrefix = "__gridchain:";
+    private const string GridOpenKey = GridChainPrefix + "TKey";
+    private const string GridNoKey = GridChainPrefix + "global::Rask.Core.NoKey";
 
-    // FormBuild<T> constrains T to ISubmitAware, so a step written over that shape has to repeat the
-    // constraint or the receiver does not satisfy its own type parameter (CS0314).
+    // The chain shapes a shared member is emitted over. Everything reaches the three COMPONENT shapes;
+    // the grid shape is offered only to what a Component-derived host can actually satisfy, since a
+    // step constrained to Element is unreachable from a column host and costs every consumer the code
+    // and every recorded API the entry. See the loop that calls this.
+    private static string?[] ChainShapesFor(string owner) =>
+        string.Equals(owner, "global::" + ComponentFullName, StringComparison.Ordinal)
+            ? [null, OpenMode, FormChainMode, GridOpenKey]
+            : [null, OpenMode, FormChainMode];
+
+    private static bool IsGridChain(string? mode) =>
+        mode is not null && mode.StartsWith(GridChainPrefix, StringComparison.Ordinal);
+
+    private static string KeyArgument(string mode) => mode.Substring(GridChainPrefix.Length);
+
+    // The shape a candidate's FINISHED chain hands back. Every call site of this is a way IN — an entry,
+    // an `Of<T>()`, the step that completes a component's required set — so a column host pins NoKey
+    // here; the open-key spelling belongs to the setter emissions, which are handed their mode directly.
+    // A submit-aware component is on the form shape whatever else it is; everything else keeps the mode
+    // (or none) it already had.
+    private static string? ChainModeOf(Candidate c, string? mode) =>
+        c.ColumnHost ? GridNoKey
+        : c.SubmitAware ? FormChainMode
+        : mode;
+
+    // FormBuild<T> constrains T to ISubmitAware, and GridBuild<T, TKey> to IColumnHost, so a step written
+    // over either shape has to repeat the constraint or the receiver does not satisfy its own type
+    // parameter (CS0314).
     private static string ConstraintFor(string receiver, string? mode) =>
         string.Equals(mode, FormChainMode, StringComparison.Ordinal)
             ? receiver + ", global::Rask.Core.Forms.ISubmitAware"
+        : IsGridChain(mode)
+            ? receiver + ", global::Rask.Core.IColumnHost"
             : receiver;
 
     private const string BoundMode = "global::Rask.Core.Forms.Bound";
@@ -1322,11 +1368,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         : typeArgs.Substring(0, typeArgs.Length - 1) + ", " + extra + ">";
 
     // A method's type parameter list with TMode appended, for a step written over the OPEN mode. A step
-    // pinned to one mode names that mode in its receiver and declares no parameter of its own.
+    // pinned to one mode names that mode in its receiver and declares no parameter of its own — and the
+    // grid chain's open key is the same arrangement under a different name.
     private static string WithMode(string typeParameters, string? mode) =>
         string.Equals(mode, OpenMode, StringComparison.Ordinal)
             ? Append(typeParameters, OpenMode)
+        : string.Equals(mode, GridOpenKey, StringComparison.Ordinal)
+            ? Append(typeParameters, GridKeyParameter)
             : typeParameters;
+
+    // The name the open key is DECLARED under. Kept beside GridOpenKey rather than re-derived from it,
+    // because the two are only incidentally the same word: one is a mode marker, the other a C# type
+    // parameter that has to agree with what BuildOf wrote into the receiver.
+    private const string GridKeyParameter = "TKey";
 
     // The mode a form control's chain is in once the given opening step has been taken. `Bind` is the
     // bound mode by definition; every other way in (`Value`, and `Of` for a control given no value at
@@ -1656,7 +1710,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // The shape the FINISHED chain hands back, which is not always what the intermediate states
         // carry: a mode is a type parameter the states pass along, whereas the form shape is a different
         // struct with no extra type argument at all. Kept apart so appending one never appends the other.
-        var chainMode = c.SubmitAware ? FormChainMode : carriedMode;
+        //
+        // A grid is the third arrangement again. Its states carry NOTHING extra — carriedMode stays null
+        // — because a chain reaches one before any RowKey step and so is still on the NoKey the entry
+        // pinned; declaring a TKey type parameter on those structs would leave it uninferrable. The
+        // finished chain names that pinned key outright.
+        var chainMode = c.ColumnHost ? GridNoKey
+            : c.SubmitAware ? FormChainMode
+            : carriedMode;
 
         sb.Append(pad).Append("/// <summary>Where a ").Append(c.TypeName)
             .AppendLine(" chain starts. Take one of its steps to begin.</summary>");
@@ -3967,6 +4028,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             genericFactory,
             formControl,
             IsSubmitAware(symbol),
+            ImplementsInterface(symbol, ColumnHostFullName),
             new EquatableArray<PropInfo>(properties),
             new EquatableArray<ForwarderInfo>(forwarders),
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
@@ -3985,11 +4047,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // Whether the component declares ISubmitAware, which is what puts its chain on the FormBuild<T>
     // shape. Interfaces rather than an attribute, so it reads exactly like the form-control check
     // below and a component cannot claim the chain without implementing what the chain calls.
-    private static bool IsSubmitAware(INamedTypeSymbol symbol)
+    private static bool IsSubmitAware(INamedTypeSymbol symbol) =>
+        ImplementsInterface(symbol, SubmitAwareFullName);
+
+    // The same question for any chain-shape marker — ISubmitAware, IColumnHost — by name. Non-generic
+    // markers only: a generic one would need its type arguments compared rather than its display string.
+    private static bool ImplementsInterface(INamedTypeSymbol symbol, string fullName)
     {
         foreach (var i in symbol.AllInterfaces)
         {
-            if (i.ToDisplayString() == SubmitAwareFullName)
+            if (i.ToDisplayString() == fullName)
             {
                 return true;
             }
@@ -4969,6 +5036,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // children indexer that takes the submit state. A capability, like FormControl above, and
         // read the same way: off the implemented interfaces.
         bool SubmitAware,
+        // Whether the component's chain is the GRID shape — Rask.Core.GridBuild<T, TKey>, whose children
+        // indexer takes a column factory rather than a list. Read off the implemented interfaces for the
+        // same reason SubmitAware is: the shape calls something, so claiming it has to mean supplying it.
+        bool ColumnHost,
         EquatableArray<PropInfo> Properties,
         EquatableArray<ForwarderInfo> Forwarders,
         bool IsPartial,
