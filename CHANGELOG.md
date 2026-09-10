@@ -36,34 +36,21 @@ them until tagged releases begin.
   `UiGridKeys` strategy are gone. Call sites take the key immediately after the step that supplies the
   rows: `UiDataGrid.Data(rows).RowKey(p => p.Id)`.
 
-### Fixed
+- **The meta framework lane is on the front door.** `Rask.Meta.Hosting` has shipped for a while, with
+  a guide, a card in the landing page's batteries grid and a row in the docs index — but neither place
+  that frames *the choice of a front end* counted it. The README section was titled "Three front ends,
+  one back end" and listed three, and the landing page had no such section at all, so the lane a
+  visitor is picking between was reachable only by reading a thirteen-card feature grid.
 
-- **A generated chain lost the constraints on the type parameters it declares.** A stage carried its
-  component's whole `where` clause on the STEP inside it rather than on the struct that declares the type
-  parameter (CS0699), and the pending state carried none at all (CS8714). Nothing in the repo had a
-  constrained type parameter pinned by a step until the grid's `where TKey : notnull`, so a generator this
-  heavily tested had no occasion to be right about it.
+  README now names four lanes — Rask components, islands, the TypeScript SPA, and a meta framework —
+  and the landing page gains the matching section, between the hosts grid and the batteries grid. The
+  Islands and Meta cards move *into* it out of the batteries grid rather than being said twice on one
+  page. `llms.txt` gains its `docs/meta.md` bullet, the one front-end lane it was missing.
 
-- **A `Func<…>` step could never pin a type argument.** Every delegate was excluded from the pin
-  candidates, which is correct for an OPENING — a lambda's parameter would have no type to be, so the call
-  site infers nothing — and wrong for a step after one. With the rows already fixing `T`,
-  `.RowKey(p => p.Id)` infers `TKey` perfectly well. The rule is now the delegate's INPUT positions rather
-  than its delegate-ness, so a carrier still never pins: `Fn<TIn, TOut>` is a struct a lambda reaches by a
-  user-defined conversion, and C# infers nothing through one of those.
-
-- **`Of` was withheld from every component with a required step**, which left one whose type no step can
-  pin — a grid fed by `Source`, whose carrier infers nothing — with no way in at all. It now hands back the
-  state that still owes the required steps, so stating a type argument is never a way past them.
-  `UiInput.Of<string>()` used to hand back the control itself and skip its required `Label`.
-
-- **A partially restored Tailwind CLI poisoned every later build.** The cached binary was trusted on
-  `File.Exists` alone, so a cache restore that failed part way — `actions/cache` reports a failed untar as
-  a warning and carries on — left a file that exists and cannot run. The build reported it as MSB3073 with
-  the whole command line in it, which reads as though the CLI rejected its arguments; the real cause was
-  **exit code 126**, the executable bit lost in the restore. It recurred on every later build on that
-  machine, because the broken file kept satisfying the check and the download that would have replaced it
-  was never reached. A cache hit is now checked for usability, and an empty file is dropped rather than
-  executed.
+  The heading's count is asserted against the markup beside it rather than pinned to a literal
+  (`FrontEndsTests`): add a lane and the wording has to change with it, because a number that outlives
+  what it counts is precisely what went wrong here. `docs/meta.md` also loses a second section titled
+  "Signing people in" — the one about where the scaffolded screens land is now named for that.
 
 - **The local format + unit gate is roughly 2.4x faster — ~325s to ~136s on a 14-core box.** Nothing
   it checks was dropped; the time was going to four things that measurement, not intuition, found.
@@ -204,6 +191,34 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A generated chain lost the constraints on the type parameters it declares.** A stage carried its
+  component's whole `where` clause on the STEP inside it rather than on the struct that declares the type
+  parameter (CS0699), and the pending state carried none at all (CS8714). Nothing in the repo had a
+  constrained type parameter pinned by a step until the grid's `where TKey : notnull`, so a generator this
+  heavily tested had no occasion to be right about it.
+
+- **A `Func<…>` step could never pin a type argument.** Every delegate was excluded from the pin
+  candidates, which is correct for an OPENING — a lambda's parameter would have no type to be, so the call
+  site infers nothing — and wrong for a step after one. With the rows already fixing `T`,
+  `.RowKey(p => p.Id)` infers `TKey` perfectly well. The rule is now the delegate's INPUT positions rather
+  than its delegate-ness, so a carrier still never pins: `Fn<TIn, TOut>` is a struct a lambda reaches by a
+  user-defined conversion, and C# infers nothing through one of those.
+
+- **`Of` was withheld from every component with a required step**, which left one whose type no step can
+  pin — a grid fed by `Source`, whose carrier infers nothing — with no way in at all. It now hands back the
+  state that still owes the required steps, so stating a type argument is never a way past them.
+  `UiInput.Of<string>()` used to hand back the control itself and skip its required `Label`.
+
+- **A partially restored Tailwind CLI poisoned every later build.** The cached binary was trusted on
+  `File.Exists` alone, so a cache restore that failed part way — `actions/cache` reports a failed untar as
+  a warning and carries on — left a file that exists and cannot run. The build reported it as MSB3073 with
+  the whole command line in it, which reads as though the CLI rejected its arguments; the real cause was
+  **exit code 126**, the executable bit lost in the restore. It recurred on every later build on that
+  machine, because the broken file kept satisfying the check and the download that would have replaced it
+  was never reached. A cache hit is now checked for usability, and an empty file is dropped rather than
+  executed.
+
+
 - **The public-API gate covered the prerender companion, so the browser E2E gate could not run at
   all.** `Rask.Wasm.Prerender.targets` GENERATES a companion project into the app's `obj/` — which is
   under `src/`, where the repo-wide gate in `Directory.Build.targets` applies. It can never carry a
@@ -227,7 +242,7 @@ them until tagged releases begin.
 
 ### Added
 
-- **A data grid, and a fourth chain shape to hold it.** `UiDataGrid<T>` joins the UI kit with sortable
+- **A data grid.** `UiDataGrid<T, TKey>` joins the UI kit with sortable
   headers, paging, typed selection, expandable detail rows, multi-level grouping with collapsible bands
   and subtotals, a column chooser, sticky headers, column footers, and a card layout on a phone.
 
@@ -237,13 +252,10 @@ them until tagged releases begin.
   call sits in, so `UiColumn.Field(p => p.Name)` written as a flat child has nothing at all to say what
   `p` is and fails CS0411. Handing the grid to a lambda fixes the row type before a column is written.
 
-  That needs a children indexer no other component should have, and an indexer cannot be constrained —
-  so the grid's chain is a new `GridBuild<T, TKey>` in `Rask.Core`, beside `Build<T>`,
-  `Build<T, TMode>` and `FormBuild<T>`, claimed by implementing `IColumnHost`. Exactly the reasoning
-  that gave `Form` its own shape. The generator emits the shared surface over it, but only the
-  **Component-owned** half: 120 of the 121 shared members are constrained to `Element`, and a grid
-  renders a table rather than being one — emitting those would have put 120 uncallable extensions into
-  every compilation that references `Rask.Core`, and 240 unreachable entries into its recorded API.
+  That needs a children indexer no other component should have, and an indexer cannot be constrained.
+  It is declared on `UiDataGrid<T, TKey>` itself, which scopes it to a grid and costs no type parameter —
+  see the chain-receiver entry above, which is what removed the separate shape this originally shipped
+  with.
 
   **Three data sources.** A list sorts and pages in memory; an `IQueryable<T>` handed to the *same*
   `Data` step does it in the store through `ORDER BY`/`Skip`/`Take` (one step, because an `IQueryable`

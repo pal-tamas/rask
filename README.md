@@ -45,9 +45,9 @@ Adding Rask to a project you already have is one package:
 dotnet add package Rask
 ```
 
-## Three front ends, one back end
+## Four front ends, one back end
 
-Pick one per project — all three sit on the same C# back end. Islands also compose *inside* a Rask
+Pick one per project — all four sit on the same C# back end. Islands also compose *inside* a Rask
 component tree, so those two mix freely.
 
 ### Rask components
@@ -63,19 +63,6 @@ rask new Shop
 ```
 
 → [Render modes](docs/render-modes.md) · [Building components](docs/building-components.md)
-
-### SPA
-
-A TypeScript single-page app on an ASP.NET host — React, Preact, Vue, Angular, Solid, Svelte or Lit.
-The client's TypeScript is generated from your C# message records on every build, so
-`await rask.dispatch(getOrder({ id }))` is typed and renaming a C# property breaks the build rather
-than the wire.
-
-```bash
-rask new Shop --template react
-```
-
-→ [TypeScript front ends](docs/spa.md)
 
 ### Islands
 
@@ -95,6 +82,35 @@ public sealed partial class Chart : ReactComponent
 ```
 
 → [Islands](docs/islands.md)
+
+### SPA
+
+A TypeScript single-page app on an ASP.NET host — React, Preact, Vue, Angular, Solid, Svelte or Lit.
+The client's TypeScript is generated from your C# message records on every build, so
+`await rask.dispatch(getOrder({ id }))` is typed and renaming a C# property breaks the build rather
+than the wire.
+
+```bash
+rask new Shop --template react
+```
+
+→ [TypeScript front ends](docs/spa.md)
+
+### Meta framework
+
+Nuxt, Next.js, SvelteKit, TanStack Start, SolidStart or Analog owning the *whole* front end — its own
+routing, its own rendering, its own Node server — with Rask as the backend behind it. The two ship as
+**one container on one port**: Rask fronts every request, supervises Node as a child process and
+forwards to it over loopback, so ASP.NET auth, rate limiting, logging and health stay in front of the
+framework and the session has one owner. `rask new` runs the framework's *own* creator — `nuxi`,
+`create-next-app`, `sv`, `@tanstack/cli` — so what you get is whatever that creator ships today, plus
+a node-server build and a dev proxy. Add `Rask.Meta.Hosting`, and Node, because the framework needs it.
+
+```bash
+rask new Shop --template nuxt
+```
+
+→ [Meta framework front ends](docs/meta.md)
 
 ## Ship it
 

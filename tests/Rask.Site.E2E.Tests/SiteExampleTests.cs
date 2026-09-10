@@ -40,6 +40,14 @@ public sealed class SiteExampleTests
             await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
             await Expect(page.Locator("h1")).ToContainTextAsync("C#");
 
+            // The four front-end lanes are part of the prerendered document rather than something the
+            // bundle fills in later. This is the section a visitor reads to work out which lane they
+            // are in — and the one a crawler has to see all of, since choosing a front end is the
+            // decision that brings people to the page at all. Asserted with no timeout extension, for
+            // the same reason as the headline above: waiting would mean it was not prerendered.
+            await Expect(page.Locator("#front-ends a")).ToHaveCountAsync(4);
+            await Expect(page.Locator("#front-ends")).ToContainTextAsync("Meta framework");
+
             // Note there is deliberately no "the marker is present" assertion here. It is true only
             // until the runtime takes over, and the runtime may well have taken over by the time this
             // line runs — asserting it in a live journey is a race that would pass on a slow machine and
