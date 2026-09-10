@@ -82,20 +82,14 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(body).ToBeVisibleAsync();
     });
 
-    [Fact]
-    public Task TheRotatorShowsEveryWordInTheMarkup() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        // The animation is CSS, so all four words are in the DOM whatever the browser is doing with
-        // them. A reader who never sees the animation still reads the list.
-        var scope = Page.Locator("[data-testid='ui-text-rotate']");
-
-        await Expect(scope).ToContainTextAsync("fast");
-        await Expect(scope).ToContainTextAsync("typed");
-        await Expect(scope).ToContainTextAsync("small");
-        await Expect(scope).ToContainTextAsync("whole");
-    });
+    // TheRotatorShowsEveryWordInTheMarkup moved DOWN to Rask.Ui.Tests.Components.UiTextRotateTests.
+    // Its own comment gave the reason: the words are in the DOM "whatever the browser is doing with
+    // them", which makes it a claim about rendered markup, and it was paying a published bundle and a
+    // Chromium page to read four words out of a string. The unit test asserts more than it did — the
+    // ORDER of the words, and the inner wrapper daisyUI counts children on — in under a millisecond.
+    //
+    // It was the only one of the forty-two UiKit journeys that could move. The rest assert CSS
+    // visibility, layout geometry, real input, keyboard and focus, none of which survive that trip.
 
     [Fact]
     public Task TheDecorativeComponentsAnnounceNothing() => RunAsync(async () =>

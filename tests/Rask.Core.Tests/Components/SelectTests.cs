@@ -44,36 +44,6 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundSelect_NullValue_Preselects_EmptyValueOption()
-    {
-        var model = new ColorPicker { Color = null };
-        var view = new StubComponent(() => Form.Model(model)[
-            Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red")]
-        ]);
-
-        var html = view.RenderAsLiveRoot();
-
-        // Empty-value option gets `selected` because FormatValue(null) == "" matches opt.Value.
-        Assert.Contains("<option value=\"\" selected>", html);
-        Assert.DoesNotContain("<option value=\"red\" selected>", html);
-    }
-
-    [Fact]
-    public void BoundSelect_NonNullValue_PreselectsMatchingOption()
-    {
-        var model = new ColorPicker { Color = "red" };
-        var view = new StubComponent(() => Form.Model(model)[
-            Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red"), Option.Value("blue")]
-        ]);
-
-        var html = view.RenderAsLiveRoot();
-
-        Assert.Contains("<option value=\"red\" selected>", html);
-        Assert.DoesNotContain("<option value=\"\" selected>", html);
-        Assert.DoesNotContain("<option value=\"blue\" selected>", html);
-    }
-
-    [Fact]
     public async Task BoundSelect_NullableString_EmptyChange_SetsPropertyToNull()
     {
         // `string?` is nullable per the C# NRT annotation; BindingHelpers reads it via

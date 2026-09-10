@@ -25,15 +25,6 @@ public partial class ComponentTests : global::Rask.Core.RaskMarkup
             new Block { Class = "a\"b<c" }.ToHtml());
 
     [Fact]
-    public void Render_BooleanLikeAttribute_NullValue_EmitsBareName()
-    {
-        var data = new Dictionary<string, string?> { ["flag"] = null };
-        var html = new Block { Data = data }.ToHtml();
-
-        Assert.Equal("<block data-flag></block>", html);
-    }
-
-    [Fact]
     public void Render_MultipleChildren_RendersInDeclarationOrder()
     {
         var html = new Block()[Text.Value("a"), Raw.Value("<i>"), Text.Value("b")].ToHtml();

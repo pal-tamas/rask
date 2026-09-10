@@ -91,6 +91,32 @@ them until tagged releases begin.
   `configureServer` so any test with an opinion about the budget still wins. Five tests in
   `ShutdownDrainTests` were paying the full 5s each for a number they did not care about.
 
+- **Five duplicate tests removed, and one browser test brought down to a unit test.** Every deletion
+  was byte-identical to a survivor, read before removing, and the survivor is the copy carrying the
+  regression history:
+
+  - `ComponentTests.Render_BooleanLikeAttribute_NullValue_EmitsBareName` — identical to
+    `HtmlSerializerTests.Serialize_AttributeWithNullValue_EmitsBareAttributeName`.
+  - `SelectTests.BoundSelect_NonNullValue_PreselectsMatchingOption` and
+    `BoundSelect_NullValue_Preselects_EmptyValueOption` — identical to their `IndexerChildren`
+    counterparts, which keep the note about factory-time `MarkSelected` never seeing those children.
+  - `SyncAsyncHandlerAnalyzerTests.BothSyncAndAsyncClick_ReportsRask027` — the same source string as
+    `ChainBothSyncAndAsyncClick_ReportsRask027`. Both were the CHAIN form: this was the factory case,
+    and the factory is gone, so the pair had silently become one test written twice.
+  - `AssetEndpointTests.NosniffHeader_IsPresent_OnAssetResponses` — identical to
+    `AssetEndpointSecurityTests.NosniffHeader_PreventsBrowserMimeSniffing`.
+
+  `UiKitDataDisplayTests.TheRotatorShowsEveryWordInTheMarkup` moved down to the new
+  `Rask.Ui.Tests.Components.UiTextRotateTests`, which also closes a gap — `UiTextRotate` had no unit
+  test at all. The unit version asserts MORE than the browser one did (the order of the words, and the
+  inner wrapper daisyUI counts children on) in under a millisecond instead of a published bundle and a
+  Chromium page.
+
+  It was the only one of the forty-two UiKit journeys that could move. The other forty-one assert CSS
+  visibility (28), real input (24), layout geometry (8), navigation (7), keyboard (5), computed style
+  (3), focus (2) and DOM checkedness (1) — none of which survive the trip to a rendered string, and
+  several of which name the exact bug a markup-level test missed.
+
 ### Fixed
 
 - **Two demos settle after mount and their golden entries are racy.** `virtualize-provider` (an empty

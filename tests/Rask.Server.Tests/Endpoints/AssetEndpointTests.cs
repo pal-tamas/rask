@@ -70,18 +70,6 @@ public class AssetEndpointTests
         Assert.Equal(registryBytes, bodyBytes);
     }
 
-    [Fact]
-    public async Task NosniffHeader_IsPresent_OnAssetResponses()
-    {
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
-        ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
-        using var host = RaskTestHost.Create<TestApp>();
-
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
-        Assert.True(response.Headers.TryGetValues("X-Content-Type-Options", out var v));
-        Assert.Equal("nosniff", v.Single());
-    }
-
     // ─── HTTP method semantics ────────────────────────────────────────────
 
     [Fact]
