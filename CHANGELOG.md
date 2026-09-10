@@ -106,6 +106,33 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Hydrating a prerendered WASM page no longer paints one unstyled frame.** The published site
+  flickered on `/` and `/docs` as the prerendered document handed over to the runtime: sampled every
+  50 ms through the handover, one frame had a transparent background, UA serif and **13x** the document
+  height. ~19 ms on a warm local static server, and proportionally longer on a cold cache or a slower
+  device, which is where it was actually being noticed.
+
+  The trigger was a single whitespace text node. The SDK pretty-prints `index.html`, so a published
+  page contains `</head>\n<body …>`, and per the HTML parser's *after head* insertion mode that
+  newline is inserted into the `<html>` element. The served document's `<html>` therefore had children
+  `[HEAD, #text, BODY]`, while the runtime's full-frame payload — `HtmlSerializer` emits no newlines at
+  all — parsed to `[HEAD, BODY]`. Neither child is keyed, so the morph paired them positionally:
+  `HEAD` with `HEAD`, then **`#text` with `BODY`**, whose node names differ, so the body was *replaced*
+  with a brand-new element and the old one removed. A freshly created `<body>` has no resolved style
+  yet, so the first paint after the swap was unstyled.
+
+  The morph now drops formatting whitespace from both sides when pairing the children of `<html>` and
+  `<head>` — the containers where such text is never rendered. Deliberately not every element:
+  whitespace between inline elements *is* rendered, so a blanket filter would pair around visible nodes
+  and drop them. `PrerenderShell` additionally emits no whitespace between `</head>` and `<body>`, so
+  the published bytes and the payload agree at the source too; a comment in that region is still
+  carried over untouched.
+
+  The head was never at fault and was ruled out by measurement, along with two other plausible
+  suspects: it stays the same element with its stylesheet `<link>` nodes still connected, the font
+  `<link>` swap causes no reflow, and the theme bootstrap writes no `<html>` attributes when the reader
+  has chosen nothing.
+
 - **A multi-select whose type argument is stated, not inferred, binds again.**
   `BindingHelpers.TrySetSelection<T>` chose the collection to build from the *type argument* `T`, which
   is only the property's own type when inference supplied it. State it instead —
