@@ -106,6 +106,29 @@ them until tagged releases begin.
 
 ### Added
 
+- **An island can be owned by a shared class library.** The library bundles it once and any app that
+  references it just renders the component — where before, the app that served the page was the app
+  that had to bundle it, so two apps showing the same island each built their own copy.
+
+  The build side always worked: a Razor-SDK class library holding `Badge.cs` and `Badge.ts` writes its
+  own `.props.d.ts`, runs the prop type-check, bundles with Vite and registers the chunks as static web
+  assets. Two URLs were wrong, and both were the same mistake. `RaskExternalPublicBase` defaulted to
+  `/_rask/external/` in every project, so a library's manifest pointed every chunk under the *app's*
+  root; and `rask-external.js` fetched that same app-rooted manifest, which the `UseRask` catch-all
+  answers with the page's own HTML (`Unexpected token '<'`, nothing mounted).
+
+  A class library now defaults to `/_content/<PackageId>/_rask/external/`, and each island's host
+  element carries the manifest it resolves through as a `manifest` attribute. An app's own islands
+  write no attribute at all — the client already assumes the app's manifest. Naming it per element is
+  what lets **one page carry islands from the app and from several libraries at once**: "the manifest"
+  is not a single document, and a single cached fetch made the first one to load the only one that
+  could exist. The client caches one fetch per distinct URL.
+
+  The default is chosen in the targets rather than the props, because `OutputType` is the only thing
+  that separates the two cases and it is not set when the props are imported. `StaticWebAssetBasePath`
+  and `StaticWebAssetProjectMode` cannot be used: both are empty at evaluation, and afterwards a
+  browser-WASM app resolves to character-for-character what a class library does.
+
 - **RASK076 warns about a grid column with no field token, in a grid that hides, reorders or groups
   columns by name.** A `UiDataGrid` addresses a column by the field token it was opened with.
   `c.Field(...)` always has one; `c.Column()` deliberately has none, which is right for an actions

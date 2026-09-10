@@ -38,6 +38,23 @@ public static class ExternalDefaults
     public const string RuntimeAttribute = "runtime";
 
     /// <summary>
+    ///     Which manifest resolves this island's name to a chunk. Written only when it is not the app's
+    ///     own, which is the common case and writes no attribute at all.
+    /// </summary>
+    /// <remarks>
+    ///     An app's islands are published under <c>/_rask/external/</c> and the client assumes that
+    ///     manifest. A CLASS LIBRARY's static web assets are served under
+    ///     <c>_content/&lt;PackageId&gt;/</c> instead, so its bundle and its manifest are somewhere the
+    ///     client cannot guess — and, since a page can show islands from the app and from a library at
+    ///     once, "the manifest" is not a single document. Naming it per host element is what lets both
+    ///     resolve; the client caches one fetch per distinct URL.
+    /// </remarks>
+    public const string ManifestAttribute = "manifest";
+
+    /// <summary>The manifest an app's own islands publish, and the client's default.</summary>
+    public const string DefaultManifestUrl = "/_rask/external/manifest.json";
+
+    /// <summary>
     ///     Where the client runtime is served from — a static web asset of this package, so the URL is
     ///     the same in-repo and from the packed NuGet.
     /// </summary>

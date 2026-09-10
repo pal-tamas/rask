@@ -93,6 +93,46 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_app_owned_island_names_no_manifest()
+    {
+        // The client already assumes the app's own manifest, so stamping it on every island would put
+        // the same string on every host element on the page for no reader's benefit.
+        var html = Render(Chart.Series([]));
+
+        Assert.DoesNotContain("manifest=", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_library_owned_island_names_the_manifest_it_resolves_through()
+    {
+        // #939: a class library's static web assets are served under _content/<PackageId>/, so its
+        // bundle and manifest sit somewhere the client cannot guess from the island's name. Naming it
+        // per host element is also what lets a page carry islands from the app AND a library at once —
+        // "the manifest" is not one document.
+#pragma warning disable RASK014 // a test stand-in has no generated chain entry
+        var html = Render(new LibraryChart());
+#pragma warning restore RASK014
+
+        Assert.Contains(
+            "manifest=\"/_content/Acme.Ui/_rask/external/manifest.json\"", html, StringComparison.Ordinal);
+    }
+
+    // Stands in for what the generator writes in a class library, which is a build-layer fact this
+    // assembly cannot produce: the override is the whole of it.
+    private sealed class LibraryChart : Rask.External.ExternalComponent
+    {
+        protected override string Runtime => "react";
+
+        protected override string Module => "./Chart.tsx";
+
+        protected override string ComponentName => "Chart";
+
+        protected override string? ManifestUrl => "/_content/Acme.Ui/_rask/external/manifest.json";
+
+        protected override string WriteProps() => "{}";
+    }
+
+    [Fact]
     public void A_lit_component_pairs_with_a_ts_file_rather_than_a_tsx_one()
     {
         // What naming the runtime in the BASE CLASS buys: a Lit component is ordinary TypeScript, so

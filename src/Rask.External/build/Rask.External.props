@@ -63,6 +63,18 @@
 
     <!-- The URL prefix those files are served from. Must match RaskExternalOutputDir's position under
          wwwroot, and is what the generated manifest prefixes every chunk with. -->
+    <!--
+      Recorded BEFORE the default is applied, because the right default cannot be chosen here. A class
+      library serves its static web assets under `_content/<PackageId>/`, so its base is not the app's
+      — but this file is imported at the TOP of the project, before OutputType is set in the body, so
+      there is nothing here to tell the two apart. StaticWebAssetBasePath and StaticWebAssetProjectMode
+      are no help either: both are empty at evaluation.
+
+      So the app default stays here, where everything downstream reads it at evaluation, and the
+      targets file — imported at the bottom, where OutputType is known — overrides it for a library.
+      This flag is what keeps that override off a base the author set deliberately (#939).
+    -->
+    <_RaskExternalPublicBaseIsDefault Condition="'$(RaskExternalPublicBase)' == ''">true</_RaskExternalPublicBaseIsDefault>
     <RaskExternalPublicBase Condition="'$(RaskExternalPublicBase)' == ''">/_rask/external/</RaskExternalPublicBase>
 
     <!--
