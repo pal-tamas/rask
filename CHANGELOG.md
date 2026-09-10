@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The prerendered page no longer paints an unstyled frame at all.** The `<body>` replacement fixed
+  earlier was real but was **not** what the reader saw: after it, the flash was still there. Measured
+  on the published bundle, `document.styleSheets` collapsed from 6 to 1 for ~37 ms at exactly that
+  frame, while every stylesheet `<link>` stayed connected, un-removed and un-mutated — and
+  `moveBefore` was available and never threw.
+
+  What moved them was the keyed `<head>` reconciliation. A prerendered head is
+  `[shell nodes][document nodes]` while the runtime's full-frame payload carries the document's alone,
+  so the anchor started on the first *shell* node — one the incoming tree never claims. Every node the
+  payload did claim then looked out of place and was relocated in front of it: **22 `moveBefore` calls
+  on the landing page**, for a head whose survivors were already in the right order. Moving a
+  `<link rel=stylesheet>` re-resolves its sheet, so three of the four stylesheets stopped applying
+  until the move settled.
+
+  The anchor now skips nodes the incoming tree does not claim, walking the **live** sibling chain
+  rather than the snapshot the loop started with — the DOM is mutated as the loop runs, so a snapshot
+  stops describing it after the first insert. The landing page now performs **zero** moves, and the
+  unstyled frame is gone: every sampled frame holds its background, its font and its height.
+
+  Deliberately not fixed by re-ordering the prerendered head to match the payload. That was tried,
+  removed the moves too, and changed the cascade — the browser suite caught a scoped-CSS rule losing to
+  a stylesheet it used to win against. Reconciliation was the right place; output order was not.
+
 - **A component's props refresh from a children-function's argument, with no `Key`.**
   `Form.Model(m)[submitting => [ … ]]` calls its children function on every render with whether a
   submit is in flight. A component in there whose prop derived from that flag kept its old value for

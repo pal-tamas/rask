@@ -660,10 +660,40 @@ export function morph(fromNode: Node, toNode: Node): void {
             else unkeyedFrom.push(fn);
         }
         let unkeyedCursor = 0;
+
+        // Which from-nodes the incoming tree actually claims. Everything else is about to be removed,
+        // and the anchor must not come to rest on one: an anchor parked on a doomed node makes every
+        // surviving node "out of place", so each is relocated in front of it for nothing.
+        //
+        // Not a tidiness point. A prerendered <head> is [shell nodes][document nodes] while the payload
+        // carries the document's alone, so the anchor started on the first SHELL node and all 22 of the
+        // landing page's head nodes were relocated on every hydration. Moving a <link rel=stylesheet>
+        // RE-RESOLVES its sheet: measured on the published bundle, three of four stylesheets left
+        // document.styleSheets for ~37ms while their elements stayed connected, unremoved and
+        // un-mutated. One completely unstyled frame, every load (#1049). With this the page moves
+        // nothing at all.
+        const claimed = new Set<Node>();
+        {
+            let probe = 0;
+            for (const dst of tc) {
+                const dk = isElement(dst) ? dst.getAttribute("data-rask-key") : null;
+                const hit = dk !== null ? keyMap.get(dk) : unkeyedFrom[probe++];
+                if (hit) claimed.add(hit);
+            }
+        }
+
+        // Walks the LIVE sibling chain, never a snapshot: nodes are inserted, moved and removed as this
+        // loop runs, so fc's order stops describing the DOM after the first mutation. Anchoring off a
+        // stale array places nodes against neighbours they no longer have.
+        const firstClaimed = (n: Node | null): Node | null => {
+            while (n !== null && !claimed.has(n)) n = n.nextSibling;
+            return n;
+        };
+
         // Sentinel: keep the place we want to insert before. As we move/create
         // keyed nodes we advance this past the just-placed node; unkeyed nodes
         // follow the same anchor.
-        let anchor = (fc.length > 0) ? fc[0] : null;
+        let anchor = firstClaimed(fc.length > 0 ? fc[0] : null);
         for (const dst of tc) {
             const dk = isElement(dst) ? dst.getAttribute("data-rask-key") : null;
             let src: Node | null;
@@ -683,11 +713,11 @@ export function morph(fromNode: Node, toNode: Node): void {
                 // keyed sibling promotes the container to keyed reconciliation but some from-side
                 // children don't match the new tree by node name (e.g. the SDK-injected <head>
                 // importmap / <base> a WASM app hydrates against on a static host).
-                if (src === anchor) anchor = src.nextSibling;
+                if (src === anchor) anchor = firstClaimed(src.nextSibling);
                 _raskRemoveChild(from, src);
             } else {
                 if (src !== anchor) _raskMoveBefore(from, src, anchor);
-                else anchor = src.nextSibling;
+                else anchor = firstClaimed(src.nextSibling);
                 morph(src, dst);
             }
         }
