@@ -51,7 +51,7 @@ public sealed partial class GuidesIndexPage : Component
     private static Component Install() =>
         Div.Class("install-block mb-6 rounded-xl border border-ui-line bg-ui-panel p-4 sm:p-5")[
             Div.Class("flex items-center gap-2")[
-                UiIcon.Name(UiIconName.Terminal).Class("size-5 shrink-0 text-ui-brand"),
+                UiIcon.Name(UiIconName.Terminal).Class("size-5 shrink-0 text-ui-brand-ink"),
                 H2.Class("text-base font-semibold tracking-tight text-ui-ink sm:text-lg")["Start a project"]
             ],
             P.Class("mt-1 text-sm text-ui-muted")[
@@ -74,5 +74,5 @@ public sealed partial class GuidesIndexPage : Component
             ]
         ];
 
-    private static Component Prompt() => Span.Class("select-none text-ui-brand")["$"];
+    private static Component Prompt() => Span.Class("select-none text-ui-brand-ink")["$"];
 }

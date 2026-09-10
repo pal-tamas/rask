@@ -138,32 +138,160 @@
   --color-ui-well: var(--color-base-200);
   --color-ui-line: var(--color-base-300);
   --color-ui-ink: var(--color-base-content);
-  --color-ui-muted: var(--color-neutral);
+  /*
+    MUTED IS DERIVED FROM THE INK, not from --color-neutral, and that is a readability fix rather than a
+    re-skin. daisyUI publishes `neutral` as a SURFACE — the dark chip you put neutral-content on top of
+    — so handing it to a text utility is the same mistake the -ink pair below exists to avoid, and it
+    was by far the worst one the kit shipped: on a dark theme `neutral` is a near-black against a
+    near-black ground. Measured across every theme the kit ships: 1.08:1 on halloween, 1.10:1 on
+    business, 1.26:1 on daisyUI's own `dark`. Seventeen of thirty-six palettes failed AA, and the
+    showcase writes text-ui-muted 282 times.
+
+    Mixed TOWARD the ground rather than toward black, which is what makes one formula work in both
+    directions: in a light theme base-100 is white and the ink lightens to a grey, in a dark theme it is
+    near-black and the same 80% lands a lighter grey. Nothing here knows which theme is showing, and it
+    does not need to.
+  */
+  --color-ui-muted: color-mix(in oklab, var(--color-base-content) 80%, var(--color-base-100));
 
   --color-ui-brand: var(--color-primary);
-  --color-ui-brand-ink: var(--color-primary);
+  /*
+    The brand as TEXT. --color-primary is a surface too, and a pale primary read as a label is the same
+    class of defect: 1.37:1 on pastel, 1.40:1 on cupcake, 3.40:1 on `dark`. Pulled toward the ink so it
+    keeps its hue and lands at the ink's lightness — 30% primary is still recognisably the brand colour.
+  */
+  --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 30%, var(--color-base-content));
 
   --color-ui-ok: var(--color-success);
   --color-ui-warn: var(--color-warning);
   --color-ui-danger: var(--color-error);
+  --color-ui-info: var(--color-info);
 
   /*
-    The -ink pair are TEXT colours, and daisyUI's success/warning are not.
+    The SURFACE tier: the quiet wash behind a badge, an alert, or a hovered outline button.
+
+    A solid mix with the ground rather than the colour at an alpha, and that is the correction. Written
+    as `bg-ui-warn/15` the surface is whatever is BEHIND it, so the same badge is one colour on a card
+    and another on the well, and the text on it has two contrast ratios instead of one. On the six
+    palettes with the least room to spare that difference was the whole failure: text that cleared AA on
+    base-100 measured 4.03:1 on the same badge sitting on base-200.
+
+    Mixed with base-100 so the ratio is a property of the token and not of the page.
+  */
+  --color-ui-brand-surface: color-mix(in oklab, var(--color-primary) 12%, var(--color-base-100));
+  --color-ui-ok-surface: color-mix(in oklab, var(--color-success) 12%, var(--color-base-100));
+  --color-ui-warn-surface: color-mix(in oklab, var(--color-warning) 12%, var(--color-base-100));
+  --color-ui-danger-surface: color-mix(in oklab, var(--color-error) 12%, var(--color-base-100));
+  --color-ui-info-surface: color-mix(in oklab, var(--color-info) 12%, var(--color-base-100));
+
+  /*
+    The -ink trio are TEXT colours, and daisyUI's success/warning/error are not.
 
     They are surface colours — the ones you set as a background and pair with success-content on top —
     and read as text on base-100 they fail WCAG badly: success is oklch(76% .177 163), which is 1.95:1
     against white. Aliasing them straight across shipped unreadable status text everywhere the kit is
     used, and it is the kind of defect that looks fine to anyone who already knows what the label says.
 
-    Darkened toward black in oklab, which keeps the hue and only moves lightness, so a status green
-    still reads as the same green. Measured rather than guessed: 70% lands near oklch(0.53), about
-    4.6:1 on white, which clears AA for normal text with room for the theme to shift.
+    TOWARD THE INK, NOT TOWARD BLACK, and that is the whole correction here. Darkening in oklab keeps
+    the hue and only moves lightness, which is right — but it only moves it the right WAY on a light
+    theme. On a dark one it pushed a status colour further into its own background: the 70%-toward-black
+    success measured 3.26:1 on daisyUI's `dark` and 1.46:1 on aqua, and warning 2.71:1 and 1.20:1. The
+    kit was readable in exactly the palettes it was measured against.
 
-    danger is left alone: --color-error is already dark enough to pass, and moving a colour that works
-    would be change for its own sake.
+    --color-base-content is the ground's opposite by construction in every theme daisyUI ships, so
+    mixing toward it darkens on light and lightens on dark from one declaration. The weights are the
+    largest that clear AA (4.5:1) on base-100 AND base-200 across all thirty-six palettes, solved rather
+    than guessed; six low-contrast themes need a little more and get it in the block below.
+
+    error joins the pair it used to be left out of. "already dark enough to pass" was measured on one
+    theme: --color-error read as text is 2.87:1 on daisyUI's own `light`, and 1.50:1 on lemonade.
   */
-  --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 70%, black);
-  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 62%, black);
+  --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 35%, var(--color-base-content));
+  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 35%, var(--color-base-content));
+  --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 35%, var(--color-base-content));
+  --color-ui-info-ink: color-mix(in oklab, var(--color-info) 35%, var(--color-base-content));
+}
+
+/*
+  AN -ink TOKEN IS ALSO THE ONLY SAFE FILL, and that is worth stating because it replaces a whole
+  vocabulary nobody needs.
+
+  A filled control wants a saturated background and a label on top of it. The obvious label is white,
+  and `bg-ui-brand text-white` is what the showcase shipped: 1.00:1 on luxury, 1.07:1 on black, 1.27:1
+  on lofi — a button with an invisible label on a third of the palettes. daisyUI's own answer,
+  --color-primary-content, is better and still not AA: it measures 3.64:1 on winter and 3.06:1 for
+  warning on pastel, because it is generated to clear 3:1 for a large label rather than 4.5 for a small
+  one.
+
+  Contrast is symmetric, so the fix needs no new token. `--color-ui-brand-ink` is already held to 4.5:1
+  against `--color-ui-bg` — which is the same measurement as `--color-ui-bg` read on a
+  `--color-ui-brand-ink` fill. So a filled control is `bg-ui-brand-ink text-ui-bg`, and every pair in it
+  is one the gate already proves on all thirty-six palettes. The hover state moves to `bg-ui-ink`, whose
+  pair with the ground is proven the same way.
+*/
+
+/*
+  THE SIX PALETTES THAT NEED MORE THAN ONE FORMULA CAN GIVE THEM.
+
+  A single weight cannot clear AA everywhere, because a handful of daisyUI's themes are low-contrast
+  designs to begin with: valentine's own base-content is 4.97:1 against its base-100 and retro's is
+  6.51:1, so there is almost no room underneath the body text for a muted or a tinted tier to sit in.
+  The other thirty palettes have 8:1 to 19:1 to spend.
+
+  So the weights above are the generous ones — the ones that keep a status green visibly green — and
+  these are the per-theme corrections that buy AA back where the theme cannot afford them. Every value
+  is SOLVED, not picked: the largest weight in 1% steps that still clears 4.6:1 on both grounds, which
+  leaves a little over the 4.5 the gate asserts for the difference between this arithmetic and a
+  browser's. `ThemeContrastTests` recomputes the whole matrix out of this sheet, so a weight edited by
+  hand here fails a test rather than a reader.
+
+  In the `rask` layer, which the order statement at the top of this file puts after `theme` — these have
+  the same specificity as the :root declarations they correct (0,1,0 either way), so nothing but the
+  layer decides which one wins, and an app's own copy of the palette is a separate sheet whose `theme`
+  layer is ranked by that same global order.
+*/
+@layer rask {
+  [data-theme="caramellatte"] {
+    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 31%, var(--color-base-content));
+  }
+
+  [data-theme="emerald"] {
+    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 31%, var(--color-base-content));
+  }
+
+  [data-theme="retro"] {
+    --color-ui-muted: color-mix(in oklab, var(--color-base-content) 85%, var(--color-base-100));
+    --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 19%, var(--color-base-content));
+    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 30%, var(--color-base-content));
+    --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 25%, var(--color-base-content));
+    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 34%, var(--color-base-content));
+  }
+
+  [data-theme="silk"] {
+    --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 27%, var(--color-base-content));
+    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 28%, var(--color-base-content));
+    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 29%, var(--color-base-content));
+  }
+
+  /* The tightest palette the kit ships, and the one worth reading the numbers on. Every derived tier
+     needs correcting and most of them collapse almost onto the body ink — 2% of the brand, 1% of the
+     error. On valentine there is no readable tint of anything between its ink and its ground: its own
+     base-content is 4.97:1, so a tier that is visibly a different colour is a tier that is unreadable.
+     Keeping the hue and losing the contrast would be the easier-looking choice and the wrong one. */
+  [data-theme="valentine"] {
+    --color-ui-muted: color-mix(in oklab, var(--color-base-content) 95%, var(--color-base-100));
+    --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 2%, var(--color-base-content));
+    --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 6%, var(--color-base-content));
+    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 7%, var(--color-base-content));
+    --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 1%, var(--color-base-content));
+    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 5%, var(--color-base-content));
+  }
+
+  [data-theme="winter"] {
+    --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 30%, var(--color-base-content));
+    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 25%, var(--color-base-content));
+    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 25%, var(--color-base-content));
+  }
 }
 
 /*

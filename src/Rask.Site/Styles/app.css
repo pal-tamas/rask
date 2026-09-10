@@ -26,18 +26,34 @@
   --color-ui-well: var(--color-base-200);
   --color-ui-line: var(--color-base-300);
   --color-ui-ink: var(--color-base-content);
-  --color-ui-muted: var(--color-neutral);
+  /* Derived from the ink, NOT from --color-neutral: daisyUI publishes neutral as a surface, and read as
+     text it is 1.26:1 on daisyUI's own `dark` and 1.08:1 on halloween. Mixed toward the ground so one
+     declaration darkens on a light theme and lightens on a dark one. */
+  --color-ui-muted: color-mix(in oklab, var(--color-base-content) 80%, var(--color-base-100));
   --color-ui-brand: var(--color-primary);
-  --color-ui-brand-ink: var(--color-primary);
+  --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 30%, var(--color-base-content));
   --color-ui-ok: var(--color-success);
   --color-ui-warn: var(--color-warning);
   --color-ui-danger: var(--color-error);
-  /* TEXT colours, unlike --color-ui-ok/-warn above, which are surfaces. daisyUI's success and warning
-     read as 1.95:1 and worse on base-100, so aliasing them straight across shipped unreadable status
-     text. Darkened in oklab, which moves only lightness — see the note in src/Rask.Ui/Styles/ui.css,
-     which UiPaletteTests holds this copy identical to. */
-  --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 70%, black);
-  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 62%, black);
+  --color-ui-info: var(--color-info);
+  /* The SURFACE tier — the wash behind a badge or an alert. A solid mix with the ground, not the colour
+     at an alpha: written as bg-ui-warn/15 the surface is whatever is behind it, so the same badge has
+     one contrast ratio on a card and another on the well (4.03:1 on the tightest palettes). */
+  --color-ui-brand-surface: color-mix(in oklab, var(--color-primary) 12%, var(--color-base-100));
+  --color-ui-ok-surface: color-mix(in oklab, var(--color-success) 12%, var(--color-base-100));
+  --color-ui-warn-surface: color-mix(in oklab, var(--color-warning) 12%, var(--color-base-100));
+  --color-ui-danger-surface: color-mix(in oklab, var(--color-error) 12%, var(--color-base-100));
+  --color-ui-info-surface: color-mix(in oklab, var(--color-info) 12%, var(--color-base-100));
+  /* TEXT colours, unlike --color-ui-ok/-warn/-danger above, which are surfaces. Mixed toward
+     --color-base-content rather than toward black: darkening is only the right direction on a light
+     theme, and the old 70%-toward-black success measured 3.26:1 on `dark` and 1.46:1 on aqua. The
+     weights are solved, not picked — see the note in src/Rask.Ui/Styles/ui.css, which UiPaletteTests
+     holds this copy identical to, and the per-theme corrections it carries for six low-contrast
+     palettes. ThemeContrastTests recomputes every pair from the shipped sheets. */
+  --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 35%, var(--color-base-content));
+  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 35%, var(--color-base-content));
+  --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 35%, var(--color-base-content));
+  --color-ui-info-ink: color-mix(in oklab, var(--color-info) 35%, var(--color-base-content));
 }
 
 /*

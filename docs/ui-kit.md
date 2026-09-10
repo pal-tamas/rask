@@ -118,8 +118,9 @@ want both.
 ## Themes
 
 daisyUI's 35 themes all ship, as the `UiThemeName` enum. Light is the default and dark follows the
-operating system; to choose one, put `data-theme` on the element carrying the theme scope — or on any
-container, to re-theme just that subtree.
+operating system — a scope with **no** `data-theme` matches `[data-rask-ui]:not([data-theme])`, which
+daisyUI compiles under `prefers-color-scheme: dark`. To pin one, put `data-theme` on the element
+carrying the theme scope — or on any container, to re-theme just that subtree.
 
 `UiShell` carries the scope itself, so it names its own theme:
 
@@ -143,7 +144,62 @@ component can write an attribute onto something above it. The page holds the val
 `UiTheme.Value(theme)` there — which is also what lets it be persisted, something daisyUI's CSS-only
 `theme-controller` could not offer, since nothing in C# knew which theme was showing.
 
-`UiThemePicker` and `UiThemeDropdown` are ready-made pickers over the whole set.
+`UiThemePicker` and `UiThemeDropdown` are ready-made pickers over the whole set, and both offer
+**System** as their first entry — `UiThemeName.System`, whose value is `UiTheme.SystemValue`. It is not
+a palette: it means the absence of a choice, so selecting it **removes** `data-theme` and lets
+`prefers-color-scheme` decide again. Turn it off with `.ShowSystem(false)`, rename it with
+`.SystemLabel("Automatic")`.
+
+Never stamp `data-theme="system"`. daisyUI compiles no block for it, so it matches nothing and leaves
+every `--color-base-*` undefined on the element your document inherits from — a fully laid-out page
+with no colour in it, and nothing reports why.
+
+### Remembering the choice
+
+`UiThemeScript` is the other half of the picker. Put it in your root component's head assets, before
+the stylesheets:
+
+```csharp
+protected override Component? HeadAssets => [Title["…"], UiThemeScript, /* stylesheets */];
+```
+
+It applies the stored palette **before the first paint** (so a saved dark theme never flashes light),
+re-applies it after every morph (a full-document morph strips attributes off `<html>`), ticks the
+reader's radio back on, and exposes `window.raskSetTheme(value)` / `window.raskTheme()`.
+
+With nothing stored it writes **no `data-theme` at all**, which is what makes the page follow the
+operating system — in CSS, with nothing running, and repainting if the reader flips their OS while the
+page is open. A stored value is checked against the themes that exist (built from `UiTheme.All`), so a
+hand-edited `localStorage` entry means "no choice" rather than an uncoloured page.
+
+It carries **no C# event handlers**, deliberately. Handler ids are positional, so one handler in the
+chrome of every page shifts every id after it — and an island captures its callback id from the
+prerendered markup, so moving the ids breaks its clicks silently on a page that still looks alive.
+
+### Reading the palette
+
+Every token is readable in every theme, and that is measured rather than intended — see
+`ThemeContrastTests`, which resolves every pair out of the shipped stylesheets across all 36 palettes
+and holds them to WCAG AA (4.5:1).
+
+Three tiers, and picking the wrong one is the classic silent defect:
+
+| Tier | Example | Use it for |
+|---|---|---|
+| surface | `bg-ui-brand`, `bg-ui-warn` | a fill that carries no text of its own |
+| `-surface` | `bg-ui-ok-surface` | the quiet wash behind a badge or alert |
+| `-ink` | `text-ui-danger-ink` | **any text**, and any fill that carries text |
+
+daisyUI's `primary`/`success`/`warning`/`error`/`neutral` are **surfaces**. Read as text they fail AA
+badly — `--color-neutral` is 1.26:1 on daisyUI's own `dark`, `--color-error` 2.87:1 on its `light` —
+so the `-ink` tiers exist, each mixed toward `--color-base-content` (the ground's opposite in every
+palette, so one declaration darkens on a light theme and lightens on a dark one; mixing toward `black`
+is the trap, because it is only the right direction on half the palettes).
+
+A **filled control is `bg-ui-*-ink text-ui-bg`**, never a saturated fill with a white label:
+`bg-ui-brand text-white` measures 1.00:1 on `luxury`. Contrast is symmetric, so the ground read on an
+`-ink` fill is the same proven measurement as `-ink` read on the ground. daisyUI's own `-content`
+colours are generated for 3:1, not 4.5.
 
 ## The three axes
 

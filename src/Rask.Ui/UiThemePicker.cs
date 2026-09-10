@@ -39,32 +39,58 @@ public sealed partial class UiThemePicker : Component
     /// </remarks>
     public IReadOnlyList<UiThemeName>? Themes { get; set; }
 
+    /// <summary>
+    /// Whether to offer "follow the operating system" as the first entry. On by default.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It is the entry that makes the rest of them reversible. With no saved choice a page following the
+    /// reader's machine is the right default, but the moment they try a palette out of curiosity there is
+    /// nothing in a list of thirty-five named themes that means "go back to what my computer says" —
+    /// and "light" is not that, it is a third answer that happens to match on a light machine.
+    /// </para>
+    /// <para>
+    /// Its value is <see cref="UiTheme.SystemValue" />, which is deliberately not a theme daisyUI
+    /// compiled: with it checked no <c>:has(input.theme-controller[value=x]:checked)</c> rule matches, so
+    /// the CSS-only half of this control falls back to the default palette on its own. A host that
+    /// persists the choice recognises the value and REMOVES its <c>data-theme</c>.
+    /// </para>
+    /// </remarks>
+    public bool ShowSystem { get; set; } = true;
+
+    /// <summary>The label on the "follow the operating system" entry. Defaults to "System".</summary>
+    public string SystemLabel { get; set; } = "System";
+
     public string? Class { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
         Ul.Class(UiClass.Compose("menu", Class))[
-            (Themes ?? UiTheme.All).Select(theme =>
-            {
-                var value = UiTheme.Value(theme);
+            ShowSystem ? Entry(UiTheme.SystemValue, SystemLabel) : null,
+            (Themes ?? UiTheme.All).Select(theme => Entry(UiTheme.Value(theme)))
+        ];
 
-                // Keyed by the theme's own name: the list is stable, but RASK022 holds every list to
-                // identity rather than position, and the name is the identity here.
-                return Li.Key(value)[
-                    Label.Class("flex cursor-pointer items-center gap-2")[
-                        // daisyUI keys the palette off the input's `value`, so the chain opens
-                        // on it. It used to go through the escape hatch, on the belief that Value
-                        // carried the checked state; Checked does, and Value is the attribute.
-                        Input
-                            .Value(value)
-                            .Checked(false)
-                            .Type(InputType.Radio)
-                            .Name(GroupName)
-                            .Class("radio radio-sm theme-controller")
-                            .Aria(new Dictionary<string, string?> { ["label"] = value }),
-                        Span[value]
-                    ]
-                ];
-            })
+    /// <summary>One radio row: the palette's name, or the label the system entry carries.</summary>
+    private Component Entry(string value, string? label = null) =>
+        // Keyed by the value: the list is stable, but RASK022 holds every list to identity rather than
+        // position, and the value is the identity here.
+        Li.Key(value)[
+            Label.Class("flex cursor-pointer items-center gap-2")[
+                // daisyUI keys the palette off the input's `value`, so the chain opens on it. It used to
+                // go through the escape hatch, on the belief that Value carried the checked state;
+                // Checked does, and Value is the attribute.
+                //
+                // `theme-controller` on the system row too, even though daisyUI compiled no rule that
+                // matches it. The class is what a host's delegated change listener recognises, so
+                // leaving it off would make this the one row that reports nothing when it is picked.
+                Input
+                    .Value(value)
+                    .Checked(false)
+                    .Type(InputType.Radio)
+                    .Name(GroupName)
+                    .Class("radio radio-sm theme-controller")
+                    .Aria(new Dictionary<string, string?> { ["label"] = label ?? value }),
+                Span[label ?? value]
+            ]
         ];
 }

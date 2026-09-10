@@ -9,6 +9,75 @@ them until tagged releases begin.
 
 ### Changed
 
+- **rask.sh follows the reader's operating system, and is readable in every palette it offers.** The
+  site shipped a picker over all thirty-five daisyUI themes while stamping `data-theme="light"`
+  unconditionally — so a reader whose machine asks for dark got a white page — and most of those
+  palettes were not readable anyway. Measured across all thirty-six blocks the kit compiles, before:
+  secondary text failed WCAG AA on **seventeen** of them (1.08:1 on `halloween`, 1.26:1 on daisyUI's
+  own `dark`), brand text on eighteen, status text on up to twenty-three, and `bg-ui-brand text-white`
+  — what every filled button in the showcase was — measured **1.00:1 on `luxury`**. Every class name
+  in the markup was correct the whole time, which is why nothing caught it.
+
+  With no stored choice the site now writes **no `data-theme` at all**, which is the whole fix:
+  daisyUI already compiles `[data-rask-ui]:not([data-theme])` under `prefers-color-scheme: dark`, so
+  the absence follows the OS in CSS, with no script, no flash to correct, and it repaints if the reader
+  flips their machine while the page is open.
+
+  The palette's derived tiers are mixed toward `--color-base-content` rather than toward `black`.
+  Darkening is only the right direction on a light theme; on a dark one it pushed every status colour
+  into its own background. `--color-ui-muted` is derived from the ink instead of aliasing
+  `--color-neutral`, which daisyUI publishes as a *surface*. New `--color-ui-*-surface` tokens replace
+  the `/10`-style alpha washes behind badges and alerts, so a badge's contrast is a property of the
+  token rather than of whatever it happens to sit on. New `--color-ui-info` family replaces the raw
+  `sky-*` hues in `Tw.cs`, the one family that ignored the theme entirely. A filled control is now
+  `bg-ui-*-ink text-ui-bg`: contrast is symmetric, so its label is a pair the gate already proves.
+
+  Six low-contrast daisyUI palettes get per-theme corrections in the kit's sheet — `valentine`'s own
+  body ink is 4.97:1 against its ground, so there is no room under it for a tinted tier. Every weight,
+  global and per-theme, is **solved rather than picked**: the largest that clears 4.6:1 on every ground
+  the design uses.
+
+  `ThemeContrastTests` recomputes the whole matrix — 36 palettes × 29 pairs — out of the shipped
+  stylesheets, resolving `var()` and `color-mix()` the way a browser does, and holds every pair to AA.
+  A seventh test requires every `text-ui-*` class the app writes to appear in that table, so a new text
+  colour cannot arrive unmeasured. `ThemeTests` (browser) proves the OS actually decides, in both
+  directions, and that a choice is applied, remembered across a reload, and reversible.
+
+### Added
+
+- **`UiThemeScript`** — the half of the theme picker that CSS cannot provide. Dropped into a root
+  component's head assets it applies the stored palette before the first paint, re-applies it after
+  every morph (a full-document morph strips attributes off `<html>`), re-ticks the reader's radio, and
+  exposes `window.raskSetTheme` / `window.raskTheme`. It carries no C# event handlers, deliberately:
+  handler ids are positional, and one handler in the chrome of every page shifts every id after it —
+  which breaks an island's captured callback id silently, on a page that still looks alive. A stored
+  value is checked against the themes that exist (built from `UiTheme.All`), so a hand-edited
+  `localStorage` entry means "no choice" rather than a page with no colour in it.
+
+- **`UiThemeName.System`, `UiTheme.SystemValue`, and a System entry in `UiThemePicker` /
+  `UiThemeDropdown`** (first, on by default; `.ShowSystem(false)` / `.SystemLabel(…)`). It is the entry
+  that makes the other thirty-five reversible: nothing in a list of palette names means "go back to
+  what my computer says", and `light` is not that answer. It is excluded from `UiTheme.All` because it
+  is the *absence* of a choice — selecting it removes `data-theme` rather than stamping a value daisyUI
+  compiled no block for.
+
+### Fixed
+
+- **The 500-writer SQLite stress test no longer flakes in a solution-wide run.** Root-caused in July to
+  `SqliteConnection.ClearAllPools()` — process-global, and it disposes the `sqlite3` handle of
+  connections that are currently *leased and in use* — and "fixed" then with
+  `[assembly: CollectionBehavior(DisableTestParallelization)]`. That was verified in the wrong scope:
+  the attribute is **per-assembly**, vstest batches compatible assemblies into one testhost process, and
+  `ClearAllPools()` is also called by `Rask.SQLite.Limitations.Tests` and `Rask.SQLite.Snapshots.Tests`.
+  A sibling assembly's teardown still cleared the pool mid-burst, which is why it only ever failed under
+  `dotnet test Rask.slnx` and never alone.
+
+  `SqliteConcurrencyStressTests` now opens every connection with `Pooling=False` and calls no
+  `ClearAllPools()` of its own, so it is neither victim nor perpetrator — a connection that was never
+  pooled cannot be disposed by a pool clear, which closes the family rather than narrowing the window.
+  The test is not weakened: each writer gets its own handle, which is strictly more contention. No
+  production impact; nothing calls `ClearAllPools()` alongside live work.
+
 - **The meta framework lane is on the front door.** `Rask.Meta.Hosting` has shipped for a while, with
   a guide, a card in the landing page's batteries grid and a row in the docs index — but neither place
   that frames *the choice of a front end* counted it. The README section was titled "Three front ends,

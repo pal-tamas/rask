@@ -65,4 +65,24 @@ public enum UiThemeName
 
     /// <summary>Borders and type only — daisyUI's unstyled wireframe palette.</summary>
     Wireframe,
+
+    /// <summary>
+    /// Follow the operating system's light/dark preference.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// NOT a palette, and the distinction is load-bearing: this member means the ABSENCE of a choice.
+    /// daisyUI compiles the default colours under <c>:where([data-rask-ui])</c> and, inside
+    /// <c>@media (prefers-color-scheme: dark)</c>, under <c>[data-rask-ui]:not([data-theme])</c> — so a
+    /// scope with no <c>data-theme</c> already follows the reader's machine. Selecting this means
+    /// REMOVING the attribute, never stamping <c>data-theme="system"</c>, which matches nothing and
+    /// would leave every colour on the page undefined.
+    /// </para>
+    /// <para>
+    /// It is excluded from <see cref="UiTheme.All" /> for that reason — that list is the palettes the
+    /// stylesheet carries — and <see cref="UiThemePicker" /> offers it separately, first, because a
+    /// reader who has pinned a theme otherwise has no way back to their own preference.
+    /// </para>
+    /// </remarks>
+    System,
 }

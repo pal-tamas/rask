@@ -176,7 +176,7 @@ public sealed partial class TodoFormDialog : Component
     // Template is required, so it is the chain's opening step: a validation message with no way to
     // render itself is not a thing the type system lets you ask for.
     private static Component FieldError(IReadOnlyList<string> errors) =>
-        Div.Class("field-error text-sm text-ui-danger")[errors.Select(e => Div.Key(e)[e])];
+        Div.Class("field-error text-sm text-ui-danger-ink")[errors.Select(e => Div.Key(e)[e])];
 
     protected override Component? Render() =>
         // The native <dialog>. BsModal supplied a backdrop, Escape-to-dismiss and a focus trap. A

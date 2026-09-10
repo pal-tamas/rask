@@ -11,57 +11,6 @@ public partial class App : Component
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
     // the scoped-css link, so a page's own stylesheet still wins over them.
-    // Theme init: stamp data-theme on <html> from the reader's SAVED choice — light when there isn't
-    // one — before any stylesheet matches, and re-stamp it after every morph.
-    //
-    // Light is the default, and stays the default: the chrome is drawn from Rask.Ui, whose palette is
-    // light, and a dark page inside a light shell is worse than either on its own. What is new is that
-    // a reader who picks another one KEEPS it.
-    //
-    // ALL of it lives in this snippet, and that placement is forced rather than stylistic. The picker
-    // is daisyUI's CSS-only theme-controller (UiThemeDropdown) — a radio group the stylesheet matches
-    // with no script and, crucially, NO C# EVENT HANDLERS. A C# picker was written first and had to be
-    // withdrawn: handler ids are handed out in render order, so putting even one handler into the
-    // chrome of every docs page shifted every id after it, and the islands page broke SILENTLY — a Vue
-    // or Lit island captures its callback id from the prerendered markup, and once the ids moved
-    // underneath it the island's clicks reached nothing at all, on a page that still looked perfectly
-    // alive. Measured: the island's pre-boot callback id went h28 -> h63 with thirty-five theme buttons
-    // rendered, and h28 -> h29 with just one. One is already too many. Owning the value from JavaScript
-    // costs zero handler slots, so the islands are left exactly as they were.
-    //
-    // What the CSS-only picker cannot do alone is REMEMBER: no script means nothing to store a choice
-    // with, and the radio renders unchecked on every pass, so a navigation or the WASM first frame
-    // dropped it. The delegated change listener below stores it, and mark() puts the tick back on the
-    // reader's radio after every morph.
-    //
-    // <html> is owned HERE rather than rendered from C#, and that is deliberate. This snippet is the
-    // only code that runs before the first paint, so it is the only place a saved dark theme can be
-    // applied without a flash of light; and a full-document morph strips attributes off <html> (the
-    // framework renders <html lang> and nothing else), so the raskAfterMorph hook is what survives one.
-    // Rendering data-theme from C# instead would mean the first frame paints the default and corrects
-    // itself once storage had been read — the flash this exists to prevent.
-    //
-    // The stored value is validated against the same shape daisyUI names its themes with before it
-    // reaches setAttribute: localStorage is reader-writable, and an unvalidated value would be stamped
-    // into the document verbatim.
-    private const string ThemeInitJs =
-        "(function(){var d=document.documentElement,K='rask-theme',D='light',R=/^[a-z0-9-]{1,32}$/;" +
-        "function read(){try{var v=localStorage.getItem(K);return v&&R.test(v)?v:D;}catch(e){return D;}}" +
-        "function apply(t){d.setAttribute('data-theme',t);}" +
-        "function mark(){var t=read(),i=document.querySelectorAll('input.theme-controller');" +
-        "for(var n=0;n<i.length;n++)i[n].checked=i[n].value===t;}" +
-        "apply(read());" +
-        "window.raskTheme=read;" +
-        "window.raskSetTheme=function(t){if(!t||!R.test(t))return read();" +
-        "try{localStorage.setItem(K,t);}catch(e){}apply(t);mark();return t;};" +
-        "document.addEventListener('change',function(e){var t=e.target;" +
-        "if(t&&t.classList&&t.classList.contains('theme-controller'))window.raskSetTheme(t.value);});" +
-        "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mark);" +
-        "else mark();" +
-        "var prev=window.raskAfterMorph;" +
-        "window.raskAfterMorph=function(){apply(read());mark();" +
-        "if(typeof prev==='function')prev();};})();";
-
     // The three self-hosted faces, preloaded. @font-face lives in global.css; these say "fetch it now"
     // so the real face is ready for the FIRST paint rather than swapping in afterwards and reflowing
     // the document. Only the latin subsets — latin-ext covers accents the site's own chrome never uses,
@@ -90,7 +39,12 @@ public partial class App : Component
             .Name("description")
             .Content("Rask is the .NET One Person Framework: one developer builds, runs, and ships a whole product — UI, data, auth, background work, and deploy — from one C# codebase on one SQLite-backed server. The same components run on Server and WebAssembly."),
         Meta.Name("theme-color").Content("#7c3aed"),
-        Script[Raw.Value(ThemeInitJs)],
+        // The theme, applied before the first paint and remembered — a kit component now, not a script
+        // this app maintains. It writes NO data-theme when the reader has chosen nothing, which is what
+        // makes the page follow their operating system: daisyUI paints [data-rask-ui]:not([data-theme])
+        // from prefers-color-scheme, in CSS, with nothing running. See UiThemeScript for why it carries
+        // no C# event handlers (handler ids are positional, and moving them breaks the islands silently).
+        UiThemeScript,
         // Brand favicon (the purple bolt). Served from the app's own origin; PathBase keeps
         // it correct under a reverse-proxy prefix (Server) or sub-path deploy (WASM).
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),

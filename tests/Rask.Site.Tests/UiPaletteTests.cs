@@ -60,12 +60,23 @@ public sealed class UiPaletteTests
             "the showcase's palette has drifted from the kit's: " + string.Join("; ", differing));
     }
 
+    /// <summary>
+    ///     The <c>--color-ui-*</c> declarations in a sheet's <c>@theme</c> block.
+    /// </summary>
+    /// <remarks>
+    ///     THE BLOCK, not the file, and the difference is the whole correctness of this comparison.
+    ///     <c>ui.css</c> declares several of these tokens twice on purpose: once in <c>@theme</c> as the
+    ///     formula every palette starts from, and again in <c>@layer rask</c> as the per-theme corrections
+    ///     for the six daisyUI themes with too little contrast to spend. Reading the whole file and letting
+    ///     the last declaration win reported valentine's numbers as the kit's palette, and this test failed
+    ///     claiming a drift that did not exist — the showcase is not supposed to carry the corrections, they
+    ///     apply to it from the kit's own sheet.
+    /// </remarks>
     private static Dictionary<string, string> Tokens(string path)
     {
-        var text = File.ReadAllText(path);
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        foreach (Match m in Token.Matches(text))
+        foreach (Match m in Token.Matches(Stylesheets.ThemeBlock(path)))
         {
             // Last declaration wins, exactly as the cascade would read it.
             result[m.Groups["name"].Value] = m.Groups["value"].Value.Trim();

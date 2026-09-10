@@ -33,6 +33,12 @@ public sealed partial class UiThemeDropdown : Component
     /// <summary>The themes to offer. Defaults to every theme the kit ships.</summary>
     public IReadOnlyList<UiThemeName>? Themes { get; set; }
 
+    /// <inheritdoc cref="UiThemePicker.ShowSystem" />
+    public bool ShowSystem { get; set; } = true;
+
+    /// <inheritdoc cref="UiThemePicker.SystemLabel" />
+    public string SystemLabel { get; set; } = "System";
+
     public string? Class { get; set; }
 
     /// <inheritdoc />
@@ -45,6 +51,8 @@ public sealed partial class UiThemeDropdown : Component
             UiThemePicker
                 .GroupName(GroupName)
                 .Themes(Themes)
+                .ShowSystem(ShowSystem)
+                .SystemLabel(SystemLabel)
                 .Class("dropdown-content z-1 max-h-96 w-52 flex-nowrap overflow-y-auto rounded-box "
                        + "bg-base-100 p-2 shadow-sm")
         ];

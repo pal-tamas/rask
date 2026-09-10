@@ -132,6 +132,45 @@ The usual culprit is an automatic minimum size. A grid or flex item's `min-width
 `overflow-x-auto` on that block does not help: it makes the block scroll, it does not shrink a track
 asking to be 510px wide. The fix is `min-w-0` on the item, repeated at **every** level of the chain.
 
+## Theme + hydration probes (`themeprobe.cs`, `hydrateprobe.cs`)
+
+Two questions arithmetic cannot answer, because both are about what a browser does with the shipped
+sheets.
+
+```bash
+dotnet run themeprobe.cs   http://127.0.0.1:PORT       # theme: OS default, per-theme corrections, AA
+dotnet run hydrateprobe.cs http://127.0.0.1:PORT /     # prerender -> hydrate: what flickers
+```
+
+`themeprobe.cs` loads the page under `prefers-color-scheme` light AND dark and prints whether
+`data-theme` is absent (it must be — the absence is what follows the OS), which palette painted, and
+the measured contrast of each `--color-ui-*` token against the ground it sits on. Then it picks
+`valentine`, `retro`, `dark` and `luxury` in turn and re-measures, which is the only way to confirm the
+kit's per-theme corrections in `@layer rask` actually win the cascade — they correct tokens the app's
+own `@theme` declares at `:root` from a *different* `<link>`, same specificity either way.
+
+`hydrateprobe.cs` needs the **published** bundle, not `dotnet run`: `dotnet publish` prerenders each
+route to real HTML, so the handover it measures does not exist in the dev host.
+
+```bash
+dotnet publish src/Rask.Site -c Release -m:1
+cd src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot && python3 -m http.server 5090
+```
+
+It samples the document every 50ms from before the first byte of page script and prints only the frames
+that CHANGED — markup length, children, height, background, text colour, font — plus every `<html>`
+attribute mutation, whether `<head>` and `<body>` are still the SAME ELEMENTS afterwards, and whether
+the first stylesheet `<link>` is still the same connected node.
+
+**Both of those identity checks are the point.** A MutationObserver reports a removal for an atomic
+`moveBefore()` too, and a moved `<link>` keeps its sheet applied — so "every head child was removed" is
+not evidence of anything on its own. Node identity is. It is how issue #1049 was pinned to `<body>`
+being *replaced* rather than morphed, while `<head>` reconciled correctly.
+
+**A probe that waits for an `<h1>` proves nothing here.** The prerendered HTML already has one, so such
+a wait is satisfied before the runtime exists and reports a clean boot it never observed. This waits for
+the runtime's own `raskAfterMorph` hook and says `NEVER HYDRATED` rather than implying a verdict.
+
 ## The operator console (`dashboard-driver.cs`)
 
 The site does not mount `Rask.Dashboard`, and no app in the repo does since `samples/` was deleted. So

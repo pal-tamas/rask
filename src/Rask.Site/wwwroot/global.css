@@ -92,6 +92,12 @@
        what is specific to the showcase: the type system, the fixed nav height, thin --rask-* aliases so
        the existing var(--rask-*) references across this file + GuideChrome.css keep resolving, and the
        two fixed-dark code-surface tokens (code blocks stay dark in both themes). */
+    /* TWO accents, and which one a rule reaches for is a readability decision rather than a shade
+       preference. --rask-accent is the brand SURFACE (daisyUI's --color-primary): correct for a border,
+       a tint, a gradient stop. --rask-accent-strong is the brand as TEXT, pulled toward the ink until it
+       clears AA — and every `color:` in this file uses it, because the surface read as text is 1.37:1 on
+       pastel and 3.40:1 on daisyUI's `dark`. The reader now picks the theme, so neither number is
+       hypothetical. See the -ink notes in src/Rask.Ui/Styles/ui.css. */
     --rask-accent: var(--accent);
     --rask-accent-strong: var(--accent-2);
     --rask-accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
@@ -157,7 +163,7 @@ code, pre, .font-monospace {
 
 :not(pre) > code {
     background: var(--rask-accent-soft);
-    color: var(--rask-accent);
+    color: var(--rask-accent-strong);
     padding: 0.08rem 0.32rem;
     border-radius: 4px;
     font-size: 0.86em;
@@ -168,7 +174,7 @@ pre {
 }
 
 .text-accent {
-    color: var(--rask-accent) !important;
+    color: var(--rask-accent-strong) !important;
 }
 
 /* Shell-tag global rules. */
@@ -320,7 +326,7 @@ button, a, [role="button"] {
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.14em;
-    color: var(--rask-accent);
+    color: var(--rask-accent-strong);
     padding: 0.75rem 0.5rem 0.25rem;
     margin-top: 0.5rem;
     border-top: 1px solid var(--rask-line);
@@ -422,11 +428,13 @@ button, a, [role="button"] {
 }
 
 /* Underlined at rest, not on hover. A link inside a paragraph that is distinguished only by colour
-   fails WCAG 1.4.1 unless it also clears 3:1 against the surrounding text, and accent-on-ink is
-   2.39:1 here — so the underline is what makes these links links, for a reader who cannot separate
-   the two colours and for one who never hovers because they are using a touch screen. */
+   fails WCAG 1.4.1 unless it also clears 3:1 against the surrounding text — and the readable accent is
+   pulled toward the ink by construction, so it is now CLOSER to the prose around it than the raw brand
+   surface was, not further. The underline is what makes these links links, for a reader who cannot
+   separate the two colours and for one who never hovers because they are using a touch screen; with a
+   theme picker on the page it is also the only one of the two signals that survives every palette. */
 .markdown-body a {
-    color: var(--rask-accent);
+    color: var(--rask-accent-strong);
     text-decoration: underline;
     text-underline-offset: 0.15em;
     /* Bare URLs appear as link text throughout the guides; they have no break opportunity either. */
@@ -458,7 +466,7 @@ button, a, [role="button"] {
 
 .markdown-body :not(pre) > code {
     background: var(--rask-accent-soft);
-    color: var(--rask-accent);
+    color: var(--rask-accent-strong);
     padding: 0.08rem 0.34rem;
     border-radius: 4px;
     font-size: 0.86em;

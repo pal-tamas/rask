@@ -1895,6 +1895,10 @@ Rask.Ui.UiThemeDropdown.GroupName.get -> string!
 Rask.Ui.UiThemeDropdown.GroupName.set -> void
 Rask.Ui.UiThemeDropdown.Placement.get -> string?
 Rask.Ui.UiThemeDropdown.Placement.set -> void
+Rask.Ui.UiThemeDropdown.ShowSystem.get -> bool
+Rask.Ui.UiThemeDropdown.ShowSystem.set -> void
+Rask.Ui.UiThemeDropdown.SystemLabel.get -> string!
+Rask.Ui.UiThemeDropdown.SystemLabel.set -> void
 Rask.Ui.UiThemeDropdown.Themes.get -> System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>?
 Rask.Ui.UiThemeDropdown.Themes.set -> void
 Rask.Ui.UiThemeDropdown.Trigger.get -> string!
@@ -1933,6 +1937,7 @@ Rask.Ui.UiThemeName.Retro = 28 -> Rask.Ui.UiThemeName
 Rask.Ui.UiThemeName.Silk = 29 -> Rask.Ui.UiThemeName
 Rask.Ui.UiThemeName.Sunset = 30 -> Rask.Ui.UiThemeName
 Rask.Ui.UiThemeName.Synthwave = 31 -> Rask.Ui.UiThemeName
+Rask.Ui.UiThemeName.System = 35 -> Rask.Ui.UiThemeName
 Rask.Ui.UiThemeName.Valentine = 32 -> Rask.Ui.UiThemeName
 Rask.Ui.UiThemeName.Winter = 33 -> Rask.Ui.UiThemeName
 Rask.Ui.UiThemeName.Wireframe = 34 -> Rask.Ui.UiThemeName
@@ -1941,9 +1946,19 @@ Rask.Ui.UiThemePicker.Class.get -> string?
 Rask.Ui.UiThemePicker.Class.set -> void
 Rask.Ui.UiThemePicker.GroupName.get -> string!
 Rask.Ui.UiThemePicker.GroupName.set -> void
+Rask.Ui.UiThemePicker.ShowSystem.get -> bool
+Rask.Ui.UiThemePicker.ShowSystem.set -> void
+Rask.Ui.UiThemePicker.SystemLabel.get -> string!
+Rask.Ui.UiThemePicker.SystemLabel.set -> void
 Rask.Ui.UiThemePicker.Themes.get -> System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>?
 Rask.Ui.UiThemePicker.Themes.set -> void
 Rask.Ui.UiThemePicker.UiThemePicker() -> void
+Rask.Ui.UiThemeScript
+Rask.Ui.UiThemeScript.StorageKey.get -> string!
+Rask.Ui.UiThemeScript.StorageKey.set -> void
+Rask.Ui.UiThemeScript.Themes.get -> System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>?
+Rask.Ui.UiThemeScript.Themes.set -> void
+Rask.Ui.UiThemeScript.UiThemeScript() -> void
 Rask.Ui.UiTimeline
 Rask.Ui.UiTimeline.Class.get -> string?
 Rask.Ui.UiTimeline.Class.set -> void
@@ -2037,6 +2052,7 @@ const Rask.Ui.UiStyles.Quiet = "inline-flex min-h-11 items-center rounded-lg px-
 const Rask.Ui.UiStyles.Value = "mt-2 text-2xl font-semibold tabular-nums tracking-tight text-base-content sm:text-3xl" -> string!
 const Rask.Ui.UiStylesheet.Path = "/css/rask-ui.css" -> string!
 const Rask.Ui.UiStylesheet.ThemeScopeAttribute = "data-rask-ui" -> string!
+const Rask.Ui.UiTheme.SystemValue = "system" -> string!
 override Rask.Ui.UiAccordionState.Equals(object? obj) -> bool
 override Rask.Ui.UiAccordionState.GetHashCode() -> int
 override Rask.Ui.UiAccordionState.ToString() -> string!
@@ -2474,6 +2490,8 @@ static RaskBuilderSettersRask_Ui.SelectAll<T, TMode>(this Rask.Core.Build<Rask.U
 static RaskBuilderSettersRask_Ui.Shape(this Rask.Core.Build<Rask.Ui.UiLoading!> __b, Rask.Ui.UiLoadingShape? value) -> Rask.Core.Build<Rask.Ui.UiLoading!>
 static RaskBuilderSettersRask_Ui.Shape(this Rask.Core.Build<Rask.Ui.UiMask!> __b, Rask.Ui.UiMaskShape value) -> Rask.Core.Build<Rask.Ui.UiMask!>
 static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.Core.GridBuild<Rask.Ui.UiDataGrid<T>!, TKey> __b, bool? value) -> Rask.Core.GridBuild<Rask.Ui.UiDataGrid<T>!, TKey>
+static RaskBuilderSettersRask_Ui.ShowSystem(this Rask.Core.Build<Rask.Ui.UiThemeDropdown!> __b, bool value) -> Rask.Core.Build<Rask.Ui.UiThemeDropdown!>
+static RaskBuilderSettersRask_Ui.ShowSystem(this Rask.Core.Build<Rask.Ui.UiThemePicker!> __b, bool value) -> Rask.Core.Build<Rask.Ui.UiThemePicker!>
 static RaskBuilderSettersRask_Ui.Side(this Rask.Core.Build<Rask.Ui.UiDrawer!> __b, Rask.Core.Component! value) -> Rask.Core.Build<Rask.Ui.UiDrawer!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiAura!> __b, Rask.Ui.UiSize? value) -> Rask.Core.Build<Rask.Ui.UiAura!>
 static RaskBuilderSettersRask_Ui.Size(this Rask.Core.Build<Rask.Ui.UiAvatar!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiAvatar!>
@@ -2510,8 +2528,11 @@ static RaskBuilderSettersRask_Ui.Src(this Rask.Core.Build<Rask.Ui.UiAvatar!> __b
 static RaskBuilderSettersRask_Ui.Start(this Rask.Core.Build<Rask.Ui.UiNavbar!> __b, Rask.Core.Component? value) -> Rask.Core.Build<Rask.Ui.UiNavbar!>
 static RaskBuilderSettersRask_Ui.Step<TMode>(this Rask.Core.Build<Rask.Ui.UiRange!, TMode> __b, double? value) -> Rask.Core.Build<Rask.Ui.UiRange!, TMode>
 static RaskBuilderSettersRask_Ui.StickyHeader<T, TKey>(this Rask.Core.GridBuild<Rask.Ui.UiDataGrid<T>!, TKey> __b, bool? value) -> Rask.Core.GridBuild<Rask.Ui.UiDataGrid<T>!, TKey>
+static RaskBuilderSettersRask_Ui.StorageKey(this Rask.Core.Build<Rask.Ui.UiThemeScript!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiThemeScript!>
 static RaskBuilderSettersRask_Ui.Style(this Rask.Core.Build<Rask.Ui.UiAura!> __b, Rask.Ui.UiAuraStyle? value) -> Rask.Core.Build<Rask.Ui.UiAura!>
 static RaskBuilderSettersRask_Ui.Style(this Rask.Core.Build<Rask.Ui.UiTabs!> __b, Rask.Ui.UiTabStyle? value) -> Rask.Core.Build<Rask.Ui.UiTabs!>
+static RaskBuilderSettersRask_Ui.SystemLabel(this Rask.Core.Build<Rask.Ui.UiThemeDropdown!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiThemeDropdown!>
+static RaskBuilderSettersRask_Ui.SystemLabel(this Rask.Core.Build<Rask.Ui.UiThemePicker!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiThemePicker!>
 static RaskBuilderSettersRask_Ui.Text(this Rask.Core.Build<Rask.Ui.UiDivider!> __b, string? value) -> Rask.Core.Build<Rask.Ui.UiDivider!>
 static RaskBuilderSettersRask_Ui.Text(this Rask.Core.Build<Rask.Ui.UiFieldset!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiFieldset!>
 static RaskBuilderSettersRask_Ui.Text(this Rask.Core.Build<Rask.Ui.UiFloatingLabel!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiFloatingLabel!>
@@ -2528,6 +2549,7 @@ static RaskBuilderSettersRask_Ui.Theme(this Rask.Core.Build<Rask.Ui.UiShell!> __
 static RaskBuilderSettersRask_Ui.Theme(this Rask.Core.Build<Rask.Ui.UiThemeController!> __b, Rask.Ui.UiThemeName value) -> Rask.Core.Build<Rask.Ui.UiThemeController!>
 static RaskBuilderSettersRask_Ui.Themes(this Rask.Core.Build<Rask.Ui.UiThemeDropdown!> __b, System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>? value) -> Rask.Core.Build<Rask.Ui.UiThemeDropdown!>
 static RaskBuilderSettersRask_Ui.Themes(this Rask.Core.Build<Rask.Ui.UiThemePicker!> __b, System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>? value) -> Rask.Core.Build<Rask.Ui.UiThemePicker!>
+static RaskBuilderSettersRask_Ui.Themes(this Rask.Core.Build<Rask.Ui.UiThemeScript!> __b, System.Collections.Generic.IReadOnlyList<Rask.Ui.UiThemeName>? value) -> Rask.Core.Build<Rask.Ui.UiThemeScript!>
 static RaskBuilderSettersRask_Ui.Tip(this Rask.Core.Build<Rask.Ui.UiTooltip!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiTooltip!>
 static RaskBuilderSettersRask_Ui.Title(this Rask.Core.Build<Rask.Ui.UiAccordionSection!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiAccordionSection!>
 static RaskBuilderSettersRask_Ui.Title(this Rask.Core.Build<Rask.Ui.UiCollapse!> __b, string! value) -> Rask.Core.Build<Rask.Ui.UiCollapse!>
@@ -2722,6 +2744,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTextarea_1<T>(Rask.C
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiThemeController(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiThemeDropdown(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiThemePicker(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiThemeScript(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTimeline(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiToast(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiToggle(Rask.Core.Component! __c0) -> void
@@ -2815,6 +2838,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTextarea_1<T>(Rask
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiThemeController(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiThemeDropdown(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiThemePicker(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiThemeScript(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTimeline(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiToast(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiToggle(Rask.Core.Component! __c0, ulong __p) -> void
@@ -2914,6 +2938,7 @@ static RaskEntriesRask_Ui.UiTextarea.get -> Rask.Ui.RaskSeed_UiTextarea
 static RaskEntriesRask_Ui.UiThemeController.get -> Rask.Ui.RaskSeed_UiThemeController
 static RaskEntriesRask_Ui.UiThemeDropdown.get -> Rask.Core.Build<Rask.Ui.UiThemeDropdown!>
 static RaskEntriesRask_Ui.UiThemePicker.get -> Rask.Core.Build<Rask.Ui.UiThemePicker!>
+static RaskEntriesRask_Ui.UiThemeScript.get -> Rask.Core.Build<Rask.Ui.UiThemeScript!>
 static RaskEntriesRask_Ui.UiTimeline.get -> Rask.Core.Build<Rask.Ui.UiTimeline!>
 static RaskEntriesRask_Ui.UiToast.get -> Rask.Ui.RaskSeed_UiToast
 static RaskEntriesRask_Ui.UiToggle.get -> Rask.Ui.RaskSeed_UiToggle

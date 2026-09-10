@@ -62,5 +62,33 @@ public sealed class UiThemeTests
         Assert.Equal("light", UiTheme.Value(UiThemeName.Light));
         Assert.Equal("cupcake", UiTheme.Value(UiThemeName.Cupcake));
         Assert.Equal("caramellatte", UiTheme.Value(UiThemeName.Caramellatte));
+        Assert.Equal(UiTheme.SystemValue, UiTheme.Value(UiThemeName.System));
+    }
+
+    /// <summary>
+    ///     <see cref="UiThemeName.System" /> is not a palette, and the two tests above would be wrong
+    ///     about it in opposite directions if it were treated as one.
+    /// </summary>
+    /// <remarks>
+    ///     It means the ABSENCE of a choice: selecting it removes <c>data-theme</c> so daisyUI's
+    ///     <c>:not([data-theme])</c> rules — and with them <c>prefers-color-scheme</c> — decide the
+    ///     palette. Stamping <c>data-theme="system"</c> instead would match no compiled block and leave
+    ///     every <c>--color-base-*</c> undefined on the document element: a fully laid out page with no
+    ///     colour in it, reporting nothing. So the sheet MUST NOT define it, and
+    ///     <see cref="UiTheme.All" /> — which callers iterate to render one control per palette — must
+    ///     not offer it as one.
+    /// </remarks>
+    [Fact]
+    public void System_IsTheAbsenceOfAChoiceRatherThanAPalette()
+    {
+        Assert.DoesNotContain(UiThemeName.System, UiTheme.All);
+
+        Assert.DoesNotContain(
+            $"[data-theme={UiTheme.SystemValue}]",
+            UiStylesheet.Css,
+            StringComparison.Ordinal);
+
+        // And it is still a member, so a caller can name it in typed code.
+        Assert.Contains(UiThemeName.System, Enum.GetValues<UiThemeName>());
     }
 }
