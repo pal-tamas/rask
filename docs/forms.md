@@ -347,7 +347,8 @@ points at the error message's `id` (and the help-text `id` when `HelpText:` is s
 appears, associated with the field rather than detached from it. Valid fields with `HelpText:` still get
 `aria-describedby` to the help text.
 
-A combobox control — [`UiSelect<T>`](ui-kit.md) with `Native: false` — carries `role="combobox"`,
+A combobox control — [`UiSelect<T>`](ui-kit.md) or [`UiMultiSelect<T>`](ui-kit.md) with
+`Native: false` — carries `role="combobox"`,
 which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`
 pointing at a visible label) rather than through a `<label for>` that would bind to nothing. Alongside
 it goes the popup contract: `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` naming the
@@ -355,6 +356,11 @@ list, and `aria-activedescendant` naming the option the keyboard cursor is on wh
 box. Options are `role="option"` carrying `aria-selected`, and an unavailable one carries
 `aria-disabled` — **present only when it is true**, since a valueless `aria-disabled` reads as `true`
 and would mark every option unavailable.
+
+A list that takes more than one answer says so on the listbox itself, with
+`aria-multiselectable="true"`. Without it a reader meets options that each carry `aria-selected`
+and has no way to learn that a second one is allowed — the options look identical either way, so
+the fact that several may be chosen lives nowhere else.
 
 If you build your own control from the core `Input`/`ValidationMessage` primitives (§9), mirror the same
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from

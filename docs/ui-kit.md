@@ -144,7 +144,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiFloatingLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiFloatingLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiNotice` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
@@ -191,6 +191,20 @@ options. Reach for it when the list must carry more than the platform will show,
 differs is that the drawn list **needs the runtime**, where the native control works on a prerendered
 page and with scripting off. That is why the default is native.
 
+**And one that lets you choose several.** `UiMultiSelect` is the same control for a field that holds a
+collection. Native is a real `<select multiple>`; `Native: false` draws the list, shows the chosen
+answers as removable chips in the box, and — unlike the single-select — leaves the list OPEN as you
+pick, because choosing three answers should not mean opening it three times. `SelectAll` adds a bulk
+row, `Filter` adds a search box (you supply the predicate, so it works for any `T`), and `Chips` caps
+how many chips the box shows before the rest collapse into "+N more". It binds the `List<T>`, `T[]` or
+`HashSet<T>` your model already declares, refilling a get-only collection in place; the write-back
+builds whatever the property declares. A field typed `IReadOnlyList<T>` is the one shape that cannot
+bind — it is not an `ICollection<T>`, so the chain has nothing to infer from.
+
+Both controls take an `OptionTemplate` for rows that need more than words. Setting one implies the
+drawn list, because an `<option>` holds text and nothing else — writing `Native(true)` beside a
+template is [RASK075](diagnostics.md#rask075).
+
 The browser still owns dismissal there — Escape and click-outside — and C# hears it through
 `OnToggle`, which is what keeps `aria-expanded` truthful rather than drifting the moment the list is
 dismissed.
@@ -203,7 +217,8 @@ shapes every Rask input does:
 ```csharp
 Form.Model(_order)[
     UiSelect.Bind(() => _order.Country).Options(countries).Label("Country"),
-    UiSelect.Value(_country).Options(countries).Label("Country").OnChange(v => _country = v)
+    UiSelect.Value(_country).Options(countries).Label("Country").OnChange(v => _country = v),
+    UiMultiSelect.Bind(() => _order.Tags).Options(tags).Label("Tags")
 ]
 ```
 
@@ -225,6 +240,7 @@ would have exactly one legal argument.
 | | Binds |
 |---|---|
 | `UiInput<T>` `UiTextarea<T>` `UiSelect<T>` | what the field holds |
+| `UiMultiSelect<T>` | the ELEMENT type — it binds an `ICollection<T>` |
 | `UiFilter<T>` | the chosen option of a whole radio group |
 | `UiRadio` | whether **this** option is the chosen one — the group's value belongs to `UiFilter<T>` |
 | `UiCheckbox` `UiToggle` | on or off |

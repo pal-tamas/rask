@@ -114,8 +114,9 @@ started / migration / testing / architecture (`docs/`). Trimming: `site/Rask.Sit
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Core/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–071 are documented in `docs/diagnostics.md`
-  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK072). **Grep `src/`
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–075 are documented in `docs/diagnostics.md`
+  (RASK030/032/034/042/047/048/049/050 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented;
+  **RASK072–074 are allocated on a main lineage this branch has not merged yet** — RASK075 was taken here to clear both; the next free id is RASK076). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

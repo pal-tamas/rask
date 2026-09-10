@@ -60,6 +60,33 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     public Func<T, Task>? OnChangeAsync { get; set; }
 
     /// <summary>
+    ///     Runs with every option value the user has picked, for a control that maps those values itself.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The whole selection, every time, never a delta — so a handler REPLACES what it holds
+    ///         rather than editing membership. That is what makes it self-correcting: a snapshot-based
+    ///         add/remove cannot recover from a single missed frame, where a replace re-syncs on the next
+    ///         one.
+    ///     </para>
+    ///     <para>
+    ///         It exists because <c>Multiple</c> binding is only as wide as
+    ///         <see cref="BindingHelpers.IsBindableSelectionType{T}" />, whose element type is
+    ///         <c>string</c> for a documented AOT reason. A control that renders its own options knows how
+    ///         to turn those strings back into its own type — <c>Rask.Ui</c>'s <c>UiMultiSelect</c> maps
+    ///         them through its option list — so it takes them raw and needs none of that machinery.
+    ///     </para>
+    ///     <para>
+    ///         Controlled mode only, and it takes precedence over <see cref="OnChange" />: both write the
+    ///         one <c>data-rask-on-change</c> attribute, so a control cannot have two.
+    ///     </para>
+    /// </remarks>
+    public Action<IReadOnlyList<string>>? OnSelect { get; set; }
+
+    /// <summary>The <see langword="async" /> form of <see cref="OnSelect" />.</summary>
+    public Func<IReadOnlyList<string>, Task>? OnSelectAsync { get; set; }
+
+    /// <summary>
     ///     The selected value. Prefer <c>Bind</c>, which keeps it in step with your model in both
     ///     directions.
     /// </summary>
@@ -281,6 +308,13 @@ public sealed partial class Select<T> : Element, IFormControl<T>
                 : (Delegate)BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
             AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(handler));
         }
+        else if (SelectionHandler() is { } picked)
+        {
+            // Before ControlledChangeHandler, not after: both write `data-rask-on-change` and an element
+            // has one, so the wider shape wins. ControlledChangeHandler parses ONE string into T, which
+            // is exactly what a control taking the raw values does not want.
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(picked));
+        }
         else
         {
             var change = ((IFormControl<T>)this).ControlledChangeHandler();
@@ -289,5 +323,19 @@ public sealed partial class Select<T> : Element, IFormControl<T>
                 AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
             }
         }
+    }
+
+    // The values-shaped change handler, or null when the caller wired neither. Handed over as the
+    // caller's own delegate rather than wrapped: HandlerFrameShape.ShapeOf matches Action and Func alike
+    // for this shape, and Component's dispatch has an arm for each, so wrapping would only cost an
+    // allocation and a frame.
+    private Delegate? SelectionHandler()
+    {
+        if (OnSelectAsync is { } asyncHandler)
+        {
+            return asyncHandler;
+        }
+
+        return OnSelect;
     }
 }

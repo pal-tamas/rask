@@ -171,6 +171,25 @@ Two limits worth knowing:
 - **`Multiple: true` over a scalar property keeps the single-value binding.** That is a model which can
   only hold one answer; widening it silently would be the more surprising behaviour.
 
+**Taking the picked values yourself.** `OnSelect` / `OnSelectAsync` hand over the raw option values the
+user picked, as `IReadOnlyList<string>` — the whole selection every time, never a delta:
+
+```csharp
+Select.Of<string>().Multiple(true).OnSelect(picked => _chosen = Map(picked))[
+    Option("news"), Option("sport"), Option("weather")
+]
+```
+
+It is the way past the string-element limit above: a control that rendered its own options already
+knows how to turn those values back into its own type, so it needs none of the binding machinery that
+limit belongs to. That is exactly how [`UiMultiSelect<T>`](ui-kit.md) is generic over any `T` — an int,
+an enum, a Guid — while this control is not. Controlled mode only, and it takes precedence over
+`OnChange`: both write the one `data-rask-on-change` attribute, so a control cannot have two.
+
+**The kit has a control for this.** Everything above is the raw `<select>`. For a field a person fills
+in, [`UiMultiSelect<T>`](ui-kit.md) is the one to reach for — chips, a search box, select-all, a
+keyboard, and a drawn list that stays open while you pick.
+
 ## Surviving a redeploy
 
 If the server is replaced while someone is filling a form in, the page may have to reload — and the

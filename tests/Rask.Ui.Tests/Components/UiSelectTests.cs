@@ -170,6 +170,31 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Choose", html);
     }
 
+    [Fact]
+    public void An_option_template_draws_the_rows_and_implies_the_drawn_list()
+    {
+        // An <option>'s content model is text, so there is nowhere in the platform's control for markup
+        // to go — supplying a template is therefore a choice of mode as well as of markup. Writing
+        // Native(true) beside one is the contradiction, and RASK075 reports it at the call site.
+        var html = UiSelect.Value("gb").Options(Countries).Label("Country")
+            .OptionTemplate(v => Span.Class("flag-mark")[v]).ToHtml();
+
+        Assert.DoesNotContain("<select", html);
+        Assert.Contains("role=\"option\"", html);
+        Assert.Contains("flag-mark", html);
+    }
+
+    [Fact]
+    public void The_closed_box_keeps_the_words_even_with_a_template()
+    {
+        // The template draws the LIST. The box is one line of text with no room for markup, so it goes
+        // on showing the Text from Options — which is why Text stays worth supplying alongside one.
+        var html = UiSelect.Value("gb").Options(Countries).Label("Country")
+            .OptionTemplate(v => Span.Class("flag-mark")[v]).ToHtml();
+
+        Assert.Contains("United Kingdom", html);
+    }
+
     private static string Native(bool? native) =>
         UiSelect.Value("gb").Options(Countries).Label("Country").Native(native).ToHtml();
 

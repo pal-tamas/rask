@@ -41,8 +41,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // Checked are not on the interface — a control declares them itself (Input, Textarea) — but they mean
     // the same thing wherever they appear on an IFormControl<T>: the per-keystroke DOM handler that bound
     // mode replaces with its write-back, and the checkbox's value, which bound mode derives from the model.
+    // OnSelect/OnSelectAsync join them for the same reason: Select's values-shaped change handler and its
+    // bound write-back both claim the one data-rask-on-change attribute, so offering it beside Bind would
+    // put two answers on a control that has room for one.
     private static readonly string[] ControlledMembers =
-        { "Value", "Checked", "OnChange", "OnChangeAsync", "OnInput", "OnInputAsync" };
+        { "Value", "Checked", "OnChange", "OnChangeAsync", "OnInput", "OnInputAsync", "OnSelect", "OnSelectAsync" };
 
     private static readonly DiagnosticDescriptor Rask001 = new(
         "RASK001",

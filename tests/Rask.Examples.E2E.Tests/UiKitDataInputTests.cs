@@ -187,6 +187,69 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
+    public Task TheDrawnMultiSelectKeepsItsListOpenAcrossSeveralPicks() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-multiselect']");
+        var box = scope.GetByRole(AriaRole.Combobox);
+        var list = scope.Locator("[role='listbox']");
+        var state = Page.Locator("[data-testid='ui-multiselect-state']");
+
+        await box.ClickAsync();
+        await Expect(list).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The whole point of the control, and the one thing a single-select cannot do: a pick does not
+        // dismiss the list, so a second answer costs one click rather than another trip through the box.
+        await list.GetByRole(AriaRole.Option, new LocatorGetByRoleOptions { Name = "Rask.Cli" })
+            .ClickAsync();
+        await Expect(list).ToBeVisibleAsync();
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "true");
+
+        await list.GetByRole(AriaRole.Option, new LocatorGetByRoleOptions { Name = "Rask.External" })
+            .ClickAsync();
+        await Expect(list).ToBeVisibleAsync();
+        await Expect(state).ToContainTextAsync("cli");
+        await Expect(state).ToContainTextAsync("ext");
+
+        // And the browser still owns dismissal, exactly as it does for the single-select.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(list).ToBeHiddenAsync();
+        await Expect(box).ToHaveAttributeAsync("aria-expanded", "false");
+    });
+
+    [Fact]
+    public Task AMultiSelectChipRemovesItsOwnAnswer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-multiselect']");
+        var state = Page.Locator("[data-testid='ui-multiselect-state']");
+
+        // The demo starts with two answers, so a chip is on screen before anything is clicked.
+        await Expect(state).ToContainTextAsync("core");
+
+        // Removing from the BOX, without opening the list at all — the affordance the chips exist for.
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Remove Rask.Core" })
+            .ClickAsync();
+
+        await Expect(state).Not.ToContainTextAsync("core");
+        await Expect(state).ToContainTextAsync("ui");
+        await Expect(scope.Locator("[role='listbox']")).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task TheMultiSelectListSaysItTakesMoreThanOneAnswer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        // Not decoration: the options carry aria-selected either way, so without this a reader has no
+        // way to learn that a second one is allowed.
+        await Expect(Page.Locator("[data-testid='ui-multiselect'] [role='listbox']"))
+            .ToHaveAttributeAsync("aria-multiselectable", "true");
+    });
+
+    [Fact]
     public Task EscapeClosesTheDrawnSelectAndCSharpHearsIt() => RunAsync(async () =>
     {
         await OpenAsync();

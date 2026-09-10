@@ -19,6 +19,7 @@ public sealed partial class UiKitDataInputDemo : Component
     private string _shipping = "standard";
     private string? _country;
     private string? _framework;
+    private readonly List<string> _packages = ["core", "ui"];
     private double _volume = 40;
     private int _stars = 4;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
@@ -79,6 +80,34 @@ public sealed partial class UiKitDataInputDemo : Component
                 ],
                 P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-select-state"))[
                     _framework is null ? "Nothing chosen." : $"Chosen: {_framework}."
+                ]
+            ]),
+
+        Section(
+            "Multi-select — several answers, one field",
+            "The same control, for a field that holds a collection. Native is a real multi-select: no "
+            + "script, and it posts on its own. The drawn one shows the answers as chips you can remove "
+            + "one at a time, keeps the list open while you pick, and adds the search box and "
+            + "select-all a long list needs. It binds the List, array or HashSet your model already "
+            + "declares.",
+            Div.Data(Testid("ui-multiselect")).Class("grid gap-3 sm:grid-cols-2")[
+                UiMultiSelect.Value(_packages).Key("pkgs")
+                    .Options([
+                        ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
+                        ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
+                    ])
+                    .Label("Packages")
+                    .Placeholder("Choose packages")
+                    .Native(false)
+                    .SelectAll(true)
+                    .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase))
+                    .OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling")
+                    .OptionDisabled(v => v == "blazor")
+                    .OnChange(Choose),
+                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-multiselect-state"))[
+                    _packages.Count == 0
+                        ? "Nothing chosen."
+                        : $"Chosen: {string.Join(", ", _packages)}."
                 ]
             ]),
 
@@ -213,6 +242,14 @@ public sealed partial class UiKitDataInputDemo : Component
 
     private static Component Masked(string key, UiMaskShape shape) =>
         UiMask.Key(key).Shape(shape).Class("size-14 bg-primary");
+
+    // Controlled mode hands over a fresh collection every time — see UiMultiSelect's OnChange. The
+    // demo holds one list and refills it, which is what a model with a get-only collection does too.
+    private void Choose(ICollection<string> picked)
+    {
+        _packages.Clear();
+        _packages.AddRange(picked);
+    }
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

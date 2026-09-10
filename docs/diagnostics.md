@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK071, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK075, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -104,6 +104,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK069](#rask069) | Error | Two endpoints claim one client method |
 | [RASK070](#rask070) | Warning | Endpoint's response type is not statically known |
 | [RASK071](#rask071) | Error | ASP.NET route attribute on a Rask component |
+| [RASK075](#rask075) | Warning | Option template on a native select |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1586,6 +1587,44 @@ table would be the worse outcome.
 
 This does not fire on ordinary classes. A Rask server project is an ASP.NET project and may hold
 genuine controllers; `[Route]` on one of those is correct and is never reported.
+
+---
+## RASK075
+
+**Option template on a native select** · Warning
+
+An `<option>`'s content model is text. There is nowhere inside the platform's own control for a
+template's markup to go, so `UiSelect<T>`/`UiMultiSelect<T>` never call the template: the list renders
+its plain words, the build stays green, and the only way to notice is to look at the running page and
+wonder where the icons went.
+
+```csharp
+// ✗ RASK075 — Native(true) says "the platform's control", the template says "markup per row"
+UiSelect.Bind(() => _order.Package)
+        .Options(packages)
+        .Label("Package")
+        .OptionTemplate(v => Div.Class("flex gap-2")[UiIcon.Name(v.Icon), Span[v.Name]])
+        .Native(true)
+```
+
+**Fix:** drop `Native(true)`. A template already implies the drawn list, so leaving `Native` unset is
+all that is needed — the control draws its own rows and the template renders:
+
+```csharp
+UiSelect.Bind(() => _order.Package)
+        .Options(packages)
+        .Label("Package")
+        .OptionTemplate(v => Div.Class("flex gap-2")[UiIcon.Name(v.Icon), Span[v.Name]])
+```
+
+If the platform's control is what you actually want — it needs no runtime, renders complete on a
+prerendered page and gets a phone's native picker — then drop the template instead and let the `Text`
+from `Options` say it.
+
+Only an **explicit** `Native(true)` is reported. `Native(false)` agrees with the template, and
+`Native(someFlag)` is not knowable at compile time, so neither is a contradiction this can name.
+`ChipTemplate` on `UiMultiSelect<T>` is reported on the same grounds: the platform's control draws its
+own selection, so a chip template has nowhere to render either.
 
 ---
 
