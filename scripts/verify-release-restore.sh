@@ -77,6 +77,14 @@ XML
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export NUGET_PACKAGES="$work/packages"
 
+# The HTTP cache has to be private and disposable too, and this is the subtler half.
+#
+# NuGet caches the REGISTRATION index on disk for 30 minutes. Inside a retry loop that is fatal: the
+# first attempt caches an index that predates the push, and every later attempt is served that same
+# stale copy -- so the loop can spin out its whole deadline while nuget.org has long since caught up.
+# It looks exactly like a package that was never published. Cleared between attempts below.
+export NUGET_HTTP_CACHE_PATH="$work/http-cache"
+
 # Rask.Cli is the PACKAGE id; `rask` is the command it installs. Naming the command here fails with
 # "Package rask is not a .NET tool", which is what this gate did on its first real run.
 echo "==> Installing the released rask CLI (retrying while the registration index catches up)"
@@ -89,26 +97,47 @@ until dotnet tool install --tool-path "$work/tools" Rask.Cli --version "$version
     exit 1
   fi
   sleep 30
+  rm -rf "$work/http-cache"
 done
 
+# --no-restore: the scaffolder runs its own restore against the ambient NuGet config, and a failure
+# there exits non-zero and would kill this script before its OWN restore -- the one that controls the
+# sources and the package cache, and therefore the one whose result means anything.
 echo "==> rask new"
 mkdir -p "$work/app"
-(cd "$work/app" && "$work/tools/rask" new ReleaseProbe)
+(cd "$work/app" && "$work/tools/rask" new ReleaseProbe --no-restore)
 
 project_dir="$work/app/ReleaseProbe"
 [ -d "$project_dir" ] || project_dir="$work/app"
 
 cp "$work/NuGet.config" "$project_dir/NuGet.config"
 
+# Retried for the same reason the install above is: the registration index lags the flat container
+# per PACKAGE, not per push, so the CLI can be installable minutes before one of its dependencies is.
+# On the v0.21.0 run Rask.Logging was in the flat container while restore still reported
+# "Nearest version: 0.20.1-alpha.0.312".
 echo "==> dotnet restore (nuget.org only, cold package cache)"
-if (cd "$project_dir" && dotnet restore 2>&1 | tee "$work/restore.log"); then
-  echo "==> A scaffolded project restores at $version."
-  exit 0
-fi
+deadline=$(( SECONDS + 1800 ))
+while true; do
+  if (cd "$project_dir" && dotnet restore > "$work/restore.log" 2>&1); then
+    echo "==> A scaffolded project restores at $version."
+    exit 0
+  fi
 
-echo "!!  A project scaffolded by the released CLI cannot restore." >&2
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    break
+  fi
+
+  echo "    not yet resolvable; waiting for nuget.org to finish indexing…"
+  sleep 30
+
+  # Or the next attempt just re-reads the index that failed this one.
+  rm -rf "$work/http-cache"
+done
+
+echo "!!  A project scaffolded by the released CLI cannot restore, 30 minutes after the push." >&2
 echo "    This is #1044's shape: the CLI pins itself, so every package the default template" >&2
-echo "    references has to exist at $version. The packages nuget.org could not find:" >&2
-grep -oE "Unable to find package [A-Za-z.]+|Unable to find a stable package [A-Za-z.]+ " "$work/restore.log" \
+echo "    references has to exist at $version. What nuget.org could not resolve:" >&2
+grep -oE "Unable to find package [A-Za-z.]+|Unable to find a stable package [A-Za-z.]+" "$work/restore.log" \
   | sort -u | sed 's/^/      /' >&2 || true
 exit 1
