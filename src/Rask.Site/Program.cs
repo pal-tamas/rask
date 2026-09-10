@@ -55,7 +55,11 @@ host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.Gu
 //
 // ShowcaseLayout's own link table already had this right, and says so in a comment: a renamed or removed
 // [Route] is a compile error there rather than a dead link. These entries simply bypassed it.
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PwaPage(), "PWA demo", UiIconName.Phone, "PWA"));
+// ONE row for all thirteen PWA / device-capability demos. They were thirteen rows, each a page whose
+// whole body was a heading, a paragraph and one CodeSample — a list a reader had to read in full to
+// find that twelve of them teach the same idea. PwaPage still answers all thirteen old URLs (repeated
+// [Route]), so nothing that was linked or bookmarked 404s.
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PwaPage(), "PWA & device APIs", UiIconName.Phone, "PWA"));
 // The islands showcase: the same .vue/.tsx/.svelte the Server host builds, mounted client-side.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Islands.Routes.IslandsPage(), "Islands", UiIconName.Overview, "Islands"));
 // The UI kit, one page per daisyUI category. The guide at /guides/ui-kit is the prose; these are the
@@ -67,16 +71,4 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitFeedbackPage(), "Feedback", UiIconName.Warning, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataInputPage(), "Data input", UiIconName.Pencil, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitLayoutPage(), "Layout & mockups", UiIconName.Desktop, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.InstallPromptPage(), "Install prompt", UiIconName.Download, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.WakeLockPage(), "Wake lock", UiIconName.Desktop, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.OrientationPage(), "Orientation", UiIconName.Phone, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.FullscreenPage(), "Fullscreen", UiIconName.Fullscreen, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PictureInPicturePage(), "Picture-in-Picture", UiIconName.Desktop, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.EyeDropperPage(), "EyeDropper", UiIconName.EyeDropper, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.IdleDetectorPage(), "Idle detection", UiIconName.Clock, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.MediaDevicesPage(), "Camera & mic", UiIconName.VideoCamera, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.SerialPage(), "Serial port", UiIconName.Cube, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.UsbPage(), "USB device", UiIconName.Cube, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.HidPage(), "HID device", UiIconName.Cube, "PWA"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.BluetoothPage(), "Bluetooth", UiIconName.Signal, "PWA"));
 await host.RunAsync<App>();

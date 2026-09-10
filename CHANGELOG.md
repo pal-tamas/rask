@@ -9,6 +9,23 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every PWA and device-capability demo is one page.** `/docs` carried thirteen sidebar rows under
+  "PWA" — PWA demo, Install prompt, Wake lock, Orientation, Fullscreen, Picture-in-Picture, EyeDropper,
+  Idle detection, Camera & mic, Serial port, USB device, HID device, Bluetooth — and each was a page
+  whose entire body was a heading, a paragraph and one `CodeSample`. Thirteen rows is not a table of
+  contents; it is a list a reader has to read in full to discover that twelve of them teach the same
+  idea: a typed C# wrapper over a browser capability that only exists in WASM.
+
+  They are now sections of a single "PWA & device APIs" page, which teaches that shape once at the top
+  (ask `IsSupportedAsync` first, call from a real gesture, dispose what you get back, a dismissed
+  chooser returns `null` rather than throwing) and carries an on-this-page rail. The rail is generated
+  from the same list the sections are, so it cannot go stale — a table of contents maintained beside the
+  content it indexes fails silently, since nothing breaks when a link points at a heading that moved.
+
+  **All thirteen old URLs still resolve**: `[Route]` repeats, so `/docs/wake-lock` and the rest are
+  alternates of the canonical `/docs/pwa` rather than 404s. A dropped route would have failed only in
+  someone else's bookmarks, so `PwaPageTests` asserts every one of them.
+
 - **rask.sh follows the reader's operating system, and is readable in every palette it offers.** The
   site shipped a picker over all thirty-five daisyUI themes while stamping `data-theme="light"`
   unconditionally — so a reader whose machine asks for dark got a white page — and most of those
