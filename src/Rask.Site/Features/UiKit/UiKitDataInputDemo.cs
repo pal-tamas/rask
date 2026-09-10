@@ -39,9 +39,16 @@ public sealed partial class UiKitDataInputDemo : Component
                 // IFormControl<T>, so the opening step fixes the value type and the mode at once, and
                 // Label, Type and the rest follow it. Of<T>() is the opening for a field with no value
                 // to start from.
+                // The message is the FIELD's, not a sibling placed after it. It used to be a detached
+                // UiValidator at the end of this grid, which worked only because the input was a bare
+                // element: daisyUI reveals the hint with `.validator ~ .validator-hint`, so a field that
+                // grew a label and a wrapper stopped being its sibling and the message silently vanished.
                 UiInput.Value(_email).Key("email").Label("Email").Type(InputType.Email)
                     .Placeholder("you@example.com")
                     .Tone(_email.Length > 0 && !_email.Contains('@') ? UiTone.Error : (UiTone?)null)
+                    .Error(_email.Length > 0 && !_email.Contains('@')
+                        ? "That does not look like an email address."
+                        : null)
                     .OnChange(v => { _email = v; }),
                 UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost)
                     .Placeholder("Ghost"),
@@ -53,10 +60,7 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Label("Country")
                     .Placeholder("Choose…")
                     .OnChange(v => { _country = v; }),
-                UiFileInput.Value("").Key("avatar").Label("Avatar").Size(UiSize.Sm),
-                _email.Length > 0 && !_email.Contains('@')
-                    ? UiValidator.Key("v").Message("That does not look like an email address.")
-                    : null
+                UiFileInput.Value("").Key("avatar").Label("Avatar").Size(UiSize.Sm)
             ]),
 
         Section(

@@ -15,8 +15,21 @@ them until tagged releases begin.
 
   **The association is the reason, not the duplication.** A label reaches its control by `for`/`id` or by
   wrapping it, and both are easy to get wrong in a way nothing reports: the text renders, the control
-  renders, clicking the text does nothing and a screen reader announces an unnamed field. The base
-  WRAPS — so there is no id to mint, keep unique down a list, or thread through a template.
+  renders, clicking the text does nothing and a screen reader announces an unnamed field. The base does it
+  by **`for`/`id`**, deriving the id from the bound member's name (or the label text) when the caller gives
+  none — deterministic, so the markup is reproducible across renders.
+
+  Wrapping was tried first and is wrong: daisyUI reveals a validator message with a GENERAL SIBLING
+  selector, `.validator:user-invalid ~ .validator-hint`, so a control moved inside its label stops being a
+  sibling of its own message — which rendered, carried the right text, and stayed `visibility: hidden` for
+  the life of the page. It broke a `UiValidator` a call site places itself the same way. A browser test
+  caught it; nothing that reads markup could have.
+
+  `Error` is new, for the same reason: a controlled field had no way to carry its own message, so the only
+  option was a detached `UiValidator` relying on DOM adjacency — which is exactly the fragility this
+  removes. `UiTextarea` joins `UiInput` and `UiSelect` on the base, and `UiInput` gains the capabilities a
+  real form needs and could not express: `OnInput`, `Min`, `Max`, `Step`, `MaxLength`, `Autofocus`, `List`
+  and `Ref`.
 
   `Label` is **optional**: a search box whose placeholder is its whole affordance, a control in a table
   cell, a field labelled by a column header all render the bare control exactly as before, which is what
