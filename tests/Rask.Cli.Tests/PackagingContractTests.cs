@@ -855,8 +855,11 @@ public sealed class PackagingContractTests
     {
         string[] skip = ["obj", "bin", "node_modules", ".git", ".claude", "artifacts"];
 
-        return Directory
-            .EnumerateFiles(_repoRoot, "*", SearchOption.AllDirectories)
+        // Pruned as it descends rather than filtered afterwards — see RepoFiles. `skip` below is kept
+        // as the authority on what counts; the two lists agree, and this one merely stops the walk from
+        // entering the directories the other was about to discard.
+        return RepoFiles
+            .EnumerateSourceFiles(_repoRoot)
             .Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)
                         || f.EndsWith(".targets", StringComparison.Ordinal)
                         || f.EndsWith(".props", StringComparison.Ordinal))

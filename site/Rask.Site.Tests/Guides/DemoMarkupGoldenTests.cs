@@ -100,6 +100,16 @@ public sealed class DemoMarkupGoldenTests
     {
         var offenders = new List<string>();
 
+        // NOTE (performance): the wait is per demo, so this test costs 250 ms x |Keys| — ~35 s, the
+        // slowest single test in the repository. Hoisting it into ONE shared wait (mount every demo,
+        // wait once, re-read every demo) makes it ~1 s and was tried; it does NOT hold, and the reason
+        // is worth keeping. Mounting the whole set takes long enough that the demos mounted early sit
+        // for far more than 250 ms before their second read, which makes the check strictly STRICTER —
+        // and two demos then fail it, `virtualize-provider` (an empty cell becomes a `td`) and
+        // `lifecycle-hooks` (an empty slot becomes an `li`). Those two really do change their skeleton
+        // after mount; the 250 ms window is simply too short to see it, so their golden entries are
+        // racy today and nothing reports it. Fix those two demos first — then this can be hoisted and
+        // the 35 s goes away with them.
         foreach (var key in DemoRegistry.Keys)
         {
             var page = RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default());

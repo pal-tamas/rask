@@ -184,29 +184,57 @@ rask_build_debug_generators() {
 # above, so this costs seconds and buys back a verify that cannot rewrite the tree it is verifying.
 # Do not put the flag back to shave them off. (Also: check `git status` after any format run — a
 # destructive pass and a clean one differ only in how many files moved, not in the exit code.)
-format_scope=""
-if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ]; then
-  # -z/-d so a path with a space or a newline in it cannot split into two arguments.
-  staged_cs="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep -E '\.cs$' || true)"
+# Run CONCURRENTLY with the test run below, rather than ahead of it.
+#
+# The two share nothing that either one writes. The Release solution build above has already produced
+# everything `dotnet test --no-build` will load, and it loads it out of bin/Release; the formatter
+# neither builds nor writes there — it restores (which it must; see the note above about what happens
+# without it) and loads a Debug workspace to READ. So the only thing serialising them was the order
+# they happened to be written in, and it cost the gate the whole formatter pass — measured at 57 s for
+# the full tree, 30 s scoped to a commit — on top of a test run that leaves this 14-core box 90% idle.
+#
+# Both statuses are collected and BOTH are reported. Fail-fast on the formatter would be the cheaper
+# shape, but it means a run that is red for formatting tells you nothing about whether your tests pass,
+# so the next iteration is a second full gate to find out. One run now answers both questions.
+#
+# Output goes to a log and is replayed AFTER the tests, never interleaved: two concurrent dotnet
+# processes writing the same terminal is how a real failure ends up spliced through 40 assemblies of
+# test output and read as noise. $$ keeps it distinct from a gate running in another worktree, which
+# shares this TMPDIR.
+format_log="${TMPDIR:-/tmp}/rask-format-$$.log"
+format_pid=""
+format_label=""
 
-  if [ -n "$staged_cs" ]; then
+rask_start_format() {
+  if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ]; then
+    # -z/-d so a path with a space or a newline in it cannot split into two arguments.
+    staged_cs="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep -E '\.cs$' || true)"
+
+    if [ -z "$staged_cs" ]; then
+      echo "==> Formatting check skipped — RASK_FORMAT_SCOPE=staged and no .cs staged."
+      echo "    (and with it the Debug generator build, which exists only to serve the formatter)"
+      return 0
+    fi
+
     rask_build_debug_generators
-    echo "==> Formatting check (staged .cs files only — RASK_FORMAT_SCOPE=staged)"
-    # shellcheck disable=SC2086
-    printf '%s\n' "$staged_cs" | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --include
-    format_scope="done"
-  else
-    echo "==> Formatting check skipped — RASK_FORMAT_SCOPE=staged and no .cs staged."
-    echo "    (and with it the Debug generator build, which exists only to serve the formatter)"
-    format_scope="done"
+    format_label="Formatting check (staged .cs files only — RASK_FORMAT_SCOPE=staged)"
+    echo "==> $format_label — running alongside the tests"
+    (
+      # shellcheck disable=SC2086
+      printf '%s\n' "$staged_cs" | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --include
+    ) >"$format_log" 2>&1 &
+    format_pid=$!
+    return 0
   fi
-fi
 
-if [ -z "$format_scope" ]; then
   rask_build_debug_generators
-  echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
-  dotnet format Rask.slnx --verify-no-changes
-fi
+  format_label="Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
+  echo "==> $format_label — running alongside the tests"
+  dotnet format Rask.slnx --verify-no-changes >"$format_log" 2>&1 &
+  format_pid=$!
+}
+
+rask_start_format
 
 # The generated TypeScript is compiled by tsgo, which the test fetches itself as a checksum-verified
 # binary at a pinned version, cached per user. So the type CHECK needs no node and always runs. Nothing
@@ -273,7 +301,34 @@ dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
   --results-directory "$root/artifacts/test-blame" \
   --logger "console;verbosity=normal"
 unit_status=$?
+
+# Collected before anything can exit, so the formatter's verdict is never lost to an early `exit` on
+# the test status. A gate that starts a check and then leaves without reading it is a gate that has
+# silently stopped running, which is the failure this repository keeps paying for.
+format_status=0
+if [ -n "$format_pid" ]; then
+  wait "$format_pid" || format_status=$?
+fi
 set -e
+
+if [ -n "$format_pid" ]; then
+  if [ "$format_status" -eq 0 ]; then
+    echo "==> $format_label passed."
+    rm -f "$format_log"
+  else
+    {
+      echo
+      echo "run-unit-local: $format_label FAILED."
+      echo
+      cat "$format_log"
+      echo
+      echo "             Fix with 'dotnet format Rask.slnx' and restage. Note that a destructive"
+      echo "             format pass and a clean one differ only in how many files moved, not in the"
+      echo "             exit code — check 'git status' afterwards."
+    } >&2
+    rm -f "$format_log"
+  fi
+fi
 
 # The same hint the browser gate prints, for the same reason. This suite has WebSocket and timing
 # tests of its own, and #850 records one being blamed for a change that could not have caused it —
@@ -300,6 +355,12 @@ if [ "$unit_status" -ne 0 ]; then
   fi
 
   exit "$unit_status"
+fi
+
+# Reached only when the tests are green, so a formatting failure is the reason and says so on its own.
+if [ "$format_status" -ne 0 ]; then
+  echo "run-unit-local: the tests passed but the formatting check did not — see above." >&2
+  exit "$format_status"
 fi
 
 echo "==> Format + unit gate passed."

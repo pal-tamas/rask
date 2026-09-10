@@ -6,6 +6,24 @@
        green while checking far less than it did. -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFileName)$(MSBuildThisFileExtension), $(MSBuildThisFileDirectory)../))" />
 
+  <PropertyGroup>
+    <!--
+      Microsoft.CodeCoverage (which arrives with Microsoft.NET.Test.Sdk, NOT with coverlet) hangs a
+      target off CoreCompile that calls back into EVERY project reference to build a deterministic
+      source-root mapping. It exists to make a COLLECTED coverage run attribute lines to the right
+      source file, and nothing in this repository collects coverage: no `collect` switch appears in
+      scripts/, in .githooks/ or in any workflow.
+
+      Measured with -clp:PerformanceSummary on a warm no-op solution build: MsCoverageReferencedPathMaps
+      was 22.4 s across 51 calls — the single most expensive target in the build after project-reference
+      resolution itself, spent entirely on a file no one reads.
+
+      This is the opt-out the target itself documents. Anyone who does want a coverage run gets the
+      mapping back by unsetting it for that run: `dotnet test -p:DisableMsCoverageReferencedPathMaps=false`.
+    -->
+    <DisableMsCoverageReferencedPathMaps>true</DisableMsCoverageReferencedPathMaps>
+  </PropertyGroup>
+
   <!-- Bound how many tests one assembly runs at once.
 
        This is the second half of the machine's slot budget (scripts/lib/machine-lane.sh). That budget
@@ -15,11 +33,26 @@
        three worktrees running the gate at once reached load average 98 at 0.0% idle — at which point
        every timing-sensitive test in all three runs was untrustworthy.
 
-       Two, not one: the gate halves its slot count for -m and leaves the other half here, so
-       (assemblies in flight) x (threads each) lands back on the budget. One would have serialised the
-       large suites — Rask.Core.Tests alone is ~1,780 facts — and spent the whole gate waiting on its
-       tail. It is a static number because xunit.runner.json is read from beside the assembly, long
-       after the gate has chosen its size; the dynamic half is the -m the gate passes.
+       EIGHT, not two. Two was set against a CPU-bound model of this suite, and the measurement says
+       that model is wrong: a full unit run finishes at 112% CPU on a 14-core box — about one core and
+       a tenth — because these tests are overwhelmingly waiting, on timers, sockets and each other,
+       not computing. A ceiling tuned for saturation therefore bought nothing and cost the critical
+       path, which is one assembly: Rask.Server.Tests is 221 s of test time and, through two threads,
+       118 s of wall clock that nothing else in the gate could overlap away.
+
+       Measured on that assembly alone, back to back, all 408 green at every setting:
+
+           2 threads -> 109 s     8 threads -> 65 s     16 threads -> 53-65 s     32 threads -> 59 s
+
+       Eight is where the curve flattens; past it the remaining floor is the collections that declare
+       DisableParallelization and a handful of multi-second drain tests, which no thread count can
+       overlap. It is a static number because xunit.runner.json is read from beside the assembly, long
+       after the gate has chosen its size; the dynamic half is the -m the gate passes, so a contended
+       box still shrinks (assemblies in flight) x (threads each) as it always did.
+
+       If timing flakes ever start tracking this number, halve it back rather than chasing the
+       individual tests — the original advice, and still right. A suite that only passes at low
+       parallelism is telling you something.
 
        'conservative' matches what tests/Rask.Examples.E2E.Tests already chose: it does not spin up
        extra threads when a test blocks, which is the behaviour that makes the ceiling mean something.

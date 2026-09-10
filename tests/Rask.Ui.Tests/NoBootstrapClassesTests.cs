@@ -181,8 +181,10 @@ public sealed class NoBootstrapClassesTests
             ".claude/worktrees/", // other branches
         ];
 
-        return Directory
-            .EnumerateFiles(root, "*", SearchOption.AllDirectories)
+        // Pruned as it descends rather than filtered afterwards — see RepoFiles. The `skip` list below
+        // still decides what counts; this only stops the walk from reading 587k files to reach 3k.
+        return RepoFiles
+            .EnumerateSourceFiles(root)
             .Where(f => extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
             .Where(f =>
             {

@@ -128,8 +128,13 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   `.githooks/pre-push` alongside the browser E2E, so **nothing in CI runs a test or a benchmark** —
   your machine is the only thing that will tell you something broke.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
-  solution once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
-  analyzers, one workspace load, ~36s), then every test except the browser E2E. The full pass earns its
+  solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
+  analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share
+  nothing either of them writes — the formatter restores and reads a Debug workspace, the tests load
+  the already-built `bin/Release` — so the only thing that had ever serialised them was the order they
+  were written in. Both statuses are collected and both are reported: a run that is red for formatting
+  still tells you whether your tests pass, instead of costing a second full gate to find out. The full
+  pass earns its
   place: import ordering is enforced by `dotnet format` alone — the warnings-as-errors build covers the
   analyzer rules but not the sorting of using directives, which is how a misordered `using` drifted into
   `Rask.Server` unnoticed (#584). Before formatting, the script builds `src/*.Generators` in **Debug**:

@@ -42,4 +42,9 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <Using Include="Rask.TestFiles"/>
+  </ItemGroup>
+
 </Project>

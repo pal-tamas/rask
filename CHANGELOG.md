@@ -7,6 +7,32 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **The local format + unit gate is roughly 2.4x faster — ~325s to ~136s on a 14-core box.** Nothing
+  it checks was dropped; the time was going to four things that measurement, not intuition, found.
+
+  *The no-op solution build fell from 112s to 26s.* `Microsoft.CodeCoverage` — which arrives with
+  `Microsoft.NET.Test.Sdk`, not with coverlet — hangs a target off `CoreCompile` that calls back into
+  every project reference to build a deterministic source-root mapping for a **collected** coverage
+  run. Nothing in this repository collects coverage. It cost 22.4s of its own and dragged
+  `ResolveProjectReferences` along behind it; `DisableMsCoverageReferencedPathMaps` in
+  `tests/Directory.Build.props` turns it off, and a coverage run gets it back with
+  `-p:DisableMsCoverageReferencedPathMaps=false`.
+
+  *Two convention tests fell from 26s and 29s to 0.5s and 0.07s.* Both walked the repository with
+  `EnumerateFiles(root, "*", AllDirectories)` and filtered afterwards, so both descended into `bin/`,
+  `obj/`, `node_modules/` and `.git/` in full: **587,495 files enumerated to examine 3,080**. The new
+  `tests/Shared.TestFiles/RepoFiles.cs` prunes at the directory instead.
+
+  *`Rask.Server.Tests` fell from 118s to 65s.* `maxParallelThreads` was 2, set against a CPU-bound
+  model of the suite that the measurement contradicts: a full unit run finishes at **112% CPU on 14
+  cores**, because these tests overwhelmingly wait rather than compute. It is now 8, which is where
+  the curve flattens.
+
+  *The formatter no longer waits for the tests.* It shares nothing either it or the test run writes,
+  so `scripts/run-unit-local.sh` now runs the two concurrently and reports both verdicts.
+
 ### Added
 
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an
