@@ -73,6 +73,16 @@ them until tagged releases begin.
   test that declares a model in a real scaffolded app and asserts a `Product` table reaches the
   migration. Both were confirmed to fail against the old template.
 
+- **Two gate script tests raced, and the loser blamed the wrong thing.** `run-unit-local.sh` ran all ten
+  concurrently under a comment claiming they had "no shared state". That stopped being true:
+  `public-api-gate.test.sh` proves the analyzer by writing `src/Rask.Cache/__PublicApiGateProbe.cs` into
+  the real worktree and briefly moving that project's PublicAPI baselines aside, while
+  `attribution-guard.test.sh` ends by asserting the working tree is exactly where it was. The guard saw
+  the prober's files and failed with "a git env var leaked into the temp repo" — naming a cause that was
+  not the one, on a run where nothing was wrong. The guard now runs alone before the concurrent batch:
+  it is pure bash and costs about a second, where the prober is four builds of `Rask.Cache` and is what
+  the concurrency exists for.
+
 - **A scaffolded app could not use a model even once it was mapped.** `Product.Add(…)` goes through the
   ambient `Db`, and binding that needs two things the scaffold never wrote: the *generic*
   `AddRaskData<AppDbContext>()` (the non-generic overload registers only the interceptors, so
