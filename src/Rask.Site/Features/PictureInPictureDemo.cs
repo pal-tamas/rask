@@ -38,8 +38,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Video
                     .Ref(_video)
                     .Width(320)
@@ -53,8 +52,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
                     UiButton.Label("Exit").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("pip-exit").OnClick(Exit)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pip-status")[_status]]
-            ]
-        ];
+            ];
 
     private async Task Enter()
     {

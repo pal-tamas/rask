@@ -87,12 +87,12 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
             ];
         }
 
-        return Article.Class($"{Tw.Card} border-0 bg-ui-well")[
-            Div.Class(Tw.CardBody)[
-                Div.Class("text-sm text-ui-muted uppercase mb-1")[$"Post #{_post.Id}"],
-                H3.Class("text-base font-semibold")[_post.Title],
-                P.Class("mb-0 text-sm")[_post.Body]
-            ]
+        // An <article> rather than UiCard's <div>: this is a self-contained syndicated item, and the
+        // element is the semantics. It takes the KIT's own card class so there is still one vocabulary.
+        return Article.Class($"{UiStyles.Card} bg-ui-well")[
+            Div.Class("text-sm text-ui-muted uppercase mb-1")[$"Post #{_post.Id}"],
+            H3.Class("text-base font-semibold")[_post.Title],
+            P.Class("mb-0 text-sm")[_post.Body]
         ];
     }
 

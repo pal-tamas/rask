@@ -50,8 +50,7 @@ public sealed partial class IslandsDemo : Component
 
     protected override Component? Render() =>
     [
-        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
                 P.Class("text-sm text-ui-muted")[
                     "The same ", Code["VueChart.vue"], " the Server showcase builds. Clicking a bar ",
@@ -68,11 +67,9 @@ public sealed partial class IslandsDemo : Component
                     Code.Id("island-clicks")[_clicks.ToString()],
                     Span[" click(s)"]
                 ]
-            ]
-        ],
+            ],
 
-        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
                 P.Class("text-sm text-ui-muted")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
@@ -96,11 +93,9 @@ public sealed partial class IslandsDemo : Component
                     Code.Id("island-react-total")[_reactTotal.ToString()],
                     Span[" back to C#."]
                 ]
-            ]
-        ],
+            ],
 
-        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Lit island, beside this app's own scoped TypeScript"],
                 P.Class("text-sm text-ui-muted")[
                     Code["LitBadge.ts"], " imports nothing at all — a custom element needs no ",
@@ -116,11 +111,9 @@ public sealed partial class IslandsDemo : Component
                     Code.Id("island-badge-nudges")[_badgeNudges.ToString()],
                     Span[" nudge(s) back to C#."]
                 ]
-            ]
-        ],
+            ],
 
-        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
                 P.Class("text-sm text-ui-muted")[
                     "Byte-identical to ", Code["SolidSpark.tsx"], " on the Server host. Its hover count ",
@@ -135,7 +128,6 @@ public sealed partial class IslandsDemo : Component
                     Code.Id("island-hovered")[_hoveredPoint < 0 ? "(none)" : _hoveredPoint.ToString()]
                 ]
             ]
-        ]
     ];
 
     private void BarClicked(int value)

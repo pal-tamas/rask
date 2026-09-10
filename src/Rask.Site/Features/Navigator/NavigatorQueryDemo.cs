@@ -10,8 +10,7 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
 {
     protected override Component? Render() =>
         Div[
-            Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
-                Div.Class(Tw.CardBody)[
+            UiCard.Class("shadow-sm mb-3")[
                     Div.Class("grid grid-cols-12 gap-4")[
                         Div.Class("col-span-12 md:col-span-6")[
                             Span.Class("text-ui-muted text-sm uppercase")["Path"],
@@ -26,8 +25,7 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                             ]
                         ]
                     ]
-                ]
-            ],
+                ],
             Div.Class("flex-wrap")[
                 UiButton.Label("SetQuery page=1").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                     .Id("nav-set-page1")

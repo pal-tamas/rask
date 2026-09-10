@@ -13,8 +13,7 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex items-center gap-3 mb-2")[
                     UiButton.Label("Pick a color").Icon(UiIconName.EyeDropper).Tone(UiTone.Primary).Id("eyedropper-pick").OnClick(Pick),
                     _hex is null
@@ -28,8 +27,7 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
                         ]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("eyedropper-status")[_status]]
-            ]
-        ];
+            ];
 
     private async Task Pick()
     {

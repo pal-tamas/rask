@@ -33,8 +33,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("mb-3")[
                     Label.Class(Tw.Label).For("demo-input")["sessionStorage value"],
                     Input
@@ -60,8 +59,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
                     Span.Class("text-ui-muted text-sm uppercase")["Status"],
                     Div[Code.Class("text-base").Id("demo-status")[_status ?? "(idle)"]]
                 ]
-            ]
-        ];
+            ];
 
     private async Task SetAsync()
     {

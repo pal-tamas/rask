@@ -12,8 +12,7 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     UiButton.Label("Request permission").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("notif-permission")
@@ -29,8 +28,7 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
                         .OnClick(ClearBadge)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task RequestPermission()
     {

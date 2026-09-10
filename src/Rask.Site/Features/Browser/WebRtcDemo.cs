@@ -50,8 +50,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 !_supported
                     ? Div.Class("text-sm text-ui-muted italic").Id("rtc-state")[
                         "This browser has no WebRTC support."]
@@ -78,8 +77,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                                 _log.Select(m => Li.Key(m)[m])
                             ]
                     ]
-            ]
-        ];
+            ];
 
     private async Task ConnectAsync()
     {

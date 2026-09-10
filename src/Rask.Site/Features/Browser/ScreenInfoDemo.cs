@@ -9,15 +9,13 @@ public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 UiButton.Label("Read screen info").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("screen-read")
                     .OnClick(Read),
                 Div.Class("text-sm text-ui-muted")["Display: ", Code.Id("screen-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("screen-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Read()
     {

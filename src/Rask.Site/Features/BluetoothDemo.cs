@@ -18,8 +18,7 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     UiButton.Label("Pair & read battery").Icon(UiIconName.Signal).Tone(UiTone.Primary).Id("bt-request").OnClick(PairAndRead),
                     UiButton.Label("Disconnect").Tone(UiTone.Error).Variant(UiVariant.Outline)
@@ -36,8 +35,7 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
                         Dd.Class("col-span-7 sm:col-span-8")[Code.Id("bt-battery")[_battery]]
                     ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("bt-status")[_status]]
-            ]
-        ];
+            ];
 
     private async Task PairAndRead()
     {

@@ -32,8 +32,7 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
                     Span.Class(_visible ? $"{Tw.BadgeSuccess}" : $"{Tw.BadgeSecondary}").Id("io-status")[
                         _visible ? "in view" : "out of view"],
@@ -48,8 +47,7 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
                     .Class("p-4 rounded text-center " + (_visible ? "bg-success-subtle" : "bg-ui-well"))[
                     "🎯 observed target"
                 ]
-            ]
-        ];
+            ];
 
     public async ValueTask DisposeAsync()
     {

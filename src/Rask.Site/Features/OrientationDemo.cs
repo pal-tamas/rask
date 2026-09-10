@@ -14,8 +14,7 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     UiButton.Label("Read current").Tone(UiTone.Primary).Id("orientation-read").OnClick(Read),
                     UiButton.Label("Lock portrait").Tone(UiTone.Primary).Variant(UiVariant.Outline)
@@ -29,8 +28,7 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("orientation-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Read()
     {

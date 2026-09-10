@@ -12,8 +12,7 @@ namespace Rask.Site.Features;
 public sealed partial class ShareDemo : Component
 {
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     // Headless: we render our own button; Shareable just supplies the share attribute.
                     Shareable
@@ -31,6 +30,5 @@ public sealed partial class ShareDemo : Component
                     "Works on every host — the click fires ", Code["navigator.share"],
                     " inside the gesture (so it works on Server too, where an imperative round-trip would lose "
                     + "the activation). Unsupported browsers (e.g. desktop Firefox) no-op."]
-            ]
-        ];
+            ];
 }

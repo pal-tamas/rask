@@ -47,15 +47,6 @@ public static class Tw
     // button, so the hovered contrast depended on the page instead of the token. The muted tier is
     // held to 4.5:1 against the ground, and contrast is symmetric, so the ground reads on it.
 
-    /// <summary>A panel.</summary>
-    public const string Card = "rounded-xl bg-ui-bg ring-1 ring-ui-line";
-
-    /// <summary>A panel's padded interior.</summary>
-    public const string CardBody = "p-5";
-
-    /// <summary>A panel's heading strip.</summary>
-    public const string CardHeader = "border-b border-ui-line px-5 py-3 font-medium";
-
     private const string AlertBase = "rounded-lg px-4 py-3 text-sm";
 
     public const string AlertPrimary = AlertBase + " bg-ui-brand-surface text-ui-brand-ink";
@@ -100,15 +91,6 @@ public static class Tw
     public const string Input =
         "min-h-11 w-full rounded-md border border-ui-line bg-ui-bg px-3 text-sm text-ui-ink "
         + "placeholder:text-ui-muted focus:border-ui-brand focus:outline-none sm:min-h-0 sm:py-1.5";
-
-    /// <summary>A panel's footer strip.</summary>
-    public const string CardFooter = "border-t border-ui-line px-5 py-3 text-sm";
-
-    /// <summary>A panel's title.</summary>
-    public const string CardTitle = "mb-1 text-lg font-semibold text-ui-ink";
-
-    /// <summary>A panel's secondary title.</summary>
-    public const string CardSubtitle = "mb-2 text-sm text-ui-muted";
 
     /// <summary>A select, shaped like <see cref="Input" />.</summary>
     public const string Select = Input;

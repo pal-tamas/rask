@@ -10,8 +10,7 @@ public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("mb-2 flex gap-2")[
                     Input.Value(_input).Class(Tw.Input).Id("clipboard-input").OnInput(v => _input = v),
                     UiButton.Label("Copy").Tone(UiTone.Primary).Id("clipboard-copy").OnClick(Copy),
@@ -19,8 +18,7 @@ public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
                 ],
                 Div.Class("text-sm text-ui-muted")["Pasted: ", Code.Id("clipboard-read-value")[_read ?? "(nothing yet)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("clipboard-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Copy()
     {

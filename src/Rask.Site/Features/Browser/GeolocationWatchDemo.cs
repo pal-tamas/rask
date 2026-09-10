@@ -17,8 +17,7 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     _watch is null
                         ? UiButton.Label("Start watching").Tone(UiTone.Primary).Id("geowatch-start").OnClick(Start)
@@ -29,8 +28,7 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
                     Span.Class("ms-2").Id("geowatch-fixes")[$"({_fixes} fix(es))"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("geowatch-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Start()
     {

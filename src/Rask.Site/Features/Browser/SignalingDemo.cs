@@ -28,8 +28,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
     private int _sent;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 mb-2")[
                     UiButton.Label("Join the room twice").Tone(UiTone.Primary)
                         .Id("signal-join")
@@ -53,8 +52,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
                     : Ul.Class("text-sm mb-0").Id("signal-log")[
                         _log.Select(m => Li.Key(m)[m])
                     ]
-            ]
-        ];
+            ];
 
     private static string Short(string? id) => id is null ? "?" : id[..Math.Min(6, id.Length)];
 

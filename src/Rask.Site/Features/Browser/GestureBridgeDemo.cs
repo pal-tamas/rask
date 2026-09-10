@@ -21,8 +21,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
     private MediaStreamId? _camera;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 items-center flex-wrap mb-3")[
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
                     FullscreenTrigger
@@ -115,8 +114,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     "with the fullscreen button on a phone); the eyedropper needs a Chromium browser. ",
                     "Stopping the camera goes through ", Code["IMediaStreams"], " on the id the capture ",
                     "trigger handed back — releasing the device and its hardware indicator."]
-            ]
-        ];
+            ];
 
     // Stopping is not optional: a live stream holds the camera (and its indicator) open until every track
     // is stopped, and nothing else in the page will do it.

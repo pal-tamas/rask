@@ -46,8 +46,7 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                     UiButton.Label("Add item").Tone(UiTone.Primary).Id("mo-add").OnClick(() => _items++),
                     UiButton.Label("Remove item").Tone(UiTone.Primary).Variant(UiVariant.Outline)
@@ -70,8 +69,7 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
                     " · attribute changes: ", Code.Id("mo-attr")[$"{_attrChanges}"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Last: ", Code.Id("mo-last")[_last]]
-            ]
-        ];
+            ];
 
     public async ValueTask DisposeAsync()
     {

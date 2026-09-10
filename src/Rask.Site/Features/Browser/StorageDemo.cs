@@ -15,8 +15,7 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("mb-2 flex gap-2")[
                     Input.Value(_input)
                         .Class(Tw.Input)
@@ -29,8 +28,7 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
                 ],
                 Div.Class("text-sm text-ui-muted")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Set()
     {

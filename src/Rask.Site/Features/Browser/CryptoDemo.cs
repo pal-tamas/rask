@@ -12,8 +12,7 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     UiButton.Label("Random UUID").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("crypto-uuid").OnClick(Uuid),
                     UiButton.Label("Random bytes").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("crypto-bytes").OnClick(Bytes)
@@ -28,8 +27,7 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
                 UiButton.Label("SHA-256").Tone(UiTone.Primary).Class("mb-2").Id("crypto-hash").OnClick(Hash),
                 Div.Class("text-sm text-ui-muted text-break")["Hash: ", Code.Id("crypto-hash-value")[_hash ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("crypto-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Uuid()
     {

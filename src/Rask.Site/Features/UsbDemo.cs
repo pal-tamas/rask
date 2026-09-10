@@ -17,8 +17,7 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     UiButton.Label("Pair device").Icon(UiIconName.Cube).Tone(UiTone.Primary).Id("usb-request").OnClick(RequestDevice),
                     UiButton.Label("Open").Tone(UiTone.Primary).Variant(UiVariant.Outline)
@@ -45,8 +44,7 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
                         Dd.Class("col-span-7 sm:col-span-8")[_info.SerialNumber ?? "—"]
                     ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("usb-status")[_status]]
-            ]
-        ];
+            ];
 
     private static string Hex(int value) => "0x" + value.ToString("x4");
 

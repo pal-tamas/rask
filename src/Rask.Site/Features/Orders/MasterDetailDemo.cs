@@ -44,7 +44,7 @@ public sealed partial class MasterDetailDemo : Component
     {
         var orders = SortOrders(_orders, _orderSort);
 
-        return Div.Class($"{Tw.Card} shadow-sm border-0")[
+        return UiCard.Class("shadow-sm !p-0")[
             Div.Class("overflow-x-auto")[
                 Table.Id("md-orders").Class($"{Tw.Table} [&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
                     Thead.Class("bg-ui-well")[

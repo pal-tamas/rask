@@ -15,8 +15,7 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class($"{Tw.InputGroup} mb-2")[
                     Input
                         .Value(_input)
@@ -30,8 +29,7 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
                 ],
                 Div.Class("text-sm text-ui-muted")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Set()
     {

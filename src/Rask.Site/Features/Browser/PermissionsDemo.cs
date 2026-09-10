@@ -13,8 +13,7 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     UiButton.Label("Query geolocation").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("perm-geo")
@@ -26,8 +25,7 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
                 Div.Class("text-sm text-ui-muted")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
                 Div.Class("text-sm text-ui-muted")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task QueryGeo()
     {

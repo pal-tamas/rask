@@ -16,8 +16,7 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
     private IReadOnlyList<LockInfo> _snapshot = [];
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     UiButton.Label("Hold exclusive for 2s").Tone(UiTone.Primary).Id("locks-hold").OnClick(Hold),
                     UiButton.Label("Try (no wait)").Tone(UiTone.Primary).Variant(UiVariant.Outline)
@@ -34,8 +33,7 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
                         _snapshot.Select(l => Li.Key($"{l.Name}:{l.ClientId}:{l.Held}")[
                             $"{l.Name} — {l.Mode} — {(l.Held ? "held" : "pending")}"])
                     ]
-            ]
-        ];
+            ];
 
     private async Task Hold()
     {

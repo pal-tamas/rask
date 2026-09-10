@@ -12,15 +12,13 @@ public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Com
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 UiButton.Label("Read visibility").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("vis-read")
                     .OnClick(Read),
                 Div.Class("text-sm text-ui-muted")["State: ", Code.Id("vis-value")[_state ?? "(not read)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vis-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Read()
     {

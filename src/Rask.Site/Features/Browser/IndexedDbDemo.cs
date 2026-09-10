@@ -18,8 +18,7 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
     private async Task<IKeyValueStore> StoreAsync() => _store ??= await indexedDb.OpenStoreAsync("rask-demo");
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("grid grid-cols-12 gap-4 mb-2")[
                     Div.Class("col-span-12 sm:col-span-4")[
                         Input
@@ -43,8 +42,7 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
                 Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("idb-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Set()
     {
