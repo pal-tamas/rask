@@ -28,110 +28,23 @@ jobs:
       - name: Build
         run: dotnet build Rask.slnx -c Release --no-restore -m:1
 
-      - name: Pack Rask
-        run: dotnet pack src/Rask/Rask.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Server
-        run: dotnet pack src/Rask.Server/Rask.Server.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Wasm
-        run: dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Wasm.Hosting
-        run: dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Query
-        run: dotnet pack src/Rask.Query/Rask.Query.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Spa.Hosting
-        run: dotnet pack src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Meta.Hosting
-        run: dotnet pack src/Rask.Meta.Hosting/Rask.Meta.Hosting.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Blazor
-        run: dotnet pack src/Rask.Blazor/Rask.Blazor.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.External
-        run: dotnet pack src/Rask.External/Rask.External.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Validation.FluentValidation
-        run: dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Wire
-        run: dotnet pack src/Rask.Wire/Rask.Wire.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Api
-        run: dotnet pack src/Rask.Api/Rask.Api.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Api.Client
-        run: dotnet pack src/Rask.Api.Client/Rask.Api.Client.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Cqrs
-        run: dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Cqrs.Client
-        run: dotnet pack src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Cqrs.Server
-        run: dotnet pack src/Rask.Cqrs.Server/Rask.Cqrs.Server.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.WebPush
-        run: dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Signaling
-        run: dotnet pack src/Rask.Signaling/Rask.Signaling.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SQLite
-        run: dotnet pack src/Rask.SQLite/Rask.SQLite.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SQLite.EntityFrameworkCore
-        run: dotnet pack src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SQLite.Litestream
-        run: dotnet pack src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SQLite.Snapshots
-        run: dotnet pack src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.SQLite.Browser
-        run: dotnet pack src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Data
-        run: dotnet pack src/Rask.Data/Rask.Data.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Outbox
-        run: dotnet pack src/Rask.Outbox/Rask.Outbox.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Jobs
-        run: dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Auth
-        run: dotnet pack src/Rask.Auth/Rask.Auth.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Auth.Client
-        run: dotnet pack src/Rask.Auth.Client/Rask.Auth.Client.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Mail
-        run: dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Cache
-        run: dotnet pack src/Rask.Cache/Rask.Cache.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Logging
-        run: dotnet pack src/Rask.Logging/Rask.Logging.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Dashboard
-        run: dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Ui
-        run: dotnet pack src/Rask.Ui/Rask.Ui.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Testing
-        run: dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release --no-build -o ./artifacts
-
-      - name: Pack Rask.Cli (the `rask` dotnet tool)
-        run: dotnet pack src/Rask.Cli/Rask.Cli.csproj -c Release --no-build -o ./artifacts
+      # ONE pack, for the whole solution.
+      #
+      # This was 35 hand-written `dotnet pack` steps, and the list went stale in the way a hand-written
+      # list always does: at the v0.20.0 tag it held 24 projects, while 16 packable projects had been
+      # added since. Those 16 were never packed by a TAGGED run, so they had nightly prereleases and no
+      # stable line at all -- and Rask.Query and Rask.Auth are both on the default battery set, so
+      # `rask new Shop` from the released CLI could not restore (#1044). Nothing failed; nothing was
+      # throttled. They simply were not on the list.
+      #
+      # Packing the solution has no list to go stale: a project carrying IsPackable=false (every test
+      # project, Rask.Core, Rask.Site) is skipped by the SDK, and everything else is packed because it
+      # exists. Verified to produce exactly the 35 packable projects and no others.
+      #
+      # No --no-build: pack on a solution re-invokes Build for the non-packable projects and
+      # NETSDK1085 fails the run. The build above has already done the work, so this is incremental.
+      - name: Pack every packable project
+        run: dotnet pack Rask.slnx -c Release -o ./artifacts
 
       - name: Upload packages
         uses: actions/upload-artifact@v7
@@ -150,6 +63,19 @@ jobs:
             ./artifacts/*.nupkg \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes
+
+      # Does what was just pushed actually WORK? Until #1044 nothing asked.
+      #
+      # A release is the one moment the whole package set is supposed to exist, and the failure it hides
+      # is silent: a CLI that pins itself to a version some of its own dependencies never reached. The
+      # check is the user's first command -- `rask new` and a restore -- against nuget.org alone.
+      #
+      # Not continue-on-error. A release whose scaffold cannot restore is a broken release, and saying
+      # so on the run that produced it is the whole point. The packages are already pushed by then, so
+      # this reports rather than prevents -- which is still the difference between finding out here and
+      # finding out from a user.
+      - name: Verify a scaffolded project restores from nuget.org
+        run: scripts/verify-release-restore.sh "${GITHUB_REF_NAME}"
 
       # The released version is the only one that stays listed: previous stables and every nightly
       # prerelease are unlisted, so the gallery shows what you would actually install. Unlisting is not

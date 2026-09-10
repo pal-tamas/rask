@@ -160,6 +160,32 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A release publishes every packable project, and proves a scaffolded app can restore.**
+  `Rask.Cli` 0.20.0 shipped and pinned every scaffolded project to 0.20.0 — while `Rask.Query` 0.20.0
+  and `Rask.Auth` 0.20.0, both on the **default** battery set, had never reached nuget.org. So
+  `rask new Shop` from the released CLI could not restore, and the release that caused it looked
+  entirely green: a tag, a GitHub release, and a CLI on nuget.
+
+  The cause was not a throttled or partial push, which is what it looked like. Both `release.yml` and
+  `nightly.yml` carried a **hand-maintained list** of `dotnet pack` steps, one per project. At the
+  `v0.20.0` tag the release list held 24 projects, and **16 packable projects have been added since** —
+  `Rask`, `Rask.Ui`, `Rask.Query`, `Rask.Auth`, `Rask.Auth.Client`, `Rask.Cqrs.Client`,
+  `Rask.Cqrs.Server`, `Rask.Meta.Hosting`, `Rask.Spa.Hosting`, `Rask.Api`, `Rask.Api.Client`,
+  `Rask.Blazor`, `Rask.External`, `Rask.Signaling`, `Rask.Wire`, `Rask.SQLite.Browser`. They were
+  never packed by a *tagged* run, which is exactly why they had nightly prereleases and no stable line.
+
+  Both workflows pack the **solution** now, so there is no list left to go stale: a project carrying
+  `IsPackable=false` is skipped by the SDK and everything else is packed because it exists. Verified to
+  produce exactly the 35 packable projects and no others, and a test fails the build if either workflow
+  starts naming individual projects again — which would read as a tidy-up and would silently restore
+  the failure.
+
+  A release also now runs the user's first command against nuget.org: install the released CLI,
+  `rask new`, and restore with a **cold package cache and nuget.org as the only source**, so a package
+  cached by an earlier build cannot satisfy a reference that nuget.org cannot. It waits out nuget.org's
+  asynchronous indexing rather than racing it, because a gate that flakes for a reason nobody can act
+  on is a gate that gets disabled.
+
 - **The data-grid page no longer tells readers the grid's chain is `GridBuild<T, TKey>`.** That type is
   gone — the chain receives on the component itself, and the indexer is declared on
   `UiDataGrid<T, TKey>`. `docs/data-grid.md` already said so; the page did not.

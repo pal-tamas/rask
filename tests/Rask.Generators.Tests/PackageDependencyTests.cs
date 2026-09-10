@@ -71,33 +71,46 @@ public class PackageDependencyTests
             + "with NU1101:\n  " + string.Join("\n  ", offenders));
     }
 
-    // The list of `dotnet pack` steps in the publishing workflows is maintained by hand, and nothing tied it to
-    // the projects that actually declare themselves packable. A package can otherwise be added with a
-    // PackageId, a Description and its own NUGET.md — everything a shipped package has except a pack step —
-    // and so be built, tested and documented while existing on no feed at all (#602).
+    // A packable project must actually be PACKED by the publishing workflows, or it is built, tested and
+    // documented while existing on no feed at all (#602): a package can otherwise have a PackageId, a
+    // Description and its own NUGET.md, and everything a shipped package has except a pack step.
     //
-    // A missing step in release.yml means the package is never published; a missing one in nightly.yml means it
-    // is never smoke-tested from a feed before the release. Matching on the csproj path is what both workflows
-    // are written in terms of.
+    // That used to be checked by matching each project's csproj path against a hand-written list of
+    // `dotnet pack` steps, which only ever proved the list was right AT THAT MOMENT. It went stale
+    // anyway, and expensively (#1044): at the v0.20.0 tag release.yml held 24 pack steps while 16
+    // packable projects had been added since, so those 16 had nightly prereleases and no stable version
+    // at all. Rask.Query and Rask.Auth are both on the DEFAULT battery set, so `rask new Shop` from the
+    // released CLI could not restore. Nothing failed and nothing was throttled -- they were not on the
+    // list, and a test that reads the same list cannot see a project nobody thought to add to either.
+    //
+    // Both workflows pack the SOLUTION now, so there is no list to go stale: a project carrying
+    // IsPackable=false is skipped by the SDK, and everything else is packed because it exists. What this
+    // guards is that nobody reintroduces the enumeration -- which would look like a tidy-up and would
+    // silently restore the failure mode.
     [Theory]
     [InlineData("release.yml")]
     [InlineData("nightly.yml")]
-    public void Every_packable_project_is_packed_by_the_publishing_workflow(string workflow)
+    public void The_publishing_workflow_packs_the_solution_rather_than_a_hand_written_list(string workflow)
     {
         var yaml = File.ReadAllText(Path.Combine(RepoRoot(), ".github", "workflows", workflow));
 
-        var missing = SourceProjects()
+        Assert.True(
+            yaml.Contains("dotnet pack Rask.slnx", StringComparison.Ordinal),
+            $".github/workflows/{workflow} no longer packs the solution. Packing project by project is "
+            + "how 16 packable projects reached nightly and never reached a stable release (#1044).");
+
+        var enumerated = SourceProjects()
             .Where(p => IsPackable(p.Value))
             .Select(p => Path.GetRelativePath(RepoRoot(), p.Value).Replace(Path.DirectorySeparatorChar, '/'))
-            .Where(relativePath => !yaml.Contains(relativePath, StringComparison.Ordinal))
+            .Where(relativePath => yaml.Contains(relativePath, StringComparison.Ordinal))
             .Order(StringComparer.Ordinal)
             .ToList();
 
         Assert.True(
-            missing.Count == 0,
-            $"These projects are IsPackable but no `dotnet pack` step in .github/workflows/{workflow} names them, "
-            + "so the package they describe is produced by nobody — a consumer following the docs gets NU1101:\n  "
-            + string.Join("\n  ", missing));
+            enumerated.Count == 0,
+            $".github/workflows/{workflow} names individual projects again. A hand-written pack list is "
+            + "right on the day it is written and stale by the next project added, and nothing reports "
+            + "the difference until a user cannot restore:\n  " + string.Join("\n  ", enumerated));
     }
 
     // NUGET.md is packed into EVERY package (Directory.Build.props), so it is the most-read page the project
