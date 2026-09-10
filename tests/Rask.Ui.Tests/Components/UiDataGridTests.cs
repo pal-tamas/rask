@@ -323,8 +323,15 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         var html = Grid();
 
         Assert.Contains("data-label=\"Product\"", html, StringComparison.Ordinal);
-        Assert.Contains("before:content-[attr(data-label)]", html, StringComparison.Ordinal);
-        Assert.Contains("hidden sm:table-header-group", html, StringComparison.Ordinal);
+        Assert.Contains("max-sm:before:content-[attr(data-label)]", html, StringComparison.Ordinal);
+        Assert.Contains("max-sm:hidden", html, StringComparison.Ordinal);
+
+        // Every responsive class is a max-sm: VARIANT, never a base utility with an sm: override. The
+        // kit's sheet and the consuming app's are separate <link>s whose layers do not merge, so an app
+        // that writes `hidden` anywhere emits an unconditional .hidden that lands later in the cascade
+        // and hides the header at EVERY width. This assertion is what noticed.
+        Assert.DoesNotContain("\"hidden sm:", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("sm:table-header-group", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -337,7 +344,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         ]].ToHtml();
 
         Assert.DoesNotContain("data-label", html, StringComparison.Ordinal);
-        Assert.Contains("hidden sm:block", html, StringComparison.Ordinal);
+        Assert.Contains("max-sm:hidden", html, StringComparison.Ordinal);
         Assert.Contains("sm:hidden", html, StringComparison.Ordinal);
     }
 

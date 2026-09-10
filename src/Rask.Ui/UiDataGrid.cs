@@ -849,14 +849,23 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     // The automatic card layout is the SAME cells under different utilities, so it costs nothing but the
     // classes. It is off wherever the caller drew their own card, because then there are two layouts and
     // the table is simply hidden below sm.
+    //
+    // EVERY responsive class here is a `max-sm:` VARIANT, never a base utility plus an `sm:` override,
+    // and that is a cross-stylesheet rule rather than a preference. The kit ships its own compiled sheet
+    // and the consuming app links its own after it; CSS layers do not merge across <link> sheets, so an
+    // app that writes `hidden` anywhere emits an unconditional `.hidden{display:none}` that lands LATER
+    // in the cascade than this sheet's `sm:table-header-group` and wins at every width. Written the
+    // other way round there is no base class to overrule: above `sm` the element keeps the display a
+    // table gives it, and only the variant — a name the app's sheet has no reason to hold a different
+    // opinion about — applies below.
     private bool StackedCards => Card is null;
 
     private string CellClass(UiColumn<T> column) =>
         UiClass.Compose(
             StackedCards
-                ? "flex items-baseline justify-between gap-3 before:font-medium "
-                  + "before:text-base-content/60 before:content-[attr(data-label)] "
-                  + "sm:table-cell sm:before:content-none"
+                ? "max-sm:flex max-sm:items-baseline max-sm:justify-between max-sm:gap-3 "
+                  + "max-sm:before:font-medium max-sm:before:text-base-content/60 "
+                  + "max-sm:before:content-[attr(data-label)]"
                 : "",
             column.Class);
 
@@ -912,7 +921,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
                 "overflow-x-auto rounded-xl border border-base-300 bg-base-100",
                 MaxHeight is not null ? "overflow-y-auto" : "",
                 Busy ? "opacity-60" : "",
-                Card is not null ? "hidden sm:block" : ""))
+                Card is not null ? "max-sm:hidden" : ""))
             .Style(MaxHeight is { } max ? "max-height:" + max : null)[table];
 
         return Div.Class(UiClass.Compose("flex flex-col gap-3", Class))[
@@ -927,7 +936,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     // ---- header ---------------------------------------------------------------------------------
 
     private Component Head(IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> pageRows) =>
-        Thead.Class(StackedCards ? "hidden sm:table-header-group" : null)[
+        Thead.Class(StackedCards ? "max-sm:hidden" : null)[
             Tr[
                 SelectionEnabled ? Th.Class("w-0")[SelectAllBox(pageRows)] : null,
                 Expandable ? Th.Class("w-0").Aria("label", "Expand") : null,
@@ -1065,7 +1074,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             yield return Tr
                 .Key(key)
                 .Class(UiClass.Compose(
-                    StackedCards ? "block border-b border-base-300 last:border-0 sm:table-row sm:border-b" : "",
+                    StackedCards ? "max-sm:block max-sm:border-b max-sm:border-base-300" : "",
                     Hover ?? (OnRowClick is not null || OnRowClickAsync is not null)
                         ? "hover:bg-base-200"
                         : "",
@@ -1466,7 +1475,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             return null;
         }
 
-        return Tfoot.Class(StackedCards ? "hidden sm:table-footer-group" : null)[
+        return Tfoot.Class(StackedCards ? "max-sm:hidden" : null)[
             Tr[
                 LeadingCells > 0 ? Td.Colspan(LeadingCells) : null,
                 visible.Select(column =>
@@ -1478,7 +1487,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
     private Component? Cards(IReadOnlyList<T> rows) =>
         Card is not { } card
             ? null
-            : Div.Class("flex flex-col gap-2 sm:hidden")[
+            : Div.Class("max-sm:flex max-sm:flex-col max-sm:gap-2 sm:hidden")[
                 rows.Select((row, i) =>
                     Div.Key(RowIdentity(row, i))
                         .Class("rounded-xl border border-base-300 bg-base-100 p-3")[card(row)])

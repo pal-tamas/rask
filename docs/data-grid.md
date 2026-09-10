@@ -139,8 +139,15 @@ name the keys it has.
 ## The phone
 
 Below `sm` the table restyles itself into stacked, labelled lines — each cell keeps its column's title
-in front of it, through `data-label` and a `before:content-[attr(data-label)]` utility. It is the
+in front of it, through `data-label` and a `max-sm:before:content-[attr(data-label)]` utility. It is the
 **same markup** under different utilities, so it costs nothing but the classes.
+
+Every one of those classes is a `max-sm:` **variant**, never a base utility with an `sm:` override, and
+that is worth knowing if you write your own. The kit ships its own compiled stylesheet and your app
+links its own after it — and CSS layers do not merge across `<link>` sheets. An app that writes
+`hidden` anywhere therefore emits an unconditional `.hidden{display:none}` that lands *later* in the
+cascade than the kit's `sm:table-header-group` and wins at every width. Written as a variant there is no
+base class to overrule: above `sm` the element keeps the display a table gives it.
 
 `Card(p => …)` replaces those lines with markup of your own. That version *does* cost: the authored
 cards and the table both render, the table hidden below `sm` and the cards above it. Reach for it when a

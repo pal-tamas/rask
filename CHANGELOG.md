@@ -42,7 +42,10 @@ them until tagged releases begin.
 
   **Below `sm` the table restyles into stacked, labelled lines** — the same markup under different
   utilities, with each cell keeping its column title through `data-label` and
-  `before:content-[attr(data-label)]`, so the phone layout costs only classes. `Card(p => …)` replaces
+  `max-sm:before:content-[attr(data-label)]`, so the phone layout costs only classes. Every responsive
+  class is a `max-sm:` variant rather than a base utility with an `sm:` override: the kit's sheet and the
+  app's are separate `<link>`s whose layers do not merge, so an app that writes `hidden` anywhere emits
+  an unconditional `.hidden` that lands later in the cascade and would hide the header at every width. `Card(p => …)` replaces
   it with authored markup, and *that* renders both layouts. Grouping and the column chooser are driven
   by **buttons** with drag added on top, because HTML5 drag fires on neither touch nor a keyboard. A
   custom `Cell` does not fire `OnRowClick` by default: the client cancels the default action of any

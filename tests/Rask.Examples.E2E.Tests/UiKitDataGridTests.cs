@@ -129,18 +129,29 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
         var wide = await cell.EvaluateAsync<string>("el => getComputedStyle(el).display");
         Assert.Equal("table-cell", wide);
 
-        await Page.SetViewportSizeAsync(390, 844);
+        try
+        {
+            await Page.SetViewportSizeAsync(390, 844);
 
-        // Narrow: the header is gone and every cell is its own labelled line. This is the assertion the
-        // unit tests cannot make — the utilities are in the markup at both widths, and only the
-        // compiled sheet decides whether they do anything.
-        await Expect(head).ToBeHiddenAsync();
-        var narrow = await cell.EvaluateAsync<string>("el => getComputedStyle(el).display");
-        Assert.Equal("flex", narrow);
+            // Narrow: the header is gone and every cell is its own labelled line. This is the assertion
+            // the unit tests cannot make — the utilities are in the markup at both widths, and only the
+            // compiled sheet, loaded beside the app's own, decides whether they do anything. It is what
+            // caught the header staying hidden at EVERY width, because the app's sheet defines an
+            // unconditional `.hidden` that outranked the kit's `sm:table-header-group`.
+            await Expect(head).ToBeHiddenAsync();
+            var narrow = await cell.EvaluateAsync<string>("el => getComputedStyle(el).display");
+            Assert.Equal("flex", narrow);
 
-        var label = await cell.EvaluateAsync<string>(
-            "el => getComputedStyle(el, '::before').content");
-        Assert.Contains("Package", label, StringComparison.Ordinal);
+            var label = await cell.EvaluateAsync<string>(
+                "el => getComputedStyle(el, '::before').content");
+            Assert.Contains("Package", label, StringComparison.Ordinal);
+        }
+        finally
+        {
+            // The context is per-test, but a viewport left shrunk is the kind of thing that reads as a
+            // component bug in whichever test happens to run next.
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
     });
 
     private async Task OpenAsync()
