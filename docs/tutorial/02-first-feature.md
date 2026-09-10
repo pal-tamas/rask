@@ -364,14 +364,21 @@ public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
 {
     public Guid Id { get; set; }
 
-    public Func<Task>? OnDeleted { get; set; }
+    // Callback, not Func<Task>. A delegate-typed property is INVOCABLE, so `DeleteProduct.OnDeleted(x)`
+    // at the call site binds to the property being called rather than to the generated chain setter,
+    // and the compiler reports CS1593 on a delegate that "does not take 1 arguments". Callback is a
+    // struct with no invocation, so lookup finds nothing applicable and falls through to the setter.
+    public Callback? OnDeleted { get; set; }
 
     private async Task DeleteAsync()
     {
         await dispatcher.SendAsync(new DeleteProductCommand(Id), CancellationToken);
-        if (OnDeleted is not null)
+
+        // Invoke() hands back the Task for an async handler and null for a synchronous one, which is
+        // what keeps a sync handler off the async path.
+        if (OnDeleted?.Invoke() is { } pending)
         {
-            await OnDeleted();
+            await pending;
         }
     }
 
