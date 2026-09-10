@@ -83,6 +83,55 @@ asks a question it will not accept an answer to, so for those two Rask installs 
 SPA lane](spa.md) does, and with the same rule: the Vite plugin where there is a Vite config Rask
 writes, `@tailwindcss/postcss` where the config belongs to the framework.
 
+**All six get [daisyUI](ui-kit.md)**, because no creator installs it. Where Rask writes the stylesheet
+it is simply in it; on the other four the creator's own sheet is **patched**, on the same principle
+that keeps their Vite configs patched — SvelteKit's carries `@plugin '@tailwindcss/typography'` because
+its add-on put it there, and TanStack's carries that plus a web-font import, so writing our own file
+over either would delete work the developer asked for.
+
+| Template | Its stylesheet | |
+|---|---|---|
+| `nuxt` | `app/assets/css/main.css` | written by Rask |
+| `analog` | `src/styles.css` | written by Rask |
+| `nextjs` | `app/globals.css` | patched |
+| `sveltekit` | `src/routes/layout.css` | patched — under `routes/`, and quoted with apostrophes |
+| `solidstart` | `src/app.css` | patched |
+| `tanstack-start` | `src/styles.css` | patched — its Tailwind import is the third line |
+
+Those paths were read off real scaffolds rather than inferred, because a patch aimed at the wrong file
+does not fail, it simply does not apply. If a creator moves its stylesheet, `rask new` says so and names
+the one line to add by hand; it does not leave you with a project whose every daisyUI class styles
+nothing.
+
+## Signing people in
+
+An app with a database gets `/login` and `/register` scaffolded, in **this framework's own routing
+convention** — and those conventions are not interchangeable, so the table is the record of what each
+one actually is:
+
+| Template | Where the screens land |
+|---|---|
+| `nuxt` | `app/pages/login.vue`, `app/pages/register.vue` |
+| `nextjs` | `app/login/page.tsx`, `app/register/page.tsx` — both `'use client'` |
+| `sveltekit` | `src/routes/login/+page.svelte`, `src/routes/register/+page.svelte` |
+| `solidstart` | `src/routes/login.tsx`, `src/routes/register.tsx` |
+| `tanstack-start` | `src/routes/login.tsx`, `src/routes/register.tsx` — in `createFileRoute` |
+| `analog` | `src/app/pages/login.page.ts`, `src/app/pages/register.page.ts` |
+
+They are a form over `login` and `register` from `@rask/browser/auth`, which the build already writes
+into your client: typed, carrying the CSRF header these endpoints require, and answering
+`{ok: true, user}` or `{ok: false, failure}` rather than a status code to interpret. The cookie is
+HttpOnly, so nothing here touches browser storage. `Program.cs` maps the endpoints with
+`app.MapRaskAuth()`, before `UseRaskMeta()` — that call forwards everything it has not answered to the
+node process, so an endpoint added after it would be answered with a rendered page.
+
+**This is the one thing Rask overlays that is a page rather than a config file**, and on Nuxt it is not
+purely additive: the minimal template writes no `pages/` directory at all — `app/app.vue` renders
+`<NuxtWelcome />` and that is the whole application. Creating `pages/` is what turns vue-router on, so
+`app.vue` becomes `<NuxtPage />` and an `index.vue` comes with it, which is the ordinary shape of every
+real Nuxt app. On the other five, the route files sit beside the ones the creator wrote and nothing of
+theirs is replaced.
+
 **The front end lives in `client/`, lower case** — the same directory [the SPA lane](spa.md) uses. A
 capital `Client` belongs to the WASM lane's `{name}.Client`, which is a C# project and takes .NET's
 convention instead.

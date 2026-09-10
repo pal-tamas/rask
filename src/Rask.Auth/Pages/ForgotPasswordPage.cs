@@ -39,27 +39,29 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
 
     private Component Sent =>
         Fragment[
-            H1["Check your email"],
-            Div.Class("rask-auth-ok").Id("forgot-sent")[
-                "If an account exists for that address, a link to choose a new password is on its way."],
-            P.Class("rask-auth-note")[
+            H1.Class("text-2xl font-bold")["Check your email"],
+            Ok("forgot-sent",
+                "If an account exists for that address, a link to choose a new password is on its way."),
+            P.Class("text-sm opacity-70")[
                 "The link works once, and expires. ",
-                NavLink.Href(Routes.LoginPage())["Back to sign in"], "."]
+                NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Back to sign in"], "."]
         ];
 
     private Component Ask =>
         Fragment[
-            H1["Reset your password"],
+            H1.Class("text-2xl font-bold")["Reset your password"],
             _error is AuthError.None
                 ? null
-                : Div.Class("rask-auth-error").Id("forgot-error")[AuthMessages.For(_error)],
-            P["Tell us the address you signed up with and we will send you a link."],
+                : Error("forgot-error", AuthMessages.For(_error)),
+            P.Class("text-sm opacity-70")["Tell us the address you signed up with and we will send you a link."],
             Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
-                Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email)),
-                Button.Type("submit").Id("forgot-submit")["Send the link"]
+                Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
+                Div.Class("card-actions mt-2")[
+                    Button.Type("submit").Id("forgot-submit").Class("btn btn-primary btn-block")["Send the link"]
+                ]
             ],
-            P.Class("rask-auth-note")[
-                "Remembered it? ", NavLink.Href(Routes.LoginPage())["Sign in"], "."]
+            P.Class("text-sm opacity-70")[
+                "Remembered it? ", NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
         ];
 
     private async Task SubmitAsync(ForgotPasswordModel model)

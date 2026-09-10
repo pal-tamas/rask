@@ -6,6 +6,14 @@
 without a line of auth code: accounts are backed by ASP.NET Core Identity, the flows are routed at
 `/login`, `/register` and `/logout`, and the first account to register becomes the administrator.
 
+**The built-in pages are drawn with [daisyUI](ui-kit.md)**, so they match the rest of a scaffolded app
+rather than looking like something bolted on. They carry their own stylesheet — compiled at
+`Rask.Auth`'s build from the six pages themselves, so it is a fraction of the kit's size — because a
+page's class names live in a compiled assembly that no application's Tailwind can scan. That is what
+keeps the promise that these pages render on an app with no CSS of its own, and it is scoped to their
+own wrapper, so referencing the package cannot repaint your application. An app that wants them in its
+own colours declares its own page at the same route, which takes precedence.
+
 The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and
 signed-in, and `IUserProvider` to read who that is — identical on the Server host, in WebAssembly, and
 inside an island. A TypeScript front end and a meta framework's Node process reach the same flows

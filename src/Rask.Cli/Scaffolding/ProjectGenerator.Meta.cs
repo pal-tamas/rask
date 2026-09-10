@@ -63,6 +63,20 @@ internal static partial class ProjectGenerator
             files.Add(($"{framework.AppDir}/{path}", content));
         }
 
+        // The sign-in and registration screens, in this framework's own routing convention.
+        //
+        // Only with a database, because accounts are rows: without one there is nothing behind
+        // /api/auth to answer, and a scaffolded screen that cannot work is worse than none. This is the
+        // first thing this lane overlays that is a PAGE rather than a config file — see
+        // MetaTemplate.AuthPages for what that costs on Nuxt, which has no pages directory to add to.
+        if (batteries.Data)
+        {
+            foreach (var (path, content) in framework.AuthPages)
+            {
+                files.Add(($"{framework.AppDir}/{path}", content));
+            }
+        }
+
         // Tailwind, for the two frameworks whose creators cannot be asked for it. The other four take
         // it from their own creator — which is the better answer here, since a scaffold that produced
         // something the framework's own documentation does not describe would be worth less than none.
@@ -139,7 +153,22 @@ internal static partial class ProjectGenerator
             patches.Add(new ScaffoldPatch(
                 System.IO.Path.Combine(client, "package.json"),
                 json => AddMetaTailwind(json, framework),
-                "adding Tailwind"));
+                "adding Tailwind and daisyUI"));
+        }
+
+        // The four whose creator already installed Tailwind. They still need daisyUI, which no creator
+        // installs — and they need it loaded from the sheet that imports Tailwind, which is theirs.
+        if (framework.DaisyUiStylesheet is { Length: > 0 } sheet)
+        {
+            patches.Add(new ScaffoldPatch(
+                System.IO.Path.Combine(client, "package.json"),
+                AddMetaDaisyUi,
+                "adding daisyUI"));
+
+            patches.Add(new ScaffoldPatch(
+                System.IO.Path.Combine(client, sheet),
+                AddDaisyUi,
+                "loading daisyUI in the app's stylesheet"));
         }
 
         // The frameworks whose own Vite config carries the work that makes this lane possible — the node
@@ -242,8 +271,94 @@ internal static partial class ProjectGenerator
         dependencies["tailwindcss"] = TailwindRange;
         dependencies[framework.TailwindThroughPostcss ? "@tailwindcss/postcss" : "@tailwindcss/vite"] =
             TailwindRange;
+        dependencies["daisyui"] = DaisyUiRange;
 
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
+    }
+
+    /// <summary>
+    ///     Adds daisyUI alone, for a front end whose creator already installed Tailwind.
+    /// </summary>
+    /// <remarks>
+    ///     Four of the six take Tailwind from their own creator, which is the better answer on a lane
+    ///     whose argument is that the framework's conventions win. Adding <c>tailwindcss</c> there as
+    ///     well would be a second copy of a decision already made — and
+    ///     <c>MetaTemplateTests.Every_template_gets_Tailwind_one_way_or_the_other</c> asserts the two
+    ///     paths stay exclusive. daisyUI is not part of that: no creator installs it, so it comes from
+    ///     here on all six.
+    /// </remarks>
+    internal static string AddMetaDaisyUi(string packageJson)
+    {
+        if (JsonNode.Parse(packageJson) is not JsonObject root)
+        {
+            return packageJson;
+        }
+
+        if (root["dependencies"] is not JsonObject dependencies)
+        {
+            dependencies = [];
+            root["dependencies"] = dependencies;
+        }
+
+        dependencies["daisyui"] = DaisyUiRange;
+
+        return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
+    }
+
+    /// <summary>
+    ///     Loads daisyUI into a stylesheet the framework's own creator wrote.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Patched, never written over, for the reason the Vite configs are: the creator's sheet is
+    ///         the creator's. SvelteKit's carries <c>@plugin '@tailwindcss/typography'</c> because its
+    ///         add-on put it there, and TanStack's carries the same plus a web-font import — writing our
+    ///         own file over either would silently delete work the developer asked for.
+    ///     </para>
+    ///     <para>
+    ///         Inserted AFTER the Tailwind import, because a plugin ahead of it compiles to nothing. And
+    ///         after <em>that</em> import specifically rather than the first one in the file: TanStack's
+    ///         sheet opens with a Google Fonts <c>@import url(...)</c>, so "the first import" is the
+    ///         wrong line. Quoting varies too — SvelteKit's add-on writes single quotes.
+    ///     </para>
+    ///     <para>
+    ///         Idempotent, so <c>rask new --force</c> over an existing tree does not stack directives.
+    ///     </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     The sheet has no Tailwind import, so there is nowhere for the plugin to go. Thrown rather than
+    ///     returned unchanged: a silent no-op here produces a project whose every daisyUI class names a
+    ///     rule that does not exist, and the page renders as unstyled text on a green build.
+    /// </exception>
+    internal static string AddDaisyUi(string css)
+    {
+        if (css.Contains("@plugin \"daisyui\"", StringComparison.Ordinal)
+            || css.Contains("@plugin 'daisyui'", StringComparison.Ordinal))
+        {
+            return css;
+        }
+
+        var import = Regex.Match(css, """^[ \t]*@import\s+(?<q>["'])tailwindcss\k<q>[^;]*;""", RegexOptions.Multiline);
+
+        if (!import.Success)
+        {
+            throw new InvalidOperationException(
+                "this stylesheet has no `@import \"tailwindcss\"` to add daisyUI after. Add "
+                + "`@plugin \"daisyui\";` to it by hand, on the line below the Tailwind import.");
+        }
+
+        var end = import.Index + import.Length;
+
+        // The layer order goes at the very top, before anything can imply a different one: daisyUI emits
+        // into a `daisyui` layer that Tailwind's import does not rank, so left alone it outranks the
+        // utilities beside it and `class="btn px-8"` ignores the px-8.
+        const string Order = "@layer properties, theme, base, components, daisyui, utilities;\n\n";
+
+        var withPlugin = css[..end] + "\n@plugin \"daisyui\";" + css[end..];
+
+        return withPlugin.Contains("@layer properties,", StringComparison.Ordinal)
+            ? withPlugin
+            : Order + withPlugin;
     }
 
     /// <summary>
@@ -298,7 +413,9 @@ internal static partial class ProjectGenerator
             // only ever sees one origin. In production this is not used at all: Kestrel owns the port
             // and answers /_rask itself.
             proxy: {
-              '/_rask': { target: 'http://localhost:5000', changeOrigin: true }
+              '/_rask': { target: 'http://localhost:5000', changeOrigin: true },
+              // The accounts endpoints, which sit at /api/auth rather than under /_rask.
+              '/api/auth': { target: 'http://localhost:5000', changeOrigin: true }
             }
           },
         """;
@@ -670,6 +787,24 @@ internal static partial class ProjectGenerator
 
             app.MapHealthChecks("/healthz");
             """);
+
+        if (batteries.Data)
+        {
+            Block(sb, """
+                // Register, sign in, sign out, /me and the three recovery flows, at /api/auth.
+                //
+                // AddRaskAuth (above, with the database) registers the services; this is what puts the
+                // endpoints on the pipeline, and without it every call from the front end 404s. The
+                // client is already there: `import { login } from '@rask/browser/auth'`.
+                //
+                // Before UseRaskMeta for the same reason MapRaskCqrs is — that call forwards everything
+                // it has not already answered to the node process, which would render a page at these
+                // routes instead of answering JSON.
+                app.UseAuthentication();
+                app.UseAuthorization();
+                app.MapRaskAuth();
+                """);
+        }
 
         Block(sb, """
             // Serves the framework's built client assets from Kestrel (one hop less per asset, and the

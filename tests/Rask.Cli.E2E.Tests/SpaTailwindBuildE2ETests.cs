@@ -149,11 +149,24 @@ public sealed class SpaTailwindBuildE2ETests
             // styling. The flag produced a WORSE-looking page than no flag at all, with every check green
             // (https://github.com/pal-tamas/rask/issues/859).
             //
-            // The starter now styles its own elements from the base layer, and these are what say so.
-            // Layout on `main` and a radius on `button`: preflight sets neither, so a rule carrying them
-            // is the starter's own and not something Tailwind would have emitted regardless.
-            AssertStarterRule(emitted, "main", "display:flex", frameworkKey);
-            AssertStarterRule(emitted, "button", "border-radius", frameworkKey);
+            // The starter is written in daisyUI's class names now, so this is what says the page the
+            // user opens is actually styled: the plugin ran, and it emitted the components the markup
+            // names. Without it every one of those classes is a correct-looking string naming a rule
+            // that exists nowhere, and the page renders as unstyled text on a green build.
+            AssertStarterClass(emitted, "btn", frameworkKey);
+            AssertStarterClass(emitted, "card", frameworkKey);
+            AssertStarterClass(emitted, "navbar", frameworkKey);
+
+            // The one element rule that survives the swap: daisyUI paints base-100 on :root, and
+            // something has to put the page's own background behind it.
+            AssertStarterRule(emitted, "body", "background-color", frameworkKey);
+
+            // A component the starter never names must NOT be there. The positive alone would also pass
+            // against a sheet that shipped all of daisyUI, which is the other way to get this wrong.
+            Assert.False(
+                HasClassRule(emitted, "timeline"),
+                $"[{frameworkKey}] the emitted CSS carries components the starter never names, so the "
+                + "whole library is being emitted rather than what the page uses.");
         }
         finally
         {
@@ -224,5 +237,49 @@ public sealed class SpaTailwindBuildE2ETests
             + "starter's own base layer never reached the output. Tailwind compiles (the probe above "
             + "proved that), but the page the template ships renders unstyled — which is worse than the "
             + $"same project without --tailwind. Emitted {css.Length} bytes of CSS.");
+    }
+
+    /// <summary>Asserts daisyUI emitted the component the starter's markup names.</summary>
+    /// <remarks>
+    ///     The failure this catches is the one daisyUI makes easy: a class name is just a string, so
+    ///     markup naming a component the plugin never emitted looks completely correct in the source and
+    ///     renders as nothing at all.
+    /// </remarks>
+    private static void AssertStarterClass(string css, string className, string frameworkKey) =>
+        Assert.True(
+            HasClassRule(css, className),
+            $"[{frameworkKey}] the emitted CSS defines no '.{className}', so the starter's markup names "
+            + "a daisyUI component that is not in the stylesheet and the page renders unstyled. Either "
+            + $"the plugin did not load or it was not installed. Emitted {css.Length} bytes of CSS.");
+
+    /// <summary>Whether the sheet carries a rule whose selector is exactly this class.</summary>
+    /// <remarks>
+    ///     Rule by rule rather than by substring: daisyUI's own output mentions most of its class names
+    ///     inside other selectors and in custom properties, so <c>css.Contains(".btn")</c> is true even
+    ///     when nothing defines one.
+    /// </remarks>
+    private static bool HasClassRule(string css, string className)
+    {
+        for (var open = css.IndexOf('{', StringComparison.Ordinal); open >= 0;
+             open = css.IndexOf('{', open + 1))
+        {
+            var close = css.IndexOf('}', open + 1);
+            var nested = css.IndexOf('{', open + 1);
+
+            if (close < 0 || (nested >= 0 && nested < close))
+            {
+                continue;
+            }
+
+            var boundary = open == 0 ? -1 : css.LastIndexOfAny(SelectorStops, open - 1);
+            var selector = css[(boundary + 1)..open];
+
+            if (selector.Split(',').Any(part => part.Trim() == "." + className))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

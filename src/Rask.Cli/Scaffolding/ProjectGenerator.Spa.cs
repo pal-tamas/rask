@@ -526,43 +526,29 @@ internal static partial class ProjectGenerator
     /// </remarks>
     private const string SpaTailwindCss =
         """
+        /* The layer order for the whole document, declared before anything can imply another one.
+
+           daisyUI emits its rules into a `daisyui` layer, and Tailwind's own import only ranks
+           theme/base/components/utilities — so `daisyui` would otherwise be ranked by wherever it
+           first appeared in the output, which lands it ABOVE utilities. That makes
+           class="btn px-8" give you .btn's padding and not px-8: correct markup, quietly ignored. */
+        @layer properties, theme, base, components, daisyui, utilities;
+
         @import "tailwindcss";
 
-        /* Tailwind's preflight removes the browser's default look on purpose, so a page carrying no
-           utilities renders as unstyled text. These rules give the starter a deliberate one. They are
-           ordinary utilities applied by element: move any of them into a class attribute in your own
-           markup and delete the rule — the page does not change. */
+        /* daisyUI, the same version the C# hosts compile, so a project scaffolded with this front end
+           looks like one scaffolded with any other. Its class names are what the starter is written
+           in; redefining a token in your own @theme re-skins every component without overriding a
+           single rule. */
+        @plugin "daisyui";
+
+        /* The starter's elements all carry a daisyUI class now, so this layer is down to the one rule
+           that has nowhere else to live: daisyUI paints base-100 on :root, and this is what puts the
+           page's own background behind it. Tailwind's preflight removes the browser's default look on
+           purpose, so an element left classless renders as unstyled text. */
         @layer base {
           body {
-            @apply bg-white text-slate-700 antialiased dark:bg-slate-950 dark:text-slate-300;
-          }
-
-          main {
-            @apply mx-auto flex max-w-lg flex-col items-start gap-4 px-6 py-16;
-          }
-
-          h1 {
-            @apply text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
-          }
-
-          label {
-            @apply flex items-center gap-2 text-sm font-medium;
-          }
-
-          input {
-            @apply rounded-md border border-slate-300 px-3 py-1.5 text-base text-inherit
-                   focus:border-slate-500 focus:outline-none
-                   dark:border-slate-700 dark:bg-slate-900;
-          }
-
-          button {
-            @apply rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white
-                   hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50
-                   dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300;
-          }
-
-          [role="alert"] {
-            @apply text-red-600 dark:text-red-400;
+            @apply bg-base-200 text-base-content antialiased;
           }
         }
 
@@ -574,6 +560,22 @@ internal static partial class ProjectGenerator
     ///     built the stylesheet.
     /// </summary>
     private const string TailwindRange = "^4.3.0";
+
+    /// <summary>
+    ///     The daisyUI range the front-end templates pin, held to the version <c>Rask.Ui</c> vendors by
+    ///     <c>DaisyUiVersionPinTests</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Beside the Tailwind range for the same reason it is: a front end compiling a different daisyUI
+    ///     than the C# hosts would make the same app look different depending on which half built the
+    ///     sheet — and the whole point of the scaffolded starter is that every template draws it alike.
+    ///     <para>
+    ///         An npm range here and a vendored bundle there, because the two engines resolve plugins
+    ///         differently: a front end has node and a package tree, and the standalone binary the C#
+    ///         hosts use has neither. One version, two delivery mechanisms.
+    ///     </para>
+    /// </remarks>
+    private const string DaisyUiRange = "^5.7.0";
 
     /// <summary>What the patch says it is adding, for the line the command prints.</summary>
     private static string Dependencies(SpaFramework framework) =>
@@ -624,6 +626,11 @@ internal static partial class ProjectGenerator
             // is silent — nothing reads it, and the build succeeds with no utilities in the output.
             dependencies[framework.WritesViteConfig ? "@tailwindcss/vite" : "@tailwindcss/postcss"] =
                 TailwindRange;
+
+            // daisyUI is a Tailwind plugin loaded from the stylesheet (@plugin "daisyui"), so it needs
+            // no adapter of its own — but it does have to be installed, or that line resolves to
+            // nothing and every component class in the starter styles nothing.
+            dependencies["daisyui"] = DaisyUiRange;
         }
 
         if (framework.Key == "svelte" && root["scripts"] is JsonObject scripts)
@@ -773,10 +780,12 @@ internal static partial class ProjectGenerator
             // through. The TypeScript the client imports is generated from these same message records at
             // build time, so the two halves cannot disagree about a payload or a result.
             //
-            // RequireAuthenticatedUser is OFF because this template has no authentication to require —
-            // left on, every message would answer 401 and nothing would work. Add AddRaskAuth()
-            // and DELETE this argument: the default is on for a reason, and a message reachable by anyone
-            // is a decision worth making per app.
+            // RequireAuthenticatedUser is OFF, and it governs DISPATCHED MESSAGES rather than the auth
+            // endpoints — those are mapped below either way. The starter's greeting is meant to answer on
+            // first load, before anybody has an account, so turning this on here would 401 the landing
+            // page for every anonymous visitor. Turn it on and mark the public messages [AllowAnonymous]
+            // once you know which are which: the default is on for a reason, and a message reachable by
+            // anyone is a decision worth making per app.
             builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
 
             builder.Services.AddSingleton<Company.RaskServer.Features.Hello.VisitCounter>();
@@ -807,6 +816,23 @@ internal static partial class ProjectGenerator
 
             app.MapHealthChecks("/healthz");
             """);
+
+        if (batteries.Data)
+        {
+            Block(sb, """
+                // Register, sign in, sign out, /me and the three recovery flows, at /api/auth.
+                //
+                // AddRaskAuth (above, with the database) registers the services; this is what puts the
+                // endpoints on the pipeline, and without it every call from the front end 404s. The
+                // client is already there: `import { login } from './rask/browser/auth'`.
+                //
+                // Before UseRaskSpa for the same reason MapRaskCqrs is — that call ends the pipeline with
+                // a fallback to index.html, so an endpoint added after it answers HTML instead of JSON.
+                app.UseAuthentication();
+                app.UseAuthorization();
+                app.MapRaskAuth();
+                """);
+        }
 
         if (batteries.Push)
         {
@@ -913,6 +939,13 @@ internal static partial class ProjectGenerator
             // built bundle and answers /_rask itself.
             proxy: {
               '/_rask': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+              },
+              // The accounts endpoints, which sit at /api/auth rather than under /_rask. A second entry
+              // rather than a wider pattern: this forwards what the host actually answers and leaves the
+              // rest of /api to the front end, which may well want routes of its own there.
+              '/api/auth': {
                 target: 'http://localhost:5000',
                 changeOrigin: true,
               },

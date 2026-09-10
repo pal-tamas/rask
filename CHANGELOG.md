@@ -316,6 +316,54 @@ them until tagged releases begin.
 
 ### Added
 
+- **Every project `rask new` creates is drawn with daisyUI, and they all look the same.** The framework's
+  own site is drawn with the `Rask.Ui` kit; nothing the scaffolder emitted was. A new project got a page
+  of hand-picked slate-and-violet utilities, each of the seven front-end templates inherited whatever its
+  own creator's starter looked like, and the built-in `/login` page carried a `<style>` block of system
+  colours. Four different looks, none of them the framework's.
+
+  All fifteen templates now draw the same navbar / hero / card / footer skeleton, in the same daisyUI
+  class names, and a shared contract in the tests holds them to it — hand-written markup in seven
+  templating syntaxes drifts silently otherwise.
+
+  **A C# project compiles daisyUI itself, with no npm.** That distinction is the design rather than an
+  implementation detail: Tailwind emits a class only where it can *see* the name, and the kit's prebuilt
+  sheet carries the classes the kit's own components write — so a page writing `card-body` in its own
+  markup would get a correct-looking class naming a rule that exists nowhere. `Rask.Ui` now ships
+  daisyUI's plugin bundle, `RaskUiWriteDaisyUiPlugin` copies it beside `Styles/app.css`, and the sheet
+  loads it by relative path. This is the trick the kit already played on itself, and the one daisyUI's own
+  manual standalone-install recipe describes; the standalone Tailwind engine carries no package tree, so
+  `@plugin "daisyui"` cannot resolve the Node way. The front-end templates install the npm package
+  instead — one library, two delivery mechanisms, one version, held together by `DaisyUiVersionPinTests`
+  because nothing else watches it.
+
+  The scaffolded shell links the kit's sheet **first** — it declares the `@layer` order for the whole
+  document — and carries `UiStylesheet.ThemeScopeAttribute`, without which every kit colour resolves to
+  nothing. An app with a database links its sign-in page from the navbar; one without does not, because
+  there is nothing at that route.
+
+  **All thirteen JavaScript templates can sign somebody in**, each in its own routing convention —
+  `app/login/page.tsx` on Next with `'use client'`, `src/routes/login/+page.svelte` on SvelteKit,
+  `createFileRoute` on TanStack, `*.page.ts` on Analog. Every one of those paths was read off a real
+  scaffold by running the creator, because a route file at the wrong path does not fail: the framework
+  simply never routes it, and the page 404s on a green build. On Nuxt the screens are not purely
+  additive — its minimal template has no `pages/` directory, so turning the router on replaces
+  `<NuxtWelcome />` with `<NuxtPage />` and brings an `index.vue` with it.
+
+  **The seven front-end templates can also sign somebody in.** The endpoints and a typed client both
+  already shipped — `Rask.Auth` maps `/api/auth`, and the build generates `rask/browser/auth` into every
+  client — so the only thing between a scaffolded front end and a working account was the two screens.
+  They draw the same card the C# lane's `/login` does. One file per framework, both screens behind a
+  `mode`, and the path read in the entry file each template already overlays rather than scaffolding a
+  router: the templates deliberately pick no router, because that is a choice a front-end developer has
+  usually already made. Nothing touches browser storage — the cookie these endpoints set is HttpOnly.
+
+  For the six meta templates, four bring Tailwind from their own creator, so their stylesheet is patched
+  rather than written. Every path was read off a real scaffold: SvelteKit's is under `src/routes/`, and
+  its sheet quotes with apostrophes and already carries `@plugin '@tailwindcss/typography'`; TanStack's
+  Tailwind import is the third line, under a web-font `@import url(...)`. A sheet with no Tailwind import
+  is reported rather than silently skipped.
+
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an
   `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
   run on a controller action or a minimal API, and no *asynchronous* rule ran on either, because MVC's
@@ -710,6 +758,55 @@ them until tagged releases begin.
   repo — the app whose scoped TypeScript the feature exists for — was the only tree the sweep skipped,
   and nothing said so. It sweeps `site` now, and skips island modules, which are not scoped assets.
   (#938)
+- **The accounts endpoints were never mapped on the TypeScript and meta lanes, and `docs/spa.md` said
+  they were.** `AddRaskAuth` came with the database and registered the services, but nothing scaffolded
+  ever called `MapRaskAuth()` — so a scaffolded front end calling the `auth.login` that ships in its own
+  `rask/browser/` folder got a **404, in development and in production**, against documentation stating
+  the endpoints were already there.
+
+  In development it would have got one anyway: the dev proxies forwarded `/_rask` and nothing else, so
+  every call to `/api/auth` went to the bundler rather than to Kestrel. Both halves are fixed and both
+  are now asserted, because either alone still leaves a front end that compiles, runs, and cannot sign
+  anyone in.
+
+- **`Rask.Ui` has never shipped the stylesheet its own build targets look for.** The package adds
+  `build/ui.css` from a target that runs in the inner, per-TFM builds — but `dotnet pack` writes the
+  nuspec in the *outer* one, so the item was never in the collection the package is built from. Every
+  `Rask.Ui` package produced is missing the file.
+
+  It stayed invisible because the only consumer that copies the sheet lives in this repository, where a
+  `ProjectReference` reads it straight out of `obj/` and never opens a package. A package consumer
+  setting `RaskUiWriteStylesheet=true` got the targets' own error instead — which reads as "you did not
+  build the kit", and is not what had happened. Found by the build gate, not by anything that reads
+  strings.
+
+- **A project-wide `<Using>` could not reach the browser companion at all.** The one-project build
+  generates the browser half's csproj and copies `Nullable`, `ImplicitUsings`, `LangVersion` and
+  `RootNamespace` across — but `ImplicitUsings` is the SDK's set and says nothing about the app's own.
+  So a namespace an app puts in its project file rather than at the top of every file did not resolve
+  in the half that compiles those same files, and there was no way to say it should.
+
+  Invisible until publish, because that is the only time the companion is generated: the server half
+  builds clean and the browser half dies on a missing type inside a generated project the author never
+  wrote.
+
+  New `RaskBrowserUsing` item, named one at a time, `Alias` and `Static` included. **Deliberately not a
+  flow of `@(Using)`**, which is the obvious version and is wrong: that item also holds every using a
+  referenced *package* injected through its own `build/*.props`, several of which name server-only
+  namespaces — so the companion then fails to compile on names the author never typed, which is worse
+  than the problem. It mirrors `RaskBrowserPackageReference` instead, for the reason that item exists:
+  one project, two halves, and what crosses is stated rather than assumed.
+
+- **`UiFieldset` never rendered its own caption.** It declares `public new required string Text` and then
+  rendered `Title` — the `<title>` *tag's* chain entry, inherited from `Component`. The one property the
+  component forces you to pass never reached the page, and the legend carried a stray `<title>` element
+  instead. The comment above the property names the collision that made `new` necessary, so the trap was
+  known and then walked into from the other side.
+
+- **Every `UiCard` carried a trailing space in its `class` attribute.** It composed with string
+  interpolation rather than `UiClass.Compose`, which every other component in the kit uses, so an unset
+  `Class` left `class="… sm:p-5 "`. Harmless to a browser, and a byte of difference in markup that two
+  rendering lanes are now held to matching exactly.
 
 - **The showcase's top bar was near-black text on a near-black bar, on markup whose class names were
   entirely correct.** `wwwroot/global.css` still carried `.app-navbar { background: rgba(20, 16, 31,

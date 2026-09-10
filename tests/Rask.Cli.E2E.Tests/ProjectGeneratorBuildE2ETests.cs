@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 using Rask.Cli.Templates;
@@ -717,12 +718,41 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             // From HomePage.cs's own markup. If v4 scanned the wrong tree this file is still written, still
             // valid CSS, and carries none of the classes the page actually uses.
-            Assert.Contains("max-w-xl", css, StringComparison.Ordinal);
+            Assert.Contains("max-w-md", css, StringComparison.Ordinal);
             Assert.Contains("tracking-tight", css, StringComparison.Ordinal);
 
             // A class nothing in the project writes must NOT be there: the positive alone would also pass
             // against a stylesheet that shipped all of Tailwind, which is the other way to get this wrong.
             Assert.DoesNotContain("max-w-3xl", css, StringComparison.Ordinal);
+
+            // daisyUI itself, compiled HERE from the bundle Rask.Ui ships — no npm, no node_modules.
+            // This is the whole claim: without it the page's card/btn/navbar are correct strings in the
+            // markup naming rules that exist nowhere, and the app renders as unstyled text.
+            foreach (var component in (string[])["card", "card-body", "btn", "navbar", "hero", "footer"])
+            {
+                Assert.True(
+                    Regex.IsMatch(css, $@"(^|[\s,}}]) *\.{component}\s*\{{", RegexOptions.Multiline),
+                    $"[wasm={wasm}] .{component} is not in the compiled sheet, so the starter page "
+                    + $"renders unstyled.{CliBuildE2E.Diagnostics(output)}");
+            }
+
+            // And the bundle must not have been scanned as a safelist: nothing here uses a timeline.
+            Assert.False(
+                Regex.IsMatch(css, @"(^|[\s,}]) *\.timeline\s*\{", RegexOptions.Multiline),
+                $"[wasm={wasm}] the sheet carries components the project never names, so vendor/ is "
+                + "being scanned and this stylesheet is the whole library.");
+
+            // The plugin is copied into the tree by the build; it is not the author's file.
+            Assert.True(
+                File.Exists(Path.Combine(projectDir, "Styles", "vendor", "daisyui.mjs")),
+                $"[wasm={wasm}] RaskUiWriteDaisyUiPlugin wrote nothing, so the @plugin above it "
+                + $"resolved to a file that is not there.{CliBuildE2E.Diagnostics(output)}");
+
+            // The kit's own sheet, for the Ui* components, cached rather than inlined per document.
+            Assert.True(
+                File.Exists(Path.Combine(projectDir, "wwwroot", "css", "rask-ui.css")),
+                $"[wasm={wasm}] RaskUiWriteStylesheet wrote nothing, so every Ui* component would "
+                + $"render structurally correct and completely grey.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {

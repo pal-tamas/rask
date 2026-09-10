@@ -6,6 +6,13 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
 
+    <!--
+      Styles/auth.css is a Tailwind INPUT, not a component's scoped stylesheet. Without this,
+      Rask.Core's `**/*.css` glob claims it and the build reports RASK015 for a file that is not one —
+      the same opt-out Rask.Ui takes for the same reason.
+    -->
+    <RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>
+
     <PackageId>Rask.Auth</PackageId>
     <Title>Rask.Auth — accounts, sign-in, and the account lifecycle</Title>
     <Description>Register, sign in and sign out for a Rask app, on by default. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed through Rask's own host-neutral surface — the same IUserProvider, Authorize component and [Authorize] routes work unchanged on the Server, WebAssembly, island, SPA and meta-framework hosts. Ships built-in overridable /login, /register and /logout pages plus the matching /api/auth endpoints, so a TypeScript front end gets the same flows. Email confirmation and password reset go out through the app's own mail queue, with /confirm-email, /forgot-password and /reset-password pages to match. The first account to register becomes the admin.</Description>
@@ -71,5 +78,49 @@
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
+
+  <!--
+    These pages carry their own stylesheet, compiled here.
+
+    They ship inside a package, so their class names are in a compiled assembly no application's
+    Tailwind can scan — which rules out borrowing the host's sheet. Compiling here and embedding the
+    result is what keeps the promise that they render on an app with no CSS of its own.
+
+    A build-order edge only. Rask.Tailwind is netstandard2.0 and has no face this project could
+    reference; SkipGetTargetFrameworkProperties and UndefineProperties are what stop MSBuild trying to
+    match one. Copied from Rask.Ui, which compiles its sheet the same way.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Tailwind\Rask.Tailwind.csproj"
+                      PrivateAssets="all"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <RaskTailwindInput>Styles/auth.css</RaskTailwindInput>
+    <RaskTailwindOutput>obj/$(TargetFramework)/auth.generated.css</RaskTailwindOutput>
+    <RaskTailwindMinify>true</RaskTailwindMinify>
+  </PropertyGroup>
+
+  <!--
+    Added from a TARGET rather than a static ItemGroup, for the reason Rask.Ui records: a static
+    item's Condition is evaluated before any target runs, so on a fresh clone the generated sheet does
+    not exist yet, the item is silently absent, and the package ships with no stylesheet at all — the
+    pages then render unstyled and a SECOND build embeds it, which is why every incremental tree
+    looks fine.
+
+    Single-target, so unlike Rask.Ui there is no outer build to pack from separately.
+  -->
+  <Target Name="EmbedRaskAuthStylesheet"
+          AfterTargets="_RaskTailwindBuild"
+          BeforeTargets="PrepareResourceNames">
+    <Error Condition="!Exists('$(RaskTailwindOutput)')"
+           Text="Rask.Auth: $(RaskTailwindOutput) was not produced. The built-in sign-in pages carry their own stylesheet, compiled by _RaskTailwindBuild from $(RaskTailwindInput); shipping without it renders every one of them unstyled."/>
+    <ItemGroup>
+      <EmbeddedResource Include="$(RaskTailwindOutput)" LogicalName="Rask.Auth.auth.css"/>
+    </ItemGroup>
+  </Target>
 
 </Project>

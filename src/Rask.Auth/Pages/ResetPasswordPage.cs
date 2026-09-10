@@ -52,36 +52,39 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
 
     private Component Done =>
         Fragment[
-            H1["Password changed"],
-            Div.Class("rask-auth-ok").Id("reset-done")[
-                "Your password has been changed, and every other session for this account is signed out."],
-            P[NavLink.Href(Routes.LoginPage())["Sign in"], "."]
+            H1.Class("text-2xl font-bold")["Password changed"],
+            Ok("reset-done",
+                "Your password has been changed, and every other session for this account is signed out."),
+            P.Class("text-sm opacity-70")[
+                NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
         ];
 
     // The page a visitor lands on when they type the address by hand, or when a mail client mangles a
     // long link. Sent back to the start rather than shown a form that cannot possibly work.
     private Component Incomplete =>
         Fragment[
-            H1["That link is incomplete"],
-            Div.Class("rask-auth-error").Id("reset-error")[
-                "Open the link from your email in full, or ask for a new one."],
-            P[NavLink.Href(Routes.ForgotPasswordPage())["Send another link"], "."]
+            H1.Class("text-2xl font-bold")["That link is incomplete"],
+            Error("reset-error", "Open the link from your email in full, or ask for a new one."),
+            P.Class("text-sm opacity-70")[
+                NavLink.Href(Routes.ForgotPasswordPage()).Class("link link-primary")["Send another link"], "."]
         ];
 
     private Component Ask =>
         Fragment[
-            H1["Choose a new password"],
-            Message is null ? null : Div.Class("rask-auth-error").Id("reset-error")[Message],
+            H1.Class("text-2xl font-bold")["Choose a new password"],
+            Message is null ? null : Error("reset-error", Message),
             Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
                 Field(
                     "password",
                     "New password",
-                    Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)),
+                    Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
                 Field(
                     "confirm",
                     "New password again",
-                    Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password)),
-                Button.Type("submit").Id("reset-submit")["Change my password"]
+                    Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password).Class("input w-full")),
+                Div.Class("card-actions mt-2")[
+                    Button.Type("submit").Id("reset-submit").Class("btn btn-primary btn-block")["Change my password"]
+                ]
             ]
         ];
 

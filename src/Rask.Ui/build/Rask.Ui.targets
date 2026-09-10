@@ -31,6 +31,25 @@
       and links it with UiStylesheet.Href(). Everything else keeps UiStylesheet.Css and inlines.
     -->
     <RaskUiWriteStylesheet Condition="'$(RaskUiWriteStylesheet)' == ''">false</RaskUiWriteStylesheet>
+
+    <!--
+      Where the daisyUI plugin bundle lands. Beside the app's own Tailwind input by default, because
+      Tailwind resolves a relative `@plugin` against the STYLESHEET's directory, not the project's —
+      so an app writes `@plugin "./vendor/daisyui.mjs"` from Styles/app.css and this is the path that
+      makes that true.
+    -->
+    <RaskUiDaisyUiPluginOutput Condition="'$(RaskUiDaisyUiPluginOutput)' == ''">Styles/vendor/daisyui.mjs</RaskUiDaisyUiPluginOutput>
+
+    <!--
+      OPT IN, like the stylesheet above and for the same reason: referencing the kit is not the same
+      as wanting to compile daisyUI yourself.
+
+      An app that draws with Ui* components alone needs nothing here — those classes are already in
+      the sheet this package ships. This is for an app writing daisyUI class names in its OWN markup,
+      which Tailwind can only emit if it runs the plugin over sources it can see. `rask new` turns it
+      on, because a scaffolded app writes `card`/`btn`/`navbar` directly.
+    -->
+    <RaskUiWriteDaisyUiPlugin Condition="'$(RaskUiWriteDaisyUiPlugin)' == ''">false</RaskUiWriteDaisyUiPlugin>
   </PropertyGroup>
 
   <Target Name="_RaskUiResolveStylesheet">
@@ -131,6 +150,69 @@
     <Copy Condition="'@(_RaskUiStylesheetSource)' != ''"
           SourceFiles="@(_RaskUiStylesheetSource)"
           DestinationFiles="$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+  <!--
+    Puts the daisyUI plugin bundle where the app's own Tailwind can load it.
+
+    DependsOn the resolver above only to reuse its _RaskUiReferenced check — that target resolves
+    items and nothing else, and the hard error for a missing sheet lives in RaskUiWriteStylesheet,
+    which is separate. Running it here costs a few item evaluations and keeps one definition of
+    "does this project actually draw with the kit".
+  -->
+  <Target Name="_RaskUiResolveDaisyUiPlugin" DependsOnTargets="_RaskUiResolveStylesheet">
+
+    <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true'">
+      <!-- From the package: packed beside these targets. -->
+      <_RaskUiDaisyUiSource Include="$(MSBuildThisFileDirectory)daisyui.mjs"
+                            Condition="Exists('$(MSBuildThisFileDirectory)daisyui.mjs')"/>
+    </ItemGroup>
+
+    <!--
+      In-repo there is no package, so the file above is absent and the bundle is still in the kit's
+      own Styles/vendor. NO TARGET FRAMEWORK IN THIS PATH, and unlike the stylesheet above that is
+      not a hazard to be worked around: the bundle is a SOURCE file that no build produces, so it is
+      there in a clean checkout whether or not any face of the kit has ever been compiled. The
+      stylesheet's two-step fallback exists because build output is per-TFM; this has no such
+      problem.
+    -->
+    <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiDaisyUiSource)' == ''">
+      <_RaskUiDaisyUiSource
+          Include="$(MSBuildThisFileDirectory)../Styles/vendor/daisyui.mjs"
+          Condition="Exists('$(MSBuildThisFileDirectory)../Styles/vendor/daisyui.mjs')"/>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    _RaskTailwindBuild EXPLICITLY, and not BeforeBuild alone.
+
+    Rask.Tailwind also hooks BeforeBuild, and the order between two targets that share one
+    BeforeTargets is import order — which is not something this file gets to decide. Naming the
+    compile directly is what guarantees the plugin is on disk before anything tries to load it.
+    BeforeBuild stays as the fallback for a project that has no Tailwind compile at all.
+  -->
+  <Target Name="RaskUiWriteDaisyUiPlugin"
+          Condition="'$(RaskUiWriteDaisyUiPlugin)' == 'true'"
+          DependsOnTargets="_RaskUiResolveDaisyUiPlugin"
+          BeforeTargets="_RaskTailwindBuild;BeforeBuild">
+
+    <!--
+      FAILS rather than warns, for the reason the stylesheet target above records: the project asked
+      for this file by name, and without it `@plugin "./vendor/daisyui.mjs"` cannot resolve. Tailwind
+      reports that as an error of its own, but a long way from the property that caused it — and the
+      app that gets there has a stylesheet with no daisyUI in it, which renders every `btn` and `card`
+      in its markup as unstyled text on a green build.
+    -->
+    <Error Condition="'$(_RaskUiReferenced)' == 'true' AND '@(_RaskUiDaisyUiSource)' == ''"
+           Text="Rask.Ui: this project set RaskUiWriteDaisyUiPlugin=true but the daisyUI plugin bundle could not be found, so $(RaskUiDaisyUiPluginOutput) cannot be written and every daisyUI class in this project's markup would render unstyled. In this repository it lives at src/Rask.Ui/Styles/vendor/daisyui.mjs; from the package it ships beside these targets as build/daisyui.mjs."/>
+
+    <MakeDir Condition="'@(_RaskUiDaisyUiSource)' != ''"
+             Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(RaskUiDaisyUiPluginOutput)'))"/>
+
+    <Copy Condition="'@(_RaskUiDaisyUiSource)' != ''"
+          SourceFiles="@(_RaskUiDaisyUiSource)"
+          DestinationFiles="$(MSBuildProjectDirectory)/$(RaskUiDaisyUiPluginOutput)"
           SkipUnchangedFiles="true"/>
   </Target>
 

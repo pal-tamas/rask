@@ -198,6 +198,34 @@
       <_RaskCompanionLine Include="  &lt;/ItemGroup&gt;"/>
 
       <!--
+        Project-wide usings for the BUNDLE, named one at a time.
+
+        The companion compiles the app's own sources, so a namespace those files resolve through a
+        <Using> rather than a per-file `using` has to resolve here too — and the ImplicitUsings
+        property above carries only the SDK's set, which says nothing about the app's. Without a way
+        to say so, such an app compiles on the server half and fails on the browser half, as a
+        missing-type error inside a generated project the author never wrote, on publish.
+
+        NAMED, not inherited, and that is the correction: flowing @(Using) wholesale looks obviously
+        right and is wrong, because that item carries every using a referenced PACKAGE injected
+        through its own build/*.props as well as the app's — Rask.Auth adds one, and several of those
+        namespaces exist only on the server. The companion then fails to compile on names it never
+        asked for, which is a worse failure than the one being fixed. Measured, not reasoned about:
+        it broke the browser-rung publish gate.
+
+        So this mirrors RaskBrowserPackageReference exactly, for the same reason that item exists —
+        one project, two halves, and what crosses is stated rather than assumed.
+      -->
+      <_RaskCompanionLine Condition=" '@(RaskBrowserUsing)' != '' " Include="  &lt;ItemGroup&gt;"/>
+      <_RaskCompanionLine Include="@(RaskBrowserUsing->'    &lt;Using Include=&quot;%(Identity)&quot; /&gt;')"
+                          Condition=" '%(RaskBrowserUsing.Alias)' == '' And '%(RaskBrowserUsing.Static)' != 'true' "/>
+      <_RaskCompanionLine Include="@(RaskBrowserUsing->'    &lt;Using Include=&quot;%(Identity)&quot; Alias=&quot;%(Alias)&quot; /&gt;')"
+                          Condition=" '%(RaskBrowserUsing.Alias)' != '' "/>
+      <_RaskCompanionLine Include="@(RaskBrowserUsing->'    &lt;Using Include=&quot;%(Identity)&quot; Static=&quot;true&quot; /&gt;')"
+                          Condition=" '%(RaskBrowserUsing.Alias)' == '' And '%(RaskBrowserUsing.Static)' == 'true' "/>
+      <_RaskCompanionLine Condition=" '@(RaskBrowserUsing)' != '' " Include="  &lt;/ItemGroup&gt;"/>
+
+      <!--
         References the BROWSER half needs and the server half must not have.
         <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..." /> is how an app says
         "this belongs to the bundle only".

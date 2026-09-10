@@ -47,16 +47,21 @@ public sealed partial class LoginPage(IAuth auth) : AuthPage
     /// <inheritdoc />
     protected override Component? Content =>
         Fragment[
-            H1["Sign in"],
-            _error is AuthError.None ? null : Div.Class("rask-auth-error").Id("login-error")[AuthMessages.For(_error)],
+            H1.Class("text-2xl font-bold")["Sign in"],
+            _error is AuthError.None ? null : Error("login-error", AuthMessages.For(_error)),
             Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
-                Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email)),
-                Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)),
-                Button.Type("submit").Id("login-submit")["Sign in"]
+                Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
+                Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
+                Div.Class("card-actions mt-2")[
+                    Button.Type("submit").Id("login-submit").Class("btn btn-primary btn-block")["Sign in"]
+                ]
             ],
-            P.Class("rask-auth-note")["No account yet? ", NavLink.Href(Routes.RegisterPage())["Create one"], "."],
-            P.Class("rask-auth-note")[
-                NavLink.Href(Routes.ForgotPasswordPage())["Forgotten your password?"]]
+            P.Class("text-sm opacity-70")[
+                "No account yet? ",
+                NavLink.Href(Routes.RegisterPage()).Class("link link-primary")["Create one"],
+                "."],
+            P.Class("text-sm opacity-70")[
+                NavLink.Href(Routes.ForgotPasswordPage()).Class("link link-primary")["Forgotten your password?"]]
         ];
 
     private async Task SubmitAsync(SignInModel model)

@@ -40,6 +40,12 @@ public class BrowserCompanionGenerationTests : IDisposable
               </PropertyGroup>
               <ItemGroup>
                 <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>
+                <RaskBrowserUsing Include="Fixture.Shared"/>
+                <RaskBrowserUsing Include="Fixture.Aliased" Alias="Shorthand"/>
+                <RaskBrowserUsing Include="Fixture.Statics" Static="true"/>
+                <!-- Stands in for what a referenced package's build/*.props injects. It must NOT
+                     cross: those namespaces are frequently server-only. -->
+                <Using Include="Fixture.InjectedByAPackage"/>
               </ItemGroup>
               <Import Project="{Path.Combine(SrcDir, "Rask.Server", "build", "Rask.Server.Browser.targets")}"/>
             </Project>
@@ -119,6 +125,53 @@ public class BrowserCompanionGenerationTests : IDisposable
 
         Assert.Contains("Edits are lost; change the app instead.", project, StringComparison.Ordinal);
         Assert.Contains("RunAsync<Fixture.App>();", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AUsingTheAppNamesForTheBundleReachesIt()
+    {
+        // The companion compiles the app's OWN sources, so a name those files resolve through a
+        // <Using> has to resolve here too. Only ImplicitUsings was carried across, and that is the
+        // SDK's set — it says nothing about the app's own.
+        //
+        // The failure was invisible until publish, because the companion is only generated then: the
+        // server half built clean, and the browser half died on a missing type inside a generated
+        // project the author never wrote.
+        var project = Generate();
+
+        Assert.Contains("<Using Include=\"Fixture.Shared\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AUsingAPackageInjectedDoesNotReachTheBundle()
+    {
+        // The correction, and the reason this is an opt-in item rather than a flow of @(Using).
+        //
+        // Carrying every using across looks obviously right. It is not: @(Using) holds what referenced
+        // PACKAGES injected through their own build/*.props as well as what the app wrote — Rask.Auth
+        // adds one — and several of those namespaces exist only on the server. The companion then
+        // fails to compile on names the author never typed, which is a worse failure than the one
+        // being fixed, and it is the one that broke the browser-rung publish gate.
+        var project = Generate();
+
+        Assert.DoesNotContain("Fixture.InjectedByAPackage", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AUsingKeepsItsAliasAndItsStaticFlag()
+    {
+        // Include alone is not the whole item. An alias dropped here turns every use of the short name
+        // into a missing type, and a static using dropped turns every unqualified member into one.
+        var project = Generate();
+
+        Assert.Contains(
+            "<Using Include=\"Fixture.Aliased\" Alias=\"Shorthand\" />",
+            project,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<Using Include=\"Fixture.Statics\" Static=\"true\" />",
+            project,
+            StringComparison.Ordinal);
     }
 
     [Fact]
