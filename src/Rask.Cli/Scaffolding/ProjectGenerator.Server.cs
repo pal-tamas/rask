@@ -477,6 +477,24 @@ internal static partial class ProjectGenerator
 
             var app = builder.Build();
 
+            """);
+
+        if (batteries.Data)
+        {
+            // Points the ambient database at the context registered above, once, after the container
+            // exists. Without it every Product.Add(…) / Product.Where(…) throws "The ambient database has
+            // not been configured" — the app boots, serves, and fails only on the first line of data code.
+            // Nothing in Rask.Server can do this for you: it does not reference Rask.Data at all.
+            sb.Append("""
+                // Point the ambient database at the context registered above. This is what lets a model be
+                // used from anywhere — Product.Where(…), Product.FindAsync(id) — with no DbContext injected.
+                Db.Configure(app.Services);
+
+                """.TrimStart('\n'));
+        }
+
+        sb.Append("""
+
             // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
             // (HSTS, redirects, your own logging) sees the request the visitor actually made.
             app.UseForwardedHeaders();
@@ -659,8 +677,14 @@ internal static partial class ProjectGenerator
         // cases where it could not run them: --no-restore, and a migration that failed.
         if (batteries.Data)
         {
-            steps.Append("\nThe first migration is already applied to app.db. Add a DbSet<T> to AppDbContext\n");
-            steps.Append("for your first entity, then `rask db add <Name>` and `rask db update` to migrate it.\n");
+            steps.Append("\nThe first migration is already applied to app.db. For your first entity, declare\n");
+            steps.Append("a class deriving from Model<TId> — no DbSet, no configuration class, no registration:\n");
+            steps.Append("\n  public sealed class Product : Model<Guid>\n");
+            steps.Append("  {\n");
+            steps.Append("      public string Name { get; private set; } = \"\";\n");
+            steps.Append("  }\n");
+            steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it. Query it off the type\n");
+            steps.Append("itself: Product.Where(...), Product.FindAsync(id), Product.Add(p).\n");
         }
 
         if (batteries.Push)
@@ -756,14 +780,21 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer.Features.Shared;
 
-        public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+        public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskDbContext(options)
         {
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
+                // RaskDbContext, not DbContext: the base maps every class deriving from Model<TId>, which
+                // is what lets you declare an entity and nothing else — no DbSet property, no
+                // IEntityTypeConfiguration, no registration. It also brings the value converters for
+                // strongly-typed ids, which EF reads before the model is built. Over plain DbContext this
+                // file still compiles and every model you declare is silently absent from the database.
+                base.OnModelCreating(modelBuilder);
+
                 // ApplyRaskConventions walks the model as it stands, giving each marked entity its audit
                 // stamps, its soft-delete query filter and its concurrency token — so it has to come LAST,
-                // after the configurations AND after every battery's tables. Anything mapped after it
-                // silently misses out, which is what a User declaring ITimestamped used to do.
+                // after the models, the configurations AND every battery's tables. Anything mapped after
+                // it silently misses out, which is what a User declaring ITimestamped used to do.
                 modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);{{schema}}
                 modelBuilder.ApplyRaskConventions();
             }

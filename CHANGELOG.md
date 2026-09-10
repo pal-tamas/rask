@@ -268,6 +268,43 @@ them until tagged releases begin.
   distinguishes the two, and the empty case says plainly that nothing has been gated and what to do next.
   `scripts/tests/pre-push-ref-classes.test.sh` pins all three ref classes against the real hook, and
   fails on three assertions without the fix. (#1047)
+- **The scaffolded `AppDbContext` derived from `DbContext`, so a model you declared mapped to nothing.**
+  `ModelRegistry.Apply` — the call that maps every `Model<TId>` — lives in `RaskDbContext.OnModelCreating`
+  and nowhere else; `ApplyRaskConventions()` does not do it. So on the path most people take (`rask new
+  --data`, then one class deriving from `Model<Guid>`) the headline feature of this data layer did not
+  work at all. Nothing could catch it: the file compiles, the app boots, `rask db add` succeeds and the
+  migration applies — the table is simply not in it, and the first `Product.Add(…)` throws at runtime
+  saying the entity type was not found. The scaffolded context now derives from `RaskDbContext` and
+  chains `base.OnModelCreating` ahead of `ApplyRaskConventions`, which also brings `ConfigureConventions`
+  and with it the value converters for strongly-typed ids — those could not have worked in a scaffolded
+  app either. Guarded twice: a scaffold test on the emitted base type and call order, and an end-to-end
+  test that declares a model in a real scaffolded app and asserts a `Product` table reaches the
+  migration. Both were confirmed to fail against the old template.
+
+- **Two gate script tests raced, and the loser blamed the wrong thing.** `run-unit-local.sh` ran all ten
+  concurrently under a comment claiming they had "no shared state". That stopped being true:
+  `public-api-gate.test.sh` proves the analyzer by writing `src/Rask.Cache/__PublicApiGateProbe.cs` into
+  the real worktree and briefly moving that project's PublicAPI baselines aside, while
+  `attribution-guard.test.sh` ends by asserting the working tree is exactly where it was. The guard saw
+  the prober's files and failed with "a git env var leaked into the temp repo" — naming a cause that was
+  not the one, on a run where nothing was wrong. The guard now runs alone before the concurrent batch:
+  it is pure bash and costs about a second, where the prober is four builds of `Rask.Cache` and is what
+  the concurrency exists for.
+
+- **A scaffolded app could not use a model even once it was mapped.** `Product.Add(…)` goes through the
+  ambient `Db`, and binding that needs two things the scaffold never wrote: the *generic*
+  `AddRaskData<AppDbContext>()` (the non-generic overload registers only the interceptors, so
+  `Db.Configure` has nothing to point at), and one `Db.Configure(app.Services)` after the container is
+  built. Neither could come from the framework — `Rask.Server` does not reference `Rask.Data` at all, and
+  the only caller of `Db.Configure` is the meta package's `RaskApp`, which a scaffolded server app does
+  not use. So the app booted, served, migrated, and threw `The ambient database has not been configured`
+  on the first line of data code. The scaffold now emits both. The same stale wiring was in the tutorial
+  (which this release rewrote to teach `Model<TId>`) and in the cheatsheet, whose block claims to be what
+  `rask new` writes; both now match.
+
+- **`rask new` told you to add a `DbSet<T>`.** The next-steps text printed after scaffolding taught the
+  one workflow this data layer exists to remove; it now shows declaring a `Model<Guid>`, and says you
+  query it off the type itself.
 
 - **The scaffolded `AppDbContext` applied Rask's conventions before the batteries mapped their tables**,
   so anything they mapped missed the audit stamps, the soft-delete filter and the concurrency token. The
@@ -276,6 +313,8 @@ them until tagged releases begin.
   after `ApplyRaskConventions()`. Harmless while no battery entity carried a marker, and silently wrong
   the moment a scaffolded `User` declares `ITimestamped`. The conventions now come last, with a scaffold
   test pinning the order.
+
+### Added
 
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an
   `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
@@ -469,6 +508,101 @@ them until tagged releases begin.
   a name imported from a namespace, so `Div.Class("card")[Span["hi"]]` is unaffected. Code that names a
   tag TYPE explicitly drops `using Rask.Html.Components;`: the host packages already surface
   `Rask.Core.Components`. This undoes the namespace half of #710.
+
+- **Declare a model, and that is the whole data layer.** `Rask.Data` gains an active-record surface over
+  EF Core: a class deriving from `Model<TId>` is mapped, queryable and writable with no `DbContext`
+  class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
+  `IDbContextFactory` injected into every page that reads a row.
+
+  - **The model type is its own `DbSet`.** `Product.Where(…)`, `Product.OrderBy(…)`, `Product.Include(…)`,
+    `Product.FindAsync(id)`, `Product.CountAsync()`, `Product.Add/Update/Remove(…)` and the rest of EF's
+    vocabulary are C# 14 static extension members over `Model`, so an entity that compiles today has them
+    — no second base class and no generated partial. A member declared on the model itself always wins,
+    so your own `Create` or `Find` is untouched.
+  - **Reads need no ceremony.** A query composes without holding a context open; the terminal call opens
+    one, runs and disposes it before returning, so `await Product.Where(p => p.Active).ToListAsync()` is a
+    complete statement inside `OnMountAsync`. Rows come back **untracked by default** — `.AsTracking()`
+    opts in, and `Product.Update(entity)` is the ordinary way to write one back.
+  - **Writes are a unit of work.** `Db.Begin()` makes one short-lived context ambient; `Add`/`Remove`/
+    `Update` track against it and one `SaveChangesAsync` commits them together. They are EF's verbs with
+    EF's meanings, so outside a unit of work they say so rather than appearing to work. Nesting *joins*
+    rather than nests, so a helper can open one unconditionally and still take part in its caller's
+    transaction. The context is created lazily and is never session-scoped, which is what keeps a
+    long-lived Rask session away from a shared `DbContext`.
+  - **`Db` is the ambient database**, reachable from anywhere including inside a model: `Db.Current` is
+    the real `DbContext`, `Db.Set<T>()` its sets, `Db.SaveChangesAsync()` the ambient commit.
+  - **A model can save itself.** `await this.SaveAsync()` lets behaviour on the model finish the job —
+    `order.Cancel(now)` then persist — with no unit of work around it. It **inserts** a model that has
+    never been persisted and **updates** one that has, and `DeleteAsync()` is its counterpart, so a
+    single write of any kind is a one-liner and `Db.Begin()` is left for the thing it is actually for:
+    putting several models in one transaction. Inside one, both *join* rather than commit, so a caller
+    who wrapped several models still gets one transaction and a model's own method can never commit half
+    of its caller's work. Insert and update are told apart by `CreatedAt` — stamped on insert and written
+    by nothing else — so there is no extra `SELECT` and no guessing from a client-assigned key, which is
+    always set and therefore says nothing.
+  - **Batch update and delete.** `ExecuteUpdateAsync` and `ExecuteDeleteAsync` on a query are one
+    set-based statement over every matching row, with setters that can read the row they update. They
+    bypass the interceptors, as EF's do, so the docs state what that skips — no `UpdatedAt`, no `Version`
+    bump, no domain events — and that a batch *soft* delete is an `ExecuteUpdateAsync` of `DeletedAt`,
+    because `ExecuteDeleteAsync` really deletes an `ISoftDeletable` row.
+  - **Models are testable as plain objects.** Behaviour that only changes the model needs no database and
+    no mock; behaviour that reads one gets a real database in a line via `TestDatabase.StartAsync`, which
+    builds the generated model, creates the schema, wires the auditing and soft-delete interceptors, and
+    clears the ambient database on dispose. Provider-agnostic, so `Rask.Data` gains no provider
+    dependency and a test runs against the database the app ships on.
+  - **Mapping rules live on the model**, as a plain `public static void Configure(EntityTypeBuilder<T>)`
+    — no attribute, no interface, no separate class. It runs last, so it can overrule Rask's conventions
+    rather than being overwritten by them.
+  - **Value objects** marked `IValueObject` are mapped as EF **complex types** (part of the row) rather
+    than owned entities (a joined table with hidden identity), nested ones included.
+  - **Strongly-typed ids** work with nothing declared: `Model<ProductId>` registers a generated value
+    converter once for the type, so the key, foreign keys and nullable occurrences are all converted.
+  - **Generated, never reflected.** A source generator builds the model at compile time, so a trimmed
+    publish cannot drop an entity and leave a missing table behind a green build.
+
+  Two diagnostics keep the conventions from failing silently: **RASK072** when a `Configure` method will
+  not be called because its signature does not match, and **RASK073** when a strongly-typed id has no
+  value the generator can convert.
+
+  None of it is compulsory. A class that does not derive from `Model` is an ordinary EF Core entity, and
+  registering an `IDbContextFactory<YourContext>` binds the ambient database and every database-backed
+  battery to your own context instead. See [docs/data.md](docs/data.md).
+
+### Changed
+
+- **`CreatedAt`/`UpdatedAt` are now opt-in, and no marker puts anything on your class.** `Model<TId>`
+  carries only `Id` and the domain-events buffer. `ITimestamped`, `ISoftDeletable` and `IVersioned` are
+  now **pure markers**: the columns they imply are added as EF shadow properties, so a domain model can
+  carry audit stamps and soft delete without a line of infrastructure in the type you wrote. Declaring
+  the property is how you opt into *reading* it, and mixing is fine — declare `CreatedAt` and leave
+  `UpdatedAt` a shadow column. Breaking for any model that relied on inheriting `CreatedAt`/`UpdatedAt`,
+  and for anything that referenced them through the interfaces.
+
+  `IVersioned` is the one exception and must declare `public int Version`: optimistic concurrency exists
+  to round-trip the token through an edit form, and a value the application cannot read is one it cannot
+  send back. A shadow token is refused while the model is built, naming the model and the fix, instead of
+  surfacing later as EF's "expected to affect 1 row(s), but actually affected 0".
+
+  `entity.SaveAsync()` still tells an insert from an update for free when the model declares `CreatedAt`,
+  and asks the database with one `SELECT` by key when it does not.
+
+- **`Rask.Data.Entity<TId>` is now `Rask.Data.Model<TId>`**, with the non-generic `Model` as the base the
+  active-record surface is keyed on. Breaking for anything deriving from the old name.
+
+- **An app with no `DbContext` of its own now gets one.** Previously it got no database and therefore no
+  jobs, outbox, mail, cache or auth; it now gets `RaskAppDbContext` — the generated model plus every
+  battery's tables — so declaring a model is enough to have a working database. Registering an
+  `IDbContextFactory<YourContext>` still wins and is the way to opt out. Every battery's tables are
+  mapped whether or not the battery is on, matching what Auth already promised, so toggling one is not a
+  destructive migration.
+
+### Fixed
+
+- **A `UnitOfWork` disposed with `await using` never left the ambient scope.** `DisposeAsync` was an
+  `async` method, so its `AsyncLocal` write landed on the state machine's own execution context and never
+  reached the caller's. The scope stayed open forever and the next `Db.Begin()` handed back a handle onto
+  the disposed context. The pop now happens in a synchronous body; only the context's disposal is
+  awaited.
 
 ### Fixed
 

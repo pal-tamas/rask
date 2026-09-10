@@ -454,14 +454,28 @@ with `--no-data`, add them next to your other `builder.Services…` lines):
 
 ```csharp
 builder.Services.AddRaskCqrs();
-builder.Services.AddRaskData();
+builder.Services.AddRaskData<AppDbContext>();
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseRaskSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db")
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
 
+and one line after the container is built:
+
+```csharp
+var app = builder.Build();
+
+Db.Configure(app.Services);
+```
+
 - `AddRaskCqrs()` registers the mediator that dispatches the queries/commands in the slice.
-- `AddRaskData()` registers the interceptors (auditing, and later soft-delete/concurrency/events).
+- `AddRaskData<AppDbContext>()` registers the interceptors (auditing, and later
+  soft-delete/concurrency/events) **and names the context to the ambient database**. The type argument is
+  what makes `Product.Where(…)` know which database to open; the bare `AddRaskData()` registers only the
+  interceptors.
+- `Db.Configure(app.Services)` points the ambient database at it, once, after the container exists.
+  Without this pair the app builds and serves, and throws `The ambient database has not been configured`
+  on the first line of data code.
 - `AddDbContextFactory<AppDbContext>(…)` registers the context **as a factory**, for the reason above.
   `UseRaskSqlite` is a drop-in for `UseSqlite` that also applies the production pragmas (WAL,
   `busy_timeout`, `foreign_keys`) — so the app handles concurrent writers (the jobs, email, and outbox you

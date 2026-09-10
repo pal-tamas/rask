@@ -134,17 +134,22 @@ public sealed class ServerBatteryScaffoldTests
     [Theory]
     [InlineData("outbox")]
     [InlineData("data")]
-    public void AddRaskData_is_scaffolded_bare_whether_or_not_the_outbox_is_on(string flag)
+    public void AddRaskData_is_scaffolded_without_a_domain_event_argument_whether_or_not_the_outbox_is_on(
+        string flag)
     {
         // The outbox used to require `o.DispatchDomainEventsInProcess = false` here, and a scaffold that
         // forgot it silently emptied the outbox: DomainEventInterceptor drained and cleared every entity's
         // events before OutboxInterceptor could copy them, while every handler still ran, so nothing looked
         // wrong. The framework now settles that when the container is built (AddRaskOutbox registers an
-        // IDomainEventDeliveryOwner), so the emitter has no argument left to get wrong. Asserting the
-        // ABSENCE is the point — this is the line that would regress if the old conditional came back.
+        // IDomainEventDeliveryOwner), so the emitter has no OPTIONS argument left to get wrong. Asserting
+        // that absence is the point — this is the line that would regress if the old conditional came back.
+        //
+        // The TYPE argument is a different thing and is required: the generic overload is what binds the
+        // context to the ambient database, so Db.Configure has something to point at. This test used to
+        // assert the bare `AddRaskData();`, which read as though the type argument were unwanted too.
         var program = Generate(flag)["Program.cs"];
 
-        Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
         Assert.DoesNotContain("DispatchDomainEventsInProcess", program, StringComparison.Ordinal);
     }
 
@@ -312,5 +317,47 @@ public sealed class ServerBatteryScaffoldTests
 
         Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
         Assert.DoesNotContain("exit on a missing table", next, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The scaffolded context derives from <c>RaskDbContext</c>, which is the only thing that maps the
+    /// models the app declares.
+    /// </summary>
+    /// <remarks>
+    /// No other gate can catch this. Over plain <c>DbContext</c> the file compiles, the app boots and the
+    /// migration succeeds — every model just quietly maps to nothing, and the first
+    /// <c>Product.Add(…)</c> throws at runtime saying the entity type was not found. So the base type is
+    /// asserted here, in text, rather than left to the build E2E.
+    /// </remarks>
+    [Fact]
+    public void The_scaffolded_context_derives_from_RaskDbContext_so_declared_models_are_mapped()
+    {
+        var context = Generate("jobs")["Features/Shared/AppDbContext.cs"];
+
+        Assert.Contains(": RaskDbContext(options)", context, StringComparison.Ordinal);
+
+        // Deriving is only half of it — the override has to chain, or ModelRegistry never runs.
+        Assert.Contains("base.OnModelCreating(modelBuilder);", context, StringComparison.Ordinal);
+
+        // Note there is no DoesNotContain(": DbContext(options)") here on purpose: that string is a
+        // substring of ": RaskDbContext(options)", so the assertion would fail on correct output.
+
+        // The conventions still have to run last, after the models the base just mapped.
+        Assert.True(
+            context.IndexOf("base.OnModelCreating", StringComparison.Ordinal)
+            < context.IndexOf("ApplyRaskConventions", StringComparison.Ordinal),
+            "base.OnModelCreating must precede ApplyRaskConventions, or the models it maps miss their conventions.");
+    }
+
+    [Fact]
+    public void The_next_steps_teach_declaring_a_model_not_adding_a_DbSet()
+    {
+        // What the reader is told to do first is what they will do. Pointing them at a DbSet teaches the
+        // one workflow this data layer exists to remove.
+        var next = ProjectGenerator.GenerateServer(
+            Root, "App", NewCommand.BatteriesOf(["jobs"]), Version).Notes ?? "";
+
+        Assert.Contains("Model<Guid>", next, StringComparison.Ordinal);
+        Assert.DoesNotContain("Add a DbSet", next, StringComparison.Ordinal);
     }
 }

@@ -104,12 +104,13 @@ If losing an event on a crash is acceptable, plain in-process domain events need
 Look at what the generator wrote into `Program.cs`:
 
 ```csharp
-builder.Services.AddRaskData();
+builder.Services.AddRaskData<AppDbContext>();
 builder.Services.AddRaskOutbox<AppDbContext>();
 ```
 
-Registering the outbox is what hands it delivery. `AddRaskData()` needs no argument to match, and the two
-calls work in either order — the handover is settled when the container is built, not when either line runs.
+Registering the outbox is what hands it delivery. `AddRaskData` needs no *options* argument to match —
+its type argument is the unrelated one that names the ambient database, from Chapter 2 — and the two
+calls work in either order: the handover is settled when the container is built, not when either line runs.
 
 That is worth a sentence, because the alternative is a bug you would never see. `DomainEventInterceptor`
 drains and **clears** every entity's events during `SaveChanges`. Were it still running alongside the outbox,
