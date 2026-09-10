@@ -7,6 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A component's props refresh from a children-function's argument, with no `Key`.**
+  `Form.Model(m)[submitting => [ … ]]` calls its children function on every render with whether a
+  submit is in flight. A component in there whose prop derived from that flag kept its old value for
+  the whole submit — a button written as `submitting ? "Saving…" : "Sign up"` stayed "Sign up" — and
+  only an explicit `.Key(submitting)` fixed it, which no call site should have to know.
+
+  The cause is a commit-point mismatch, and nothing to do with forms. A children function runs during
+  the **serializer's** walk, while the deferred entry commit — the drain of pending resets plus
+  `NotifyParameters` — runs at the end of the owner's `RenderForLive`, which by then is long past. So
+  the component the function built never had `PropsDirty` set, and the render cache handed back the
+  subtree from before the argument changed. `OnPropsChanged` did not fire either, so a component that
+  *acts* on a prop change rather than merely rendering it was equally stuck.
+
+  The serializer now materialises a children function's output, commits the owner's pending entries,
+  and only then walks them. Materialising first is what makes the commit meaningful: a `yield` body
+  would otherwise build each entry as the walk reached it, one child too late. The owner is the
+  current parent rather than the element, because an element pushes no parent scope of its own.
+
+  It read correctly with an element child (`Button[submitting ? … : …]`) because an element's children
+  are walked and never cached, which is why nothing hit this until the showcase moved onto `Rask.Ui`.
+  The `.Key(submitting)` workaround in `FormSubmitStateDemo` is gone.
+
+
 ## [0.21.0] - 2026-09-10
 
 ### Changed

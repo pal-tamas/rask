@@ -375,9 +375,26 @@ internal static class HtmlSerializer
                     }
                     else
                     {
-                        foreach (var child in el.RenderChildrenInternal())
+                        // Materialised BEFORE anything is written, then committed, then walked.
+                        //
+                        // A children-function (Form's `submitting => [ … ]`) builds its chains HERE, in
+                        // the serializer, long after the owning component's Render() returned — so those
+                        // entries never reached RenderForLive's commit point. Walking one straight away
+                        // reaches its render cache with PropsDirty unset and serves the subtree from
+                        // before the argument changed (#1050).
+                        //
+                        // The owner is CurrentParent rather than `el`: an element pushes no parent scope,
+                        // so entries built inside its children attribute to the enclosing COMPONENT.
+                        var built = el.RenderChildrenInternal();
+                        var children = built as IReadOnlyList<Component?> ?? [.. built];
+
+                        // Materialising first is what makes the commit meaningful: a `yield` body would
+                        // otherwise build each entry as the walk reached it, one child too late.
+                        live?.CommitPendingEntryChildren();
+
+                        for (var i = 0; i < children.Count; i++)
                         {
-                            Serialize(child, sb);
+                            Serialize(children[i], sb);
                         }
                     }
                 }
