@@ -104,7 +104,42 @@ them until tagged releases begin.
   is the *absence* of a choice — selecting it removes `data-theme` rather than stamping a value daisyUI
   compiled no block for.
 
+### Added
+
+- **`Virtualize.Items` takes an `InitialTotalCount`.** The row count to assume before an
+  `ItemsProvider` has reported the real one — the provider-mode sibling of `InitialClientHeight`, and
+  for the same reason: the first render happens before the thing that knows the answer has answered.
+  Without it a provider-backed list renders **no rows at all** until the first fetch resolves, so an
+  empty box pops into a full table: a layout shift on every load, and on a prerendered page, markup
+  whose very shape depends on when it was sampled. The rows it produces are ordinary placeholders, so a
+  body already written to draw a pending row needs no new branch, and the real count replaces the
+  estimate as soon as the provider answers. Ignored in items mode, where the count is never in doubt.
+
 ### Fixed
+
+- **Two demos no longer change their markup's *shape* as they settle.** `lifecycle-hooks` appended to a
+  growing hook log, so the row count was a function of how many times it had rendered and of whether a
+  450 ms await had resolved; `virtualize-provider` had no window until its 350 ms fetch returned, so
+  every `<tr>` and `<td>` in it arrived on a timer. Both made their entry in `DemoMarkup.golden.txt` a
+  race against the wall clock — the shape recorded there depended on which side of the settle the
+  snapshot landed on, and nothing reported which.
+
+  The contract that file has always stated is that a demo may change as it settles, but the moving part
+  has to live in **text, an `id` or a `data-*` attribute** — never a tag name or a class, because those
+  cannot be snapshotted by anyone. Both demos now hold to it: the lifecycle probe reserves one row per
+  hook and moves only each row's status text, and the provider demo draws its window at full size from
+  the first paint. `TheDemosThatSettleLate_KeepTheirSkeletonAcrossTheSettle` holds those two to the
+  strict shape — mount, wait past everything they await, re-read — which is stricter than the general
+  per-demo check can be.
+
+  Reading the hooks as a fixed table is also the better demo: the full order is visible before anything
+  has fired, a hook that has not run yet says so rather than being absent, and the counts make it
+  obvious which hooks run once per mount and which run on every render.
+
+  `NoDemoSkeleton_ChangesOnATimer` is deliberately **not** widened to the strict shape. A third demo
+  the old 250 ms window was too short to reveal, `data-http-fetch`, swaps a spinner for an alert when
+  its fetch settles — a real loading→loaded transition, whose alert five cases in `HttpPageTests`
+  assert on. Flattening it would mean rewriting the tests that prove its behaviour.
 
 - **Hydrating a prerendered WASM page no longer paints one unstyled frame.** The published site
   flickered on `/` and `/docs` as the prerendered document handed over to the runtime: sampled every

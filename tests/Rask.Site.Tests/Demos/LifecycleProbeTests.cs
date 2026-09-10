@@ -19,9 +19,17 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         // The probe's only click handler is the trigger button; that an id exists proves BsButton forwarded
         // the OnClick to the native button.
         var clickId = Markup.Attrs(page.Render(), "data-rask-on-click")[0];
+
+        // The witness used to be a new line appended to a growing hook log. The probe reports each hook
+        // as a FIXED row whose status is text now (#1046 -- a row that appears on a timer makes the
+        // demo's markup depend on when it was sampled), so the click's effect is the clicks row moving
+        // off "not yet". Same claim, and it pins the count rather than just the presence of a string.
+        Assert.Contains("Button clicks", page.Render());
+        Assert.Matches(@"Button clicks</code>\s*<span[^>]*>not yet", page.Render());
+
         await page.InvokeAsync(clickId);
 
-        Assert.Contains("Trigger re-render (button click)", page.Render());
+        Assert.Matches(@"Button clicks</code>\s*<span[^>]*>ran 1x", page.Render());
     }
 
 
@@ -29,16 +37,28 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     public async Task LifecycleProbe_FiresMountThroughRenderedHooks_InOrder()
     {
         var page = RaskTest.Render(() => LifecycleProbe, TestServices.Default());
+
+        // Every hook NAME is on screen from the first paint now, so asserting the names alone would
+        // pass before a single hook had run. The claim worth making is about each row's STATUS: the
+        // awaited row starts pending and becomes resolved, which is the sequence this test is named for.
+        var first = page.Render();
+        Assert.Contains("OnMountAsync (after 450ms await)", first);
+        Assert.Matches(@"OnMountAsync \(after 450ms await\)</code>\s*<span[^>]*>awaiting", first);
+
         // OnMountAsync awaits 450ms; allow time for the full sequence.
-        await WaitFor.True(() => page.Render().Contains("OnMountAsync (after 450ms await)"),
-            TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => page.Render().Contains("resolved"), TimeSpan.FromSeconds(2));
 
         var html = page.Render();
-        Assert.Contains("OnMount", html);
-        Assert.Contains("OnMountAsync (start)", html);
-        Assert.Contains("OnMountAsync (after 450ms await)", html);
+        Assert.Matches(@"OnMount</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"OnMountAsync \(start\)</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"OnMountAsync \(after 450ms await\)</code>\s*<span[^>]*>resolved", html);
         Assert.Contains("OnPropsChanged", html);
-        Assert.Contains("OnRendered(firstRender: True)", html);
+
+        Assert.Matches(@"OnPropsChangedAsync</code>\s*<span[^>]*>ran 1x", html);
+
+        // The original claim, kept: the framework reported firstRender: true on the first render.
+        // Latched rather than last-wins, so a later render cannot erase it.
+        Assert.Contains("firstRender: true on the first", html);
     }
 
     [Fact]

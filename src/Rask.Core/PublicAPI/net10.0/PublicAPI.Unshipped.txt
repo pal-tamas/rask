@@ -2956,6 +2956,8 @@ Rask.Core.Components.VirtualizeModel.Body.get -> Rask.Core.Fn<Rask.Core.Virtuali
 Rask.Core.Components.VirtualizeModel.Body.set -> void
 Rask.Core.Components.VirtualizeModel.InitialClientHeight.get -> int?
 Rask.Core.Components.VirtualizeModel.InitialClientHeight.set -> void
+Rask.Core.Components.VirtualizeModel.InitialTotalCount.get -> int?
+Rask.Core.Components.VirtualizeModel.InitialTotalCount.set -> void
 Rask.Core.Components.VirtualizeModel.ItemSize.get -> int
 Rask.Core.Components.VirtualizeModel.ItemSize.set -> void
 Rask.Core.Components.VirtualizeModel.Items.get -> System.Collections.IEnumerable?
@@ -4531,7 +4533,7 @@ static Rask.Core.Components.Context.Required<T>(string? name = null) -> T
 static Rask.Core.Components.GestureResultInterop.Result(int id, string? value) -> System.Threading.Tasks.Task!
 static Rask.Core.Components.ValidatingIndicator.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<Rask.Core.Component!>! Template) -> Rask.Core.Components.ValidatingIndicator!
 static Rask.Core.Components.ValidationMessage.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, Rask.Core.Component!>! Template) -> Rask.Core.Components.ValidationMessage!
-static Rask.Core.Components.Virtualize.Items<T>(System.Func<Rask.Core.Virtualization.VirtualizationContext<T>!, Rask.Core.Component!>! Render, System.Collections.Generic.IEnumerable<T>? Items = null, System.Func<Rask.Core.Virtualization.ItemsProviderRequest!, System.Threading.Tasks.ValueTask<Rask.Core.Virtualization.ItemsProviderResult<T>!>>? ItemsProvider = null, int ItemSize = 32, int OverscanCount = 3, int InitialClientHeight = 400) -> Rask.Core.Components.VirtualizeModel!
+static Rask.Core.Components.Virtualize.Items<T>(System.Func<Rask.Core.Virtualization.VirtualizationContext<T>!, Rask.Core.Component!>! Render, System.Collections.Generic.IEnumerable<T>? Items = null, System.Func<Rask.Core.Virtualization.ItemsProviderRequest!, System.Threading.Tasks.ValueTask<Rask.Core.Virtualization.ItemsProviderResult<T>!>>? ItemsProvider = null, int ItemSize = 32, int OverscanCount = 3, int InitialClientHeight = 400, int InitialTotalCount = 0) -> Rask.Core.Components.VirtualizeModel!
 static Rask.Core.DragAndDrop.DragDropMove.operator !=(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.DragAndDrop.DragDropMove.operator ==(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.ElementRef.New() -> Rask.Core.ElementRef!
@@ -5363,6 +5365,7 @@ static RaskBuilderSettersRask_Core.In2(this Rask.Core.Components.FeBlend! __b, s
 static RaskBuilderSettersRask_Core.In2(this Rask.Core.Components.FeComposite! __b, string? value) -> Rask.Core.Components.FeComposite!
 static RaskBuilderSettersRask_Core.Inert<T>(this T! __b, bool? value) -> T!
 static RaskBuilderSettersRask_Core.InitialClientHeight(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
+static RaskBuilderSettersRask_Core.InitialTotalCount(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.InputMode<T>(this Rask.Core.Components.Input<T>! __b, string? value) -> Rask.Core.Components.Input<T>!
 static RaskBuilderSettersRask_Core.Integrity(this Rask.Core.Components.Script! __b, string? value) -> Rask.Core.Components.Script!
 static RaskBuilderSettersRask_Core.Ismap(this Rask.Core.Components.Img! __b, bool? value) -> Rask.Core.Components.Img!

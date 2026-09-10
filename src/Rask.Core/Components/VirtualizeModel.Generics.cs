@@ -58,6 +58,13 @@ public static partial class Virtualize
     ///     The viewport height to assume for the first render, before the browser has reported the
     ///     real one.
     /// </param>
+    /// <param name="InitialTotalCount">
+    ///     The row count to assume before <paramref name="ItemsProvider" /> has reported the real one.
+    ///     Left at zero, a provider-backed list renders no rows until the first fetch resolves, so an
+    ///     empty box pops into a full table. The rows it produces are ordinary placeholders, and the
+    ///     real count replaces the estimate as soon as the provider answers. Ignored when
+    ///     <paramref name="Items" /> is used.
+    /// </param>
     [UnconditionalSuppressMessage("Trimming", "IL2091",
         Justification = "T flows through here only via closures over user-supplied delegates. " +
                         "No reflection, no DynamicInvoke; the typed → erased projections are static casts.")]
@@ -67,7 +74,8 @@ public static partial class Virtualize
         Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>? ItemsProvider = null,
         int ItemSize = 32,
         int OverscanCount = 3,
-        int InitialClientHeight = 400)
+        int InitialClientHeight = 400,
+        int InitialTotalCount = 0)
     {
         ArgumentNullException.ThrowIfNull(Render);
 
@@ -97,7 +105,8 @@ public static partial class Virtualize
             .Items(Items)
             .ItemsProvider(erasedProvider)
             .OverscanCount(OverscanCount)
-            .InitialClientHeight(InitialClientHeight);
+            .InitialClientHeight(InitialClientHeight)
+            .InitialTotalCount(InitialTotalCount);
     }
 
     private static Func<ItemsProviderRequest, ValueTask<ItemsProviderResultErased>> WrapTypedProvider<T>(

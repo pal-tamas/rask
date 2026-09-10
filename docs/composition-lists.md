@@ -46,6 +46,25 @@ ItemsProvider: async req =>
 Provider mode caches by index, marks rows `IsPlaceholder` while a page is in flight, and
 cancels + disposes superseded requests (and on unmount).
 
+Pass **`InitialTotalCount:`** as well when the first paint matters. Until the provider has answered
+there is no total, so there is no window and your body renders *no rows at all* — an empty box that
+pops into a full list when the fetch resolves. That is a layout shift on every load, and on a
+prerendered page it makes the markup's shape depend on when it was sampled. With an estimate the
+window is drawn at full size immediately, every row flagged `IsPlaceholder`, so a body that already
+renders a pending row needs no new branch:
+
+```csharp
+ItemsProvider: FetchRowsAsync,
+ItemSize: 32,
+InitialClientHeight: 360,
+InitialTotalCount: 500        // a guess; the provider's real total replaces it on the next paint
+```
+
+An estimate is all it needs — the real count wins as soon as the provider reports one, and only the
+spacer heights change. It is the provider-mode sibling of `InitialClientHeight`, and for the same
+reason: the first render happens before the thing that knows the answer has answered. Ignored in
+items mode, where the count is never in doubt.
+
 **Items mode** — a fixed in-memory list, windowed:
 
 <!-- demo:virtualize-items -->

@@ -84,6 +84,27 @@ public sealed class VirtualizeModel : Component
     /// </summary>
     public int? InitialClientHeight { get; set; }
 
+    /// <summary>
+    ///     The item count to assume before an <see cref="ItemsProvider" /> has reported the real one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The provider's sibling to <see cref="InitialClientHeight" />, and for the same reason: the
+    ///         first render happens before the thing that knows the answer has answered. Without it a
+    ///         provider-backed list renders <b>no rows at all</b> until the first fetch resolves -- an
+    ///         empty box that pops into a full table, which is a layout shift on every load and, on a
+    ///         prerendered page, markup whose very shape depends on when it was sampled.
+    ///     </para>
+    ///     <para>
+    ///         The rows it produces are ordinary placeholders: the window renders at its real size with
+    ///         every row flagged <c>IsPlaceholder</c>, so a body already written to show a pending row
+    ///         needs no new branch. An estimate is fine and is the point -- the real count replaces it as
+    ///         soon as the provider answers, and only the spacer heights change. Ignored entirely when
+    ///         <see cref="Items" /> is used, where the count is never in doubt.
+    ///     </para>
+    /// </remarks>
+    public int? InitialTotalCount { get; set; }
+
     // The render fragment. Called with the type-erased VirtualizationState every render;
     // returns the user's chosen root Component for the virtualized region. Stored under the
     // name "Body" rather than "Render" to avoid colliding with Component.Render(). The
@@ -189,7 +210,9 @@ public sealed class VirtualizeModel : Component
         }
         else
         {
-            totalCount = _totalCountKnown ? _totalCount : 0;
+            // Nothing has answered yet, so fall back to the caller's estimate. Zero -- the previous
+            // unconditional answer -- means no window, hence no rows, hence a box that pops.
+            totalCount = _totalCountKnown ? _totalCount : Math.Max(0, InitialTotalCount ?? 0);
         }
 
         var startIndex = Math.Max(0, (_scrollTop / itemSize) - overscan);

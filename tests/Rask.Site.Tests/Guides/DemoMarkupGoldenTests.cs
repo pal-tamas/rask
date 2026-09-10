@@ -109,13 +109,23 @@ public sealed class DemoMarkupGoldenTests
         //   * Only the 250 ms waits overlap, so the test costs one wait (~250 ms + render time, ~1 s)
         //     rather than 250 ms x |Keys| — which was ~35 s and the slowest test in the repository.
         //
-        // Hoisting it the OBVIOUS way instead — mount everything, wait once, re-read everything — was
-        // tried and does NOT hold. Mounting the whole set takes long enough that the demos mounted
-        // early would sit for far more than 250 ms, which makes the check strictly stricter, and two
-        // demos then fail: `virtualize-provider` (an empty cell becomes a `td`) and `lifecycle-hooks`
-        // (an empty slot becomes an `li`). Those two really do settle late, so their golden entries are
-        // racy on a slow enough machine — filed as #1046 rather than papered over. This shape does not
-        // widen the window, so it neither hides that nor pretends to have fixed it.
+        // Hoisting it the OBVIOUS way instead — mount everything, wait once, re-read everything — makes
+        // the check strictly stricter, because mounting the whole set takes long enough that the demos
+        // mounted early sit for far more than 250 ms before their second read. #1046 reported that two
+        // demos failed that shape, and both are fixed now: `lifecycle-hooks` reserves a row per hook and
+        // moves only the status text, and `virtualize-provider` draws its window at full size from the
+        // first paint (InitialTotalCount) so its rows fill in rather than appear.
+        //
+        // It is still NOT hoisted, and the reason is a third demo the 250 ms window was simply too short
+        // to reveal: `data-http-fetch` swaps a spinner for an alert when its fetch settles — in this
+        // environment there is no server, so it settles as an error. That is a real loading→loaded
+        // transition rather than an oversight, and its alert is load-bearing: five cases in
+        // HttpPageTests assert Tw.AlertDanger appears (and, on the self-heal path, that it does not).
+        // Flattening that demo's skeleton would mean rewriting the tests that prove its behaviour, which
+        // is a worse trade than leaving this check at its current width.
+        //
+        // So the window is not widened and not narrowed. It neither hides the remaining case nor
+        // pretends to have fixed it.
         var offences = await Task.WhenAll(DemoRegistry.Keys.Select(async key =>
         {
             var page = RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default());
@@ -124,7 +134,8 @@ public sealed class DemoMarkupGoldenTests
             // Comfortably past a mount-time timer of the scale demos have used (~50 ms) without waiting on
             // a slow inter-tick interval. No demo in the set ticks today — the two that did were removed
             // with the live ticker (#1030) — but the guard is what keeps the next one from being added
-            // silently.
+            // silently. Two demos DO settle later than this on purpose (a 450 ms await, a 350 ms fetch);
+            // both keep their skeleton constant across it now, which is what the contract asks.
             await Task.Delay(250);
 
             var after = SkeletonOf(page.Render());
@@ -139,6 +150,47 @@ public sealed class DemoMarkupGoldenTests
             "These demos' markup skeletons changed on their own after mount, so their golden entry is a "
             + "race against the wall clock. Move the moving part into text, an id or a data-* attribute — "
             + "never a tag name or a class:\n  " + string.Join("\n  ", offenders));
+    }
+
+    // The two demos #1046 named, held to the STRICT shape the general check above cannot adopt: mount,
+    // then wait past everything they are waiting on, then re-read.
+    //
+    // Both settle deliberately and later than the 250 ms the general check allows — `lifecycle-hooks`
+    // awaits 450 ms in OnMountAsync, `virtualize-provider` fetches for 350 ms per window — which is why
+    // their entries in the golden file used to be a race against the wall clock: the shape recorded
+    // there depended on which side of the settle the snapshot landed on, and nothing reported which.
+    //
+    // Named individually rather than swept, because the point is precisely that these two are held to a
+    // stricter contract than the set as a whole. A demo that joins them belongs on this list.
+    [Fact]
+    public async Task TheDemosThatSettleLate_KeepTheirSkeletonAcrossTheSettle()
+    {
+        string[] keys = ["lifecycle-hooks", "virtualize-provider"];
+
+        var pages = keys
+            .Select(key => (key, page: RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default())))
+            .ToList();
+
+        var before = pages.ToDictionary(p => p.key, p => SkeletonOf(p.page.Html), StringComparer.Ordinal);
+
+        // Past the longest settle either demo holds (450 ms), with room to spare on a loaded machine.
+        await Task.Delay(900);
+
+        var offenders = pages
+            .Select(p =>
+            {
+                var after = SkeletonOf(p.page.Render());
+                return string.Equals(before[p.key], after, StringComparison.Ordinal)
+                    ? null
+                    : $"{p.key}: {FirstDifference(before[p.key], after)}";
+            })
+            .Where(o => o is not null)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            "A demo that settles late changed its markup SKELETON while settling, so its golden entry "
+            + "depends on when it was sampled. Move the moving part into text, an id or a data-* "
+            + "attribute — never a tag name or a class:\n  " + string.Join("\n  ", offenders));
     }
 
     private static string RenderAll()
