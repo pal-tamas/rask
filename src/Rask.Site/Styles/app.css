@@ -54,6 +54,11 @@
   --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 35%, var(--color-base-content));
   --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 35%, var(--color-base-content));
   --color-ui-info-ink: color-mix(in oklab, var(--color-info) 35%, var(--color-base-content));
+  /* The three daisyUI tones the kit's palette never named. The kit's components write .btn-secondary,
+     .badge-accent and .tooltip-neutral, and a fill needs a readable label whatever it is called. */
+  --color-ui-secondary-ink: color-mix(in oklab, var(--color-secondary) 14%, var(--color-base-content));
+  --color-ui-accent-ink: color-mix(in oklab, var(--color-accent) 7%, var(--color-base-content));
+  --color-ui-neutral-ink: color-mix(in oklab, var(--color-neutral) 17%, var(--color-base-content));
 }
 
 /*

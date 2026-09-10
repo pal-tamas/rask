@@ -71,6 +71,13 @@ public sealed class UiLayerOrderTests
     [InlineData("rask", "utilities")]
     // The kit's corrections exist precisely to outrank the library they correct.
     [InlineData("daisyui", "rask")]
+    // The corrections layer outranks UTILITIES, which is where daisyUI actually emits its component rules
+    // (`.btn-primary` is in there, not in the `daisyui` layer its name implies). `rask` is deliberately
+    // below `utilities` so an app keeps its own cascade — so a correction that has to beat a daisyUI
+    // component rule cannot live there. Written in `rask`, the kit's tone corrections computed the right
+    // value and lost the cascade: a browser measured .btn-primary at 3.29:1 on `corporate` while the
+    // compiled sheet contained the fix and every token-level test passed.
+    [InlineData("utilities", "rask-ui-corrections")]
     // Tokens have to be defined before the reset that reads them.
     [InlineData("theme", "base")]
     public void Layer_is_ordered_before(string lower, string higher)

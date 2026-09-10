@@ -201,6 +201,27 @@ A **filled control is `bg-ui-*-ink text-ui-bg`**, never a saturated fill with a 
 `-ink` fill is the same proven measurement as `-ink` read on the ground. daisyUI's own `-content`
 colours are generated for 3:1, not 4.5.
 
+### The kit's own components are corrected the same way
+
+`UiButton`, `UiBadge`, `UiAlert`, `UiTooltip` and the `link-*` tones render daisyUI classes, and
+daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
+AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
+under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
+`@layer rask-ui-corrections`, pointing at the tokens above so the per-theme corrections apply for free.
+
+Two consequences worth knowing:
+
+- **It is all custom properties** (`--btn-color`, `--badge-fg`, `--tt-bg`) except where daisyUI declares
+  `color` outright — alert, link, tooltip content. Those three therefore also outrank your own `text-*`
+  utility on those elements, because the corrections layer is appended after `utilities`.
+- **`checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` are deliberately untouched** — they
+  carry no text, so WCAG asks 3:1 of them as non-text UI, and recolouring them would be a redesign.
+  `step-*` carries a label and is *not* yet corrected: daisyUI sets its variables on compound
+  pseudo-element selectors an inherited custom property cannot reach.
+
+If you write your own daisyUI classes (see above), you are on daisyUI's `-content` pairs, not these —
+the corrections name the classes the kit writes.
+
 ## The three axes
 
 Colour, fill and size are independent and compose, so an outlined error button needs no member of its

@@ -85,6 +85,17 @@ public sealed partial class ThemeContrastTests
         ("--color-ui-info-ink", "--color-ui-well", "info text on the page ground"),
         ("--color-ui-info-ink", "--color-ui-info-surface", "info text in an info badge"),
 
+        // The three daisyUI tones the kit's own palette never named. Nothing in the showcase writes
+        // text-ui-secondary-ink, so the coverage test below does not demand these — but the kit's
+        // .btn-secondary / .badge-accent / .tooltip-neutral are filled with them and labelled with the
+        // ground, so the pair has to hold here or those components are unreadable.
+        ("--color-ui-secondary-ink", "--color-ui-bg", "a secondary fill's label"),
+        ("--color-ui-secondary-ink", "--color-ui-well", "secondary text on the page ground"),
+        ("--color-ui-accent-ink", "--color-ui-bg", "an accent fill's label"),
+        ("--color-ui-accent-ink", "--color-ui-well", "accent text on the page ground"),
+        ("--color-ui-neutral-ink", "--color-ui-bg", "a neutral fill's label"),
+        ("--color-ui-neutral-ink", "--color-ui-well", "neutral text on the page ground"),
+
         // Filled controls: the ground read on an -ink fill (Tw.Btn*).
         ("--color-ui-bg", "--color-ui-ink", "a dark button's label"),
         ("--color-ui-bg", "--color-ui-muted", "a dark button's label, hovered"),

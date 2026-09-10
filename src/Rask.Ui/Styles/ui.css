@@ -210,6 +210,17 @@
   --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 35%, var(--color-base-content));
   --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 35%, var(--color-base-content));
   --color-ui-info-ink: color-mix(in oklab, var(--color-info) 35%, var(--color-base-content));
+
+  /*
+    The three daisyUI tones the kit's own palette never named, given the same treatment for the same
+    reason: the components below write .btn-secondary, .badge-accent and .step-neutral, and those are
+    fills whose label has to be readable too. Weights solved like the others — the largest that clears
+    4.6:1 against both grounds on every palette — and lower than the semantic tones because these three
+    run to pale mid-tones (`accent` needs 14%, and no palette needs a correction on top).
+  */
+  --color-ui-secondary-ink: color-mix(in oklab, var(--color-secondary) 14%, var(--color-base-content));
+  --color-ui-accent-ink: color-mix(in oklab, var(--color-accent) 7%, var(--color-base-content));
+  --color-ui-neutral-ink: color-mix(in oklab, var(--color-neutral) 17%, var(--color-base-content));
 }
 
 /*
@@ -250,6 +261,251 @@
   layer decides which one wins, and an app's own copy of the palette is a separate sheet whose `theme`
   layer is ranked by that same global order.
 */
+/*
+  THE COMPONENTS' OWN COLOURS, CORRECTED — the same defect as the -ink tiers above, one layer down.
+
+  daisyUI pairs every filled component with its tone's `-content` colour: `.btn-primary` sets
+  `--btn-fg: var(--color-primary-content)`, `.badge-success` its `--badge-fg`, `.alert-warning` a plain
+  `color`. Those pairs are generated to clear 3:1 — enough for a large label, not for the small text
+  these components actually render — and measured across all thirty-six palettes they fail WCAG AA on
+  between two and ten of them per tone: `secondary` is 3.05:1 on daisyUI's own `dark`, `warning` 3.06:1
+  on `pastel`, `error` under AA on ten palettes. A button whose label is unreadable looks like a button.
+
+  So a filled component is the `-ink` fill with the GROUND as its label, which is the same correction
+  Tw.cs makes for the showcase's own controls and rests on the same fact: contrast is symmetric, so
+  `--color-ui-bg` read on `--color-ui-brand-ink` is the pair `ThemeContrastTests` already proves. Every
+  override points at a TOKEN rather than repeating a mix, which is what makes the per-theme corrections
+  above apply here too — valentine's 2% primary reaches `.btn-primary` for free.
+
+  It is all custom properties, deliberately: daisyUI drives these components through `--btn-color`,
+  `--badge-fg`, `--tt-bg` and friends, so nothing here overrides a structural rule, and a daisyUI upgrade
+  that changes padding or radius carries straight through.
+
+  In `@layer rask`, which the order statement at the top of this file puts after `daisyui` — that is the
+  whole reason these land, since several of them are lower specificity than the rules they correct.
+
+  WHAT IS NOT HERE, and why. The `checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` tones
+  carry no text: WCAG asks 3:1 of them as non-text UI (1.4.11), not 4.5, and recolouring them would be a
+  redesign rather than a fix. `step-*` does carry a label and is NOT corrected here — daisyUI sets its
+  variables on compound pseudo-element selectors (`.step-primary + .step-primary:before`) that an
+  inherited custom property cannot reach, so it needs its own matching selectors. Both are measured and
+  filed rather than left implicit.
+
+  IN `rask-ui-corrections`, NOT `rask`, and that is the whole reason these land at all.
+
+  daisyUI emits its component rules INSIDE `@layer utilities` — `.btn-primary` is in there, not in the
+  `daisyui` layer its name implies — and the order statement at the top of this file deliberately puts
+  `rask` BEFORE `utilities` so that an app's own utilities beat the kit. Written in `rask`, every override
+  below lost to the exact rule it was correcting: measured in a browser, `.btn-primary` still computed
+  `oklch(1 0 0)` on the raw primary — 3.29:1 on `corporate`, 3.15:1 on `retro` — while the compiled sheet
+  contained the correction and every token-level test stayed green. That is the failure this whole change
+  is about, one level up: right value, wrong cascade, nothing red.
+
+  `rask-ui-corrections` is named in no order statement, so it is appended last and outranks `utilities`.
+
+  The per-theme TOKEN corrections further down are the opposite case and stay in `rask`: they compete with
+  the app's own `@theme` copy of the palette, which is in the `theme` layer, and `rask` already beats that.
+
+  The cost of being last: the families that set `color` directly rather than through a custom property —
+  alert, link, and tooltip's content — now also outrank an app's own `text-*` utility on those elements.
+  daisyUI's own rules already competed with app utilities by source order, so this narrows the problem
+  rather than introducing it, but it is a real consequence and worth knowing before adding to this block.
+*/
+@layer rask-ui-corrections {
+  /* Filled buttons. */
+  .btn-primary {
+    --btn-color: var(--color-ui-brand-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+  .btn-secondary {
+    --btn-color: var(--color-ui-secondary-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+  .btn-accent {
+    --btn-color: var(--color-ui-accent-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+  .btn-neutral {
+    --btn-color: var(--color-ui-neutral-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+  .btn-info {
+    --btn-color: var(--color-ui-info-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+  .btn-success {
+    --btn-color: var(--color-ui-ok-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+  .btn-warning {
+    --btn-color: var(--color-ui-warn-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+  .btn-error {
+    --btn-color: var(--color-ui-danger-ink);
+    --btn-fg: var(--color-ui-bg);
+  }
+
+  /* Filled badges. */
+  .badge-primary {
+    --badge-color: var(--color-ui-brand-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+  .badge-secondary {
+    --badge-color: var(--color-ui-secondary-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+  .badge-accent {
+    --badge-color: var(--color-ui-accent-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+  .badge-neutral {
+    --badge-color: var(--color-ui-neutral-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+  .badge-info {
+    --badge-color: var(--color-ui-info-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+  .badge-success {
+    --badge-color: var(--color-ui-ok-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+  .badge-warning {
+    --badge-color: var(--color-ui-warn-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+  .badge-error {
+    --badge-color: var(--color-ui-danger-ink);
+    --badge-fg: var(--color-ui-bg);
+  }
+
+  /* Alerts: daisyUI puts the text colour on the element and the fill in --alert-color. */
+  .alert-info {
+    color: var(--color-ui-bg);
+    --alert-color: var(--color-ui-info-ink);
+    --alert-border-color: var(--color-ui-info-ink);
+  }
+  .alert-success {
+    color: var(--color-ui-bg);
+    --alert-color: var(--color-ui-ok-ink);
+    --alert-border-color: var(--color-ui-ok-ink);
+  }
+  .alert-warning {
+    color: var(--color-ui-bg);
+    --alert-color: var(--color-ui-warn-ink);
+    --alert-border-color: var(--color-ui-warn-ink);
+  }
+  .alert-error {
+    color: var(--color-ui-bg);
+    --alert-color: var(--color-ui-danger-ink);
+    --alert-border-color: var(--color-ui-danger-ink);
+  }
+
+  /* Tooltips: a filled bubble, with the text declared on the content and the ::before. */
+  .tooltip-primary {
+    --tt-bg: var(--color-ui-brand-ink);
+  }
+  .tooltip-primary > .tooltip-content,
+  .tooltip-primary[data-tip]::before {
+    color: var(--color-ui-bg);
+  }
+  .tooltip-secondary {
+    --tt-bg: var(--color-ui-secondary-ink);
+  }
+  .tooltip-secondary > .tooltip-content,
+  .tooltip-secondary[data-tip]::before {
+    color: var(--color-ui-bg);
+  }
+  .tooltip-accent {
+    --tt-bg: var(--color-ui-accent-ink);
+  }
+  .tooltip-accent > .tooltip-content,
+  .tooltip-accent[data-tip]::before {
+    color: var(--color-ui-bg);
+  }
+  .tooltip-info {
+    --tt-bg: var(--color-ui-info-ink);
+  }
+  .tooltip-info > .tooltip-content,
+  .tooltip-info[data-tip]::before {
+    color: var(--color-ui-bg);
+  }
+  .tooltip-success {
+    --tt-bg: var(--color-ui-ok-ink);
+  }
+  .tooltip-success > .tooltip-content,
+  .tooltip-success[data-tip]::before {
+    color: var(--color-ui-bg);
+  }
+  .tooltip-warning {
+    --tt-bg: var(--color-ui-warn-ink);
+  }
+  .tooltip-warning > .tooltip-content,
+  .tooltip-warning[data-tip]::before {
+    color: var(--color-ui-bg);
+  }
+  .tooltip-error {
+    --tt-bg: var(--color-ui-danger-ink);
+  }
+  .tooltip-error > .tooltip-content,
+  .tooltip-error[data-tip]::before {
+    color: var(--color-ui-bg);
+  }
+
+  /* Links, which are text on the page ground rather than a fill — so the ink tier IS the colour,
+     and the hover state is darkened toward the ink instead of toward #000 (daisyUI's own rule mixes
+     with black, which lightens nothing on a dark theme — it pushes the link into the background). */
+  .link-primary {
+    color: var(--color-ui-brand-ink);
+  }
+  .link-primary:hover {
+    color: color-mix(in oklab, var(--color-ui-brand-ink) 80%, var(--color-base-content));
+  }
+  .link-secondary {
+    color: var(--color-ui-secondary-ink);
+  }
+  .link-secondary:hover {
+    color: color-mix(in oklab, var(--color-ui-secondary-ink) 80%, var(--color-base-content));
+  }
+  .link-accent {
+    color: var(--color-ui-accent-ink);
+  }
+  .link-accent:hover {
+    color: color-mix(in oklab, var(--color-ui-accent-ink) 80%, var(--color-base-content));
+  }
+  .link-neutral {
+    color: var(--color-ui-neutral-ink);
+  }
+  .link-neutral:hover {
+    color: color-mix(in oklab, var(--color-ui-neutral-ink) 80%, var(--color-base-content));
+  }
+  .link-info {
+    color: var(--color-ui-info-ink);
+  }
+  .link-info:hover {
+    color: color-mix(in oklab, var(--color-ui-info-ink) 80%, var(--color-base-content));
+  }
+  .link-success {
+    color: var(--color-ui-ok-ink);
+  }
+  .link-success:hover {
+    color: color-mix(in oklab, var(--color-ui-ok-ink) 80%, var(--color-base-content));
+  }
+  .link-warning {
+    color: var(--color-ui-warn-ink);
+  }
+  .link-warning:hover {
+    color: color-mix(in oklab, var(--color-ui-warn-ink) 80%, var(--color-base-content));
+  }
+  .link-error {
+    color: var(--color-ui-danger-ink);
+  }
+  .link-error:hover {
+    color: color-mix(in oklab, var(--color-ui-danger-ink) 80%, var(--color-base-content));
+  }
+}
+
 @layer rask {
   [data-theme="caramellatte"] {
     --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 31%, var(--color-base-content));

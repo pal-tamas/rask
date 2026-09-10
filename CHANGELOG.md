@@ -9,6 +9,32 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The kit's own components are readable in every palette too.** The showcase's palette was fixed first;
+  `UiButton`, `UiBadge`, `UiAlert`, `UiTooltip` and the `link-*` tones render daisyUI classes, and daisyUI
+  labels each tone with its own `-content` colour. Those are generated to clear 3:1 — the bar for a *large*
+  label — and these components render small text, so measured across all thirty-six palettes they failed
+  WCAG AA on between two and ten palettes per tone: `secondary` 3.05:1 on daisyUI's own `dark`, `warning`
+  3.06:1 on `pastel`, `error` under AA on ten.
+
+  They are corrected to the `-ink` fill with the ground as the label, through daisyUI's own custom
+  properties (`--btn-color`, `--badge-fg`, `--tt-bg`) so no structural rule is overridden and a daisyUI
+  upgrade carries through. Each override names a *token*, so the per-theme corrections apply for free.
+  Three new tiers — `--color-ui-secondary-ink`, `--color-ui-accent-ink`, `--color-ui-neutral-ink` — cover
+  the daisyUI tones the kit's palette never named.
+
+  **The layer is the load-bearing part, and it was wrong first.** daisyUI emits its component rules inside
+  `@layer utilities`, while the kit's order statement deliberately puts `rask` *before* `utilities` so an
+  app keeps its own cascade — so written in `rask` every override computed the right colour and lost. A
+  browser measured `.btn-primary` at 3.29:1 on `corporate` with the correction present in the shipped bytes
+  and the entire unit suite green. They live in `@layer rask-ui-corrections`, which is named in no order
+  statement and so is appended last. `ComponentToneContrastTests` reads *that block* rather than the file,
+  so value-right-layer-wrong fails, and `UiLayerOrderTests` pins the layer above `utilities`.
+
+  Measured in a real browser after the move: worst pair 5.03:1 across nine palettes, up from 3.15:1.
+  `checkbox`/`radio`/`toggle`/`range`/`progress` are untouched on purpose (no text; 3:1 applies), and
+  `step-*` is left uncorrected with a test that says so — daisyUI sets its variables on compound
+  pseudo-element selectors an inherited custom property cannot reach.
+
 - **Every PWA and device-capability demo is one page.** `/docs` carried thirteen sidebar rows under
   "PWA" — PWA demo, Install prompt, Wake lock, Orientation, Fullscreen, Picture-in-Picture, EyeDropper,
   Idle detection, Camera & mic, Serial port, USB device, HID device, Bluetooth — and each was a page
