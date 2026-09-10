@@ -9,6 +9,28 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every button in the showcase is a `UiButton`, and `Tw.cs` has no button constants left.** 146 call
+  sites across the site moved off the class-string vocabulary onto the kit: `Button.Class(Tw.BtnPrimary)
+  ["Save"]` is `UiButton.Label("Save").Tone(UiTone.Primary)`. The 18 `Btn*`/`Outline*` constants are
+  deleted.
+
+  Three things the migration found, none of which a class string could have told anyone:
+
+  - **Five icon-only buttons had no accessible name at all** — an icon was their entire content, so a
+    screen reader announced "button" and nothing more. `UiButton` requires a `Label` and turns it into the
+    accessible name when the button is square, so they have one now ("Remove item", "Move up",
+    "Remove SKU", "Remove line", and the order-table expander).
+  - **21 submit buttons and one reset** were reaching past the kit to `Button.Type("submit")`, because
+    `UiButton` had no way to say it. They are `UiButtonType.Submit` now — and a submit button that renders
+    `type="button"` does nothing at all when pressed, on a form that looks finished.
+  - **`RatingStars` painted its stars `#ffc107`/`#ced4da`** in an inline style, ignoring the theme
+    entirely: amber on palettes with no amber in them, and an invisible empty star on anything dark. The
+    two colours are tokens now.
+
+  `UiButton` grew the props the migration proved were missing rather than leaving call sites on raw
+  elements: `Type`, `Data`, `Role`, `TabIndex`, `Command`/`CommandFor`, `Aria`, `OnDoubleClick` and
+  `OnContextMenu`. Each one had a real call site that could not be expressed without it.
+
 - **`UiButton` can be a link, every control can carry an `id`, and `UiBadge`'s tone is typed.** Three gaps
   that forced an application back onto class strings — the parallel vocabulary the kit exists to remove.
 

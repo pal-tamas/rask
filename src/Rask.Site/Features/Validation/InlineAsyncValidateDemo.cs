@@ -68,7 +68,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Gift).Class("me-1"), "Redeem"]
+                UiButton.Label("Redeem").Icon(UiIconName.Gift).Tone(UiTone.Primary).Type(UiButtonType.Submit)
             ]
         ],
         _submission is null

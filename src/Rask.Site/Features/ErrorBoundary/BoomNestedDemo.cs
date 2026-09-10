@@ -15,10 +15,9 @@ public sealed partial class BoomNestedDemo : Component
                 ErrorBoundary.Fallback((ex, recover) => InnerFallback(ex, recover))[
                     Div.Class("p-3 border rounded bg-ui-well")[
                         P.Class("text-sm text-ui-muted mb-2")["Inner boundary subtree."],
-                        Button.Type("button").Class(Tw.BtnDanger)
+                        UiButton.Label("Throw inside inner boundary").Icon(UiIconName.Warning).Tone(UiTone.Error)
                             .Id("boom-nested-throw")
-                            .OnClick(ThrowFromInnerHandler)[UiIcon.Name(UiIconName.Warning).Class("me-2"),
-                            "Throw inside inner boundary"]
+                            .OnClick(ThrowFromInnerHandler)
                     ]
                 ]
             ]
@@ -32,9 +31,9 @@ public sealed partial class BoomNestedDemo : Component
                 Strong["Inner boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
                 P.Class("mb-2 mt-1 text-sm")[ex.Message],
-                Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                UiButton.Label("Recover inner").Icon(UiIconName.Undo).Variant(UiVariant.Outline)
                     .Id("boom-nested-inner-recover")
-                    .OnClick(recover)[UiIcon.Name(UiIconName.Undo).Class("me-1"), "Recover inner"]
+                    .OnClick(recover)
             ]
         ];
 

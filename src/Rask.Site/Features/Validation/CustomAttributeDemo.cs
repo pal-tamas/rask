@@ -38,7 +38,7 @@ public sealed partial class CustomAttributeDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.ShieldOk).Class("me-1"), "Create account"]
+                UiButton.Label("Create account").Icon(UiIconName.ShieldOk).Tone(UiTone.Primary).Type(UiButtonType.Submit)
             ]
         ],
         _submission is null

@@ -23,10 +23,8 @@ public sealed partial class ContextThemeDemo : Component
             Div
                 .Class("border rounded p-3")
                 .Style(_theme.IsDark ? "background:#212529;color:#e9ecef" : "background:#f8f9fa")[
-                Button.Class($"{Tw.BtnOutlineSecondary} mb-3").Type("button")
-                    .OnClick(() => _theme = _theme.IsDark ? Theme.Light : Theme.Dark)[
-                    $"Toggle theme — currently {_theme.Name}"
-                ],
+                UiButton.Label($"Toggle theme — currently {_theme.Name}").Variant(UiVariant.Outline).Class("mb-3")
+                    .OnClick(() => _theme = _theme.IsDark ? Theme.Light : Theme.Dark),
                 // ThemeCard has no idea a theme exists; it just renders structure + a badge.
                 ThemeCard
             ]

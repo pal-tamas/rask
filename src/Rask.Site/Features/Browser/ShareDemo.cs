@@ -23,11 +23,9 @@ public sealed partial class ShareDemo : Component
                             Text = "Build web apps in C# — one component model, server or WebAssembly.",
                             Url = "https://github.com/pal-tamas/rask"
                         })
-                        .Template(share => Button
-                            .Type("button")
-                            .Class(Tw.BtnPrimary)
+                        .Template(share => UiButton.Label("Share this page").Tone(UiTone.Primary)
                             .Id("share-btn")
-                            .Data(share)["Share this page"])
+                            .Data(share))
                 ],
                 Div.Class("text-sm text-ui-muted")[
                     "Works on every host — the click fires ", Code["navigator.share"],

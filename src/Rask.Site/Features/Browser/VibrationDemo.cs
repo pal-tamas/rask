@@ -11,16 +11,15 @@ public sealed partial class VibrationDemo(IVibration vibration) : Component
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Buzz").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("vibrate-buzz")
-                        .OnClick(Buzz)["Buzz"],
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
+                        .OnClick(Buzz),
+                    UiButton.Label("Pattern").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("vibrate-pattern")
-                        .OnClick(Pattern)[
-                        "Pattern"],
-                    Button.Type("button").Class(Tw.BtnOutlineDanger)
+                        .OnClick(Pattern),
+                    UiButton.Label("Cancel").Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("vibrate-cancel")
-                        .OnClick(Cancel)["Cancel"]
+                        .OnClick(Cancel)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
             ]

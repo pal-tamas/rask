@@ -49,7 +49,7 @@ public sealed partial class ValidatableObjectDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.Calendar).Class("me-1"), "Book"]
+                UiButton.Label("Book").Icon(UiIconName.Calendar).Tone(UiTone.Primary).Type(UiButtonType.Submit)
             ]
         ],
         _submission is null

@@ -17,17 +17,14 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("orientation-read").OnClick(Read)["Read current"],
-                    Button
-                        .Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Read current").Tone(UiTone.Primary).Id("orientation-read").OnClick(Read),
+                    UiButton.Label("Lock portrait").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("orientation-portrait")
-                        .OnClick(() => Lock(OrientationLock.Portrait))["Lock portrait"],
-                    Button
-                        .Class(Tw.BtnOutlinePrimary)
+                        .OnClick(() => Lock(OrientationLock.Portrait)),
+                    UiButton.Label("Lock landscape").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("orientation-landscape")
-                        .OnClick(() => Lock(OrientationLock.Landscape))["Lock landscape"],
-                    Button.Class(Tw.BtnOutlineDanger).Id("orientation-unlock").OnClick(Unlock)[
-                        "Unlock"]
+                        .OnClick(() => Lock(OrientationLock.Landscape)),
+                    UiButton.Label("Unlock").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("orientation-unlock").OnClick(Unlock)
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],

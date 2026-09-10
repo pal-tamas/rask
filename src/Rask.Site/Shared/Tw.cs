@@ -42,51 +42,10 @@ namespace Rask.Site;
 /// </remarks>
 public static class Tw
 {
-    /// <summary>The shared shape of every button: the size, radius and focus behaviour.</summary>
-    private const string BtnBase =
-        "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline "
-        + "transition disabled:cursor-default disabled:opacity-50";
-
-    public const string BtnPrimary = BtnBase + " bg-ui-brand-ink text-ui-bg hover:bg-ui-ink";
-
-    public const string BtnSecondary = BtnBase + " bg-ui-well text-ui-ink hover:bg-ui-line/40";
-
-    public const string BtnSuccess = BtnBase + " bg-ui-ok-ink text-ui-bg hover:bg-ui-ink";
-
-    public const string BtnDanger = BtnBase + " bg-ui-danger-ink text-ui-bg hover:bg-ui-ink";
-
-    public const string BtnWarning = BtnBase + " bg-ui-warn-ink text-ui-bg hover:bg-ui-ink";
-
-    public const string BtnInfo = BtnBase + " bg-ui-info-ink text-ui-bg hover:bg-ui-ink";
-
-    public const string BtnLight = BtnBase + " bg-ui-bg text-ui-ink ring-1 ring-ui-line hover:bg-ui-well";
 
     // hover:bg-ui-muted rather than bg-ui-ink/90: an alpha fill composites with whatever is behind the
     // button, so the hovered contrast depended on the page instead of the token. The muted tier is
     // held to 4.5:1 against the ground, and contrast is symmetric, so the ground reads on it.
-    public const string BtnDark = BtnBase + " bg-ui-ink text-ui-bg hover:bg-ui-muted";
-
-    /// <summary>An outline button — the same shape, drawn as a border rather than a fill.</summary>
-    private const string OutlineBase = BtnBase + " bg-transparent ring-1";
-
-    public const string BtnOutlinePrimary =
-        OutlineBase + " text-ui-brand-ink ring-ui-brand/40 hover:bg-ui-brand-surface";
-
-    public const string BtnOutlineSecondary = OutlineBase + " text-ui-ink ring-ui-line hover:bg-ui-well";
-
-    public const string BtnOutlineSuccess = OutlineBase + " text-ui-ok-ink ring-ui-ok/40 hover:bg-ui-ok-surface";
-
-    public const string BtnOutlineDanger =
-        OutlineBase + " text-ui-danger-ink ring-ui-danger/40 hover:bg-ui-danger-surface";
-
-    public const string BtnOutlineWarning =
-        OutlineBase + " text-ui-warn-ink ring-ui-warn/40 hover:bg-ui-warn-surface";
-
-    public const string BtnOutlineInfo = OutlineBase + " text-ui-info-ink ring-ui-info/40 hover:bg-ui-info-surface";
-
-    public const string BtnOutlineLight = OutlineBase + " text-ui-ink ring-ui-line hover:bg-ui-well";
-
-    public const string BtnOutlineDark = OutlineBase + " text-ui-ink ring-ui-muted hover:bg-ui-well";
 
     /// <summary>A panel.</summary>
     public const string Card = "rounded-xl bg-ui-bg ring-1 ring-ui-line";
@@ -141,11 +100,6 @@ public static class Tw
     public const string Input =
         "min-h-11 w-full rounded-md border border-ui-line bg-ui-bg px-3 text-sm text-ui-ink "
         + "placeholder:text-ui-muted focus:border-ui-brand focus:outline-none sm:min-h-0 sm:py-1.5";
-
-    /// <summary>A button drawn as a link — no fill, no ring.</summary>
-    public const string BtnLink =
-        "inline-flex items-center gap-1.5 p-0 text-sm font-medium text-ui-brand-ink underline-offset-2 "
-        + "hover:underline";
 
     /// <summary>A panel's footer strip.</summary>
     public const string CardFooter = "border-t border-ui-line px-5 py-3 text-sm";

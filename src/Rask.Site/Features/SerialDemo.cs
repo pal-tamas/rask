@@ -31,16 +31,14 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .Style("width: 7rem")
                         .Disabled(_port is not null)
                         .OnInput(v => int.TryParse(v, out _baudRate)),
-                    Button
-                        .Class(Tw.BtnPrimary)
+                    UiButton.Label("Connect").Icon(UiIconName.Cube).Tone(UiTone.Primary)
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClick(Connect)[UiIcon.Name(UiIconName.Cube).Class("me-1"), "Connect"],
-                    Button
-                        .Class(Tw.BtnOutlineDanger)
+                        .OnClick(Connect),
+                    UiButton.Label("Disconnect").Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("serial-disconnect")
                         .Disabled(_port is null)
-                        .OnClick(Disconnect)["Disconnect"]
+                        .OnClick(Disconnect)
                 ],
                 Div.Class($"{Tw.InputGroup} mb-2")[
                     Input
@@ -50,11 +48,10 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .Placeholder("Line to send")
                         .Disabled(_port is null)
                         .OnInput(v => _outgoing = v),
-                    Button
-                        .Class(Tw.BtnPrimary)
+                    UiButton.Label("Send").Tone(UiTone.Primary)
                         .Id("serial-send")
                         .Disabled(_port is null)
-                        .OnClick(Send)["Send"]
+                        .OnClick(Send)
                 ],
                 Pre
                     .Class("text-sm bg-slate-900 text-slate-100 rounded p-2 mb-2")

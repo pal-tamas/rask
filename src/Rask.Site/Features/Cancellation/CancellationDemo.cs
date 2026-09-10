@@ -12,11 +12,11 @@ public sealed partial class CancellationDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Button.Type("button").Class(Tw.BtnPrimary).Id("cancel-mount").Disabled(_mounted).OnClick(MountProbe)[UiIcon.Name(UiIconName.Play).Class("me-1"), "Mount probe"],
-                Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                UiButton.Label("Mount probe").Icon(UiIconName.Play).Tone(UiTone.Primary).Id("cancel-mount").Disabled(_mounted).OnClick(MountProbe),
+                UiButton.Label("Unmount probe").Icon(UiIconName.Stop).Variant(UiVariant.Outline)
                     .Id("cancel-unmount")
                     .Disabled(!_mounted)
-                    .OnClick(UnmountProbe)[UiIcon.Name(UiIconName.Stop).Class("me-1"), "Unmount probe"]
+                    .OnClick(UnmountProbe)
             ],
             _mounted
                 ? CancellationProbe.Log(AppendLog).InstanceId(_nextInstance)

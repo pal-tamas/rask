@@ -27,7 +27,7 @@ public sealed partial class FloatingLabelsDemo : Component
             ],
             FloatingTextarea.Bind(() => _model.Bio),
             Div.Class("mt-1")[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.UserPlus).Class("me-1"), "Create account"]
+                UiButton.Label("Create account").Icon(UiIconName.UserPlus).Tone(UiTone.Primary).Type(UiButtonType.Submit)
             ]
         ],
         _submission is null

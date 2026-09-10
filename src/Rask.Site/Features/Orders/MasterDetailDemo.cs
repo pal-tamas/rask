@@ -68,12 +68,14 @@ public sealed partial class MasterDetailDemo : Component
 
             rows.Add(Tr.Key(order.Id).Class("md-row")[
                 Td.Style("width:44px;")[
-                    Button
-                        .Class($"{Tw.BtnLink} p-0 no-underline")
+                    UiButton
+                        .Label(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
+                        .Icon(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)
+                        .Square(true)
+                        .Variant(UiVariant.Link)
+                        .Class("p-0 no-underline")
                         .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
-                        .OnClick(() => Toggle(order.Id))[
-                        UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)
-                    ]
+                        .OnClick(() => Toggle(order.Id))
                 ],
                 Td.Class("font-semibold")[order.Customer],
                 Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd")],
@@ -209,14 +211,12 @@ public sealed partial class MasterDetailDemo : Component
             : UiIconName.ArrowsUpDown;
 
         return Th.Scope("col").Key(columnId)[
-            Button
-                .Type("button")
-                .Class($"{Tw.BtnLink} p-0 no-underline text-ui-ink font-semibold inline-flex" +
-                       "items-center gap-1")
-                .OnClick(() => toggle(columnId))[
-                Span[header],
-                UiIcon.Name(icon).Class(sorted ? "text-xs" : "text-xs opacity-50")
-            ]
+            UiButton
+                .Label(header)
+                .Icon(icon)
+                .Variant(UiVariant.Link)
+                .Class("p-0 no-underline text-ui-ink font-semibold" + (sorted ? "" : " [&_svg]:opacity-50"))
+                .OnClick(() => toggle(columnId))
         ];
     }
 

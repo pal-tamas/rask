@@ -31,8 +31,13 @@ public sealed partial class NestedListForeachDemo : Component
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
-                    Button.Type("button").Class(Tw.BtnOutlineDanger)
-                        .OnClick(() => _model.Items.Remove(captured))[UiIcon.Name(UiIconName.Close)]
+                    UiButton
+                        .Label("Remove item")
+                        .Icon(UiIconName.Close)
+                        .Square(true)
+                        .Tone(UiTone.Error)
+                        .Variant(UiVariant.Outline)
+                        .OnClick(() => _model.Items.Remove(captured))
                 ]
             ]);
         }
@@ -45,13 +50,11 @@ public sealed partial class NestedListForeachDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                    UiButton.Label("Add row").Icon(UiIconName.Plus).Variant(UiVariant.Outline)
                         .Id("nf-list-add")
                         .OnClick(() =>
-                            _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[
-                        UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add row"],
-                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-list-submit")[
-                        UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Submit"]
+                            _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 })),
+                    UiButton.Label("Submit").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-list-submit")
                 ]
             ],
             _submission is null

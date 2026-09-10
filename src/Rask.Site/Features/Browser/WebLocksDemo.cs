@@ -19,16 +19,13 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Tw.BtnPrimary).Id("locks-hold").OnClick(Hold)[
-                        "Hold exclusive for 2s"],
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Hold exclusive for 2s").Tone(UiTone.Primary).Id("locks-hold").OnClick(Hold),
+                    UiButton.Label("Try (no wait)").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("locks-try")
-                        .OnClick(TryHold)[
-                        "Try (no wait)"],
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                        .OnClick(TryHold),
+                    UiButton.Label("Query held locks").Variant(UiVariant.Outline)
                         .Id("locks-query")
-                        .OnClick(Query)[
-                        "Query held locks"]
+                        .OnClick(Query)
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")["Status: ", Code.Id("locks-status")[_status]],
                 _snapshot.Count == 0

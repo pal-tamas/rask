@@ -24,11 +24,9 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
                     Span.Class("text-ui-muted text-sm")["This box goes fullscreen."]
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("fullscreen-enter").OnClick(Enter)[
-                        "Fullscreen this box"],
-                    Button.Class(Tw.BtnOutlinePrimary).Id("fullscreen-page").OnClick(EnterPage)[
-                        "Fullscreen the page"],
-                    Button.Class(Tw.BtnOutlineDanger).Id("fullscreen-exit").OnClick(Exit)["Exit"]
+                    UiButton.Label("Fullscreen this box").Tone(UiTone.Primary).Id("fullscreen-enter").OnClick(Enter),
+                    UiButton.Label("Fullscreen the page").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("fullscreen-page").OnClick(EnterPage),
+                    UiButton.Label("Exit").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("fullscreen-exit").OnClick(Exit)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ]

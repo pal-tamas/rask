@@ -22,14 +22,14 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Tw.BtnPrimary)
+                    UiButton.Label("Start listening").Tone(UiTone.Primary)
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
-                        .OnClick(Start)["Start listening"],
-                    Button.Type("button").Class(Tw.BtnOutlineDanger)
+                        .OnClick(Start),
+                    UiButton.Label("Stop").Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
-                        .OnClick(Stop)["Stop"]
+                        .OnClick(Stop)
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Transcript: ",

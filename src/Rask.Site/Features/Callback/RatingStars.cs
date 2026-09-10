@@ -12,11 +12,17 @@ public sealed partial class RatingStars : Component
 
     protected override Component? Render() =>
         Div.Class("inline-flex gap-1")[
-            Enumerable.Range(1, 5).Select(i => (Component)Button.Class($"{Tw.BtnLink} text-2xl leading-none").Type("button")
+            // Key FIRST (RASK046): it decides which instance is being built, so anything set before it is
+            // written to an instance the key then discards.
+            //
+            // The filled/empty colours are TOKENS now, not #ffc107 and #ced4da. A hardcoded hex ignores the
+            // theme, so the filled star stayed amber on a palette with no amber in it and the empty one was
+            // invisible on anything dark.
+            Enumerable.Range(1, 5).Select(i => (Component)UiButton
                 .Key(i)
-                .Style(i <= Value ? "color:#ffc107" : "color:#ced4da")
-                .OnClick(() => OnRate?.Invoke(i) ?? Task.CompletedTask)[
-                i <= Value ? "★" : "☆"
-            ])
+                .Label(i <= Value ? "★" : "☆")
+                .Variant(UiVariant.Link)
+                .Class("text-2xl leading-none " + (i <= Value ? "text-ui-warn-ink" : "text-ui-muted"))
+                .OnClick(() => OnRate?.Invoke(i) ?? Task.CompletedTask))
         ];
 }
