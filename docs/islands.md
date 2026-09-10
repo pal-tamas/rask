@@ -612,7 +612,25 @@ project has to reach for.
 The reading happens *before* the compile, because the scoped-TypeScript list is compiled and handed to
 the C# compiler and so cannot wait for the assembly that compile produces. It is therefore a scan of the
 source rather than a semantic answer, and the build checks it against the real one: after the compile,
-an island whose declared module is not among the files being built is reported by name.
+an island whose declared module is not among the files being built is reported by name as
+**`RASKISLAND004`**.
+
+That report is a warning, so a component written before the file beside it tells you rather than stops
+you. Because it carries a code, it can also be *suppressed* — which until #1042 it could not, a task
+warning with no code being reachable by neither `MSBuildWarningsAsMessages` nor `NoWarn` nor anything
+else. The only lever was `RaskExternalPropTypes=false`, and that switches off the generated prop types
+too, so quieting the warning meant giving up the type-check it sits beside.
+
+Demote it where an island deliberately has no module — a test fixture that exists to be rendered rather
+than bundled:
+
+```xml
+<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);RASKISLAND004</MSBuildWarningsAsMessages>
+```
+
+`MSBuildWarningsAsMessages`, not `NoWarn`: `NoWarn` is the Roslyn switch and does not reach a warning an
+MSBuild task logs. Scope it to the one project that needs it — the check is the only thing standing
+between an island's markup and a chunk that was never built.
 
 Two consequences worth knowing:
 
