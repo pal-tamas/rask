@@ -75,22 +75,37 @@ internal static class TailwindCli
     public static string CachePath(string cacheRoot, string version, string assetName) =>
         Path.Combine(cacheRoot, version, assetName);
 
+    /// <summary>The receipt written beside a fetched binary, recording the size it was verified at.</summary>
+    /// <remarks>
+    ///     Named so that it cannot be mistaken for an engine. The cache directory is scanned by things
+    ///     that expect only binaries in it — <c>tailwindcss-*</c>, taking the first match — so a receipt
+    ///     called <c>tailwindcss-macos-arm64.size</c> is picked up and executed, which fails as
+    ///     "Permission denied" a long way from anything naming a receipt.
+    /// </remarks>
+    public static string ReceiptPath(string toolPath) =>
+        Path.Combine(
+            Path.GetDirectoryName(toolPath) ?? string.Empty,
+            ".verified-" + Path.GetFileName(toolPath));
+
     /// <summary>Whether the binary already at <paramref name="path" /> can be reused as it stands.</summary>
     /// <remarks>
     ///     <para>
-    ///         Not the same question as whether it is there, which is what this used to ask. On CI the
-    ///         cache is restored by untarring it, and an untar that fails part way leaves a file that
-    ///         exists and cannot run — actions/cache reports that as a warning and the build carries on.
-    ///         Two shapes, and the build names neither as itself: the executable bit is gone, so Exec's
-    ///         own shell exits <c>126</c> and MSBuild reports MSB3073 with the whole command line in it,
-    ///         reading as though the CLI rejected its arguments; or the file is truncated, so it is not an
-    ///         executable at all.
+    ///         Not the same question as whether it is there, which is what this used to ask. A cached
+    ///         binary can be there and be unrunnable: two builds racing to fetch it once interleaved their
+    ///         writes into one shared staging file (fixed at the fetch, which now stages uniquely), and a
+    ///         restore or a cancelled build can leave a short one behind. MSBuild reports any of it as
+    ///         MSB3073 with the whole command line in it — reading as though the CLI rejected its
+    ///         arguments — over exit <c>126</c> where the executable bit was lost or <c>127</c> where the
+    ///         file is TRUNCATED: "not executable" and "not an executable", one symptom.
     ///     </para>
     ///     <para>
-    ///         Either one used to be permanent, because the broken file kept satisfying
+    ///         Any of it used to be permanent, because the broken file kept satisfying
     ///         <see cref="File.Exists" /> and the checksummed download that would have replaced it was
-    ///         never reached. So an empty file is deleted and reported as a miss, and the mode bits are
-    ///         re-asserted on every hit — one short-lived process against a Tailwind compile.
+    ///         never reached. A cache entry therefore has to carry enough to be checked: the fetch writes
+    ///         a RECEIPT beside the binary naming the size it verified, and a hit is trusted only when the
+    ///         file is still that size. An O(1) check that catches every truncation exactly, where
+    ///         re-hashing 100 MB on every build would not be worth its cost — and an entry with no receipt
+    ///         is simply re-fetched, which is also the right answer for one that lost it.
     ///     </para>
     /// </remarks>
     public static bool ReuseCached(string path, Action<string>? note = null)
@@ -100,26 +115,55 @@ internal static class TailwindCli
             return false;
         }
 
-        if (new FileInfo(path).Length == 0)
-        {
-            note?.Invoke(
-                $"Rask.Tailwind: the cached CLI at '{path}' is empty — a partial cache restore leaves this "
-                + "behind. Fetching it again.");
+        var actual = new FileInfo(path).Length;
+        var why =
+            !File.Exists(ReceiptPath(path)) ? "was not fetched by a build that records what it verified"
+            : !long.TryParse(
+                File.ReadAllText(ReceiptPath(path)).Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var expected) ? "has an unreadable receipt beside it"
+            : expected != actual ? $"is {actual} bytes where {expected} were verified"
+            : null;
 
+        if (why is null)
+        {
+            // Idempotent, and the other half of the same repair: a restore can drop the mode bits while
+            // leaving every byte in place.
+            MakeExecutable(path);
+            return true;
+        }
+
+        note?.Invoke(
+            $"Rask.Tailwind: the cached CLI at '{path}' {why}, so it cannot be trusted to run — a partial "
+            + "cache restore leaves exactly this. Fetching it again.");
+
+        Discard(path);
+        return false;
+    }
+
+    /// <summary>Records the size a freshly verified binary was written at.</summary>
+    public static void WriteReceipt(string path) =>
+        File.WriteAllText(
+            ReceiptPath(path),
+            new FileInfo(path).Length.ToString(CultureInfo.InvariantCulture));
+
+    private static void Discard(string path)
+    {
+        foreach (var doomed in new[] { path, ReceiptPath(path) })
+        {
             try
             {
-                File.Delete(path);
+                if (File.Exists(doomed))
+                {
+                    File.Delete(doomed);
+                }
             }
             catch (IOException)
             {
                 // Left to the fetch, which writes beside it and moves over it anyway.
             }
-
-            return false;
         }
-
-        MakeExecutable(path);
-        return true;
     }
 
     /// <summary>Gives a file the executable bit, where the platform has one.</summary>

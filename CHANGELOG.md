@@ -209,14 +209,22 @@ them until tagged releases begin.
   state that still owes the required steps, so stating a type argument is never a way past them.
   `UiInput.Of<string>()` used to hand back the control itself and skip its required `Label`.
 
-- **A partially restored Tailwind CLI poisoned every later build.** The cached binary was trusted on
-  `File.Exists` alone, so a cache restore that failed part way — `actions/cache` reports a failed untar as
-  a warning and carries on — left a file that exists and cannot run. The build reported it as MSB3073 with
-  the whole command line in it, which reads as though the CLI rejected its arguments; the real cause was
-  **exit code 126**, the executable bit lost in the restore. It recurred on every later build on that
-  machine, because the broken file kept satisfying the check and the download that would have replaced it
-  was never reached. A cache hit is now checked for usability, and an empty file is dropped rather than
-  executed.
+- **Two builds fetching the Tailwind CLI at once corrupted it, and the corrupt copy then poisoned every
+  later build.** The download is staged through a temporary file beside its target, and that file had a
+  single fixed name — while the cache root is shared by every project building at once, including the two
+  target frameworks of one multi-targeted project. Two resolves racing on that name interleave their
+  writes, and what lands is a file of the right name and the wrong bytes, from a download that reported
+  success and verified its own checksum. Nightly failed inside `Rask.Ui` for exactly that reason.
+
+  It surfaced as MSB3073 with the whole command line in it — which reads as though the CLI rejected its
+  arguments — over two different exit codes: **126** where the executable bit was lost, and **127** where
+  the file was truncated. "Not executable" and "not an executable", one symptom.
+
+  The staging file is now unique per fetch, and the first copy to land wins rather than replacing a file
+  another build may be executing that instant. A fetch also writes a **receipt** recording the size it
+  verified, so a cache hit is trusted only when the file is still that size — an O(1) check that catches
+  truncation exactly, where re-hashing 100 MB per build would not be worth its cost. An entry with no
+  receipt is re-fetched, and the mode bits are re-asserted on every hit.
 
 
 - **The public-API gate covered the prerender companion, so the browser E2E gate could not run at

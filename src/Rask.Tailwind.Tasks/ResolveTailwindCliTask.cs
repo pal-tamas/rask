@@ -190,15 +190,45 @@ public sealed class ResolveTailwindCliTask : Task
 
         // Written beside the target and moved into place, so a cancelled build cannot leave a truncated
         // binary that every later build then tries to execute.
-        var partial = path + ".partial";
+        //
+        // UNIQUELY named, which is the whole fix for the failure this file's cache checks were chasing.
+        // The partial used to be a single `path + ".partial"`, and the cache root is shared by every
+        // project building at once — including the two target frameworks of ONE multi-targeted project,
+        // which is why nightly failed inside Rask.Ui specifically. Two resolves racing on that one name
+        // interleave their writes, and what lands is a file of the right name and the wrong bytes: MSB3073
+        // over exit 126 or 127, from a download that reported success and verified its own checksum.
+        var partial = path + "." + Guid.NewGuid().ToString("n") + ".partial";
         File.WriteAllBytes(partial, bytes);
         TailwindCli.MakeExecutable(partial);
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-        }
 
-        File.Move(partial, path);
+        try
+        {
+            // Whoever gets there first wins, and the loser keeps the winner's copy rather than replacing
+            // a file another build may be executing this instant. Both verified the same checksum.
+            if (File.Exists(path))
+            {
+                File.Delete(partial);
+                return;
+            }
+
+            File.Move(partial, path);
+
+            // Only now, and only here: the receipt is what a later build checks the cache against, so it
+            // must never sit beside anything whose checksum has not just been verified above.
+            TailwindCli.WriteReceipt(path);
+        }
+        catch (IOException)
+        {
+            // Another build moved its own copy in between the check and the move. Theirs is as good.
+            try
+            {
+                File.Delete(partial);
+            }
+            catch (IOException)
+            {
+                // A stray partial is harmless: nothing ever executes one.
+            }
+        }
     }
 
     private static string Sha256(byte[] bytes)
