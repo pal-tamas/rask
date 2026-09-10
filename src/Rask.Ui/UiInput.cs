@@ -43,7 +43,8 @@ public sealed partial class UiInput<T> : UiFormField<T>
                 .Bind(bind)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
-                .Type(Type)
+                .Id(Id)
+            .Type(Type)
                 .Placeholder(Placeholder ?? string.Empty)
                 .Aria(ControlAria())
                 .Disabled(Disabled == true)
@@ -53,6 +54,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
         return Input
             .Value(Value)
             .OnChange(OnChange)
+            .Id(Id)
             .Type(Type)
             .Placeholder(Placeholder ?? string.Empty)
             .Aria(ControlAria())

@@ -166,4 +166,33 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
             "<label",
             UiSelect.Value("hu").Options([("hu", "Hungary")]).ToHtml(),
             StringComparison.Ordinal);
+    [Fact]
+    public void The_id_reaches_the_control_itself()
+    {
+        // A prop the base DECLARES and no control RENDERS is the silent failure this kit keeps meeting:
+        // the call site compiles, the attribute never appears, and the browser test that selects on it
+        // fails somewhere else entirely. Id was exactly that for one commit.
+        Assert.Contains(
+            "id=\"email\"",
+            UiInput.Value("").Label("Email").Id("email").ToHtml(),
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "id=\"country\"",
+            UiSelect.Value("hu").Options([("hu", "Hungary")]).Label("Country").Id("country").ToHtml(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_id_reaches_a_bound_control_too()
+    {
+        // Bound and controlled are separate chain types built as separate expressions, so each one has to
+        // carry it — and only one of them did at first.
+        var model = new Model();
+
+        Assert.Contains(
+            "id=\"name\"",
+            UiInput.Bind(() => model.Name).Label("Name").Id("name").ToHtml(),
+            StringComparison.Ordinal);
+    }
 }

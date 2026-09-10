@@ -144,6 +144,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         {
             return Select
                 .Bind(bind)
+                .Id(Id)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
                 .Aria(Aria(expanded: null))
@@ -153,6 +154,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
         return Select
             .Value(Value)
+            .Id(Id)
             .OnChange(OnChange)
             .Aria(Aria(expanded: null))
             .Disabled(Disabled == true)
