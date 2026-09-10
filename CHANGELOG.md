@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **RASK045 exists.** It was documented as an active warning — table row, section, example, suppression
+  instructions — with no descriptor anywhere in `src/`, so it had never fired. A documented diagnostic
+  that cannot fire is worse than an undocumented gap: a reader takes the rule to be enforced and cannot
+  tell it apart from a codebase with no violations, which is exactly how RASK034 spent its whole life.
+
+  It reports a local whose initializer is a chain that named at least one step, including one closed by
+  the children indexer. An unqualified entry with no steps is deliberately not reported — those bind to
+  a per-host forwarder with nothing to distinguish it from a hand-written property returning a
+  component, and guessing would warn on correct code.
+
+  `DocumentedDiagnosticsExistTests` is the gate whose absence allowed it: every id the TOC lists with a
+  real severity must have a descriptor in `src/`. Retired ids carry an em dash instead, which is how
+  RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
+  is it documented — and nothing asked whether a documented rule existed.
+
 ### Fixed
 
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the

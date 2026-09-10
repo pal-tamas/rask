@@ -953,7 +953,14 @@ settable properties, and nothing in the type system is left to forbid the write.
 
 **Fix:** move the assignment into the chain — every property a chain can reach has a step of the same
 name. Suppress with `#pragma warning disable RASK045` / `.editorconfig`
-(`dotnet_diagnostic.RASK045.severity = none`) where a component genuinely has to be completed later.
+(`dotnet_diagnostic.RASK045.severity = none`) where a component genuinely has to be completed later,
+or where the property setter itself is what is under test.
+
+**Scope.** It reports a local whose initializer is a chain that named at least one step, including one
+closed by the children indexer. An *unqualified* entry with no steps at all — `var c = Card;` — is not
+reported: unqualified entries bind to a per-host forwarder, which carries nothing that distinguishes it
+from a hand-written property returning a component, and guessing there would put a warning on correct
+code. A chain that named a step is where the two answers actually disagree.
 
 ---
 

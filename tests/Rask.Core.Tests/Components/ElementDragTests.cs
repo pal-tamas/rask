@@ -25,11 +25,18 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
         Assert.True(Div.Draggable(true).Draggable);
 
         // Re-setting flips the value without leaking the previous state.
+        //
+        // RASK045 is exactly right about this shape and exactly wrong about this case: writing to a
+        // property after a chain built the component is invisible from a call site, which is why the
+        // rule exists — but the SETTER is what is under test here, and there is no way to exercise it
+        // through the chain. Suppressed narrowly, which is the escape the rule documents.
+#pragma warning disable RASK045 // the property setter is the subject, not a call site completing a component
         var d = Div.Draggable(true);
         d.Draggable = false;
         Assert.False(d.Draggable);
         d.Draggable = null;
         Assert.Null(d.Draggable);
+#pragma warning restore RASK045
     }
 
     [Fact]
