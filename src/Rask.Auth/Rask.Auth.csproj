@@ -37,6 +37,10 @@
   <!-- The Microsoft.Extensions.* abstractions (DI, hosting, logging) come with the framework
        reference above; naming them here as well is what NU1510 rejects. -->
   <ItemGroup>
+    <!-- Bearer is opt-in (AuthOptions.Bearer) and this is what validates and issues the tokens. The
+         standard ASP.NET handler rather than anything hand-rolled: JWT validation is the last place to
+         write our own crypto. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
   </ItemGroup>

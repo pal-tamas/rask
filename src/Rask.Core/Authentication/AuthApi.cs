@@ -31,6 +31,22 @@ public static class AuthApi
     /// </remarks>
     public const string RequestHeader = "X-Rask-Auth";
 
+    /// <summary>
+    ///     Asks a sign-in to answer with a bearer token instead of relying on the cookie.
+    /// </summary>
+    /// <remarks>
+    ///     Send <c>X-Rask-Auth-Mode: bearer</c> alongside <see cref="RequestHeader" />. A header rather
+    ///     than a body field, so every endpoint that completes a sign-in answers the same way without
+    ///     each request type growing a flag of its own — and a client sets it once, next to the header it
+    ///     already has to send. Ignored unless the app turned <c>AuthOptions.Bearer</c> on, in which case
+    ///     the ordinary cookie answer comes back: the caller IS signed in, and saying otherwise would be
+    ///     a lie.
+    /// </remarks>
+    public const string AuthModeHeader = "X-Rask-Auth-Mode";
+
+    /// <summary>The one value <see cref="AuthModeHeader" /> takes.</summary>
+    public const string BearerMode = "bearer";
+
     /// <summary>The <c>register</c> route, relative to the prefix.</summary>
     public const string Register = "/register";
 
@@ -85,6 +101,31 @@ public sealed record ConfirmEmailRequest(string UserId, string Token);
 /// <param name="Email">The account's email address.</param>
 /// <param name="Roles">The roles it holds.</param>
 public sealed record CurrentUser(string? Id, string? Email, IReadOnlyList<string> Roles);
+
+/// <summary>
+///     What a sign-in answers when the caller asked for a bearer token.
+/// </summary>
+/// <param name="AccessToken">The token, to be sent as <c>Authorization: Bearer …</c>.</param>
+/// <param name="TokenType">Always <c>Bearer</c>. Present so a generic client need not assume.</param>
+/// <param name="ExpiresIn">Seconds the token is good for.</param>
+/// <param name="User">Who was signed in, exactly as <c>/me</c> would describe them.</param>
+/// <remarks>
+///     <para>
+///         There is no refresh token, and that is a decision rather than an omission: refresh needs a
+///         revocation story, revocation needs storage, and that is a much larger feature. When the token
+///         expires the caller signs in again.
+///     </para>
+///     <para>
+///         The token is in the body only — never a cookie, never a response header — so nothing stores
+///         it on the caller's behalf. A token in browser storage is XSS-readable, which is precisely why
+///         the cookie path exists and stays the default for anything running in a page.
+///     </para>
+/// </remarks>
+public sealed record BearerSession(
+    string AccessToken,
+    string TokenType,
+    int ExpiresIn,
+    CurrentUser User);
 
 /// <summary>Why a request was refused.</summary>
 /// <param name="Error">The <see cref="AuthError" /> name.</param>

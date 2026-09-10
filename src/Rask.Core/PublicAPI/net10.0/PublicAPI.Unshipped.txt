@@ -63,6 +63,19 @@ Rask.Core.Authentication.AuthSignIn
 Rask.Core.Authentication.AuthSignIn.AuthSignIn() -> void
 Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.BearerSession
+Rask.Core.Authentication.BearerSession.<Clone>$() -> Rask.Core.Authentication.BearerSession!
+Rask.Core.Authentication.BearerSession.AccessToken.get -> string!
+Rask.Core.Authentication.BearerSession.AccessToken.init -> void
+Rask.Core.Authentication.BearerSession.BearerSession(string! AccessToken, string! TokenType, int ExpiresIn, Rask.Core.Authentication.CurrentUser! User) -> void
+Rask.Core.Authentication.BearerSession.Deconstruct(out string! AccessToken, out string! TokenType, out int ExpiresIn, out Rask.Core.Authentication.CurrentUser! User) -> void
+Rask.Core.Authentication.BearerSession.Equals(Rask.Core.Authentication.BearerSession? other) -> bool
+Rask.Core.Authentication.BearerSession.ExpiresIn.get -> int
+Rask.Core.Authentication.BearerSession.ExpiresIn.init -> void
+Rask.Core.Authentication.BearerSession.TokenType.get -> string!
+Rask.Core.Authentication.BearerSession.TokenType.init -> void
+Rask.Core.Authentication.BearerSession.User.get -> Rask.Core.Authentication.CurrentUser!
+Rask.Core.Authentication.BearerSession.User.init -> void
 Rask.Core.Authentication.ConfirmEmailRequest
 Rask.Core.Authentication.ConfirmEmailRequest.<Clone>$() -> Rask.Core.Authentication.ConfirmEmailRequest!
 Rask.Core.Authentication.ConfirmEmailRequest.ConfirmEmailRequest(string! UserId, string! Token) -> void
@@ -4022,6 +4035,8 @@ abstract Rask.Core.Forms.RaskFile.LastModified.get -> System.DateTimeOffset
 abstract Rask.Core.Forms.RaskFile.Name.get -> string!
 abstract Rask.Core.Forms.RaskFile.OpenReadStream(long maxAllowedSize = 524288, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
 abstract Rask.Core.Forms.RaskFile.Size.get -> long
+const Rask.Core.Authentication.AuthApi.AuthModeHeader = "X-Rask-Auth-Mode" -> string!
+const Rask.Core.Authentication.AuthApi.BearerMode = "bearer" -> string!
 const Rask.Core.Authentication.AuthApi.ConfirmEmail = "/confirm-email" -> string!
 const Rask.Core.Authentication.AuthApi.DefaultPrefix = "/api/auth" -> string!
 const Rask.Core.Authentication.AuthApi.ForgotPassword = "/forgot-password" -> string!
@@ -4048,6 +4063,9 @@ override Rask.Core.Authentication.AuthInstruction.ToString() -> string!
 override Rask.Core.Authentication.AuthResult.Equals(object? obj) -> bool
 override Rask.Core.Authentication.AuthResult.GetHashCode() -> int
 override Rask.Core.Authentication.AuthResult.ToString() -> string!
+override Rask.Core.Authentication.BearerSession.Equals(object? obj) -> bool
+override Rask.Core.Authentication.BearerSession.GetHashCode() -> int
+override Rask.Core.Authentication.BearerSession.ToString() -> string!
 override Rask.Core.Authentication.ConfirmEmailRequest.Equals(object? obj) -> bool
 override Rask.Core.Authentication.ConfirmEmailRequest.GetHashCode() -> int
 override Rask.Core.Authentication.ConfirmEmailRequest.ToString() -> string!
@@ -4326,6 +4344,8 @@ static Rask.Core.Authentication.AuthResult.Fail(Rask.Core.Authentication.AuthErr
 static Rask.Core.Authentication.AuthResult.Success.get -> Rask.Core.Authentication.AuthResult!
 static Rask.Core.Authentication.AuthResult.operator !=(Rask.Core.Authentication.AuthResult? left, Rask.Core.Authentication.AuthResult? right) -> bool
 static Rask.Core.Authentication.AuthResult.operator ==(Rask.Core.Authentication.AuthResult? left, Rask.Core.Authentication.AuthResult? right) -> bool
+static Rask.Core.Authentication.BearerSession.operator !=(Rask.Core.Authentication.BearerSession? left, Rask.Core.Authentication.BearerSession? right) -> bool
+static Rask.Core.Authentication.BearerSession.operator ==(Rask.Core.Authentication.BearerSession? left, Rask.Core.Authentication.BearerSession? right) -> bool
 static Rask.Core.Authentication.ConfirmEmailRequest.operator !=(Rask.Core.Authentication.ConfirmEmailRequest? left, Rask.Core.Authentication.ConfirmEmailRequest? right) -> bool
 static Rask.Core.Authentication.ConfirmEmailRequest.operator ==(Rask.Core.Authentication.ConfirmEmailRequest? left, Rask.Core.Authentication.ConfirmEmailRequest? right) -> bool
 static Rask.Core.Authentication.CurrentUser.operator !=(Rask.Core.Authentication.CurrentUser? left, Rask.Core.Authentication.CurrentUser? right) -> bool

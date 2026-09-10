@@ -40,10 +40,55 @@ package, write `app.Configure(c => c.Auth.Off())`. Bringing your own store or an
 (Keycloak/OIDC, an existing users table) is still supported: the pages, the guards and the
 `Authorize` component are written against `ClaimsPrincipal`, so they do not care where it came from.
 
-**The session is always a cookie.** Rask authenticates one kind of session and `Rask.Auth` owns that
-scheme, so there is no bearer-token mode to choose and nothing to hold in `localStorage`. An external
-provider composes the ordinary ASP.NET way — it adds a *challenge* scheme beside the cookie and signs
-in through it — which is what [identity providers](authentication-providers.md) documents.
+**The session is a cookie unless you say otherwise.** Rask authenticates one kind of session in a
+browser and `Rask.Auth` owns that scheme, so there is nothing to hold in `localStorage` and nothing to
+choose. An external provider composes the ordinary ASP.NET way — it adds a *challenge* scheme beside
+the cookie and signs in through it — which is what
+[identity providers](authentication-providers.md) documents.
+
+### Bearer tokens, for the callers a cookie cannot serve
+
+A native client, a CLI or a service-to-service call has no cookie jar. `AuthOptions.Bearer` adds a JWT
+scheme **beside** the cookie — never instead of it — so every page, form and redirect behaves exactly
+as before, and only a caller sending `Authorization: Bearer …` takes the new path.
+
+```csharp
+builder.Services.AddRaskAuth<AppDbContext>(o =>
+{
+    o.Bearer = true;
+    o.BearerSigningKey = builder.Configuration["Auth:BearerSigningKey"];  // never in source
+    o.BearerLifetime = TimeSpan.FromHours(1);
+});
+```
+
+Ask for a token by sending `X-Rask-Auth-Mode: bearer` alongside the usual `X-Rask-Auth` header on
+`POST /api/auth/login`. The answer is a `BearerSession` — the token, its type, its remaining seconds and
+the same user `/me` describes. The token is in the **body only**: never a cookie, never a response
+header, so nothing stores it on the caller's behalf.
+
+Three things about this are decisions rather than defaults, and each is deliberate:
+
+- **The key comes from configuration and nowhere else.** A key generated at startup does not survive a
+  restart and is not shared between instances, so every token would die on deploy and nothing would work
+  behind two replicas. It must be at least 32 bytes; keep it in user-secrets, the environment or a
+  secret store.
+- **A missing or unusable key refuses to start**, outside Development. An operator who believes they
+  enabled bearer, and whose app quietly did not, is the more expensive failure — the same reasoning that
+  makes `MailOptions.From` throw. In Development it warns and leaves the app on cookies, so a first run
+  needs no configuration.
+- **There is no refresh token.** Refresh needs a revocation story, revocation needs storage, and that is
+  a much larger feature than this one. A short access token is honest about what it is: when it expires,
+  the caller signs in again.
+
+**Keep browsers on the cookie.** A token in `localStorage` is readable by any script that gets onto the
+page, which is precisely what the cookie path avoids — `HttpOnly`, `Secure`, and never visible to
+JavaScript. Bearer is for clients that are not a browser.
+
+An app that would rather bring its own JWT setup should **leave `Bearer` off** and call
+`AddAuthentication().AddJwtBearer(…)` itself: with the option off, `AddRaskAuth` registers nothing
+bearer-related and does not touch your scheme. Turning it on means the opposite — Rask owns the bearer
+scheme'''s settings and configures them last, exactly as it owns the cookie'''s — so the two are a
+choice between, not a layering.
 
 ## On this page
 

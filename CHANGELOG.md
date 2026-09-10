@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **Bearer tokens, opt-in and cookie-first.** `AuthOptions.Bearer` adds a JWT scheme **beside** the
+  cookie — never instead of it — for the callers a cookie cannot serve: a native client, a CLI, a
+  service-to-service call. A caller asks with `X-Rask-Auth-Mode: bearer` on login and gets the token in
+  the response **body only**, so nothing stores it on its behalf. Browsers should stay on the cookie: a
+  token in `localStorage` is XSS-readable, which is what the cookie path avoids.
+
+  Three deliberate postures, each with a test: the signing key comes from **configuration and nowhere
+  else** (a generated one dies on restart and is not shared between replicas, and must be ≥32 bytes); a
+  missing or unusable key **refuses to start** outside Development, on the same reasoning that makes
+  `MailOptions.From` throw, and in Development warns and turns the flag back off so nothing pretends to
+  work; and there is **no refresh token**, because refresh needs revocation, revocation needs storage,
+  and that is a far larger feature. `ClockSkew` is zero — the five-minute default would make a
+  one-minute token last six.
+
 - **RASK045 exists.** It was documented as an active warning — table row, section, example, suppression
   instructions — with no descriptor anywhere in `src/`, so it had never fired. A documented diagnostic
   that cannot fire is worse than an undocumented gap: a reader takes the rule to be enforced and cannot

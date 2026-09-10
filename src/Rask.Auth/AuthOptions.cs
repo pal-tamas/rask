@@ -94,6 +94,53 @@ public sealed class AuthOptions
     public string? PublicOrigin { get; set; }
 
     /// <summary>How long a session stays valid.</summary>
+    /// <summary>
+    ///     Issues a bearer token from the login endpoint, beside the cookie, for callers that ask for one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Off by default, and cookie stays the default everywhere. A cookie is the only session that
+    ///         never reaches JavaScript, so it is what a browser app should keep using; bearer exists for
+    ///         the callers a cookie cannot serve — a native client, a CLI, a service-to-service call.
+    ///     </para>
+    ///     <para>
+    ///         Turning it on REQUIRES <see cref="BearerSigningKey" />. Outside Development an app that
+    ///         asks for bearer without a usable key refuses to start, on the same reasoning as
+    ///         <c>MailOptions.From</c>: an operator who believes they enabled bearer, and whose app
+    ///         quietly did not, is the more expensive failure. In Development it warns and stays on
+    ///         cookies so a first run needs no configuration at all.
+    ///     </para>
+    /// </remarks>
+    public bool Bearer { get; set; }
+
+    /// <summary>
+    ///     The key bearer tokens are signed with. At least 32 bytes; required when
+    ///     <see cref="Bearer" /> is on.
+    /// </summary>
+    /// <remarks>
+    ///     Configuration and nowhere else — a key generated at startup does not survive a restart and is
+    ///     not shared between instances, so every token would die on deploy and nothing would work behind
+    ///     two replicas. Keep it out of source: user-secrets in development, the environment or a secret
+    ///     store in production.
+    /// </remarks>
+    public string? BearerSigningKey { get; set; }
+
+    /// <summary>
+    ///     How long an issued bearer token is good for. Short on purpose: there is no refresh token.
+    /// </summary>
+    /// <remarks>
+    ///     A refresh token needs a revocation story, revocation needs storage, and that is a much larger
+    ///     feature than this one. A short access token is honest about what it is — when it expires the
+    ///     caller signs in again.
+    /// </remarks>
+    public TimeSpan BearerLifetime { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>The <c>iss</c> claim, and what the validator requires.</summary>
+    public string BearerIssuer { get; set; } = "rask";
+
+    /// <summary>The <c>aud</c> claim, and what the validator requires.</summary>
+    public string BearerAudience { get; set; } = "rask";
+
     public TimeSpan ExpireTimeSpan { get; set; } = TimeSpan.FromDays(14);
 
     /// <summary>Whether activity extends the session. On by default.</summary>

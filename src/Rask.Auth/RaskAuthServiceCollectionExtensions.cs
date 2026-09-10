@@ -1,11 +1,15 @@
+using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Rask.Core.Authentication;
 
 namespace Rask.Auth;
@@ -177,6 +181,95 @@ public static class RaskAuthServiceCollectionExtensions
         // after the host.
         services.AddAuthorization();
 
+        AddBearer(services, options);
+
         return services;
+    }
+
+    /// <summary>
+    ///     The bearer scheme, when an app asked for one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Added BESIDE the cookie, never instead of it: cookie stays the default scheme, so every
+    ///         page, every form and every redirect behaves exactly as before and only a caller that sends
+    ///         <c>Authorization: Bearer …</c> takes this path. Bearer is for the callers a cookie cannot
+    ///         serve — a native client, a CLI, a service-to-service call — and a token in browser storage
+    ///         is XSS-readable, which is the whole reason the cookie path exists.
+    ///     </para>
+    ///     <para>
+    ///         A misconfigured key REFUSES TO START outside Development. That is the deliberate half:
+    ///         an operator who believes they enabled bearer, and whose app quietly did not, is the more
+    ///         expensive failure — and a flag the framework accepts and disregards is this repo's most
+    ///         costly bug class. In Development it warns and leaves the app on cookies, so a first run
+    ///         needs no configuration at all.
+    ///     </para>
+    /// </remarks>
+    private static void AddBearer(IServiceCollection services, AuthOptions options)
+    {
+        if (!options.Bearer)
+        {
+            return;
+        }
+
+        if (BearerTokens.Reject(options) is { } reason)
+        {
+            // Read off the descriptor rather than through a built provider: BuildServiceProvider() here
+            // would create a second container and a second copy of every singleton in it. The host
+            // registers the environment as an instance, so it is simply there to be read.
+            var environment = services
+                .FirstOrDefault(d => d.ServiceType == typeof(IHostEnvironment))?
+                .ImplementationInstance as IHostEnvironment;
+
+            // Unknown environment is treated as production. The safe default when we cannot tell is the
+            // one that refuses, not the one that silently serves cookies to a caller expecting a token.
+            if (environment?.IsDevelopment() != true)
+            {
+                throw new InvalidOperationException(reason);
+            }
+
+            options.Bearer = false;
+            return;
+        }
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.BearerSigningKey!));
+
+        // The guard is against AddScheme throwing "Scheme already exists" -- lazily, when the options
+        // are first materialised, so the app would die on its first request naming no line to delete.
+        // It is NOT a deferral: the settings below are configured last and win, the same way the cookie
+        // scheme's do. An app that wants its own JWT setup leaves AuthOptions.Bearer off, and then none
+        // of this runs at all.
+        services.Configure<AuthenticationOptions>(o =>
+        {
+            if (!o.SchemeMap.ContainsKey(JwtBearerDefaults.AuthenticationScheme))
+            {
+                o.AddScheme<JwtBearerHandler>(JwtBearerDefaults.AuthenticationScheme, displayName: null);
+            }
+        });
+
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IPostConfigureOptions<JwtBearerOptions>, JwtBearerPostConfigureOptions>());
+        services.TryAddTransient<JwtBearerHandler>();
+
+        services.Configure<JwtBearerOptions>(
+            JwtBearerDefaults.AuthenticationScheme,
+            o =>
+            {
+                o.MapInboundClaims = false;
+                o.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = options.BearerIssuer,
+                    ValidateAudience = true,
+                    ValidAudience = options.BearerAudience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = key,
+                    ValidateLifetime = true,
+
+                    // No grace period. The default is five minutes, which quietly triples the life of a
+                    // one-minute token and makes a short lifetime mean something other than it says.
+                    ClockSkew = TimeSpan.Zero,
+                };
+            });
     }
 }

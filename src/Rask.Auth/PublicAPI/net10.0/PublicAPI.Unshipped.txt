@@ -17,6 +17,16 @@ Rask.Auth.AuthOptions.AccessDeniedPath.set -> void
 Rask.Auth.AuthOptions.ApiPrefix.get -> string!
 Rask.Auth.AuthOptions.ApiPrefix.set -> void
 Rask.Auth.AuthOptions.AuthOptions() -> void
+Rask.Auth.AuthOptions.Bearer.get -> bool
+Rask.Auth.AuthOptions.Bearer.set -> void
+Rask.Auth.AuthOptions.BearerAudience.get -> string!
+Rask.Auth.AuthOptions.BearerAudience.set -> void
+Rask.Auth.AuthOptions.BearerIssuer.get -> string!
+Rask.Auth.AuthOptions.BearerIssuer.set -> void
+Rask.Auth.AuthOptions.BearerLifetime.get -> System.TimeSpan
+Rask.Auth.AuthOptions.BearerLifetime.set -> void
+Rask.Auth.AuthOptions.BearerSigningKey.get -> string?
+Rask.Auth.AuthOptions.BearerSigningKey.set -> void
 Rask.Auth.AuthOptions.ConfirmEmailPath.get -> string!
 Rask.Auth.AuthOptions.ConfirmEmailPath.set -> void
 Rask.Auth.AuthOptions.ConfirmEmailSubject.get -> string!

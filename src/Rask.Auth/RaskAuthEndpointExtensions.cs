@@ -203,8 +203,42 @@ public static class RaskAuthEndpointExtensions
         // Described from the principal just signed in, not from context.User: SignInAsync writes the
         // cookie for the NEXT request and leaves this request's User as it was, so reading it here would
         // answer 204 to the caller that just succeeded.
-        return Describe(principal);
+        var described = Describe(principal);
+
+        // The cookie is written either way. A caller asking for a token gets one BESIDE it rather than
+        // instead of it: the two do not conflict, and a browser client that asked by accident is still
+        // signed in the safe way. The token is only ever in the response body — never a cookie, never a
+        // header — so nothing stores it on the caller's behalf.
+        return WantsBearer(context) && BearerFor(context) is { } options
+            ? Results.Ok(new BearerSession(
+                BearerTokens.Issue(principal, options, TimeProvider.System),
+                "Bearer",
+                (int)options.BearerLifetime.TotalSeconds,
+                Principal(principal)))
+            : described;
     }
+
+    /// <summary>Whether the caller asked for a bearer token rather than relying on the cookie.</summary>
+    /// <remarks>
+    ///     A header rather than a body field, so every endpoint that completes a sign-in answers the same
+    ///     way without each request type growing a flag — and so a client sets it once, next to the
+    ///     request header it already has to send.
+    /// </remarks>
+    private static bool WantsBearer(HttpContext context) =>
+        string.Equals(
+            context.Request.Headers[AuthApi.AuthModeHeader].ToString(),
+            AuthApi.BearerMode,
+            StringComparison.OrdinalIgnoreCase);
+
+    // Null when the app never turned bearer on, which is the default. A caller that asks anyway gets the
+    // ordinary cookie answer rather than an error: it signed in, and saying otherwise would be a lie.
+    private static AuthOptions? BearerFor(HttpContext context) =>
+        context.RequestServices.GetService<AuthOptions>() is { Bearer: true } options ? options : null;
+
+    private static CurrentUser Principal(ClaimsPrincipal user) => new(
+        user.FindFirstValue(ClaimTypes.NameIdentifier),
+        user.Identity?.Name,
+        user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray());
 
     /// <summary>A refusal, in the one shape every client already parses.</summary>
     private static IResult Refuse(AuthResult result, int statusCode) =>
