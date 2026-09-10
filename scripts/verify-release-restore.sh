@@ -25,32 +25,39 @@ echo "==> Verifying a scaffolded project restores against nuget.org at $version"
 
 # ---------------------------------------------------------------- indexing wait
 #
-# nuget.org indexes a push ASYNCHRONOUSLY. Restoring the instant the push returns fails for reasons
-# that have nothing to do with this bug, and a gate that flakes for a reason nobody can act on is a
-# gate that gets disabled within a month. So: a generous bounded wait, and a message that says which
-# of the two things went wrong.
-wait_for() {
-  local id="$1" lower deadline
-  lower="$(echo "$id" | tr '[:upper:]' '[:lower:]')"
-  deadline=$(( SECONDS + 900 ))
-
-  while [ "$SECONDS" -lt "$deadline" ]; do
-    if curl -fsS "https://api.nuget.org/v3-flatcontainer/$lower/index.json" 2>/dev/null \
-         | grep -q "\"$version\""; then
-      echo "    $id $version is indexed."
-      return 0
-    fi
-    sleep 20
-  done
-
-  echo "!!  $id $version never appeared on nuget.org within 15 minutes." >&2
-  echo "    Either the push did not include it -- which is the failure this gate exists for -- or" >&2
-  echo "    nuget.org is indexing unusually slowly. The flat-container index above is the source of" >&2
-  echo "    truth; check it before assuming the latter." >&2
-  return 1
+# nuget.org indexes a push ASYNCHRONOUSLY, and in TWO stages that finish minutes apart:
+#
+#   * the flat container (`v3-flatcontainer/<id>/index.json`) lists the version almost immediately;
+#   * the REGISTRATION index, which is what `dotnet restore` and `dotnet tool install` actually read,
+#     lags behind it.
+#
+# Watching only the first is why this gate failed on its own first run: the flat container reported
+# 0.21.0 while `dotnet tool install` still answered "Version 0.21.0 of package rask.cli is not found",
+# and the registration index's `upper` was still 0.20.1-alpha. Both were true at the same moment.
+#
+# So the flat container answers "was it pushed at all", and the install itself answers "can a user get
+# it yet" -- because the operation the gate needs to work is the only honest test of that.
+#
+# A gate that flakes for a reason nobody can act on is a gate that gets disabled within a month, so
+# the waits are generous and the two failures say different things.
+flat_container_has() {
+  local lower
+  lower="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+  curl -fsS "https://api.nuget.org/v3-flatcontainer/$lower/index.json" 2>/dev/null \
+    | grep -q "\"$version\""
 }
 
-wait_for "Rask.Cli"
+echo "==> Waiting for the push to appear on nuget.org"
+deadline=$(( SECONDS + 900 ))
+until flat_container_has "Rask.Cli"; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "!!  Rask.Cli $version never reached nuget.org's flat container within 15 minutes." >&2
+    echo "    That is the failure this gate exists for: the push did not include it." >&2
+    exit 1
+  fi
+  sleep 20
+done
+echo "    Rask.Cli $version is pushed."
 
 # ---------------------------------------------------------------- scaffold + restore
 #
@@ -70,9 +77,19 @@ XML
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export NUGET_PACKAGES="$work/packages"
 
-echo "==> Installing the released rask CLI"
-dotnet tool install --tool-path "$work/tools" rask --version "$version" \
-  --configfile "$work/NuGet.config"
+# Rask.Cli is the PACKAGE id; `rask` is the command it installs. Naming the command here fails with
+# "Package rask is not a .NET tool", which is what this gate did on its first real run.
+echo "==> Installing the released rask CLI (retrying while the registration index catches up)"
+deadline=$(( SECONDS + 1800 ))
+until dotnet tool install --tool-path "$work/tools" Rask.Cli --version "$version" \
+        --configfile "$work/NuGet.config" > "$work/install.log" 2>&1; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "!!  Rask.Cli $version is pushed but still not installable after 30 minutes:" >&2
+    sed 's/^/      /' "$work/install.log" >&2
+    exit 1
+  fi
+  sleep 30
+done
 
 echo "==> rask new"
 mkdir -p "$work/app"
