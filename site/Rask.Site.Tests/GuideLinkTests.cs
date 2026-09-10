@@ -68,9 +68,12 @@ public sealed partial class GuideLinkTests : global::Rask.Core.RaskMarkup
 
     private static List<string> GuideSlugs()
     {
+        // Root-relative now. The cards used to carry a relative "docs/guides/…" on a bare <a>, which
+        // reloaded the whole app on every click; they are NavLinks over a generated RouteUrl, and that
+        // is absolute.
         var matches = System.Text.RegularExpressions.Regex.Matches(
             Render(),
-            "href=\"docs/guides/(?<slug>[a-z0-9-]+)\"");
+            "href=\"/docs/guides/(?<slug>[a-z0-9-]+)\"");
 
         return matches.Select(m => m.Groups["slug"].Value).ToList();
     }

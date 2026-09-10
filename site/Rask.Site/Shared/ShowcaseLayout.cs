@@ -136,8 +136,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 ,
                 // The light/dark toggle that used to sit here went when the showcase became light on
                 // the kit's palette: there was no second theme to flip to. There are thirty-five now,
-                // so it comes back as the whole set — and still with no IJSRuntime, because daisyUI
-                // matches the checked radio in CSS rather than asking a script to swap a class.
+                // so it comes back as the whole set — and the choice is REMEMBERED across this
+                // navigation and the next visit, which it was not before. The picker itself is still
+                // the kit's CSS-only one, deliberately: it writes no C# event handlers, and handler ids
+                // are positional, so a handler here would shift every id after it and break the
+                // islands page. App.ThemeInitJs stores the choice and re-marks the radio instead.
                 UiThemeDropdown.Placement("dropdown-end")
             ]
         ],

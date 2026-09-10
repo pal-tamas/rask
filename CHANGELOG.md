@@ -309,6 +309,45 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **rask.sh no longer flickers when it hydrates, and its links navigate like the SPA it is.** Three
+  defects on the published site, all visible on the front door.
+
+  The **flicker** was a font reflow the framework's own morph re-triggered. The three faces arrived
+  from a font CDN through the standard non-blocking pattern — `<link media="print"
+  onload="this.media='all'">` — and that pattern is quietly incompatible with a full-document morph: a
+  head asset reconciles by key, so the WASM first frame put `media` back to the rendered `print`,
+  un-applied the faces, reflowed the page to fallback metrics, and reflowed back when the `onload`
+  re-fired. Measured: 5757px → 5705px → 5757px of document height and an `<h1>` line box of 56px →
+  61px, in about 8ms — and again on every cross-route navigation, because each of those is another
+  morph. Inter, Space Grotesk and JetBrains Mono are now **self-hosted** (variable `woff2`, latin +
+  latin-ext, in `wwwroot/fonts`, OFL, attributed in `wwwroot/fonts/LICENSE.md`), declared in
+  `global.css` and preloaded from the head. The real face is drawn on the first paint: no swap, no
+  reflow, nothing for a morph to revert — and one cross-origin DNS + TLS + round trip fewer, measured
+  at 802ms of a 2.9s first paint, plus a font CDN that no longer sees who reads the docs.
+
+  **Navigation** was not client-side at all. The landing page's shared `NavItem` stamped
+  `target="_blank"` on every entry, internal ones included, so "Docs" opened a second tab and
+  cold-booted the whole WASM bundle — runtime download, boot screen, hydration and all. The guide
+  cards did the same. Worse, the links that had no target were still bare `<a href>`, and the runtime
+  intercepts `a[data-rask-nav]`, which only `NavLink` writes — so those reloaded the app too. Every
+  in-app link on the page is a `NavLink` over a type-safe `RouteUrl` now; only genuinely external
+  links keep a target, and they keep the external-link glyph with it.
+
+  **The theme is remembered**, and light is still the default. The picker stays daisyUI's CSS-only
+  `theme-controller`, which could not persist anything on its own — no script to store a choice, and a
+  radio that renders unchecked on every pass, so the next render put the theme back. The boot script in
+  `<head>` now owns the whole feature: it applies the saved theme *before the first paint*, stores a new
+  one from a delegated `change` listener, and re-marks the reader's radio after every morph.
+
+  Doing it from JavaScript rather than from a C# component is a **correctness** requirement, not a
+  preference, and it is worth writing down. A C# picker was built first and withdrawn: handler ids are
+  handed out in render order, so putting even one handler into the chrome of every docs page shifted
+  every id after it — and the islands page broke silently, because a Vue or Lit island captures its
+  callback id from the prerendered markup and the ids had moved underneath it. Its clicks reached
+  nothing while the page still looked perfectly alive. Measured on the published bundle: the island's
+  pre-boot callback id went `h28` → `h63` with thirty-five theme buttons rendered, and `h28` → `h29`
+  with a single one. One handler is already too many. The kit's picker adds none. (#1058)
+
 - **A `UnitOfWork` disposed with `await using` never left the ambient scope.** `DisposeAsync` was an
   `async` method, so its `AsyncLocal` write landed on the state machine's own execution context and never
   reached the caller's. The scope stayed open forever and the next `Db.Begin()` handed back a handle onto
