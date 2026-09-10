@@ -29,7 +29,7 @@ namespace Rask.Core.Components;
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form">MDN</see>
 /// </summary>
 public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
-    : Element, ISubmitAware
+    : Element
 {
     private EditContext? _context;
 
@@ -164,12 +164,41 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
         }
     }
 
-    // Stored rather than invoked: the factory has to run inside the render walk, where child-reuse
-    // bookkeeping is live, for the same reason the IEnumerable indexer materialises a lazy sequence
-    // there. Calling it here would build the children once, at the state the chain was written in —
-    // always "not submitting" — and then rebuild them from scratch every render, dropping their state.
-    void ISubmitAware.SetChildrenFactory(Func<bool, IEnumerable<Component?>> factory) =>
-        _childrenFactory = factory;
+    /// <summary>
+    ///     Gives the form children that depend on whether a submit is in flight, ending the chain:
+    ///     <c>Form.Model(m)[submitting =&gt; [ Button.Disabled(submitting)[ … ] ]]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This lived on a chain type of its own (<c>FormBuild&lt;T&gt;</c>) for exactly one reason: an
+    ///         indexer cannot be constrained, so offering it on a form and nowhere else meant giving the
+    ///         form's chain a different TYPE. The chain receives on the component now, so the indexer can
+    ///         simply be declared on the only component it was ever meant for, and the third chain shape
+    ///         — along with the <c>ISubmitAware</c> constraint that discriminated it — is gone.
+    ///     </para>
+    ///     <para>
+    ///         The factory is stored, not called: it runs on every render, inside the render walk, so a
+    ///         component it builds keeps its identity — and its state — across the two renders a submit
+    ///         causes. Building the children here instead would freeze them at the state the chain was
+    ///         written in, which is always <see langword="false" />, and then rebuild them from scratch
+    ///         every render.
+    ///     </para>
+    ///     <para>
+    ///         It binds without ambiguity beside the three inherited fixed-list indexers because a lambda
+    ///         whose parameter is untyped and whose body is a collection expression has NO natural type,
+    ///         so it is not a candidate for the <c>params object?[]</c> overload that would otherwise take
+    ///         anything.
+    ///     </para>
+    /// </remarks>
+    /// <param name="children">Builds the children, given whether a submit is currently in flight.</param>
+    public Component this[Func<bool, IEnumerable<Component?>> children]
+    {
+        get
+        {
+            _childrenFactory = children;
+            return this;
+        }
+    }
 
     // The factory IS the children when one was given. Materialised the same way the IEnumerable indexer
     // does it, so a `yield`/LINQ body runs here rather than later during serialization.

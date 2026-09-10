@@ -38,11 +38,11 @@ public class CrossAssemblyInternalEntryTests
         """;
 
     private const string OpenEntry =
-        "private static global::Rask.Core.Build<global::Lib.OpenCard> OpenCard "
+        "private static global::Lib.OpenCard OpenCard "
         + "=> global::RaskEntriesLib.OpenCard;";
 
     private const string SecretEntry =
-        "private static global::Rask.Core.Build<global::Lib.SecretCard> SecretCard "
+        "private static global::Lib.SecretCard SecretCard "
         + "=> global::RaskEntriesLib.SecretCard;";
 
     [Fact]
@@ -80,11 +80,11 @@ public class CrossAssemblyInternalEntryTests
         var host = BuilderGeneratorHarness.Run(Library).Source("RaskBuilderEntryHost.g.cs");
 
         Assert.Contains(
-            "internal static global::Rask.Core.Build<global::Lib.SecretCard> SecretCard",
+            "internal static global::Lib.SecretCard SecretCard",
             host,
             StringComparison.Ordinal);
         Assert.Contains(
-            "public static global::Rask.Core.Build<global::Lib.OpenCard> OpenCard",
+            "public static global::Lib.OpenCard OpenCard",
             host,
             StringComparison.Ordinal);
     }

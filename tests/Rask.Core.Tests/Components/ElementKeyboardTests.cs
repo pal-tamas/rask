@@ -68,7 +68,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
         // Hoisted into the lazy LiveState: a plain element keeps the key handlers null and never
         // forces a LiveState allocation just by leaving them unset (the allocation-pin tests guard
         // the per-render cost; this asserts the property contract directly).
-        var div = Div.Value;
+        var div = Div;
         Assert.Null(div.OnKeyDown);
         Assert.Null(div.OnKeyUp);
     }

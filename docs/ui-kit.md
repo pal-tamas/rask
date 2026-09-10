@@ -315,10 +315,11 @@ Form.Model(_order)[
 ]
 ```
 
-**The opening step fixes the type argument and the mode together.** `Bind` opens the bound chain and
-`Value` the controlled one; they are mutually exclusive because a control with both would have two
-sources of truth for one field. `Label`, `Options` and the rest follow in any order, since none of
-them says anything about `T`. Bound mode drives the surrounding `Form`'s validation — per-field
+**The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
+`Value` a controlled one; they are mutually exclusive because a control with both would have two
+sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
+taking one leaves the other unreachable. `Label`, `Options` and the rest follow in any order, since none
+of them says anything about `T`. Bound mode drives the surrounding `Form`'s validation — per-field
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
 
@@ -396,5 +397,5 @@ Each component lives in a file named after it, so the file list in `src/Rask.Ui`
 
 - [Dashboard](dashboard.md) — the operator console this kit was extracted from
 - [Tailwind](tailwind.md) — how the compiler is wired into a Rask build
-- [Data grid](data-grid.md) — `UiDataGrid`, the one component with a chain shape of its own
+- [Data grid](data-grid.md) — `UiDataGrid`, whose columns arrive through a factory and whose row key is required
 - [Building components](building-components.md) — the chain the kit is composed with

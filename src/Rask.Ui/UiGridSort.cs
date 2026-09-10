@@ -1,7 +1,7 @@
 namespace Rask.Ui;
 
 /// <summary>
-/// The sort a reader asked for, reported by <see cref="UiDataGrid{T}.OnSortChange" />.
+/// The sort a reader asked for, reported by <see cref="UiDataGrid{T,TKey}.OnSortChange" />.
 /// </summary>
 /// <param name="Field">
 ///     The <see cref="UiColumn{T}.Field" /> token of the column they clicked, or <see langword="null" />

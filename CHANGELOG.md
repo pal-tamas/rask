@@ -94,6 +94,32 @@ them until tagged releases begin.
   pooled cannot be disposed by a pool clear, which closes the family rather than narrowing the window.
   The test is not weakened: each writer gets its own handle, which is strictly more contention. No
   production impact; nothing calls `ClearAllPools()` alongside live work.
+- **The chain's mode types are gone.** A form control's chain was a `Build<TControl, Bound>` or a
+  `Build<TControl, Controlled>`, and each mode's steps were declared only on their own mode. That type
+  argument was threaded through every emitted signature, brought the ordering rules that came with it,
+  and kept accumulating members that were silently unreachable inside it. `Build<T>`, `Build<T, TMode>`,
+  `FormBuild<T>` and `GridBuild<T, TKey>` are all removed — **the chain's receiver is the component** —
+  along with `Rask.Core.Forms.Bound` and `Rask.Core.Forms.Controlled`.
+
+  What that machinery was actually holding up is smaller than it looked, and each piece is now carried by
+  something simpler. The two shape-specific INDEXERS — a form's submit-state children, a grid's column
+  factory — are declared on `Form` and `UiDataGrid` themselves, which scopes them exactly as well and
+  costs no type parameter; an indexer cannot be constrained, which was the only reason they needed a type
+  of their own. **`Bind` versus `Value` is still a compile error**, because both openings live on the
+  chain's entry and neither is a setter on the control: taking one hands the control back and the other
+  is simply not a member of it. What is no longer enforced is which steps *follow* an opening — a
+  `Validate` on a controlled control now compiles and does nothing, as an unread property always could.
+
+- **A data grid's `RowKey` is required, and the grid carries its key type**: `UiDataGrid<T>` is now
+  `UiDataGrid<T, TKey>`. Optional was worse than it looked. The key arrived through a hand-written step,
+  and a grid that never took it still rendered — rows fell back to their **index** for identity, so the
+  live diff reordered by position rather than by row, and `Selected`/`OnSelectionChange` were reachable
+  regardless and quietly built a selection strategy with no selector in it. Naming the key is now the only
+  way to build a grid, and the selection is expressed in exactly those keys.
+
+  `RowKey`, `Selected` and `OnSelectionChange` are ordinary properties now, so `UiDataGridSteps` and the
+  `UiGridKeys` strategy are gone. Call sites take the key immediately after the step that supplies the
+  rows: `UiDataGrid.Data(rows).RowKey(p => p.Id)`.
 
 - **The meta framework lane is on the front door.** `Rask.Meta.Hosting` has shipped for a while, with
   a guide, a card in the landing page's batteries grid and a row in the docs index — but neither place
@@ -250,6 +276,42 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A generated chain lost the constraints on the type parameters it declares.** A stage carried its
+  component's whole `where` clause on the STEP inside it rather than on the struct that declares the type
+  parameter (CS0699), and the pending state carried none at all (CS8714). Nothing in the repo had a
+  constrained type parameter pinned by a step until the grid's `where TKey : notnull`, so a generator this
+  heavily tested had no occasion to be right about it.
+
+- **A `Func<…>` step could never pin a type argument.** Every delegate was excluded from the pin
+  candidates, which is correct for an OPENING — a lambda's parameter would have no type to be, so the call
+  site infers nothing — and wrong for a step after one. With the rows already fixing `T`,
+  `.RowKey(p => p.Id)` infers `TKey` perfectly well. The rule is now the delegate's INPUT positions rather
+  than its delegate-ness, so a carrier still never pins: `Fn<TIn, TOut>` is a struct a lambda reaches by a
+  user-defined conversion, and C# infers nothing through one of those.
+
+- **`Of` was withheld from every component with a required step**, which left one whose type no step can
+  pin — a grid fed by `Source`, whose carrier infers nothing — with no way in at all. It now hands back the
+  state that still owes the required steps, so stating a type argument is never a way past them.
+  `UiInput.Of<string>()` used to hand back the control itself and skip its required `Label`.
+
+- **Two builds fetching the Tailwind CLI at once corrupted it, and the corrupt copy then poisoned every
+  later build.** The download is staged through a temporary file beside its target, and that file had a
+  single fixed name — while the cache root is shared by every project building at once, including the two
+  target frameworks of one multi-targeted project. Two resolves racing on that name interleave their
+  writes, and what lands is a file of the right name and the wrong bytes, from a download that reported
+  success and verified its own checksum. Nightly failed inside `Rask.Ui` for exactly that reason.
+
+  It surfaced as MSB3073 with the whole command line in it — which reads as though the CLI rejected its
+  arguments — over two different exit codes: **126** where the executable bit was lost, and **127** where
+  the file was truncated. "Not executable" and "not an executable", one symptom.
+
+  The staging file is now unique per fetch, and the first copy to land wins rather than replacing a file
+  another build may be executing that instant. A fetch also writes a **receipt** recording the size it
+  verified, so a cache hit is trusted only when the file is still that size — an O(1) check that catches
+  truncation exactly, where re-hashing 100 MB per build would not be worth its cost. An entry with no
+  receipt is re-fetched, and the mode bits are re-asserted on every hit.
+
+
 - **The public-API gate covered the prerender companion, so the browser E2E gate could not run at
   all.** `Rask.Wasm.Prerender.targets` GENERATES a companion project into the app's `obj/` — which is
   under `src/`, where the repo-wide gate in `Directory.Build.targets` applies. It can never carry a
@@ -273,7 +335,7 @@ them until tagged releases begin.
 
 ### Added
 
-- **A data grid, and a fourth chain shape to hold it.** `UiDataGrid<T>` joins the UI kit with sortable
+- **A data grid.** `UiDataGrid<T, TKey>` joins the UI kit with sortable
   headers, paging, typed selection, expandable detail rows, multi-level grouping with collapsible bands
   and subtotals, a column chooser, sticky headers, column footers, and a card layout on a phone.
 
@@ -283,13 +345,10 @@ them until tagged releases begin.
   call sits in, so `UiColumn.Field(p => p.Name)` written as a flat child has nothing at all to say what
   `p` is and fails CS0411. Handing the grid to a lambda fixes the row type before a column is written.
 
-  That needs a children indexer no other component should have, and an indexer cannot be constrained —
-  so the grid's chain is a new `GridBuild<T, TKey>` in `Rask.Core`, beside `Build<T>`,
-  `Build<T, TMode>` and `FormBuild<T>`, claimed by implementing `IColumnHost`. Exactly the reasoning
-  that gave `Form` its own shape. The generator emits the shared surface over it, but only the
-  **Component-owned** half: 120 of the 121 shared members are constrained to `Element`, and a grid
-  renders a table rather than being one — emitting those would have put 120 uncallable extensions into
-  every compilation that references `Rask.Core`, and 240 unreachable entries into its recorded API.
+  That needs a children indexer no other component should have, and an indexer cannot be constrained.
+  It is declared on `UiDataGrid<T, TKey>` itself, which scopes it to a grid and costs no type parameter —
+  see the chain-receiver entry above, which is what removed the separate shape this originally shipped
+  with.
 
   **Three data sources.** A list sorts and pages in memory; an `IQueryable<T>` handed to the *same*
   `Data` step does it in the store through `ORDER BY`/`Skip`/`Take` (one step, because an `IQueryable`

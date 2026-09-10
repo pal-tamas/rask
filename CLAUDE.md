@@ -93,27 +93,28 @@ dotnet run --project src/Rask.Site
   (the verbatim escape hatch), then tag-specific — tests assert it; preserve it.**
 - Markup is a CHAIN: `Div.Class("panel")[Span["hi"]]` — no `new`, no factory call. Children via the
   indexer (no `Children:` param; `..` spread breaks — pass enumerables). A component's REQUIRED props are
-  chain steps taken first (any order); `Bind` vs `Value` are mutually exclusive openings; type arguments
-  are inferred from the opening step, or stated with `.Of<T>()`. See `docs/building-components.md`.
-- **The chain's receiver is `Build<TComponent>`, never the component** — that is what lets a callback prop
-  be a plain delegate: C# stops at a delegate-typed property when resolving `x.OnClick(fn)` and never
-  reaches an extension method (CS1593). Converts implicitly to the component (and so to `Component`), so
-  markup is unaffected. Two consequences: a component's STATIC members need qualifying inside a markup
-  host (the "Color Color" rule no longer merges them), and `cond ? chain : null` needs a `Component?`
-  target rather than `var`.
+  chain steps taken first (any order); `Bind` vs `Value` are mutually exclusive openings — both live on
+  the ENTRY, so taking one leaves the other unreachable; type arguments are inferred from the opening
+  step, or stated with `.Of<T>()`, which hands back the state still owing any required steps. See `docs/building-components.md`.
+- **The chain's receiver IS the component** — one shape, and a step hands back exactly what it was called
+  on. `Build<T>`, the mode-carrying `Build<T, TMode>`, `FormBuild<T>` and `GridBuild<T, TKey>` are gone.
+  What makes that safe is that every event prop is a `Callback<T>` — a non-invocable STRUCT, so
+  `x.OnClick(fn)` finds no applicable member and falls through to the extension setter. A delegate-typed
+  prop would be invocable, stop lookup dead and never reach it (CS1593), so keep events on `Callback<T>`.
+  A shape-only indexer (a form's submit state, a grid's columns) is declared on the component itself.
   Page root renders into `<body>`; Rask adds the shell (`Head`/`HtmlLang`/`BodyClass`/`Shell`) + runtime `<script>` — RASK021.
 - **A routable component carries `[Route("/x")]`** — repeat it for a page that answers several URLs (first
   declared is canonical, the rest are alternates the router matches but nothing generates); `[ParentRoute(typeof(Layout))]`
   for nesting, `[NotFound]` for the catch-all. Generates `X.Url(...)`/`X.Go(...)` (C# 14 static
   extensions, need the page's namespace imported). **Inside a markup host the bare `X` is the chain's
-  `Build<X>` entry, not the type**, so qualify or use `Routes.X()`.
+  chain ENTRY, not the type**, so qualify or use `Routes.X()`.
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
 - **`Key`** — reconciliation identity (last factory `Key:` param), enables trusted structural diff; not a reactive prop.
-- **Callbacks are PLAIN DELEGATES** — `Action?`, `Func<Task>?`, `Action<T>?`, `Func<T, Task>?`, and any
-  `Func<…>` for a template or selector. No wrapper types: the `Build<T>` receiver is what lets the setter
-  keep the property's name. Auto-wrapped to re-render the owning parent.
+- **One `Callback`/`Callback<T>` property per event**, taking either handler shape (sync or async) at the
+  call site — a plain `Func<…>` still types a template or a selector. It is a STRUCT, which is what keeps
+  the setter reachable now the component is the receiver (above). Auto-wrapped to re-render the owning parent.
   **Refs**: `ElementRef.New()` in a field, pass to `IJSRuntime`. **Context**: `Context.Provide<T>` /
   `Context.Get<T>`/`Required`/`Has`. Construct components via the **chain**, never `new` outside Core (RASK014).
 

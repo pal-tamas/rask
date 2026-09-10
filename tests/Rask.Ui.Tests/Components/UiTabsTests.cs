@@ -104,7 +104,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         Assert.Contains("min-h-11", Tab("Live", active: true).ToHtml());
     }
 
-    private global::Rask.Core.Build<UiTab> Tab(
+    private UiTab Tab(
         string label, bool active, string? count = null, bool? alarm = null) =>
         UiTab.Href("/logs").Label(label).Active(active).Count(count).Alarm(alarm);
 }

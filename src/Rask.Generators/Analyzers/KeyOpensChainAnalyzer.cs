@@ -100,7 +100,7 @@ public sealed class KeyOpensChainAnalyzer : DiagnosticAnalyzer
         // the author to move `.Key(…)` ahead of a step that cannot be moved — `Check.Value(true).Key(1)`
         // has no legal reordering, since the seed exposes no Key. Nothing is lost there either: the
         // opening's own pins are assigned after ClaimKey inside the building step.
-        if (!IsChain(Receiver(previous)?.Type))
+        if (!IsChain(previous))
         {
             return;
         }
@@ -109,23 +109,20 @@ public sealed class KeyOpensChainAnalyzer : DiagnosticAnalyzer
             Rask046, operation.Syntax.GetLocation(), previous.TargetMethod.Name));
     }
 
-    // The T of the Build<T> — or the Build<T, TMode> — this call hands back.
+    // What this call hands back — the component itself, because a chain step returns its receiver.
     //
-    // Both arities, and the component is the FIRST type argument either way. A form control's chain
-    // carries its mode as a second parameter (see Rask.Core.Build{T,TMode}), so matching arity 1 alone
-    // returned null for every step on one and stood RASK046 down exactly where it matters most: the Bs
-    // form controls derive from BsBlock : Component rather than Element, which is the shape #685 added
-    // this rule for. Same miss BuilderEntry.ChainedComponent had, in a second place — this one matched
-    // the chain by SHAPE rather than by name, so it does not show up in a search for the type.
+    // This used to dig the component out of a `Build<T>` / `Build<T, TMode>` return type by taking the
+    // first type argument, and had to know BOTH arities: matching arity 1 alone returned null for every
+    // step on a form control and stood RASK046 down exactly where it mattered most. With the receiver
+    // change there is no wrapper and no arity to get wrong.
     private static ITypeSymbol? BuiltType(IInvocationOperation operation) =>
-        operation.TargetMethod.ReturnType is INamedTypeSymbol { IsGenericType: true, Arity: 1 or 2 } build
-            ? build.TypeArguments[0]
-            : null;
+        operation.TargetMethod.ReturnType;
 
-    // Whether this is a chain rather than a seed/state struct — asked through the one helper that knows
-    // both chain shapes, so a third arity can never again be half-taught to the analyzers.
-    private static bool IsChain(ITypeSymbol? type) =>
-        type is not null && !SymbolEqualityComparer.Default.Equals(BuilderEntry.ChainedComponent(type), type);
+    // Whether this call is a step on the markup chain. Asked of the METHOD rather than of its type,
+    // because a chain expression's type is now just the component: with no wrapper left to recognise, a
+    // shape test would match any fluent extension that takes a component and returns one.
+    private static bool IsChain(IInvocationOperation operation) =>
+        BuilderEntry.IsChainStep(operation.TargetMethod);
 
     // The next link DOWN the chain, matching DuplicateChainCallAnalyzer: a setter's receiver is whatever
     // produced it, written as an extension (argument 0) or as an instance call.

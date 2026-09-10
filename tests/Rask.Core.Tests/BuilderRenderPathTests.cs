@@ -43,7 +43,7 @@ internal sealed partial class HeadEntryLeaf : Component
     internal Meta? Probe;
 
     protected override Component? HeadAssets =>
-        Probe = Word == "a" ? Meta.Name("probe").Content("keep").Value : Meta.Name("probe");
+        Probe = Word == "a" ? Meta.Name("probe").Content("keep") : Meta.Name("probe");
 
     protected override Component? Render() => Span[Word ?? ""];
 }

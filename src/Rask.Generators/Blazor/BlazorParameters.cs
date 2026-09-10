@@ -249,11 +249,20 @@ internal static class BlazorParameters
     {
         if (isCallback)
         {
-            // A Blazor EventCallback becomes an ordinary delegate, because that is what a Rask
-            // callback prop is — there is no Callback/EventCallback wrapper type in this framework.
+            // A Blazor EventCallback becomes a Rask `Callback`, which is what a Rask callback prop is.
+            //
+            // It used to be a bare `global::System.Action?`, and that stopped working the moment the
+            // chain's receiver became the component: a delegate-typed property is invocable, so
+            // `island.OnPick(s => …)` was read as INVOKING OnPick with the lambda as its argument. The
+            // diagnostic for that is not even the CS1593 one expects — it is a conversion error naming
+            // the delegate's own parameter type ("cannot convert lambda expression to type 'string'"),
+            // pointed at the island's call site and mentioning nothing about the island.
+            //
+            // The carrier also widens what the island accepts: an EventCallback is asynchronous at heart,
+            // and a bare Action could only ever take the synchronous half of it.
             return eventArg is null
-                ? "global::System.Action?"
-                : $"global::System.Action<{eventArg}>?";
+                ? "global::Rask.Core.Callback?"
+                : $"global::Rask.Core.Callback<{eventArg}>?";
         }
 
         if (isRequired)

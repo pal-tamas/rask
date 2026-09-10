@@ -186,13 +186,13 @@ static Rask.Auth.RaskAuthEndpointExtensions.MapRaskAuth(this Microsoft.AspNetCor
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskRoles.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
-static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Core.Build<Rask.Auth.Pages.LoginPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.LoginPage!>
-static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Core.Build<Rask.Auth.Pages.LogoutPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.LogoutPage!>
-static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Core.Build<Rask.Auth.Pages.RegisterPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.RegisterPage!>
-static RaskBuilderSettersRask_Auth.Token(this Rask.Core.Build<Rask.Auth.Pages.ConfirmEmailPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.ConfirmEmailPage!>
-static RaskBuilderSettersRask_Auth.Token(this Rask.Core.Build<Rask.Auth.Pages.ResetPasswordPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.ResetPasswordPage!>
-static RaskBuilderSettersRask_Auth.UserId(this Rask.Core.Build<Rask.Auth.Pages.ConfirmEmailPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.ConfirmEmailPage!>
-static RaskBuilderSettersRask_Auth.UserId(this Rask.Core.Build<Rask.Auth.Pages.ResetPasswordPage!> __b, string? value) -> Rask.Core.Build<Rask.Auth.Pages.ResetPasswordPage!>
+static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Auth.Pages.LoginPage! __b, string? value) -> Rask.Auth.Pages.LoginPage!
+static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Auth.Pages.LogoutPage! __b, string? value) -> Rask.Auth.Pages.LogoutPage!
+static RaskBuilderSettersRask_Auth.ReturnUrl(this Rask.Auth.Pages.RegisterPage! __b, string? value) -> Rask.Auth.Pages.RegisterPage!
+static RaskBuilderSettersRask_Auth.Token(this Rask.Auth.Pages.ConfirmEmailPage! __b, string? value) -> Rask.Auth.Pages.ConfirmEmailPage!
+static RaskBuilderSettersRask_Auth.Token(this Rask.Auth.Pages.ResetPasswordPage! __b, string? value) -> Rask.Auth.Pages.ResetPasswordPage!
+static RaskBuilderSettersRask_Auth.UserId(this Rask.Auth.Pages.ConfirmEmailPage! __b, string? value) -> Rask.Auth.Pages.ConfirmEmailPage!
+static RaskBuilderSettersRask_Auth.UserId(this Rask.Auth.Pages.ResetPasswordPage! __b, string? value) -> Rask.Auth.Pages.ResetPasswordPage!
 static RaskBuilderSettersRask_Auth.__RaskResetEager_Rask_Auth_Pages_ConfirmEmailPage(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Auth.__RaskResetEager_Rask_Auth_Pages_LoginPage(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Auth.__RaskResetEager_Rask_Auth_Pages_LogoutPage(Rask.Core.Component! __c0) -> void
@@ -203,9 +203,9 @@ static RaskBuilderSettersRask_Auth.__RaskResetPending_Rask_Auth_Pages_LoginPage(
 static RaskBuilderSettersRask_Auth.__RaskResetPending_Rask_Auth_Pages_LogoutPage(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Auth.__RaskResetPending_Rask_Auth_Pages_RegisterPage(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Auth.__RaskResetPending_Rask_Auth_Pages_ResetPasswordPage(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskEntriesRask_Auth.ConfirmEmailPage.get -> Rask.Core.Build<Rask.Auth.Pages.ConfirmEmailPage!>
-static RaskEntriesRask_Auth.ForgotPasswordPage.get -> Rask.Core.Build<Rask.Auth.Pages.ForgotPasswordPage!>
-static RaskEntriesRask_Auth.LoginPage.get -> Rask.Core.Build<Rask.Auth.Pages.LoginPage!>
-static RaskEntriesRask_Auth.LogoutPage.get -> Rask.Core.Build<Rask.Auth.Pages.LogoutPage!>
-static RaskEntriesRask_Auth.RegisterPage.get -> Rask.Core.Build<Rask.Auth.Pages.RegisterPage!>
-static RaskEntriesRask_Auth.ResetPasswordPage.get -> Rask.Core.Build<Rask.Auth.Pages.ResetPasswordPage!>
+static RaskEntriesRask_Auth.ConfirmEmailPage.get -> Rask.Auth.Pages.ConfirmEmailPage!
+static RaskEntriesRask_Auth.ForgotPasswordPage.get -> Rask.Auth.Pages.ForgotPasswordPage!
+static RaskEntriesRask_Auth.LoginPage.get -> Rask.Auth.Pages.LoginPage!
+static RaskEntriesRask_Auth.LogoutPage.get -> Rask.Auth.Pages.LogoutPage!
+static RaskEntriesRask_Auth.RegisterPage.get -> Rask.Auth.Pages.RegisterPage!
+static RaskEntriesRask_Auth.ResetPasswordPage.get -> Rask.Auth.Pages.ResetPasswordPage!

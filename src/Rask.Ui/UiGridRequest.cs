@@ -1,7 +1,7 @@
 namespace Rask.Ui;
 
 /// <summary>
-/// What a <see cref="UiDataGrid{T}.Source" /> is asked for: one page, ordered one way.
+/// What a <see cref="UiDataGrid{T,TKey}.Source" /> is asked for: one page, ordered one way.
 /// </summary>
 /// <param name="Sort">
 ///     The <see cref="UiColumn{T}.Field" /> token to order by, or <see langword="null" /> for the source's

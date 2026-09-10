@@ -102,7 +102,7 @@ public sealed class DocSnippetTests
         {
             public required string Title { get; set; }   // a step
             public string? Subtitle { get; set; }        // a setter
-            public Action? OnPick { get; set; }
+            public Callback? OnPick { get; set; }
 
             protected override Component? Render() =>
                 Div.Class("panel")[

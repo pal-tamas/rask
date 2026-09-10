@@ -99,7 +99,7 @@ public sealed class ResolveTailwindCliTask : Task
         }
 
         var path = TailwindCli.CachePath(CacheRoot, Version, assetName);
-        if (File.Exists(path))
+        if (TailwindCli.ReuseCached(path, m => Log.LogMessage(MessageImportance.High, m)))
         {
             ToolPath = path;
             return true;
@@ -190,39 +190,51 @@ public sealed class ResolveTailwindCliTask : Task
 
         // Written beside the target and moved into place, so a cancelled build cannot leave a truncated
         // binary that every later build then tries to execute.
-        var partial = path + ".partial";
+        //
+        // UNIQUELY named, which is the whole fix for the failure this file's cache checks were chasing.
+        // The partial used to be a single `path + ".partial"`, and the cache root is shared by every
+        // project building at once — including the two target frameworks of ONE multi-targeted project,
+        // which is why nightly failed inside Rask.Ui specifically. Two resolves racing on that one name
+        // interleave their writes, and what lands is a file of the right name and the wrong bytes: MSB3073
+        // over exit 126 or 127, from a download that reported success and verified its own checksum.
+        var partial = path + "." + Guid.NewGuid().ToString("n") + ".partial";
         File.WriteAllBytes(partial, bytes);
-        MakeExecutable(partial);
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-        }
+        TailwindCli.MakeExecutable(partial);
 
-        File.Move(partial, path);
+        try
+        {
+            // Whoever gets there first wins, and the loser keeps the winner's copy rather than replacing
+            // a file another build may be executing this instant. Both verified the same checksum.
+            if (File.Exists(path))
+            {
+                File.Delete(partial);
+                return;
+            }
+
+            File.Move(partial, path);
+
+            // Only now, and only here: the receipt is what a later build checks the cache against, so it
+            // must never sit beside anything whose checksum has not just been verified above.
+            TailwindCli.WriteReceipt(path);
+        }
+        catch (IOException)
+        {
+            // Another build moved its own copy in between the check and the move. Theirs is as good.
+            try
+            {
+                File.Delete(partial);
+            }
+            catch (IOException)
+            {
+                // A stray partial is harmless: nothing ever executes one.
+            }
+        }
     }
 
     private static string Sha256(byte[] bytes)
     {
         using var sha = SHA256.Create();
         return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", string.Empty).ToLowerInvariant();
-    }
-
-    private static void MakeExecutable(string path)
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return;
-        }
-
-        // Arguments rather than ArgumentList: this targets netstandard2.0, where the list form does not
-        // exist. The path is ours and quoted, so a space in the cache directory is still safe.
-        using var chmod = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("chmod")
-        {
-            Arguments = "+x \"" + path + "\"",
-            UseShellExecute = false,
-        });
-
-        chmod?.WaitForExit();
     }
 
     private static string? AssetForThisMachine()

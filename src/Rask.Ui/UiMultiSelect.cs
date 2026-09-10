@@ -84,10 +84,10 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
 
     /// <summary>Marks options unselectable. The keyboard cursor skips them rather than landing on one.</summary>
     /// <remarks>Non-native only — a native <c>&lt;select&gt;</c> disables its options itself.</remarks>
-    public Func<T, bool>? OptionDisabled { get; set; }
+    public Fn<T, bool>? OptionDisabled { get; set; }
 
     /// <summary>Buckets options under headers, in first-seen order.</summary>
-    public Func<T, string>? OptionGroup { get; set; }
+    public Fn<T, string>? OptionGroup { get; set; }
 
     /// <summary>Draws each option in the list, in place of its words.</summary>
     /// <remarks>
@@ -99,11 +99,11 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
     ///         show, so it stays worth supplying.
     ///     </para>
     /// </remarks>
-    public Func<T, Component>? OptionTemplate { get; set; }
+    public Fn<T, Component>? OptionTemplate { get; set; }
 
     /// <summary>Draws each chosen answer as a chip, in place of its words.</summary>
     /// <remarks>A chip is a small pill in a fixed-height box; markup that does not fit will wrap it.</remarks>
-    public Func<T, Component>? ChipTemplate { get; set; }
+    public Fn<T, Component>? ChipTemplate { get; set; }
 
     /// <summary>Narrows the list from a search box, by deciding what the typed text matches.</summary>
     /// <remarks>
@@ -112,7 +112,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
     ///     <c>(v, text) =&gt; v.Name.Contains(text, StringComparison.OrdinalIgnoreCase)</c>. Non-native
     ///     only.
     /// </remarks>
-    public Func<T, string, bool>? Filter { get; set; }
+    public Fn<T, string, bool>? Filter { get; set; }
 
     /// <summary>Adds a row that chooses or clears every option at once.</summary>
     /// <remarks>
@@ -235,9 +235,9 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
         // Filtering narrows the option list BEFORE the layout is built, so the flat cursor space and the
         // rendered rows are the same list — which is what lets an arrow key follow the eye after a search.
         var shown = Filter is { } match && !string.IsNullOrEmpty(_filter)
-            ? Options.Where(o => match(o.Value, _filter)).ToArray()
+            ? Options.Where(o => match.Invoke(o.Value, _filter) == true).ToArray()
             : Options;
-        var layout = UiSelectNav.Build(shown, OptionGroup is { } g ? o => g(o.Value) : null);
+        var layout = UiSelectNav.Build(shown, OptionGroup is { } g ? o => g.Invoke(o.Value) ?? string.Empty : null);
         var flat = layout.Flat;
         var off = Disabledness(flat);
         var cursor = UiSelectNav.Normalize(_cursor, flat.Count, off);
@@ -310,7 +310,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
             yield return Span
                 .Key("c-" + OptionText(value))
                 .Class("badge badge-sm badge-neutral gap-1")[
-                ChipTemplate is { } template ? template(value) : TextOf(value),
+                ChipTemplate is { } template && template.Invoke(value) is { } chip ? chip : TextOf(value),
                 disabled
                     ? null
                     : Button
@@ -520,7 +520,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
 
         // menu-disabled goes on the <li>, unlike menu-active and menu-focus, which go on the child.
         return Li.Key(row.FlatIndex).Class(off ? "menu-disabled" : "")[
-            option[OptionTemplate is { } template ? template(value) : text]
+            option[OptionTemplate is { } template && template.Invoke(value) is { } drawn ? drawn : text]
         ];
     }
 
@@ -669,7 +669,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
     }
 
     private Func<int, bool> Disabledness(IReadOnlyList<(T Value, string Text)> flat) =>
-        OptionDisabled is { } off ? i => off(flat[i].Value) : _ => false;
+        OptionDisabled is { } off ? i => off.Invoke(flat[i].Value) == true : _ => false;
 
     private int FirstChosen(IReadOnlyList<(T Value, string Text)> flat, Picked chosen)
     {

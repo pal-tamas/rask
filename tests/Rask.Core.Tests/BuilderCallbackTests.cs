@@ -40,17 +40,17 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Prop_and_setter_share_a_name() =>
-        Assert.Equal("<div><button>Pick me</button></div>", CardHost.Value.ToHtml());
+        Assert.Equal("<div><button>Pick me</button></div>", CardHost.ToHtml());
 
     // A handler owned by a component is replaced by a re-rendering delegate, so mutating the owner's
     // state from it repaints.
     [Fact]
     public void Setter_wraps_an_owned_handler_so_it_re_renders()
     {
-        var host = CardHost.Value;
+        var host = CardHost;
         var raw = (Action)host.Choose;
 
-        var card = BuilderCard.OnSelect(raw).Value;
+        var card = BuilderCard.OnSelect(raw);
 
         // Identity is asked of the DELEGATE the carrier holds, not of the carrier: a carrier is a struct
         // and two of them are equal when they hold the same handler, which is the opposite of what this
@@ -64,7 +64,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     {
         Action stat = Noop;
 
-        var card = BuilderCard.OnSelect(stat).Value;
+        var card = BuilderCard.OnSelect(stat);
 
         Assert.Same(stat, card.OnSelect?.Handler);
     }
@@ -76,7 +76,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     {
         Action stat = Noop;
 
-        var div = Div.OnClick(stat).Value;
+        var div = Div.OnClick(stat);
 
         Assert.Same(stat, div.OnClick!.Value.Handler);
     }
@@ -85,7 +85,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_typed_element_event_setter_wires_the_dom_slot()
     {
-        var view = BuilderEventProbe.Value;
+        var view = BuilderEventProbe;
 
         Assert.Equal(
             "<div data-rask-on-click=\"h0\" data-rask-on-mousedown=\"h1\" "
@@ -99,10 +99,10 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_element_event_setter_does_not_auto_wrap()
     {
-        var host = CardHost.Value;
+        var host = CardHost;
         var raw = (Action)host.Choose;
 
-        var div = Div.OnClick(raw).Value;
+        var div = Div.OnClick(raw);
 
         Assert.Same(raw, div.OnClick!.Value.Handler);
     }
@@ -113,7 +113,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_unset_element_event_reads_back_as_null()
     {
-        var div = Div.OnClick(null).Value;
+        var div = Div.OnClick(null);
 
         Assert.Null(div.OnClick);
         Assert.Null(div.OnMouseDown);
@@ -128,13 +128,13 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_component_callback_is_wrapped_where_an_element_controls_is_not()
     {
-        var host = CardHost.Value;
+        var host = CardHost;
         var dropped = (Action<DragDropMove>)host.Dropped;
         var changed = (Action<string>)host.Named;
 
-        Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).Value.OnDrop!.Value.Handler);
+        Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).OnDrop!.Value.Handler);
 
-        Assert.Same(changed, Input.Of<string>().OnChange(changed).Value.OnChange!.Value.Handler);
+        Assert.Same(changed, Input.Of<string>().OnChange(changed).OnChange!.Value.Handler);
     }
 
     // A null argument reads back as null — which every `is not null` a component asks about its own
@@ -146,8 +146,8 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     {
         Action? maybe = null;
 
-        Assert.Null(BuilderCard.Value.OnSelect);
-        Assert.Null(BuilderCard.OnSelect(maybe).Value.OnSelect);
+        Assert.Null(BuilderCard.OnSelect);
+        Assert.Null(BuilderCard.OnSelect(maybe).OnSelect);
     }
 
     // The async sibling still loses to a sync handler on the shared slot.
@@ -161,7 +161,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
         Action sync = Noop;
         // Writing the same step twice is the whole point of this test.
 #pragma warning disable RASK044
-        var div = Div.OnClick(() => Task.CompletedTask).OnClick(sync).Value;
+        var div = Div.OnClick(() => Task.CompletedTask).OnClick(sync);
 #pragma warning restore RASK044
 
         Assert.Same(sync, div.OnClick!.Value.Handler);
@@ -172,7 +172,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     {
         Func<Task> async = () => Task.CompletedTask;
 #pragma warning disable RASK044
-        var div = Div.OnClick(Noop).OnClick(async).Value;
+        var div = Div.OnClick(Noop).OnClick(async);
 #pragma warning restore RASK044
 
         Assert.Same(async, div.OnClick!.Value.Handler);
@@ -185,7 +185,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_non_On_delegate_prop_is_reachable_through_the_chain()
     {
-        var boundary = ErrorBoundary.Fallback((ex, _) => Span[ex.Message]).Value;
+        var boundary = ErrorBoundary.Fallback((ex, _) => Span[ex.Message]);
 
         Assert.NotNull(boundary.Fallback);
     }
@@ -197,8 +197,8 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     {
         Func<System.Security.Claims.ClaimsPrincipal, Component>? none = null;
 
-        Assert.Null(Authorize.Value.Authorized);
-        Assert.Null(Authorize.Authorized(none).Value.Authorized);
+        Assert.Null(Authorize.Authorized);
+        Assert.Null(Authorize.Authorized(none).Authorized);
     }
 
     // A component's OWN callback prop is a CARRIER, and its setter still keeps the property's name.
@@ -248,10 +248,10 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_callback_setter_keeps_the_propertys_name()
     {
-        var host = CardHost.Value;
+        var host = CardHost;
         var raw = (Action)host.Choose;
 
-        var card = BuilderCard.OnSelect(raw).Value;
+        var card = BuilderCard.OnSelect(raw);
 
         Assert.NotNull(card.OnSelect);
     }

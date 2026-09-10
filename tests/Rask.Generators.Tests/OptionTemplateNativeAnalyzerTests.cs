@@ -39,7 +39,7 @@ public class OptionTemplateNativeAnalyzerTests
                 public required string Label { get; set; }
                 public bool? Native { get; set; }
                 public string? Class { get; set; }
-                public System.Func<T, Rask.Core.Component>? OptionTemplate { get; set; }
+                public Rask.Core.Fn<T, Rask.Core.Component>? OptionTemplate { get; set; }
                 public T? Value { get; set; }
                 public Rask.Core.Callback<T>? OnChange { get; set; }
                 public System.Linq.Expressions.Expression<System.Func<T>>? Bind { get; set; }
@@ -51,8 +51,8 @@ public class OptionTemplateNativeAnalyzerTests
             {
                 public required string Label { get; set; }
                 public bool? Native { get; set; }
-                public System.Func<T, Rask.Core.Component>? OptionTemplate { get; set; }
-                public System.Func<T, Rask.Core.Component>? ChipTemplate { get; set; }
+                public Rask.Core.Fn<T, Rask.Core.Component>? OptionTemplate { get; set; }
+                public Rask.Core.Fn<T, Rask.Core.Component>? ChipTemplate { get; set; }
                 public T? Value { get; set; }
                 public Rask.Core.Callback<T>? OnChange { get; set; }
                 public System.Linq.Expressions.Expression<System.Func<T>>? Bind { get; set; }
@@ -66,7 +66,7 @@ public class OptionTemplateNativeAnalyzerTests
             public sealed partial class Card : Rask.Core.Component
             {
                 public bool? Native { get; set; }
-                public System.Func<string, Rask.Core.Component>? OptionTemplate { get; set; }
+                public Rask.Core.Fn<string, Rask.Core.Component>? OptionTemplate { get; set; }
             }
         }
         """;

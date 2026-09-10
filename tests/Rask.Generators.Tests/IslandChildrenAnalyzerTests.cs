@@ -54,11 +54,11 @@ public class IslandChildrenAnalyzerTests
     // of this repo's analyzers were blind.
     [Fact]
     public async Task ChainBlazorIslandWithChildren_ReportsRask062() =>
-        Assert.Equal("RASK062", Assert.Single(await Diagnostics(App("return default(Build<Chart>)[leaf];"))).Id);
+        Assert.Equal("RASK062", Assert.Single(await Diagnostics(App("return default(Chart)[leaf];"))).Id);
 
     [Fact]
     public async Task ChainExternalIslandWithChildren_ReportsRask062() =>
-        Assert.Equal("RASK062", Assert.Single(await Diagnostics(App("return default(Build<Panel>)[leaf];"))).Id);
+        Assert.Equal("RASK062", Assert.Single(await Diagnostics(App("return default(Panel)[leaf];"))).Id);
 
     [Fact]
     public async Task BlazorIslandWithChildren_ReportsRask062() =>

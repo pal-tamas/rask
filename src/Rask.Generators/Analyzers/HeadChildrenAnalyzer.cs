@@ -71,7 +71,7 @@ public sealed class HeadChildrenAnalyzer : DiagnosticAnalyzer
         // `Head()[...]` — the indexer receiver is typed `Rask.Core.Components.Head`. On a chain (`Head[...]`,
         // and every other spelling the framework now teaches) it is `Build<Head>` instead, so the receiver
         // has to be unwrapped or the whole chain surface slips past this check.
-        var receiverType = BuilderEntry.ChainedComponent(ModelExtensions
+        var receiverType = (ModelExtensions
             .GetTypeInfo(context.SemanticModel, node.Expression, context.CancellationToken).Type);
         if (receiverType is null)
         {

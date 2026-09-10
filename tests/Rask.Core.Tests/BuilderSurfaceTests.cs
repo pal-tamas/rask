@@ -32,12 +32,12 @@ public partial class BuilderSurfaceTests : global::Rask.Core.RaskMarkup
     public void The_chain_serializes_the_whole_tree() =>
         Assert.Equal(
             "<div id=\"root\" class=\"panel\"><h1 class=\"title\">Products</h1><table><thead><tr><th>#</th><th>Name</th></tr></thead><tbody><tr data-rask-key=\"1\"><td>1</td><td>Widget</td></tr><tr data-rask-key=\"2\"><td>2</td><td>Gadget</td></tr></tbody></table><a class=\"action\" data-rask-nav>New Product</a></div>",
-            BuilderProbe.Value.ToHtml());
+            BuilderProbe.ToHtml());
 
     [Fact]
     public void The_chain_preserves_attribute_order() =>
         Assert.Contains(
             "<div id=\"root\" class=\"panel\">",
-            BuilderProbe.Value.ToHtml(),
+            BuilderProbe.ToHtml(),
             StringComparison.Ordinal);
 }

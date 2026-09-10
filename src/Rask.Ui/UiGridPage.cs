@@ -1,7 +1,7 @@
 namespace Rask.Ui;
 
 /// <summary>
-/// What a <see cref="UiDataGrid{T}.Source" /> hands back: the rows of one page, and how many rows stand
+/// What a <see cref="UiDataGrid{T,TKey}.Source" /> hands back: the rows of one page, and how many rows stand
 /// behind it.
 /// </summary>
 /// <param name="Rows">The page's rows, already ordered and already sliced.</param>

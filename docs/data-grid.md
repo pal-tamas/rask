@@ -5,7 +5,7 @@ grouping, a column chooser, and a card layout on a phone. It lives in [the UI ki
 `dotnet add package Rask.Ui` is the whole installation.
 
 ```csharp
-UiDataGrid.Data(_products)[c => [
+UiDataGrid.Data(_products).RowKey(p => p.Id)[c => [
     c.Field(p => p.Name).Title("Product").Sortable(true),
     c.Field(p => p.Price).Title("Price").Class("text-right"),
 ]]
@@ -22,15 +22,15 @@ flat child, `UiColumn.Field(p => p.Name)` has nothing at all to tell it what `p`
 with CS0411. Handing the grid to a lambda fixes the row type before a single column is written:
 
 ```csharp
-UiDataGrid.Data(_products)[c => [        // c is UiDataGrid<Product>
-    c.Field(p => p.Name),                // so p is a Product
+UiDataGrid.Data(_products).RowKey(p => p.Id)[c => [   // c is UiDataGrid<Product, int>
+    c.Field(p => p.Name),                             // so p is a Product
 ]]
 ```
 
-This is why the grid's chain is `GridBuild<T, TKey>` rather than the usual `Build<T>` — an indexer
-cannot be constrained, so the only way to offer a column-factory indexer on a grid and nowhere else is
-for the grid's chain to be a different type. It is the same reasoning that gave `Form` its own
-`FormBuild<T>`.
+The indexer is declared on `UiDataGrid<T, TKey>` itself, which scopes it to a grid and nowhere else. It
+used to need a chain type of its own — `GridBuild<T, TKey>`, beside `Form`'s `FormBuild<T>` — purely
+because an indexer cannot be constrained; declaring it on the component does the same job and costs no
+type parameter.
 
 Two openings:
 
@@ -49,7 +49,7 @@ Decided by what the grid is given, and the three modes are reached by three diff
 **In memory.** A list. Right for a set small enough to hold, and it asks nothing of the caller.
 
 ```csharp
-UiDataGrid.Data(_products)[c => [ … ]]
+UiDataGrid.Data(_products).RowKey(p => p.Id)[c => [ … ]]
 ```
 
 **In the store.** An `IQueryable<T>`, handed to the *same* `Data` step. The grid translates the sort
@@ -58,7 +58,7 @@ arbitrarily large. One step rather than two, because an `IQueryable<T>` **is** a
 second name for the same slot is a second thing to get wrong.
 
 ```csharp
-UiDataGrid.Data(db.Products).PageSize(25)[c => [
+UiDataGrid.Data(db.Products).RowKey(p => p.Id).PageSize(25)[c => [
     c.Field(p => p.Name).Title("Product").Sortable(true),
 ]]
 ```
@@ -71,7 +71,7 @@ This mode enumerates **synchronously**, which is why the third exists.
 total.
 
 ```csharp
-UiDataGrid.Of<Product>().PageSize(25).Source(async request =>
+UiDataGrid.Of<Product, int>().RowKey(p => p.Id).PageSize(25).Source(async request =>
 {
     var page = await _api.GetProductsAsync(request.Sort, request.Descending, request.Page, request.PageSize);
     return new UiGridPage<Product>(page.Rows, page.Total);
@@ -96,7 +96,7 @@ redraws through the live diff. Name the state **and** its change callback and th
 page instead — while every other axis carries on holding its own.
 
 ```csharp
-UiDataGrid.Data(_page)
+UiDataGrid.Data(_page).RowKey(p => p.Id)
     .Sort(_sort).SortDescending(_desc).OnSortChange(s => { _sort = s.Field; _desc = s.Descending; })
     .TotalCount(_total).Page(_page).OnPageChange(async p => await LoadAsync(p))
     [c => [ … ]]
@@ -118,16 +118,21 @@ only way back to the order the source itself chose.
 
 ```csharp
 UiDataGrid.Data(_products)
-    .RowKey(p => p.Id)                       // the chain now carries int
+    .RowKey(p => p.Id)                       // the grid is UiDataGrid<Product, int>
     .Selected(_selected)                     // IReadOnlyList<int>
     .OnSelectionChange(keys => _selected = keys)
     [c => [ … ]]
 ```
 
-`RowKey` pins the chain's key type, and the selection steps are declared only over a pinned one — so a
-grid that has not said what identifies a row is not one whose selection is *rejected*: it is one where
-selection is not offered, in completion or at compile time. The keys reaching your callback are
-`IReadOnlyList<int>`, not boxed objects, and a membership test per row per render boxes nothing.
+**`RowKey` is required.** It pins the grid's key type, so the selection is expressed in exactly the keys
+you named: the values reaching your callback are `IReadOnlyList<int>`, not boxed objects, and a
+membership test per row per render boxes nothing.
+
+Required rather than optional, because optional was worse than it looked. The key used to arrive through
+a hand-written step, and a grid that never took it still rendered — rows fell back to their **index** for
+identity, so the live diff reordered by position, and the selection steps were reachable anyway and
+fabricated a strategy with no selector in it. Naming the key is now the only way to build a grid, so
+neither can happen.
 
 It is **not** `Key`: that is already the chain's step for reconciliation identity — which instance of
 the *grid* is being built — and has to be able to come first ([RASK046](diagnostics.md#rask046)).

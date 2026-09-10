@@ -33,8 +33,8 @@ public class BuilderSetterEmissionTests
         var output = Run(Src);
 
         Assert.Contains(
-            "Title(this global::Rask.Core.Build<global::Demo.Widget> __b, string? value) "
-            + "{ var __c = __b.Value; global::Rask.Core.BuilderRuntime.Track(__c, __c.Title, value); "
+            "Title(this global::Demo.Widget __b, string? value) "
+            + "{ var __c = __b; global::Rask.Core.BuilderRuntime.Track(__c, __c.Title, value); "
             + "global::Rask.Core.BuilderRuntime.Written(__c, 0x100000000UL); __c.Title = value; return __b; }",
             output,
             StringComparison.Ordinal);
@@ -166,18 +166,21 @@ public class BuilderSetterEmissionTests
         var output = Run(src);
 
         Assert.Contains(
-            "public static global::Rask.Core.Build<T> Class<T>(this global::Rask.Core.Build<T> __b, string? value) where T : global::Rask.Core.Element "
-            + "{ var __c = __b.Value; global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, value); "
+            "public static T Class<T>(this T __b, string? value) where T : global::Rask.Core.Element "
+            + "{ var __c = __b; global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, value); "
             + "global::Rask.Core.BuilderRuntime.Written(__c, 0x1UL); __c.Class = value; return __b; }",
             output,
             StringComparison.Ordinal);
 
-        // Two chain shapes declare a bare <T> and so match here: Build<T> and the form's FormBuild<T>.
-        // (Build<T, TMode> declares <T, TMode>.) An event folds into propsChanged on none of them.
+        // ONE declaration. The shared surface used to be emitted once per chain SHAPE, because a step like
+        // `.Class(…)` had to be reachable from all of them and hand back the shape it was given. The
+        // receiver is the component now, so the generic self-type carries that on its own. Emitting it
+        // more than once is CS0111 — every shape collapses to the same signature — so this count is the
+        // pin that says the loop is gone rather than merely unused.
         var clicks = output.Split('\n')
             .Where(l => l.Contains(" OnClick<T>(this ", StringComparison.Ordinal)).ToList();
 
-        Assert.Equal(2, clicks.Count);
+        Assert.Single(clicks);
         Assert.All(clicks, c => Assert.DoesNotContain("BuilderRuntime.Track", c, StringComparison.Ordinal));
     }
 
@@ -204,18 +207,18 @@ public class BuilderSetterEmissionTests
         var output = Run(src);
 
         Assert.Contains(
-            "public static global::Rask.Core.Build<T> OnClick<T>(this global::Rask.Core.Build<T> __b, global::System.Action? value) "
+            "public static T OnClick<T>(this T __b, global::System.Action? value) "
             + "where T : global::Rask.Core.Element "
-            + "{ var __c = __b.Value; " + Mark + "__c.OnClick = value; return __b; }",
+            + "{ var __c = __b; " + Mark + "__c.OnClick = value; return __b; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
-            "OnMouseDown<T>(this global::Rask.Core.Build<T> __b, "
+            "OnMouseDown<T>(this T __b, "
             + "global::System.Action<global::Rask.Core.Live.MouseEventArgs>? value)",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
-            "OnClickAsync<T>(this global::Rask.Core.Build<T> __b, global::System.Func<global::System.Threading.Tasks.Task>? value)",
+            "OnClickAsync<T>(this T __b, global::System.Func<global::System.Threading.Tasks.Task>? value)",
             output,
             StringComparison.Ordinal);
         Assert.DoesNotContain("AutoCallback.Wrap", output, StringComparison.Ordinal);
@@ -242,8 +245,8 @@ public class BuilderSetterEmissionTests
                          """);
 
         Assert.Contains(
-            "OnPick(this global::Rask.Core.Build<global::Demo.Widget> __b, global::System.Action? value) "
-            + "{ var __c = __b.Value; " + Mark + "__c.OnPick = global::Rask.Core.AutoCallback.Wrap(value); "
+            "OnPick(this global::Demo.Widget __b, global::System.Action? value) "
+            + "{ var __c = __b; " + Mark + "__c.OnPick = global::Rask.Core.AutoCallback.Wrap(value); "
             + "return __b; }",
             output,
             StringComparison.Ordinal);
@@ -310,7 +313,7 @@ public class BuilderSetterEmissionTests
                          }
                          """);
 
-        Assert.Contains("Heading(this global::Rask.Core.Build<global::Demo.Widget> __b, string? value)", output, StringComparison.Ordinal);
+        Assert.Contains("Heading(this global::Demo.Widget __b, string? value)", output, StringComparison.Ordinal);
 
         // …and the inherited prop is reset like an own one, or the chain would keep last render's
         // heading where the factory would have put it back.
@@ -318,7 +321,7 @@ public class BuilderSetterEmissionTests
 
         // Component's own props stay on the shared surface: emitting them here as well would be dead
         // weight on every component in the assembly.
-        Assert.DoesNotContain("Key(this global::Rask.Core.Build<global::Demo.Widget>", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Key(this global::Demo.Widget", output, StringComparison.Ordinal);
     }
 
     // The shared Element/Component surface gets its reset emitted ONCE, into Rask.Core.BuilderRuntime —
@@ -371,8 +374,8 @@ public class BuilderSetterEmissionTests
 
         var output = run.Source("RaskBuilderSetters.g.cs");
         Assert.Contains(
-            "Format(this global::Rask.Core.Build<global::Demo.Widget> __b, global::System.Func<int, string>? value) "
-            + "{ var __c = __b.Value; " + Mark + "__c.Format = value; return __b; }",
+            "Format(this global::Demo.Widget __b, global::System.Func<int, string>? value) "
+            + "{ var __c = __b; " + Mark + "__c.Format = value; return __b; }",
             output,
             StringComparison.Ordinal);
 
@@ -414,18 +417,18 @@ public class BuilderSetterEmissionTests
         // emitted only the synchronous one would compile, pass every other test, and simply have no way
         // to say `.Validate(async (v, ct) => …)`.
         Assert.Contains(
-            "Validate(this global::Rask.Core.Build<global::Demo.Widget, global::Rask.Core.Forms.Bound> __b, "
+            "Validate(this global::Demo.Widget __b, "
             + "global::Rask.Core.Validator<int>? value) "
-            + "{ var __c = __b.Value; __c.Validate = value; "
+            + "{ var __c = __b; __c.Validate = value; "
             + "return __b; }",
             output,
             StringComparison.Ordinal);
         foreach (var shape in new[] { "global::Rask.Core.Forms.Validate<int>", "global::Rask.Core.Forms.ValidateAsync<int>" })
         {
             Assert.Contains(
-                "Validate(this global::Rask.Core.Build<global::Demo.Widget, global::Rask.Core.Forms.Bound> __b, "
+                "Validate(this global::Demo.Widget __b, "
                 + shape + "? value) "
-                + "{ var __c = __b.Value; global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); "
+                + "{ var __c = __b; global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); "
                 + "__c.Validate = value is null ? null : new global::Rask.Core.Validator<int>(value); "
                 + "return __b; }",
                 output,

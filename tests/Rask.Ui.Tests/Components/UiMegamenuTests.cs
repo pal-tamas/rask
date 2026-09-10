@@ -66,7 +66,7 @@ public partial class UiMegamenuTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("megamenu-panel", Menu());
     }
 
-    private global::Rask.Core.Build<UiMegamenuPanel> Panel() =>
+    private UiMegamenuPanel Panel() =>
         UiMegamenuPanel.Trigger("Products").Id("products");
 
     private string Menu() =>

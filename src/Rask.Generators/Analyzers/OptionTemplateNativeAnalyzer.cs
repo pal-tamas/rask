@@ -65,7 +65,9 @@ public sealed class OptionTemplateNativeAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (!IsSelect(BuilderEntry.ChainedComponent(operation.TargetMethod.ReturnType)))
+        // A step hands back the component itself, so the return type IS what is being built — this used
+        // to have to unwrap a `Build<T>` first.
+        if (!IsSelect(operation.TargetMethod.ReturnType))
         {
             return;
         }
