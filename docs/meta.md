@@ -103,7 +103,7 @@ does not fail, it simply does not apply. If a creator moves its stylesheet, `ras
 the one line to add by hand; it does not leave you with a project whose every daisyUI class styles
 nothing.
 
-## Signing people in
+## Where the sign-in screens land
 
 An app with a database gets `/login` and `/register` scaffolded, in **this framework's own routing
 convention** — and those conventions are not interchangeable, so the table is the record of what each

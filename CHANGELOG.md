@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The meta framework lane is on the front door.** `Rask.Meta.Hosting` has shipped for a while, with
+  a guide, a card in the landing page's batteries grid and a row in the docs index — but neither place
+  that frames *the choice of a front end* counted it. The README section was titled "Three front ends,
+  one back end" and listed three, and the landing page had no such section at all, so the lane a
+  visitor is picking between was reachable only by reading a thirteen-card feature grid.
+
+  README now names four lanes — Rask components, islands, the TypeScript SPA, and a meta framework —
+  and the landing page gains the matching section, between the hosts grid and the batteries grid. The
+  Islands and Meta cards move *into* it out of the batteries grid rather than being said twice on one
+  page. `llms.txt` gains its `docs/meta.md` bullet, the one front-end lane it was missing.
+
+  The heading's count is asserted against the markup beside it rather than pinned to a literal
+  (`FrontEndsTests`): add a lane and the wording has to change with it, because a number that outlives
+  what it counts is precisely what went wrong here. `docs/meta.md` also loses a second section titled
+  "Signing people in" — the one about where the scaffolded screens land is now named for that.
+
 - **The local format + unit gate is roughly 2.4x faster — ~325s to ~136s on a 14-core box.** Nothing
   it checks was dropped; the time was going to four things that measurement, not intuition, found.
 

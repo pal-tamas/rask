@@ -87,6 +87,7 @@ public sealed partial class HomePage : Component
         Hero(),
         BytesSection(),
         HostsSection(),
+        FrontEndsSection(),
         FeaturesSection(),
         WholeBackEndSection(),
         InstallSection(),
@@ -288,8 +289,8 @@ public sealed partial class HomePage : Component
             Td.Class("px-4 py-3 text-right text-sm font-semibold text-ui-ok-ink")[win]
         ];
 
-    // ---- hosts ----
-    private static Component Host(
+    // ---- hosts & front-end lanes ----
+    private static Component LaneCard(
         UiIconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
         NavLink
             .Href(Rask.Site.Features.Routes.GuidePage(guide))
@@ -316,12 +317,44 @@ public sealed partial class HomePage : Component
                     "Write it once. Ship it where you need it.",
                     "The identical C# component runs unchanged across every host — you choose the runtime per project, not per component."),
                 Div.Class("grid gap-4 md:grid-cols-3")[
-                    Host(UiIconName.Server, "Rask.Server", "Server", "render-modes", "AddRask() · UseRask<TApp>()",
+                    LaneCard(UiIconName.Server, "Rask.Server", "Server", "render-modes", "AddRask() · UseRask<TApp>()",
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
-                    Host(UiIconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
+                    LaneCard(UiIconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
-                    Host(UiIconName.Storage, "Rask.Wasm.Hosting", "Static host", "deployment", "AddRaskWasmHosting()",
+                    LaneCard(UiIconName.Storage, "Rask.Wasm.Hosting", "Static host", "deployment", "AddRaskWasmHosting()",
                         "Serves a published WASM bundle from an ASP.NET host, with the right content types and pre-compressed variants.")
+                ]
+            ]
+        ];
+
+    // ---- front ends ----
+    /// <summary>
+    ///     The front-ends section's DOM id — the handle its tests address it by.
+    /// </summary>
+    /// <remarks>
+    /// The heading counts the lanes in words ("Four front ends"), and a count written in prose is the
+    /// kind that goes stale silently — the README's equivalent section said "Three" for as long as
+    /// there were four lanes to choose between. <c>FrontEndsTests</c> slices the page at this id and
+    /// counts the cards inside it, so adding a lane without rewording the heading fails rather than
+    /// merely reads wrong.
+    /// </remarks>
+    internal const string FrontEndsSectionId = "front-ends";
+
+    private Component FrontEndsSection() =>
+        Section.Id(FrontEndsSectionId).Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("Four front ends · one back end",
+                    "Bring your own front end — or don't.",
+                    "Every lane answers to the same C# back end over the same typed wire. Pick one per project; islands also compose inside a Rask component tree, so those two mix freely."),
+                Div.Class("grid gap-4 md:grid-cols-2")[
+                    LaneCard(UiIconName.CodeBracket, "Rask.Core", "Rask components", "render-modes", "rask new Shop",
+                        "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Add ", Code["--wasm"], " and the same components also publish as a WebAssembly bundle out of the same project."),
+                    LaneCard(UiIconName.Puzzle, "Rask.External", "Islands", "islands", "class Chart : ReactComponent",
+                        "A ", Code[".tsx"], ", ", Code[".vue"], ", ", Code[".svelte"], " or Lit file as an ordinary Rask component — props declared in C#, callbacks re-entering C#, and the live diff leaving the subtree to its own renderer. A real Blazor component too."),
+                    LaneCard(UiIconName.Desktop, "Rask.Spa.Hosting", "TypeScript SPA", "spa", "rask new Shop --template react",
+                        "A TypeScript single-page app on an ASP.NET host — seven frameworks, with the client's types generated from your C# message records on every build. No Node at runtime."),
+                    LaneCard(UiIconName.Globe, "Rask.Meta.Hosting", "Meta framework", "meta", "rask new Shop --template nuxt",
+                        "Nuxt, Next, SvelteKit, TanStack Start, SolidStart or Analog owning the whole front end, with Rask the backend behind it. One container, one port: Kestrel fronts every request and supervises Node on loopback.")
                 ]
             ]
         ];
@@ -383,9 +416,7 @@ public sealed partial class HomePage : Component
                     Feature(UiIconName.Cube, "50 typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
                     Feature(UiIconName.ShieldOk, "Secure by default", "best-practices", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code["javascript:"], " → ", Code["about:blank"], "). Safe output is the default, not a flag."),
                     Feature(UiIconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
-                    Feature(UiIconName.Puzzle, "Islands", "islands", "React, Preact, Solid, Vue, Svelte, Angular or Lit — any of the seven as an ordinary Rask component, with its props declared in C# and its callbacks re-entering C#. A real Blazor component too — MudBlazor, an RCL — hosted server-rendered."),
                     Feature(UiIconName.Sparkles, "Prerendering & render modes", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, ", Code["RenderModes"], " decides per page whether it needs a live session at all."),
-                    Feature(UiIconName.Globe, "Meta framework front ends", "meta", "Nuxt, Next, SvelteKit, Start, SolidStart or Analog served beside your C# from one container — ", Code["Rask.Meta.Hosting"], " builds the front end, supervises Node and proxies to it."),
                     Feature(UiIconName.Terminal, "One CLI", "cli", Code["rask new"], ", ", Code["rask dev"], ", ", Code["rask db"], ", ", Code["rask deploy"], " — scaffold, run, migrate and ship without leaving the terminal.")
                 ]
             ]
