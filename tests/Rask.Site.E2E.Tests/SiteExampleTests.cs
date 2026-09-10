@@ -297,7 +297,7 @@ public sealed class SiteExampleTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public async Task Theme_DefaultsToLightAndIsRemembered()
+    public async Task Theme_FollowsTheOperatingSystemAndIsRemembered()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
@@ -307,7 +307,12 @@ public sealed class SiteExampleTests
             await Expect(page.Locator("body[data-rask-root='wasm']"))
                 .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
 
-            await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "light");
+            // NO data-theme with nothing stored, and the absence is the feature: daisyUI compiles
+            // [data-rask-ui]:not([data-theme]) under prefers-color-scheme, so the attribute's absence is
+            // what follows the reader's machine. This used to assert "light", which is what pinned every
+            // reader to a white page however their OS was set. ThemeTests measures both directions and the
+            // contrast in each; this journey only has to prove the picker still round-trips.
+            Assert.Null(await page.Locator("html").GetAttributeAsync("data-theme"));
             Assert.Null(await page.EvaluateAsync<string?>("() => localStorage.getItem('rask-theme')"));
 
             await page.Locator("details.dropdown > summary").First.ClickAsync();

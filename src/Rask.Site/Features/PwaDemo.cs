@@ -25,19 +25,16 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
 
     protected override Component? Render() =>
     [
-        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")[UiIcon.Name(UiIconName.Bell).Class("me-2"), "Local notification (INotifications)"],
                 P.Class("text-sm text-ui-muted")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
                 UiButton.Label("Show a notification").Tone(UiTone.Primary).Class("mb-2").Id("pwa-notify").OnClick(ShowNotification),
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
-            ]
-        ],
+            ],
 
-        Div.Class($"{Tw.Card} shadow-sm border-0 mb-3")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")[UiIcon.Name(UiIconName.Signal).Class("me-2"), "Web Push (IWebPush)"],
                 P.Class("text-sm text-ui-muted")[
                     "Subscribes with a demo VAPID key and registers with this app's ", Code["Rask.WebPush"],
@@ -53,11 +50,9 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                         .OnClick(SendTestPush)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
-            ]
-        ],
+            ],
 
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 H6.Class("font-bold")[UiIcon.Name(UiIconName.Overview).Class("me-2"), "App badge (IBadge)"],
                 P.Class("text-sm text-ui-muted")[
                     "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",
@@ -69,7 +64,6 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
             ]
-        ]
     ];
 
     private async Task ShowNotification()

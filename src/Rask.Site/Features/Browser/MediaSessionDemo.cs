@@ -54,8 +54,7 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                     UiButton.Label("Publish metadata").Tone(UiTone.Primary).Id("ms-publish").OnClick(Publish),
                     UiButton.Label("Mark playing").Tone(UiTone.Primary).Variant(UiVariant.Outline)
@@ -71,8 +70,7 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
                     + "shows below. Lock-screen integration activates fully while audio is playing."],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("ms-status")[_status]],
                 Div.Class("text-sm text-ui-muted")["Last action: ", Code.Id("ms-last")[_last]]
-            ]
-        ];
+            ];
 
     private async Task Publish()
     {

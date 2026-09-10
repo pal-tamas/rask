@@ -14,8 +14,7 @@ public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsync
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     UiButton
                         .Label(_sentinel is null ? "Keep screen awake" : "Release")
@@ -24,8 +23,7 @@ public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsync
                         .OnClick(Toggle)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Toggle()
     {

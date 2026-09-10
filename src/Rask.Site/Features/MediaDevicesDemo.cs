@@ -16,8 +16,7 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Video
                     .Ref(_video)
                     .Width(320)
@@ -34,8 +33,7 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
                         .OnClick(Stop)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status]]
-            ]
-        ];
+            ];
 
     private Task StartCamera() => Capture(() => media.GetUserMediaAsync(new MediaConstraints(Video: true)), "Camera live");
 

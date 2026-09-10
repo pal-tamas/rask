@@ -46,8 +46,7 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
                 Div.Class("text-sm text-ui-muted mb-2")[
                     "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString()]],
@@ -61,8 +60,7 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
                                 + $"buttons pressed {p.Buttons.Count(b => b > 0.5)}/{p.Buttons.Count}"]
                         ])
                     ]
-            ]
-        ];
+            ];
 
     public async ValueTask DisposeAsync()
     {

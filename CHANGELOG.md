@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The card wrappers are `UiCard`.** 59 `Div.Class(Tw.Card)[Div.Class(Tw.CardBody)[…]]` pairs collapse
+  into one component — `UiStyles.Card` already carries the padding the inner div supplied — which is 118
+  constant references and 42 lines of rendered markup gone. Six `Card*` constants are deleted. Four sites
+  keep their own element for a reason and take the KIT's class constant rather than the app's: an
+  `<article>` for a syndicated post, a card wrapping a scroll container rather than a padded body, the
+  demo whose subject IS `id`+`class`+`style` on one element, and a kanban chip that was never a card.
+
+  Also fixes a test I left red on `main`: `SiteExampleTests.Theme_DefaultsToLightAndIsRemembered` still
+  asserted `data-theme="light"`, the very default the theme change removed. My earlier filtered E2E runs
+  did not include that file, so it went unnoticed for two commits. It now asserts the absence, and
+  `ThemeTests` covers both OS directions and the contrast in each.
+
 - **Every button in the showcase is a `UiButton`, and `Tw.cs` has no button constants left.** 146 call
   sites across the site moved off the class-string vocabulary onto the kit: `Button.Class(Tw.BtnPrimary)
   ["Save"]` is `UiButton.Label("Save").Tone(UiTone.Primary)`. The 18 `Btn*`/`Outline*` constants are

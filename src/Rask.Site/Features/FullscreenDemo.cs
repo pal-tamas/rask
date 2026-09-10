@@ -15,8 +15,7 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div
                     .Ref(_stage)
                     .Class("border rounded bg-ui-well flex items-center justify-center mb-2")
@@ -29,8 +28,7 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
                     UiButton.Label("Exit").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("fullscreen-exit").OnClick(Exit)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Enter()
     {

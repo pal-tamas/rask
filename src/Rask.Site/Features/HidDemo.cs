@@ -18,8 +18,7 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     UiButton.Label("Pair device").Icon(UiIconName.Cube).Tone(UiTone.Primary).Id("hid-request").OnClick(RequestDevice),
                     UiButton.Label("Open & watch").Tone(UiTone.Primary).Variant(UiVariant.Outline)
@@ -44,8 +43,7 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
                 Div.Class("text-sm text-ui-muted")["Reports: ", Code.Id("hid-count")[_reportCount.ToString()]],
                 Div.Class("text-sm text-ui-muted")["Last: ", Code.Id("hid-last")[_lastReport]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("hid-status")[_status]]
-            ]
-        ];
+            ];
 
     private async Task RequestDevice()
     {

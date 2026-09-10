@@ -9,15 +9,13 @@ public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 UiButton.Label("Evaluate media queries").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("media-read")
                     .OnClick(Read),
                 Div.Class("text-sm text-ui-muted")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Read()
     {

@@ -67,8 +67,7 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 UiButton.Label("Start").Tone(UiTone.Primary).Class("mb-3").Id("sensor-start").OnClick(Start),
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("sensor-status")[_status]],
                 Div.Class("grid grid-cols-12 gap-4")[
@@ -87,8 +86,7 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
                             " · z ", Code.Id("sensor-az")[Fmt(_accel?.AccelerationZ)]]
                     ]
                 ]
-            ]
-        ];
+            ];
 
     private static string Fmt(double? value) => value is null ? "—" : value.Value.ToString("0.0");
 

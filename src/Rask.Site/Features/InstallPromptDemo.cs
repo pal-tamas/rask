@@ -60,8 +60,7 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     UiButton.Label("Install app").Icon(UiIconName.Download).Tone(UiTone.Primary)
                         .Id("install-button")
@@ -72,6 +71,5 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
                         .OnClick(RefreshAsync)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("install-status")[_status]]
-            ]
-        ];
+            ];
 }

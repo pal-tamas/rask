@@ -9,15 +9,13 @@ public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Compon
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 UiButton.Label("Read navigator info").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("nav-read")
                     .OnClick(Read),
                 Div.Class("text-sm text-ui-muted")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("nav-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Read()
     {

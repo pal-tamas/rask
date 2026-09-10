@@ -102,7 +102,7 @@ public sealed partial class CodeSample : Component
         // daisyUI's `card` supplies the panel: the flex column, the --radius-box corner and the focus
         // ring. What is left on the element is the border, the surface and the overflow clip that keeps
         // the dark code pane inside that corner — .sample-card used to carry the radius as an
-        // `!important` override of Tw.Card's, which is what an unlayered rule needs to beat a utility.
+        // `!important` override of the kit card's, which is what an unlayered rule needs to beat a utility.
         // The name stays: five assertions across the unit and browser suites select on it.
         return Div.Class(
             "sample-card card mb-4 overflow-hidden border border-ui-line bg-ui-bg shadow-sm")[
@@ -110,7 +110,7 @@ public sealed partial class CodeSample : Component
                 ? null
                 // bg-ui-bg, not the bg-white this used to hard-code: the panel is the palette's, and a
                 // literal white was the one colour on this card that could not follow a theme.
-                : Div.Class($"{Tw.CardHeader} bg-ui-bg")[
+                : Div.Class("border-b border-ui-line px-5 py-3 font-medium bg-ui-bg")[
                     Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
                     Notes is null
                         ? null

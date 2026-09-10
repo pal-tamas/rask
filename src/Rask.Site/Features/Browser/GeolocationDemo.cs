@@ -10,15 +10,13 @@ public sealed partial class GeolocationDemo(IGeolocation geolocation) : Componen
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 UiButton.Label("Get current position").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("geo-get")
                     .OnClick(Get),
                 Div.Class("text-sm text-ui-muted")["Position: ", Code.Id("geo-value")[_location ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("geo-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Get()
     {

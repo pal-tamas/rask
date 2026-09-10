@@ -19,8 +19,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Label.Class("text-sm text-ui-muted mb-0").For("serial-baud")["Baud"],
                     Input
@@ -59,8 +58,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                     .Style("min-height: 6rem; max-height: 12rem; overflow: auto")[
                     _log.Count == 0 ? "(no data yet)" : string.Join("\n", _log)],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("serial-status")[_status]]
-            ]
-        ];
+            ];
 
     private async Task Connect()
     {

@@ -35,8 +35,7 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
     }
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("text-sm text-ui-muted mb-2")[
                     "Observed size: ",
                     Code.Id("resize-value")[
@@ -51,8 +50,7 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
                     .Class((_wide ? "w-full" : "w-1/2") + "p-4 rounded bg-ui-well text-center")[
                     "📐 observed box (resize the window too)"
                 ]
-            ]
-        ];
+            ];
 
     public async ValueTask DisposeAsync()
     {

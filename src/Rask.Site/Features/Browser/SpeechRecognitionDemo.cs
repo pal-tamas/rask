@@ -19,8 +19,7 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
     private bool Listening => _session is not null;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     UiButton.Label("Start listening").Tone(UiTone.Primary)
                         .Id("speech-recognize-start")
@@ -37,8 +36,7 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
                     _interim.Length == 0 ? (Component?)null : Span.Class("text-ui-muted italic")[" ", _interim]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-recognize-status")[_status]]
-            ]
-        ];
+            ];
 
     private async Task Start()
     {

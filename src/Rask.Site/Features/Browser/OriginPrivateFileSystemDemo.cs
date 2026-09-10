@@ -19,8 +19,7 @@ public sealed partial class OriginPrivateFileSystemDemo(
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex flex-wrap gap-2 mb-2")[
                     UiButton.Label("Write at 4096").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("opfs-write")
@@ -35,8 +34,7 @@ public sealed partial class OriginPrivateFileSystemDemo(
                 Div.Class("text-sm text-ui-muted")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
                 Div.Class("text-sm text-ui-muted")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     // Writing at an offset leaves everything outside the range intact and zero-fills the gap up to it, so
     // the file ends up larger than the bytes written — that's the point of a ranged write.

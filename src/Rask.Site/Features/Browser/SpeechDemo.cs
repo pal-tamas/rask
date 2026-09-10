@@ -9,8 +9,7 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Input
                     .Value(_text)
                     .Id("speech-text")
@@ -23,8 +22,7 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
                         .OnClick(Cancel)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
-            ]
-        ];
+            ];
 
     private async Task Speak()
     {

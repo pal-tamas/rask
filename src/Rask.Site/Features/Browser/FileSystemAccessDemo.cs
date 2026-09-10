@@ -14,8 +14,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div.Class($"{Tw.Card} shadow-sm border-0")[
-            Div.Class(Tw.CardBody)[
+        UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     UiButton.Label("Open file").Icon(UiIconName.Folder).Tone(UiTone.Primary).Id("fs-open").OnClick(Open),
                     UiButton.Label("Save").Icon(UiIconName.Save).Tone(UiTone.Primary).Variant(UiVariant.Outline)
@@ -33,8 +32,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                     .Placeholder("Open a text file, or type here and Save as…")
                     .OnInput(v => _text = v),
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fs-status")[_status]]
-            ]
-        ];
+            ];
 
     private async Task Open()
     {
