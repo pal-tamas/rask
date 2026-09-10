@@ -1342,6 +1342,36 @@ public abstract partial class Component : RaskMarkup
         return Live.CachedRenderResult;
     }
 
+    /// <summary>
+    ///     Completes any chain this component owns that was built AFTER its own render finished.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A children-function — <c>Form.Model(m)[submitting =&gt; [ … ]]</c> — runs during the
+    ///         SERIALIZER's walk, not during the owner's <c>Render()</c>. Its entries therefore land
+    ///         after <see cref="RenderForLive" />'s commit point has already passed, so nothing drains
+    ///         their pending resets and nothing calls <c>NotifyParameters</c> on what they built.
+    ///     </para>
+    ///     <para>
+    ///         Left that way, a component in there keeps <c>PropsDirty</c> unset and the render cache
+    ///         hands back the subtree from before the argument changed: the label a call site correctly
+    ///         wrote as <c>submitting ? "Saving…" : "Sign up"</c> never leaves "Sign up" (#1050). An
+    ///         explicit <c>Key</c> hid it by resolving to a different instance, which no call site
+    ///         should have had to know.
+    ///     </para>
+    ///     <para>
+    ///         Gated on the same flag the render-time commit uses, so a walk that built no entries pays
+    ///         one bool test.
+    ///     </para>
+    /// </remarks>
+    internal void CommitEntryChildrenIfPending()
+    {
+        if (_live is { HasEntryChildren: true })
+        {
+            CommitEntryChildren();
+        }
+    }
+
     // Fires the deferred NotifyParameters for every child a builder entry produced during the Render()
     // that just finished. Kept out of RenderForLive so the hot path is a single bool test.
     private void CommitEntryChildren()

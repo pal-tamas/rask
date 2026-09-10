@@ -403,6 +403,12 @@ public sealed class LiveRenderContext : IDisposable
     // (same rationale as Router/ErrorBoundary's BypassRenderCache).
     internal void MarkCurrentReadsAmbientState() => CurrentParent.MarkReadsAmbientStateInternal();
 
+    // Completes chains a CHILDREN-FUNCTION built. Those run during the serializer walk, after the
+    // owning component's render already passed its commit point, so nothing else would drain their
+    // pending resets or fire NotifyParameters on what they built (#1050). The owner is the current
+    // parent because an element pushes no parent scope of its own.
+    internal void CommitPendingEntryChildren() => CurrentParent.CommitEntryChildrenIfPending();
+
     /// <summary>
     ///     Flags the rendering component as reading ambient state and hands it back, so a package
     ///     outside Core can re-render it when that state later changes.

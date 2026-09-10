@@ -33,6 +33,69 @@ them until tagged releases begin.
   These drive the handler and assert the MODEL, inside a `Form` and outside one, with a raw element in the
   same harness as the guard.
 
+  Arrived alongside an independent fix for the same defect (see *A validation message the kit renders is
+  visible*, below): that one keeps the wrapping and stops the kit's own messages depending on daisyUI's
+  sibling selector at all. Both are in place, and they are complementary rather than alternatives — the
+  `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
+  makes the kit's own messages independent of it.
+
+### Fixed
+
+- **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
+  right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,
+  `.validator:user-invalid ~ .validator-hint`. That selector asks the *browser* whether the value is
+  acceptable and needs the hint to be a *sibling* of the input — and the kit holds neither assumption.
+  Its messages come from C# and are rendered only while the value is actually wrong, and `UiFormField`
+  wraps a labelled control in a `<label>`, so a validator beside the field is nobody's sibling. The kit
+  now marks the messages it decides to render and shows those; hand-written daisyUI markup keeps the
+  CSS-only behaviour unchanged.
+
+- **The prerendered page no longer paints an unstyled frame at all.** The `<body>` replacement fixed
+  earlier was real but was **not** what the reader saw: after it, the flash was still there. Measured
+  on the published bundle, `document.styleSheets` collapsed from 6 to 1 for ~37 ms at exactly that
+  frame, while every stylesheet `<link>` stayed connected, un-removed and un-mutated — and
+  `moveBefore` was available and never threw.
+
+  What moved them was the keyed `<head>` reconciliation. A prerendered head is
+  `[shell nodes][document nodes]` while the runtime's full-frame payload carries the document's alone,
+  so the anchor started on the first *shell* node — one the incoming tree never claims. Every node the
+  payload did claim then looked out of place and was relocated in front of it: **22 `moveBefore` calls
+  on the landing page**, for a head whose survivors were already in the right order. Moving a
+  `<link rel=stylesheet>` re-resolves its sheet, so three of the four stylesheets stopped applying
+  until the move settled.
+
+  The anchor now skips nodes the incoming tree does not claim, walking the **live** sibling chain
+  rather than the snapshot the loop started with — the DOM is mutated as the loop runs, so a snapshot
+  stops describing it after the first insert. The landing page now performs **zero** moves, and the
+  unstyled frame is gone: every sampled frame holds its background, its font and its height.
+
+  Deliberately not fixed by re-ordering the prerendered head to match the payload. That was tried,
+  removed the moves too, and changed the cascade — the browser suite caught a scoped-CSS rule losing to
+  a stylesheet it used to win against. Reconciliation was the right place; output order was not.
+
+- **A component's props refresh from a children-function's argument, with no `Key`.**
+  `Form.Model(m)[submitting => [ … ]]` calls its children function on every render with whether a
+  submit is in flight. A component in there whose prop derived from that flag kept its old value for
+  the whole submit — a button written as `submitting ? "Saving…" : "Sign up"` stayed "Sign up" — and
+  only an explicit `.Key(submitting)` fixed it, which no call site should have to know.
+
+  The cause is a commit-point mismatch, and nothing to do with forms. A children function runs during
+  the **serializer's** walk, while the deferred entry commit — the drain of pending resets plus
+  `NotifyParameters` — runs at the end of the owner's `RenderForLive`, which by then is long past. So
+  the component the function built never had `PropsDirty` set, and the render cache handed back the
+  subtree from before the argument changed. `OnPropsChanged` did not fire either, so a component that
+  *acts* on a prop change rather than merely rendering it was equally stuck.
+
+  The serializer now materialises a children function's output, commits the owner's pending entries,
+  and only then walks them. Materialising first is what makes the commit meaningful: a `yield` body
+  would otherwise build each entry as the walk reached it, one child too late. The owner is the
+  current parent rather than the element, because an element pushes no parent scope of its own.
+
+  It read correctly with an element child (`Button[submitting ? … : …]`) because an element's children
+  are walked and never cached, which is why nothing hit this until the showcase moved onto `Rask.Ui`.
+  The `.Key(submitting)` workaround in `FormSubmitStateDemo` is gone.
+
+
 ## [0.21.0] - 2026-09-10
 
 ### Changed
