@@ -182,7 +182,7 @@ assert_pre_push() {
   actual="$(
     cd "$push_repo" || exit 9
     printf 'refs/heads/main %s refs/heads/main %s\n' "$2" "$base" \
-      | RASK_SKIP_UNIT=1 \
+      | RASK_SKIP_UNIT=1 RASK_PRE_PUSH_ACTIVE= \
         bash .githooks/pre-push origin https://example.invalid >/dev/null 2>&1
     echo $?
   )"
@@ -208,7 +208,7 @@ assert_pre_push_unskipped() {
   actual="$(
     cd "$push_repo" || exit 9
     printf 'refs/heads/topic %s refs/heads/topic %s\n' "$2" "$3" \
-      | bash .githooks/pre-push origin https://example.invalid >/dev/null 2>&1
+      | RASK_PRE_PUSH_ACTIVE= bash .githooks/pre-push origin https://example.invalid >/dev/null 2>&1
     echo $?
   )"
   set -e

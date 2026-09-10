@@ -47,7 +47,7 @@ failures=0
 # but the skip is what keeps the test fast and honest about only pinning classification.
 run_hook() {
   printf '%s' "$1" | \
-    RASK_SKIP_UNIT=1 \
+    RASK_SKIP_UNIT=1 RASK_PRE_PUSH_ACTIVE= \
     "$hook" origin https://github.com/pal-tamas/rask.git 2>&1 || true
 }
 
