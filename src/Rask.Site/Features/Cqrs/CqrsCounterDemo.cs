@@ -22,7 +22,7 @@ public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
         Div.Id("cqrs-counter").Class("flex flex-col gap-3")[
             Div.Class("flex gap-3 items-center flex-wrap items-center")[
                 Span.Id("cqrs-count").Class("text-3xl font-semibold")[$"{_view.Count}"],
-                Button.Type("button").Class(Tw.BtnPrimary).Id("cqrs-increment").OnClick(IncrementAsync)["Increment"]
+                UiButton.Label("Increment").Tone(UiTone.Primary).Id("cqrs-increment").OnClick(IncrementAsync)
             ],
             _view.Log.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Loading the counter…"]

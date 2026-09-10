@@ -44,7 +44,8 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .items-center
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .js-only-btn .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .js-only-btn
+span
 span .text-ui-muted
 strong
 
@@ -69,7 +70,8 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .mb-3 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline .mb-3
+span
 div
 
 === asset-twin-bundle ===
@@ -116,9 +118,12 @@ div .sample-result-label
 div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-ui-warn-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-warning
+span
+button .btn .btn-outline
+span
 div .bg-ui-well .mb-0 .px-4 .py-2 .py-3 .rounded-lg .text-sm .text-ui-ink
 
 === auth-user-gate ===
@@ -143,8 +148,10 @@ div .sample-result-body
 div
 p .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-ui-warn-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
+button .btn .btn-warning
+span
 
 === binding-afterbind ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -396,9 +403,10 @@ div .sample-result-label
 div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
-button .bg-ui-danger-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-2 .shrink-0 .size-5
+button .btn .btn-error
+svg .shrink-0 .size-4
 path
+span
 
 === boom-nested ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -421,9 +429,10 @@ div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 div .bg-ui-well .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
-button .bg-ui-danger-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-2 .shrink-0 .size-5
+button .btn .btn-error
+svg .shrink-0 .size-4
 path
+span
 
 === boom-render ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -444,9 +453,10 @@ div .sample-result-label
 div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
-button .bg-ui-warn-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-2 .shrink-0 .size-5
+button .btn .btn-warning
+svg .shrink-0 .size-4
 path
+span
 
 === browser-battery ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -468,7 +478,8 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
 div .mb-1 .text-sm .text-ui-muted
 code
 div .mb-1 .text-sm .text-ui-muted
@@ -497,7 +508,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary .mb-2
+span
 div .mb-1 .text-sm .text-ui-muted
 div .italic .text-sm .text-ui-muted
 
@@ -522,8 +534,10 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .gap-2 .mb-2
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -550,9 +564,12 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .gap-2 .items-stretch .mb-2
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-error .btn-outline
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -578,14 +595,17 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
 div .text-sm .text-ui-muted
 code
 div .mb-2 .text-sm .text-ui-muted
 code
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary .mb-2
+span
 div .text-break .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -610,7 +630,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .mb-3 .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary .mb-3
+span
 div .mb-2 .text-sm .text-ui-muted
 code
 div .gap-4 .grid .grid-cols-12
@@ -647,13 +668,16 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+span
+button .btn .btn-outline .btn-primary
+span
 div .mb-2 .text-sm .text-ui-muted
 code
 textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
@@ -704,7 +728,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -730,7 +755,8 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
 div .text-sm .text-ui-muted
 code
 span .ms-2
@@ -759,17 +785,24 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ok-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-ok/40 .rounded-md .text-sm .text-ui-ok-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-success
+span
 span .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline
+span
 span .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center .items-center
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline
+span
+button .btn .btn-outline
+span
+button .btn .btn-outline
+span
 video
 div .mt-3 .text-sm .text-ui-muted
 code
@@ -800,10 +833,14 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 div .col-span-12 .sm:col-span-8
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline
+span
+button .btn .btn-error .btn-outline
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -856,7 +893,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -882,10 +920,14 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-error .btn-outline
+span
 p .mb-2 .text-sm .text-ui-muted
 div .text-sm .text-ui-muted
 code
@@ -912,9 +954,12 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline
+span
 div .border .mb-3 .p-3 .rounded
 ul .mb-0
 li
@@ -943,7 +988,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -968,7 +1014,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -994,10 +1041,14 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline
+span
+button .btn .btn-error .btn-outline
+span
 div .text-sm .text-ui-muted
 code
 
@@ -1021,9 +1072,12 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .mb-2
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline
+span
+button .btn .btn-outline
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1050,7 +1104,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1075,7 +1130,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1101,8 +1157,10 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1131,7 +1189,8 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .mb-2 .text-sm .text-ui-muted
 code
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .bg-ui-well .rounded .text-center .w-fullp-4
 
 === browser-screen ===
@@ -1153,7 +1212,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1181,7 +1241,8 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
 div .text-sm .text-ui-muted
 code
 
@@ -1205,8 +1266,10 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .gap-2 .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-ui-well .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-line/40 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-secondary
+span
 div .mb-1 .text-sm .text-ui-muted
 span
 div .mb-1 .text-sm .text-ui-muted
@@ -1233,8 +1296,10 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-error .btn-outline
+span
 div .text-sm .text-ui-muted
 code
 
@@ -1258,8 +1323,10 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-error .btn-outline
+span
 div .mb-1 .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1286,9 +1353,12 @@ div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .gap-2 .mb-2
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-error .btn-outline
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1313,7 +1383,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1339,9 +1410,12 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-error .btn-outline
+span
 div .text-sm .text-ui-muted
 code
 
@@ -1364,7 +1438,8 @@ div .sample-result-label
 div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .mb-2 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary .mb-2
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1390,9 +1465,12 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline
+span
 div .mb-1 .text-sm .text-ui-muted
 code
 div .italic .text-sm .text-ui-muted
@@ -1417,10 +1495,12 @@ div .sample-result-body
 div .bg-ui-bg .border-0 .ring-1 .ring-ui-line .rounded-xl .shadow-sm
 div .p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+span
+button .btn .btn-outline .btn-primary
+span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1466,11 +1546,16 @@ div .sample-result-label
 div .sample-result-body
 div
 div .gap-1 .inline-flex
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .leading-none .p-0 .text-2xl .text-sm .text-ui-brand-ink .underline-offset-2
+button .btn .btn-link .leading-none .text-2xl .text-ui-muted
+span
+button .btn .btn-link .leading-none .text-2xl .text-ui-muted
+span
+button .btn .btn-link .leading-none .text-2xl .text-ui-muted
+span
+button .btn .btn-link .leading-none .text-2xl .text-ui-muted
+span
+button .btn .btn-link .leading-none .text-2xl .text-ui-muted
+span
 p .mb-0 .mt-2 .text-sm .text-ui-muted
 
 === cancellation ===
@@ -1492,12 +1577,14 @@ div .sample-result-label
 div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
+span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1544,7 +1631,8 @@ div .bg-ui-bg .h-full .ring-1 .ring-ui-line .rounded-xl
 div .p-5
 h6 .font-semibold .mb-1
 p .text-sm .text-ui-muted
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
 
 === components-di ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1607,9 +1695,10 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-2 .shrink-0 .size-5
+button .btn .btn-outline .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === context-theme ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1629,7 +1718,8 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .border .p-3 .rounded
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .mb-3 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline .mb-3
+span
 div .flex .flex-wrap .gap-2 .items-center .items-center
 span .text-sm .text-ui-muted
 span .bg-amber-100 .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-amber-900 .text-ui-muted .text-xs .theme-badge
@@ -1658,7 +1748,8 @@ div .sample-result-body
 div .flex .flex-col .gap-3
 div .flex .flex-wrap .gap-3 .items-center .items-center
 span .font-semibold .text-3xl
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
 ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .gap-2 .items-center .px-4 .py-1 .py-2 .text-sm .text-ui-ink
 
@@ -1682,9 +1773,10 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-2 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 div .mt-2 .text-sm .text-ui-muted
 
 === data-http-fetch ===
@@ -1776,12 +1868,14 @@ div .sample-result-label
 div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
+span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1805,12 +1899,14 @@ div .sample-result-label
 div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
+span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1834,12 +1930,14 @@ div .sample-result-label
 div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
+span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1996,8 +2094,10 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 br
 output
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline
+span
 
 === elements-grouping ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2074,11 +2174,14 @@ div
 p .mb-1 .text-sm .text-ui-muted
 menu .list-inline .mb-0
 li .list-inline-item
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline
+span
 li .list-inline-item
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline
+span
 li .list-inline-item
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-outline
+span
 
 === elements-media ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2329,7 +2432,8 @@ div .border .p-4 .rounded .text-center .user-select-none
 strong
 div .mt-2 .text-ui-muted
 div .col-span-12 .md:col-span-6
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .py-4 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition .w-full
+button .btn .btn-outline .btn-primary .py-4 .w-full
+span
 div .mt-2 .text-ui-muted
 div .col-span-12 .md:col-span-6
 div .border .p-4 .rounded
@@ -2357,9 +2461,10 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-2 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === events-form ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2383,9 +2488,10 @@ div .sample-result-body
 form .mb-2
 div .flex .gap-2 .items-stretch
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 p .mb-0 .text-sm
 strong
 
@@ -2472,9 +2578,10 @@ div .mb-3 .relative
 textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 label
 div .mt-1
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === form-controls-input ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2594,7 +2701,8 @@ div .col-span-12 .md:col-span-7
 form
 label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
 div .col-span-12 .md:col-span-5
 p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
 strong
@@ -2621,8 +2729,10 @@ div .sample-result-body
 div
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-primary
+span
+button .btn .btn-outline
+span
 div .bg-ui-well .border .p-3 .rounded
 
 === js-interop-jsruntime ===
@@ -2648,15 +2758,18 @@ div .mb-3
 label .block .font-medium .mb-1 .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-error .btn-outline
+svg .shrink-0 .size-4
 path
+span
 div .mb-2
 span .text-sm .text-ui-muted .uppercase
 div
@@ -2712,22 +2825,27 @@ div .sample-result-label
 div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-ok-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-success
+svg .shrink-0 .size-4
 path
+span
 span .mx-1 .vr
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-outline .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-error .btn-outline
+svg .shrink-0 .size-4
 path
+span
 ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
 span .bg-ui-well .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-ui-muted .text-xs
@@ -2769,12 +2887,14 @@ div .sample-result-label
 div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
+span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -2798,9 +2918,10 @@ div .sample-result-label
 div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .mb-3
 span .bg-ui-brand-surface .font-medium .inline-flex .items-center .px-2 .py-0.5 .rounded-full .text-base .text-ui-brand-ink .text-xs
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
 ol .divide-ui-line .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
 li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
@@ -2902,35 +3023,35 @@ thead .bg-ui-well
 tr
 th
 th
-button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
-span
-svg .opacity-50 .shrink-0 .size-5 .text-xs
+button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
+svg .shrink-0 .size-4
 path
+span
 th
-button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
-span
-svg .opacity-50 .shrink-0 .size-5 .text-xs
+button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
+svg .shrink-0 .size-4
 path
+span
 th
-button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
-span
-svg .opacity-50 .shrink-0 .size-5 .text-xs
+button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
+svg .shrink-0 .size-4
 path
+span
 th
-button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
-span
-svg .opacity-50 .shrink-0 .size-5 .text-xs
+button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
+svg .shrink-0 .size-4
 path
+span
 th
-button .font-medium .font-semibold .gap-1 .gap-1.5 .hover:underline .inline-flex .inline-flexitems-center .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .text-ui-ink .underline-offset-2
-span
-svg .opacity-50 .shrink-0 .size-5 .text-xs
+button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
+svg .shrink-0 .size-4
 path
+span
 tbody
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -2940,8 +3061,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -2951,8 +3072,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -2962,8 +3083,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -2973,8 +3094,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -2984,8 +3105,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -2995,8 +3116,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3006,8 +3127,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3017,8 +3138,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3028,8 +3149,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3039,8 +3160,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3050,8 +3171,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3061,8 +3182,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3072,8 +3193,8 @@ td .text-ui-muted
 td
 tr .md-row
 td
-button .font-medium .gap-1.5 .hover:underline .inline-flex .items-center .no-underline .p-0 .p-0 .text-sm .text-ui-brand-ink .underline-offset-2
-svg .shrink-0 .size-5
+button .btn .btn-link .btn-square .no-underline .p-0
+svg .shrink-0 .size-4
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3123,16 +3244,18 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
-svg .shrink-0 .size-5
+button .btn .btn-error .btn-outline .btn-square
+svg .shrink-0 .size-4
 path
 div .flex .flex-wrap .gap-2 .items-center
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === nested-list-foreach ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3165,16 +3288,18 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
-svg .shrink-0 .size-5
+button .btn .btn-error .btn-outline .btn-square
+svg .shrink-0 .size-4
 path
 div .flex .flex-wrap .gap-2 .items-center
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === nested-list-indexer ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3209,19 +3334,21 @@ input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-no
 td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .me-1 .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .shrink-0 .size-5
+button .btn .btn-outline .btn-square .me-1
+svg .shrink-0 .size-4
 path
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
-svg .shrink-0 .size-5
+button .btn .btn-error .btn-outline .btn-square
+svg .shrink-0 .size-4
 path
 div .flex .flex-wrap .gap-2 .items-center
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === nested-subobject ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3260,9 +3387,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === primitives-children ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3380,9 +3508,10 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-outline .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === props-attribute-order ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3442,11 +3571,13 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
+button .btn .btn-outline .btn-primary
+span
 dialog .border-0 .p-3 .rounded .shadow
 p .mb-3
 code
-button .bg-ui-well .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-line/40 .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-ink .transition
+button .btn .btn-secondary
+span
 
 === props-data ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3516,11 +3647,16 @@ span .text-sm .text-ui-muted .uppercase
 div
 code .text-base
 div .flex-wrap
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-brand-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-brand/40 .rounded-md .text-sm .text-ui-brand-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-danger-surface .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-danger/40 .rounded-md .text-sm .text-ui-danger-ink .transition
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline .btn-primary
+span
+button .btn .btn-outline
+span
+button .btn .btn-error .btn-outline
+span
 
 === routing-nested-layout ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3676,7 +3812,8 @@ form
 div .mb-2
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
+button .btn .btn-primary
+span
 
 === tags-media ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3796,9 +3933,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-cross-field ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3825,9 +3963,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-custom-attribute ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3857,9 +3996,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-fields ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3898,9 +4038,10 @@ option
 option
 option
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-first-error-wins ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3924,9 +4065,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-fluent ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3955,9 +4097,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-fluent-async ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3981,9 +4124,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-inline ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4015,9 +4159,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-inline-async ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4041,9 +4186,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-nested-async ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4105,9 +4251,10 @@ div .flex .flex-wrap .font-bold .items-center .justify-between
 span
 span
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-programmatic ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4131,12 +4278,14 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center
-button .bg-transparent .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-well .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .ring-1 .ring-ui-line .rounded-md .text-sm .text-ui-ink .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-outline
+svg .shrink-0 .size-4
 path
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+span
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-summary ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4173,9 +4322,10 @@ option
 option
 option
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === validation-validatable-object ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4205,9 +4355,10 @@ div
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
-button .bg-ui-brand-ink .disabled:cursor-default .disabled:opacity-50 .font-medium .gap-1.5 .hover:bg-ui-ink .inline-flex .items-center .no-underline .px-2.5 .py-1.5 .rounded-md .text-sm .text-ui-bg .transition
-svg .me-1 .shrink-0 .size-5
+button .btn .btn-primary
+svg .shrink-0 .size-4
 path
+span
 
 === virtualize-items ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm

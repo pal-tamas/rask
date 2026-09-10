@@ -21,10 +21,7 @@ public sealed partial class DownloadDemo(Navigator nav) : Component
 
     protected override Component? Render() =>
         Div[
-            Button.Type("button").Class(Tw.BtnPrimary).Id("download-report").OnClick(DownloadReport)[
-                UiIcon.Name(UiIconName.Document).Class("me-2"),
-                "Download report"
-            ],
+            UiButton.Label("Download report").Icon(UiIconName.Document).Tone(UiTone.Primary).Id("download-report").OnClick(DownloadReport),
             Div
                 .Class("text-sm text-ui-muted mt-2")
                 .Data(new Dictionary<string, string?> { ["rask-report-count"] = "true" })[

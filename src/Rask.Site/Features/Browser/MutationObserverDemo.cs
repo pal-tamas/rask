@@ -49,15 +49,13 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Button.Class(Tw.BtnPrimary).Id("mo-add").OnClick(() => _items++)["Add item"],
-                    Button
-                        .Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Add item").Tone(UiTone.Primary).Id("mo-add").OnClick(() => _items++),
+                    UiButton.Label("Remove item").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("mo-remove")
-                        .OnClick(() => { if (_items > 0) _items--; })["Remove item"],
-                    Button
-                        .Class(Tw.BtnOutlineSecondary)
+                        .OnClick(() => { if (_items > 0) _items--; }),
+                    UiButton.Label("Toggle attribute").Variant(UiVariant.Outline)
                         .Id("mo-toggle")
-                        .OnClick(() => _highlight = !_highlight)["Toggle attribute"]
+                        .OnClick(() => _highlight = !_highlight)
                 ],
                 Div
                     .Ref(_target)

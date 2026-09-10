@@ -55,7 +55,7 @@ public sealed partial class InlineValidateDemo : Component
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Sign in"]
+                UiButton.Label("Sign in").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit)
             ]
         ],
         _submission is null

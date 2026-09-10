@@ -9,6 +9,49 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every button in the showcase is a `UiButton`, and `Tw.cs` has no button constants left.** 146 call
+  sites across the site moved off the class-string vocabulary onto the kit: `Button.Class(Tw.BtnPrimary)
+  ["Save"]` is `UiButton.Label("Save").Tone(UiTone.Primary)`. The 18 `Btn*`/`Outline*` constants are
+  deleted.
+
+  Three things the migration found, none of which a class string could have told anyone:
+
+  - **Five icon-only buttons had no accessible name at all** — an icon was their entire content, so a
+    screen reader announced "button" and nothing more. `UiButton` requires a `Label` and turns it into the
+    accessible name when the button is square, so they have one now ("Remove item", "Move up",
+    "Remove SKU", "Remove line", and the order-table expander).
+  - **21 submit buttons and one reset** were reaching past the kit to `Button.Type("submit")`, because
+    `UiButton` had no way to say it. They are `UiButtonType.Submit` now — and a submit button that renders
+    `type="button"` does nothing at all when pressed, on a form that looks finished.
+  - **`RatingStars` painted its stars `#ffc107`/`#ced4da`** in an inline style, ignoring the theme
+    entirely: amber on palettes with no amber in them, and an invisible empty star on anything dark. The
+    two colours are tokens now.
+
+  `UiButton` grew the props the migration proved were missing rather than leaving call sites on raw
+  elements: `Type`, `Data`, `Role`, `TabIndex`, `Command`/`CommandFor`, `Aria`, `OnDoubleClick` and
+  `OnContextMenu`. Each one had a real call site that could not be expressed without it.
+
+- **`UiButton` can be a link, every control can carry an `id`, and `UiBadge`'s tone is typed.** Three gaps
+  that forced an application back onto class strings — the parallel vocabulary the kit exists to remove.
+
+  `UiButton.Href` renders an `<a class="btn">` instead of a `<button>`, which is how daisyUI documents a
+  link that looks like a button; the tone, fill, size and icon axes are identical either way, so it stays
+  one component. It takes no `type` and ignores `Disabled`, because there is no disabled state for a link
+  in HTML and faking one leaves it focusable and followable. `NewTab` brings `rel="noopener"` with it
+  rather than leaving the caller to remember the attribute with no visible effect.
+
+  `Id` arrives on `UiButton` and `UiBadge` (only `UiModal` had one). A `<label for>`, an
+  `aria-describedby`, a deep link and a browser test all reach a control by id, and without one the answer
+  was a raw element.
+
+  **`UiBadge.Tone` is a `UiTone` now, and it was silently wrong before.** It was `string?` matched against
+  four literals — `"danger"`, `"warn"`, `"info"`, `"ok"` — with everything else falling through to neutral,
+  and three showcase call sites passed `"success"`/`"error"`, the names every other component in the kit
+  uses. They rendered grey pills: the author asked for green, the reader saw neutral, nothing reported it.
+  It also hand-rolled `bg-error/10 text-error`, reading daisyUI's error SURFACE as text (2.87:1 on
+  `light`), and because it named none of daisyUI's badge classes the kit's tone corrections could not reach
+  it. It renders `badge badge-*` now and inherits them.
+
 - **The kit's own components are readable in every palette too.** The showcase's palette was fixed first;
   `UiButton`, `UiBadge`, `UiAlert`, `UiTooltip` and the `link-*` tones render daisyUI classes, and daisyUI
   labels each tone with its own `-content` colour. Those are generated to clear 3:1 — the bar for a *large*

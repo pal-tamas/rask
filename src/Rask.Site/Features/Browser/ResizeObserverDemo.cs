@@ -42,10 +42,9 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
                     Code.Id("resize-value")[
                         _width > 0 ? $"{_width.ToString("0", Inv)} × {_height.ToString("0", Inv)} px" : "(measuring…)"]
                 ],
-                Button
-                    .Class($"{Tw.BtnOutlinePrimary} mb-2")
+                UiButton.Label("Toggle width").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("resize-toggle")
-                    .OnClick(() => _wide = !_wide)["Toggle width"],
+                    .OnClick(() => _wide = !_wide),
                 Div
                     .Ref(_box)
                     .Id("resize-box")

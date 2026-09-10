@@ -35,7 +35,7 @@ public sealed partial class BoomRenderDemo : Component
             }))[
             Div.Class("p-3 border rounded bg-white").Id("boom-render-host")[
                 P.Class("text-ui-muted text-sm mb-2")["Healthy. Click below to make my next render throw."],
-                Button.Type("button").Class(Tw.BtnWarning).Id("boom-render-trigger").OnClick(() => _throwOnRender = true)[UiIcon.Name(UiIconName.Bug).Class("me-2"), "Throw on next render"],
+                UiButton.Label("Throw on next render").Icon(UiIconName.Bug).Tone(UiTone.Warning).Id("boom-render-trigger").OnClick(() => _throwOnRender = true),
 #pragma warning disable RASK014
                 // Intentionally bypass the factory: RenderThrower is [SkipFactory] and
                 // exists only to demonstrate that a descendant whose Render() throws is
@@ -52,7 +52,7 @@ public sealed partial class BoomRenderDemo : Component
                 Strong["Boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
                 P.Class("mb-2 mt-1 text-sm")[ex.Message],
-                Button.Type("button").Class(Tw.BtnOutlineSecondary).Id("boom-recover").OnClick(recover)[UiIcon.Name(UiIconName.Undo).Class("me-1"), "Recover"]
+                UiButton.Label("Recover").Icon(UiIconName.Undo).Variant(UiVariant.Outline).Id("boom-recover").OnClick(recover)
             ]
         ];
 

@@ -57,8 +57,7 @@ public sealed partial class NestedSubObjectDemo : Component
                 ]
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-submit")[
-                    UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Place order"]
+                UiButton.Label("Place order").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-submit")
             ]
         ],
         _submission is null

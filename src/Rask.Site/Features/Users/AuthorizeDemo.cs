@@ -15,11 +15,9 @@ public sealed partial class AuthorizeDemo : Component
     protected override Component? Render() =>
         Div.Id("authorize-demo")[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => _auth.SignIn("alice", "user"))[
-                    "Sign in as user"],
-                Button.Type("button").Class(Tw.BtnWarning).OnClick(() => _auth.SignIn("rootadmin", "admin"))[
-                    "Sign in as admin"],
-                Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(_auth.SignOut)["Sign out"]
+                UiButton.Label("Sign in as user").Tone(UiTone.Primary).OnClick(() => _auth.SignIn("alice", "user")),
+                UiButton.Label("Sign in as admin").Tone(UiTone.Warning).OnClick(() => _auth.SignIn("rootadmin", "admin")),
+                UiButton.Label("Sign out").Variant(UiVariant.Outline).OnClick(_auth.SignOut)
             ],
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             // The Authorized delegates greet the signed-in user by name straight off the principal.

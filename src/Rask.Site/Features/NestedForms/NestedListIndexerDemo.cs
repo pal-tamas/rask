@@ -33,12 +33,21 @@ public sealed partial class NestedListIndexerDemo : Component
                     ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
-                    Button.Class($"{Tw.BtnOutlineSecondary} me-1").Type("button")
+                    UiButton
+                        .Label("Move up")
+                        .Icon(UiIconName.ArrowUp)
+                        .Square(true)
+                        .Variant(UiVariant.Outline)
+                        .Class("me-1")
                         .Disabled(i == 0)
-                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
-                        UiIcon.Name(UiIconName.ArrowUp)],
-                    Button.Type("button").Class(Tw.BtnOutlineDanger)
-                        .OnClick(() => _model.Skus.RemoveAt(i))[UiIcon.Name(UiIconName.Close)]
+                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1])),
+                    UiButton
+                        .Label("Remove SKU")
+                        .Icon(UiIconName.Close)
+                        .Square(true)
+                        .Tone(UiTone.Error)
+                        .Variant(UiVariant.Outline)
+                        .OnClick(() => _model.Skus.RemoveAt(i))
                 ]
             ]);
         }
@@ -52,12 +61,10 @@ public sealed partial class NestedListIndexerDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                    UiButton.Label("Add row").Icon(UiIconName.Plus).Variant(UiVariant.Outline)
                         .Id("nf-idx-add")
-                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
-                        UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add row"],
-                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-idx-submit")[
-                        UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Submit"]
+                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m })),
+                    UiButton.Label("Submit").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-idx-submit")
                 ]
             ],
             _submission is null

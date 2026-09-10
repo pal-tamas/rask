@@ -53,8 +53,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Tw.BtnPrimary).Id("battery-read").OnClick(Read)[
-                        "Read now"]
+                    UiButton.Label("Read now").Tone(UiTone.Primary).Id("battery-read").OnClick(Read)
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Level: ", Code.Id("battery-level")[_status is { } s ? $"{s.Level * 100:0}%" : "(none)"]],

@@ -24,7 +24,7 @@ public sealed partial class FluentValidationDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.ShoppingBag).Class("me-1"), "Order"]
+                UiButton.Label("Order").Icon(UiIconName.ShoppingBag).Tone(UiTone.Primary).Type(UiButtonType.Submit)
             ]
         ],
         _submission is null

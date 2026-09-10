@@ -16,8 +16,7 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex items-center gap-3 mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("eyedropper-pick").OnClick(Pick)[
-                        UiIcon.Name(UiIconName.EyeDropper).Class("me-1"), "Pick a color"],
+                    UiButton.Label("Pick a color").Icon(UiIconName.EyeDropper).Tone(UiTone.Primary).Id("eyedropper-pick").OnClick(Pick),
                     _hex is null
                         ? (Component)Span.Class("text-ui-muted text-sm")["No color picked yet"]
                         : Div.Class("flex items-center gap-2")[

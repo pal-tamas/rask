@@ -20,10 +20,19 @@ public sealed partial class FormSubmitStateDemo : Component
                         .Disabled(submitting)
                         .Placeholder("Pick a name…")
                         .Id("fss-input"),
-                    Button.Type("submit")
-                        .Class(Tw.BtnPrimary)
+                    UiButton
+                        // .Key(submitting) is a WORKAROUND, not the idiom — see issue #1050. A component's
+                        // props are evaluated through a chain entry cached per (component, slot), and the
+                        // owning component's state does not change across a submit; only the flag the form
+                        // passes in does, so without a key this button keeps its idle label for the whole
+                        // submit. It read correctly as a raw element child, which is why nothing caught it
+                        // until the showcase moved onto the kit. Delete this line when #1050 is fixed.
+                        .Key(submitting)
+                        .Label(submitting ? "Saving…" : "Sign up")
+                        .Tone(UiTone.Primary)
+                        .Type(UiButtonType.Submit)
                         .Disabled(submitting)
-                        .Id("fss-submit")[submitting ? "Saving…" : "Sign up"]
+                        .Id("fss-submit")
                 ]]
             ],
             Div.Class("col-span-12 md:col-span-5")[

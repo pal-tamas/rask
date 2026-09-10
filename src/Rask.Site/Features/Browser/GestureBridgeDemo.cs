@@ -27,23 +27,18 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
                     FullscreenTrigger
                         .Template(g =>
-                        Button.Type("button").Class(Tw.BtnPrimary).Id("fullscreen-btn").Data(g)[
-                            "Enter fullscreen"]),
+                        UiButton.Label("Enter fullscreen").Tone(UiTone.Primary).Id("fullscreen-btn").Data(g)),
                     ScreenOrientationTrigger
                         .Orientation("landscape")
                         .Template(g =>
-                            Button
-                                .Type("button")
-                                .Class(Tw.BtnOutlinePrimary)
+                            UiButton.Label("Lock landscape").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                                 .Id("orientation-btn")
-                                .Data(g)["Lock landscape"]),
+                                .Data(g)),
                     InstallTrigger
                         .Template(g =>
-                            Button
-                                .Type("button")
-                                .Class(Tw.BtnOutlineSuccess)
+                            UiButton.Label("Install app").Tone(UiTone.Success).Variant(UiVariant.Outline)
                                 .Id("install-btn")
-                                .Data(g)["Install app"])
+                                .Data(g))
                         .OnOutcome(outcome =>
                         {
                             // No StateHasChanged: the trigger is a Component rather than an Element, so its
@@ -58,11 +53,9 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
                     EyeDropperTrigger
                         .Template(g =>
-                            Button
-                                .Type("button")
-                                .Class(Tw.BtnOutlineSecondary)
+                            UiButton.Label("Pick a colour").Variant(UiVariant.Outline)
                                 .Id("eyedropper-btn")
-                                .Data(g)["Pick a colour"])
+                                .Data(g))
                         .OnColor(hex =>
                         {
                             _color = hex;
@@ -85,11 +78,9 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     MediaCaptureTrigger
                         .For(_preview)
                         .Template(g =>
-                            Button
-                                .Type("button")
-                                .Class(Tw.BtnOutlineSecondary)
+                            UiButton.Label("Start camera").Variant(UiVariant.Outline)
                                 .Id("camera-btn")
-                                .Data(g)["Start camera"])
+                                .Data(g))
                         .Video(true)
                         .FacingMode("user")
                         // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
@@ -101,20 +92,16 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             _camera = id;
                             return Task.CompletedTask;
                         }),
-                    Button
-                        .Type("button")
-                        .Class(Tw.BtnOutlineSecondary)
+                    UiButton.Label("Stop camera").Variant(UiVariant.Outline)
                         .Id("camera-stop-btn")
                         .Disabled(_camera is null)
-                        .OnClick(StopCameraAsync)["Stop camera"],
+                        .OnClick(StopCameraAsync),
                     PictureInPictureTrigger
                         .For(_preview)
                         .Template(g =>
-                            Button
-                                .Type("button")
-                                .Class(Tw.BtnOutlineSecondary)
+                            UiButton.Label("Pop out video").Variant(UiVariant.Outline)
                                 .Id("pip-btn")
-                                .Data(g)["Pop out video"]),
+                                .Data(g)),
                     Video
                         .Ref(_preview)
                         .Id("gesture-preview")

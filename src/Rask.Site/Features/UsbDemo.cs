@@ -20,18 +20,15 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("usb-request").OnClick(RequestDevice)[
-                        UiIcon.Name(UiIconName.Cube).Class("me-1"), "Pair device"],
-                    Button
-                        .Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Pair device").Icon(UiIconName.Cube).Tone(UiTone.Primary).Id("usb-request").OnClick(RequestDevice),
+                    UiButton.Label("Open").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("usb-open")
                         .Disabled(_device is null || _open)
-                        .OnClick(Open)["Open"],
-                    Button
-                        .Class(Tw.BtnOutlineDanger)
+                        .OnClick(Open),
+                    UiButton.Label("Release").Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("usb-close")
                         .Disabled(_device is null)
-                        .OnClick(Release)["Release"]
+                        .OnClick(Release)
                 ],
                 _info is null
                     ? Div.Class("text-sm text-ui-muted")["No device paired."]

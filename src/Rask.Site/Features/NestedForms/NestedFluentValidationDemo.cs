@@ -31,8 +31,13 @@ public sealed partial class NestedFluentValidationDemo : Component
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
-                    Button.Type("button").Class(Tw.BtnOutlineDanger)
-                        .OnClick(() => _model.Lines.Remove(captured))[UiIcon.Name(UiIconName.Close)]
+                    UiButton
+                        .Label("Remove line")
+                        .Icon(UiIconName.Close)
+                        .Square(true)
+                        .Tone(UiTone.Error)
+                        .Variant(UiVariant.Outline)
+                        .OnClick(() => _model.Lines.Remove(captured))
                 ]
             ]);
         }
@@ -63,12 +68,10 @@ public sealed partial class NestedFluentValidationDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                    UiButton.Label("Add line").Icon(UiIconName.Plus).Variant(UiVariant.Outline)
                         .Id("nf-fv-add")
-                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
-                        UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add line"],
-                    Button.Class(Tw.BtnPrimary).Type("submit").Id("nf-fv-submit")[
-                        UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Place"]
+                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 })),
+                    UiButton.Label("Place").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-fv-submit")
                 ]
             ],
             _submission is null

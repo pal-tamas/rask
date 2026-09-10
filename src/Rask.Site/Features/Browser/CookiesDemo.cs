@@ -24,9 +24,9 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
                         .Class(Tw.Input)
                         .Placeholder("Cookie value")
                         .OnInput(v => _input = v),
-                    Button.Type("button").Class(Tw.BtnPrimary).Id("cookie-set").OnClick(Set)["Set"],
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("cookie-get").OnClick(Get)["Get"],
-                    Button.Type("button").Class(Tw.BtnOutlineDanger).Id("cookie-delete").OnClick(Delete)["Delete"]
+                    UiButton.Label("Set").Tone(UiTone.Primary).Id("cookie-set").OnClick(Set),
+                    UiButton.Label("Get").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("cookie-get").OnClick(Get),
+                    UiButton.Label("Delete").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("cookie-delete").OnClick(Delete)
                 ],
                 Div.Class("text-sm text-ui-muted")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]

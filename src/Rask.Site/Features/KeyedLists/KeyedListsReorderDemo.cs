@@ -22,29 +22,21 @@ public sealed partial class KeyedListsReorderDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 items-center flex-wrap mb-3")[
-                Button
-                    .Class(_useKeys ? $"{Tw.BtnSuccess}" : $"{Tw.BtnOutlineSecondary}")
+                UiButton
+                    .Label(_useKeys ? "Keys: ON" : "Keys: OFF")
+                    .Icon(UiIconName.Key)
+                    .Tone(_useKeys ? UiTone.Success : null)
+                    .Variant(_useKeys ? null : UiVariant.Outline)
                     .Id("kl-toggle-keys")
-                    .OnClick(() => _useKeys = !_useKeys)[
-                    UiIcon.Name(_useKeys ? UiIconName.Key : UiIconName.Key).Class("me-1"),
-                    _useKeys ? "Keys: ON" : "Keys: OFF"
-                ],
+                    .OnClick(() => _useKeys = !_useKeys),
                 Span.Class("vr mx-1"),
-                Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-rotate").OnClick(Rotate)[
-                    UiIcon.Name(UiIconName.ArrowsUpDown).Class("me-1"), "Rotate"
-                ],
-                Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-reverse").OnClick(Reverse)[
-                    UiIcon.Name(UiIconName.Retry).Class("me-1"), "Reverse"
-                ],
-                Button.Type("button").Class(Tw.BtnOutlinePrimary).Id("kl-add").OnClick(AddTop)[
-                    UiIcon.Name(UiIconName.Plus).Class("me-1"), "Add to top"
-                ],
-                Button.Type("button").Class(Tw.BtnOutlineDanger)
+                UiButton.Label("Rotate").Icon(UiIconName.ArrowsUpDown).Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("kl-rotate").OnClick(Rotate),
+                UiButton.Label("Reverse").Icon(UiIconName.Retry).Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("kl-reverse").OnClick(Reverse),
+                UiButton.Label("Add to top").Icon(UiIconName.Plus).Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("kl-add").OnClick(AddTop),
+                UiButton.Label("Remove top").Icon(UiIconName.Minus).Tone(UiTone.Error).Variant(UiVariant.Outline)
                     .Id("kl-remove")
                     .Disabled(_items.Count == 0)
-                    .OnClick(RemoveTop)[
-                    UiIcon.Name(UiIconName.Minus).Class("me-1"), "Remove top"
-                ]
+                    .OnClick(RemoveTop)
             ],
             Ul.Class(Tw.ListGroup).Id("kl-list")[BuildRows()]
         ];

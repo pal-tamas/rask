@@ -128,4 +128,73 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Call_site_classes_are_added_to_the_kit_class_rather_than_replacing_it() =>
         Assert.Contains("btn mt-2", UiButton.Label("Save").Class("mt-2").ToHtml());
+
+    [Fact]
+    public void With_an_href_it_is_an_anchor_rather_than_a_button()
+    {
+        // A link that looks like a button is an ordinary thing to want, and the alternative was a class
+        // string in the application — the parallel vocabulary the kit exists to remove.
+        var html = UiButton.Label("Read the guide").Href("/docs").ToHtml();
+
+        Assert.Contains("<a ", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/docs\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
+
+        // No `type` and no `disabled`: neither means anything on an anchor.
+        Assert.DoesNotContain("type=\"button\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_anchor_keeps_every_axis_the_button_has()
+    {
+        // The whole reason this is one component rather than two: the tone, fill and size axes are
+        // identical either way, so a sibling component would duplicate all of them to change one tag.
+        var html = UiButton
+            .Label("Install")
+            .Href("/install")
+            .Tone(UiTone.Primary)
+            .Variant(UiVariant.Outline)
+            .Size(UiSize.Sm)
+            .Icon(UiIconName.Download)
+            .ToHtml();
+
+        Assert.Contains("btn", html, StringComparison.Ordinal);
+        Assert.Contains("btn-primary", html, StringComparison.Ordinal);
+        Assert.Contains("btn-outline", html, StringComparison.Ordinal);
+        Assert.Contains("btn-sm", html, StringComparison.Ordinal);
+        Assert.Contains("<svg", html, StringComparison.Ordinal);
+        Assert.Contains("<span>Install</span>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_anchor_is_never_disabled()
+    {
+        // There is no disabled state for a link in HTML. Faking one leaves it focusable and followable by
+        // keyboard, which is worse than not offering it — a disabled link is a link you do not render.
+        var html = UiButton.Label("Go").Href("/x").Disabled(true).ToHtml();
+
+        Assert.DoesNotContain("disabled", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_new_tab_carries_the_rel_that_makes_it_safe()
+    {
+        // noopener is the attribute with no visible effect, so it is the one a caller forgets — a new tab
+        // opened without it can reach back through window.opener.
+        var html = UiButton.Label("Docs").Href("https://example.test").NewTab(true).ToHtml();
+
+        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
+        Assert.Contains("noopener", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void New_tab_without_an_href_changes_nothing() =>
+        Assert.DoesNotContain("target", UiButton.Label("Save").NewTab(true).ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void An_icon_only_anchor_still_has_an_accessible_name() =>
+        Assert.Contains(
+            "aria-label=\"Settings\"",
+            UiButton.Label("Settings").Href("/settings").Icon(UiIconName.Check).Square(true).ToHtml(),
+            StringComparison.Ordinal);
 }

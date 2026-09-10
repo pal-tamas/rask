@@ -15,18 +15,18 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Request permission").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("notif-permission")
-                        .OnClick(RequestPermission)["Request permission"],
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
+                        .OnClick(RequestPermission),
+                    UiButton.Label("Notify").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("notif-show")
-                        .OnClick(Notify)["Notify"],
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                        .OnClick(Notify),
+                    UiButton.Label("Set badge 3").Variant(UiVariant.Outline)
                         .Id("badge-set")
-                        .OnClick(SetBadge)["Set badge 3"],
-                    Button.Type("button").Class(Tw.BtnOutlineDanger)
+                        .OnClick(SetBadge),
+                    UiButton.Label("Clear badge").Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("badge-clear")
-                        .OnClick(ClearBadge)["Clear badge"]
+                        .OnClick(ClearBadge)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
             ]

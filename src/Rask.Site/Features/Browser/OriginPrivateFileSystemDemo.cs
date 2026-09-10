@@ -22,18 +22,15 @@ public sealed partial class OriginPrivateFileSystemDemo(
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex flex-wrap gap-2 mb-2")[
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Write at 4096").Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("opfs-write")
-                        .OnClick(Write)[
-                        "Write at 4096"],
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                        .OnClick(Write),
+                    UiButton.Label("Read back").Variant(UiVariant.Outline)
                         .Id("opfs-read")
-                        .OnClick(Read)[
-                        "Read back"],
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary)
+                        .OnClick(Read),
+                    UiButton.Label("Request persistence").Variant(UiVariant.Outline)
                         .Id("opfs-persist")
-                        .OnClick(Persist)[
-                        "Request persistence"]
+                        .OnClick(Persist)
                 ],
                 Div.Class("text-sm text-ui-muted")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
                 Div.Class("text-sm text-ui-muted")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],

@@ -17,11 +17,11 @@ public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsync
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button
-                        .Class(_sentinel is null ? $"{Tw.BtnPrimary}" : $"{Tw.BtnDanger}")
+                    UiButton
+                        .Label(_sentinel is null ? "Keep screen awake" : "Release")
+                        .Tone(_sentinel is null ? UiTone.Primary : UiTone.Error)
                         .Id("wakelock-toggle")
-                        .OnClick(Toggle)[
-                        _sentinel is null ? "Keep screen awake" : "Release"]
+                        .OnClick(Toggle)
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
             ]

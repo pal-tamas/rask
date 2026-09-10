@@ -18,7 +18,7 @@ public sealed partial class EventsFormDemo : Component
                     .Name("name")
                     .Class(Tw.Input)
                     .Placeholder("Your name"),
-                Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.PaperAirplane).Class("me-1"), "Send"]
+                UiButton.Label("Send").Icon(UiIconName.PaperAirplane).Tone(UiTone.Primary).Type(UiButtonType.Submit)
             ]
         ],
         P.Class("text-sm mb-0")["Last submitted: ", Strong[_submitted]]

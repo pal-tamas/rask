@@ -201,11 +201,11 @@ public sealed partial class QueuePage(
 
     private Component StatusBadge(QueueRow row, bool isDead, DateTime now) => row switch
     {
-        { ProcessedAt: not null } => UiBadge.Label("done").Tone("ok"),
-        _ when isDead => UiBadge.Label("dead letter").Tone("danger"),
+        { ProcessedAt: not null } => UiBadge.Label("done").Tone(UiTone.Success),
+        _ when isDead => UiBadge.Label("dead letter").Tone(UiTone.Error),
         _ when row.RunAt > now =>
             UiBadge.Label($"retries in {DashboardParts.Duration(row.RunAt - now)}"),
-        _ => UiBadge.Label("due").Tone("info"),
+        _ => UiBadge.Label("due").Tone(UiTone.Info),
     };
 
     /// <summary>

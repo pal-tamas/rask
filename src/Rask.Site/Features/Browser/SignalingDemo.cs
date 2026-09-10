@@ -31,14 +31,14 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 mb-2")[
-                    Button.Type("button").Class(Tw.BtnPrimary)
+                    UiButton.Label("Join the room twice").Tone(UiTone.Primary)
                         .Id("signal-join")
                         .Disabled(_joining)
-                        .OnClick(JoinAsync)["Join the room twice"],
-                    Button.Type("button").Class(Tw.BtnSecondary)
+                        .OnClick(JoinAsync),
+                    UiButton.Label("Relay a payload").Tone(UiTone.Secondary)
                         .Id("signal-send")
                         .Disabled(_secondId is null)
-                        .OnClick(SendAsync)["Relay a payload"]
+                        .OnClick(SendAsync)
                 ],
                 _unavailable
                     ? Div.Class("text-sm text-ui-muted italic").Id("signal-status")[

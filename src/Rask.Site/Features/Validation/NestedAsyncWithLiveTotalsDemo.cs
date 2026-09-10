@@ -174,7 +174,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div[
-                    Button.Class(Tw.BtnPrimary).Type("submit")[UiIcon.Name(UiIconName.CreditCard).Class("me-1"), "Pay"]
+                    UiButton.Label("Pay").Icon(UiIconName.CreditCard).Tone(UiTone.Primary).Type(UiButtonType.Submit)
                 ]
             ],
             _submission is null

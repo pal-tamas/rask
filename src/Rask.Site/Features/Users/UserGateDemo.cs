@@ -22,15 +22,13 @@ public sealed partial class UserGateDemo : Component
                     _auth.Current.IsInRole("admin")
                         ? Div.Class($"{Tw.AlertWarning} py-2")["🔑 Admin-only panel"]
                         : null,
-                    Button.Type("button").Class(Tw.BtnOutlineSecondary).OnClick(_auth.SignOut)["Sign out"]]
+                    UiButton.Label("Sign out").Variant(UiVariant.Outline).OnClick(_auth.SignOut)]
                 : [
                     P.Class("text-ui-muted")["You are signed out."],
                     Div.Class("flex gap-2 flex-wrap items-center")[
-                        Button.Type("button").Class(Tw.BtnPrimary).OnClick(() => _auth.SignIn("alice", "user"))[
-                            "Sign in as user"],
-                        Button.Type("button").Class(Tw.BtnWarning)
-                            .OnClick(() => _auth.SignIn("rootadmin", "admin"))[
-                            "Sign in as admin"]
+                        UiButton.Label("Sign in as user").Tone(UiTone.Primary).OnClick(() => _auth.SignIn("alice", "user")),
+                        UiButton.Label("Sign in as admin").Tone(UiTone.Warning)
+                            .OnClick(() => _auth.SignIn("rootadmin", "admin"))
                     ]]
         ];
 }

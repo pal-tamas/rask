@@ -44,16 +44,13 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
                         .OnInput(v => _input = v)
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Button.Type("button").Class(Tw.BtnPrimary).Id("demo-set").OnClick(SetAsync)[
-                        UiIcon.Name(UiIconName.Save).Class("me-1"), "Set"],
-                    Button.Type("button").Class(Tw.BtnOutlinePrimary)
+                    UiButton.Label("Set").Icon(UiIconName.Save).Tone(UiTone.Primary).Id("demo-set").OnClick(SetAsync),
+                    UiButton.Label("Read").Icon(UiIconName.Retry).Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("demo-read")
-                        .OnClick(ReadAsync)[
-                        UiIcon.Name(UiIconName.Retry).Class("me-1"), "Read"],
-                    Button.Type("button").Class(Tw.BtnOutlineDanger)
+                        .OnClick(ReadAsync),
+                    UiButton.Label("Remove").Icon(UiIconName.Trash).Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("demo-remove")
-                        .OnClick(RemoveAsync)[
-                        UiIcon.Name(UiIconName.Trash).Class("me-1"), "Remove"]
+                        .OnClick(RemoveAsync)
                 ],
                 Div.Class("mb-2")[
                     Span.Class("text-ui-muted text-sm uppercase")["Last read"],

@@ -59,11 +59,10 @@ public sealed partial class LifecycleProbe : Component
                 Span.Class($"{Tw.BadgePrimary} text-base")[$"Render #{++_renderCount}"],
                 // The handler just records the click; Rask re-renders the component that owns the
                 // callback (this probe — the lambda closes over its state) right after it runs, so the
-                // badge repaints with no StateHasChanged (RASK026). Works the same through
-                // Button.Type("button").Class(Tw.BtnSecondary), which forwards the callback down to the
-                // native <button>.
-                Button.Type("button").Class(Tw.BtnPrimary)
-                    .OnClick(() => _clicks++)[UiIcon.Name(UiIconName.Retry).Class("me-1"), "Trigger re-render"]
+                // badge repaints with no StateHasChanged (RASK026). Works the same through UiButton,
+                // which forwards the callback down to the native <button>.
+                UiButton.Label("Trigger re-render").Icon(UiIconName.Retry).Tone(UiTone.Primary)
+                    .OnClick(() => _clicks++)
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
             Ol.Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-ui-line")[
