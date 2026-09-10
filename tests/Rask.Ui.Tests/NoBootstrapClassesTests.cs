@@ -125,7 +125,7 @@ public sealed class NoBootstrapClassesTests
     [Fact]
     public void No_source_file_uses_a_Bootstrap_class_name()
     {
-        var root = RepoRoot();
+        var root = RepoRoot.FullPath;
         var offenders = new List<string>();
 
         foreach (var file in TrackedFiles(root))
@@ -190,19 +190,5 @@ public sealed class NoBootstrapClassesTests
                 return !skip.Any(s => rel.StartsWith(s, StringComparison.Ordinal)
                                       || rel.Contains($"/{s}", StringComparison.Ordinal));
             });
-    }
-
-    private static string RepoRoot()
-    {
-        for (var dir = AppContext.BaseDirectory; dir is not null; dir = Path.GetDirectoryName(dir))
-        {
-            if (File.Exists(Path.Combine(dir, "Rask.slnx")))
-            {
-                return dir;
-            }
-        }
-
-        throw new InvalidOperationException(
-            "Could not locate the repo root (Rask.slnx) from the test base directory.");
     }
 }
