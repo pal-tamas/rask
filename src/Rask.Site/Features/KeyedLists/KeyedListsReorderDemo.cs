@@ -61,7 +61,7 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        Span.Class(Tw.BadgeSecondary)[index + 1],
+        UiBadge.Label((index + 1).ToString()).Tone(UiTone.Neutral).Variant(UiVariant.Soft),
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
         Input.Value<string>(null)
             .Type(InputType.Text)

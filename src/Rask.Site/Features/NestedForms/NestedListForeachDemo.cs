@@ -59,7 +59,7 @@ public sealed partial class NestedListForeachDemo : Component
             ],
             _submission is null
                 ? null
-                : Div.Class($"{Tw.AlertSuccess} text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
+                : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
         ];
     }
 }

@@ -120,7 +120,7 @@ public sealed class DemoMarkupGoldenTests
         // to reveal: `data-http-fetch` swaps a spinner for an alert when its fetch settles — in this
         // environment there is no server, so it settles as an error. That is a real loading→loaded
         // transition rather than an oversight, and its alert is load-bearing: five cases in
-        // HttpPageTests assert Tw.AlertDanger appears (and, on the self-heal path, that it does not).
+        // HttpPageTests assert "alert-error" appears (and, on the self-heal path, that it does not).
         // Flattening that demo's skeleton would mean rewriting the tests that prove its behaviour, which
         // is a worse trade than leaving this check at its current width.
         //

@@ -79,7 +79,7 @@ public sealed partial class MasterDetailDemo : Component
                 ],
                 Td.Class("font-semibold")[order.Customer],
                 Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd")],
-                Td[Span.Class(StatusBadge(order.Status))[order.Status]],
+                Td[UiBadge.Label(order.Status).Tone(StatusTone(order.Status)).Variant(UiVariant.Soft)],
                 Td.Class("text-ui-muted")[order.Items.Count],
                 Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
@@ -220,13 +220,15 @@ public sealed partial class MasterDetailDemo : Component
         ];
     }
 
-    private static string StatusBadge(string status) => status switch
+    // A TONE, not a class. The call site says what the status MEANS and UiBadge decides how a tone looks,
+    // which is the whole point of the kit owning the vocabulary.
+    private static UiTone StatusTone(string status) => status switch
     {
-        "Shipped" => Tw.BadgeSuccess,
-        "Processing" => Tw.BadgePrimary,
-        "Pending" => Tw.BadgeWarning,
-        "Cancelled" => Tw.BadgeDanger,
-        _ => Tw.BadgeSecondary
+        "Shipped" => UiTone.Success,
+        "Processing" => UiTone.Primary,
+        "Pending" => UiTone.Warning,
+        "Cancelled" => UiTone.Error,
+        _ => UiTone.Neutral
     };
 
     private static Order[] BuildOrders()

@@ -24,23 +24,18 @@ public sealed partial class BoomNestedDemo : Component
         ];
 
     private static Component InnerFallback(Exception ex, Action recover) =>
-        Div.Class($"{Tw.AlertWarning} flex items-start")
-            .Id("boom-nested-inner-fallback")[
-            UiIcon.Name(UiIconName.ShieldWarning).Class("me-3 size-6"),
-            Div[
+        UiAlert.Icon(UiIconName.ShieldWarning).Tone(UiTone.Warning).Variant(UiVariant.Soft).Class("flex items-start")
+            .Id("boom-nested-inner-fallback")[Div[
                 Strong["Inner boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
                 P.Class("mb-2 mt-1 text-sm")[ex.Message],
                 UiButton.Label("Recover inner").Icon(UiIconName.Undo).Variant(UiVariant.Outline)
                     .Id("boom-nested-inner-recover")
                     .OnClick(recover)
-            ]
-        ];
+            ]];
 
     private static Component OuterFallback(Exception ex) =>
-        Div.Class(Tw.AlertDanger).Id("boom-nested-outer-fallback")[
-            Strong["Outer boundary caught: "], ex.Message
-        ];
+        UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Id("boom-nested-outer-fallback")[Strong["Outer boundary caught: "], ex.Message];
 
     private static void ThrowFromInnerHandler() =>
         throw new InvalidOperationException("kaboom — inner boundary demo");
