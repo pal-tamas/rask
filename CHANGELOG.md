@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-09-10
+
 ### Changed
 
 - **A form field is one component: `UiFormField<T>` owns the label, the hint and the validation
