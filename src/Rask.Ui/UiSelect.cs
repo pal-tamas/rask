@@ -94,6 +94,18 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     /// </remarks>
     public Func<T, string>? OptionGroup { get; set; }
 
+    /// <summary>Draws each option in the list, in place of its words.</summary>
+    /// <remarks>
+    ///     Setting it implies the drawn list, because an <c>&lt;option&gt;</c>'s content model is text:
+    ///     there is nowhere in the platform's control for markup to go. Writing <c>Native(true)</c>
+    ///     beside one is the contradiction, and RASK075 says so.
+    ///     <para>
+    ///         The <c>Text</c> from <see cref="Options" /> is still what the closed box shows, so it
+    ///         stays worth supplying.
+    ///     </para>
+    /// </remarks>
+    public Func<T, Component>? OptionTemplate { get; set; }
+
     /// <summary>
     ///     Posts the value from a plain HTML form.
     /// </summary>
@@ -145,8 +157,13 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     // The popover element, which is the panel around the list rather than the list itself — see Custom.
     private string PanelId => Prefix + "-panel";
 
+    // An OptionTemplate has nowhere to render inside an <option>, so supplying one chooses the drawn
+    // list. An explicit Native(true) beside one is a contradiction rather than a preference, and RASK075
+    // reports it at the call site — this is only what happens when nothing was said either way.
+    private bool DrawsOwnList => Native is { } native ? !native : OptionTemplate is not null;
+
     /// <inheritdoc />
-    protected override Component? Render() => Native == false ? Custom() : NativeSelect();
+    protected override Component? Render() => DrawsOwnList ? Custom() : NativeSelect();
 
     // The platform's control. Everything form-shaped is forwarded to Rask.Core's Select<T>, which is
     // itself an IFormControl<T> — so binding, validation registration and the change parse are the
@@ -358,7 +375,9 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
         }
 
         // menu-disabled goes on the <li>, unlike menu-active and menu-focus, which go on the child.
-        return Li.Key(row.FlatIndex).Class(off ? "menu-disabled" : "")[option[text]];
+        return Li.Key(row.FlatIndex).Class(off ? "menu-disabled" : "")[
+            option[OptionTemplate is { } template ? template(value) : text]
+        ];
     }
 
     // Combobox keyboard over the flat option list: arrows move the cursor (skipping disabled options),
@@ -483,7 +502,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
             Tone is { } tone ? UiClassNames.SelectTone(tone) : "",
             Size is { } size ? UiClassNames.SelectSize(size) : "",
             Variant is { } variant ? UiClassNames.SelectVariant(variant) : "",
-            Native == false ? "" : Class);
+            DrawsOwnList ? "" : Class);
 
     // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen reader
     // needs: a field that is visibly red and says nothing is half a message. It is OMITTED rather than

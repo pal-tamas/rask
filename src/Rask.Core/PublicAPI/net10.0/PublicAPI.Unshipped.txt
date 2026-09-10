@@ -2636,6 +2636,10 @@ Rask.Core.Components.Select<T>.OnChange.get -> System.Action<T>?
 Rask.Core.Components.Select<T>.OnChange.set -> void
 Rask.Core.Components.Select<T>.OnChangeAsync.get -> System.Func<T, System.Threading.Tasks.Task!>?
 Rask.Core.Components.Select<T>.OnChangeAsync.set -> void
+Rask.Core.Components.Select<T>.OnSelect.get -> System.Action<System.Collections.Generic.IReadOnlyList<string!>!>?
+Rask.Core.Components.Select<T>.OnSelect.set -> void
+Rask.Core.Components.Select<T>.OnSelectAsync.get -> System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>?
+Rask.Core.Components.Select<T>.OnSelectAsync.set -> void
 Rask.Core.Components.Select<T>.Required.get -> bool?
 Rask.Core.Components.Select<T>.Required.set -> void
 Rask.Core.Components.Select<T>.Select() -> void
@@ -5913,9 +5917,11 @@ static RaskBuilderSettersRask_Core.OnSeeking(this Rask.Core.Build<Rask.Core.Comp
 static RaskBuilderSettersRask_Core.OnSeekingAsync(this Rask.Core.Build<Rask.Core.Components.Audio!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.Audio!>
 static RaskBuilderSettersRask_Core.OnSeekingAsync(this Rask.Core.Build<Rask.Core.Components.Video!> __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.Video!>
 static RaskBuilderSettersRask_Core.OnSelect<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Action? value) -> Rask.Core.Build<T!, TMode>
+static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.Build<Rask.Core.Components.Select<T>!, Rask.Core.Forms.Controlled!> __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.Core.Build<Rask.Core.Components.Select<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.Build<T!> __b, System.Action? value) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.OnSelect<T>(this Rask.Core.FormBuild<T!> __b, System.Action? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnSelectAsync<T, TMode>(this Rask.Core.Build<T!, TMode> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!, TMode>
+static RaskBuilderSettersRask_Core.OnSelectAsync<T>(this Rask.Core.Build<Rask.Core.Components.Select<T>!, Rask.Core.Forms.Controlled!> __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.Select<T>!, Rask.Core.Forms.Controlled!>
 static RaskBuilderSettersRask_Core.OnSelectAsync<T>(this Rask.Core.Build<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<T!>
 static RaskBuilderSettersRask_Core.OnSelectAsync<T>(this Rask.Core.FormBuild<T!> __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.Core.FormBuild<T!>
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!> __b, System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.Task!>? value) -> Rask.Core.Build<Rask.Core.Components.MediaCaptureTrigger!>

@@ -363,6 +363,68 @@ them until tagged releases begin.
   its sheet quotes with apostrophes and already carries `@plugin '@tailwindcss/typography'`; TanStack's
   Tailwind import is the third line, under a web-font `@import url(...)`. A sheet with no Tailwind import
   is reported rather than silently skipped.
+- **`UiMultiSelect<T>` — a field that takes several answers.** The kit could ask "pick one" and had no
+  way to ask "pick some", so an app needing tags, roles or categories hand-rolled a checkbox group and
+  its own binding. Everything below the kit was already built for it and unused: `Select<T>` had
+  `Multiple`, the client already sent the whole selection as `values[]` on a change frame, and the
+  handler dispatch already had an arm for it.
+
+  ```csharp
+  UiMultiSelect.Bind(() => _order.Tags)
+               .Options(tags)
+               .Label("Tags")
+               .Native(false)
+               .SelectAll(true)
+               .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase))
+  ```
+
+  **It binds the collection your model already declares.** `List<T>`, `T[]` and `HashSet<T>` all infer
+  the same element type from one `Bind` step, and the write-back builds whatever the property declares
+  rather than one fixed shape — assigning a `List<string>` to a `string[]` property throws, and nothing
+  in the value's own type says which the property wanted. A get-only collection (`public List<string>
+  Tags { get; } = [];`, which is how these are usually written) is refilled in place instead. Only
+  `IReadOnlyList<T>` cannot bind: it is not an `ICollection<T>`, so the chain has nothing to infer from.
+
+  **A separate control rather than a mode of `UiSelect`.** `IFormControl<T>` is keyed on one `T`, so a
+  control that bound both one answer and several would have two sources of truth for one field.
+
+  **The drawn list stays open as you pick**, which is the one place its markup departs from the
+  single-select's: an option carries no `popovertargetaction="hide"`. Choosing three answers should not
+  mean opening the list three times. The browser still owns Escape and click-outside, and the toggle
+  event is still the only writer of the open flag.
+
+  **The box is a `<div>` wrapping the combobox button, where the single-select's box IS the button.**
+  Not a style choice: a chip's remove control is a `<button>`, and a `<button>` may not contain one —
+  interactive content is excluded from its content model. The box is presentational, with no role and
+  no `aria-hidden` of its own, because an `aria-hidden` holding focusable buttons is the one thing that
+  rule must never do. The listbox carries `aria-multiselectable="true"`, which is what actually
+  announces that a second answer is allowed — the options look identical either way.
+
+  `Name` renders one hidden input per answer, all sharing the name: byte for byte what a
+  `<select multiple>` posts, so a server reading the native control reads the drawn one unchanged.
+
+- **`Select<T>` gained `OnSelect` / `OnSelectAsync`**, handing over the raw option values the user
+  picked as `IReadOnlyList<string>` — the whole selection every time, never a delta. It closes a hole:
+  controlled multi-select on the raw tag was dead, because `ControlledChangeHandler` parses one string
+  into `T` and `TryParseValue(typeof(string[]), …)` always fails. It is also the way past
+  `IsBindableSelectionType`, whose element type is closed to `string` for a documented AOT reason — a
+  control that rendered its own options maps those values back itself, which is how `UiMultiSelect<T>`
+  is generic over an int, an enum or a Guid where `Select<T>` is not. Controlled mode only: it and
+  `Bind` both claim the one `data-rask-on-change` attribute, and the generator enforces that by name.
+
+- **`OptionTemplate` on both selects**, for rows that need more than words, plus `ChipTemplate` on the
+  multi. Setting one implies the drawn list, because an `<option>`'s content model is text and there is
+  nowhere in the platform's control for markup to go — so a template with `Native` unset draws its own
+  list rather than silently rendering nothing. An explicit `Native(true)` beside a template is the
+  contradiction, and **RASK075** reports it at the call site. That analyzer walks the chain's invocation
+  operations rather than reading the entry, because a form control's entry is its mode-opening seed and
+  not a `Build<T>` — the way five diagnostics before it went silently dead on the chain.
+
+  RASK075 rather than RASK072 deliberately: RASK072–074 are allocated on a main lineage this branch had
+  not merged, and an id is never recycled.
+
+  `site/`, `docs/ui-kit.md`, `docs/forms.md`, `docs/forms-advanced.md`, `docs/accessibility.md`,
+  `docs/diagnostics.md`, `llms.txt` and the package README all carry the new control.
 
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an
   `AbstractValidator<T>` used to reach a `Form<T>` and a dispatched request and stop there: it did not
