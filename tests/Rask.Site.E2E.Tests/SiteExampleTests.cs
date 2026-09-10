@@ -279,8 +279,9 @@ public sealed class SiteExampleTests
     }
 
     /// <summary>
-    ///     A theme the reader picks is still there after a navigation and after a reload, and light is
-    ///     what they get before they have picked anything.
+    ///     A theme the reader picks is still there after a navigation and after a reload — and before
+    ///     they have picked anything, the document names no theme at all, so their operating system
+    ///     decides.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -295,9 +296,17 @@ public sealed class SiteExampleTests
     ///         a saved theme is on the document from the first frame — not corrected afterwards, which
     ///         would be a flash of the wrong palette and the very thing this pair of fixes is about.
     ///     </para>
+    ///     <para>
+    ///         The ABSENCE with nothing stored is equally load-bearing, and this asserted the opposite
+    ///         until now: it required <c>data-theme="light"</c>, so a reader whose machine asks for dark
+    ///         got a white page. daisyUI compiles <c>[data-rask-ui]:not([data-theme])</c> under
+    ///         <c>prefers-color-scheme: dark</c>, so writing no attribute is what lets the OS decide — in
+    ///         CSS, with no script, no flash to correct, and a repaint if the reader flips their machine
+    ///         while the page is open. Stamping a default would defeat all of it.
+    ///     </para>
     /// </remarks>
     [Fact]
-    public async Task Theme_DefaultsToLightAndIsRemembered()
+    public async Task Theme_FollowsTheOperatingSystemUntilPicked_ThenIsRemembered()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
@@ -307,7 +316,11 @@ public sealed class SiteExampleTests
             await Expect(page.Locator("body[data-rask-root='wasm']"))
                 .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
 
-            await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "light");
+            // NO attribute, rather than a default one. The kit's stylesheet answers
+            // `prefers-color-scheme` only while <html> names no theme.
+            Assert.False(
+                await page.Locator("html").EvaluateAsync<bool>("el => el.hasAttribute('data-theme')"),
+                "the document stamped a theme before the reader chose one, so the OS cannot decide");
             Assert.Null(await page.EvaluateAsync<string?>("() => localStorage.getItem('rask-theme')"));
 
             await page.Locator("details.dropdown > summary").First.ClickAsync();
