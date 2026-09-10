@@ -1,6 +1,6 @@
 ---
 name: run-rask
-description: Build, launch, and drive the Rask site (site/Rask.Site) — the one browser-WASM app behind rask.sh, with the landing page at / and the showcase plus guides at /docs. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node. Also drives the built-in operator console (Rask.Dashboard at /_rask) out of a throwaway scaffolded app, at desktop and phone widths, via dashboard-driver.cs.
+description: Build, launch, and drive the Rask site (site/Rask.Site) — the one browser-WASM app behind rask.sh, with the landing page at / and the showcase plus guides at /docs. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node. Also drives the built-in operator console (Rask.Dashboard at /_rask) at desktop and phone widths, out of a throwaway scaffolded app that ops-app.sh builds against the working tree.
 ---
 
 # Run the Rask site
@@ -136,23 +136,26 @@ asking to be 510px wide. The fix is `min-w-0` on the item, repeated at **every**
 
 The site does not mount `Rask.Dashboard`, and no app in the repo does since `samples/` was deleted. So
 the console needs a throwaway app to live in — which is also the honest test, since a scaffolded app
-is what a user actually mounts it in:
+is what a user actually mounts it in. **`ops-app.sh` builds and launches that app**, then prints the
+exact driver line:
 
 ```bash
-tmp="$(mktemp -d)"
-dotnet run --project src/Rask.Cli -- new Shop --output "$tmp/Shop"
-ASPNETCORE_ENVIRONMENT=Development \
-  dotnet run --project "$tmp/Shop" --urls http://localhost:5123 > /tmp/rask-ops.log 2>&1 &
-for i in $(seq 1 60); do curl -sf http://localhost:5123/ -o /dev/null && break; sleep 1; done
-# The accounts battery gates the FIRST registration on a one-time token it logs at startup.
-token="$(grep -o 'one-time token: [^.]*' /tmp/rask-ops.log | head -1 | cut -d' ' -f4)"
-cd .claude/skills/run-rask && dotnet run dashboard-driver.cs http://localhost:5123 "$token"
+.claude/skills/run-rask/ops-app.sh                  # ~2 min (it packs the tree); PORT=5124 to move it
+cd .claude/skills/run-rask
+dotnet run dashboard-driver.cs http://localhost:5123 <token>   # ops-app.sh prints the token
+lsof -ti :5123 | xargs kill                         # when done
 ```
 
-The console is behind a policy, so the driver registers the first account (which becomes the
-administrator) and signs in, then shoots all five console pages at **1280 and 390** into `screenshots/`
-(gitignored). The console is built mobile-first, and the two widths are genuinely different markup —
-columns collapse, the leader rules disappear — so one width proves nothing about the other.
+`ops-app.sh` packs **this working tree** to a folder feed and restores the scaffold against that, which
+is the only version of this that proves anything: a scaffold restored from nuget.org shoots the
+*released* console, not your change — and today it does not even restore. See the console gotchas below
+for the four traps that recipe walks into.
+
+The console is behind a policy — the scaffold gates it on the **Admin** role, which only the FIRST
+account gets — so the driver registers that account with the one-time first-run token, signs in, and
+then shoots all five console pages at **1280 and 390** into `screenshots/` (gitignored). The console is
+built mobile-first, and the two widths are genuinely different markup — columns collapse, the leader
+rules disappear — so one width proves nothing about the other.
 
 Drop the token argument to re-run against an app that already has the account.
 
@@ -164,6 +167,38 @@ Each shot is checked for two kinds of overflow, and the second is the one that m
   page-level check stays perfectly green. That is how a request id in a log scope shipped once.
 
 Both must read `ok` on every mobile row.
+
+The run ends with `10 screenshots in …`, and that line is a **count the driver verified**: every file is
+checked for a plausible size as it is written, and the tally is asserted at the end. Anything short of
+the full set throws. That guard exists because the driver spent a release shooting *nothing* — it waited
+for the host app's sign-out control (`#logout-submit`), which the scaffold has never rendered on the page
+you land on after signing in, so the wait burned its timeout **before the first screenshot** and the run
+"finished" over an empty directory. It now waits on the console's own shell (`div.rask-ops` and its nav),
+which is what it is here to look at and does not move when the scaffold's home page changes.
+
+### Console gotchas
+
+- **The scaffold cannot restore from nuget.org.** `rask new` pins the last published stable, and two of
+  the packages it pins — `Rask.Query` and `Rask.Auth` at `0.20.0` — were never published, so a plain
+  `dotnet run --project src/Rask.Cli -- new Shop` dies on `NU1103` (issue 1044). Even once that is fixed,
+  the templates it writes track the tree, so they compile against API the release does not have.
+  `ops-app.sh` is the supported path.
+- **The global package folder beats every feed.** `~/.nuget/packages` already holds real packages at the
+  pinned version, so a local feed alone is silently ignored and you screenshot the release. `ops-app.sh`
+  gives the throwaway app its own `globalPackagesFolder` — outside the project directory, because inside
+  it the project's own `**/*.css` glob sweeps the packages' content files into the scoped-CSS analyzer
+  and the build fails on `RASK015`. That folder is **deleted whenever the feed is repacked**: the version
+  is fixed at whatever `rask new` pins, so a second run writes the same `0.20.0` and NuGet, finding it
+  already extracted, never reads the feed again — you would edit the console, re-run, and screenshot the
+  build from before your change with every check green. `RASK_OPS_NO_PACK=1` keeps both, and is only safe
+  while `src/` is untouched.
+- **Packing needs the generators built in Release first.** `Rask.Api.csproj` checks for
+  `Rask.Api.Generators.dll` on disk and fails the pack rather than shipping a package whose consumers get
+  no generated code. `ops-app.sh` builds the three generator projects before packing.
+- **Signing in is not a navigation.** A component handler runs on the WebSocket and a WebSocket cannot
+  write a `Set-Cookie`, so Rask parks the sign-in and the browser redeems a one-shot ticket at
+  `/_rask/auth/redeem`. The URL leaves `/login` *before* the cookie exists, so anything that waits on the
+  URL races straight back to `/login`. The driver waits for that redeem response instead.
 
 ## Gotchas
 
@@ -201,3 +236,14 @@ Both must read `ok` on every mobile row.
   real browser and read the console.
 - `dotnet run --project …` exits immediately with an address-in-use bind error → 5050 is taken; pick
   another port or kill the holder with `lsof -ti :5050 | xargs kill`.
+- `The console did not render at /_rask — landed on …` → either the account is not an administrator
+  (only the first registration is; start from a fresh app via `ops-app.sh`), or the console's shell
+  markup moved and `ConsoleShell`/`ConsoleNav` in `dashboard-driver.cs` need re-deriving from
+  `DashboardLayout` / `UiShell`.
+- `Sign-in never completed: no 200 from /_rask/auth/redeem …` → the message carries the auth page's own
+  reason when there is one ("that email is already taken", "must be at least 8 characters").
+- `A first-run token was passed but /register shows no #first-run-token field` → the app is already
+  claimed; drop the token argument, or re-run `ops-app.sh` for a fresh app.
+- `Expected 10 screenshots … but wrote N` / `Screenshot of … is missing or empty` → the run produced
+  less than the full set. Do not read this as "the console is slow"; read it as the driver refusing to
+  report a green run over an empty directory.

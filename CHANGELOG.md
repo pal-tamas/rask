@@ -325,6 +325,24 @@ them until tagged releases begin.
 
   CS0108 for a member of your own named after a tag now covers ~170 names rather than the 15 Core used
   to keep — and no longer needs answering at all; see RASKSUP001 below.
+- **The unbuilt-island warning now carries a diagnostic code, `RASKISLAND004`.** It had none, and a task
+  warning with no code cannot be suppressed by anybody — not `MSBuildWarningsAsMessages`, not `NoWarn`,
+  not a consumer with one island mid-refactor. The only lever was `RaskExternalPropTypes=false`, which
+  also switches off the generated prop types, so quieting the warning meant giving up the type-check it
+  sits beside.
+
+  This surfaced as `tests/Rask.External.Tests` being unable to build with `-warnaserror`: thirteen of
+  its fourteen islands are declared inline in a test source with no front-end file on purpose, so the
+  build was right about all thirteen and there was nothing to fix. That project now demotes the code to
+  a message and says why; every other project, `site/Rask.Site` included, keeps the warning at full
+  strength, and `Dial` — the one fixture that has a module — is still named if its module ever stops
+  being claimed, which is the #938 cross-check.
+
+  Also corrected: the task's own remarks claimed "this repository builds with `-warnaserror`, so in its
+  own gate this does stop the build". It does not. `Directory.Build.props` sets
+  `TreatWarningsAsErrors`, which is the **Roslyn** switch and says nothing about a warning an MSBuild
+  task logs; promoting one needs `-warnaserror` on the command line or `MSBuildTreatWarningsAsErrors`,
+  and `scripts/run-unit-local.sh` passes neither. (#1042)
 
 - **A Lit island and Rask's scoped TypeScript no longer claim each other's files.** Both are spelled
   `Name.ts` beside `Name.cs`, and the only thing separating them is whether the class derives from
