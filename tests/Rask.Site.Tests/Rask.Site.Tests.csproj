@@ -55,13 +55,13 @@
     give this assembly a second entry point.
   -->
   <ItemGroup>
-    <Compile Include="..\Rask.Site\**\*.cs">
+    <Compile Include="..\..\src\Rask.Site\**\*.cs">
       <Link>Site/%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
-    <Compile Remove="..\Rask.Site\obj\**"/>
-    <Compile Remove="..\Rask.Site\bin\**"/>
-    <Compile Remove="..\Rask.Site\node_modules\**"/>
-    <Compile Remove="..\Rask.Site\Program.cs"/>
+    <Compile Remove="..\..\src\Rask.Site\obj\**"/>
+    <Compile Remove="..\..\src\Rask.Site\bin\**"/>
+    <Compile Remove="..\..\src\Rask.Site\node_modules\**"/>
+    <Compile Remove="..\..\src\Rask.Site\Program.cs"/>
   </ItemGroup>
 
   <!--
@@ -75,8 +75,8 @@
     of referencing a project, and it is worth paying explicitly rather than discovering later.
   -->
   <ItemGroup>
-    <AdditionalFiles Include="..\Rask.Site\**\*.css"
-                     Exclude="..\Rask.Site\bin\**;..\Rask.Site\obj\**;..\Rask.Site\node_modules\**;..\Rask.Site\wwwroot\**;..\Rask.Site\Styles\**"/>
+    <AdditionalFiles Include="..\..\src\Rask.Site\**\*.css"
+                     Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\node_modules\**;..\..\src\Rask.Site\wwwroot\**;..\..\src\Rask.Site\Styles\**"/>
   </ItemGroup>
 
   <!--
@@ -93,7 +93,7 @@
       <LogicalName>raskdoc/%(Filename)%(Extension)</LogicalName>
       <Link>Docs/%(RecursiveDir)%(Filename)%(Extension)</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\Rask.Site\Features\**\*.cs;..\Rask.Site\Features\**\*.ts;..\Rask.Site\Features\**\*.css;..\Rask.Site\Shared\**\*.cs;..\Rask.Site\Shared\**\*.ts;..\Rask.Site\Shared\**\*.css">
+    <EmbeddedResource Include="..\..\src\Rask.Site\Features\**\*.cs;..\..\src\Rask.Site\Features\**\*.ts;..\..\src\Rask.Site\Features\**\*.css;..\..\src\Rask.Site\Shared\**\*.cs;..\..\src\Rask.Site\Shared\**\*.ts;..\..\src\Rask.Site\Shared\**\*.css">
       <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
@@ -111,7 +111,7 @@
     <!-- The shipped testing package: this suite tests a sample app, so it drives it the way an
          app author would. -->
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
-    <ProjectReference Include="..\..\tests\Rask.TestSupport\Rask.TestSupport.csproj"/>
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <!-- The linked sources include the WASM-only demos and the islands. Rask.Wasm multi-targets
          net10.0;net10.0-browser, so this net10.0 suite gets the net10.0 face of the same API — which is

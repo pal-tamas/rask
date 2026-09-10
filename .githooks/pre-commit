@@ -5,9 +5,14 @@
 # Both were moved OUT of CI — they run locally instead, and this hook enforces them on commit.
 # Enable it once with:  git config core.hooksPath .githooks  (installs commit-msg + pre-commit + pre-push)
 #
-# Runs ONLY when the staged change touches code (src/, tests/, benchmarks/, Rask.slnx, Directory.*), so
-# docs-only / workflow-only commits stay fast. Bypass any commit with 'git commit --no-verify' or
+# Runs ONLY when the staged change touches code (src/, tests/, docs/, scripts/, .githooks/, Rask.slnx,
+# Directory.*), so workflow-only commits stay fast. Bypass any commit with 'git commit --no-verify' or
 # RASK_SKIP_UNIT=1.
+#
+# There is no site/ or benchmarks/ prefix any more, and that is not an omission: every project now
+# lives under src/ (what ships) or tests/ (what verifies or measures), so those two prefixes are
+# covered by the two that remain. Adding a third root again means adding it HERE too, or the one
+# commit that touches only it is the one commit that skips this gate.
 set -euo pipefail
 
 if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
@@ -20,13 +25,14 @@ fi
 # pipeline reports failure — so a large staged change reads as "no code changes" and sails through
 # unchecked, while a small one gates normally. It let a 421-file commit touching all of src/ past.
 #
-# site/ and docs/ are in here for the same reason src/ is: the suite genuinely gates them. A tree that
-# matches none of these prefixes is not rejected — it is silently waved through with "no code changes
-# staged", which is how a whole feature once landed ungated.
+# docs/ is in here for the same reason src/ is: the suite genuinely gates it. A tree that matches none
+# of these prefixes is not rejected — it is silently waved through with "no code changes staged", which
+# is how a whole feature once landed ungated.
 #
-#   site/ is the published rask.sh app: the landing page, the guides and every live demo. It is
+#   src/Rask.Site is the published rask.sh app: the landing page, the guides and every live demo. It is
 #   compiled, analyzer-checked, warnings-as-errors code, and Rask.Site.Tests links its sources and owns
 #   DemoMarkup.golden.txt — so a site-only commit could break a committed golden with nothing objecting.
+#   It needs no prefix of its own now that it lives under src/.
 #
 #   docs/ is an input to the tests, not just prose: DocsIndexTests walks docs/**/*.md on disk for
 #   reachability from docs/README.md, and GuidesTests holds the GuideCatalog parity guard in both
@@ -47,7 +53,7 @@ fi
 # Running the one check here, rather than adding these files to the filter below, is deliberate: the
 # filter decides whether to run the FULL format + unit suite, and making a typo fix pay for that is
 # the cost scripts/tests/install-script.test.sh declined to impose. This costs well under a second.
-# The site hero needs no entry — it lives under site/, so it already runs the whole gate, which
+# The site hero needs no entry — it lives under src/Rask.Site, so it already runs the whole gate, which
 # runs this test through scripts/run-unit-local.sh.
 front_doors='^(README\.md|NUGET\.md)$'
 
@@ -60,7 +66,7 @@ if git diff --cached --name-only | grep -E "$front_doors" >/dev/null; then
   fi
 fi
 
-if ! git diff --cached --name-only | grep -E '^(src/|site/|docs/|tests/|benchmarks/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
+if ! git diff --cached --name-only | grep -E '^(src/|docs/|tests/|scripts/|\.githooks/|Rask\.slnx$|rask\.(sh|ps1)$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi

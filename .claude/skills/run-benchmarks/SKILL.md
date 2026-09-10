@@ -6,7 +6,7 @@ description: Run Rask render/runtime benchmarks before and after a framework cha
 # run-benchmarks
 
 BenchmarkDotNet, Release only, hand-run (not part of `dotnet test`). Project:
-`benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj`. All benches use `[MemoryDiagnoser]`.
+`tests/Rask.Benchmarks/Rask.Benchmarks.csproj`. All benches use `[MemoryDiagnoser]`.
 
 ## 1. Pick the bench class matching the change
 | Area changed | Bench class (`--filter "*Name*"`) |
@@ -22,10 +22,10 @@ BenchmarkDotNet, Release only, hand-run (not part of `dotnet test`). Project:
 ```bash
 # capture baseline on the unchanged tree
 git stash                      # or check out the parent commit
-dotnet run -c Release --project benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj --filter "*RenderRoundTrip*"
-# results land in benchmarks/Rask.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md
+dotnet run -c Release --project tests/Rask.Benchmarks/Rask.Benchmarks.csproj --filter "*RenderRoundTrip*"
+# results land in tests/Rask.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md
 git stash pop                  # restore the change, re-run the same filter
-dotnet run -c Release --project benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj --filter "*RenderRoundTrip*"
+dotnet run -c Release --project tests/Rask.Benchmarks/Rask.Benchmarks.csproj --filter "*RenderRoundTrip*"
 ```
 
 ## 3. Compare + report

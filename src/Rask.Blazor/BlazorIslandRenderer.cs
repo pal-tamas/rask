@@ -63,7 +63,7 @@ internal sealed class BlazorIslandRenderer : StaticHtmlRenderer
     ///     Must be awaited on <c>Dispatcher</c>. Never block on it from Rask's
     ///     synchronous serialize walk: <c>Dispatcher.InvokeAsync(...).GetAwaiter().GetResult()</c>
     ///     deadlocks against the renderer's own synchronization context, which is why
-    ///     <c>benchmarks/Rask.Benchmarks.VsBlazor</c> had to supply an inline dispatcher of its own.
+    ///     <c>tests/Rask.Benchmarks.VsBlazor</c> had to supply an inline dispatcher of its own.
     ///     Everything here is reached from <c>OnPropsChangedAsync</c>, which is already async.
     /// </remarks>
     public Task RenderAsync(int componentId, ParameterView parameters) =>

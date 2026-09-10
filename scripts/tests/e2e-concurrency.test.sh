@@ -146,13 +146,13 @@ export RASK_HEAVY_PGREP_OVERRIDE="301"
 RASK_E2E_CMD_301="dotnet build Rask.slnx -c Release" heavy "a solution build" "301"
 
 RASK_E2E_CMD_301="dotnet test Rask.slnx --no-build" heavy "a test run" "301"
-RASK_E2E_CMD_301="dotnet publish site/Rask.Site -c Release" heavy "a publish" "301"
+RASK_E2E_CMD_301="dotnet publish src/Rask.Site -c Release" heavy "a publish" "301"
 RASK_E2E_CMD_301="dotnet msbuild probe.csproj -getItem:Watch" heavy "an msbuild evaluation" "301"
 RASK_E2E_CMD_301="dotnet pack src/Rask.Core" heavy "a pack" "301"
 
 # The cheap verbs. A dev server, a migration and a version query are not contention worth naming, and
 # reporting them would train people to ignore the line that matters.
-RASK_E2E_CMD_301="dotnet run --project site/Rask.Site" heavy "a dev server is not contention" ""
+RASK_E2E_CMD_301="dotnet run --project src/Rask.Site" heavy "a dev server is not contention" ""
 RASK_E2E_CMD_301="dotnet ef migrations add Init" heavy "a migration is not contention" ""
 RASK_E2E_CMD_301="dotnet --version" heavy "a version query is not contention" ""
 RASK_E2E_CMD_301="dotnet tool install -g dotnet-ef" heavy "a tool install is not contention" ""

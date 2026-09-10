@@ -30,7 +30,7 @@ namespace Rask.Site.Tests.Guides;
 // their own tests.
 //
 // To regenerate after an intended change:
-//     RASK_UPDATE_GOLDEN=1 dotnet test site/Rask.Site.Tests --filter FullyQualifiedName~DemoMarkupGolden
+//     RASK_UPDATE_GOLDEN=1 dotnet test tests/Rask.Site.Tests --filter FullyQualifiedName~DemoMarkupGolden
 // then read `git diff` on the .golden.txt before committing. That diff IS the review.
 public sealed class DemoMarkupGoldenTests
 {

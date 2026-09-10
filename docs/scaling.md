@@ -12,7 +12,7 @@ against your own app rather than trusting a table.
 Every live session pins a component tree, a DI scope, and a few buffers. Measure it:
 
 ```bash
-dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-footprint
+dotnet run -c Release --project tests/Rask.Benchmarks -- session-footprint
 ```
 
 | Page | Connected | Sessions per GiB |
@@ -44,7 +44,7 @@ so a slow page costs a request slot rather than a session. Size the two together
 Fitting is not the same as serving. Measure that too:
 
 ```bash
-dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-load
+dotnet run -c Release --project tests/Rask.Benchmarks -- session-load
 ```
 
 | Page | Events/sec | p50 | p99 |

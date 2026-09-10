@@ -353,7 +353,7 @@ its own; explaining it is not, and a skipped route is invisible until someone ch
 
 ## In this repo
 
-`site/Rask.Site` — the app behind [rask.sh](https://rask.sh) — is the in-repo consumer:
+`src/Rask.Site` — the app behind [rask.sh](https://rask.sh) — is the in-repo consumer:
 
 ```
 [Rask.Prerender] 155 route(s) to render, 3 skipped

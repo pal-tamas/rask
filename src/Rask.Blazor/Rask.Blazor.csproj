@@ -52,7 +52,7 @@
   <!--
     Server: Microsoft.AspNetCore.Components{,.Web} arrive through the shared framework, so nothing is
     packaged and Directory.Packages.props needs no entry — the same way
-    benchmarks/Rask.Benchmarks.VsBlazor takes its Blazor dependency.
+    tests/Rask.Benchmarks.VsBlazor takes its Blazor dependency.
   -->
   <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>

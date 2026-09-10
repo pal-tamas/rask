@@ -15,7 +15,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-PROJECT=benchmarks/Rask.Benchmarks.Sqlite/Rask.Benchmarks.Sqlite.csproj
+PROJECT=tests/Rask.Benchmarks.Sqlite/Rask.Benchmarks.Sqlite.csproj
 
 echo "==> Build (Release; the harness is meaningless in Debug)"
 dotnet build "$PROJECT" -c Release -p:MinVerSkip=true

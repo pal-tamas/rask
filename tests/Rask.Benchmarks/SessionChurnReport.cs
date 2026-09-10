@@ -42,7 +42,7 @@ namespace Rask.Benchmarks;
 ///         has to be read against both.
 ///     </para>
 ///     <para>
-///         Invoke: <c>dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-churn</c>
+///         Invoke: <c>dotnet run -c Release --project tests/Rask.Benchmarks -- session-churn</c>
 ///     </para>
 /// </summary>
 internal static class SessionChurnReport

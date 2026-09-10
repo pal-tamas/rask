@@ -1,6 +1,6 @@
 #:package Microsoft.Playwright
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// Driver for the Rask site (site/Rask.Site) — the app published to rask.sh.
+// Driver for the Rask site (src/Rask.Site) — the app published to rask.sh.
 //
 // One browser-WASM app: the landing page at /, the showcase and guides at /docs. `dotnet run` serves
 // it through the SDK's WasmAppHost, the browser downloads dotnet.wasm + assemblies, boots the Mono

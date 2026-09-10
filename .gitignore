@@ -147,7 +147,7 @@ src/Rask.External/build/Rask.External.Tasks.contract
 src/Rask.Core/build/Rask.TypeScript.Tasks.dll
 
 # Ad-hoc SQLite load-harness runs (the committed reference lives in Baselines/).
-benchmarks/Rask.Benchmarks.Sqlite/Results/
+tests/Rask.Benchmarks.Sqlite/Results/
 
 # The WASM browser bundles are build output: esbuild writes them from Browser/main.ts and
 # Resources/*.ts. They lived in git while the build assembled them by pasting files together at

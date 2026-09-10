@@ -190,7 +190,7 @@ public sealed class PageMetaTests
         // PageMeta.Origin writes the canonicals; <RaskSiteUrl> in the csproj writes sitemap.xml. Two
         // constants naming the same thing drift, and a site whose sitemap and canonicals disagree about
         // its own address is telling a crawler two different things about every page.
-        var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "site", "Rask.Site", "Rask.Site.csproj"));
+        var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Rask.Site", "Rask.Site.csproj"));
         var declared = Regex.Match(csproj, "<RaskSiteUrl>([^<]+)</RaskSiteUrl>");
 
         Assert.True(declared.Success, "the csproj declares no <RaskSiteUrl>, so the publish writes no sitemap");

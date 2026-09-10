@@ -143,7 +143,7 @@ for the WASM trimmer by the framework, so it deserializes correctly in a `Publis
 
 Runnable demos: the **Browser APIs** section of the showcase at
 [rask.sh/docs](https://rask.sh/docs) — one page per wrapper, from
-[`site/Rask.Site/Features/Browser/`](../site/Rask.Site/Features/Browser/).
+[`src/Rask.Site/Features/Browser/`](../src/Rask.Site/Features/Browser/).
 
 ---
 

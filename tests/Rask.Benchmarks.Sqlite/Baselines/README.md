@@ -10,8 +10,8 @@ Hardware: Apple M4 (Arm64), .NET 10, Concurrent Server GC, APFS SSD, database on
 Reproduce:
 
 ```bash
-dotnet run -c Release --project benchmarks/Rask.Benchmarks.Sqlite -- all --vus 1,32,128 --duration 15 \
-  --out benchmarks/Rask.Benchmarks.Sqlite/Baselines/sqlite-load.csv
+dotnet run -c Release --project tests/Rask.Benchmarks.Sqlite -- all --vus 1,32,128 --duration 15 \
+  --out tests/Rask.Benchmarks.Sqlite/Baselines/sqlite-load.csv
 ```
 
 ## What this harness is for, and why it is not BenchmarkDotNet

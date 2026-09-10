@@ -1,11 +1,11 @@
 ---
 name: run-rask
-description: Build, launch, and drive the Rask site (site/Rask.Site) — the one browser-WASM app behind rask.sh, with the landing page at / and the showcase plus guides at /docs. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node. Also drives the built-in operator console (Rask.Dashboard at /_rask) out of a throwaway scaffolded app, at desktop and phone widths, via dashboard-driver.cs.
+description: Build, launch, and drive the Rask site (src/Rask.Site) — the one browser-WASM app behind rask.sh, with the landing page at / and the showcase plus guides at /docs. Use to run/start/launch the app, take a screenshot, or confirm a UI change works in the real running app (not just tests). Drives it headlessly with a committed C# Playwright driver — pure .NET, no Node. Also drives the built-in operator console (Rask.Dashboard at /_rask) out of a throwaway scaffolded app, at desktop and phone widths, via dashboard-driver.cs.
 ---
 
 # Run the Rask site
 
-`site/Rask.Site` is the framework's showcase and its published front door: the landing page at `/`,
+`src/Rask.Site` is the framework's showcase and its published front door: the landing page at `/`,
 the guides and every live demo at `/docs`. It is **browser-WASM** — the browser downloads
 `dotnet.wasm` plus the assemblies, boots the Mono runtime, and renders and handles events locally via
 JSImport/JSExport. There is no server and no WebSocket. It's the app to launch when you want to *see*
@@ -37,7 +37,7 @@ otherwise.
 ## Build
 
 ```bash
-dotnet build site/Rask.Site -c Debug -m:1
+dotnet build src/Rask.Site -c Debug -m:1
 ```
 
 Serially (`-m:1`): the WASM asset pipeline races under parallel builds. Clean build = 0 warnings.
@@ -48,7 +48,7 @@ Serially (`-m:1`): the WASM asset pipeline races under parallel builds. Clean bu
 
    ```bash
    lsof -ti :5050 && echo "BUSY — see Gotchas" || echo "free"
-   dotnet run --project site/Rask.Site -c Debug --no-build \
+   dotnet run --project src/Rask.Site -c Debug --no-build \
      -- --urls http://localhost:5050 > /tmp/rask-site.log 2>&1 &
    ```
 
@@ -84,7 +84,7 @@ Serially (`-m:1`): the WASM asset pipeline races under parallel builds. Clean bu
 ## Run (human path)
 
 ```bash
-dotnet run --project site/Rask.Site
+dotnet run --project src/Rask.Site
 ```
 
 Open the printed URL in a browser. Useless for automation — it blocks the terminal and opens nothing

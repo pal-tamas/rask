@@ -5,8 +5,8 @@
 # same payload shape with one small value differing), so the numbers are compared byte-for-byte against
 # the committed baselines and a regression fails the push. TWO baselines are gated, and both matter:
 #
-#   benchmarks/Rask.Benchmarks/Baselines/payload-bytes.csv                  (standalone codec)
-#   benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor-payload-bytes.csv  (head-to-head)
+#   tests/Rask.Benchmarks/Baselines/payload-bytes.csv                  (standalone codec)
+#   tests/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor-payload-bytes.csv  (head-to-head)
 #
 # This is the ONLY place they run. A CI job used to duplicate them, but nothing on main was a required
 # check, so its answer stopped nobody — the gate rode red through three merges before anyone noticed
@@ -28,8 +28,8 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
-standalone="benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj"
-vsblazor="benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj"
+standalone="tests/Rask.Benchmarks/Rask.Benchmarks.csproj"
+vsblazor="tests/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj"
 
 # The built binaries, invoked directly instead of through `dotnet run --no-build --project`. Six of
 # those ran in this gate, and each one re-evaluates the project — restore check, target graph, output
@@ -39,8 +39,8 @@ vsblazor="benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj"
 #
 # Asserted rather than assumed, below, because a wrong path here would turn into "command not found"
 # and, on the `|| status=1` lines, read exactly like a benchmark regression.
-standalone_bin="benchmarks/Rask.Benchmarks/bin/Release/net10.0/Rask.Benchmarks"
-vsblazor_bin="benchmarks/Rask.Benchmarks.VsBlazor/bin/Release/net10.0/Rask.Benchmarks.VsBlazor"
+standalone_bin="tests/Rask.Benchmarks/bin/Release/net10.0/Rask.Benchmarks"
+vsblazor_bin="tests/Rask.Benchmarks.VsBlazor/bin/Release/net10.0/Rask.Benchmarks.VsBlazor"
 
 # BUILD FIRST, and never --no-build on its own. `--check` reads the baseline from
 # AppContext.BaseDirectory — the copy under bin/ — not from the source tree. Editing the CSV and
@@ -152,9 +152,9 @@ if [ "$status" -ne 0 ]; then
   editing a benchmark component lands in a gated number. Refresh the baseline in the same commit, and
   say why:
 
-    dotnet build benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj -c Release -p:MinVerSkip=true
-    dotnet run -c Release --project benchmarks/Rask.Benchmarks --no-build -- payload-bytes \
-      > benchmarks/Rask.Benchmarks/Baselines/payload-bytes.csv
+    dotnet build tests/Rask.Benchmarks/Rask.Benchmarks.csproj -c Release -p:MinVerSkip=true
+    dotnet run -c Release --project tests/Rask.Benchmarks --no-build -- payload-bytes \
+      > tests/Rask.Benchmarks/Baselines/payload-bytes.csv
 
   Telling them apart: the vs-Blazor report also records BlazorBatchBytes. If Blazor's numbers moved by
   the same amount, the bytes came from markup both frameworks render, not from anything Rask encodes.

@@ -139,7 +139,7 @@ internal static partial class PayloadBytesReport
         {
             Console.WriteLine(
                 "::notice::Diff payload improved vs baseline — refresh Baselines/payload-bytes.csv " +
-                "(`dotnet run -c Release --project benchmarks/Rask.Benchmarks -- payload-bytes`) so it keeps tracking reality.");
+                "(`dotnet run -c Release --project tests/Rask.Benchmarks -- payload-bytes`) so it keeps tracking reality.");
         }
 
         return regressed ? 1 : 0;

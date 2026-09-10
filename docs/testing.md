@@ -400,7 +400,7 @@ var html = RaskTest.RenderDocument(new App, TestServiceProvider.Default(routeSta
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 
-`site/Rask.Site.Tests/` shows page tests for routing, lifecycle, forms, uploads, and more.
+`tests/Rask.Site.Tests/` shows page tests for routing, lifecycle, forms, uploads, and more.
 
 ---
 

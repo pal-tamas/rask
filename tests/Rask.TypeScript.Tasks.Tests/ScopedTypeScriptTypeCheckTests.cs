@@ -328,7 +328,7 @@ public class ScopedTypeScriptTypeCheckTests
     /// </remarks>
     private static IEnumerable<(string Project, List<string> Files)> ProjectsWithScopedTypeScript(string root)
     {
-        foreach (var directory in new[] { "src", "site", "samples", "tests" })
+        foreach (var directory in new[] { "src", "tests" })
         {
             var path = Path.Combine(root, directory);
             if (!Directory.Exists(path))

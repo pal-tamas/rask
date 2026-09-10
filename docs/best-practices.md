@@ -258,7 +258,7 @@ mistake, the rule notes the ID.
 - **Use a `[...]` collection expression to avoid a wrapper node** for sibling lists, and `null` for a
   "render nothing" branch (`show ? Panel() : null`).
 - **Benchmark every render-hotpath or live-runtime change.** Diff codec, frame writer, serializer,
-  and dispatch are under measurement — run `benchmarks/Rask.Benchmarks` before/after and quote the
+  and dispatch are under measurement — run `tests/Rask.Benchmarks` before/after and quote the
   `Allocated` delta. See [development workflow](development-workflow.md).
 
 ## Testing
@@ -269,7 +269,7 @@ mistake, the rule notes the ID.
   `StubComponent` and call `RenderAsLiveRoot()` for anything needing a live context (handlers, forms,
   DI). Drive handlers via the `data-rask-on-*` id + `TryInvokeHandlerAsync`, and assert exact
   attribute order. See [testing](testing.md).
-- **Every `site/` change gets an E2E test.** Add a Playwright journey to
+- **Every `src/Rask.Site` change gets an E2E test.** Add a Playwright journey to
   `tests/Rask.Examples.E2E.Tests`.
 
 ## Common pitfalls

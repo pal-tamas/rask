@@ -17,12 +17,12 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 
 Standing rules: do your best every change, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E
-only when unreachable); E2E for every `site/` change — **tests run locally, not in CI**: `dotnet
+only when unreachable); E2E for every `src/Rask.Site` change — **tests run locally, not in CI**: `dotnet
 format` + unit via `scripts/run-unit-local.sh` (enforced by `.githooks/pre-commit`), browser E2E via
 `scripts/run-e2e-local.sh` (enforced by `.githooks/pre-push`); benchmark every framework-code change;
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
 `scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
-**user-facing change → update `site/` + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
+**user-facing change → update `src/Rask.Site` + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
 everything up to date; CHANGELOG `[Unreleased]` per notable change; Conventional Commits
 (commitlint); no `Co-Authored-By`/`Generated-with`. Build is warnings-as-errors + analyzers
 (`Directory.Build.props`; see `docs/code-analysis.md`). **Every public name obeys
@@ -60,16 +60,25 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
   callbacks re-enter C# over the existing handler channel AND escalate the page to interactive. Its subtree is a
   **diff boundary** (`Component.OpaqueSubtree` + `data-rask-opaque`). `rask dev` serves islands from Vite on 5174
   for HMR — see `docs/islands.md`.
-- `site/Rask.Site` — the ONE app published to rask.sh: landing page at `/`, showcase + guides at `/docs`.
-  Browser-WASM only; `samples/` is deleted. `tests/` — sibling `*.Tests` per project +
-  `Rask.Examples.E2E.Tests` (Playwright, drives the published site bundle). `benchmarks/`.
+- `src/Rask.Site` — the ONE app published to rask.sh: landing page at `/`, showcase + guides at `/docs`.
+  Browser-WASM only; `samples/` is deleted. It is `IsPackable=false` + `RaskPublicApiTracked=false`:
+  an APP under `src/` would otherwise be treated as a shippable library by both repo-wide gates.
+
+## Layout — TWO roots, no others
+`src/` is what ships, `tests/` is what verifies or measures. There is no `site/`, `samples/` or
+`benchmarks/` any more. Adding a third root means teaching `.githooks/pre-commit`'s path filter and
+`scripts/lib/affected_projects.py`'s `PROJECT_ROOTS` about it, or the one commit that touches only it
+is the one commit that skips the gate.
+- `tests/Rask.*.Tests` — unit/integration, one per `src/` project. `tests/Rask.*.E2E.Tests` — the
+  end-to-end suites. `tests/Rask.Benchmarks*` — BenchmarkDotNet; not test projects, so `dotnet test`
+  skips them and the scoped runner filters them out by the `.Tests` suffix.
 
 ## Commands
 ```bash
 dotnet build Rask.slnx
 dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Examples.E2E"   # fast inner loop
 dotnet test Rask.slnx --filter FullyQualifiedName~ATests                 # one class
-dotnet run --project site/Rask.Site
+dotnet run --project src/Rask.Site
 ```
 
 ## Primitives & rules (the load-bearing invariants)
@@ -109,7 +118,7 @@ Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScrip
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
 diagnostics RASK001–066, RASK030/032/034/042/047/048–050 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
-started / migration / testing / architecture (`docs/`). Trimming: `site/Rask.Site` must
+started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions

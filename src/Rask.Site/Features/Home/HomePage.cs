@@ -241,7 +241,7 @@ public sealed partial class HomePage : Component
 
                 P.Class("mt-6 rounded-xl border border-ui-line bg-ui-bg p-4 text-sm text-ui-muted")["Retained heap used to be Blazor's one win — a pure-element page now keeps a compact frame snapshot instead of an object-per-element graph, so ", B.Class("text-ui-ink")["Rask leads on every measured axis."], " Numbers from the CI-enforced ", A
                     .Class("text-ui-brand-ink underline underline-offset-2")
-                    .Href("https://github.com/pal-tamas/rask/blob/main/benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md")
+                    .Href("https://github.com/pal-tamas/rask/blob/main/tests/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md")
                     .Target("_blank")
                     .Rel("noopener")["vs-blazor baselines"], " (Apple M4 Pro, .NET 10.0.5)."]
             ]

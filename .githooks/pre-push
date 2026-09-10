@@ -252,7 +252,7 @@ else
   # WASM channel still is — StaticWebAssetsManifestFileProviderTests for serving the bundle,
   # WasmHotReloadBridgeTests for the announcement, HotReloadClientContractTests for the shared
   # indicator, DevCommandTests for the dev-bundle switch — but the final hop into the runtime is not.
-  # Restoring it needs a browser app to edit, which is what site/Rask.Site could become; tracked so the
+  # Restoring it needs a browser app to edit, which is what src/Rask.Site could become; tracked so the
   # loss is a decision rather than a discovery.
 fi
 

@@ -122,13 +122,13 @@ their password with no auth code written. Run `rask` with no arguments for a wiz
 
 The full index is **[`docs/`](docs/)**, and the other packages are listed in
 **[NUGET.md](NUGET.md)**. To see it running, [rask.sh](https://rask.sh) *is* a Rask app — landing page,
-guides and every live demo — built from [`site/Rask.Site`](site/Rask.Site).
+guides and every live demo — built from [`src/Rask.Site`](src/Rask.Site).
 
 *Rask* is the Norwegian/Danish/Swedish word for **fast**, and the engine earns it: after first paint a
 counter tick on a 24 KB page goes out as ~41 bytes. It ships fewer bytes on the wire than Blazor on
 every scenario in the head-to-head suite, allocates ~40× less per update and holds a ~30% leaner
 retained tree per mounted page — the numbers, enforced by the local pre-push gate, are in the
-**[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
+**[Rask vs Blazor baselines ↗](tests/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
 
 ## Status
 

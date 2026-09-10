@@ -118,7 +118,7 @@
     <_RaskUsingsName>$(MSBuildProjectName)</_RaskUsingsName>
     <_RaskUsingsName Condition=" $(MSBuildProjectName.EndsWith('.Prerender')) ">$(MSBuildProjectName.Substring(0, $([MSBuild]::Subtract($(MSBuildProjectName.Length), 10))))</_RaskUsingsName>
 
-    <!-- The published site (site/Rask.Site) and its test project want the consumer usings: it is the
+    <!-- The published site (src/Rask.Site) and its test project want the consumer usings: it is the
          app they were written for, and it renders C# components on the WASM host. Matched by prefix so
          Rask.Site.Tests comes along; _RaskUsingsName has already stripped '.Prerender', so the prerender
          companion resolves through this same line rather than needing one of its own.
@@ -135,7 +135,7 @@
       DataAnnotations is NOT in here any more — it moved into Rask.Core, which every host already
       carries, so there is no package to reference and no using to inject.
 
-      Both are keyed to the same set as the consumer usings today, because site/Rask.Site references
+      Both are keyed to the same set as the consumer usings today, because src/Rask.Site references
       both. They stay separate properties rather than collapsing into _RaskInRepoImplicitUsings: an
       in-repo app that drops either ProjectReference has to be able to drop the using with it, and a
       global using naming an assembly the project does not have is a CS0246 with no obvious cause.

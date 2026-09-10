@@ -50,7 +50,7 @@ public sealed class UiKitWiringTests
     // takes the kit belongs on this list, and a Theory with one case says that where a Fact would not.
     public static TheoryData<string> KitApps() =>
     [
-        Path.Combine("site", "Rask.Site"),
+        Path.Combine("src", "Rask.Site"),
     ];
 
     [Theory]

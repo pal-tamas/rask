@@ -48,8 +48,10 @@ FULL_RUN_PATTERNS = [
     (re.compile(r"^\.editorconfig$"), "the formatting configuration"),
 ]
 
-# Where projects live. A changed file outside these is not something this script maps to a project.
-PROJECT_ROOTS = ("src/", "tests/", "site/", "benchmarks/")
+# Where projects live, and now the ONLY two places they live: src/ is what ships, tests/ is what
+# verifies or measures (the benchmarks moved in there too). A changed file outside these is not
+# something this script maps to a project, and is answered FULL.
+PROJECT_ROOTS = ("src/", "tests/")
 
 
 def full(reason: str) -> None:

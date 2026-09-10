@@ -231,7 +231,7 @@ facing untrusted traffic can be pushed into memory exhaustion. To set the cap yo
 session costs — measure it with the capacity report:
 
 ```bash
-dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-footprint
+dotnet run -c Release --project tests/Rask.Benchmarks -- session-footprint
 ```
 
 Measured on the framework's own data-table page (Apple M4, .NET 10, Server GC, 200 sessions per row):
@@ -270,7 +270,7 @@ The table above answers how many sessions a host can *hold*. What it costs to ac
 different question, and a capacity number you can't serve isn't a capacity number:
 
 ```bash
-dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-load
+dotnet run -c Release --project tests/Rask.Benchmarks -- session-load
 ```
 
 That drives real WebSockets against a real host and times the round trip a user actually feels — the

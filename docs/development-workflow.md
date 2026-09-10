@@ -47,7 +47,7 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
    until it is recorded in `src/<Project>/PublicAPI/<tfm>/PublicAPI.Unshipped.txt`. That diff is the
    API review — read it against [api-style.md](api-style.md) before you commit.
 3. **Tests** — unit-test every feature/fix (`tests/Rask.*.Tests`); add E2E only when a unit test
-   can't reach the path. **Every `site/` change gets an E2E** journey update
+   can't reach the path. **Every `src/Rask.Site` change gets an E2E** journey update
    (`tests/Rask.Examples.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
    each run doesn't rebuild the whole solution (test execution itself is fast; the build dominates):
    ```bash
@@ -66,9 +66,9 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
    build. If you are working on `Rask.Wasm.Tasks` itself, note that a reused node also pins the **task**
    assembly — run `dotnet build-server shutdown` before judging any change to it, or you are measuring
    the previous build's DLL.
-4. **Benchmarks** — any render/live-runtime hot-path change runs `benchmarks/Rask.Benchmarks`
+4. **Benchmarks** — any render/live-runtime hot-path change runs `tests/Rask.Benchmarks`
    before/after and quotes the `Allocated` delta in the commit body.
-5. **Docs & the site** — user-facing changes update `site/Rask.Site`, the relevant `docs/*.md`,
+5. **Docs & the site** — user-facing changes update `src/Rask.Site`, the relevant `docs/*.md`,
    `README.md`, `NUGET.md`, `llms.txt`, and the template `AGENTS.md`. Add a `CHANGELOG.md`
    `[Unreleased]` entry (Keep a Changelog).
 6. **Review** — security, performance, and memory held together with UX; prefer standard .NET
@@ -197,7 +197,7 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   **It builds the graph the suite runs, not the solution.** This gate used to open with
   `dotnet build Rask.slnx -m:1` — 105 projects, serially, on one core, before a browser opened.
   `Rask.Examples.E2E.Tests` has no `ProjectReference` at all (it drives a served bundle over HTTP) and
-  every fixture in it boots exactly one app, `site/Rask.Site`; transitively that is 39 projects. The
+  every fixture in it boots exactly one app, `src/Rask.Site`; transitively that is 39 projects. The
   other 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled here and
   never loaded, after `pre-commit` had already built **and run** them on the way in. The gate now
   publishes the site (which bootstraps the MSBuild task assemblies the leaf needs) and then builds the

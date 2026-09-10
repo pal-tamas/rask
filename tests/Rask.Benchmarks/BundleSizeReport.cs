@@ -9,7 +9,7 @@ namespace Rask.Benchmarks;
 // (pre-compressed asset serving) can both cite hard numbers.
 //
 // Invoke:
-//   dotnet publish -c Release site/Rask.Site
+//   dotnet publish -c Release src/Rask.Site
 //   dotnet run -c Release --project Rask.Benchmarks -- bundle-size [path-to-_framework]
 //
 // If no path is given, looks in the standard publish locations.
@@ -36,7 +36,7 @@ internal static class BundleSizeReport
                 "  dotnet run -c Release --project Rask.Benchmarks -- bundle-size <path-to-_framework>");
             Console.Error.WriteLine();
             Console.Error.WriteLine(
-                "Run `dotnet publish -c Release site/Rask.Site` first to generate the bundle.");
+                "Run `dotnet publish -c Release src/Rask.Site` first to generate the bundle.");
             return 1;
         }
 
@@ -141,9 +141,9 @@ internal static class BundleSizeReport
         // depends on whether the project builds native: browser-wasm/ appears only on the relink path.
         string[] candidates =
         [
-            Path.Combine(root, "site", "Rask.Site", "bin", "Release", "net10.0-browser", "publish",
+            Path.Combine(root, "src", "Rask.Site", "bin", "Release", "net10.0-browser", "publish",
                 "wwwroot", "_framework"),
-            Path.Combine(root, "site", "Rask.Site", "bin", "Release", "net10.0-browser", "browser-wasm",
+            Path.Combine(root, "src", "Rask.Site", "bin", "Release", "net10.0-browser", "browser-wasm",
                 "publish", "wwwroot", "_framework")
         ];
 

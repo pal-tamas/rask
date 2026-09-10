@@ -209,7 +209,7 @@ fi
 # THE GRAPH, NOT THE SOLUTION. This used to be `dotnet build Rask.slnx -m:1` — 105 projects, serially,
 # on one core, before a single browser opened. The suite does not need them. Rask.Examples.E2E.Tests
 # has NO ProjectReference at all (it is a leaf that drives a served bundle over HTTP), and every
-# fixture in it boots exactly one app: `site/Rask.Site`. Transitively that is 39 projects. The other
+# fixture in it boots exactly one app: `src/Rask.Site`. Transitively that is 39 projects. The other
 # 66 — every unit-test assembly, all three benchmark projects, the CLI — were compiled by this gate
 # and then never loaded by it, and .githooks/pre-commit had already built and RUN them on the way in.
 #
@@ -258,7 +258,7 @@ trap 'rm -f "$build_log"; rask_lane_release' EXIT
 # static-file host. WASM apps load every assembly from the bundle, so the version identity never has
 # to resolve. If an out-of-process host fixture is ever reintroduced, this flag has to come back off.
 build_status=0
-dotnet publish site/Rask.Site -c Release -m:1 -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
+dotnet publish src/Rask.Site -c Release -m:1 -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
   | tee "$build_log" || build_status=$?
 
 if [ "$build_status" -eq 0 ]; then

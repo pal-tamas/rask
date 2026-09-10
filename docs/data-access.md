@@ -138,7 +138,7 @@ instead of killing the app. You write `public decimal Price { get; set; }` and n
 
 **What the collation costs, and how to avoid paying it.** Correct is not free. Every comparison in the
 sort is a managed callback that marshals two strings out of SQLite, and a sort makes O(n log n) of them.
-Measured by [`SqliteDecimalOrderingBenchmarks`](../benchmarks/Rask.Benchmarks/SqliteDecimalOrderingBenchmarks.cs)
+Measured by [`SqliteDecimalOrderingBenchmarks`](../tests/Rask.Benchmarks/SqliteDecimalOrderingBenchmarks.cs)
 over one WAL database, ordering every row of a table:
 
 | Rows | `decimal` (TEXT, collated) | integer minor units (`INTEGER`, indexed) |

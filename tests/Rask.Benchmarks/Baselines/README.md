@@ -5,7 +5,7 @@ render path should compare against these and quote the delta in its description.
 
 > **`payload-bytes.csv` is enforced before push, on your machine.** `.githooks/pre-push` runs
 > `scripts/run-benchmarks-local.sh`, which checks this baseline *and* the vs-Blazor one
-> (`dotnet run -c Release --project benchmarks/Rask.Benchmarks -- payload-bytes --check`)
+> (`dotnet run -c Release --project tests/Rask.Benchmarks -- payload-bytes --check`)
 > and **fails on a regression** — more diff bytes or more diff ops than the
 > committed baseline, for any scenario. These metrics are deterministic (no timing noise),
 > so the comparison is byte-exact. An *improvement* passes with a "refresh the baseline"
@@ -139,7 +139,7 @@ Four correctness fixes were essential:
 
 - **Framework default:** `LiveOptions.DiffMode = LiveDiffMode.DisabledFull`. Bit-for-bit
   unchanged behaviour for any app that uses `AddRask()` today.
-- **The published site:** `site/Rask.Site` explicitly opts in to `LiveDiffMode.Auto` in its
+- **The published site:** `src/Rask.Site` explicitly opts in to `LiveDiffMode.Auto` in its
   `Program.cs`, so the showcase demonstrates the byte-savings to anyone running it locally
   or visiting <https://rask.sh>.
 - **Opt-in:** consumer apps flip the static field at startup, or set

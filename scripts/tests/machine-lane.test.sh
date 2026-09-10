@@ -87,7 +87,7 @@ assert_eq "a non-numeric cost is ignored" "$(rask_lane_declared_cost_of 406)" ""
 # The phase that used to hold the whole lane for nothing: nine and a half minutes of build and
 # publish before the suite starts at all. No marker, so the gate is on its phase default.
 RASK_LANE_CHILDREN_410="411"
-RASK_E2E_CMD_411="dotnet publish site/Rask.Site -c Release -nodeReuse:false"
+RASK_E2E_CMD_411="dotnet publish src/Rask.Site -c Release -nodeReuse:false"
 assert_eq "a building gate declares nothing" "$(rask_lane_declared_cost_of 410)" ""
 
 assert_eq "a gate with no children declares nothing" "$(rask_lane_declared_cost_of 430)" ""

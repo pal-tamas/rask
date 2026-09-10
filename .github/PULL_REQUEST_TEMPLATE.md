@@ -12,14 +12,14 @@
 ## Testing
 
 - [ ] Unit tests added/updated (`tests/Rask.*.Tests`)
-- [ ] E2E updated for any `site/` change (`tests/Rask.Examples.E2E.Tests`)
+- [ ] E2E updated for any `src/Rask.Site` change (`tests/Rask.Examples.E2E.Tests`)
 - [ ] `dotnet test --filter "FullyQualifiedName!~Rask.Examples.E2E"` is green
 
 <!-- Paste relevant results. -->
 
 ## Benchmarks
 
-<!-- Render/live-runtime hot-path change? Quote the Allocated delta from benchmarks/Rask.Benchmarks. Otherwise: n/a -->
+<!-- Render/live-runtime hot-path change? Quote the Allocated delta from tests/Rask.Benchmarks. Otherwise: n/a -->
 
 ## Checklist
 

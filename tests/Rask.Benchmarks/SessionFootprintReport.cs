@@ -41,7 +41,7 @@ namespace Rask.Benchmarks;
 ///         measured here. This is the framework's floor, not a budget for a real app.
 ///     </para>
 ///     <para>
-///         Invoke: <c>dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-footprint</c>
+///         Invoke: <c>dotnet run -c Release --project tests/Rask.Benchmarks -- session-footprint</c>
 ///         (optionally <c>--sessions=400</c> to confirm the number is stable in N).
 ///     </para>
 /// </summary>

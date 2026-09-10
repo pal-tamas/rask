@@ -167,7 +167,7 @@ Two limits worth knowing:
 
 - **The element type is `string`.** The reflective version that would accept any parsable element needs
   `MakeGenericType` and `Array.CreateInstance`, both of which are AOT-hostile — and
-  `site/Rask.Site` has to publish with zero trim warnings. Bind `string[]` and convert.
+  `src/Rask.Site` has to publish with zero trim warnings. Bind `string[]` and convert.
 - **`Multiple: true` over a scalar property keeps the single-value binding.** That is a model which can
   only hold one answer; widening it silently would be the more surprising behaviour.
 

@@ -37,7 +37,7 @@ public sealed class UiPaletteTests
     {
         var kit = Tokens(Path.Combine(RepoRoot(), "src", "Rask.Ui", "Styles", "ui.css"));
         var showcase = Tokens(
-            Path.Combine(RepoRoot(), "site", "Rask.Site", "Styles", "app.css"));
+            Path.Combine(RepoRoot(), "src", "Rask.Site", "Styles", "app.css"));
 
         // Guard the extractor. A regex that stopped matching would make every comparison below vacuous,
         // which is the exact shape of failure this file is about.

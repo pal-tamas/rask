@@ -328,7 +328,7 @@ public static class BindingHelpers
     ///     Deliberately a closed list of string collections rather than "any <c>IEnumerable&lt;E&gt;</c>
     ///     reached by reflection". The reflective version needs <c>MakeGenericType</c> and
     ///     <c>Array.CreateInstance</c>, both <c>RequiresDynamicCode</c> — they are IL3050 sites, and
-    ///     <c>site/Rask.Site</c> has to publish with zero trim/AOT warnings. Every instantiation
+    ///     <c>src/Rask.Site</c> has to publish with zero trim/AOT warnings. Every instantiation
     ///     below is written literally, so the AOT compiler can see all of them. A model that wants typed
     ///     elements binds <c>string[]</c> and converts, which is one line and stays trimmable.
     /// </remarks>

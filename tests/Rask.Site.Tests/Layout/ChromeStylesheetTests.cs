@@ -99,6 +99,9 @@ public sealed class ChromeStylesheetTests
 
     // Resolved from the compiler rather than copied to the output directory, the way DemoMarkupGoldenTests
     // finds its golden: the sheet under test is the one the app serves, not a build artifact of it.
+    // Three hops, not two: this file sits at tests/Rask.Site.Tests/Layout/, and the app it tests is at
+    // src/Rask.Site/. They were siblings under site/ until every project moved under src/ or tests/.
     private static string StylesheetPath([CallerFilePath] string here = "") =>
-        Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "Rask.Site", "wwwroot", "global.css");
+        Path.Combine(
+            Path.GetDirectoryName(here)!, "..", "..", "..", "src", "Rask.Site", "wwwroot", "global.css");
 }

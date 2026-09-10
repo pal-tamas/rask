@@ -85,11 +85,11 @@ expect "a Rask.Ui component reaches its own tests" \
 # Rask.Site.Tests compiles the site's sources through a "..\Rask.Site\**\*.cs" glob rather than a
 # ProjectReference. A graph built from ProjectReference alone calls it unaffected and is wrong.
 expect "a site page reaches the site tests through a Compile glob" \
-  "site/Rask.Site/Features/TodosPage.cs" scoped "site/Rask.Site.Tests/Rask.Site.Tests.csproj"
+  "src/Rask.Site/Features/TodosPage.cs" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
 
 # ...and does NOT drag in something it cannot reach.
 expect "a site page does not reach the CLI tests" \
-  "site/Rask.Site/Features/TodosPage.cs" absent "tests/Rask.Cli.Tests"
+  "src/Rask.Site/Features/TodosPage.cs" absent "tests/Rask.Cli.Tests"
 
 # Rask.Core is underneath everything, so its fan-out is nearly the whole tree. Asserted so that a
 # future narrowing of the graph cannot quietly make the most load-bearing project in the repo cheap.

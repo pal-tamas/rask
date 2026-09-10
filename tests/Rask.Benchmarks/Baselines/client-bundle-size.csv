@@ -12,7 +12,7 @@
 # Refresh with:
 #   dotnet build src/Rask.Server -c Release -p:MinVerSkip=true
 #   dotnet build src/Rask.Wasm   -c Release -p:MinVerSkip=true
-#   dotnet run -c Release --project benchmarks/Rask.Benchmarks -- client-bundle-size
+#   dotnet run -c Release --project tests/Rask.Benchmarks -- client-bundle-size
 #
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.

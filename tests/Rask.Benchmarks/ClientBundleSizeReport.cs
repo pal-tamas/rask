@@ -27,7 +27,7 @@ namespace Rask.Benchmarks;
 ///         Invoke:
 ///         <code>
 ///         dotnet build -c Release src/Rask.Server &amp;&amp; dotnet build -c Release src/Rask.Wasm
-///         dotnet run -c Release --project benchmarks/Rask.Benchmarks -- client-bundle-size [--check]
+///         dotnet run -c Release --project tests/Rask.Benchmarks -- client-bundle-size [--check]
 ///         </code>
 ///     </para>
 /// </remarks>

@@ -1539,7 +1539,7 @@ public abstract partial class Component : RaskMarkup
     // (a value key allocates — see Component.KeyString), while a replay does neither. On a 1,000-row
     // keyed list that is ~13% less allocation and ~15% less time PER UPDATE, i.e. less GC pressure on
     // every interaction, for a one-off 4% on the retained ceiling. Numbers from the `session-churn`
-    // update-cost pass and `session-footprint` (benchmarks/Rask.Benchmarks).
+    // update-cost pass and `session-footprint` (tests/Rask.Benchmarks).
     //
     // <paramref name="forwardedKeyAtCapture" /> is the ambient forwarded key read BEFORE the walk (only
     // meaningful when this component has no Key of its own; ours would overwrite the slot). A KEYLESS

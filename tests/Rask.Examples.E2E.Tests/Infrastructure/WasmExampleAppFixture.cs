@@ -1,7 +1,7 @@
 namespace Rask.Examples.E2E.Tests.Infrastructure;
 
 /// <summary>
-///     The published <c>site/Rask.Site</c> bundle, served from the shared static-file host — the site as
+///     The published <c>src/Rask.Site</c> bundle, served from the shared static-file host — the site as
 ///     GitHub Pages serves it: the landing page at <c>/</c> and the showcase at <c>/docs</c>.
 /// </summary>
 /// <remarks>
@@ -12,9 +12,9 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 /// </remarks>
 public sealed class WasmExampleAppFixture : StaticWwwrootHostFixture
 {
-    protected override string ProjectRelativePath => "site/Rask.Site";
+    protected override string ProjectRelativePath => "src/Rask.Site";
 
     protected override string MissingBundleMessage(string wwwroot) =>
-        $"Published site/Rask.Site not found at '{wwwroot}'. Publish it first — e.g. "
-        + $"`dotnet publish site/Rask.Site -c {Configuration} -p:WasmBuildNative=false`.";
+        $"Published src/Rask.Site not found at '{wwwroot}'. Publish it first — e.g. "
+        + $"`dotnet publish src/Rask.Site -c {Configuration} -p:WasmBuildNative=false`.";
 }

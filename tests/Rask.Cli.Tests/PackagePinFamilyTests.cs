@@ -137,7 +137,7 @@ public sealed class PackagePinFamilyTests
         var root = CliBuildE2E.FindRepoRoot();
         var map = new Dictionary<string, (HashSet<string> Packages, List<string> Projects)>(StringComparer.Ordinal);
 
-        foreach (var area in new[] { "src", "samples", "tests", "benchmarks" })
+        foreach (var area in new[] { "src", "tests" })
         {
             var directory = Path.Combine(root, area);
             if (!Directory.Exists(directory))

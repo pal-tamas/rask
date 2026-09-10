@@ -105,5 +105,5 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 ---
 
 The in-repo map for contributors lives in [CLAUDE.md](../CLAUDE.md). Every feature demo runs live at
-[rask.sh/docs](https://rask.sh/docs), out of [`site/Rask.Site`](../site/Rask.Site) — one app, published
+[rask.sh/docs](https://rask.sh/docs), out of [`src/Rask.Site`](../src/Rask.Site) — one app, published
 to the domain, so a demo you read here is the one you can click.

@@ -12,6 +12,25 @@
          scoped-asset bake). Replaces the old WasmGenerateAppBundle marker. -->
     <RaskWasm>true</RaskWasm>
     <!--
+      This is the published rask.sh APPLICATION, not a library. Neither of the next two lines was
+      needed while it lived in site/; both are needed now that every project lives under src/ (what
+      ships) or tests/ (what verifies), because two repo-wide gates key off "is it under src/".
+
+      NOT PACKABLE. It ships as a WASM bundle to Pages and has never been a NuGet package. Left at
+      the default, PackageDependencyTests correctly reports it as a packable project that references
+      IsPackable=false projects (Rask.Core) without PrivateAssets, whose nuspec would declare
+      dependencies on packages that do not exist — plus it would have to be named in the packed README
+      and packed by release.yml and nightly.yml.
+
+      NOT PUBLIC-API TRACKED. Stated separately from IsPackable so the intent survives someone ever
+      making this packable: every one of its ~3,100 public members is a page, a demo or a component
+      that exists to be rendered, and recording those in PublicAPI.Unshipped.txt would turn "a demo
+      was added" into a reviewable API diff, which is the opposite of what that diff is for.
+      See docs/api-style.md.
+    -->
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+    <!--
       Prerendered. Every one of the 20 prerenderable routes is written to real HTML at publish; the
       three that are not are the two parameterised routes and the catch-all, which have no path without
       data. Without this the first thing a visitor and every crawler receives is the boot shell — a

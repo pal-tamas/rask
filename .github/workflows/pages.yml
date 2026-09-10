@@ -49,8 +49,8 @@ jobs:
       # renders its route to real HTML and splices it into the boot shell — no flag needed here. Look
       # for the "[Rask.Prerender] result written=N" line in this step's log: it is the only thing that
       # says whether the pass produced anything, since the file it writes is the one the shell occupies.
-      - name: Publish the site (site/Rask.Site → /)
-        run: dotnet publish site/Rask.Site -c Release
+      - name: Publish the site (src/Rask.Site → /)
+        run: dotnet publish src/Rask.Site -c Release
 
 
       # Expected, harmless: with DevTools open each WASM app logs a 404 for _framework/dotnet.runtime.js.map.
@@ -63,7 +63,7 @@ jobs:
       - name: Assemble the Pages bundle
         id: bundle
         run: |
-          SITE_PUBLISH=site/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
+          SITE_PUBLISH=src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
           for d in "$SITE_PUBLISH"; do
             if [ ! -d "$d" ]; then
               echo "Could not locate published wwwroot: $d" >&2

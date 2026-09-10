@@ -274,14 +274,14 @@ Microsoft.Data.Sqlite's own command timeout so the async strategy owns the waiti
 ## Load-test numbers
 
 Everything above is a claim. This section is the evidence: a load harness
-(`benchmarks/Rask.Benchmarks.Sqlite`) drives sustained concurrent load against a real database file and
+(`tests/Rask.Benchmarks.Sqlite`) drives sustained concurrent load against a real database file and
 reports throughput, tail latency and error counts. Numbers below are one machine (Apple M4, .NET 10, SSD),
 15s per level. Your absolute numbers will differ; the *relationships* are the point, and they are all measured
 in the same process on the same box in the same run.
 
 > **How to read these.** The harness is closed-loop — each virtual user (VU) keeps one operation in flight —
 > so latency is service time under N concurrent clients. Reproduce any row with
-> `dotnet run -c Release --project benchmarks/Rask.Benchmarks.Sqlite -- all`.
+> `dotnet run -c Release --project tests/Rask.Benchmarks.Sqlite -- all`.
 
 ### Writes: who waits, and how badly
 
@@ -362,7 +362,7 @@ which is the point: SQLite is not the bottleneck you should be designing around.
 > not specific to Rask, and the raw ADO path (no EF functions) shows nothing equivalent. If it bites you,
 > `Pooling=False` on the connection string removes it (no pooled return means no `Deactivate`), at the cost of
 > re-applying the pragmas on every open. Full deterministic reproduction and analysis are in the harness
-> [baselines README](../benchmarks/Rask.Benchmarks.Sqlite/Baselines/README.md).
+> [baselines README](../tests/Rask.Benchmarks.Sqlite/Baselines/README.md).
 
 ### Under a sustained soak
 
@@ -439,7 +439,7 @@ Not for latency.
 One table can never move: the [outbox](outbox.md) writes on the same `DbContext` as the business change so
 the two commit together, which is the entire guarantee.
 
-Reproduce with `dotnet run -c Release --project benchmarks/Rask.Benchmarks.Sqlite -- split --vus 1,8,32
+Reproduce with `dotnet run -c Release --project tests/Rask.Benchmarks.Sqlite -- split --vus 1,8,32
 --duration 60`.
 
 ## Continuous backup with Litestream
@@ -839,7 +839,7 @@ See `tests/Rask.SQLite.Tests` for the unit + integration coverage, and
 > SQLite test assemblies set `[assembly: CollectionBehavior(DisableTestParallelization = true)]` for this);
 > in app code, do not call it on a reset/health-check path that overlaps request handling.
 
-For load rather than correctness, `benchmarks/Rask.Benchmarks.Sqlite` drives sustained concurrent traffic and
+For load rather than correctness, `tests/Rask.Benchmarks.Sqlite` drives sustained concurrent traffic and
 reports throughput, tail latency and error counts (the numbers in
 [Load-test numbers](#load-test-numbers) above). Its `check` mode is a regression gate over invariants and
 same-run ratios — never absolute milliseconds, which are unusable on shared hardware:
