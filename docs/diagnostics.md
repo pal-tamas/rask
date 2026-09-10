@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK075, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK076, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -107,6 +107,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK073](#rask073) | Warning | Strongly-typed id has no usable value |
 | [RASK074](#rask074) | Warning | More than one account type |
 | [RASK075](#rask075) | Warning | Option template on a native select |
+| [RASK076](#rask076) | Warning | Grid column with no field token |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1719,6 +1720,50 @@ Auth is left unwired when this fires, rather than half-wired against a guess.
 
 Declaring **no** user type is not reported: an app with no accounts is a legitimate app, and the auth
 battery simply does not wire.
+
+---
+
+## RASK076
+
+**Grid column with no field token** · Warning
+
+A `UiDataGrid` identifies a column by the **field token** it was opened with. `c.Field(...)` always has
+one; `c.Column()` deliberately has none, which is exactly right for an actions column or one computed
+from the whole row.
+
+The token is also the only name the column chooser, the group panel, `HiddenColumns`, `ColumnOrder` and
+`Grouped` have for a column. So a token-less column under any of those can be **shown and never hidden,
+moved or grouped**: the menu simply has no row for it. Nothing throws and nothing is logged — the reader
+just looks for a control that was never rendered, which reads as a bug in the grid rather than in the
+call site.
+
+```csharp
+UiDataGrid.Data(rows).RowKey(r => r.Id)
+    .ColumnChooser(true)[c => [
+        c.Field(r => r.Name).Title("Package"),
+        c.Column().Title("Actions"),          // ⚠ RASK076 — no token, so the chooser cannot list it
+    ]]
+```
+
+**Fix:** give the column a token, or say that it is deliberately fixed.
+
+```csharp
+c.Field(r => r.Actions).Title("Actions"),                    // ✓ has a token
+
+c.Column().Title("Actions").Hideable(false).Reorderable(false),   // ✓ states the intent instead
+```
+
+Which opt-out silences it depends on which axes the grid turned on: `Hideable(false)` for the chooser
+and `HiddenColumns`, `Reorderable(false)` for `ColumnOrder`, `Groupable(false)` for the group panel and
+`Grouped`. A **column chooser drives both hiding and reordering** — the grid's own `ReorderEnabled` reads
+`ColumnChooser is true || OrderControlled` — so a column under a chooser needs both of the first two.
+
+A grid with none of those features on is not reported: a token-less column is completely ordinary there,
+and that is the common case.
+
+This is the successor to the retired **RASK034**, which said the same thing about `BsDataGrid`. Worth
+knowing that RASK034 stopped firing when the grid moved to a chain and nothing noticed, so this one is
+tested on the shape it has to catch rather than only on compiling.
 
 ---
 

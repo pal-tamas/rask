@@ -106,6 +106,26 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK076 warns about a grid column with no field token, in a grid that hides, reorders or groups
+  columns by name.** A `UiDataGrid` addresses a column by the field token it was opened with.
+  `c.Field(...)` always has one; `c.Column()` deliberately has none, which is right for an actions
+  column. The token is also the only name the column chooser, the group panel, `HiddenColumns`,
+  `ColumnOrder` and `Grouped` have — so a token-less column under any of them can be **shown and never
+  hidden, moved or grouped**. Nothing throws and nothing is logged: the menu is simply missing a row,
+  which reads as a bug in the grid rather than in the call site.
+
+  Silence it by giving the column a token, or by saying it is deliberately fixed —
+  `Hideable(false)` / `Reorderable(false)` / `Groupable(false)`, whichever axes the grid turned on. A
+  column chooser drives **both** hiding and reordering (the grid's own `ReorderEnabled` reads
+  `ColumnChooser is true || OrderControlled`), so a column under a chooser needs both of the first two.
+  A grid with none of those features on is not reported.
+
+  This is the successor to the retired RASK034, which said the same thing about `BsDataGrid` — and
+  which **stopped firing when the grid moved to a chain**, with nothing noticing. So this one is proved
+  against the real `UiDataGrid` chain rather than only against a stand-in, and its tests fail the build
+  if the analyzed source stops compiling, since a file with a compile error reports no diagnostics at
+  all and would pass every "is not reported" case for the wrong reason.
+
 - **`Virtualize.Items` takes an `InitialTotalCount`.** The row count to assume before an
   `ItemsProvider` has reported the real one — the provider-mode sibling of `InitialClientHeight`, and
   for the same reason: the first render happens before the thing that knows the answer has answered.
@@ -116,6 +136,10 @@ them until tagged releases begin.
   estimate as soon as the provider answers. Ignored in items mode, where the count is never in doubt.
 
 ### Fixed
+
+- **The data-grid page no longer tells readers the grid's chain is `GridBuild<T, TKey>`.** That type is
+  gone — the chain receives on the component itself, and the indexer is declared on
+  `UiDataGrid<T, TKey>`. `docs/data-grid.md` already said so; the page did not.
 
 - **Two demos no longer change their markup's *shape* as they settle.** `lifecycle-hooks` appended to a
   growing hook log, so the row count was a function of how many times it had rendered and of whether a
