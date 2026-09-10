@@ -127,6 +127,16 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   `nightly.yml`'s prerelease publish. There is no `ci.yml`: the benchmark byte-gates moved into
   `.githooks/pre-push` alongside the browser E2E, so **nothing in CI runs a test or a benchmark** —
   your machine is the only thing that will tell you something broke.
+- **A commit is scoped; a push is not.** The `pre-commit` hook sets `RASK_TEST_SCOPE=affected`, and the
+  gate then builds and tests only the projects the staged change can reach —
+  `scripts/lib/affected_projects.py` walks both `ProjectReference` and the source-linked
+  `<Compile Include="..\…"/>` edges, and answers FULL for anything it cannot map precisely (a repo-root
+  import, the solution, a gate script, a hook, `.editorconfig`, a packaged `build/` import, or a shared
+  file owned by no project). A one-component commit costs ~55s instead of ~325s. The run always prints
+  which of the two it chose and why. What makes this safe is that **nothing leaves the machine on a
+  scoped run**: `.githooks/pre-push` still runs the whole solution, the browser E2E and the benchmark
+  gates. A broken commit can exist locally; it cannot be pushed. Run the whole thing by hand any time
+  with `scripts/run-unit-local.sh`, which is unscoped by default.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share

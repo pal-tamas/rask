@@ -100,17 +100,23 @@ public sealed class DemoMarkupGoldenTests
     {
         var offenders = new List<string>();
 
-        // NOTE (performance): the wait is per demo, so this test costs 250 ms x |Keys| — ~35 s, the
-        // slowest single test in the repository. Hoisting it into ONE shared wait (mount every demo,
-        // wait once, re-read every demo) makes it ~1 s and was tried; it does NOT hold, and the reason
-        // is worth keeping. Mounting the whole set takes long enough that the demos mounted early sit
-        // for far more than 250 ms before their second read, which makes the check strictly STRICTER —
-        // and two demos then fail it, `virtualize-provider` (an empty cell becomes a `td`) and
-        // `lifecycle-hooks` (an empty slot becomes an `li`). Those two really do change their skeleton
-        // after mount; the 250 ms window is simply too short to see it, so their golden entries are
-        // racy today and nothing reports it. Fix those two demos first — then this can be hoisted and
-        // the 35 s goes away with them.
-        foreach (var key in DemoRegistry.Keys)
+        // Each demo still gets its OWN 250 ms, measured from its OWN mount — the waits merely overlap
+        // instead of queueing. That distinction is the whole of this change and it is load-bearing:
+        //
+        //   * The async lambda below runs synchronously up to its first `await`, so every demo is still
+        //     mounted, and its `before` still captured, ON THIS THREAD and IN ORDER. Nothing about how
+        //     a demo is built or first observed has changed.
+        //   * Only the 250 ms waits overlap, so the test costs one wait (~250 ms + render time, ~1 s)
+        //     rather than 250 ms x |Keys| — which was ~35 s and the slowest test in the repository.
+        //
+        // Hoisting it the OBVIOUS way instead — mount everything, wait once, re-read everything — was
+        // tried and does NOT hold. Mounting the whole set takes long enough that the demos mounted
+        // early would sit for far more than 250 ms, which makes the check strictly stricter, and two
+        // demos then fail: `virtualize-provider` (an empty cell becomes a `td`) and `lifecycle-hooks`
+        // (an empty slot becomes an `li`). Those two really do settle late, so their golden entries are
+        // racy on a slow enough machine — filed as #1046 rather than papered over. This shape does not
+        // widen the window, so it neither hides that nor pretends to have fixed it.
+        var offences = await Task.WhenAll(DemoRegistry.Keys.Select(async key =>
         {
             var page = RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default());
             var before = SkeletonOf(page.Html);
@@ -122,11 +128,12 @@ public sealed class DemoMarkupGoldenTests
             await Task.Delay(250);
 
             var after = SkeletonOf(page.Render());
-            if (!string.Equals(before, after, StringComparison.Ordinal))
-            {
-                offenders.Add($"{key}: {FirstDifference(before, after)}");
-            }
-        }
+            return string.Equals(before, after, StringComparison.Ordinal)
+                ? null
+                : $"{key}: {FirstDifference(before, after)}";
+        }));
+
+        offenders.AddRange(offences.Where(o => o is not null)!);
 
         Assert.True(offenders.Count == 0,
             "These demos' markup skeletons changed on their own after mount, so their golden entry is a "

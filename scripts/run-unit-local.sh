@@ -112,6 +112,72 @@ for pid in $gate_test_pids; do
 done
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
+# --- Scope: which projects can this change actually reach? --------------------------------------
+#
+# The pre-commit hook sets RASK_TEST_SCOPE=affected, because a commit is the one moment where the
+# question "what did I just change?" has an exact answer. Everything else — the standalone
+# definition-of-done run, and the pre-push gate behind it — still does the whole solution, which is
+# what makes this safe to narrow: nothing leaves the machine on the strength of a scoped run alone.
+#
+# scripts/lib/affected_projects.py owns the graph, follows both ProjectReference and the
+# source-linked <Compile Include="..\..."/> edges this repo uses, and answers FULL for anything it
+# cannot map precisely — a repo-root import, a gate script, a shared file that belongs to no project.
+# The reason is always PRINTED: a gate that silently narrows itself is the failure mode this
+# repository has paid for most often, so a scoped run says what it scoped to and a full run says why
+# it could not.
+scope_projects=""
+if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
+  scope_changed="$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' | grep . || true)"
+
+  if [ -z "$scope_changed" ]; then
+    echo "==> Scope: nothing staged — running the full solution."
+  else
+    scope_out="$(printf '%s\n' "$scope_changed" | python3 "$root/scripts/lib/affected_projects.py" "$root")"
+
+    case "$scope_out" in
+      FULL*)
+        echo "==> Scope: FULL solution — $(printf '%s' "$scope_out" | head -1 | cut -f2-)"
+        ;;
+      "")
+        echo "==> Scope: the graph named no projects — running the full solution."
+        ;;
+      *)
+        scope_projects="$scope_out"
+        echo "==> Scope: $(printf '%s\n' "$scope_projects" | grep -c .) project(s) reachable from the staged change:"
+        printf '        %s\n' $scope_projects
+        ;;
+    esac
+  fi
+fi
+
+if [ -n "$scope_projects" ]; then
+  # ONE MSBuild invocation over the affected set, not a loop of `dotnet build` per project. The set
+  # has edges inside it, and two concurrent builds of a project that both depend on a third race on
+  # that third one's obj/ and bin/. The traversal file lives in TMPDIR precisely so it does NOT pick
+  # up the repo's Directory.Build.props — each csproj still imports its own chain from its own
+  # location, which is the only chain that should apply to it.
+  scope_proj="${TMPDIR:-/tmp}/rask-affected-$$.proj"
+  {
+    echo '<Project DefaultTargets="Build">'
+    echo '  <ItemGroup>'
+    printf '%s\n' $scope_projects | while read -r p; do
+      [ -n "$p" ] && echo "    <ScopedProject Include=\"$root/$p\" />"
+    done
+    echo '  </ItemGroup>'
+    echo '  <Target Name="Build">'
+    echo '    <MSBuild Projects="@(ScopedProject)" Targets="Restore" />'
+    echo '    <MSBuild Projects="@(ScopedProject)" Targets="Build" BuildInParallel="true" />'
+    echo '  </Target>'
+    echo '</Project>'
+  } >"$scope_proj"
+
+  echo "==> Build (Release; affected projects only)"
+  dotnet build "$scope_proj" -c Release -m:"$lane_slots" \
+    -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
+    -p:RaskMetaBuild=false -p:RaskSpaBuild=false
+  rm -f "$scope_proj"
+else
+
 echo "==> Build once (Release; no WASM bundle, no sample front ends)"
 # -m:$lane_slots is the lever that actually bounds this gate. Left at MSBuild's default it takes every
 # logical core, and three of these running from three worktrees is how the machine reached 35 worker
@@ -131,6 +197,8 @@ echo "==> Build once (Release; no WASM bundle, no sample front ends)"
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
   -p:RaskMetaBuild=false -p:RaskSpaBuild=false
+
+fi
 
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
 # evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
@@ -295,12 +363,53 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
-  --filter "FullyQualifiedName!~Rask.Examples.E2E$tsc_filter" \
-  --blame-crash \
-  --results-directory "$root/artifacts/test-blame" \
-  --logger "console;verbosity=normal"
-unit_status=$?
+if [ -n "$scope_projects" ]; then
+  # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked
+  # per project so each assembly keeps its own testhost and therefore its own runtimeconfig.json —
+  # the MetadataUpdaterSupport point above applies here exactly as it does to the solution run, so
+  # this must never collapse into one vstest invocation over several DLLs.
+  scope_tests="$(printf '%s\n' $scope_projects | grep -E '\.Tests/[^/]+\.csproj$' | grep -v 'Rask\.Examples\.E2E' || true)"
+
+  if [ -z "$scope_tests" ]; then
+    echo "==> No test project is reachable from the staged change — nothing to run."
+    unit_status=0
+  else
+    echo "==> Unit & integration tests ($(printf '%s\n' "$scope_tests" | grep -c .) affected assembly/assemblies)"
+    unit_status=0
+
+    # Concurrently, and safe to be: --no-build means nothing here writes to bin/ or obj/, so the only
+    # thing these share is the machine. Each still gets its own `dotnet test` and so its own testhost,
+    # which is the property the solution run depends on too — see the MetadataUpdaterSupport note
+    # above. Output is captured per assembly and replayed in order rather than interleaved.
+    scope_pids=""
+    scope_logs=""
+    for tp in $scope_tests; do
+      scope_log="${TMPDIR:-/tmp}/rask-scoped-test-$$-$(basename "$(dirname "$tp")").log"
+      dotnet test "$root/$tp" -c Release --no-build -m:1 \
+        --blame-crash \
+        --results-directory "$root/artifacts/test-blame" \
+        --logger "console;verbosity=normal" >"$scope_log" 2>&1 &
+      scope_pids="$scope_pids $!"
+      scope_logs="$scope_logs $scope_log"
+    done
+
+    # shellcheck disable=SC2086  # deliberate word split: the logs line up with the pids above
+    set -- $scope_logs
+    for pid in $scope_pids; do
+      scope_log="$1"; shift
+      wait "$pid" || unit_status=$?
+      cat "$scope_log"
+      rm -f "$scope_log"
+    done
+  fi
+else
+  dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
+    --filter "FullyQualifiedName!~Rask.Examples.E2E$tsc_filter" \
+    --blame-crash \
+    --results-directory "$root/artifacts/test-blame" \
+    --logger "console;verbosity=normal"
+  unit_status=$?
+fi
 
 # Collected before anything can exit, so the formatter's verdict is never lost to an early `exit` on
 # the test status. A gate that starts a check and then leaves without reading it is a gate that has

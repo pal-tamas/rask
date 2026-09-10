@@ -33,6 +33,36 @@ them until tagged releases begin.
   *The formatter no longer waits for the tests.* It shares nothing either it or the test run writes,
   so `scripts/run-unit-local.sh` now runs the two concurrently and reports both verdicts.
 
+  *`DemoMarkupGoldenTests.NoDemoSkeleton_ChangesOnATimer` fell from 35.6s to 0.6s.* Its 250ms wait was
+  per demo and therefore paid `250ms x |Keys|` in sequence. Each demo still gets its own 250ms measured
+  from its own mount — every demo is still built and first observed on one thread, in order — but the
+  waits now overlap instead of queueing.
+
+- **The pre-commit gate now builds and tests only the projects the staged change can reach.** A commit
+  that touches one component lands in **~55s** instead of ~325s. `scripts/lib/affected_projects.py`
+  owns the graph and follows both `ProjectReference` and the source-linked
+  `<Compile Include="..\…"/>` edges this repo uses — including the `..\Rask.Site\**\*.cs` glob that
+  `Rask.Site.Tests` compiles the site through, which a `ProjectReference`-only graph would miss.
+
+  It answers FULL for anything it cannot map precisely: a repo-root import, the solution, a gate
+  script, a hook, `.editorconfig`, a packaged `build/` import, or a shared file that belongs to no
+  project. The run always prints which it chose and why, because a gate that narrows itself silently
+  is this repository's most-repeated failure. `scripts/tests/affected-projects.test.sh` covers the
+  graph, and every case asserts the same bias: when in doubt, FULL.
+
+  Nothing leaves the machine on a scoped run — `.githooks/pre-push` still runs the whole solution plus
+  the browser E2E and benchmark gates. The trade is "every commit proves the whole tree" for "every
+  push does".
+
+### Fixed
+
+- **Two demos settle after mount and their golden entries are racy.** `virtualize-provider` (an empty
+  cell becomes a `td`) and `lifecycle-hooks` (an empty slot becomes an `li`) both change their markup
+  skeleton later than the 250ms `NoDemoSkeleton_ChangesOnATimer` waits (#1046), so on a slow enough machine
+  `DemoMarkup.golden.txt` races them and nothing reports it. Found while widening that test's window;
+  recorded here rather than papered over, and the test's window was deliberately left unwidened so the
+  finding stays visible instead of turning into an intermittent golden diff.
+
 ### Added
 
 - **Validation now covers MVC controllers and minimal API endpoints.** Writing an

@@ -97,6 +97,18 @@ echo "pre-commit: running the local format + unit gate (staged code changes dete
 # Format only what is being committed. A file this hook is not shown cannot be unformatted:
 # it would have had to pass this same gate to get into the tree. Measured 59s -> 30s.
 export RASK_FORMAT_SCOPE=staged
+
+# Build and test only the projects the staged change can reach, for the same reason and with the same
+# shape: a commit is the one moment where "what did I just change?" has an exact answer.
+# scripts/lib/affected_projects.py falls back to the full solution for anything it cannot map — a
+# repo-root import, a gate script, a source-linked file owned by no project — and the run always
+# prints which of the two it chose and why.
+#
+# What makes narrowing safe here is that NOTHING LEAVES THE MACHINE on a scoped run: .githooks/pre-push
+# still runs the whole solution, plus the browser E2E and the benchmark gates, before a commit can
+# reach the remote. This trades "every commit proves the whole tree" for "every push does" — a
+# broken commit can exist locally, and cannot be pushed.
+export RASK_TEST_SCOPE=affected
 echo "            build -> dotnet format --verify-no-changes -> tests. bypass with"
 echo "            'git commit --no-verify' or RASK_SKIP_UNIT=1."
 if ! "$root/scripts/run-unit-local.sh"; then
