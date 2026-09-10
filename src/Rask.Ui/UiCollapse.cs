@@ -26,7 +26,7 @@ public sealed partial class UiCollapse : Component
     public bool? Open { get; set; }
 
     /// <summary>Runs when the heading is activated, with the state the reader is asking for.</summary>
-    public Action<bool>? OnToggle { get; set; }
+    public Callback<bool>? OnToggle { get; set; }
 
     /// <summary>Draws the arrow or plus marker.</summary>
     public UiMarker? Marker { get; set; }
@@ -44,7 +44,7 @@ public sealed partial class UiCollapse : Component
         if (OnToggle is { } toggle)
         {
             var next = Open != true;
-            title = title.OnClick(() => toggle(next));
+            title = title.OnClick(() => toggle.Invoke(next) ?? Task.CompletedTask);
         }
 
         return Div.Class(UiClass.Compose(

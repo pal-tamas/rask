@@ -129,7 +129,7 @@ public sealed class Clicker : ComponentBase
 public sealed partial class ClickerIsland : BlazorComponent<Clicker>
 {
     public string[]? Rows { get; set; }
-    public Action<int>? OnPick { get; set; }
+    public Callback<int>? OnPick { get; set; }
 
     protected override void WriteParameters(Dictionary<string, object?> into)
     {
@@ -140,7 +140,10 @@ public sealed partial class ClickerIsland : BlazorComponent<Clicker>
 
         if (OnPick is not null)
         {
-            into["OnPick"] = EventCallback.Factory.Create<int>(this, OnPick);
+            // The carrier holds either shape, so the bridge is written as the asynchronous one:
+            // Invoke hands back null for a synchronous handler, and that null IS the fast path.
+            into["OnPick"] = EventCallback.Factory.Create<int>(
+                this, (Func<int, Task>)(v => OnPick.Value.Invoke(v) ?? Task.CompletedTask));
         }
     }
 }
@@ -189,13 +192,14 @@ public sealed class PreventingLink : ComponentBase
 /// <summary>An island over the link, for the marker-leak test.</summary>
 public sealed partial class PreventingLinkIsland : BlazorComponent<PreventingLink>
 {
-    public Action? OnPick { get; set; }
+    public Callback? OnPick { get; set; }
 
     protected override void WriteParameters(Dictionary<string, object?> into)
     {
         if (OnPick is not null)
         {
-            into["OnPick"] = EventCallback.Factory.Create(this, OnPick);
+            into["OnPick"] = EventCallback.Factory.Create(
+                this, (Func<Task>)(() => OnPick.Value.Invoke() ?? Task.CompletedTask));
         }
     }
 }

@@ -232,58 +232,6 @@ public class CodeFixProviderTests
         Assert.Contains("_n++;", fixhed);
     }
 
-    // ---- RASK027: both OnX and OnXAsync passed -> drop the async one ----
-
-    // The async handler is a STEP, so the fix splices it out of the chain.
-    [Fact]
-    public async Task Rask027_RemovesTheAsyncStep_FromAChain()
-    {
-        var source = """
-            using System.Threading.Tasks;
-            using Rask.Core;
-            namespace Demo;
-            public sealed partial class App : Component
-            {
-                protected override Component? Render() =>
-                    Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())["x"];
-            }
-            """;
-        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
-            new SyncAsyncHandlerAnalyzer(), new SyncAsyncHandlerCodeFixProvider(), "RASK027", source);
-
-        Assert.DoesNotContain("OnClickAsync", fixhed);
-        Assert.Contains("Button.OnClick(() => {})[\"x\"]", fixhed);
-    }
-
-    // The fix must never reach OUTSIDE the chain it was offered on. It used to walk up to the nearest
-    // enclosing ArgumentSyntax, so a chain sitting in a named argument had that whole argument deleted —
-    // the component silently disappeared and the remaining code still compiled.
-    [Fact]
-    public async Task Rask027_DoesNotDeleteTheEnclosingArgument()
-    {
-        var source = """
-            using System.Threading.Tasks;
-            using Rask.Core;
-            namespace Demo;
-            public sealed partial class App : Component
-            {
-                private static Component Wrap(Component Content, string Label) => Content;
-
-                protected override Component? Render() =>
-                    Wrap(
-                        Content: Button.OnClick(() => {}).OnClickAsync(async () => await Task.Yield())["x"],
-                        Label: "hi");
-            }
-            """;
-        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
-            new SyncAsyncHandlerAnalyzer(), new SyncAsyncHandlerCodeFixProvider(), "RASK027", source);
-
-        Assert.DoesNotContain("OnClickAsync", fixhed);
-        Assert.Contains("Content:", fixhed);          // the argument survives
-        Assert.Contains("Label: \"hi\"", fixhed);
-        Assert.Contains("Button.OnClick(() => {})", fixhed);
-    }
-
     // ---- RASK071: ASP.NET's [Route] -> Rask's own ----
 
     // The common shape: the file imports MVC (that is how the wrong attribute got typed) and does not

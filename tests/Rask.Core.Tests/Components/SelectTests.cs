@@ -212,7 +212,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnChangeAsyncInsideLiveContext_EmitsDataRaskOnChange()
     {
-        var view = new StubComponent(() => Select.Of<string>().OnChangeAsync(async _ => { await Task.Yield(); }));
+        var view = new StubComponent(() => Select.Of<string>().OnChange(async _ => { await Task.Yield(); }));
         Assert.Equal(
             "<select data-rask-on-change=\"h0\"></select>",
             view.RenderAsLiveRoot());

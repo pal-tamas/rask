@@ -22,7 +22,7 @@ internal sealed partial class ResetLeaf : Component
 
     public int Count { get; set; } = 7;
 
-    public Action? OnPing { get; set; }
+    public Callback? OnPing { get; set; }
 
     internal int PropsChanges;
 

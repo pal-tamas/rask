@@ -41,25 +41,19 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>
     public T? Value { get; set; }
 
     /// <inheritdoc />
-    public Action<T>? OnChange { get; set; }
+    public Callback<T>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<T, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<T>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<T>? Validate { get; set; }
+    public Validator<T>? Validate { get; set; }
+
 
     /// <inheritdoc />
-    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Callback<T>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Action<T>? AfterBind { get; set; }
-
-    /// <inheritdoc />
-    public Func<T, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -69,9 +63,7 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>
             return Textarea
                 .Bind(bind)
                 .Validate(Validate)
-                .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
-                .AfterBindAsync(AfterBindAsync)
                 .Placeholder(Placeholder ?? string.Empty)
                 .Rows(Rows ?? 3)
                 .Aria(Aria())
@@ -82,7 +74,6 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>
         return Textarea
             .Value(Value)
             .OnChange(OnChange)
-            .OnChangeAsync(OnChangeAsync)
             .Placeholder(Placeholder ?? string.Empty)
             .Rows(Rows ?? 3)
             .Aria(Aria())

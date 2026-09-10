@@ -3,16 +3,19 @@ using Rask.Core.DragAndDrop;
 
 namespace Rask.Core.Tests;
 
-// A callback property and its chain step share a name, and the property is an ORDINARY delegate.
-// Those two facts are one fact: the step's receiver is `Build<TComponent>`, so C# never looks the
-// property up on it and cannot read `.OnSelect(fn)` as invoking the delegate (CS1593).
+// A callback property and its chain step share a name, and the property is a CARRIER — a struct
+// holding the delegate rather than being one. Those two facts are one fact: a delegate-typed property
+// is invocable, so C# would read `.OnSelect(fn)` as invoking it and never reach the extension setter
+// (CS1593). A carrier is not invocable, so member lookup falls through and the setter binds.
 //
-// This file used to be the carrier's proving ground — every property here was a `Handler?` wrapping
-// its delegate, purely to stay out of that lookup. What it pins now is that nothing needs to.
+// The receiver is still `Build<TComponent>` here, which is the other way to dodge that lookup — the
+// property is not ON the receiver. Carrying the property anyway is what lets the receiver become the
+// component itself, and it costs the call site nothing: `.OnSelect(Choose)` is unchanged, because the
+// step has an overload per delegate shape.
 internal sealed partial class BuilderCard : Component
 {
     public string? Label { get; set; }
-    public Action? OnSelect { get; set; }
+    public Callback? OnSelect { get; set; }
 
     protected override Component? Render() => Button.OnClick(OnSelect)[Label ?? ""];
 }
@@ -49,8 +52,11 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 
         var card = BuilderCard.OnSelect(raw).Value;
 
+        // Identity is asked of the DELEGATE the carrier holds, not of the carrier: a carrier is a struct
+        // and two of them are equal when they hold the same handler, which is the opposite of what this
+        // test wants to know. `Handler` is the wrapped-or-not delegate itself.
         Assert.NotNull(card.OnSelect);
-        Assert.NotSame(raw, card.OnSelect);
+        Assert.NotSame(raw, card.OnSelect?.Handler);
     }
 
     [Fact]
@@ -60,7 +66,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 
         var card = BuilderCard.OnSelect(stat).Value;
 
-        Assert.Same(stat, card.OnSelect);
+        Assert.Same(stat, card.OnSelect?.Handler);
     }
 
     // A DOM handler's setter keeps the property's name — `.OnClick(…)`, not the `.Click(…)` the old
@@ -72,7 +78,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 
         var div = Div.OnClick(stat).Value;
 
-        Assert.Same(stat, div.OnClick);
+        Assert.Same(stat, div.OnClick!.Value.Handler);
     }
 
     // …and the argument-taking half.
@@ -98,7 +104,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 
         var div = Div.OnClick(raw).Value;
 
-        Assert.Same(raw, div.OnClick);
+        Assert.Same(raw, div.OnClick!.Value.Handler);
     }
 
     // An unset handler reads back as null. This was a real hazard while a callback was a carrier struct:
@@ -126,9 +132,9 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
         var dropped = (Action<DragDropMove>)host.Dropped;
         var changed = (Action<string>)host.Named;
 
-        Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).Value.OnDrop);
+        Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).Value.OnDrop!.Value.Handler);
 
-        Assert.Same(changed, Input.Of<string>().OnChange(changed).Value.OnChange);
+        Assert.Same(changed, Input.Of<string>().OnChange(changed).Value.OnChange!.Value.Handler);
     }
 
     // A null argument reads back as null — which every `is not null` a component asks about its own
@@ -145,17 +151,31 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     }
 
     // The async sibling still loses to a sync handler on the shared slot.
+    // An event is ONE property over ONE slot, so there is no sync/async tiebreak left to arbitrate —
+    // the last write simply wins, the way any other step does. That used to be asymmetric: a sync
+    // handler beat an async one whatever the order, and RASK027 existed to flag the ambiguity. With one
+    // name there is no ambiguity to flag, only a duplicated step, which RASK044 reports.
     [Fact]
-    public void The_sync_handler_still_wins_the_shared_slot()
+    public void The_last_write_wins_the_shared_slot()
     {
         Action sync = Noop;
-        // Setting both is the whole point of this test — RASK027 is exactly right to flag it elsewhere.
-#pragma warning disable RASK027
-        var div = Div.OnClickAsync(() => Task.CompletedTask).OnClick(sync).Value;
-#pragma warning restore RASK027
+        // Writing the same step twice is the whole point of this test.
+#pragma warning disable RASK044
+        var div = Div.OnClick(() => Task.CompletedTask).OnClick(sync).Value;
+#pragma warning restore RASK044
 
-        Assert.Same(sync, div.OnClick);
-        Assert.Null(div.OnClickAsync);
+        Assert.Same(sync, div.OnClick!.Value.Handler);
+    }
+
+    [Fact]
+    public void The_last_write_wins_whichever_shape_it_is()
+    {
+        Func<Task> async = () => Task.CompletedTask;
+#pragma warning disable RASK044
+        var div = Div.OnClick(Noop).OnClick(async).Value;
+#pragma warning restore RASK044
+
+        Assert.Same(async, div.OnClick!.Value.Handler);
     }
 
     // The case the old `On`-dropping rule could never reach: a delegate prop whose name does not start
@@ -181,31 +201,46 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
         Assert.Null(Authorize.Authorized(none).Value.Authorized);
     }
 
-    // What the three carrier tests that stood here used to protect, restated as the thing that replaced
-    // them. They asserted that `Handler`/`Carrier<…>` kept its delegate private behind `Invoke`, that
-    // `From` mapped null to unset, and that the implicit conversion still accepted a plain delegate —
-    // all of it machinery whose only job was to stop a delegate-typed property from swallowing its own
-    // setter. The chain receives on `Build<TComponent>` now, so the property is not on the receiver and
-    // there is nothing to hide behind: a callback property IS its delegate.
+    // A component's OWN callback prop is a CARRIER, and its setter still keeps the property's name.
     //
-    // Reflection rather than "it compiles": the surface these components present is the point, and a
-    // regression here would be a carrier creeping back in rather than a compile error.
+    // This test used to assert the opposite — `typeof(Action)`, "a callback property is a plain
+    // delegate" — and that WAS true while the chain's receiver was `Build<TComponent>`: C# stops at a
+    // delegate-typed property when resolving `x.OnSelect(fn)` and reads the call as an invocation
+    // (CS1593), but only when the property is ON the receiver, and there it was not. Carrying the
+    // property is what lets the receiver become the component itself, and it is the one cost of that:
+    // a component author writes `Callback?` rather than `Action?`. The call site is unchanged —
+    // `.OnSelect(Choose)` still binds, because the step has an overload per delegate shape.
+    //
+    // Reflection rather than "it compiles": the surface a component PRESENTS is the point, and a
+    // regression here would be a property quietly reverting to a bare delegate — which compiles fine
+    // today and only fails once the receiver moves.
     [Theory]
-    [InlineData(typeof(BuilderCard), "OnSelect", typeof(Action))]
-    [InlineData(typeof(Rask.Core.Element), "OnClick", typeof(Action))]
-    [InlineData(typeof(Rask.Core.Element), "OnClickAsync", typeof(Func<Task>))]
-    [InlineData(typeof(Rask.Core.Element), "OnMouseDown", typeof(Action<Rask.Core.Live.MouseEventArgs>))]
-    public void A_callback_property_is_a_plain_delegate(Type component, string prop, Type expected)
+    [InlineData(typeof(BuilderCard), "OnSelect", typeof(Rask.Core.Callback))]
+    public void A_callback_property_is_a_carrier(Type component, string prop, Type expected)
     {
         var p = component.GetProperty(prop, BindingFlags.Public | BindingFlags.Instance);
 
         Assert.NotNull(p);
         Assert.Equal(expected, Nullable.GetUnderlyingType(p!.PropertyType) ?? p.PropertyType);
+    }
 
-        // …and no carrier anywhere on the surface it belongs to.
-        Assert.DoesNotContain(
-            component.Assembly.GetTypes(),
-            t => t.Name is "Handler" or "HandlerAsync" or "Carrier`1" or "Handler`1" or "HandlerAsync`1");
+    // The same claim on the framework's own surface. A DOM event is ONE property covering both shapes —
+    // `Callback` holds a sync or an async handler — so "wire one or the other, never both" stops being a
+    // rule anybody can break. Pinned by reflection because the markup is identical either way: nothing
+    // would fail if these quietly split back into a pair.
+    [Theory]
+    [InlineData("OnClick", typeof(Rask.Core.Callback))]
+    [InlineData("OnMouseDown", typeof(Rask.Core.Callback<Rask.Core.Live.MouseEventArgs>))]
+    public void A_dom_event_is_one_carrier_typed_property(string prop, Type expected)
+    {
+        var element = typeof(Rask.Core.Element);
+        var p = element.GetProperty(prop, BindingFlags.Public | BindingFlags.Instance);
+
+        Assert.NotNull(p);
+        Assert.Equal(expected, Nullable.GetUnderlyingType(p!.PropertyType) ?? p.PropertyType);
+
+        // …and the async sibling is gone, not merely unused.
+        Assert.Null(element.GetProperty(prop + "Async", BindingFlags.Public | BindingFlags.Instance));
     }
 
     // The setter keeps the PROPERTY's name — the whole point of moving the receiver. A raw delegate prop

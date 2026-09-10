@@ -58,8 +58,8 @@ A control's value comes from exactly one place, and the step you open the chain 
 
 | Opened with | Mode | Then adds | Does **not** offer |
 | --- | --- | --- | --- |
-| `.Bind(() => model.Field)` | bound | `Validate` / `ValidateAsync`, `AfterBind` / `AfterBindAsync` | `Checked`, `OnInput`, `OnChange` |
-| `.Value(v)` or `.Of<T>()` | controlled | `Checked`, `OnInput` / `OnInputAsync`, `OnChange` / `OnChangeAsync` | `Validate`, `AfterBind` |
+| `.Bind(() => model.Field)` | bound | `Validate`, `AfterBind` | `Checked`, `OnInput`, `OnChange` |
+| `.Value(v)` or `.Of<T>()` | controlled | `Checked`, `OnInput`, `OnChange` | `Validate`, `AfterBind` |
 
 `Bind` and `Value` are the *openings* themselves, not steps you take later — taking one is what rules
 the other out, so neither appears again on the chain. `Of<T>()` opens a controlled chain for a control
@@ -150,13 +150,13 @@ custom route/query param types are registered automatically by the generator.
 
 ### Binding lifecycle
 
-Each change handler runs in order: write the value, `NotifyFieldChanged`, run `AfterBind`/
-`AfterBindAsync` (if supplied, only when a write actually happened), `NotifyFieldTouched` (on
+Each change handler runs in order: write the value, `NotifyFieldChanged`, run `AfterBind`
+(if supplied, only when a write actually happened), `NotifyFieldTouched` (on
 change/blur), then re-validate the field. `string` inputs stay quiet until the field is touched,
 then re-validate on every keystroke so a correction clears the message without a blur.
 
-`AfterBind` / `AfterBindAsync` fire **after** the new value is written and before validators run —
-handy for dependent fields (pick a country, repopulate the city dropdown in the same render):
+`AfterBind` fires **after** the new value is written and before validators run — handy for dependent
+fields (pick a country, repopulate the city dropdown in the same render):
 
 ```csharp
 Select.Bind(() => _model.Country)
@@ -166,8 +166,9 @@ Select.Bind(() => _model.City)[_cities.Select(c => Option.Value(c)[c])]
 
 <!-- demo:binding-afterbind -->
 
-`AfterBindAsync` awaits before the post-handler render, so a dependent async lookup (repopulate a
-dropdown from an API) surfaces its loading state on its own — no manual `StateHasChanged()`:
+It takes an asynchronous handler just as readily — one property, either shape — and awaits before the
+post-handler render, so a dependent async lookup (repopulate a dropdown from an API) surfaces its
+loading state on its own, with no manual `StateHasChanged()`:
 
 <!-- demo:binding-afterbind-async -->
 
@@ -260,7 +261,7 @@ Children are normally a fixed list. Give the form a **function** instead and it 
 render with whether a submit is in flight, so the markup can say so without the page tracking it:
 
 ```csharp
-Form.Model(_model).OnValidSubmitAsync(SaveAsync)[submitting => [
+Form.Model(_model).OnValidSubmit(SaveAsync)[submitting => [
     Input.Bind(() => _model.Username).Disabled(submitting),
     Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
 ]]
@@ -295,7 +296,7 @@ _ctx.AddValidator(new SlowTitleValidator());
 
 Form.Model(_model).OnValidSubmit(m => _submission = "Saved").Context(_ctx)[
     Input.Bind(() => _model.Title),
-    Button.Type("button").OnClickAsync(() => _ctx.ValidateAsync().AsTask())["Validate now"],
+    Button.Type("button").OnClick(() => _ctx.ValidateAsync().AsTask())["Validate now"],
     Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
 ]
 ```

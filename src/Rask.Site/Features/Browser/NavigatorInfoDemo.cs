@@ -13,7 +13,7 @@ public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Compon
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("nav-read")
-                    .OnClickAsync(Read)[
+                    .OnClick(Read)[
                     "Read navigator info"],
                 Div.Class("text-sm text-ui-muted")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("nav-status")[_status ?? "(idle)"]]

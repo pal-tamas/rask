@@ -34,8 +34,8 @@ public sealed partial class Shareable : Component
     protected override Component Render() =>
         // Serialized with the trim-safe source-gen context; the client reads data-rask-share on click and
         // fires navigator.share synchronously in the gesture.
-        Template!(new Dictionary<string, string?>(StringComparer.Ordinal)
+        Template.Invoke(new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["rask-share"] = JsonSerializer.Serialize(Data, RaskBrowserJsonContext.Default.ShareData)
-        });
+        })!;
 }

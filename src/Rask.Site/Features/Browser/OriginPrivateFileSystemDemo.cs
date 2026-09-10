@@ -24,15 +24,15 @@ public sealed partial class OriginPrivateFileSystemDemo(
                 Div.Class("flex flex-wrap gap-2 mb-2")[
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("opfs-write")
-                        .OnClickAsync(Write)[
+                        .OnClick(Write)[
                         "Write at 4096"],
                     Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("opfs-read")
-                        .OnClickAsync(Read)[
+                        .OnClick(Read)[
                         "Read back"],
                     Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("opfs-persist")
-                        .OnClickAsync(Persist)[
+                        .OnClick(Persist)[
                         "Request persistence"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],

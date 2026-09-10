@@ -87,7 +87,7 @@ public sealed partial class CodeSample : Component
                 .Type("button")
                 .Class("sample-copy")
                 .Ref(_copyButton)
-                .OnClickAsync(CopyAsync)[
+                .OnClick(CopyAsync)[
                     UiIcon.Name(UiIconName.Clipboard).Class("me-1"),
                     // A real text node (not a CSS pseudo-element) so the button has an
                     // accessible name; the scoped JS swaps it to "Copied!" on click.

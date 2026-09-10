@@ -1,3 +1,4 @@
+using System.Linq;
 namespace Rask.Generators.Tests;
 
 // A form control's chain carries the MODE its entry step opened in — Build<TControl, Bound> or
@@ -23,16 +24,12 @@ public class BuilderFormControlModeTests
                                   public partial class Widget<T> : Component, IFormControl<T>
                                   {
                                       public T? Value { get; set; }
-                                      public Action<T>? OnChange { get; set; }
-                                      public Func<T, Task>? OnChangeAsync { get; set; }
+                                      public Callback<T>? OnChange { get; set; }
                                       public Expression<Func<T>>? Bind { get; set; }
-                                      public Validate<T>? Validate { get; set; }
-                                      public ValidateAsync<T>? ValidateAsync { get; set; }
-                                      public Action<T>? AfterBind { get; set; }
-                                      public Func<T, Task>? AfterBindAsync { get; set; }
+                                      public Validator<T>? Validate { get; set; }
+                                      public Callback<T>? AfterBind { get; set; }
                                       public bool? Checked { get; set; }
-                                      public Action<string>? OnInput { get; set; }
-                                      public Func<string, Task>? OnInputAsync { get; set; }
+                                      public Callback<string>? OnInput { get; set; }
                                       public string? Label { get; set; }
                                   }
                                   """;
@@ -50,12 +47,9 @@ public class BuilderFormControlModeTests
                                 {
                                     public bool Value { get; set; } = false;
                                     public Action<bool>? OnChange { get; set; }
-                                    public Func<bool, Task>? OnChangeAsync { get; set; }
                                     public Expression<Func<bool>>? Bind { get; set; }
-                                    public Validate<bool>? Validate { get; set; }
-                                    public ValidateAsync<bool>? ValidateAsync { get; set; }
+                                    public Validator<bool>? Validate { get; set; }
                                     public Action<bool>? AfterBind { get; set; }
-                                    public Func<bool, Task>? AfterBindAsync { get; set; }
                                     public string? Label { get; set; }
                                 }
                                 """;
@@ -74,12 +68,9 @@ public class BuilderFormControlModeTests
                                       public required string Label { get; set; }
                                       public bool Value { get; set; }
                                       public Action<bool>? OnChange { get; set; }
-                                      public Func<bool, Task>? OnChangeAsync { get; set; }
                                       public Expression<Func<bool>>? Bind { get; set; }
-                                      public Validate<bool>? Validate { get; set; }
-                                      public ValidateAsync<bool>? ValidateAsync { get; set; }
+                                      public Validator<bool>? Validate { get; set; }
                                       public Action<bool>? AfterBind { get; set; }
-                                      public Func<bool, Task>? AfterBindAsync { get; set; }
                                   }
                                   """;
 
@@ -95,22 +86,17 @@ public class BuilderFormControlModeTests
                                  {
                                      public required string Label { get; set; }
                                      public T? Value { get; set; }
-                                     public Action<T>? OnChange { get; set; }
-                                     public Func<T, Task>? OnChangeAsync { get; set; }
+                                     public Callback<T>? OnChange { get; set; }
                                      public Expression<Func<T>>? Bind { get; set; }
-                                     public Validate<T>? Validate { get; set; }
-                                     public ValidateAsync<T>? ValidateAsync { get; set; }
-                                     public Action<T>? AfterBind { get; set; }
-                                     public Func<T, Task>? AfterBindAsync { get; set; }
+                                     public Validator<T>? Validate { get; set; }
+                                     public Callback<T>? AfterBind { get; set; }
                                  }
                                  """;
 
     [Theory]
     [InlineData("Checked")]
     [InlineData("OnChange")]
-    [InlineData("OnChangeAsync")]
     [InlineData("OnInput")]
-    [InlineData("OnInputAsync")]
     public void A_controlled_step_is_declared_only_on_the_controlled_mode(string step)
     {
         var sig = Signature(Setters(Widget), step);
@@ -119,11 +105,12 @@ public class BuilderFormControlModeTests
         Assert.DoesNotContain("global::Rask.Core.Forms.Bound>", sig, StringComparison.Ordinal);
     }
 
+    // `ValidateAsync` is gone from this list because it is gone from the surface: the rule is one
+    // `Validate` step over a `Validator<T>` carrier, with an overload per shape. Signature asserts
+    // across ALL of a step's overloads, so the mode gate is still checked on every one of them.
     [Theory]
     [InlineData("Validate")]
-    [InlineData("ValidateAsync")]
     [InlineData("AfterBind")]
-    [InlineData("AfterBindAsync")]
     public void A_bound_step_is_declared_only_on_the_bound_mode(string step)
     {
         var sig = Signature(Setters(Widget), step);
@@ -291,9 +278,20 @@ public class BuilderFormControlModeTests
     }
 
     // The emitter writes each signature on one line, so a signature IS a line.
-    private static string Signature(string output, string step) =>
-        output.Split('\n').Single(l => l.Contains(" " + step + "<", StringComparison.Ordinal)
-                                       && l.Contains("(this ", StringComparison.Ordinal));
+    // Every overload of the step, joined. A carrier-typed member emits THREE — the carrier pass-through
+    // and a bare delegate shape for each of sync and async — and the mode rule has to hold for all of
+    // them. Taking `Single()` here would throw on a carrier step and, worse, would have silently passed
+    // had only one of the three been on the wrong mode.
+    private static string Signature(string output, string step)
+    {
+        var lines = output.Split('\n')
+            .Where(l => l.Contains(" " + step + "<", StringComparison.Ordinal)
+                        && l.Contains("(this ", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.NotEmpty(lines);
+        return string.Join("\n", lines);
+    }
 
     private static string Setters(string source) =>
         BuilderGeneratorHarness.Run(source).Source("RaskBuilderSetters.g.cs");

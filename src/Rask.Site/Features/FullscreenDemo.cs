@@ -24,11 +24,11 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
                     Span.Class("text-ui-muted text-sm")["This box goes fullscreen."]
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("fullscreen-enter").OnClickAsync(Enter)[
+                    Button.Class(Tw.BtnPrimary).Id("fullscreen-enter").OnClick(Enter)[
                         "Fullscreen this box"],
-                    Button.Class(Tw.BtnOutlinePrimary).Id("fullscreen-page").OnClickAsync(EnterPage)[
+                    Button.Class(Tw.BtnOutlinePrimary).Id("fullscreen-page").OnClick(EnterPage)[
                         "Fullscreen the page"],
-                    Button.Class(Tw.BtnOutlineDanger).Id("fullscreen-exit").OnClickAsync(Exit)["Exit"]
+                    Button.Class(Tw.BtnOutlineDanger).Id("fullscreen-exit").OnClick(Exit)["Exit"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ]

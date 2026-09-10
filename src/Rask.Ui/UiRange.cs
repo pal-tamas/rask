@@ -52,25 +52,19 @@ public sealed partial class UiRange : Component, IFormControl<double>
     ///     Runs with the value the reader landed on. Without it a controlled slider draws a position and
     ///     reports nothing, which is a control you can push and cannot read.
     /// </remarks>
-    public Action<double>? OnChange { get; set; }
+    public Callback<double>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<double, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<double>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<double>? Validate { get; set; }
+    public Validator<double>? Validate { get; set; }
+
 
     /// <inheritdoc />
-    public ValidateAsync<double>? ValidateAsync { get; set; }
+    public Callback<double>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Action<double>? AfterBind { get; set; }
-
-    /// <inheritdoc />
-    public Func<double, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -82,9 +76,7 @@ public sealed partial class UiRange : Component, IFormControl<double>
             return Input
                 .Bind(bind)
                 .Validate(Validate)
-                .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
-                .AfterBindAsync(AfterBindAsync)
                 .Type(InputType.Range)
                 .Min(Bound(Min ?? 0))
                 .Max(Bound(Max ?? 100))
@@ -96,7 +88,6 @@ public sealed partial class UiRange : Component, IFormControl<double>
         return Input
             .Value(Value)
             .OnChange(OnChange)
-            .OnChangeAsync(OnChangeAsync)
             .Type(InputType.Range)
             .Min(Bound(Min ?? 0))
             .Max(Bound(Max ?? 100))

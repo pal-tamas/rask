@@ -44,25 +44,19 @@ public sealed partial class UiRating : Component, IFormControl<int>
     public int Value { get; set; }
 
     /// <inheritdoc />
-    public Action<int>? OnChange { get; set; }
+    public Callback<int>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<int, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<int>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<int>? Validate { get; set; }
+    public Validator<int>? Validate { get; set; }
+
 
     /// <inheritdoc />
-    public ValidateAsync<int>? ValidateAsync { get; set; }
+    public Callback<int>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Action<int>? AfterBind { get; set; }
-
-    /// <inheritdoc />
-    public Func<int, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -80,7 +74,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
             Input
                 .Value("0")
                 .Checked(current == 0)
-                .OnChangeAsync(_ => UiFormCommit.CommitAsync(this, acc, ctx, 0))
+                .OnChange(_ => UiFormCommit.CommitAsync(this, acc, ctx, 0))
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Class("rating-hidden")
@@ -89,7 +83,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
                 Input
                     .Value(star.ToString(CultureInfo.InvariantCulture))
                     .Checked(star == current)
-                    .OnChangeAsync(_ => UiFormCommit.CommitAsync(this, acc, ctx, star))
+                    .OnChange(_ => UiFormCommit.CommitAsync(this, acc, ctx, star))
                     .Key(star)
                     .Type(InputType.Radio)
                     .Name(Group)

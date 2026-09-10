@@ -55,9 +55,10 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     /// <summary>The kind of value expected, so the browser can fill it.</summary>
     public string? Autocomplete { get; set; }
 
-    // IFormControl<T> — controlled mode (OnChange/OnChangeAsync are the typed change callbacks).
-    public Action<T>? OnChange { get; set; }
-    public Func<T, Task>? OnChangeAsync { get; set; }
+    // IFormControl<T> — controlled mode.
+
+    /// <summary>Called with the new value when the user changes the control, in controlled mode.</summary>
+    public Callback<T>? OnChange { get; set; }
 
     /// <summary>
     ///     Runs with every option value the user has picked, for a control that maps those values itself.
@@ -99,17 +100,13 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     /// </summary>
     public Expression<Func<T>>? Bind { get; set; }
 
-    /// <summary>A synchronous check run on the bound value, returning an error message or null.</summary>
-    public Validate<T>? Validate { get; set; }
+    /// <summary>A check run on the bound value, synchronous or asynchronous.</summary>
+    public Validator<T>? Validate { get; set; }
 
-    /// <summary>An asynchronous check run on the bound value.</summary>
-    public ValidateAsync<T>? ValidateAsync { get; set; }
 
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
-    public Action<T>? AfterBind { get; set; }
+    public Callback<T>? AfterBind { get; set; }
 
-    /// <summary>Runs after a successful bind, asynchronously.</summary>
-    public Func<T, Task>? AfterBindAsync { get; set; }
 
     protected override IDisposable? EnterChildrenScope()
     {
@@ -296,7 +293,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
 
         if (acc is not null)
         {
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             // A multi-select bound to a collection takes the whole selection the client now reports
             // (`values`), not the single `value` the DOM exposes — which is only the FIRST selected

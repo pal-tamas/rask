@@ -18,7 +18,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
         Div.Class("mb-3")[
             Label.For("bind-async-track").Class($"{Tw.Label} text-sm")["Track"],
             Select.Bind(() => _model.Track)
-                .AfterBindAsync(async track =>
+                .AfterBind(async track =>
                 {
                     // Re-selecting the placeholder (or any unknown track) clears the
                     // dependent list instead of throwing on _catalog[track].

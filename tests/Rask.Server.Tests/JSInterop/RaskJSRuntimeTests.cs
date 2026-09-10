@@ -254,7 +254,7 @@ internal sealed partial class JsClickApp : Component
     protected override Component? HeadAssets => new Title()["t"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => Button.OnClickAsync(SetAsync)["set"];
+    protected override Component? Render() => Button.OnClick(SetAsync)["set"];
 
     private async Task SetAsync()
     {

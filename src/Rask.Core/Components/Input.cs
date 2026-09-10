@@ -196,19 +196,15 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     ///     reads this, so it is neither a step on a bound chain nor a parameter of the bound factory. Use
     ///     <see cref="AfterBind" /> for a side effect on each bound write.
     /// </remarks>
-    public Action<string>? OnInput { get; set; }
+    public Callback<string>? OnInput { get; set; }
 
     /// <summary>
     ///     Called with the parsed value once the user commits a change, in controlled mode. Store it and
     ///     pass it back through <c>Value</c>.
     /// </summary>
-    public Action<T>? OnChange { get; set; }
+    public Callback<T>? OnChange { get; set; }
 
-    /// <summary>The <see langword="async" /> form of <see cref="OnInput" />.</summary>
-    public Func<string, Task>? OnInputAsync { get; set; }
 
-    /// <summary>The <see langword="async" /> form of <see cref="OnChange" />.</summary>
-    public Func<T, Task>? OnChangeAsync { get; set; }
 
     /// <summary>
     ///     Called with the chosen files when this is a file input. The list is empty when the user cancels
@@ -218,10 +214,8 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     ///         Re-check them on the server before storing anything.
     ///     </para>
     /// </summary>
-    public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
 
-    /// <summary>The <see langword="async" /> form of <see cref="OnFiles" /> — for reading or uploading.</summary>
-    public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
 
@@ -232,17 +226,13 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     /// </summary>
     public Expression<Func<T>>? Bind { get; set; }
 
-    /// <summary>A synchronous check run on the bound value, returning an error message or null.</summary>
-    public Validate<T>? Validate { get; set; }
+    /// <summary>A check run on the bound value — synchronous, or asynchronous for a uniqueness lookup.</summary>
+    public Validator<T>? Validate { get; set; }
 
-    /// <summary>An asynchronous check run on the bound value — a uniqueness lookup, say.</summary>
-    public ValidateAsync<T>? ValidateAsync { get; set; }
 
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
-    public Action<T>? AfterBind { get; set; }
+    public Callback<T>? AfterBind { get; set; }
 
-    /// <summary>Runs after a successful bind, asynchronously.</summary>
-    public Func<T, Task>? AfterBindAsync { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -481,7 +471,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         if (acc is not null)
         {
             // Bound: write the model on input (immediate for string) / change, validate.
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             if (isCheckbox)
             {
@@ -504,7 +494,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         else
         {
             // Plain / controlled.
-            var input = (Delegate?)OnInput ?? OnInputAsync;
+            var input = OnInput?.Handler;
             if (input is not null)
             {
                 AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
@@ -517,7 +507,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
             }
         }
 
-        var files = (Delegate?)OnFiles ?? OnFilesAsync;
+        var files = OnFiles?.Handler;
         if (files is not null)
         {
             AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));

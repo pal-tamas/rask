@@ -17,10 +17,10 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
                     .Class($"{Tw.Input} mb-2")
                     .OnInput(v => _text = v),
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Tw.BtnPrimary).Id("speech-speak").OnClickAsync(Speak)["Speak"],
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("speech-speak").OnClick(Speak)["Speak"],
                     Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("speech-cancel")
-                        .OnClickAsync(Cancel)["Stop"]
+                        .OnClick(Cancel)["Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
             ]

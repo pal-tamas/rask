@@ -114,6 +114,54 @@ public static class AutoCallback
         };
     }
 
+    /// <summary>Wrap a two-arg callback so it re-renders its owner after running.</summary>
+    /// <remarks>
+    ///     Typed rather than left to the <see cref="Delegate" /> fallback, and that is not tidiness. The
+    ///     fallback returns an <see cref="Action{T}" /> over <see cref="object" />, which no arity-typed
+    ///     carrier's shape test matches — so a two-argument handler wrapped through it would be stored,
+    ///     never recognised at dispatch, and silently never fire. A missing arity has to be a COMPILE
+    ///     error, which it is once the fallback is not a candidate.
+    /// </remarks>
+    public static Action<T1, T2>? Wrap<T1, T2>(Action<T1, T2>? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (DelegateOwner.Resolve(d) is not { } r)
+        {
+            return d;
+        }
+
+        return (arg1, arg2) =>
+        {
+            d(arg1, arg2);
+            r.StateHasChanged();
+        };
+    }
+
+    /// <inheritdoc cref="Wrap{T1, T2}(Action{T1, T2}?)" />
+    public static Func<T1, T2, Task>? Wrap<T1, T2>(Func<T1, T2, Task>? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (DelegateOwner.Resolve(d) is not { } r)
+        {
+            return d;
+        }
+
+        return async (arg1, arg2) =>
+        {
+            r.MarkDirtyForAsyncHandler();
+            await d(arg1, arg2).ConfigureAwait(false);
+            r.StateHasChanged();
+        };
+    }
+
     /// <summary>
     ///     Wrap a one-argument callback whose delegate type is only known at run time, so it re-renders its
     ///     owner after running — awaiting first when it is asynchronous.

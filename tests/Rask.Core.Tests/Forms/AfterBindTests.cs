@@ -75,7 +75,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                     order.Add("validate");
                     return Array.Empty<string>();
                 })
-                .AfterBindAsync(async _ =>
+                .AfterBind(async _ =>
                 {
                     order.Add("afterBindAsync:start");
                     await gate.Task;
@@ -130,16 +130,19 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         Assert.Equal(new[] { "afterBind", "validate" }, order);
     }
 
+    // There used to be a sync hook and an async one, and both ran — this pinned their order. The hook is
+    // one slot now, taking either shape, so there is no order to pin: what matters is that an
+    // asynchronous hook is AWAITED before the render continues, which is the half that could regress
+    // silently. A hook that was not awaited would still run, just too late to matter.
     [Fact]
-    public async Task Input_BothSyncAndAsync_RunSyncFirst_ThenAwaitAsync()
+    public async Task Input_AsyncHook_IsAwaitedBeforeTheRenderContinues()
     {
         var m = new TextModel { Name = "" };
         var order = new List<string>();
 
         var page = RaskTest.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name)
-                .AfterBind(_ => order.Add("sync"))
-                .AfterBindAsync(async _ =>
+                .AfterBind(async _ =>
                 {
                     await Task.Yield();
                     order.Add("async");
@@ -147,7 +150,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         ]);
         await page.InputAsync("{\"value\":\"x\"}");
 
-        Assert.Equal(new[] { "sync", "async" }, order);
+        Assert.Equal(new[] { "async" }, order);
     }
 
     [Fact]
@@ -176,7 +179,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         List<string>? cities = null;
 
         var page = RaskTest.Render(() => Form.Model(m)[
-            Select.Bind(() => m.Country).AfterBindAsync(async c =>
+            Select.Bind(() => m.Country).AfterBind(async c =>
             {
                 await Task.Yield();
                 cities = c == "US" ? new List<string> { "NYC", "LA" } : new List<string> { "Berlin" };

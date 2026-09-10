@@ -13,7 +13,7 @@ public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("media-read")
-                    .OnClickAsync(Read)[
+                    .OnClick(Read)[
                     "Evaluate media queries"],
                 Div.Class("text-sm text-ui-muted")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]

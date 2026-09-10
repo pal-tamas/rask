@@ -141,8 +141,7 @@ public class BuilderEntryEmissionTests
                                                   public Action<TItem>? OnChange { get; set; }
                                                   public Func<TItem, Task>? OnChangeAsync { get; set; }
                                                   public Expression<Func<TItem>>? Bind { get; set; }
-                                                  public Validate<TItem>? Validate { get; set; }
-                                                  public ValidateAsync<TItem>? ValidateAsync { get; set; }
+                                                  public Validator<TItem>? Validate { get; set; }
                                                   public Action<TItem>? AfterBind { get; set; }
                                                   public Func<TItem, Task>? AfterBindAsync { get; set; }
                                               }
@@ -153,8 +152,7 @@ public class BuilderEntryEmissionTests
                                                   public Action<TValue>? OnChange { get; set; }
                                                   public Func<TValue, Task>? OnChangeAsync { get; set; }
                                                   public Expression<Func<TValue>>? Bind { get; set; }
-                                                  public Validate<TValue>? Validate { get; set; }
-                                                  public ValidateAsync<TValue>? ValidateAsync { get; set; }
+                                                  public Validator<TValue>? Validate { get; set; }
                                                   public Action<TValue>? AfterBind { get; set; }
                                                   public Func<TValue, Task>? AfterBindAsync { get; set; }
                                               }

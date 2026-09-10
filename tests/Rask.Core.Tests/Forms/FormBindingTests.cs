@@ -93,7 +93,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30 };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p).ValidateAsync(async (m, ct) =>
+        var page = RaskTest.Render(() => Form.Model(p).Validate(async (m, ct) =>
             {
                 await Task.Yield();
                 ct.ThrowIfCancellationRequested();

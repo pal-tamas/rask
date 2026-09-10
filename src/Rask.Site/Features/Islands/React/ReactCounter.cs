@@ -26,5 +26,5 @@ public sealed partial class ReactCounter : Rask.External.ReactComponent
     public required string Caption { get; set; }
 
     /// <summary>Runs with the component's running total whenever it changes.</summary>
-    public Action<int>? OnTotalChanged { get; set; }
+    public Callback<int>? OnTotalChanged { get; set; }
 }

@@ -52,7 +52,7 @@ public sealed partial class DragDropKanbanDemo : Component
                     .Draggable(true)
                     .OnDragStart(ctx.DragStart(zone, index))
                     .OnDragOver(ctx.DragOver(zone, index))
-                    .OnDropAsync(ctx.Drop(zone, index))
+                    .OnDrop(ctx.Drop(zone, index))
                     .OnDragEnd(ctx.DragEnd)
                     .Data(new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
                     Div.Class($"{Tw.CardBody} p-2 flex items-center gap-2")[
@@ -82,7 +82,7 @@ public sealed partial class DragDropKanbanDemo : Component
                     Div
                         .Class(bodyCls)
                         .OnDragOver(ctx.DragOver(zone, dropAtEnd))
-                        .OnDropAsync(ctx.Drop(zone, dropAtEnd))
+                        .OnDrop(ctx.Drop(zone, dropAtEnd))
                         .Data(new Dictionary<string, string?> { ["testid"] = $"col-{zone}" })[cardChildren]
                 ]
             ]);

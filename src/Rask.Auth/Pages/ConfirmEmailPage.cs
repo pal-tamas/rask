@@ -59,7 +59,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
                     .Type("button")
                     .Id("confirm-submit")
                     .Class("btn btn-primary btn-block")
-                    .OnClickAsync(ConfirmAsync)["Confirm my email"]
+                    .OnClick(ConfirmAsync)["Confirm my email"]
             ]
         ];
 

@@ -32,8 +32,8 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     {
         // Setting only the async variant still registers the handler and emits the attribute.
         var view = new StubComponent(() => Div
-            .OnKeyDownAsync(_ => Task.CompletedTask)
-            .OnKeyUpAsync(_ => Task.CompletedTask));
+            .OnKeyDown(_ => Task.CompletedTask)
+            .OnKeyUp(_ => Task.CompletedTask));
         Assert.Equal(
             "<div data-rask-on-keydown=\"h0\" data-rask-on-keyup=\"h1\"></div>",
             view.RenderAsLiveRoot());
@@ -70,9 +70,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
         // the per-render cost; this asserts the property contract directly).
         var div = Div.Value;
         Assert.Null(div.OnKeyDown);
-        Assert.Null(div.OnKeyDownAsync);
         Assert.Null(div.OnKeyUp);
-        Assert.Null(div.OnKeyUpAsync);
     }
 
     [Fact]
@@ -101,7 +99,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     {
         string? seenKey = null;
         var view = new StubComponent(() => Div
-            .OnKeyUpAsync(e =>
+            .OnKeyUp(e =>
         {
             seenKey = e.Key;
             return Task.CompletedTask;
@@ -119,7 +117,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     {
         KeyboardEventArgs? seen = null;
         var view = new StubComponent(() => Div
-            .OnKeyDownAsync(e =>
+            .OnKeyDown(e =>
         {
             seen = e;
             return Task.CompletedTask;

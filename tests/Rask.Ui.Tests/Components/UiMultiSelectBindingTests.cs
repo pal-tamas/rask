@@ -128,7 +128,10 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
             Label = "Packages",
             Options = Packages,
             Value = held,
-            OnChange = v => got = v
+            // Constructed rather than a bare lambda: OnChange is a Callback<T> carrier now, and a lambda
+            // has no delegate target to convert from outside the chain, where the generator emits a step
+            // per shape it accepts.
+            OnChange = new Rask.Core.Callback<ICollection<string>>(v => got = v)
         };
 
         await UiFormCommit.CommitSelectionAsync(control, null, null, ["ui"]);

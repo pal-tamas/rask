@@ -31,7 +31,7 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
                         .Type("button")
                         .Id("logout-submit")
                         .Class("btn btn-primary btn-block")
-                        .OnClickAsync(SignOutAsync)["Sign out"]
+                        .OnClick(SignOutAsync)["Sign out"]
                 ]
             ]
             : Fragment[

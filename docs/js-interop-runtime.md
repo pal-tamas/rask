@@ -167,8 +167,8 @@ public sealed partial class FocusDemo : Component
         Div[
             Input<string>().Type(InputType.Text).Ref(_input),
             Div.Ref(_box)["measure me"],
-            Button.OnClickAsync(Focus)["Focus"],
-            Button.OnClickAsync(Measure)["Measure"]
+            Button.OnClick(Focus)["Focus"],
+            Button.OnClick(Measure)["Measure"]
         ];
 
     // Built-in helpers: ElementRefInterop.{FocusAsync, BlurAsync, ScrollIntoViewAsync}.

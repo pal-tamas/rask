@@ -188,7 +188,7 @@ If you are formatting a value to send somewhere rather than to show someone, pas
 public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 {
     protected override Component Render() =>
-        Select.OnChangeAsync(e => culture.SetAsync(e.Value ?? "en"))[
+        Select.OnChange(e => culture.SetAsync(e.Value ?? "en"))[
             culture.Supported.Select(c => Option.Value(c.Name)[c.NativeName])
         ];
 }

@@ -21,18 +21,18 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Button.Class(Tw.BtnPrimary).Id("hid-request").OnClickAsync(RequestDevice)[
+                    Button.Class(Tw.BtnPrimary).Id("hid-request").OnClick(RequestDevice)[
                         UiIcon.Name(UiIconName.Cube).Class("me-1"), "Pair device"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("hid-watch")
                         .Disabled(_device is null || _watch is not null)
-                        .OnClickAsync(Watch)["Open & watch"],
+                        .OnClick(Watch)["Open & watch"],
                     Button
                         .Class(Tw.BtnOutlineDanger)
                         .Id("hid-close")
                         .Disabled(_device is null)
-                        .OnClickAsync(Release)["Release"]
+                        .OnClick(Release)["Release"]
                 ],
                 _info is null
                     ? Div.Class("text-sm text-ui-muted")["No device paired."]

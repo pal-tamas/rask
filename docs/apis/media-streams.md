@@ -42,7 +42,7 @@ public sealed class Camera(IMediaStreams streams) : Component
             MediaCaptureTrigger.For(_video).Video(true)
                 .OnStream(id => { _stream = id; StateHasChanged(); return Task.CompletedTask; })
                 .Template(g => Button.Type("button").Data(g)["Start camera"]),
-            Button.Type("button").Disabled(_stream is null).OnClickAsync(StopAsync)["Stop camera"],
+            Button.Type("button").Disabled(_stream is null).OnClick(StopAsync)["Stop camera"],
             Video.Ref(_video).Muted(true)
         ];
 

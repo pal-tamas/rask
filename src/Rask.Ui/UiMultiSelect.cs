@@ -152,25 +152,16 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
     public ICollection<T>? Value { get; set; }
 
     /// <inheritdoc />
-    public Action<ICollection<T>>? OnChange { get; set; }
-
-    /// <inheritdoc />
-    public Func<ICollection<T>, Task>? OnChangeAsync { get; set; }
+    public Callback<ICollection<T>>? OnChange { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<ICollection<T>>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<ICollection<T>>? Validate { get; set; }
+    public Validator<ICollection<T>>? Validate { get; set; }
 
     /// <inheritdoc />
-    public ValidateAsync<ICollection<T>>? ValidateAsync { get; set; }
-
-    /// <inheritdoc />
-    public Action<ICollection<T>>? AfterBind { get; set; }
-
-    /// <inheritdoc />
-    public Func<ICollection<T>, Task>? AfterBindAsync { get; set; }
+    public Callback<ICollection<T>>? AfterBind { get; set; }
 
     // The selection, split into the part this control can draw and the part it cannot.
     //
@@ -215,7 +206,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
             .Of<string>()
             .Multiple(true)
             .Name(Name)
-            .OnSelectAsync(picked => CommitAsync(acc, ctx, chosen, Map(picked)))
+            .OnSelect(picked => CommitAsync(acc, ctx, chosen, Map(picked)))
             .Aria(Aria(expanded: null))
             .Disabled(Disabled == true)
             .Class(BoxClass())[
@@ -269,7 +260,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
             // Deliberately does NOT touch _open — see the toggle handler below, which is its sole writer.
             // All this does is have a cursor ready for the frame that opens.
             .OnClick(() => _cursor = UiSelectNav.Seed(FirstChosen(flat, chosen), flat.Count, off))
-            .OnKeyDownAsync(e => OnKeyAsync(e, acc, ctx, flat, off, chosen, fromSearch: false))[
+            .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, off, chosen, fromSearch: false))[
             Span.Class("truncate")[Summary(chosen)]
         ];
 
@@ -326,7 +317,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
                         .Type("button")
                         .Class("cursor-pointer opacity-70 hover:opacity-100")
                         .Aria(new Dictionary<string, string?> { ["label"] = "Remove " + TextOf(value) })
-                        .OnClickAsync(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))[
+                        .OnClick(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))[
                         UiIcon.Name(UiIconName.Close).Class("size-3")
                     ]
             ];
@@ -339,7 +330,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
                 .Class("cursor-pointer opacity-60 hover:opacity-100")
                 .Aria(new Dictionary<string, string?> { ["label"] = "Clear all" })
                 // Clears the answers this control drew, and only those.
-                .OnClickAsync(() => CommitAsync(acc, ctx, chosen, []))[
+                .OnClick(() => CommitAsync(acc, ctx, chosen, []))[
                 UiIcon.Name(UiIconName.Close).Class("size-4")
             ];
         }
@@ -427,7 +418,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
                     _filter = raw;
                     _cursor = 0;
                 })
-                .OnKeyDownAsync(e => OnKeyAsync(e, acc, ctx, flat, off, chosen, fromSearch: true))
+                .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, off, chosen, fromSearch: true))
         ];
     }
 
@@ -464,7 +455,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
         return Button
             .Type("button")
             .Class("btn btn-ghost btn-xs mb-1 w-full justify-start")
-            .OnClickAsync(() => CommitAsync(acc, ctx, chosen, allIn
+            .OnClick(() => CommitAsync(acc, ctx, chosen, allIn
                 ? [.. chosen.Shown.Where(v => !Contains(selectable, v))]
                 : Union(chosen.Shown, selectable)))[
             allIn ? "Clear all" : "Select all"
@@ -524,7 +515,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
         // several must not close the list, or choosing three means opening it three times.
         if (!off)
         {
-            option = option.OnClickAsync(() => CommitAsync(acc, ctx, chosen, Toggled(chosen.Shown, value)));
+            option = option.OnClick(() => CommitAsync(acc, ctx, chosen, Toggled(chosen.Shown, value)));
         }
 
         // menu-disabled goes on the <li>, unlike menu-active and menu-focus, which go on the child.

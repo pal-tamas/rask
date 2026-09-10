@@ -106,7 +106,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Class(Tw.BtnOutlineSecondary)
                         .Id("camera-stop-btn")
                         .Disabled(_camera is null)
-                        .OnClickAsync(StopCameraAsync)["Stop camera"],
+                        .OnClick(StopCameraAsync)["Stop camera"],
                     PictureInPictureTrigger
                         .For(_preview)
                         .Template(g =>

@@ -34,11 +34,11 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
                     Button.Type("button").Class(Tw.BtnPrimary)
                         .Id("signal-join")
                         .Disabled(_joining)
-                        .OnClickAsync(JoinAsync)["Join the room twice"],
+                        .OnClick(JoinAsync)["Join the room twice"],
                     Button.Type("button").Class(Tw.BtnSecondary)
                         .Id("signal-send")
                         .Disabled(_secondId is null)
-                        .OnClickAsync(SendAsync)["Relay a payload"]
+                        .OnClick(SendAsync)["Relay a payload"]
                 ],
                 _unavailable
                     ? Div.Class("text-sm text-ui-muted italic").Id("signal-status")[

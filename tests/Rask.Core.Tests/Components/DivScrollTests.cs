@@ -23,7 +23,7 @@ public partial class DivScrollTests : global::Rask.Core.RaskMarkup
         var sync = new StubComponent(() => Div.OnScroll(_ => { }));
         Assert.Equal("<div data-rask-on-scroll=\"h0\"></div>", sync.RenderAsLiveRoot());
 
-        var async = new StubComponent(() => Div.OnScrollAsync(_ => Task.CompletedTask));
+        var async = new StubComponent(() => Div.OnScroll(_ => Task.CompletedTask));
         Assert.Equal("<div data-rask-on-scroll=\"h0\"></div>", async.RenderAsLiveRoot());
     }
 
@@ -47,7 +47,7 @@ public partial class DivScrollTests : global::Rask.Core.RaskMarkup
     {
         ScrollEvent? seen = null;
         var view = new StubComponent(() => Div
-            .OnScrollAsync(e =>
+            .OnScroll(e =>
         {
             seen = e;
             return Task.CompletedTask;

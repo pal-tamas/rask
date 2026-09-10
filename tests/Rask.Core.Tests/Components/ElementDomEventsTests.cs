@@ -49,7 +49,6 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
         Assert.Null(div.OnMouseMove);
         Assert.Null(div.OnPointerDown);
         Assert.Null(div.OnFocus);
-        Assert.Null(div.OnCopyAsync);
         Assert.Null(div.OnWheel);
     }
 

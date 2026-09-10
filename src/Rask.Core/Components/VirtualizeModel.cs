@@ -90,7 +90,7 @@ public sealed class VirtualizeModel : Component
     // user-facing typed factory VirtualizeModel<T>(...) exposes this parameter as "Render".
 
     /// <summary>Renders one row, given the virtualization state.</summary>
-    public new Func<VirtualizationState, Component>? Body { get; set; }
+    public new Fn<VirtualizationState, Component>? Body { get; set; }
 
     // VirtualizeModel reads mutable internal state (scroll position, item cache, total count
     // from the async provider) that the framework can't observe through props alone, so
@@ -232,7 +232,7 @@ public sealed class VirtualizeModel : Component
             offsetAfter,
             _onScrollDelegate);
 
-        return body(state);
+        return body.Invoke(state)!;
     }
 
     private static void FillFromItems(

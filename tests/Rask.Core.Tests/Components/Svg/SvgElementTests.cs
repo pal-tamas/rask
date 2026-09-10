@@ -68,7 +68,7 @@ public partial class SvgElementTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnClickAsyncInsideLiveContext_EmitsDataRaskOnClick()
     {
-        var view = new StubComponent(() => Circle.OnClickAsync(async () => { await Task.Yield(); }));
+        var view = new StubComponent(() => Circle.OnClick(async () => { await Task.Yield(); }));
         Assert.Equal("<circle data-rask-on-click=\"h0\"></circle>", view.RenderAsLiveRoot());
     }
 

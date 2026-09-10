@@ -20,7 +20,7 @@ public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsync
                     Button
                         .Class(_sentinel is null ? $"{Tw.BtnPrimary}" : $"{Tw.BtnDanger}")
                         .Id("wakelock-toggle")
-                        .OnClickAsync(Toggle)[
+                        .OnClick(Toggle)[
                         _sentinel is null ? "Keep screen awake" : "Release"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]

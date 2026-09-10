@@ -33,8 +33,8 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
     public void ToggleHandlers_AsyncSiblingsEmit()
     {
         var view = new StubComponent(() => Div
-            .OnToggleAsync(_ => Task.CompletedTask)
-            .OnBeforeToggleAsync(_ => Task.CompletedTask));
+            .OnToggle(_ => Task.CompletedTask)
+            .OnBeforeToggle(_ => Task.CompletedTask));
         // beforetoggle leads: GlobalEventOrder is chronological within a group, as drag and keyboard
         // are. The ids follow it too — RegisterHandler is called during EMISSION, not when the handler
         // was wired, so h0 goes to whichever attribute is written first.
@@ -48,9 +48,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
     {
         var div = Div.Value;
         Assert.Null(div.OnToggle);
-        Assert.Null(div.OnToggleAsync);
         Assert.Null(div.OnBeforeToggle);
-        Assert.Null(div.OnBeforeToggleAsync);
     }
 
     [Fact]
@@ -90,7 +88,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
     public async Task BeforeToggle_AsyncTypedHandler_IsAwaited()
     {
         string? seenState = null;
-        var view = new StubComponent(() => Div.OnBeforeToggleAsync(e =>
+        var view = new StubComponent(() => Div.OnBeforeToggle(e =>
         {
             seenState = e.NewState;
             return Task.CompletedTask;

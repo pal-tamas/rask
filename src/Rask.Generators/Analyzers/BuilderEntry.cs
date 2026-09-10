@@ -30,6 +30,10 @@ internal static class BuilderEntry
 
     private const string GlobalPrefix = "global::";
 
+    // The generated seed struct a generic component's or form control's entry hands back, spelled the
+    // same way ComponentFactoryGenerator spells it (SeedName = "RaskSeed_" + TypeName).
+    private const string SeedPrefix = "RaskSeed_";
+
     /// <summary>
     ///     The component type an entry hands back, or <c>null</c> when <paramref name="member" /> is not
     ///     an entry. Entries are emitted <c>protected static</c> onto <c>Rask.Core.RaskMarkup</c> (the
@@ -122,9 +126,15 @@ internal static class BuilderEntry
     // mode (see Rask.Core.Build{T,TMode}) and says nothing about what is being built. Missing the
     // two-arity form left every analyzer that asks "what does this chain build" answering with the chain
     // itself for form controls, which silently stood down RASK025 on `Input.Bind(…).Type(…)`.
+    // A form's chain is a THIRD shape, `FormBuild<T>` — it exists because an indexer cannot be
+    // constrained, so the submit-state children indexer can only be offered by a distinct type. Missing
+    // it left every analyzer that asks "what does this chain build" answering with the chain itself for
+    // a form, which is how RASK046 stopped reporting `Form.Model(m).Class("x").Key(1)` — a chain where
+    // the Class step really is lost.
     public static ITypeSymbol? ChainedComponent(ITypeSymbol? type) =>
         type is INamedTypeSymbol { IsGenericType: true, Arity: 1 or 2 } named
         && named.ConstructedFrom.ToDisplayString() is "Rask.Core.Build<T>" or "Rask.Core.Build<T, TMode>"
+            or "Rask.Core.FormBuild<T>"
             ? named.TypeArguments[0]
             : type;
 
@@ -143,8 +153,10 @@ internal static class BuilderEntry
     ///     </para>
     ///     <para>
     ///         Succeeds only for the outermost link, so one chain is read once rather than once per step.
-    ///         An entry is a property typed <c>Build&lt;T&gt;</c>, which is exactly what an ordinary method
-    ///         returning a component is not — that distinction is what keeps a static markup helper
+    ///         An entry is a property typed as one of the chain shapes (<c>Build&lt;T&gt;</c>,
+    ///         <c>Build&lt;T, TMode&gt;</c>, <c>FormBuild&lt;T&gt;</c>) or as the <c>RaskSeed_</c> struct a
+    ///         generic component and a form control open with — which is exactly what an ordinary method
+    ///         returning a component is not, and that distinction is what keeps a static markup helper
     ///         (<c>Ui.Badge(x)</c>) from being mistaken for something that could take a key.
     ///     </para>
     /// </remarks>
@@ -202,16 +214,42 @@ internal static class BuilderEntry
         };
 
         if (name is null
-            || model.GetSymbolInfo(name, cancellationToken).Symbol is not IPropertySymbol property
-            || property.Type is not INamedTypeSymbol { IsGenericType: true, Arity: 1 } built1
-            || !string.Equals(
-                built1.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal))
+            || model.GetSymbolInfo(name, cancellationToken).Symbol is not IPropertySymbol property)
+        {
+            return false;
+        }
+
+        // A SEED-opened chain. A generic component or form control cannot hand back `Build<T>` from its
+        // entry, because the component's own type argument is not known until a step pins it — so its
+        // entry is typed `RaskSeed_<Name>` and the first step returns the chain. Matching only
+        // `Build<T>` here therefore stood down RASK022/RASK023 on every generic component and every form
+        // control, silently, which is the same failure mode #704 fixed one shape earlier: the analyzer
+        // does not report anything wrong, it simply never runs.
+        //
+        // Recognised by the seed's NAME rather than by a marker interface because the seed is a
+        // generated struct with no shared base, and the generator spells that name in exactly one place
+        // (SeedName = "RaskSeed_" + TypeName). `built` stays null: the component is not knowable from the
+        // seed alone, and the only caller that needs it (RASK023) is asking about a non-generic tag,
+        // which never has a seed.
+        if (property.Type.Name.Length > SeedPrefix.Length
+            && property.Type.Name.StartsWith(SeedPrefix, StringComparison.Ordinal)
+            && string.Equals(
+                property.Type.Name.Substring(SeedPrefix.Length), name.Identifier.ValueText,
+                StringComparison.Ordinal))
+        {
+            entry = name;
+            built = null;
+            return true;
+        }
+
+        if (ChainedComponent(property.Type) is not INamedTypeSymbol built1
+            || SymbolEqualityComparer.Default.Equals(built1, property.Type))
         {
             return false;
         }
 
         entry = name;
-        built = built1.TypeArguments[0];
+        built = built1;
         return true;
     }
 

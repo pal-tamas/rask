@@ -26,7 +26,7 @@ internal sealed partial class CommitProbe : Component
 
     public string? Word { get; set; }
 
-    public Action? OnPing { get; set; }
+    public Callback? OnPing { get; set; }
 
     protected override void OnMount() => Mounts++;
 

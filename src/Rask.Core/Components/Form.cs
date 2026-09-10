@@ -61,11 +61,8 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     ///     low-level hook: prefer <see cref="OnValidSubmit" />, which hands you the typed model and only
     ///     runs once the form is actually valid.
     /// </summary>
-    // Calling one back is `OnSubmit?.Invoke(data)`.
-    public Action<FormData>? OnSubmit { get; set; }
-
-    /// <inheritdoc cref="OnSubmit" />
-    public Func<FormData, Task>? OnSubmitAsync { get; set; }
+    // Calling it back is `OnSubmit?.Invoke(data)`, which hands back null when there is nothing to await.
+    public Callback<FormData>? OnSubmit { get; set; }
 
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
     // walks the model graph so descendant sub-objects also resolve to the same context. Without
@@ -93,28 +90,18 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     /// <summary>Runs on submit when every field passes validation.</summary>
     [AutoCallback]
-    public Action<TModel>? OnValidSubmit { get; set; }
-
-    /// <inheritdoc cref="OnValidSubmit" />
-    [AutoCallback]
-    public Func<TModel, Task>? OnValidSubmitAsync { get; set; }
+    public Callback<TModel>? OnValidSubmit { get; set; }
 
     /// <summary>Runs on submit when validation fails, so the page can react rather than sit silent.</summary>
     [AutoCallback]
-    public Action<TModel>? OnInvalidSubmit { get; set; }
-
-    /// <inheritdoc cref="OnInvalidSubmit" />
-    [AutoCallback]
-    public Func<TModel, Task>? OnInvalidSubmitAsync { get; set; }
+    public Callback<TModel>? OnInvalidSubmit { get; set; }
 
     /// <summary>
     ///     Cross-field validation for the form as a whole. Messages attach to the model rather than to a
     ///     field, so they surface in ValidationSummary and any field-less ValidationMessage.
     /// </summary>
-    public Validate<TModel>? Validate { get; set; }
+    public Validator<TModel>? Validate { get; set; }
 
-    /// <inheritdoc cref="Validate" />
-    public ValidateAsync<TModel>? ValidateAsync { get; set; }
 
     /// <summary>
     ///     Whether this form validates its model with no validator declared — its
@@ -240,7 +227,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 
         // Whichever shape was given; null clears a prior registration so a re-render that drops the
         // validator does not leave a stale callback behind.
-        ctx.RegisterFormValidator((Delegate?)Validate ?? ValidateAsync);
+        ctx.RegisterFormValidator(Validate?.Rule);
         return ctx;
     }
 
@@ -317,18 +304,13 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
                 ctx.TouchAllRegisteredFields();
                 var isValid = !ctx.HasValidationMessages();
                 var onModel = isValid ? OnValidSubmit : OnInvalidSubmit;
-                var onModelAsync = isValid ? OnValidSubmitAsync : OnInvalidSubmitAsync;
-                if (onModel is null && onModelAsync is null)
+                if (onModel is null)
                 {
-                    // No model-shaped handler: fall back to the raw FormData pair, which is what a form that
+                    // No model-shaped handler: fall back to the raw FormData one, which is what a form that
                     // only wants the posted values uses.
-                    if (OnSubmit is { } sync)
+                    if (OnSubmit?.Invoke(formData) is { } raw)
                     {
-                        sync(formData);
-                    }
-                    else if (OnSubmitAsync is { } asyn)
-                    {
-                        await asyn(formData).ConfigureAwait(false);
+                        await raw.ConfigureAwait(false);
                     }
 
                     return;
@@ -337,13 +319,9 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
                 // Typed, so the model goes straight to the handler — the non-generic Form had to
                 // DynamicInvoke here, because all it held was a Delegate.
                 var model = (TModel)ctx.Model;
-                if (onModel is { } handler)
+                if (onModel.Value.Invoke(model) is { } pending)
                 {
-                    handler(model);
-                }
-                else if (onModelAsync is { } handlerAsync)
-                {
-                    await handlerAsync(model).ConfigureAwait(false);
+                    await pending.ConfigureAwait(false);
                 }
             }
             finally
@@ -401,7 +379,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
         }
         else
         {
-            submit = (Delegate?)OnSubmit ?? OnSubmitAsync;
+            submit = OnSubmit?.Handler;
         }
 
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)

@@ -15,7 +15,6 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK014** | rewrites `new Widget()` into the bare entry `Widget` |
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
-| **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
@@ -62,7 +61,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
-| [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
+| [RASK027](#rask027) | — | *Retired* — both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
@@ -419,7 +418,7 @@ Rask re-renders the component that *owns* an event/binding callback automaticall
 runs — including when a child control raised it (the framework re-renders the delegate's owner, captured
 from the lambda's `this`) and after a two-way bound write (the binding re-renders its authoring
 component). So calling your own `StateHasChanged()` from inside `OnChange`/`OnClick`/`OnInput`/`OnSubmit`/…
-or the `AfterBind`/`AfterBindAsync` hooks is dead weight. The tell-tale anti-pattern is reaching for
+or the `AfterBind` hook is dead weight. The tell-tale anti-pattern is reaching for
 `AfterBind: _ => StateHasChanged()` to make derived UI refresh.
 
 ```csharp
@@ -442,27 +441,16 @@ a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasCh
 *different* component, is left alone. Suppressible like any analyzer.
 
 ## RASK027
-**Both the sync and async handler are set for one event** · Error
+**Retired** — both the sync and async handler are set for one event
 
-Every DOM event on a component maps to a single handler slot. The typed `OnX` (sync) and `OnXAsync`
-(async) properties are two views over that one slot, so wiring **both** for the same event — e.g.
-`Button.OnClick(...).OnClickAsync(...)` — is a mistake: the runtime keeps the sync handler and silently
-ignores the async one, which is rarely what the author intended. Set exactly one handler per event.
+Reported while every callback shipped as a PAIR: a sync `OnX` beside an async `OnXAsync`, two views over
+one handler slot. Wiring both was a mistake the runtime resolved by keeping the sync one and silently
+dropping the async one, so this rule existed to stop anyone reaching that state.
 
-```csharp
-// ✗ both set — OnClickAsync is silently dropped at runtime:
-Button.OnClick(() => Toggle()).OnClickAsync(async () => await SaveAsync())["Save"]
-// ✓ pick one — the async handler, since it awaits:
-Button.OnClickAsync(async () => await SaveAsync())["Save"]
-// ✓ passing null for the sibling is allowed (a deliberate "at most one" conditional):
-Button.OnClick(useAsync ? null : Sync).OnClickAsync(useAsync ? Async : null)["Save"]
-```
-
-**Fix:** remove one of the two handlers (keep the async `OnXAsync` if it awaits, else the sync `OnX`).
-The error fires only when both siblings are passed as non-`null` arguments to the same factory call;
-passing `null` for one (a conditional "set at most one") is left alone. Applies to every paired event,
-including form callbacks (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, …). Suppressible like any
-analyzer.
+Every callback is now a single `Callback`-typed property whose step takes either shape —
+`Button.OnClick(Refresh)` or `Button.OnClick(SaveAsync)`. "Both set" is not a mistake that can be made,
+so there is nothing left to report. Writing the step twice is an ordinary duplicated step,
+[RASK044](#rask044), and the last one wins. The ID is not reused.
 
 ## RASK028
 **Ambiguous request handler** · Error

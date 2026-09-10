@@ -132,6 +132,47 @@ public class MissingKeyAnalyzerTests
                                            """)));
     }
 
+    // A GENERIC component cannot hand back `Build<T>` from its entry — its own type argument is not
+    // known until a step pins it — so the entry is typed `RaskSeed_<Name>` and the first step returns
+    // the chain. Matching only `Build<T>` therefore stood this check down on every generic component and
+    // every form control, silently: the analyzer did not report anything wrong, it simply never ran.
+    [Fact]
+    public async Task SeedOpenedChainInAProjection_NoKey_ReportsRask022()
+    {
+        var d = Assert.Single(await Diagnostics(Seeded(
+            "return Ul[ _items.Select(i => Row.Item(i)) ];")));
+
+        Assert.Equal("RASK022", d.Id);
+    }
+
+    [Fact]
+    public async Task SeedOpenedChainInAProjection_WithKey_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(Seeded(
+            "return Ul[ _items.Select(i => Row.Item(i).Key(i.ToString())) ];")));
+
+    // Wraps a Render() body alongside a generic component, whose entry is a seed rather than a chain.
+    private static string Seeded(string body) => $$"""
+        using System.Collections.Generic;
+        using System.Linq;
+        using Rask.Core;
+        namespace Demo;
+
+        public sealed partial class Row<T> : Component
+        {
+            public required T Item { get; set; }
+            protected override Component? Render() => null;
+        }
+
+        public sealed partial class App : Component
+        {
+            private readonly int[] _items = { 1, 2, 3 };
+            protected override Component? Render()
+            {
+                {{body}}
+            }
+        }
+        """;
+
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {
         var compilation = CSharpCompilation.Create(

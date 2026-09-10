@@ -13,7 +13,7 @@ public sealed partial class FormSubmitStateDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-7")[
-                Form.Model(_model).OnValidSubmitAsync(SaveAsync).Id("fss-form")[submitting => [
+                Form.Model(_model).OnValidSubmit(SaveAsync).Id("fss-form")[submitting => [
                     Label.Class($"{Tw.Label} font-semibold")["Username"],
                     Input.Bind(() => _model.Username)
                         .Class($"{Tw.Input} mb-2")

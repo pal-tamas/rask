@@ -17,16 +17,16 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("notif-permission")
-                        .OnClickAsync(RequestPermission)["Request permission"],
+                        .OnClick(RequestPermission)["Request permission"],
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("notif-show")
-                        .OnClickAsync(Notify)["Notify"],
+                        .OnClick(Notify)["Notify"],
                     Button.Type("button").Class(Tw.BtnOutlineSecondary)
                         .Id("badge-set")
-                        .OnClickAsync(SetBadge)["Set badge 3"],
+                        .OnClick(SetBadge)["Set badge 3"],
                     Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("badge-clear")
-                        .OnClickAsync(ClearBadge)["Clear badge"]
+                        .OnClick(ClearBadge)["Clear badge"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
             ]

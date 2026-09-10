@@ -22,7 +22,7 @@ public sealed partial class UiSearch : Component
 
     public UiSize? Size { get; set; }
 
-    public Func<string, Task>? OnSearch { get; set; }
+    public Callback<string>? OnSearch { get; set; }
 
     public string? Class { get; set; }
 
@@ -38,7 +38,7 @@ public sealed partial class UiSearch : Component
 
         if (OnSearch is { } search)
         {
-            input = input.OnChangeAsync(search);
+            input = input.OnChange(search);
         }
 
         // daisyUI's `input` is a WRAPPER that lays out whatever sits inside it, so the icon goes in the

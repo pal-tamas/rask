@@ -48,17 +48,20 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
 
     // Both validator shapes are ordinary setters now — the none/sync/async overload fan-out is gone.
     [Fact]
-    public void Both_validator_shapes_are_setters()
+    public void Both_validator_shapes_reach_one_setter()
     {
         var model = new BoundForm();
         // `Bind` is the chain's opening, not a setter on a built control — which is what makes bound and
         // controlled mutually exclusive. So the chain starts here rather than at the factory.
+        //
+        // There is ONE `Validate` step now, with an overload per shape. What used to be the pair's spec —
+        // two properties, and which of them the setter wrote — is this: both shapes land in the same slot,
+        // and the slot remembers which one it was handed.
         var sync = Input.Bind(() => model.Name).Validate(global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty).Value;
-        var async = Input.Bind(() => model.Name).ValidateAsync(CheckAsync).Value;
+        var async = Input.Bind(() => model.Name).Validate(CheckAsync).Value;
 
-        Assert.Same((Validate<string>)global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty, sync.Validate);
-        Assert.NotNull(async.ValidateAsync);
-        Assert.Null(async.Validate);
+        Assert.Same((Validate<string>)global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty, sync.Validate?.Rule);
+        Assert.IsType<ValidateAsync<string>>(async.Validate?.Rule);
         return;
 
         static ValueTask<IEnumerable<string>> CheckAsync(string value, CancellationToken ct) =>
@@ -78,7 +81,7 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
         // a post-bind hook no longer compiles, which is the point.
         var control = Input.Bind(() => probe.Model.Name).AfterBind(hook).Value;
 
-        Assert.Same(hook, control.AfterBind);
+        Assert.Same(hook, control.AfterBind!.Value.Handler);
     }
 
     // Plain assignment must still work — a component built by a chain is an ordinary object afterwards.
@@ -87,9 +90,11 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
     {
         Validate<string> rule = global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty;
         var control = Input.Of<string>().Value;
-        control.Validate = rule;
+        // A lambda cannot reach a carrier through a conversion (CS1660), so a plain assignment names it.
+        // The chain STEP is where the shapes are implicit; this is the escape hatch underneath it.
+        control.Validate = new Validator<string>(rule);
 
-        Assert.Same(rule, control.Validate);
+        Assert.Same(rule, control.Validate?.Rule);
     }
 }
 

@@ -60,11 +60,11 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                             Button.Type("button").Class(Tw.BtnPrimary)
                                 .Id("rtc-connect")
                                 .Disabled(_connecting)
-                                .OnClickAsync(ConnectAsync)["Connect the two peers"],
+                                .OnClick(ConnectAsync)["Connect the two peers"],
                             Button.Type("button").Class(Tw.BtnSecondary)
                                 .Id("rtc-send")
                                 .Disabled(!_everConnected)
-                                .OnClickAsync(SendAsync)["Send a message"]
+                                .OnClick(SendAsync)["Send a message"]
                         ],
                         Div.Class("text-sm text-ui-muted mb-1")[
                             "Connection state: ", Span.Id("rtc-state")[_state]],

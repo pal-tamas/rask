@@ -14,7 +14,7 @@ public sealed partial class UiPagination : Component
 
     public required int Current { get; set; }
 
-    public Action<int>? OnSelect { get; set; }
+    public Callback<int>? OnSelect { get; set; }
 
     public string? Class { get; set; }
 
@@ -32,7 +32,7 @@ public sealed partial class UiPagination : Component
 
                 if (OnSelect is { } select && page != Current)
                 {
-                    button = button.OnClick(() => select(page));
+                    button = button.OnClick(() => select.Invoke(page) ?? Task.CompletedTask);
                 }
 
                 return button[page.ToString(System.Globalization.CultureInfo.InvariantCulture)];

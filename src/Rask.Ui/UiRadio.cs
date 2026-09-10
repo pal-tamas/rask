@@ -49,25 +49,19 @@ public sealed partial class UiRadio : Component, IFormControl<bool>
     ///     it deselected, so the browser never tells that one it was turned off. A handler that treats
     ///     <see langword="false" /> as meaningful will wait forever for it.
     /// </remarks>
-    public Action<bool>? OnChange { get; set; }
+    public Callback<bool>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<bool, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<bool>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<bool>? Validate { get; set; }
+    public Validator<bool>? Validate { get; set; }
+
 
     /// <inheritdoc />
-    public ValidateAsync<bool>? ValidateAsync { get; set; }
+    public Callback<bool>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Action<bool>? AfterBind { get; set; }
-
-    /// <inheritdoc />
-    public Func<bool, Task>? AfterBindAsync { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -80,9 +74,7 @@ public sealed partial class UiRadio : Component, IFormControl<bool>
             return Input
                 .Bind(bind)
                 .Validate(Validate)
-                .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
-                .AfterBindAsync(AfterBindAsync)
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Disabled(Disabled == true)
@@ -93,7 +85,6 @@ public sealed partial class UiRadio : Component, IFormControl<bool>
             .Of<bool>()
             .Checked(Value)
             .OnChange(OnChange)
-            .OnChangeAsync(OnChangeAsync)
             .Type(InputType.Radio)
             .Name(Group)
             .Disabled(Disabled == true)

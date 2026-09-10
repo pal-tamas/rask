@@ -13,7 +13,7 @@ public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("screen-read")
-                    .OnClickAsync(Read)[
+                    .OnClick(Read)[
                     "Read screen info"],
                 Div.Class("text-sm text-ui-muted")["Display: ", Code.Id("screen-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("screen-status")[_status ?? "(idle)"]]

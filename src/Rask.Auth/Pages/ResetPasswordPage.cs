@@ -73,7 +73,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         Fragment[
             H1.Class("text-2xl font-bold")["Choose a new password"],
             Message is null ? null : Error("reset-error", Message),
-            Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+            Form.Model(_model).OnValidSubmit(SubmitAsync)[
                 Field(
                     "password",
                     "New password",

@@ -13,7 +13,7 @@ public sealed partial class Chart : ReactComponent
     public string? Heading { get; set; }
 
     /// <summary>Runs when a point is clicked.</summary>
-    public Action<int>? OnPointClick { get; set; }
+    public Callback<int>? OnPointClick { get; set; }
 }
 
 /// <summary>One plotted point.</summary>
@@ -36,7 +36,7 @@ public sealed partial class Board : VueComponent
     public required string Heading { get; set; }
 
     /// <summary>Runs when the panel is dismissed.</summary>
-    public Action? OnDismiss { get; set; }
+    public Callback? OnDismiss { get; set; }
 }
 
 /// <summary>A meter rendered by a sibling Meter.svelte.</summary>
@@ -213,6 +213,40 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
 
         // Never the delegate, and never a plain string: an object with the $h sentinel, which is what
         // the client runtime swaps for a real function before the adapter ever sees the props.
+        Assert.Equal(JsonValueKind.Object, handler.ValueKind);
+        Assert.False(string.IsNullOrEmpty(handler.GetProperty("$h").GetString()));
+    }
+
+    // The shape a bare `Action<int>?` prop could not hold at all. An island callback is a carrier now,
+    // so the same step takes either shape and the wire looks identical — which is the point: the front
+    // end has no idea whether the C# on the other side awaits, and should not.
+    //
+    // Worth pinning rather than assuming, because the generated bridge is where the two shapes stop
+    // being interchangeable. A carrier cannot say statically which one it holds, so its bridge is always
+    // emitted as `Func<JsonElement, Task>`; had it kept the synchronous `Action<JsonElement>` form, this
+    // handler would either not compile into it or be dropped on the floor after the first await.
+    [Fact]
+    public void A_wired_ASYNC_callback_travels_the_same_way()
+    {
+        var html = Render(Chart.Series([]).OnPointClick(async _ => await Task.Yield()));
+
+        using var props = JsonDocument.Parse(ReadProps(html));
+        var handler = props.RootElement.GetProperty("onPointClick");
+
+        Assert.Equal(JsonValueKind.Object, handler.ValueKind);
+        Assert.False(string.IsNullOrEmpty(handler.GetProperty("$h").GetString()));
+    }
+
+    // …and the arity-0 island callback, whose bridge takes the other path in the emitter: it registers
+    // the delegate the carrier holds rather than going through an argument wrapper.
+    [Fact]
+    public void A_wired_argumentless_callback_registers_the_carried_delegate()
+    {
+        var html = Render(Board.Heading("Sprint").OnDismiss(async () => await Task.Yield()));
+
+        using var props = JsonDocument.Parse(ReadProps(html));
+        var handler = props.RootElement.GetProperty("onDismiss");
+
         Assert.Equal(JsonValueKind.Object, handler.ValueKind);
         Assert.False(string.IsNullOrEmpty(handler.GetProperty("$h").GetString()));
     }

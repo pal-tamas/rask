@@ -936,6 +936,191 @@ them until tagged releases begin.
   `Work_tracked_for_a_ConfigureAwaitFalse_hook_outlives_its_own_repaint_request` pins the ordering itself
   — asked from a synchronous continuation on the tracked task, with the walk on a dedicated thread so no
   pool thread can carry `QuiescenceScope`'s thread-static and rescue it. (#1037, #932)
+### Added
+
+- **Callback carriers, so a component's props can hold a delegate without being one.** `Callback`,
+  `Callback<T>` and `Callback<T1, T2>` hold an event handler in its sync *or* its async form under one
+  property; `Fn<TOut>`, `Fn<TIn, TOut>` and `Fn<T1, T2, TOut>` hold a value the framework asks a
+  component for — a template, a selector, a predicate; `Validator<T>` holds a field rule in either form.
+
+  They are the groundwork for the chain receiving on the component itself. A delegate-typed property
+  swallows its own chain step — C# stops at it when resolving `x.OnClick(fn)` and reads the call as a
+  delegate invocation (CS1593), so the extension setter is never considered — and a struct over a
+  delegate is not invocable, so member lookup falls through and the setter binds.
+
+  `Callback.Invoke()` returns `null` when there is nothing to await, so a synchronous handler never
+  acquires an asynchronous hop it did not have: no `Task`, no closure, no state machine. Call it as
+  `if (OnClick?.Invoke() is { } t) await t;`. `Validator<T>.Invoke` returns a `ValueTask<>` for the same
+  reason — the synchronous rule runs on every keystroke of every bound control.
+
+- **A carrier-typed prop gets a chain step per delegate shape it accepts, under one name.** A lambda has
+  no type, so it can never reach a carrier through the carrier's own constructor (CS1660) — without these
+  there would be no way to write a handler at all. So `Callback` gets a sync and an async overload,
+  `Validator<T>` the same over the framework's named validator delegates, and `Fn<…>` a single one,
+  having no async twin. The call site writes the handler it means: `.OnPick(Refresh)` or
+  `.OnPick(SaveAsync)`, and an `async () => { … }` lambda binds the async shape, never async void.
+
+  Keyed off the TYPE, never a naming convention, so a new carrier prop gets its steps without anyone
+  remembering. The carrier-typed setter stays as the pass-through — for forwarding a carrier a component
+  already holds — and carries `[OverloadResolutionPriority(1)]`, because `null` converts to every shape
+  and `.OnPick(null)` would otherwise be ambiguous; priority is applied after applicability, so a lambda
+  still reaches its own overload. Carriers are also excluded from the `propsChanged` fold: a `Callback?`
+  is a struct, and folding one would report a change every frame and defeat the render cache for every
+  element carrying a handler. Nothing declares a carrier prop yet.
+
+- **`AutoCallback.Wrap` now types the two-argument shapes.** A handler whose delegate takes two arguments
+  previously fell to the `Delegate` fallback, which hands back an `Action<object?>` — a shape no
+  arity-typed carrier matches, so such a handler would be stored, never recognised at dispatch, and
+  silently never fire. With typed `Action<T1, T2>` and `Func<T1, T2, Task>` overloads, a missing arity is
+  a compile error instead.
+
+### Changed
+
+- **An island's callbacks are carriers, so one property takes a synchronous or an asynchronous
+  handler.** `Callback`/`Callback<T>` on a `ReactComponent`, `VueComponent`, `SolidComponent`,
+  `PreactComponent`, `SvelteComponent`, `AngularComponent`, `LitComponent` or `BlazorComponent<T>`,
+  where a bare `Action<T>?` could only ever hold one shape. The wire is unchanged — the front end never
+  learns whether the C# on the other side awaits, and should not.
+
+  `ExternalGenerator` had to learn them, and the reason is worth recording: it decides what IS a
+  callback with `named.TypeKind != TypeKind.Delegate`, and a carrier is a struct. Left alone it would
+  have rejected every island callback with RASK057 — loudly, at least, rather than silently shipping a
+  prop that looks callable in devtools and reaches nobody.
+
+  One consequence fell out of it: **a carrier does not say statically whether it is asynchronous**, so
+  the generated argument bridge is now always emitted in the asynchronous form (`Func<JsonElement,
+  Task>`, returning `Invoke(…) ?? Task.CompletedTask`). That is one emitted shape where there were two,
+  and no state machine for a synchronous handler — `Invoke` returning `null` IS the fast path.
+
+- **The remaining component callback props in `tests/` and `site/` are carriers** — 18 across 13
+  components. This is groundwork for the chain receiving on the component itself, and it is the whole
+  DX cost of that change made concrete: a component author writes `Callback?` where they wrote
+  `Action?`. **Call sites are untouched** — `.OnSelect(Choose)` and `.OnSelect(SaveAsync)` both still
+  bind, because the step carries an overload per delegate shape.
+
+  Two rules kept the sweep honest, and both cut real cases out of it. A component only takes a chain
+  step if it is `partial`, so a non-`partial` `Component` set by object initializer needs nothing
+  (`AsyncCallbackMidAwaitRenderTests.Child`). And a plain class is not a component at all, however
+  delegate-shaped its props (`AsyncValidatorTests.GatedValidator`) — which is also the only arity-3
+  delegate prop in the repo, so the decision to stop the carrier family at arity 2 stands.
+
+
+- **A form control's validation rule is ONE property taking either shape.** `Validate` and
+  `ValidateAsync` were two properties over one slot, with a "the synchronous one wins" tiebreak and
+  nothing to enforce it — the same shape as the callback pairs, and the last of them. `Validate` is a
+  `Validator<T>` now, and the chain step has an overload per rule shape, so
+  `.Validate(async (v, ct) => …)` reads exactly like `.Validate(NotEmpty)`. 17 pairs across
+  `IFormControl<T>`, `Form<TModel>`, `Input`/`Select`/`Textarea` and 12 kit controls.
+
+  `IFormControl<T>.Validator` — the single delegate the `EditContext` dispatches — is `Validate?.Rule`
+  rather than `(Delegate?)Validate ?? ValidateAsync`: the carrier already holds exactly one, so there is
+  nothing left to collapse.
+
+- **The none/sync/async validator fan-out is gone, along with the two options that configured it.**
+  `[GenerateForwarderFactory(Validator: …)]` and `[FactoryGeneric(TypedValidatorProperties: …)]` existed
+  to fan a factory into three overloads so a control could take either rule shape without a cast. The
+  carrier does that now — one property, one step, an overload per shape.
+
+  Worth recording how they were found: the fan-out itself had ALREADY stopped running when the factory
+  was dropped, and left its scaffolding behind — an enum nothing switched on, and three record fields
+  written on every candidate and read by nothing. No test noticed, because dead code passes every test.
+  Nothing in the repo set either option, so removing them changes no behaviour; they are removed because
+  a public option that describes machinery which no longer exists is worse than no option at all.
+
+
+- **The optional delegate props that were left — templates, selectors and the async-only handlers — are
+  carriers now.** `Authorize.Authorized`, `ErrorBoundary.Fallback`, `DragDrop.Body`,
+  `VirtualizeModel.Body`, `UiSelect`'s `OptionDisabled`/`OptionGroup`, `GestureTrigger`'s result
+  handlers, `UiSearch.OnSearch`, `UiCrumbSwitcher.OnSelect` and the dashboard's `Resume`. Value-returning
+  props take `Fn<…>`; the async-only handlers take `Callback<…>` and gain a synchronous overload they
+  never had.
+
+  **A required prop does NOT need a carrier, and this change stops short of them deliberately.** A
+  carrier exists so a chain step can share a property's name without the property swallowing it
+  (CS1593). A required prop's step is an instance method on the generated seed struct, and the seed
+  declares no property of that name — so the collision cannot arise there. Making the required templates
+  carriers bought nothing and cost every call site an explicit constructor, because a lambda can never
+  reach a struct through a conversion. `Template` on `GestureTrigger`, `ValidationMessage`, `ToastOutlet`
+  and `Shareable` stays an ordinary `Func<…>`.
+
+  For the same reason, internal seams keep taking bare delegates and wrap at the boundary:
+  `ErrorBoundary.SetProps` still accepts a `Func<…>` and constructs the carrier itself, rather than
+  pushing `new Fn<…>(…)` onto everything that calls it.
+
+  With the last sync-only kit handlers converted too — `UiAccordion.OnOpen`, `UiCalendar.OnMonth`,
+  `UiCollapse`/`UiDrawer`/`UiDropdown``.OnToggle` and `UiPagination.OnSelect` — **every optional
+  delegate property on a component is a carrier.** Each of those six gains an asynchronous overload it
+  never had. What remains a bare delegate is deliberate: required props (their step lives on the seed),
+  internal seams, and options classes, none of which are reachable through a chain step.
+
+
+- **Every callback in the framework is one property now, and RASK027 is retired.** BREAKING: the
+  remaining `OnXAsync` siblings are gone — `IFormControl<T>`'s `OnChange` and `AfterBind`, `Input`'s
+  `OnInput` and `OnFiles`, `Form`'s three submit callbacks, `UiOtp`'s completion, and the twelve kit
+  controls that implement the interface. Each is a single `Callback<T>` whose step takes either shape.
+
+  This finishes what the DOM events started. RASK027 existed to stop you setting both halves of a pair;
+  with no pairs left it has nothing to report, so it is retired (the ID is never reused, and its section
+  keeps its anchor — the help link is in shipped packages and IDE hover cards). Writing a step twice is
+  now an ordinary duplicated step, RASK044.
+
+  The form callbacks were subtler than the DOM ones: both halves genuinely *ran*, sync then async, which
+  the interface documented and RASK027 called an error at the same time. One slot removes the
+  contradiction. `UiOtp` was relying on it — chaining its own completion onto the async half while
+  passing the consumer's through the sync one — and now calls the consumer's handler itself.
+
+  `InvokeAfterBindAsync` and `InvokeOnChangeAsync` collapse from an await-both ladder to a single
+  `Invoke` that hands back null when nothing needs awaiting, so a synchronous handler keeps its
+  allocation-free path. `BuildAfterBind` takes the carrier instead of a sync/async pair.
+
+  One cost worth stating: a lambda cannot reach a carrier through an object initializer (CS1660), so
+  `new UiFilter<string> { OnChange = v => … }` needs `new Callback<string>(v => …)`. That only affects
+  code constructing components directly — RASK014 forbids `new` outside the framework, so the chain,
+  where the overloads live, is unaffected.
+
+
+- **Every DOM event is one property now, and `Button.OnClick` takes a sync *or* an async handler.**
+  BREAKING: the 58 `OnXAsync` siblings on `Element` and `HtmlMediaElement` are gone. Write the handler
+  you mean:
+
+  ```csharp
+  Button.OnClick(Refresh)                        // was OnClick
+  Button.OnClick(async () => await SaveAsync())  // was OnClickAsync
+  ```
+
+  The pair never bought anything. Both properties were already two views over **one** storage slot, with
+  a runtime tiebreak where the sync handler won and the async one was silently dropped, and an error
+  diagnostic (RASK027) whose whole job was to stop you reaching that state. One `Callback`-typed property
+  makes it unrepresentable instead of diagnosed: the slot loses its `IsAsync` flag, the four typed
+  readers and two asymmetric writers collapse to one of each, and "sync wins" has nothing left to
+  arbitrate — the last write wins, like any other step.
+
+  Nothing is paid for it at run time. `Callback` holds the delegate bare, so the dispatch switch is
+  unchanged arm for arm and a synchronous handler still runs without a `Task`, a closure or a state
+  machine. An `async` lambda binds the asynchronous overload — never async void — and `.OnClick(null)`
+  still clears the slot.
+
+  `UiButton.OnClick` and `DragDrop.OnDrop` collapse the same way. The form and kit callbacks that are
+  still pairs (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, the submit callbacks) are unchanged,
+  so RASK027 stays — narrowed to them, and documented as no longer applying to DOM events.
+
+### Fixed
+
+- **The missing-`Key` and missing-`Alt` checks never ran on a generic component or a form control.**
+  `RASK022` and `RASK023` read a chain from its outermost link down to the entry that opened it, and an
+  entry was recognised only as a property typed `Build<T>`. A generic component cannot hand that back —
+  its own type argument is unknown until a step pins it — so its entry is typed `RaskSeed_<Name>` and the
+  first step returns the chain. A form's chain is a third shape again, `FormBuild<T>`, which exists
+  because an indexer cannot be constrained.
+
+  So `items.Select(i => Row.Item(i))` — a keyless list of a generic component, exactly the shape
+  `RASK022` exists to catch — passed in silence, as did every keyless list of bound form controls. The
+  analyzer did not report anything wrong; it simply never ran, which is the failure mode an analyzer
+  cannot report on its own. This is the same miss as #704, one chain shape later.
+
+  The entry test now recognises the seed struct by the one name the generator spells it with, and
+  `ChainedComponent` matches `FormBuild<T>` alongside the two `Build<>` arities. Sweeping the solution
+  turned up no newly-reported call sites, so nothing was silently relying on the gap.
 
 - **Islands never mounted on a prerendered page, and the browser suite could not see it.** A page that
   arrives prerendered carries its `<rask-external>` hosts in the first response, so the islands runtime
@@ -3494,7 +3679,7 @@ them until tagged releases begin.
   the model:
 
   ```csharp
-  Form.Model(_model).OnValidSubmitAsync(SaveAsync)[submitting => [
+  Form.Model(_model).OnValidSubmit(SaveAsync)[submitting => [
       Input.Bind(() => _model.Username).Disabled(submitting),
       Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
   ]]
@@ -9595,7 +9780,7 @@ them until tagged releases begin.
   rather than trusting that green tests meant done.**
   - **RASK027's lightbulb deleted whatever enclosed the chain.** Making the analyzer fire on chains
     without touching its fix left the provider looking *upward* for an argument to remove, so
-    `Wrap(Content: Button.OnClick(…).OnClickAsync(…)["x"], Label: "hi")` became `Wrap(Label: "hi")` —
+    `Wrap(Content: Button.OnClick(…).OnClick(…)["x"], Label: "hi")` became `Wrap(Label: "hi")` —
     the component silently gone, and the result still compiling. The diagnostic is now anchored on the
     step's name rather than the whole chain, and the fix splices that one step out and never walks past
     the node it was given.
@@ -9633,7 +9818,7 @@ them until tagged releases begin.
     — the exact shape the guides teach — went unreported, so those lists reconcile by position and lose
     focus and input state on insert/remove/reorder.
   - **RASK027 (both the sync and async handler set) never fired on a chain.**
-    `Button.OnClick(…).OnClickAsync(…)` silently dropped the async handler, which is the whole reason the
+    `Button.OnClick(…).OnClick(…)` silently dropped the async handler, which is the whole reason the
     diagnostic is an **Error** on a factory call.
   - **RASK034 (a `BsDataGrid` column with no `Field`) never fired on a chain either.** The column
     chooser addresses a column by the token read off `Field`, so a column without one can never be

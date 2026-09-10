@@ -67,6 +67,35 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
         Assert.Null(AutoCallback.Wrap((Func<Task>?)null));
         Assert.Null(AutoCallback.Wrap((Action<int>?)null));
         Assert.Null(AutoCallback.Wrap((Func<int, Task>?)null));
+        Assert.Null(AutoCallback.Wrap((Action<int, int>?)null));
+        Assert.Null(AutoCallback.Wrap((Func<int, int, Task>?)null));
+    }
+
+    // A two-argument handler must reach a TYPED overload. The `Delegate` fallback would return an
+    // Action<object?>, which no arity-typed carrier's shape test matches — the handler would be stored,
+    // never recognised at dispatch, and silently never fire. Asserting the RETURN TYPE is what pins that
+    // the typed overload was chosen; a call that merely compiles would bind the fallback just as happily.
+    [Fact]
+    public void Wrap_TwoArgs_ResolvesToTheTypedOverload()
+    {
+        var seen = 0;
+        Action<int, int> sync = (a, b) => seen = a + b;
+        Func<int, int, Task> async = (a, b) =>
+        {
+            seen = a + b;
+            return Task.CompletedTask;
+        };
+
+        Action<int, int>? wrappedSync = AutoCallback.Wrap(sync);
+        Func<int, int, Task>? wrappedAsync = AutoCallback.Wrap(async);
+
+        // Neither closes over a Component, so both come back untouched — and that they come back as the
+        // same delegate TYPE is the point.
+        Assert.Same(sync, wrappedSync);
+        Assert.Same(async, wrappedAsync);
+
+        wrappedSync!(3, 4);
+        Assert.Equal(7, seen);
     }
 
     [Fact]

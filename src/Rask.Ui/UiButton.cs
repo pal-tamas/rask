@@ -11,9 +11,9 @@ namespace Rask.Ui;
 /// axes and compose, so an outlined error button needs no member of its own.
 /// </para>
 /// <para>
-/// Both <see cref="OnClick" /> and <see cref="OnClickAsync" /> exist because both call sites exist: an
-/// action that awaits, and a state flip that does not. Making every caller wrap a void in a completed
-/// task would be noise at the call site to save one property here.
+/// <see cref="OnClick" /> takes either shape — an action that awaits, or a state flip that does not —
+/// because both call sites exist and neither should have to wrap a void in a completed task. One
+/// property, two overloads on the step.
 /// </para>
 /// </remarks>
 public sealed partial class UiButton : Component
@@ -51,9 +51,7 @@ public sealed partial class UiButton : Component
     /// </summary>
     public bool? Active { get; set; }
 
-    public Action? OnClick { get; set; }
-
-    public Func<Task>? OnClickAsync { get; set; }
+    public Callback? OnClick { get; set; }
 
     public bool? Disabled { get; set; }
 
@@ -87,15 +85,11 @@ public sealed partial class UiButton : Component
             button = button.Aria(new Dictionary<string, string?> { ["label"] = Label });
         }
 
-        // Whichever the caller supplied. Both set would be a call-site bug, and the async one wins because
-        // it is the one that does work.
-        if (OnClickAsync is { } async)
+        // Forwarded as the carrier it arrived in, so the shape the caller wrote — sync or async — is the
+        // shape the DOM slot holds. There is no "both set" to arbitrate any more: one property, one slot.
+        if (OnClick is { } click)
         {
-            button = button.OnClickAsync(async);
-        }
-        else if (OnClick is { } sync)
-        {
-            button = button.OnClick(sync);
+            button = button.OnClick(click);
         }
 
         return button[

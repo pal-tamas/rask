@@ -97,7 +97,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 
         var page = RaskTest.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
-                .ValidateAsync(async (v, ct) =>
+                .Validate(async (v, ct) =>
                 {
                     await Task.Yield();
                     ct.ThrowIfCancellationRequested();
@@ -125,7 +125,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 
         var page = RaskTest.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
-                .ValidateAsync(async (v, ct) =>
+                .Validate(async (v, ct) =>
                 {
                     await Task.Yield();
                     ct.ThrowIfCancellationRequested();

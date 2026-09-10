@@ -85,14 +85,14 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     ///     Marks options unselectable. The keyboard cursor skips them rather than landing on one.
     /// </summary>
     /// <remarks>Non-native only — a native <c>&lt;select&gt;</c> disables its options itself.</remarks>
-    public Func<T, bool>? OptionDisabled { get; set; }
+    public Fn<T, bool>? OptionDisabled { get; set; }
 
     /// <summary>Buckets options under headers, in first-seen order.</summary>
     /// <remarks>
     ///     Grouping reorders the flat option list rather than nesting it, so the arrow keys still move
     ///     to the next option a reader can SEE.
     /// </remarks>
-    public Func<T, string>? OptionGroup { get; set; }
+    public Fn<T, string>? OptionGroup { get; set; }
 
     /// <summary>Draws each option in the list, in place of its words.</summary>
     /// <remarks>
@@ -130,25 +130,19 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     public T? Value { get; set; }
 
     /// <inheritdoc />
-    public Action<T>? OnChange { get; set; }
+    public Callback<T>? OnChange { get; set; }
 
-    /// <inheritdoc />
-    public Func<T, Task>? OnChangeAsync { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<T>>? Bind { get; set; }
 
     /// <inheritdoc />
-    public Validate<T>? Validate { get; set; }
+    public Validator<T>? Validate { get; set; }
+
 
     /// <inheritdoc />
-    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Callback<T>? AfterBind { get; set; }
 
-    /// <inheritdoc />
-    public Action<T>? AfterBind { get; set; }
-
-    /// <inheritdoc />
-    public Func<T, Task>? AfterBindAsync { get; set; }
 
     private string Prefix => "uisel-" + _instance.ToString(CultureInfo.InvariantCulture);
 
@@ -181,9 +175,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
             return Select
                 .Bind(bind)
                 .Validate(Validate)
-                .ValidateAsync(ValidateAsync)
                 .AfterBind(AfterBind)
-                .AfterBindAsync(AfterBindAsync)
                 .Aria(Aria(expanded: null))
                 .Disabled(Disabled == true)
                 .Class(BoxClass())[options];
@@ -192,7 +184,6 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
         return Select
             .Value(Value)
             .OnChange(OnChange)
-            .OnChangeAsync(OnChangeAsync)
             .Aria(Aria(expanded: null))
             .Disabled(Disabled == true)
             .Class(BoxClass())[options];
@@ -230,7 +221,9 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
         }
 
         var current = acc is not null ? acc.Getter() is T v ? v : default : Value;
-        var layout = UiSelectNav.Build(Options, OptionGroup is { } g ? o => g(o.Value) : null);
+        var layout = UiSelectNav.Build(
+            Options,
+            OptionGroup is { } g ? o => g.Invoke(o.Value) ?? string.Empty : null);
         var flat = layout.Flat;
         var disabled = Disabledness(flat);
         var cursor = UiSelectNav.Normalize(_cursor, flat.Count, disabled);
@@ -257,7 +250,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
             // its own toggle flipped `aria-expanded` back to false over a list that was plainly open.
             // All this does is have a cursor ready for the frame that opens.
             .OnClick(() => _cursor = UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled))
-            .OnKeyDownAsync(e => OnKeyAsync(e, acc, ctx, flat, disabled, current));
+            .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, disabled, current));
 
         // The popover is a PANEL around the list, and the extra element is load-bearing twice over.
         //
@@ -371,7 +364,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
 
         if (!off)
         {
-            option = option.OnClickAsync(() => CommitAsync(acc, ctx, value));
+            option = option.OnClick(() => CommitAsync(acc, ctx, value));
         }
 
         // menu-disabled goes on the <li>, unlike menu-active and menu-focus, which go on the child.
@@ -465,7 +458,7 @@ public sealed partial class UiSelect<T> : Component, IFormControl<T>
     }
 
     private Func<int, bool> Disabledness(IReadOnlyList<(T Value, string Text)> flat) =>
-        OptionDisabled is { } off ? i => off(flat[i].Value) : _ => false;
+        OptionDisabled is { } off ? i => off.Invoke(flat[i].Value) : _ => false;
 
     private int IndexOf(IReadOnlyList<(T Value, string Text)> flat, T? current)
     {

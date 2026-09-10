@@ -8,7 +8,7 @@ namespace Rask.Core.DragAndDrop;
 //
 //   DragStart(zone, index) -> Element.OnDragStart    (begins a drag from that item)
 //   DragOver(zone, index)  -> Element.OnDragOver      (optional: live drop-target highlight)
-//   Drop(zone, index)      -> Element.OnDropAsync     (commits the move, fires OnDrop callback)
+//   Drop(zone, index)      -> Element.OnDrop     (commits the move, fires OnDrop callback)
 //   DragEnd                -> Element.OnDragEnd        (clears the drag if it ended without a drop)
 //
 // The delegates close over the DragDrop instance (stable across renders — it's cached by
@@ -48,7 +48,7 @@ public sealed class DragDropContext
 
     public Action DragOver(string zone, int index) => () => _owner.HoverTarget(zone, index);
 
-    // Always async: wire to Element.OnDropAsync. CommitDropAsync routes to whichever drop handler
+    // Always async: wire to Element.OnDrop. CommitDropAsync routes to whichever drop handler
     // (sync OnDrop or async OnDropAsync) the DragDrop primitive holds, so a sync consumer still
     // works — the context can't know the consumer's choice at the call site, so it always returns
     // a Func<Task> and the (rare) sync commit completes synchronously inside it.

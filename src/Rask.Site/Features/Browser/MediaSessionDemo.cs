@@ -57,16 +57,16 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Button.Class(Tw.BtnPrimary).Id("ms-publish").OnClickAsync(Publish)["Publish metadata"],
+                    Button.Class(Tw.BtnPrimary).Id("ms-publish").OnClick(Publish)["Publish metadata"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("ms-playing")
-                        .OnClickAsync(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
+                        .OnClick(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
                     Button
                         .Class(Tw.BtnOutlinePrimary)
                         .Id("ms-paused")
-                        .OnClickAsync(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
-                    Button.Class(Tw.BtnOutlineDanger).Id("ms-clear").OnClickAsync(Clear)["Clear"]
+                        .OnClick(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
+                    Button.Class(Tw.BtnOutlineDanger).Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "

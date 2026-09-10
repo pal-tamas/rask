@@ -420,6 +420,8 @@ Rask.Wasm.WasmPrerender
 RaskBuilderSettersRask_Wasm
 const Rask.Wasm.WasmPrerender.OutputVariable = "RASK_PRERENDER_OUT" -> string!
 const Rask.Wasm.WasmPrerender.PathBaseVariable = "RASK_PRERENDER_PATH_BASE" -> string!
+const Rask.Wasm.WasmPrerender.SiteUrlVariable = "RASK_PRERENDER_SITE_URL" -> string!
+const Rask.Wasm.WasmPrerender.TrailingSlashVariable = "RASK_PRERENDER_TRAILING_SLASH" -> string!
 override Rask.Wasm.Browser.BackgroundSyncEvent.Equals(object? obj) -> bool
 override Rask.Wasm.Browser.BackgroundSyncEvent.GetHashCode() -> int
 override Rask.Wasm.Browser.BackgroundSyncEvent.ToString() -> string!
@@ -524,5 +526,3 @@ static Rask.Wasm.RaskWasmBatteryRegistry.Use(System.Action<Rask.Wasm.WasmHostBui
 static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
 static Rask.Wasm.WasmHostBuilder.CreateDefault() -> Rask.Wasm.WasmHostBuilder!
 static Rask.Wasm.WasmHostBuilder.CreateDefault(System.Action<Rask.Core.Live.RaskLiveOptions!>? configureLive) -> Rask.Wasm.WasmHostBuilder!
-const Rask.Wasm.WasmPrerender.SiteUrlVariable = "RASK_PRERENDER_SITE_URL" -> string!
-const Rask.Wasm.WasmPrerender.TrailingSlashVariable = "RASK_PRERENDER_TRAILING_SLASH" -> string!

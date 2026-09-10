@@ -154,7 +154,7 @@ public partial class ButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnClickAsyncInsideLiveContext_EmitsDataRaskOnClick()
     {
-        var view = new StubComponent(() => Button.OnClickAsync(async () => { await Task.Yield(); })["x"]);
+        var view = new StubComponent(() => Button.OnClick(async () => { await Task.Yield(); })["x"]);
         Assert.Equal(
             "<button data-rask-on-click=\"h0\">x</button>",
             view.RenderAsLiveRoot());

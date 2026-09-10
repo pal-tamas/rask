@@ -112,14 +112,14 @@ internal sealed partial class DashboardParked : Component
 {
     public bool Parked { get; set; }
 
-    public Func<Task>? Resume { get; set; }
+    public Callback? Resume { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
         Parked
             ? Div.Class("mt-4 flex flex-wrap items-center gap-3 text-xs text-ui-muted")[
                 Span["Live updates paused to keep the database free."],
-                Button.Type("button").Class(UiStyles.Button).OnClickAsync(ResumeAsync)["Resume"]
+                Button.Type("button").Class(UiStyles.Button).OnClick(ResumeAsync)["Resume"]
             ]
             : null;
 

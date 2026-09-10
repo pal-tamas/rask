@@ -16,7 +16,7 @@ public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Com
             Div.Class(Tw.CardBody)[
                 Button.Class($"{Tw.BtnOutlinePrimary} mb-2").Type("button")
                     .Id("vis-read")
-                    .OnClickAsync(Read)[
+                    .OnClick(Read)[
                     "Read visibility"],
                 Div.Class("text-sm text-ui-muted")["State: ", Code.Id("vis-value")[_state ?? "(not read)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vis-status")[_status ?? "(idle)"]]

@@ -40,7 +40,7 @@ public sealed class ErrorBoundary : Component
     ///         exception text can name internal paths and query shapes, so log it rather than render it.
     ///     </para>
     /// </summary>
-    public Func<Exception, Action, Component>? Fallback { get; set; }
+    public Fn<Exception, Action, Component>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }
 
@@ -63,7 +63,7 @@ public sealed class ErrorBoundary : Component
         Func<Exception, Action, Component>? fallback)
     {
         Children = children;
-        Fallback = fallback;
+        Fallback = fallback is null ? null : new Fn<Exception, Action, Component>(fallback);
     }
 
     internal void Trip(Exception ex, ErrorSource source = ErrorSource.Render)
@@ -126,7 +126,7 @@ public sealed class ErrorBoundary : Component
             // Pass Recover as a captured Action so the fallback subtree can register it as
             // an event handler (e.g. `Button(OnClick: recover)`) without the user needing
             // to capture the boundary instance themselves.
-            return new Fragment(fallback(Error, Recover));
+            return new Fragment(fallback.Invoke(Error, Recover)!);
         }
 
         return new DefaultErrorPage(Error);

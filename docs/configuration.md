@@ -144,7 +144,7 @@ overlay handles the user-facing side automatically — nothing to configure:
 > event handlers start, so the timeout (or socket close) can unwind them. Inside a handler that token
 > reflects the dispatch; in a lifecycle hook it's just the component's lifetime token.
 > ```csharp
-> Button.OnClickAsync(async () =>
+> Button.OnClick(async () =>
 >     _data = await http.GetFromJsonAsync<T>(url, CancellationToken))["Load"]
 > ```
 

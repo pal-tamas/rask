@@ -122,8 +122,8 @@ internal sealed partial class AllocEventEntryProbe : Component
 // Nothing may be added on top of that one closure.
 internal sealed partial class AllocCallbackLeaf : Component
 {
-    public Action? OnPick { get; set; }
-    public Action<string>? OnName { get; set; }
+    public Callback? OnPick { get; set; }
+    public Callback<string>? OnName { get; set; }
 
     protected override Component? Render() => Div;
 }
@@ -145,9 +145,9 @@ internal sealed partial class AllocCallbackEntryProbe : Component
 // here as a per-render delta.
 internal sealed partial class AllocFragmentLeaf : Component
 {
-    public Func<int, Component>? Renderer { get; set; }
+    public Fn<int, Component>? Renderer { get; set; }
 
-    protected override Component? Render() => Renderer is { } render ? render(1) : null;
+    protected override Component? Render() => Renderer is { } render ? render.Invoke(1) : null;
 }
 
 internal sealed partial class AllocFragmentEntryProbe : Component
@@ -164,13 +164,16 @@ internal sealed partial class AllocFragmentEntryProbe : Component
 // probe above, and this one is measuring the call, not the wrap.
 internal sealed partial class AllocInvokeLeaf : Component
 {
-    public Action? OnPing { get; set; }
-    public Action<string>? OnNamed { get; set; }
+    public Callback? OnPing { get; set; }
+    public Callback<string>? OnNamed { get; set; }
 
     protected override Component? Render()
     {
-        OnPing?.Invoke();
-        OnNamed?.Invoke("x");
+        // Invoke hands back null when the handler was synchronous, which these are, so nothing is
+        // being dropped here — the discard IS the fast path. A component that admits async handlers
+        // awaits instead: `if (OnPing?.Invoke() is { } t) await t;`.
+        _ = OnPing?.Invoke();
+        _ = OnNamed?.Invoke("x");
         return Div;
     }
 }

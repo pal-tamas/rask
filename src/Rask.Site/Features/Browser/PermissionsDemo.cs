@@ -18,11 +18,11 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("perm-geo")
-                        .OnClickAsync(QueryGeo)[
+                        .OnClick(QueryGeo)[
                         "Query geolocation"],
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("perm-clip")
-                        .OnClickAsync(QueryClipboard)[
+                        .OnClick(QueryClipboard)[
                         "Query clipboard-read"]
                 ],
                 Div.Class("text-sm text-ui-muted")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],

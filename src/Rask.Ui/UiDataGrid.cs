@@ -987,7 +987,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
                         .Type("button")
                         .Class("inline-flex items-center gap-1 font-medium hover:underline")
                         .Disabled(Busy)
-                        .OnClickAsync(() => ToggleSortAsync(column))[
+                        .OnClick(() => ToggleSortAsync(column))[
                         column.Title ?? "",
                         UiIcon
                             .Name(!sorted ? UiIconName.ArrowsUpDown
@@ -1011,7 +1011,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             .Size(UiSize.Xs)
             .Variant(on ? UiVariant.Soft : UiVariant.Ghost)
             .Disabled(Busy)
-            .OnClickAsync(() => on ? UngroupAsync(token) : GroupByAsync(token));
+            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token));
     }
 
     private Component SelectAllBox(IReadOnlyList<T> pageRows)
@@ -1025,7 +1025,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
         return Input
             .Of<bool>()
             .Checked(keys.AllSelected(pageRows))
-            .OnChangeAsync(on => keys.SetPageAsync(pageRows, on))
+            .OnChange(on => keys.SetPageAsync(pageRows, on))
             .Class("checkbox checkbox-sm")
             .Aria("label", "Select all rows on this page")
             .Disabled(Busy);
@@ -1110,7 +1110,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
         // of it — see UiColumn.RowClickable for why a custom cell does so by default.
         if (column.IsRowClickable && RowClickHandler(row) is { } click)
         {
-            cell = cell.OnClickAsync(click).Class(UiClass.Compose(CellClass(column), "cursor-pointer"));
+            cell = cell.OnClick(click).Class(UiClass.Compose(CellClass(column), "cursor-pointer"));
         }
 
         return cell[column.Body(row)];
@@ -1127,7 +1127,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
         return Input
             .Of<bool>()
             .Checked(keys.IsSelected(row))
-            .OnChangeAsync(on => keys.ToggleAsync(row, on))
+            .OnChange(on => keys.ToggleAsync(row, on))
             .Class("checkbox checkbox-sm")
             .Aria("label", "Select row")
             .Disabled(Busy);
@@ -1300,7 +1300,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
                 chooser ? ChooserBar(columns, ctx) : null,
                 panel ? Panel(columns, groups, ctx) : null
             ])
-            .OnDropAsync(move => DropAsync(move, columns));
+            .OnDrop(move => DropAsync(move, columns));
     }
 
     // One drop, routed by the zone it landed in. The index is the position within that zone's own list,
@@ -1370,7 +1370,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
                 .Draggable(column.CanReorder && ReorderEnabled)
                 .OnDragStart(ctx.DragStart(ColumnZone, index))
                 .OnDragOver(ctx.DragOver(ColumnZone, index))
-                .OnDropAsync(ctx.Drop(ColumnZone, index))
+                .OnDrop(ctx.Drop(ColumnZone, index))
                 .OnDragEnd(ctx.DragEnd)[
                 column.CanReorder && ReorderEnabled
                     ? UiIcon.Name(UiIconName.Grip).Class("size-3 shrink-0 opacity-40")
@@ -1382,7 +1382,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
                     Input
                         .Of<bool>()
                         .Checked(!hidden)
-                        .OnChangeAsync(_ => ToggleHiddenAsync(token))
+                        .OnChange(_ => ToggleHiddenAsync(token))
                         .Class("checkbox checkbox-xs")
                         .Disabled(!column.CanHide),
                     column.Title ?? token
@@ -1429,7 +1429,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
                 .Draggable(true)
                 .OnDragStart(ctx.DragStart(GroupZone, index))
                 .OnDragOver(ctx.DragOver(GroupZone, index))
-                .OnDropAsync(ctx.Drop(GroupZone, index))
+                .OnDrop(ctx.Drop(GroupZone, index))
                 .OnDragEnd(ctx.DragEnd)[
                 UiIcon.Name(UiIconName.Grip).Class("size-3 shrink-0 opacity-40"),
                 Span[column.Title ?? token],
@@ -1451,7 +1451,7 @@ public sealed partial class UiDataGrid<T> : Component, IColumnHost
             .Size(UiSize.Xs)
             .Variant(UiVariant.Ghost)
             .Disabled(!enabled)
-            .OnClickAsync(click);
+            .OnClick(click);
 
     private static UiColumn<T>? Find(IReadOnlyList<UiColumn<T>> columns, string token)
     {

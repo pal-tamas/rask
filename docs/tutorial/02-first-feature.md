@@ -183,7 +183,7 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
         Div[
             H1["New Product"],
             _error is null ? null : Div.Role("alert")[_error],
-            Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+            Form.Model(_form).OnValidSubmit(SubmitAsync)[
                 Div[Label.For("name")["Name"], Input.Bind(() => _form.Name).Id("name")],
                 Div[Label.For("price")["Price"], Input.Bind(() => _form.Price).Id("price")],
                 Div[Label.For("instock")["InStock"], Input.Bind(() => _form.InStock).Id("instock")],
@@ -306,7 +306,7 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
             Div[
                 H1["Edit Product"],
                 _error is null ? null : Div.Role("alert")[_error],
-                Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+                Form.Model(_form).OnValidSubmit(SubmitAsync)[
                     Div[
                         Label.For("name")["Name"],
                         Input.Bind(() => _form.Name).Id("name")
@@ -376,7 +376,7 @@ public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
     }
 
     protected override Component? Render() =>
-        Button.Type("button").OnClickAsync(DeleteAsync)["Delete"];
+        Button.Type("button").OnClick(DeleteAsync)["Delete"];
 }
 ```
 

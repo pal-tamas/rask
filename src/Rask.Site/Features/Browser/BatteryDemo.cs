@@ -53,7 +53,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
         Div.Class($"{Tw.Card} shadow-sm border-0")[
             Div.Class(Tw.CardBody)[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Button.Type("button").Class(Tw.BtnPrimary).Id("battery-read").OnClickAsync(Read)[
+                    Button.Type("button").Class(Tw.BtnPrimary).Id("battery-read").OnClick(Read)[
                         "Read now"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[

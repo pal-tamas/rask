@@ -35,7 +35,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Title)
             ],
             Div.Class("flex gap-2 flex-wrap items-center")[
-                Button.Type("button").Class(Tw.BtnOutlineSecondary).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
+                Button.Type("button").Class(Tw.BtnOutlineSecondary).Id("v6-validate-now").OnClick(ValidateNowAsync)[
                     UiIcon.Name(UiIconName.Search).Class("me-1"), "Validate now"
                 ],
                 Button.Class(Tw.BtnPrimary).Type("submit").Id("v6-submit").Disabled(_ctx.IsValidatingAny)[UiIcon.Name(UiIconName.CheckCircle).Class("me-1"), "Save"]

@@ -400,8 +400,7 @@ public class BuilderSetterEmissionTests
                              public Action<int>? OnChange { get; set; }
                              public Func<int, Task>? OnChangeAsync { get; set; }
                              public Expression<Func<int>>? Bind { get; set; }
-                             public Validate<int>? Validate { get; set; }
-                             public ValidateAsync<int>? ValidateAsync { get; set; }
+                             public Validator<int>? Validate { get; set; }
                              public Action<int>? AfterBind { get; set; }
                              public Func<int, Task>? AfterBindAsync { get; set; }
                          }
@@ -409,13 +408,29 @@ public class BuilderSetterEmissionTests
 
         // …and the receiver is the BOUND chain: these are bound-mode members, so they exist only on a
         // chain that opened with Bind (see BuilderFormControlModeTests).
+        //
+        // The slot is ONE `Validator<int>`, so the step is one name with three overloads: the carrier
+        // itself, and one per shape a rule can take. Both shapes are asserted, because a step that
+        // emitted only the synchronous one would compile, pass every other test, and simply have no way
+        // to say `.Validate(async (v, ct) => …)`.
         Assert.Contains(
             "Validate(this global::Rask.Core.Build<global::Demo.Widget, global::Rask.Core.Forms.Bound> __b, "
-            + "global::Rask.Core.Forms.Validate<int>? value) "
+            + "global::Rask.Core.Validator<int>? value) "
             + "{ var __c = __b.Value; __c.Validate = value; "
             + "return __b; }",
             output,
             StringComparison.Ordinal);
+        foreach (var shape in new[] { "global::Rask.Core.Forms.Validate<int>", "global::Rask.Core.Forms.ValidateAsync<int>" })
+        {
+            Assert.Contains(
+                "Validate(this global::Rask.Core.Build<global::Demo.Widget, global::Rask.Core.Forms.Bound> __b, "
+                + shape + "? value) "
+                + "{ var __c = __b.Value; global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); "
+                + "__c.Validate = value is null ? null : new global::Rask.Core.Validator<int>(value); "
+                + "return __b; }",
+                output,
+                StringComparison.Ordinal);
+        }
         Assert.Contains(
             "__c.AfterBind = value;",
             output,

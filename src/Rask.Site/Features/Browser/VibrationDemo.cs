@@ -13,14 +13,14 @@ public sealed partial class VibrationDemo(IVibration vibration) : Component
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("vibrate-buzz")
-                        .OnClickAsync(Buzz)["Buzz"],
+                        .OnClick(Buzz)["Buzz"],
                     Button.Type("button").Class(Tw.BtnOutlinePrimary)
                         .Id("vibrate-pattern")
-                        .OnClickAsync(Pattern)[
+                        .OnClick(Pattern)[
                         "Pattern"],
                     Button.Type("button").Class(Tw.BtnOutlineDanger)
                         .Id("vibrate-cancel")
-                        .OnClickAsync(Cancel)["Cancel"]
+                        .OnClick(Cancel)["Cancel"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
             ]

@@ -110,6 +110,6 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
         public Func<Task>? OnActAsync { get; set; }
 
         protected override Component? Render() =>
-            Button.OnClickAsync(() => AutoCallback.Wrap(OnActAsync)!())["go"];
+            Button.OnClick(() => AutoCallback.Wrap(OnActAsync)!())["go"];
     }
 }
