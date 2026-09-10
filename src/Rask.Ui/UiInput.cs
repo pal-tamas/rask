@@ -8,14 +8,16 @@ namespace Rask.Ui;
 /// </summary>
 /// <remarks>
 /// <para>
-/// daisyUI's <c>input</c>. <see cref="Tone" /> colours the border, which is how a field says it is in
-/// error without a second element; <see cref="UiValidator" /> is the version that says why.
+/// daisyUI's <c>input</c>, with the label, the hint and the validation message coming from
+/// <see cref="UiFormField{T}" /> — so a field is one component rather than three siblings a call site has
+/// to keep associated. <c>UiFormField&lt;T&gt;.Tone</c> colours the border, which is how a field says it
+/// is in error without a second element, and the message under it says why.
 /// </para>
 /// <para>
 /// A form control: <c>.Bind(() =&gt; model.Email)</c> two-way binds and drives the surrounding
-/// <c>Form</c>'s validation, or <see cref="Value" /> with <see cref="OnChange" /> lets the parent own
-/// it. The opening step fixes both the type argument and the mode, so a call site reads
-/// <c>UiInput.Bind(…).Label(…)</c> or <c>UiInput.Value(…).Label(…)</c>.
+/// <c>Form</c>'s validation, or <c>Value</c> with <c>OnChange</c> lets the parent own it. The opening step
+/// fixes both the type argument and the mode, so a call site reads <c>UiInput.Bind(…).Label(…)</c> or
+/// <c>UiInput.Value(…).Label(…)</c>.
 /// </para>
 /// <para>
 /// <typeparamref name="T" /> is whatever the field holds — a <c>string</c>, an <c>int</c>, a
@@ -23,49 +25,15 @@ namespace Rask.Ui;
 /// to <c>Rask.Core</c>'s <c>Input&lt;T&gt;</c>, which is itself an <c>IFormControl&lt;T&gt;</c>.
 /// </para>
 /// </remarks>
-public sealed partial class UiInput<T> : Component, IFormControl<T>
+public sealed partial class UiInput<T> : UiFormField<T>
 {
-    /// <summary>
-    ///     daisyUI and MaryUI both call this <c>label</c>. Free to use here because this component renders no
-    ///     &lt;label&gt; element of its own — where one does, the property is AccessibleLabel instead.
-    /// </summary>
-    /// <remarks>Rendered as <c>aria-label</c>: a placeholder is not a name, it vanishes when typing starts.</remarks>
-    public required string Label { get; set; }
-
     public string? Placeholder { get; set; }
 
     public InputType? Type { get; set; }
 
-    public UiTone? Tone { get; set; }
-
-    public UiSize? Size { get; set; }
-
-    public UiVariant? Variant { get; set; }
-
-    public bool? Disabled { get; set; }
-
-    public string? Class { get; set; }
-
     /// <inheritdoc />
-    public T? Value { get; set; }
-
     /// <inheritdoc />
-    public Callback<T>? OnChange { get; set; }
-
-
-    /// <inheritdoc />
-    public Expression<Func<T>>? Bind { get; set; }
-
-    /// <inheritdoc />
-    public Validator<T>? Validate { get; set; }
-
-
-    /// <inheritdoc />
-    public Callback<T>? AfterBind { get; set; }
-
-
-    /// <inheritdoc />
-    protected override Component? Render()
+    protected override Component Control()
     {
         // Bound and controlled are different chain TYPES, not two settings on one — Bind and Value are
         // mutually exclusive openings — so each is built as its own complete expression.
@@ -77,7 +45,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>
                 .AfterBind(AfterBind)
                 .Type(Type)
                 .Placeholder(Placeholder ?? string.Empty)
-                .Aria(Aria())
+                .Aria(ControlAria())
                 .Disabled(Disabled == true)
                 .Class(BoxClass());
         }
@@ -87,19 +55,10 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>
             .OnChange(OnChange)
             .Type(Type)
             .Placeholder(Placeholder ?? string.Empty)
-            .Aria(Aria())
+            .Aria(ControlAria())
             .Disabled(Disabled == true)
             .Class(BoxClass());
     }
-
-    // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen reader
-    // needs: a field that is visibly red and says nothing is half a message. It is OMITTED rather than
-    // nulled — a null renders the attribute valueless, and a valueless aria-invalid reads as "true",
-    // which would mark every field in the kit invalid.
-    private Dictionary<string, string?> Aria() =>
-        Tone == UiTone.Error
-            ? new Dictionary<string, string?> { ["label"] = Label, ["invalid"] = "true" }
-            : new Dictionary<string, string?> { ["label"] = Label };
 
     private string BoxClass() =>
         UiClass.Compose(
