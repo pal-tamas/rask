@@ -102,4 +102,12 @@
                                 Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts"/>
   </ItemGroup>
 
+  <!-- The repo-walking helper, source-linked rather than referenced: it prunes build output, vendored
+       dependencies and the scaffolder's template payload, so a convention test here never reports
+       another project's code (or fifteen Company.RaskServer.csproj files) as though it were ours. -->
+  <ItemGroup>
+    <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <Using Include="Rask.TestFiles"/>
+  </ItemGroup>
+
 </Project>

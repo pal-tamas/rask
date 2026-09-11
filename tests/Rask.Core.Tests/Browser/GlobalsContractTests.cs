@@ -43,8 +43,7 @@ public class GlobalsContractTests
         var data = new TheoryData<string, string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var file in Directory.EnumerateFiles(
-                     Path.Combine(_repoRoot, "src"), "*.cs", SearchOption.AllDirectories))
+        foreach (var file in RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src")).Where(f => f.EndsWith(".cs", StringComparison.Ordinal)))
         {
             if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                 || file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
