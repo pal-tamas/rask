@@ -30,6 +30,7 @@ internal static class BulkInsertWriter
     {
         var plan = BulkInsertPlan.For<TEntity>(context);
         var now = ResolveTimeProvider(context).GetUtcNow().UtcDateTime;
+        var synchronous = ExecutesSynchronously(context.Database.ProviderName);
 
         var connection = context.Database.GetDbConnection();
         var opened = false;
@@ -44,7 +45,7 @@ internal static class BulkInsertWriter
             var written = 0;
             foreach (var batch in entities.Chunk(options.BatchSize))
             {
-                written += await WriteBatchAsync(context, connection, plan, batch, now, cancellationToken)
+                written += await WriteBatchAsync(context, connection, plan, batch, now, synchronous, cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -65,6 +66,7 @@ internal static class BulkInsertWriter
         BulkInsertPlan plan,
         TEntity[] batch,
         DateTime now,
+        bool synchronous,
         CancellationToken cancellationToken)
         where TEntity : class
     {
@@ -95,7 +97,14 @@ internal static class BulkInsertWriter
                 parameters[c] = parameter;
             }
 
-            command.Prepare();
+            if (synchronous)
+            {
+                command.Prepare();
+            }
+            else
+            {
+                await command.PrepareAsync(cancellationToken).ConfigureAwait(false);
+            }
 
             var written = 0;
             foreach (var entity in batch)
@@ -110,9 +119,9 @@ internal static class BulkInsertWriter
                     parameters[c].Value = plan.Columns[c].ValueFor(entity) ?? DBNull.Value;
                 }
 
-                // SQLite is a local file with no true async I/O — ExecuteNonQueryAsync runs the same
-                // synchronous work on the calling thread — so the sync call is the honest one per row.
-                written += command.ExecuteNonQuery();
+                written += synchronous
+                    ? command.ExecuteNonQuery()
+                    : await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             if (owned is not null)
@@ -130,6 +139,17 @@ internal static class BulkInsertWriter
             }
         }
     }
+
+    /// <summary>Whether each row runs through the synchronous <c>ExecuteNonQuery</c>.</summary>
+    /// <remarks>
+    /// SQLite is a local file with no true async I/O — <c>ExecuteNonQueryAsync</c> runs the same synchronous
+    /// work on the calling thread — so the sync call is the honest one per row, and the cheaper. A
+    /// client-server provider does a network round trip per row, where blocking would park a thread for every
+    /// one of them.
+    /// </remarks>
+    /// <param name="providerName">The context's <c>Database.ProviderName</c>.</param>
+    internal static bool ExecutesSynchronously(string? providerName) =>
+        string.Equals(providerName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal);
 
     // AuditingInterceptor takes its TimeProvider from DI; the writer must read the same clock or a test that
     // freezes time would see two different "now"s depending on which path ran.

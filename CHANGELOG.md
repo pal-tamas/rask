@@ -241,6 +241,28 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A `HasNonOverlappingRange` rule the provider would ignore now fails the boot.** The rule is model
+  metadata that a provider has to turn into DDL, and only `UseRaskSqlite` did. On a plain `UseSqlite` — or
+  any other provider — an app built, migrated and passed every test that didn't collide two ranges on
+  purpose, then accepted the double booking the rule existed to stop. `AddRaskData<TContext>` now registers
+  a startup check that reads the model and the context's migrations generator, needs no connection, and
+  names the entity, the provider and the call that enforces it.
+
+- **`BulkInsertAsync(o => o.SkipChangeTracking = true)` spells SQL the provider's way.** The writer
+  hard-coded `"…"` identifiers and `@p0` parameters, which is right on SQLite, PostgreSQL and SQL Server and
+  a string literal to MySQL. Table, column and parameter names now come from EF Core's
+  `ISqlGenerationHelper`. Rows still execute synchronously on SQLite, where the async call does the same
+  work on the same thread; a client-server provider now awaits each round trip instead of blocking a thread
+  for it.
+
+- **A failed first-admin claim is no longer mistaken for losing the race.** The claim relies on a
+  constant primary key, so a `DbUpdateException` meant "somebody else claimed it" — but a dropped connection
+  or a deadlock victim raises the same exception, and on a client-server database those are routine. The
+  first registrant then became an ordinary user of an instance nobody administered. The store now reads the
+  claim back: another account's row means the race was lost; its own row means the write committed and only
+  the acknowledgement failed (a dropped connection, or a retrying strategy re-running the insert), so it won;
+  no row rethrows.
+
 - **Mounting a second application no longer takes the operator console off the host.**
   `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
   `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
