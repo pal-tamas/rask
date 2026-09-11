@@ -13,7 +13,7 @@ namespace Rask.Dashboard;
 /// </para>
 /// <para>
 /// It renders the router and nothing else. Everything visible — the navbar, the panels, the
-/// <c>noindex</c> and the stylesheet links — comes from <c>DashboardLayout</c>, which is where it belongs:
+/// <c>noindex</c> and the stylesheet — comes from <c>DashboardLayout</c>, which is where it belongs:
 /// this type must not become a second place the dashboard's chrome is decided.
 /// </para>
 /// <example>
@@ -29,7 +29,7 @@ public sealed partial class RaskDashboardShell : Component
 {
     /// <summary>
     /// Only what the dashboard's own layout cannot contribute. <c>DashboardLayout</c> supplies the title,
-    /// the <c>noindex</c> and the stylesheets; these two are document-level and belong to whatever is
+    /// the <c>noindex</c> and the stylesheet; these two are document-level and belong to whatever is
     /// serving the document, which here is this shell.
     /// </summary>
     protected override Component? HeadAssets =>
@@ -47,18 +47,16 @@ public sealed partial class RaskDashboardShell : Component
     /// the body. Two separate things ride on it.
     /// </para>
     /// <para>
-    /// <b>The scope has to reach <c>:root</c>.</b> The console's stylesheet expresses every
-    /// <c>--color-ui-*</c> token as an alias for one of daisyUI's semantic variables, and Tailwind emits
-    /// that <c>@theme</c> block at <c>:root</c>. A custom property's <c>var()</c> is substituted where the
-    /// declaration applies, so <c>--color-base-100</c> has to be defined at <c>:root</c> as well or every
-    /// alias computes to nothing and inherits nothing — a fully laid-out console with no colour in it.
-    /// <c>UiShell</c> carrying the scope on a div inside the body is not enough for that.
+    /// <b>The scope has to reach the document.</b> daisyUI defines <c>--color-base-*</c> only inside
+    /// <c>[data-rask-ui]</c>, and the kit's console reset paints <c>&lt;body&gt;</c> from
+    /// <c>--color-base-200</c> — the page ground an operator sees past the frame on a wide screen and while
+    /// scrolling past its end. A custom property is inherited downward, never up, so <c>UiShell</c> carrying
+    /// the scope on a div inside the body cannot give the body that colour.
     /// </para>
     /// <para>
     /// <b>And the theme has to be named.</b> daisyUI follows <c>prefers-color-scheme</c> through
     /// <c>[data-rask-ui]:not([data-theme])</c>, so a scope with no theme repaints the console dark on an
-    /// operator's dark-mode laptop while the contrast ratios its stylesheet is built on are all measured
-    /// against a white ground. An operator surface is not the host's, nor the OS's, to re-theme.
+    /// operator's dark-mode laptop. An operator surface is not the host's, nor the OS's, to re-theme.
     /// </para>
     /// </remarks>
     protected override Component Shell(Component head, Component body) =>
@@ -67,7 +65,7 @@ public sealed partial class RaskDashboardShell : Component
                 (UiStylesheet.ThemeScopeAttribute, ""),
                 ("data-theme", UiTheme.Value(DashboardTheme.Name)))[
             head,
-            Body.Class(BodyClass)[body]
+            Body[body]
         ];
 
     /// <inheritdoc />

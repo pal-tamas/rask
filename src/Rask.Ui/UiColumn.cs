@@ -199,8 +199,32 @@ public sealed partial class UiColumn<T> : Component
     /// </remarks>
     public bool? RowClickable { get; set; }
 
+    /// <summary>The narrowest width the table shows this column at. Unset is every width.</summary>
+    /// <remarks>
+    ///     For a secondary fact on a table with more columns than a tablet has room for. It hides the header,
+    ///     the cells and the footer cell in TABLE mode only: below <c>sm</c> the stacked layout lists every
+    ///     column as its own labelled line and has the room for all of them. <see cref="UiBreakpoint.Sm" /> is
+    ///     therefore no change at all — the table itself starts there.
+    /// </remarks>
+    public UiBreakpoint? ShowFrom { get; set; }
+
+    /// <summary>Sets the cells in a monospace face — for ids, keys, hashes and paths.</summary>
+    /// <remarks>The header stays in the body face: a column's title is a word, not a value.</remarks>
+    public bool? Mono { get; set; }
+
     /// <summary>Extra classes for the header cell, the body cells and the footer cell alike.</summary>
     public string? Class { get; set; }
+
+    internal string? HeaderClasses =>
+        UiClass.Compose(ShowFrom is { } from ? UiClassNames.ColumnShowFrom(from) : "", Class);
+
+    // The stacked layout's label is the cell's ::before, which inherits the cell's face — so a mono cell puts
+    // the label back in the body face below sm rather than setting "Key" in the same type as the key.
+    internal string? CellClasses =>
+        UiClass.Compose(
+            ShowFrom is { } from ? UiClassNames.ColumnShowFrom(from) : "",
+            Mono is true ? "font-mono text-xs max-sm:before:font-sans" : "",
+            Class);
 
     internal bool HasFooter => Footer is not null || FooterCell is not null;
 
