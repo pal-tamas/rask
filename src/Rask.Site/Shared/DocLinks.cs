@@ -21,9 +21,17 @@ namespace Rask.Site;
 ///         repository's own README, and a link to anything that was not Markdown was left relative and 404ed
 ///         on the site.
 ///     </para>
+///     <para>
+///         Resolved by <see cref="Uri" />, not by hand: a relative reference is resolved exactly as a browser
+///         and GitHub resolve it — <c>..</c> clamped at the root, a trailing slash kept, the path left escaped —
+///         so the rule a reader follows on GitHub is the rule applied here, not a second copy of it.
+///     </para>
 /// </remarks>
 public static class DocLinks
 {
+    // A scheme of our own for the repository root. Only its path is ever read.
+    private const string Root = "repo:///";
+
     /// <summary>What a relative doc link resolves to.</summary>
     /// <param name="GuideSlug">The guide it lands on, or <c>null</c> when it lands on another repository file.</param>
     /// <param name="RepositoryPath">The target's path from the repository root, e.g. <c>docs/cqrs.md</c>.</param>
@@ -41,40 +49,23 @@ public static class DocLinks
     /// <param name="link">A relative link without its fragment: <c>../cli.md</c>, <c>../tests/Rask.Cqrs.Tests</c>.</param>
     public static Target Resolve(string? sourcePath, string link)
     {
-        var segments = new List<string> { "docs" };
-        var folder = sourcePath is null ? null : Path.GetDirectoryName(sourcePath)?.Replace('\\', '/');
-        if (!string.IsNullOrEmpty(folder))
+        var folder = sourcePath is null
+            ? string.Empty
+            : Path.GetDirectoryName(sourcePath)?.Replace('\\', '/') ?? string.Empty;
+        var from = new Uri(Root + "docs/" + (folder.Length == 0 ? string.Empty : folder + "/"));
+
+        // TryCreate rather than the constructor: a link malformed enough to throw would otherwise fault the
+        // render of the whole guide it sits in. It stays a repository file, unresolved, which is what it was.
+        if (!Uri.TryCreate(from, link, out var resolved))
         {
-            segments.AddRange(folder.Split('/', StringSplitOptions.RemoveEmptyEntries));
+            return new Target(null, "docs/" + folder + (folder.Length == 0 ? string.Empty : "/") + link);
         }
 
-        foreach (var segment in link.Split('/'))
-        {
-            if (segment is "" or ".")
-            {
-                continue;
-            }
-
-            if (segment == "..")
-            {
-                // Clamped at the repository root, as a URL is: there is nothing above it to name.
-                if (segments.Count > 0)
-                {
-                    segments.RemoveAt(segments.Count - 1);
-                }
-
-                continue;
-            }
-
-            segments.Add(segment);
-        }
-
-        var path = string.Join('/', segments);
+        var path = resolved.AbsolutePath.TrimStart('/');
 
         // A guide only when the link lands INSIDE docs/ on a Markdown file the catalog names. A file elsewhere
         // that shares a guide's name — a benchmark's own sqlite.md — is that file, not the guide.
-        if (segments.Count > 1
-            && segments[0] == "docs"
+        if (path.StartsWith("docs/", StringComparison.Ordinal)
             && path.EndsWith(".md", StringComparison.Ordinal)
             && GuideCatalog.Find(Path.GetFileNameWithoutExtension(path)) is { } guide)
         {

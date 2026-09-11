@@ -76,6 +76,16 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.
 // into — a browser boot never takes this branch.
 if (Environment.GetEnvironmentVariable(WasmPrerender.OutputVariable) is { Length: > 0 } publishRoot)
 {
+    // The publish's path base first, seeded the way the prerender pass seeds it — and only when nothing set
+    // one explicitly, which is the pass's rule too. The pass applies it inside RunAsync, AFTER this line, so
+    // without this a /p:RaskPathBase=/x publish wrote llms.txt against the origin root while the pages it
+    // prerendered moments later advertised their Markdown twins under /x.
+    if (Rask.Core.Live.LiveOptions.PathBase.Length == 0
+        && Environment.GetEnvironmentVariable(WasmPrerender.PathBaseVariable) is { Length: > 0 } pathBase)
+    {
+        Rask.Core.Live.LiveOptions.PathBase = Rask.Core.Live.RaskPath.Normalize(pathBase);
+    }
+
     Rask.Site.Features.LlmsText.WriteAll(publishRoot);
 }
 

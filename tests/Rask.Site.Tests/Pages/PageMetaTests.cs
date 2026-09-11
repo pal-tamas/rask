@@ -157,6 +157,33 @@ public sealed class PageMetaTests
     }
 
     [Fact]
+    public async Task AHostileGuideSlugCannotCloseTheStructuredDataScript()
+    {
+        // The one visitor-controlled value that reaches the JSON-LD: an unknown slug in /docs/guides/{slug},
+        // which the router URL-decodes and the page uses as its name, breadcrumb and canonical. The graph is
+        // emitted through Raw, because a script's content is not HTML — so the ONLY thing standing between
+        // this URL and script execution is the JSON writer's encoder escaping '<'. Swap it for a relaxed one
+        // and every assertion below fails, which is the point of pinning it.
+        var head = await HeadAt("/docs/guides/%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E");
+
+        var script = Regex.Match(
+            head,
+            "<script[^>]*type=\"application/ld(?:\\+|&#x2B;)json\"[^>]*>(.*?)</script>",
+            RegexOptions.Singleline);
+        Assert.True(script.Success, "no JSON-LD graph rendered for the hostile slug");
+
+        var json = script.Groups[1].Value;
+        Assert.DoesNotContain("<", json, StringComparison.Ordinal);
+        Assert.DoesNotContain(">", json, StringComparison.Ordinal);
+
+        // Still a graph, and still saying what the visitor asked for — escaped, not dropped.
+        using var document = JsonDocument.Parse(json);
+        Assert.Contains(
+            document.RootElement.GetProperty("@graph").EnumerateArray(),
+            node => node.TryGetProperty("name", out var name) && name.GetString()!.Contains("</script>", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task AGuideIsAnArticleWithItsSectionItsDateAndItsMarkdownTwin()
     {
         var head = await HeadAt((string)Rask.Site.Features.Routes.GuidePage("cqrs"));
