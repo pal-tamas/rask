@@ -16,7 +16,7 @@
 
     <PackageId>Rask</PackageId>
     <Title>Rask — batteries included</Title>
-    <Description>The one reference a Rask application needs, server or browser. On net10.0 it brings the ASP.NET host plus every battery — database, mediator, background jobs, transactional email, cache, outbox, operator dashboard, durable logs, Web Push, and SQLite snapshots and continuous backup — with RaskApp.Create(args) as the entry point. On net10.0-browser it brings the WebAssembly host, the source-generated mediator, the query cache and remote dispatch. Everything referenced is wired and on; app.Configure(c =&gt; c.Jobs.Off()) is how an app does without one. Reference Rask.Server for a lean host with no database.</Description>
+    <Description>The one reference a Rask application needs, server or browser. On net10.0 it brings the ASP.NET host plus every battery — database, mediator, background jobs, transactional email, cache, file storage, outbox, operator dashboard, durable logs, Web Push, and SQLite snapshots and continuous backup — with RaskApp.Create(args) as the entry point. On net10.0-browser it brings the WebAssembly host, the source-generated mediator, the query cache and remote dispatch. Everything referenced is wired and on; app.Configure(c =&gt; c.Jobs.Off()) is how an app does without one. Reference Rask.Server for a lean host with no database.</Description>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
@@ -75,6 +75,7 @@
     <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
     <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>
+    <ProjectReference Include="..\Rask.Storage\Rask.Storage.csproj"/>
     <ProjectReference Include="..\Rask.Outbox\Rask.Outbox.csproj"/>
 
     <ProjectReference Include="..\Rask.Dashboard\Rask.Dashboard.csproj"/>

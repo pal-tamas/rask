@@ -137,6 +137,51 @@ public sealed class RaskAppTests
     }
 
     [Fact]
+    public async Task An_app_with_no_configuration_serves_its_file_routes()
+    {
+        // The seam again: AddRaskStorage registers IFiles, but files.Url(...) and temporary links only work if the
+        // routes are mapped too, and an app built on RaskApp writes no MapRaskStorage line. An unreadable token is
+        // asked for because it is answered before the database is touched — a fresh app has no migrated table.
+        var app = NewApp().Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            var response = await GetAsync(app, "/_rask/files/not-a-token");
+
+            // Without the route, the catch-all answers this path with the app itself: a 200 and HTML. The file
+            // route's own answer is a 404 that is not a page — RaskApp's UseStatusCodePages gives it a short text
+            // body — and it is never cached.
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.NotEqual("text/html", response.Content.Headers.ContentType?.MediaType);
+            Assert.True(response.Headers.CacheControl?.NoStore);
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Turning_storage_off_unmaps_its_routes()
+    {
+        var app = NewApp(a => a.Configure(c => c.Storage.Off())).Build<TestApp>();
+        await app.StartAsync();
+
+        try
+        {
+            var response = await GetAsync(app, "/_rask/files/not-a-token");
+            // No route any more, so the path falls through to the app's catch-all, which renders the page.
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    [Fact]
     public async Task The_health_endpoint_answers_over_plain_http()
     {
         // It has to short-circuit BEFORE UseHttpsRedirection. `rask deploy` probes it internally over

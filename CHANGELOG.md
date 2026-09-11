@@ -17,7 +17,9 @@ them until tagged releases begin.
   `files.TemporaryUrlAsync(id, lifetime)` for one that expires, and `files.Download(id)` for an endpoint
   that has already checked the caller may see it. Files go to `/data/files` on the deploy volume by
   default, `storage/` under the content root otherwise, and `app.MapRaskStorage()` serves the links.
-  `Storage__Provider=S3` or `Azure` moves them into a bucket — AWS S3, Cloudflare R2, Backblaze B2, MinIO,
+  It is **on** in the `Rask` package like every other battery — the table is mapped on `RaskAppDbContext`
+  and `RaskApp` maps the routes, so an app writes nothing — and `app.Configure(c => c.Storage.Off())` or
+  `c.Storage.Configure(o => …)` is the one place it differs. `Storage__Provider=S3` or `Azure` moves them into a bucket — AWS S3, Cloudflare R2, Backblaze B2, MinIO,
   DigitalOcean Spaces, Google Cloud Storage's S3 interop, or Azure Blob — with **no cloud SDK behind it**:
   S3 is signed in-process with SigV4 and Azure with Shared Key, and a temporary URL becomes the provider's
   own signed URL, so the download never passes through the app. The signers are pinned to AWS's published
