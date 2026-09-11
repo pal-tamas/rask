@@ -25,16 +25,16 @@ public sealed partial class UiKitActionsDemo : Component
             "Colour, fill and size are three independent axes and compose, so an outlined error button "
             + "needs no member of its own.",
             Div.Data(Testid("ui-button")).Class("flex flex-wrap items-center gap-2")[
-                UiButton.Key("solid").Label("Primary").Tone(UiTone.Primary),
-                UiButton.Key("outline").Label("Outline").Tone(UiTone.Error).Variant(UiVariant.Outline),
-                UiButton.Key("soft").Label("Soft").Tone(UiTone.Success).Variant(UiVariant.Soft),
-                UiButton.Key("dash").Label("Dash").Tone(UiTone.Warning).Variant(UiVariant.Dash),
-                UiButton.Key("ghost").Label("Ghost").Variant(UiVariant.Ghost),
-                UiButton.Key("link").Label("Link").Variant(UiVariant.Link),
-                UiButton.Key("wide").Label("Wide").Wide(true),
-                UiButton.Key("circle").Label("Close").Circle(true).Icon(UiIconName.Close),
-                UiButton.Key("square").Label("Add").Square(true).Icon(UiIconName.Plus),
-                UiButton.Key("disabled").Label("Disabled").Disabled(true)
+                UiButton.Key("solid").Tone(UiTone.Primary)["Primary"],
+                UiButton.Key("outline").Tone(UiTone.Error).Variant(UiVariant.Outline)["Outline"],
+                UiButton.Key("soft").Tone(UiTone.Success).Variant(UiVariant.Soft)["Soft"],
+                UiButton.Key("dash").Tone(UiTone.Warning).Variant(UiVariant.Dash)["Dash"],
+                UiButton.Key("ghost").Variant(UiVariant.Ghost)["Ghost"],
+                UiButton.Key("link").Variant(UiVariant.Link)["Link"],
+                UiButton.Key("wide").Wide(true)["Wide"],
+                UiButton.Key("circle").AccessibleLabel("Close").Circle(true)[UiIcon.Name(UiIconName.Close)],
+                UiButton.Key("square").AccessibleLabel("Add").Square(true)[UiIcon.Name(UiIconName.Plus)],
+                UiButton.Key("disabled").Disabled(true)["Disabled"]
             ]),
 
         Section(
@@ -78,22 +78,21 @@ public sealed partial class UiKitActionsDemo : Component
             + "cannot express: nothing in C# can press a button.",
             Div.Data(Testid("ui-modal"))[
                 UiButton
-                    .Label("Delete order")
                     .Tone(UiTone.Error)
-                    .OnClick(() => { _confirming = true; }),
+                    .OnClick(() => { _confirming = true; })["Delete order"],
                 _confirming
                     ? UiModal
                         .Title("Delete order")
                         .Close(() => { _confirming = false; })
                         .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
-                            UiButton.Key("cancel").Label("Cancel").Variant(UiVariant.Ghost)
-                                .OnClick(() => { _confirming = false; }),
-                            UiButton.Key("confirm").Label("Delete").Tone(UiTone.Error)
+                            UiButton.Key("cancel").Variant(UiVariant.Ghost)
+                                .OnClick(() => { _confirming = false; })["Cancel"],
+                            UiButton.Key("confirm").Tone(UiTone.Error)
                                 .OnClick(() =>
                                 {
                                     _confirming = false;
                                     _lastAction = "deleted the order";
-                                })
+                                })["Delete"]
                         ])[
                         P["This cannot be undone."]
                     ]
@@ -135,8 +134,8 @@ public sealed partial class UiKitActionsDemo : Component
                     .Class("mt-3 rounded-xl border border-base-300 bg-base-100 p-4 text-base-content")[
                     P.Class("text-sm")[$"This box is painted by the {UiTheme.Value(_theme)} theme."],
                     Div.Class("mt-2 flex gap-2")[
-                        UiButton.Key("p").Label("Primary").Tone(UiTone.Primary).Size(UiSize.Sm),
-                        UiButton.Key("a").Label("Accent").Tone(UiTone.Accent).Size(UiSize.Sm)
+                        UiButton.Key("p").Tone(UiTone.Primary).Size(UiSize.Sm)["Primary"],
+                        UiButton.Key("a").Tone(UiTone.Accent).Size(UiSize.Sm)["Accent"]
                     ]
                 ]
             ]),
@@ -155,8 +154,8 @@ public sealed partial class UiKitActionsDemo : Component
                 UiFab
                     .AccessibleLabel("Compose")
                     .Icon(UiIconName.Plus)[
-                    UiButton.Key("photo").Label("Photo").Size(UiSize.Sm),
-                    UiButton.Key("file").Label("File").Size(UiSize.Sm)
+                    UiButton.Key("photo").Size(UiSize.Sm)["Photo"],
+                    UiButton.Key("file").Size(UiSize.Sm)["File"]
                 ]
             ]),
 

@@ -6,11 +6,10 @@ public sealed partial class BindingTextareaDemo : Component
 
     protected override Component? Render() =>
     [
-        Textarea.Bind(() => _model.Notes)
+        UiTextarea.Bind(() => _model.Notes).AccessibleLabel("Jot something down…")
             .Id("bind-textarea")
-            .Class($"{Tw.Input} mb-2")
             .Rows(3)
-            .Placeholder("Jot something down…"),
+            .Placeholder("Jot something down…").Class("mb-2"),
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[
                 $"Notes  = \"{_model.Notes}\"\n" +

@@ -52,8 +52,8 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
                     "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString()]],
                 _pads.Count == 0
                     ? Div.Class("text-ui-muted text-sm")["No controllers connected."]
-                    : Ul.Class($"{Tw.ListGroup} divide-y divide-ui-line")[
-                        _pads.Values.Select(p => (Component)Li.Class($"{Tw.ListGroupItem} px-0").Key(p.Index)[
+                    : UiList[
+                        _pads.Values.Select(p => Li.Key(p.Index)[
                             Div.Class("text-sm font-semibold")[$"#{p.Index} — {p.Id}"],
                             Div.Class("text-sm text-ui-muted")[
                                 $"axes [{string.Join(", ", p.Axes.Select(a => a.ToString("0.00")))}] · "

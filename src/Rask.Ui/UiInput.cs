@@ -27,7 +27,31 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiInput<T> : UiFormField<T>
 {
+    /// <summary>
+    ///     Shown in the empty field — for a field whose label does not float. Ignored while the label floats: the
+    ///     label IS the placeholder then, so put guidance in <c>Hint</c> instead. See <see cref="Floating" />.
+    /// </summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>
+    ///     Whether a <c>Label</c> floats: sits in the field until there is content, then rises above it. On
+    ///     unless this is <see langword="false" />, which draws the label above the field instead.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     While the label floats it is also the placeholder, and an explicit <see cref="Placeholder" /> is
+    ///     ignored. daisyUI raises the caption once the control stops showing its placeholder, so the field needs
+    ///     one — and a DIFFERENT one would sit in the box in the label's place, hiding the one thing saying what
+    ///     the field is for until somebody focused it. Guidance about the value belongs in <c>Hint</c>, under
+    ///     the field, where it stays visible while typing.
+    ///     </para>
+    /// </remarks>
+    public bool? Floating { get; set; }
+
+    /// <inheritdoc />
+    private protected override bool FloatsLabel => Floating != false;
+
+    private string PlaceholderText => Label is not null && FloatsLabel ? Label : Placeholder ?? string.Empty;
 
     public InputType? Type { get; set; }
 
@@ -82,6 +106,15 @@ public sealed partial class UiInput<T> : UiFormField<T>
     /// </remarks>
     public ElementRef? Ref { get; set; }
 
+    /// <summary>
+    ///     The <c>name</c> the value posts under from a plain HTML form. Defaults to the bound member's name.
+    /// </summary>
+    /// <remarks>
+    ///     Without it a kit field inside a <c>&lt;form&gt;</c> that posts its data — rather than handing a
+    ///     model to C# — contributes nothing to the submission. The same prop <c>UiSelect</c> has.
+    /// </remarks>
+    public string? Name { get; set; }
+
     /// <inheritdoc />
     /// <inheritdoc />
     protected override Component Control()
@@ -95,6 +128,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
                 .Validate(Validate)
                 .AfterBind(AfterBind)
                 .Id(FieldId)
+            .Name(Name)
             .Ref(Ref)
             .OnInput(OnInput)
             .Min(Min)
@@ -104,7 +138,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             .Autofocus(Autofocus == true)
             .List(List)
             .Type(Type)
-                .Placeholder(Placeholder ?? string.Empty)
+                .Placeholder(PlaceholderText)
                 .Aria(ControlAria())
                 .Disabled(Disabled == true)
                 .Class(BoxClass());
@@ -114,6 +148,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             .Value(Value)
             .OnChange(OnChange)
             .Id(FieldId)
+            .Name(Name)
             .Ref(Ref)
             .OnInput(OnInput)
             .Min(Min)
@@ -123,7 +158,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             .Autofocus(Autofocus == true)
             .List(List)
             .Type(Type)
-            .Placeholder(Placeholder ?? string.Empty)
+            .Placeholder(PlaceholderText)
             .Aria(ControlAria())
             .Disabled(Disabled == true)
             .Class(BoxClass());

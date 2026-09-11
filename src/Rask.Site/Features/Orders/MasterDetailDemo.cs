@@ -46,7 +46,7 @@ public sealed partial class MasterDetailDemo : Component
 
         return UiCard.Class("shadow-sm !p-0")[
             Div.Class("overflow-x-auto")[
-                Table.Id("md-orders").Class($"{Tw.Table} [&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
+                UiTable.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
                     Thead.Class("bg-ui-well")[
                         Tr[_orderColumns.Select(c =>
                             c.Sortable
@@ -69,17 +69,16 @@ public sealed partial class MasterDetailDemo : Component
             rows.Add(Tr.Key(order.Id).Class("md-row")[
                 Td.Style("width:44px;")[
                     UiButton
-                        .Label(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
-                        .Icon(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)
+                        .AccessibleLabel(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
                         .Square(true)
                         .Variant(UiVariant.Link)
                         .Class("p-0 no-underline")
                         .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
-                        .OnClick(() => Toggle(order.Id))
+                        .OnClick(() => Toggle(order.Id))[UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)]
                 ],
                 Td.Class("font-semibold")[order.Customer],
                 Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd")],
-                Td[UiBadge.Label(order.Status).Tone(StatusTone(order.Status)).Variant(UiVariant.Soft)],
+                Td[UiBadge.Tone(StatusTone(order.Status)).Variant(UiVariant.Soft)[order.Status]],
                 Td.Class("text-ui-muted")[order.Items.Count],
                 Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
@@ -108,7 +107,7 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Table.Class($"{Tw.Table} text-sm [&_tbody_tr:nth-child(odd)]:bg-ui-well align-middle mb-0 bg-white")[
+        return UiTable.Class("[&_tbody_tr:nth-child(odd)]:bg-ui-well align-middle mb-0 bg-white")[
             Thead[
                 Tr[_itemColumns.Select(c =>
                     SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]
@@ -212,11 +211,9 @@ public sealed partial class MasterDetailDemo : Component
 
         return Th.Scope("col").Key(columnId)[
             UiButton
-                .Label(header)
-                .Icon(icon)
                 .Variant(UiVariant.Link)
                 .Class("p-0 no-underline text-ui-ink font-semibold" + (sorted ? "" : " [&_svg]:opacity-50"))
-                .OnClick(() => toggle(columnId))
+                .OnClick(() => toggle(columnId))[UiIcon.Name(icon), header]
         ];
     }
 

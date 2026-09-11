@@ -68,7 +68,7 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
 
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
-                UiButton.Label("Start").Tone(UiTone.Primary).Class("mb-3").Id("sensor-start").OnClick(Start),
+                UiButton.Tone(UiTone.Primary).Class("mb-3").Id("sensor-start").OnClick(Start)["Start"],
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("sensor-status")[_status]],
                 Div.Class("grid grid-cols-12 gap-4")[
                     Div.Class("col-span-12 sm:col-span-6")[

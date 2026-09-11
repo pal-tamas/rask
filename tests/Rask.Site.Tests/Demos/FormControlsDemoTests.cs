@@ -121,11 +121,11 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         var page = RaskTest.Render(() => FormSubmitStateDemo, TestServices.Default());
         var html = page.Render();
 
-        // The label sits in a <span> inside the button now — UiButton's shape, so that an icon can sit
-        // beside it. The contract is unchanged: the idle button says "Sign up" and the submit is still a
+        // The label is the button's own child text — UiButton shows its children, and an icon would be a
+        // sibling of it. The contract is unchanged: the idle button says "Sign up" and the submit is still a
         // submit, which is the part that would break silently (a submit button rendered type="button"
         // does nothing at all, on a form that looks finished).
-        Assert.Contains("<span>Sign up</span></button>", html, StringComparison.Ordinal);
+        Assert.Contains(">Sign up</button>", html, StringComparison.Ordinal);
         Assert.Contains("type=\"submit\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Saving…", html, StringComparison.Ordinal);
         Assert.Contains("Saved: <strong>(nothing yet)</strong>", html, StringComparison.Ordinal);

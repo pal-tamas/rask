@@ -15,8 +15,10 @@ public sealed class RegistrationModel
     [Range(13, 120, ErrorMessage = "Age must be between 13 and 120.")]
     public int Age { get; set; }
 
+    // Nullable so "nothing picked yet" is null, which is what selects a select's placeholder. An empty string
+    // matches no option, so the browser would show the first plan as chosen while the model held none.
     [Required(ErrorMessage = "Pick a plan.")]
-    public string Plan { get; set; } = "";
+    public string? Plan { get; set; }
 }
 
 // Resolved from the form's render-scoped IServiceProvider by [NotBanned]'s GetValidationResult.

@@ -341,9 +341,10 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-select -->
 
-**Floating labels.** The reusable `Floating*` wrappers (input/select/textarea) render a
-floating-label field with the label derived from the bound property, and surface validation via
-`.field-error`:
+**Floating labels.** A labelled kit `UiInput`, `UiTextarea` or native `UiSelect` floats its label by
+default. The caption sits in the field until there is content, then rises. It stays the field's real
+`<label>`, linked to the control, and each bound field shows its own validation message under it.
+`Floating(false)` draws the label above the field instead:
 
 <!-- demo:floating-labels -->
 

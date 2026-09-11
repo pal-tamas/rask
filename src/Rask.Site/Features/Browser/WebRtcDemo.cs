@@ -56,14 +56,14 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                         "This browser has no WebRTC support."]
                     : Div[
                         Div.Class("flex gap-2 mb-2")[
-                            UiButton.Label("Connect the two peers").Tone(UiTone.Primary)
+                            UiButton.Tone(UiTone.Primary)
                                 .Id("rtc-connect")
                                 .Disabled(_connecting)
-                                .OnClick(ConnectAsync),
-                            UiButton.Label("Send a message").Tone(UiTone.Secondary)
+                                .OnClick(ConnectAsync)["Connect the two peers"],
+                            UiButton.Tone(UiTone.Secondary)
                                 .Id("rtc-send")
                                 .Disabled(!_everConnected)
-                                .OnClick(SendAsync)
+                                .OnClick(SendAsync)["Send a message"]
                         ],
                         Div.Class("text-sm text-ui-muted mb-1")[
                             "Connection state: ", Span.Id("rtc-state")[_state]],

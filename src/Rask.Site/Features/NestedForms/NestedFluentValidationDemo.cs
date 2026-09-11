@@ -23,21 +23,20 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Input.Bind(() => captured.Sku).Class(Tw.Input),
+                    UiInput.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Sku)
                 ],
                 Td.Style("width: 6rem;")[
-                    Input.Bind(() => captured.Quantity).Class(Tw.Input),
+                    UiInput.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
                     UiButton
-                        .Label("Remove line")
-                        .Icon(UiIconName.Close)
+                        .AccessibleLabel("Remove line")
                         .Square(true)
                         .Tone(UiTone.Error)
                         .Variant(UiVariant.Outline)
-                        .OnClick(() => _model.Lines.Remove(captured))
+                        .OnClick(() => _model.Lines.Remove(captured))[UiIcon.Name(UiIconName.Close)]
                 ]
             ]);
         }
@@ -46,32 +45,31 @@ public sealed partial class NestedFluentValidationDemo : Component
         [
             Form.Model(_model).OnValidSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
                 Div[
-                    Label.For("nf-fv-name").Class($"{Tw.Label} text-sm mb-1")["Customer"],
-                    Input.Bind(() => _model.CustomerName).Id("nf-fv-name").Class(Tw.Input),
+                    UiInput.Bind(() => _model.CustomerName).Label("Customer").Id("nf-fv-name").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Fieldset.Class("border rounded p-3")[
                     Legend.Class("text-base font-semibold")["Address"],
                     Div.Class("flex flex-col gap-2")[
                         Div[
-                            Input.Bind(() => _model.Address.Street).Class(Tw.Input),
+                            UiInput.Bind(() => _model.Address.Street).Label("Street").ShowValidation(false),
                             ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                         ],
                         Div[
-                            Input.Bind(() => _model.Address.City).Class(Tw.Input),
+                            UiInput.Bind(() => _model.Address.City).Label("City").ShowValidation(false),
                             ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                         ]
                     ]
                 ],
-                Table.Class($"{Tw.Table} text-sm align-middle mb-0 mt-2")[
+                UiTable.Class("align-middle mb-0 mt-2")[
                     Thead[Tr[Th["SKU"], Th["Qty"], Th]],
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    UiButton.Label("Add line").Icon(UiIconName.Plus).Variant(UiVariant.Outline)
+                    UiButton.Variant(UiVariant.Outline)
                         .Id("nf-fv-add")
-                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 })),
-                    UiButton.Label("Place").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-fv-submit")
+                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[UiIcon.Name(UiIconName.Plus), "Add line"],
+                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-fv-submit")[UiIcon.Name(UiIconName.CheckCircle), "Place"]
                 ]
             ],
             _submission is null

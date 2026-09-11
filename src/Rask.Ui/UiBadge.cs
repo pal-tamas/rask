@@ -1,6 +1,6 @@
 namespace Rask.Ui;
 
-/// <summary>A small status pill.</summary>
+/// <summary>A small status pill. It IS the <c>&lt;span&gt;</c>, and what it says is its children.</summary>
 /// <remarks>
 /// <para>
 /// daisyUI's <c>badge</c>, and <see cref="Tone" /> is a <see cref="UiTone" />. Both of those are changes,
@@ -20,11 +20,13 @@ namespace Rask.Ui;
 /// <c>badge badge-error</c> means it inherits the corrected fill and label with the rest of them, and
 /// <c>ComponentToneContrastTests</c> covers it.
 /// </para>
+/// <para>
+/// A <see cref="UiElement" />: <c>UiBadge.Tone(UiTone.Success)["Live"]</c>, with <c>Id</c>, <c>Data</c>
+/// and the rest of the element steps from <see cref="Element" />.
+/// </para>
 /// </remarks>
-public sealed partial class UiBadge : Component
+public sealed partial class UiBadge : UiElement
 {
-    public required string Label { get; set; }
-
     /// <summary>The pill's colour. Omitted, it is the theme's plain badge.</summary>
     public UiTone? Tone { get; set; }
 
@@ -33,21 +35,15 @@ public sealed partial class UiBadge : Component
 
     public UiSize? Size { get; set; }
 
-    /// <inheritdoc cref="UiButton.Id" />
-    public string? Id { get; set; }
-
-    public string? Class { get; set; }
+    /// <inheritdoc />
+    protected override string TagName => "span";
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Span
-            .Id(Id)
-            .Class(UiClass.Compose(
-                "badge",
-                Tone is { } tone ? UiClassNames.BadgeTone(tone) : "",
-                Variant is { } variant ? UiClassNames.BadgeVariant(variant) : "",
-                Size is { } size ? UiClassNames.BadgeSize(size) : "",
-                Class))[
-            Label
-        ];
+    protected override string? ResolveClass() =>
+        UiClass.Compose(
+            "badge",
+            Tone is { } tone ? UiClassNames.BadgeTone(tone) : "",
+            Variant is { } variant ? UiClassNames.BadgeVariant(variant) : "",
+            Size is { } size ? UiClassNames.BadgeSize(size) : "",
+            Class);
 }

@@ -22,7 +22,10 @@ internal static partial class ProjectGenerator
             TemplateMaterializer.Files(targetDirectory, "wasm", name, resolved, version, islands),
             WasmNextSteps(name, docker, cultures.Length > 0))
         {
-            Packages = ["Rask.Wasm", "Rask.Ui"],
+            // Rask.DevTools is named directly, like Rask.Ui: its build/ hooks are what keep the
+            // in-page devtools out of a Release publish, and a package's hooks are imported for a
+            // DIRECT reference only.
+            Packages = ["Rask.Wasm", "Rask.Ui", "Rask.DevTools"],
         };
     }
 

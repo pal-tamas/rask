@@ -17,10 +17,9 @@ public sealed partial class UiKitDataGridPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "UI kit — Data grid — Rask",
-            "UiDataGrid as a typed Rask component: sortable headers, paging, typed selection, "
-            + "expandable detail rows, grouping with subtotals, a column chooser, and a card layout "
-            + "on a phone.",
+            "C# data grid demo: sorting, paging and grouping — Rask",
+            "Live demo of a typed C# data grid: sortable columns, paging, typed row selection, grouping "
+            + "with subtotals, detail rows, a column chooser and a phone layout.",
             Routes.UiKitDataGridPage());
 
     /// <inheritdoc />

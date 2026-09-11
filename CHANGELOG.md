@@ -63,26 +63,48 @@ them until tagged releases begin.
   `package-lock.json`: with only a range declared, Dependabot acts solely when a release falls outside
   it, so every minor and patch update would stay invisible.
 
-### Fixed
+- **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
+  nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
+  the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`
+  meta-package.
 
-- **Three templates installed an older Tailwind than the C# host downloads.** solidstart `^4.0.7`,
-  nextjs `^4` and tanstack-start `^4.1.18` against a pinned 4.3 — floors their own creators wrote, which
-  Rask's patch never touched, so two scaffolded apps compiled the same classes with different compilers.
-  Invisible until the manifests were committed; the pin test now reads all thirteen.
+  Debug-only is enforced by the build, because a package's dependency list cannot depend on the
+  consumer's configuration. `Rask.DevTools.targets` (shipped in `build/` and `buildTransitive/`) defaults
+  `RaskDevTools` to Debug, carries it into the runtime as the trimmable `Rask.DevTools.IsEnabled` feature
+  switch — so a trimmed Release publish folds every framework branch behind it away — removes the package
+  from a publish that has it off, and then **fails that publish** if any `Rask.DevTools` file or
+  `deps.json` entry is still in the output. The hosts find the devtools by name, so an app without the
+  package, or a Release build, finds nothing and pays nothing.
 
-- **A scaffolded Angular app built and served nothing.** `ng new` lower-cases the directory into its
-  project name, so the Angular tree names `company-raskserver-client` in four files. Substituting only
-  the exact name token left the host's `RaskSpaDistDir` pointing at a directory Angular never writes.
-  There is a slug token now.
+- **rask.sh is built to be found — by search engines and by AI assistants.** Every guide carries search
+  copy of its own (`GuideEntry.SearchTitle` and `Description`, both `required`, so a guide added without
+  them does not compile): "IBattery — Guides — Rask" became "Battery Status API in C# and .NET (IBattery)
+  — Rask", and fifty-two "Typed browser API: IX." descriptions became what each page teaches. Every page
+  carries one schema.org JSON-LD graph — the website, its author, a `TechArticle` or `WebPage`, a
+  `BreadcrumbList`, and on the front door a `SoftwareApplication` — and a guide is an Open Graph `article`
+  with its section, an `article:modified_time` taken from git, a visible "Updated" date and a
+  `rel="alternate" type="text/markdown"` link. The publish writes [`/llms.txt`](https://rask.sh/llms.txt),
+  [`/llms-full.txt`](https://rask.sh/llms-full.txt) and a Markdown twin beside every guide
+  (`/docs/guides/cqrs.md`), with the docs' relative links rewritten to resolve on the site. The front
+  door's description was 250 characters, so every result for it was cut mid-sentence; every indexable page
+  is now held to a 60-character title and a 110–160-character description by `PageMetaTests`. The NuGet
+  packages name rask.sh as their project website and carry searchable base tags, and the committed
+  `rask-seo` skill keeps all of it true as the site grows.
 
-- **The Analog template advertised a Node its own build refuses.** `node >=20.19.1`, carried in verbatim
-  from create-analog, while Rask's build floor is 22.12 (RASKSPA005).
+- **A prerendered sitemap dates its pages.** The prerender pass writes each URL's `<lastmod>` from the
+  page's own `<meta property="article:modified_time">` — a W3C datetime (`2026-09-10`, or a timestamp),
+  parsed exactly — and nothing for a page that declares none or declares something that is not one.
+  Never the publish time: that marks every URL changed on every deploy, and a crawler that notices stops
+  trusting the field for the whole site. See `docs/prerendering.md`.
 
-- **Rask's own service worker had two lint errors**, shipped in seven templates: a `let data = {}`
-  immediately reassigned, and an unused catch binding.
-
-- **`rask new --help` advertised a command that fails.** The examples still showed `--auth --data`; both
-  were retired, so the documented example exited non-zero.
+- **A bound kit field shows that its async validator is still checking.** `UiInput`, `UiTextarea` and
+  `UiSelect` render a small spinner and "Checking…" under the control while a validation is in flight. It
+  uses Core's `ValidatingIndicator`, sticky tail included, so a quick check is still on screen long enough
+  to read. A field whose validator goes to the network used to be silent for the whole round trip, and a
+  reader who tabbed away took the silence for a pass. The words are announced (`role="status"`); the
+  spinner is `aria-hidden`. `ShowValidating(false)` opts out, mirroring `ShowValidation`. The site's async
+  demos drop their hand-placed indicator and message, and the forms journey asserts the checking state by
+  the words on screen.
 
 - **Bearer tokens, opt-in and cookie-first.** `AuthOptions.Bearer` adds a JWT scheme **beside** the
   cookie — never instead of it — for the callers a cookie cannot serve: a native client, a CLI, a
@@ -114,6 +136,99 @@ them until tagged releases begin.
   is it documented — and nothing asked whether a documented rule existed.
 
 ### Changed
+
+- **`Tw.cs` is gone: every control on rask.sh is a `Rask.Ui` component.** The site's class-string
+  vocabulary ends here. The last 180 uses of `Tw.Input`, `Tw.Label` and `Tw.Select` move onto kit
+  fields, along with the checkbox, spinner, input-group, blockquote and figure-caption constants, and the
+  file is deleted.
+
+  - **Fields.** A `Label[…]` beside its `Input`/`Textarea`/`Select` becomes one `UiInput`/`UiTextarea`/
+    `UiSelect` with `.Label(…)`, which floats by default. Every id a browser test selects on is kept. Where
+    a demo renders its own `ValidationMessage` or a `ValidationSummary` (the thing it is teaching), the
+    field gets `.ShowValidation(false)`, so an error is never said twice.
+  - **Unlabelled controls.** Table-row inputs, toolbar rows and search boxes are named with
+    `AccessibleLabel`. A standalone field gets a visible label instead of the bare placeholder it had.
+  - **Selects.** Selects take a typed `Options` list instead of `Option` children, the enum demos
+    included. `RegistrationModel.Plan` and the async-binding demo's model become nullable, so an unpicked
+    select shows its placeholder rather than the first option while the model holds nothing.
+    `BindingNullableDemo` keeps a real "— none —" option, because clearing to null is what it shows.
+  - **Elements pages.** These pages' subject is the raw tag, so their inputs, selects, textareas and
+    labels stay raw, styled with daisyUI's own `input`/`select`/`textarea`/`label` classes.
+
+  **Kit gaps the migration found, filled:** `UiInput.Name` and `UiTextarea.Name` (the post name, as
+  `UiSelect` already had); `UiTextarea.OnInput` (as `UiInput` already had); and `Id` on `UiCheckbox` and
+  `UiFileInput`, the two controls that draw their own markup and had none, which left a browser test
+  nothing to click.
+
+- **A labelled `UiInput`, `UiTextarea` or native `UiSelect` floats its label by default.** It uses
+  daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
+  way. It is still the field's real `<label>`, linked by `for`/`id` as well as by holding the control.
+  `Floating(false)` puts the label back above the field as a legend. A checkbox, range, rating or other
+  control with no text to float over keeps the legend, and so does a `UiSelect` that draws its own list.
+  A field with no `Label` renders exactly as before.
+
+  While the label floats it is also the placeholder, and a `Placeholder` the call site set is ignored.
+  daisyUI raises the caption from a *shown* placeholder, and a different placeholder would sit in the box in
+  the label's place until someone focused the field. Guidance about the value goes in `Hint`, under the
+  field. `Placeholder` still applies to an unlabelled field and to `Floating(false)`. The site's floating
+  fields moved their placeholder guidance into `Hint`, and dropped bare prompts like "Type…".
+
+  Holding the control inside the label takes it out of daisyUI's sibling selector for `.validator-hint`,
+  the failure that once kept an `Error` message invisible behind a wrapping legend. A kit stylesheet rule
+  reveals the hint through the label instead.
+
+  **`UiFloatingLabel` is deleted.** It wrapped a field that already carried its own label, so the kit
+  showcase drew two captions around one input. The site's Bootstrap-era `FloatingInput`, `FloatingSelect`
+  and `FloatingTextarea` helpers are gone too: the floating-labels demo is five kit fields, and
+  `Tw.FormFloating` goes with them. So do four constants nothing used: `Tw.Progress`, `Tw.ProgressBar`,
+  `Tw.NavLink` and `Tw.NavTabs`.
+
+- **`UiButton`, `UiBadge` and `UiAlert` are their elements too, and what they show is their children.**
+  They move onto `UiElement`, so `UiButton` is the `<button>` (or the `<a>`, given `Href`), `UiBadge` the
+  `<span>` and `UiAlert` the `<div>`. The props they mirrored from `Element` are retired: `Id`, `Class`,
+  `Data`, `Role`, `TabIndex`, `Aria`, `OnClick`, `OnDoubleClick` and `OnContextMenu`. Each was a hand-kept
+  copy of a step `Element` already had, under the same name, so those call sites read exactly as before.
+  `UiAlert` gains `Role` as a result, where the kit used to write it with no way to change it; the tone
+  still supplies the default.
+
+  `Label`, `Message` and `Icon` are gone. What a component shows is its children:
+  `UiButton[UiIcon.Name(UiIconName.Check), "Save"]`, `UiBadge.Tone(UiTone.Success)["Live"]`,
+  `UiAlert.Tone(UiTone.Error)[UiIcon.Name(UiIconName.Warning), "Payment failed"]`. A square or circle
+  button that shows only an icon names itself with **`AccessibleLabel`**, written as `aria-label` through
+  `ResolveAria()`, and an `aria-label` set with `Aria` wins over it.
+
+  An icon placed in a button or a badge is sized by the kit's stylesheet from what it sits in. The rule
+  matches only `UiIcon`'s default size, so an icon a call site sized on purpose is left alone. A link
+  button's `href` goes through the same sanitiser Core's `A` uses, so a `javascript:` URL is refused as it
+  was before. The 305 call sites across the site, the console and the kit move to the children form.
+
+- **`UiTable` and `UiList` are their elements now, on a new `UiElement` base.** Both used to wrap a raw
+  `Table`/`Ul` and mirror a hand-picked prop or two onto it, so an `id` on a kit table, a `data-*` a test
+  selects on, or an `aria-label` meant dropping back to the raw element and a class string. `UiElement`
+  derives from `Element`, so every element step — `Id`, `Class`, `Style`, `Data`, `Role`, `Aria`,
+  `Attributes` and the whole event surface — applies with nothing redeclared, and nothing can drift out
+  of step with Core. `UiList.Class` is gone as a result; `.Class(…)` on a list is `Element`'s now and
+  composes with the kit's classes exactly as before.
+
+  A kit component adds its own ARIA through **`UiElement.ResolveAria()`**, the twin of `ResolveClass()`.
+  The resolved bag is written in Core's `aria-*` slot, so the documented attribute order holds, and a key
+  the call site set wins over one the kit derives.
+
+  **`UiTable` no longer puts itself in a scroll box.** That box is `UiTable.Scroll(true)` now, because an
+  element renders exactly one tag. Scrolling, the id, classes, data, ARIA and handlers all stay on the
+  `<table>`, and the box carries only its own classes. The console's five tables ask for it.
+
+  **`UiList.Ordered(true)`** renders an `<ol>` with its numbers turned on. The site's four ordered logs had
+  never shown a number: each row carried a `flex` class, and a flex item is not a list item, so it draws
+  no marker.
+
+  Cell and row padding is a kit stylesheet rule on `ui-table` / `ui-list`, in the layer below the app's
+  utilities, rather than a `[&_td]:px-3` variant. The variant was more specific than a cell's own `px-0`
+  and silently beat it.
+
+  The site's nine tables and eight bordered lists move onto the kit. `Tw.Table`, `Tw.ListGroup` and
+  `Tw.ListGroupItem` are deleted, along with the drag-drop demo's leftover Bootstrap class names, which
+  styled nothing.
 
 - **Every alert and badge in the showcase is a kit component.** 35 alerts and 20 badges move off the
   class-string vocabulary onto `UiAlert` and `UiBadge`, and 18 `Alert*`/`Badge*` constants are deleted —
@@ -166,6 +281,61 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+
+- **Three templates installed an older Tailwind than the C# host downloads.** solidstart `^4.0.7`,
+  nextjs `^4` and tanstack-start `^4.1.18` against a pinned 4.3 — floors their own creators wrote, which
+  Rask's patch never touched, so two scaffolded apps compiled the same classes with different compilers.
+  Invisible until the manifests were committed; the pin test now reads all thirteen.
+
+- **A scaffolded Angular app built and served nothing.** `ng new` lower-cases the directory into its
+  project name, so the Angular tree names `company-raskserver-client` in four files. Substituting only
+  the exact name token left the host's `RaskSpaDistDir` pointing at a directory Angular never writes.
+  There is a slug token now.
+
+- **The Analog template advertised a Node its own build refuses.** `node >=20.19.1`, carried in verbatim
+  from create-analog, while Rask's build floor is 22.12 (RASKSPA005).
+
+- **Rask's own service worker had two lint errors**, shipped in seven templates: a `let data = {}`
+  immediately reassigned, and an unused catch binding.
+
+- **`rask new --help` advertised a command that fails.** The examples still showed `--auth --data`; both
+  were retired, so the documented example exited non-zero.
+- **Mounting a second application no longer takes the operator console off the host.**
+  `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
+  `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
+  reporting it. The guard now looks for the console's own mount.
+
+- **Relative links in the guides no longer 404.** The guide renderer sent every `../x.md` link to
+  `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51
+  `../browser-capabilities.md` links on the browser-API pages and the tutorial's `../cli.md`, `../jobs.md`
+  and the rest. It kept only the file name, so `../tests/Rask.Benchmarks.Sqlite/Baselines/README.md` opened
+  the repository's README; and a link to anything that was not Markdown — `../tests/Rask.Cqrs.Tests`,
+  `../scripts/…` — stayed relative and 404ed on the site. Links now resolve against the folder of the doc
+  they are written in (`DocLinks`, shared by the pages and their Markdown twins): one that lands on a guide
+  routes to it, anything else opens that exact file on GitHub. `DocsLinkTests` had skipped every `../` link
+  on the renderer's own assumption, so it could not see this; it now checks every link that stays inside
+  `docs/`.
+
+- **`NoTwoPagesShareATitleOrADescription` checks the site rather than one page.** Its "claims to be this
+  page" filter compared the canonical, which always ends in a slash, with the bare route path, which never
+  does — so it skipped every page except `/` and asserted uniqueness over a set of one.
+
+- **`llms.txt` describes each package once, and describes it correctly.** Its index carried the dashboard,
+  UI kit, jobs, mail and cache entries two or three times each, and the copies disagreed (#1052). Two copies
+  of the jobs and mail entries still said "one processor per app", which the processor leases had made
+  false. The three UI kit versions each knew something the others did not: one listed `UiDataGrid`, one
+  described `UiMultiSelect`, and one covered the `rask new` wiring, the shipped daisyUI plugin bundle and
+  the `Rask.Auth` pages. The cache entry had its Redis paragraph glued in front of its own opening
+  sentence. An agent reading the index got contradictory accounts of one package and no way to tell which
+  was current. Each entry is now one line that keeps every fact still true.
+
+- **Three gate script tests no longer fail on a match.** `pre-push-ref-classes`, `e2e-await-slots` and
+  `front-doors` checked output with `printf … | grep -q …` under `set -o pipefail`. `grep -q` exits on the
+  first match; if `printf` was still writing it died of SIGPIPE, and `pipefail` reported the pipeline as
+  failed. A found match came back as a miss, and only under load, so a commit's gate could reject a change
+  that passed when rerun (#1053). They pass the text as a here-string now, which leaves no second process
+  to kill.
 
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
   right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,

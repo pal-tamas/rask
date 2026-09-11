@@ -13,9 +13,9 @@ public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Com
 
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
-                UiButton.Label("Read visibility").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("vis-read")
-                    .OnClick(Read),
+                    .OnClick(Read)["Read visibility"],
                 Div.Class("text-sm text-ui-muted")["State: ", Code.Id("vis-value")[_state ?? "(not read)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vis-status")[_status ?? "(idle)"]]
             ];

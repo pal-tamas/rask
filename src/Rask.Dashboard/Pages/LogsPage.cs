@@ -330,7 +330,7 @@ public sealed partial class LogsPage(
         record.Scopes);
 
     private static Component LogTable(IEnumerable<LogRow> rows, DateTime now) =>
-        UiTable[
+        UiTable.Scroll(true)[
             // The message is the column an operator came for, so it is the one that survives a narrow
             // screen; when, level and category fold in above it rather than scrolling off to the right.
             Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
@@ -380,21 +380,18 @@ public sealed partial class LogsPage(
             : Div.Class("mt-1.5 flex flex-wrap gap-1")[
                 // break-all, because a scope value is a request id: one unbreakable 40-character token is
                 // enough to push the whole table wider than a phone.
-                scopes.Select(s => UiBadge
-                    .Key(s.Key)
-                    .Label($"{s.Key}={s.Value}")
-                    .Class($"max-w-full break-all {UiStyles.Mono}"))
+                scopes.Select(s => UiBadge.Key(s.Key)
+                    .Class($"max-w-full break-all {UiStyles.Mono}")[$"{s.Key}={s.Value}"])
             ];
 
     private static Component LevelBadge(LogLevel level) => UiBadge
-        .Label(level.ToString())
         .Tone(level switch
         {
             LogLevel.Critical or LogLevel.Error => UiTone.Error,
             LogLevel.Warning => UiTone.Warning,
             LogLevel.Information => UiTone.Info,
             _ => null,
-        });
+        })[level.ToString()];
 
     private void OnLogged()
     {

@@ -9,6 +9,9 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
         ["data"] = ["SQL", "Python", "R", "Scala"]
     };
 
+    private static readonly (string? Value, string Text)[] Tracks =
+        [("frontend", "Frontend"), ("backend", "Backend"), ("data", "Data")];
+
     private readonly Holder _model = new();
     private string[] _languages = [];
     private bool _loading;
@@ -16,16 +19,20 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Label.For("bind-async-track").Class($"{Tw.Label} text-sm")["Track"],
-            Select.Bind(() => _model.Track)
+            UiSelect.Bind(() => _model.Track)
+                .Options(Tracks)
+                // The placeholder is selected while Track is still null. Without it the <select> would
+                // visually default to "Frontend" while the model holds nothing — and re-picking the
+                // already-shown first option fires no change event, so the async load would never trigger.
+                .Placeholder("— pick a track —")
+                .Label("Track")
                 .AfterBind(async track =>
                 {
-                    // Re-selecting the placeholder (or any unknown track) clears the
-                    // dependent list instead of throwing on _catalog[track].
-                    if (!_catalog.ContainsKey(track))
+                    // An unknown track clears the dependent list instead of throwing on _catalog[track].
+                    if (track is null || !_catalog.ContainsKey(track))
                     {
                         _languages = [];
-                        _model.Language = "";
+                        _model.Language = null;
                         _loading = false;
                         return;
                     }
@@ -52,30 +59,14 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                     _loading = false;
                 })
                 .Id("bind-async-track")
-                .Class(Tw.Select)[
-                // Placeholder matching the empty initial Track. Without it the <select>
-                // visually defaults to "Frontend" while the model is still "" — and
-                // re-picking the already-shown first option fires no change event, so the
-                // async load never triggers. A selected placeholder keeps the initial
-                // display honest and makes every track pick a real change.
-                Option.Value("")["— pick a track —"],
-                Option.Value("frontend")["Frontend"],
-                Option.Value("backend")["Backend"],
-                Option.Value("data")["Data"]
-            ]
         ],
         Div.Class("mb-3")[
-            Label.For("bind-async-lang").Class($"{Tw.Label} text-sm")[
-                _loading ? "Language (loading…)" : "Language"
-            ],
-            Select.Bind(() => _model.Language)
+            UiSelect.Bind(() => _model.Language)
+                .Options([.. _languages.Select(l => ((string?)l, l))])
+                .Placeholder("— pick a track —")
+                .Label(_loading ? "Language (loading…)" : "Language")
                 .Id("bind-async-lang")
-                .Class(Tw.Select)
-                .Disabled(_loading || _languages.Length == 0)[
-                _languages.Length == 0
-                    ? [Option.Value("")["— pick a track —"]]
-                    : _languages.Select(l => Option.Value(l).Key(l)[l])
-            ]
+                .Disabled(_loading || _languages.Length == 0)
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-async-echo")[
@@ -87,7 +78,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
 
     private sealed class Holder
     {
-        public string Track { get; set; } = "";
-        public string Language { get; set; } = "";
+        public string? Track { get; set; }
+        public string? Language { get; set; }
     }
 }

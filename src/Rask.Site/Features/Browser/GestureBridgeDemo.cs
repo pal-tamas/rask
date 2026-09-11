@@ -26,18 +26,18 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
                     FullscreenTrigger
                         .Template(g =>
-                        UiButton.Label("Enter fullscreen").Tone(UiTone.Primary).Id("fullscreen-btn").Data(g)),
+                        UiButton.Tone(UiTone.Primary).Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
                     ScreenOrientationTrigger
                         .Orientation("landscape")
                         .Template(g =>
-                            UiButton.Label("Lock landscape").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                            UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                                 .Id("orientation-btn")
-                                .Data(g)),
+                                .Data(g)["Lock landscape"]),
                     InstallTrigger
                         .Template(g =>
-                            UiButton.Label("Install app").Tone(UiTone.Success).Variant(UiVariant.Outline)
+                            UiButton.Tone(UiTone.Success).Variant(UiVariant.Outline)
                                 .Id("install-btn")
-                                .Data(g))
+                                .Data(g)["Install app"])
                         .OnOutcome(outcome =>
                         {
                             // No StateHasChanged: the trigger is a Component rather than an Element, so its
@@ -52,9 +52,9 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
                     EyeDropperTrigger
                         .Template(g =>
-                            UiButton.Label("Pick a colour").Variant(UiVariant.Outline)
+                            UiButton.Variant(UiVariant.Outline)
                                 .Id("eyedropper-btn")
-                                .Data(g))
+                                .Data(g)["Pick a colour"])
                         .OnColor(hex =>
                         {
                             _color = hex;
@@ -77,9 +77,9 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     MediaCaptureTrigger
                         .For(_preview)
                         .Template(g =>
-                            UiButton.Label("Start camera").Variant(UiVariant.Outline)
+                            UiButton.Variant(UiVariant.Outline)
                                 .Id("camera-btn")
-                                .Data(g))
+                                .Data(g)["Start camera"])
                         .Video(true)
                         .FacingMode("user")
                         // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
@@ -91,16 +91,16 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             _camera = id;
                             return Task.CompletedTask;
                         }),
-                    UiButton.Label("Stop camera").Variant(UiVariant.Outline)
+                    UiButton.Variant(UiVariant.Outline)
                         .Id("camera-stop-btn")
                         .Disabled(_camera is null)
-                        .OnClick(StopCameraAsync),
+                        .OnClick(StopCameraAsync)["Stop camera"],
                     PictureInPictureTrigger
                         .For(_preview)
                         .Template(g =>
-                            UiButton.Label("Pop out video").Variant(UiVariant.Outline)
+                            UiButton.Variant(UiVariant.Outline)
                                 .Id("pip-btn")
-                                .Data(g)),
+                                .Data(g)["Pop out video"]),
                     Video
                         .Ref(_preview)
                         .Id("gesture-preview")

@@ -11,6 +11,12 @@ Rask app correctly without you re-explaining the conventions.
   root, routing/lifecycle, scoped CSS/TypeScript, callbacks, forms, auth). Generated projects no longer ship
   their own `AGENTS.md` — point your assistant at this repo-root guidance (and `llms.txt`).
 - **`llms.txt`** (repo root) — the emerging standard index that points AI tools at the docs.
+- **The published set on rask.sh**, for an assistant that reads the web rather than a checkout:
+  [`https://rask.sh/llms.txt`](https://rask.sh/llms.txt) indexes every guide with a one-line summary,
+  [`https://rask.sh/llms-full.txt`](https://rask.sh/llms-full.txt) is every app-building guide in one
+  file, and each guide's Markdown sits at its page's address plus `.md` — for example
+  [`https://rask.sh/docs/guides/cqrs.md`](https://rask.sh/docs/guides/cqrs.md). They are generated from the
+  same `docs/` at every site publish, with the links rewritten to resolve on the site.
 - **The `docs/` set** — a task guide for each subsystem (getting-started, elements & the DSL, routing,
   lifecycle, composition, forms, js-interop, browser APIs, authentication, data access, HTTP & files,
   PWA, CQRS, diagnostics, testing, … — the full curated list is in the on-site guides index) plus the

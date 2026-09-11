@@ -14,18 +14,18 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Label("Request permission").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("notif-permission")
-                        .OnClick(RequestPermission),
-                    UiButton.Label("Notify").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                        .OnClick(RequestPermission)["Request permission"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("notif-show")
-                        .OnClick(Notify),
-                    UiButton.Label("Set badge 3").Variant(UiVariant.Outline)
+                        .OnClick(Notify)["Notify"],
+                    UiButton.Variant(UiVariant.Outline)
                         .Id("badge-set")
-                        .OnClick(SetBadge),
-                    UiButton.Label("Clear badge").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                        .OnClick(SetBadge)["Set badge 3"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("badge-clear")
-                        .OnClick(ClearBadge)
+                        .OnClick(ClearBadge)["Clear badge"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
             ];

@@ -1037,13 +1037,13 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("pre code.language-csharp span").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Floating labels: the reusable Floating* wrappers (input/select/textarea). An empty submit
-        // surfaces .field-error under a field (always shown -- there is no is-invalid
-        // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
-        // unit-tested.)
+        // Floating labels: kit fields, which float a label by default (input/select/textarea). An empty
+        // submit shows the field's own message under it — asserted by its TEXT, which is the contract, not
+        // by a class a restyle may rename; a valid submit reaches the success banner. (The floating
+        // structure and the ids are unit-tested.)
         var floatingForm = Page.Locator("form:has(#ff-FullName)");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
-        await Expect(floatingForm.Locator(".field-error").First)
+        await Expect(floatingForm.GetByText("Full name is required."))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await floatingForm.Locator("#ff-FullName").FillAsync("Ada Lovelace");
         await floatingForm.Locator("#ff-Email").FillAsync("ada@example.com");
@@ -1109,15 +1109,15 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
             .ToContainTextAsync("required",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        // The kit field draws both states itself now, so they are asserted by the words a reader sees rather
+        // than by classes the demo used to pick.
         var asyncForm = Page.Locator("form:has(#v3-username)");
         await asyncForm.Locator("#v3-username").FillAsync("admin");
         await asyncForm.Locator("#v3-username").BlurAsync();
-        await Expect(asyncForm.Locator(".validating-indicator"))
-            .ToContainTextAsync("Checking",
-                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
-        await Expect(asyncForm.Locator(".text-danger"))
-            .ToContainTextAsync("taken",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        await Expect(asyncForm.GetByRole(AriaRole.Status).Filter(new LocatorFilterOptions { HasText = "Checking" }))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        await Expect(asyncForm.GetByText("is already taken"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
     protected async Task WalkStylingDataAndAppPagesAsync(ShowcaseJourneyOptions opts)

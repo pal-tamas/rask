@@ -28,6 +28,11 @@
   <ItemGroup>
     <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <!-- In-page devtools: present in a Debug build in Development, absent from a Release
+         publish. Named directly rather than reached through the meta-package, because a
+         package's build/ hooks are imported for a DIRECT reference only — and those hooks are
+         what drop it from a Release publish. -->
+    <PackageReference Include="Rask.DevTools" Version="{{RaskVersion}}"/>
     <!-- rask:if islands -->
     <!-- Islands: the base classes a .tsx/.vue/.svelte/.ts component derives from, plus the MSBuild
          layer that discovers each pair, generates its prop types and bundles it with Vite. -->

@@ -1,6 +1,6 @@
 namespace Rask.Site.Features;
 
-// Textarea<T> in both shapes side by side.
+// UiTextarea<T> — Rask.Core's Textarea<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur) and
 //     re-renders this consumer so the character-count readout updates (the controlled-OnChange fix).
 //   • Bound — Textarea.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.
@@ -12,26 +12,20 @@ public sealed partial class FormControlsTextareaDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
-                Label.Class($"{Tw.Label} font-semibold")["Controlled (Value + OnChange)"],
-                Textarea
-                    .Value(_controlled)
+                UiTextarea.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
-                    .Class($"{Tw.Input} mb-2")
                     .Rows(3)
-                    .Placeholder("Type, then blur…")
-                    .Id("fc-textarea-controlled"),
+                    .Hint("Type, then leave the field — OnChange fires on commit.")
+                    .Id("fc-textarea-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
                     "Length: ", Strong[_controlled.Length.ToString()]
                 ]
             ],
             Div.Class("col-span-12 md:col-span-6")[
-                Label.Class($"{Tw.Label} font-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
-                    Textarea.Bind(() => _model.Bio)
-                        .Class($"{Tw.Input} mb-2")
+                    UiTextarea.Bind(() => _model.Bio).Label("Bound (two-way)")
                         .Rows(3)
-                        .Placeholder("Type…")
-                        .Id("fc-textarea-bound")
+                        .Id("fc-textarea-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-bound-out")[
                     "Length: ", Strong[_model.Bio.Length.ToString()]

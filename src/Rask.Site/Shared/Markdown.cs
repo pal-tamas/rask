@@ -13,9 +13,9 @@ namespace Rask.Site;
 // the result via Raw() inside a .markdown-body wrapper (styled globally in wwwroot/global.css — the Raw
 // HTML carries no scope id, so those prose rules can't be component-scoped). The rendered HTML is cached
 // per source, so Markdig parses once. This is the showcase's prose component; it also rewrites the docs'
-// relative cross-links so they work in the SPA: a link to another guide ("foo.md", optionally with a
-// "#frag" or "dir/" prefix) becomes a SPA-routed guide anchor (data-rask-nav), and a link up to
-// the repo root (../README.md) points at GitHub.
+// relative links so they work on the site: resolved against the doc's own folder (SourcePath), a link that
+// lands on another guide becomes a SPA-routed guide anchor (data-rask-nav), and any other relative link —
+// ../README.md, ../tests/Rask.Cqrs.Tests — points at that file on GitHub. See DocLinks.
 //
 // Guides can also embed a live demo inline with an HTML-comment marker — `<!-- demo:key -->`. When any
 // marker is present the source is split at the markers: each prose run renders as its own Raw() HTML
@@ -99,7 +99,10 @@ public sealed partial class Markdown : Component
         return sb.ToString();
     }
 
-    private static readonly ConcurrentDictionary<string, string> HtmlCache = new(StringComparer.Ordinal);
+    // Keyed by the doc's path AS WELL AS its text: a relative link resolves against the folder of the doc it
+    // is written in, so the same Markdown renders different hrefs from docs/ and from docs/apis/. A tuple key,
+    // so a lookup allocates nothing on the render path.
+    private static readonly ConcurrentDictionary<(string? SourcePath, string Text), string> HtmlCache = new();
 
     // Non-nullable + no initializer ⇒ the factory generator emits Source as a required positional
     // parameter (mirrors CodeSample.Files). Rask assigns it after construction, so CS8618 is expected.
@@ -107,10 +110,16 @@ public sealed partial class Markdown : Component
     public string Source { get; set; }
 #pragma warning restore CS8618
 
+    /// <summary>
+    ///     The doc's path under <c>docs/</c> — <c>apis/geolocation.md</c> — which its relative links are relative
+    ///     to. Unset reads as a doc at the top of <c>docs/</c>.
+    /// </summary>
+    public string? SourcePath { get; set; }
+
     protected override Component? Render() =>
         DemoMarkerRegex().IsMatch(Source)
             ? Div.Class("markdown-body")[Segments()]
-            : Div.Class("markdown-body")[Raw.Value(HtmlCache.GetOrAdd(Source, RenderHtml))];
+            : Div.Class("markdown-body")[Raw.Value(HtmlCache.GetOrAdd((SourcePath, Source), static key => RenderHtml(key)))];
 
     // Renders the split segments: prose runs become Raw() HTML chunks (each rendered and cached
     // independently) and each demo segment becomes the resolved demo component. An unknown key renders a
@@ -123,14 +132,14 @@ public sealed partial class Markdown : Component
         {
             if (!segment.IsDemo)
             {
-                yield return Raw.Value(HtmlCache.GetOrAdd(segment.Value, RenderHtml));
+                yield return Raw.Value(HtmlCache.GetOrAdd((SourcePath, segment.Value), static key => RenderHtml(key)));
                 continue;
             }
 
             yield return Div.Class("guide-demo").Key($"demo-{index}")[
                 DemoRegistry.Contains(segment.Value)
                     ? DemoRegistry.Build(segment.Value)
-                    : UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft).Message($"Unknown demo “{segment.Value}”.")
+                    : UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft)[$"Unknown demo “{segment.Value}”."]
             ];
             index++;
         }
@@ -173,8 +182,8 @@ public sealed partial class Markdown : Component
     internal static IReadOnlyList<string> DemoKeys(string source) =>
         Split(source).Where(s => s.IsDemo).Select(s => s.Value).ToArray();
 
-    private static string RenderHtml(string source) =>
-        HighlightCodeBlocks(RewriteLinks(global::Markdig.Markdown.ToHtml(source, Pipeline)));
+    private static string RenderHtml((string? SourcePath, string Text) doc) =>
+        HighlightCodeBlocks(RewriteLinks(global::Markdig.Markdown.ToHtml(doc.Text, Pipeline), doc.SourcePath));
 
     // Markdig renders a fenced ```lang block as <pre><code class="language-{lang}">{HTML-encoded source}
     // </code></pre> with NO highlighting. Tokenize the known languages server-side with the shared
@@ -196,22 +205,24 @@ public sealed partial class Markdown : Component
                 + SyntaxHighlighter.Highlight(source, language) + "</code></pre>";
         });
 
-    private static string RewriteLinks(string html) =>
+    // Every relative href, resolved by DocLinks against the doc's own folder — the resolver the Markdown twins
+    // use too, so a page and its twin cannot disagree. It used to handle ".md" targets only, and read every
+    // "../" as the repository root: the 51 "../browser-capabilities.md" links on the browser-API pages became
+    // GitHub 404s, a benchmark's "../tests/…/README.md" became the repository's README, and a link to anything
+    // that was not Markdown — "../tests/Rask.Cqrs.Tests" — stayed relative and 404ed on the site. Dead links on
+    // the page, and the links between guides a crawler follows to find them sent off-site.
+    private static string RewriteLinks(string html, string? sourcePath) =>
         DocLinkRegex().Replace(html, m =>
         {
-            var path = m.Groups["path"].Value;
+            var target = DocLinks.Resolve(sourcePath, m.Groups["path"].Value);
             var fragment = m.Groups["frag"].Value;
-            if (path.Contains("../", StringComparison.Ordinal))
-            {
-                var leaf = path[(path.LastIndexOf('/') + 1)..];
-                return $"href=\"https://github.com/pal-tamas/rask/blob/main/{leaf}{fragment}\"";
-            }
 
-            var slug = path[(path.LastIndexOf('/') + 1)..^".md".Length];
             // The generated route, not a literal "/guides/{slug}". It WAS a literal, and the day the
             // showcase moved from / to /docs every in-doc link in every guide pointed at a URL that no
             // longer existed — silently, because a dead href renders exactly like a live one.
-            return $"href=\"{Features.Routes.GuidePage(slug)}{fragment}\" data-rask-nav";
+            return target.GuideSlug is { } slug
+                ? $"href=\"{Features.Routes.GuidePage(slug)}{fragment}\" data-rask-nav"
+                : $"href=\"{target.GitHubUrl}{fragment}\"";
         });
 
     // A guide heading surfaced in the Chapters TOC / on-this-page rail: its level (2 or 3), plain text,
@@ -274,8 +285,9 @@ public sealed partial class Markdown : Component
     [GeneratedRegex(@"<!--\s*demo:\s*(?<key>[a-z0-9][a-z0-9-]*)\s*-->")]
     private static partial Regex DemoMarkerRegex();
 
-    // Matches href="…something.md" with an optional "#fragment", excluding absolute/remote URLs.
-    [GeneratedRegex("href=\"(?!https?:|/)(?<path>[^\"#]+\\.md)(?<frag>#[^\"]*)?\"")]
+    // Matches a relative href="path" with an optional "#fragment": not a scheme (https:, mailto:), not rooted,
+    // not a bare "#fragment" — which needs no rewriting.
+    [GeneratedRegex("href=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"#]+)(?<frag>#[^\"]*)?\"")]
     private static partial Regex DocLinkRegex();
 
     // Markdig fenced-code output: <pre><code class="language-{info}">{HTML-encoded body}</code></pre>.

@@ -34,7 +34,7 @@ public sealed class AppTests
         // overrides App's fallback title via the framework's singleton-key
         // dedupe. <title> carries data-rask-key="tag:title" so we match the body, not the
         // opening tag verbatim.
-        Assert.Contains(">Guides &#x2014; Rask</title>", html);
+        Assert.Contains(">Docs: guides for building .NET web apps in C# &#x2014; Rask</title>", html);
         Assert.Contains("charset=\"utf-8\"", html);
         Assert.Contains("viewport", html);
         // One stylesheet, compiled by Rask.Tailwind from this project's own source. It replaced three

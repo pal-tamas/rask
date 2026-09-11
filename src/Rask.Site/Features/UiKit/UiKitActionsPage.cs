@@ -16,10 +16,9 @@ public sealed partial class UiKitActionsPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "UI kit — Actions — Rask",
-            "daisyUI's Actions components as typed Rask components: button, dropdown, modal, swap, "
-            + "theme controller and the floating action button, each driven by C# state rather than a "
-            + "CSS trick.",
+            "daisyUI buttons, modals and dropdowns in C# — Rask",
+            "daisyUI action components as typed C# components: button, dropdown, modal, swap, theme "
+            + "controller and floating action button, with open state in C# fields.",
             Routes.UiKitActionsPage());
 
     /// <inheritdoc />

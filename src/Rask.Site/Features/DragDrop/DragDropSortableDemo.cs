@@ -19,7 +19,7 @@ public sealed partial class DragDropSortableDemo : Component
         {
             var fruit = _fruits[i];
             var index = i;
-            var cls = "list-group-item d-flex align-items-center gap-2 dd-item";
+            var cls = "flex items-center gap-2 dd-item";
             if (ctx.IsSource("list", index))
             {
                 cls += " dd-dragging";
@@ -44,7 +44,7 @@ public sealed partial class DragDropSortableDemo : Component
             ]);
         }
 
-        return Ul.Class($"{Tw.ListGroup} dd-list").Id("dd-fruit-list")[rows];
+        return UiList.Class("dd-list").Id("dd-fruit-list")[rows];
     }
 
     // Direction-aware: dragging down lands after the target, dragging up lands before it.

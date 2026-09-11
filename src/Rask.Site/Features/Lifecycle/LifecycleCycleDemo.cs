@@ -12,14 +12,14 @@ public sealed partial class LifecycleCycleDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                UiButton.Label("Mount probe").Icon(UiIconName.Play).Tone(UiTone.Primary)
+                UiButton.Tone(UiTone.Primary)
                     .Id("lifecycle-cycle-mount")
                     .Disabled(_cycleMounted)
-                    .OnClick(MountCycle),
-                UiButton.Label("Unmount probe").Icon(UiIconName.Stop).Variant(UiVariant.Outline)
+                    .OnClick(MountCycle)[UiIcon.Name(UiIconName.Play), "Mount probe"],
+                UiButton.Variant(UiVariant.Outline)
                     .Id("lifecycle-cycle-unmount")
                     .Disabled(!_cycleMounted)
-                    .OnClick(UnmountCycle)
+                    .OnClick(UnmountCycle)[UiIcon.Name(UiIconName.Stop), "Unmount probe"]
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.Log(AppendCycleLog).InstanceId(_nextCycleId)
@@ -27,12 +27,12 @@ public sealed partial class LifecycleCycleDemo : Component
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             _cycleLog.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
-                : Ol
-                    .Class($"{Tw.ListGroup} list-decimal list-inside divide-y divide-ui-line")
+                : UiList
+                    .Ordered(true)
                     .Id("lifecycle-cycle-log")[
                     _cycleLog.Select((l, i) => Li
                         .Key(i)
-                        .Class($"{Tw.ListGroupItem} ps-2 text-sm")[Code.Class("text-sm")[l]]).ToArray()]
+                        .Class("ps-2")[Code.Class("text-sm")[l]]).ToArray()]
         ];
 
     private void MountCycle()

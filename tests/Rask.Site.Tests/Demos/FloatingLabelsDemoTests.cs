@@ -69,32 +69,31 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void FloatingLabelsDemo_Render_EmitsFloatingFieldsAndLinkedLabels()
+    public void FloatingLabelsDemo_Render_FloatsEveryLabelOverItsLinkedControl()
     {
         var html = RaskTest.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
 
-        // All three controls render. The assertion is on the TAGS: the classes that used to stand in
-        // for them (.form-control, .form-select) were Bootstrap's, and a class is the one part of
-        // this markup a restyle is entitled to change.
+        // All three controls render. The assertion is on the TAGS, which a restyle is not entitled to change.
         Assert.Contains("<input ", html);
         Assert.Contains("<textarea ", html);
         Assert.Contains("<select ", html);
 
-        // Ids are derived from the bound property name (ff-{Property}) and the label links to them.
+        // Every field floats its label — the default for a labelled kit text field — and the label is linked
+        // to its control by for/id as well as by holding it. The ff-* ids are the browser journey's selectors.
+        Assert.Equal(5, html.Split("class=\"floating-label\"").Length - 1);
         foreach (var prop in new[] { "FullName", "Email", "Age", "Plan", "Bio" })
         {
             Assert.Contains($"id=\"ff-{prop}\"", html);
             Assert.Contains($"for=\"ff-{prop}\"", html);
         }
 
-        // Labels come from the model's [Display(Name)] attributes, not the property names.
-        Assert.Contains(">Full name<", html);
-        Assert.Contains(">Email address<", html);
-        Assert.Contains(">Short bio<", html);
+        Assert.Contains("<span>Full name</span>", html);
+        Assert.Contains("<span>Email address</span>", html);
+        Assert.Contains("<span>Short bio</span>", html);
 
         Assert.Contains(">Create account<", html);
         // No messages until a failed submit.
-        Assert.DoesNotContain("field-error", html);
+        Assert.DoesNotContain("is required", html);
     }
 
     [Fact]

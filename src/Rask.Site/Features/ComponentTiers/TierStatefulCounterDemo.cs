@@ -10,5 +10,5 @@ public sealed partial class TierStatefulCounterDemo : Component
     private int _count;
 
     protected override Component? Render() =>
-        UiButton.Label($"Clicked {_count} times").Tone(UiTone.Primary).OnClick(() => _count++);
+        UiButton.Tone(UiTone.Primary).OnClick(() => _count++)[$"Clicked {_count} times"];
 }

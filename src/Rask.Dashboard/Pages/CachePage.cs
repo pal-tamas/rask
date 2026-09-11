@@ -113,7 +113,7 @@ public sealed partial class CachePage(
     }
 
     private Component KeyTable(DateTime now) =>
-        UiTable[
+        UiTable.Scroll(true)[
             Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                 Tr[
                     Th.Class("px-3 py-2 font-medium")["Key"],
@@ -134,7 +134,7 @@ public sealed partial class CachePage(
                         Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
                             Span.Class("tabular-nums")[DashboardParts.Bytes(r.Bytes)],
                             r.ExpiresAt <= now
-                                ? UiBadge.Label("expired")
+                                ? UiBadge["expired"]
                                 : Span.Title(r.ExpiresAt.ToString("u"))[
                                     $"expires {DashboardParts.Ago(r.ExpiresAt, now)}"
                                 ]
@@ -148,7 +148,7 @@ public sealed partial class CachePage(
                 ],
                 Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs sm:table-cell").Title(r.ExpiresAt.ToString("u"))[
                     r.ExpiresAt <= now
-                        ? UiBadge.Label("expired")
+                        ? UiBadge["expired"]
                         : Span.Class("text-ui-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
                 ],
                 Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted lg:table-cell")[
@@ -169,16 +169,16 @@ public sealed partial class CachePage(
         // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
         // which is where thumbs are.
         return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            UiButton.Key("prev").Label("Previous")
+            UiButton.Key("prev")
                 .Disabled(_page == 0)
-                .OnClick(() => GoAsync(_page - 1)),
+                .OnClick(() => GoAsync(_page - 1))["Previous"],
             Span.Class("text-center text-xs text-ui-muted")[
                 Span[$"Page {_page + 1} of {pages}"],
                 Span.Class("hidden sm:inline")[$" — {_total} keys"]
             ],
-            UiButton.Key("next").Label("Next")
+            UiButton.Key("next")
                 .Disabled(_page >= pages - 1)
-                .OnClick(() => GoAsync(_page + 1))
+                .OnClick(() => GoAsync(_page + 1))["Next"]
         ];
     }
 
@@ -187,12 +187,12 @@ public sealed partial class CachePage(
     // stampede — hence the Destructive tier and a confirmation.
     private Component? EvictButton(string key) =>
         options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? UiButton.Label("Evict").OnClick(() => EvictAsync(key))
+            ? UiButton.OnClick(() => EvictAsync(key))["Evict"]
             : null;
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? UiButton.Label("Flush cache").Tone(UiTone.Error).Icon(UiIconName.Trash).OnClick(() => Confirm(true))
+            ? UiButton.Tone(UiTone.Error).OnClick(() => Confirm(true))[UiIcon.Name(UiIconName.Trash), "Flush cache"]
             : null;
 
     private Component? ConfirmPrompt() =>
@@ -201,8 +201,8 @@ public sealed partial class CachePage(
                 Span.Class("min-w-0 grow break-words")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                UiButton.Key("confirm").Label("Confirm").Tone(UiTone.Error).OnClick(FlushAsync),
-                UiButton.Key("cancel").Label("Cancel").OnClick(() => Confirm(false))
+                UiButton.Key("confirm").Tone(UiTone.Error).OnClick(FlushAsync)["Confirm"],
+                UiButton.Key("cancel").OnClick(() => Confirm(false))["Cancel"]
             ]
             : null;
 

@@ -9,33 +9,30 @@ public sealed partial class BindingAfterBindDemo : Component
         ["JP"] = new[] { "Tokyo", "Osaka", "Kyoto" }
     };
 
+    private static readonly (string Value, string Text)[] Countries =
+        [("US", "United States"), ("DE", "Germany"), ("JP", "Japan")];
+
     private readonly Holder _model = new();
     private string[] _cities = Cities["US"];
 
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Label.For("bind-after-country").Class($"{Tw.Label} text-sm")["Country"],
-            Select.Bind(() => _model.Country)
+            UiSelect.Bind(() => _model.Country)
+                .Options(Countries)
+                .Label("Country")
                 .AfterBind(c =>
                 {
                     _cities = Cities[c];
                     _model.City = _cities[0];
                 })
                 .Id("bind-after-country")
-                .Class(Tw.Select)[
-                Option.Value("US")["United States"],
-                Option.Value("DE")["Germany"],
-                Option.Value("JP")["Japan"]
-            ]
         ],
         Div.Class("mb-3")[
-            Label.For("bind-after-city").Class($"{Tw.Label} text-sm")["City"],
-            Select.Bind(() => _model.City)
+            UiSelect.Bind(() => _model.City)
+                .Options([.. _cities.Select(c => (c, c))])
+                .Label("City")
                 .Id("bind-after-city")
-                .Class(Tw.Select)[
-                _cities.Select(c => Option.Value(c).Key(c)[c])
-            ]
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-after-echo")[

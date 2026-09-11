@@ -1094,13 +1094,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         var token = column.FieldName!;
         var on = CurrentGrouped.Contains(token, StringComparer.Ordinal);
         return UiButton
-            .Label(on ? "Stop grouping by " + (column.Title ?? token) : "Group by " + (column.Title ?? token))
-            .Icon(UiIconName.Stack)
+            .AccessibleLabel(on ? "Stop grouping by " + (column.Title ?? token) : "Group by " + (column.Title ?? token))
             .Square(true)
             .Size(UiSize.Xs)
             .Variant(on ? UiVariant.Soft : UiVariant.Ghost)
             .Disabled(Busy)
-            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token));
+            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token))[UiIcon.Name(UiIconName.Stack)];
     }
 
     private Component SelectAllBox(IReadOnlyList<T> pageRows)
@@ -1224,12 +1223,11 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         Detail?.Invoke(row) is null
             ? Span
             : UiButton
-                .Label(open ? "Collapse row" : "Expand row")
-                .Icon(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)
+                .AccessibleLabel(open ? "Collapse row" : "Expand row")
                 .Square(true)
                 .Size(UiSize.Xs)
                 .Variant(UiVariant.Ghost)
-                .OnClick(() => ToggleExpand(key));
+                .OnClick(() => ToggleExpand(key))[UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)];
 
     // ---- bands ----------------------------------------------------------------------------------
 
@@ -1341,12 +1339,11 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                     GroupCollapsible is false
                         ? null
                         : UiButton
-                            .Label(collapsed ? "Expand group" : "Collapse group")
-                            .Icon(collapsed ? UiIconName.ChevronRight : UiIconName.ChevronDown)
+                            .AccessibleLabel(collapsed ? "Expand group" : "Collapse group")
                             .Square(true)
                             .Size(UiSize.Xs)
                             .Variant(UiVariant.Ghost)
-                            .OnClick(() => ToggleBand(path)),
+                            .OnClick(() => ToggleBand(path))[UiIcon.Name(collapsed ? UiIconName.ChevronRight : UiIconName.ChevronDown)],
                     heading
                 ]
             ]
@@ -1417,11 +1414,9 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private Component ChooserBar(IReadOnlyList<UiColumn<T>> columns, DragDropContext ctx) =>
         Div.Class("relative")[
             UiButton
-                .Label("Columns")
-                .Icon(UiIconName.Menu)
                 .Size(UiSize.Sm)
                 .Variant(UiVariant.Outline)
-                .OnClick(() => _chooserOpen = !_chooserOpen),
+                .OnClick(() => _chooserOpen = !_chooserOpen)[UiIcon.Name(UiIconName.Menu), "Columns"],
             !_chooserOpen
                 ? null
                 : Div
@@ -1532,13 +1527,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private static Component? MoveButton(bool enabled, string label, UiIconName icon, Func<Task> click) =>
         UiButton
-            .Label(label)
-            .Icon(icon)
+            .AccessibleLabel(label)
             .Square(true)
             .Size(UiSize.Xs)
             .Variant(UiVariant.Ghost)
             .Disabled(!enabled)
-            .OnClick(click);
+            .OnClick(click)[UiIcon.Name(icon)];
 
     private static UiColumn<T>? Find(IReadOnlyList<UiColumn<T>> columns, string token)
     {

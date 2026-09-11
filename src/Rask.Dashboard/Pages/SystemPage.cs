@@ -165,7 +165,7 @@ public sealed partial class SystemPage(
     private Component SnapshotList(DateTime now) =>
         _snapshots.Count == 0
             ? Div.Class("text-xs text-ui-muted")["No snapshots stored."]
-            : UiTable[
+            : UiTable.Scroll(true)[
                 Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Snapshot"],
@@ -200,7 +200,7 @@ public sealed partial class SystemPage(
         }
 
         return UiCard.Heading("Recurring jobs")[
-            UiTable[
+            UiTable.Scroll(true)[
                 Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Name"],
@@ -216,7 +216,7 @@ public sealed partial class SystemPage(
                             Span[$"every {DashboardParts.Duration(r.Interval)}"],
                             r.LastEnqueuedAt is { } lastSmall
                                 ? Span.Title(lastSmall.ToString("u"))[DashboardParts.Ago(lastSmall, now)]
-                                : UiBadge.Label("never")
+                                : UiBadge["never"]
                         ]
                     ],
                     Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[DashboardParts.Duration(r.Interval)],
@@ -226,7 +226,7 @@ public sealed partial class SystemPage(
                                 DashboardParts.Ago(last, now)
                             ]
                             // Declared but never fired: either the app just started, or this one is stuck.
-                            : UiBadge.Label("never")
+                            : UiBadge["never"]
                     ]
                 ])]
             ]

@@ -177,7 +177,7 @@ public static class WasmPrerender
         // route that threw or timed out is not written at all, and listing it would send a crawler to a
         // URL answering with the boot shell — the thing prerendering exists to stop it seeing. A route
         // that renders a noindex page IS written, and must still not be listed.
-        var writtenPaths = new List<string>(paths.Count);
+        var writtenPaths = new List<SitemapEntry>(paths.Count);
         var written = 0;
         foreach (var path in paths)
         {
@@ -231,9 +231,11 @@ public static class WasmPrerender
             //   * a canonical pointing SOMEWHERE ELSE — the page has said another URL is the real one.
             //     An add form that canonicalises to its list is the ordinary case, and a sitemap lists
             //     canonical URLs; listing both asks a crawler to index a page that disclaims itself.
+            //
+            // And the date it last changed comes off the same markup, for the same reason: see LastModified.
             if (ListedInSitemap(html, path))
             {
-                writtenPaths.Add(path);
+                writtenPaths.Add(new SitemapEntry(path, LastModified(html)));
             }
         }
 
@@ -502,7 +504,7 @@ public static class WasmPrerender
     ///     </para>
     /// </remarks>
     private static void WriteSitemap(
-        string outputDirectory, IReadOnlyList<string> paths, List<string> writtenFiles)
+        string outputDirectory, IReadOnlyList<SitemapEntry> paths, List<string> writtenFiles)
     {
         var origin = Environment.GetEnvironmentVariable(SiteUrlVariable)?.Trim().TrimEnd('/');
         if (string.IsNullOrEmpty(origin))
@@ -532,12 +534,18 @@ public static class WasmPrerender
             "false",
             StringComparison.OrdinalIgnoreCase);
 
-        foreach (var path in paths)
+        foreach (var entry in paths)
         {
             // LiveOptions.PathBase is already on every rendered link; it belongs here too, or a
             // sub-path deploy publishes a sitemap pointing at the origin root.
-            var url = origin + LiveOptions.PathBase + SiteUrlPath(path, trailingSlash);
-            builder.Append("  <url><loc>").Append(XmlEscape(url)).AppendLine("</loc></url>");
+            var url = origin + LiveOptions.PathBase + SiteUrlPath(entry.Path, trailingSlash);
+            builder.Append("  <url><loc>").Append(XmlEscape(url)).Append("</loc>");
+            if (entry.LastModified is { } lastModified)
+            {
+                builder.Append("<lastmod>").Append(XmlEscape(lastModified)).Append("</lastmod>");
+            }
+
+            builder.AppendLine("</url>");
         }
 
         builder.AppendLine("</urlset>");
@@ -650,6 +658,104 @@ public static class WasmPrerender
         }
 
         return extra;
+    }
+
+    /// <summary>One URL the sitemap lists, and the date its page says it last changed.</summary>
+    internal readonly record struct SitemapEntry(string Path, string? LastModified);
+
+    /// <summary>
+    ///     The page's <c>article:modified_time</c>, as a sitemap <c>lastmod</c> — or <c>null</c> when it
+    ///     declares none, or declares something that is not a date.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Read off the page, for the reason noindex and the canonical are: the page is the one place the
+    ///         date is stated, so the sitemap cannot claim a different one. Open Graph's tag rather than a
+    ///         Rask-specific one, because a page that wants a <c>lastmod</c> almost always wants the tag
+    ///         anyway, and a second declaration of the same fact is the thing that drifts.
+    ///     </para>
+    ///     <para>
+    ///         <b>Never invented.</b> The obvious fallback — the time of the publish — marks every URL as
+    ///         changed on every deploy, and a crawler that notices stops reading the field for the whole site.
+    ///         A page with no date gets a <c>&lt;url&gt;</c> with no <c>lastmod</c>, which is what the protocol
+    ///         says to do.
+    ///     </para>
+    ///     <para>
+    ///         Normalised to a W3C datetime, because a <c>&lt;meta&gt;</c> will carry anything and one malformed
+    ///         <c>lastmod</c> is reported against the whole sitemap rather than against its URL.
+    ///     </para>
+    /// </remarks>
+    internal static string? LastModified(string html)
+    {
+        var property = html.IndexOf("property=\"article:modified_time\"", StringComparison.OrdinalIgnoreCase);
+        if (property < 0)
+        {
+            return null;
+        }
+
+        // The tag's own bounds, so a content attribute from a NEIGHBOURING meta cannot be read as this one's.
+        var open = html.LastIndexOf('<', property);
+        var close = html.IndexOf('>', property);
+        if (open < 0 || close < 0)
+        {
+            return null;
+        }
+
+        var tag = html[open..close];
+        const string Needle = "content=\"";
+        var content = tag.IndexOf(Needle, StringComparison.OrdinalIgnoreCase);
+        if (content < 0)
+        {
+            return null;
+        }
+
+        content += Needle.Length;
+        var end = tag.IndexOf('"', content);
+        if (end < 0)
+        {
+            return null;
+        }
+
+        // Decoded: the serializer writes an offset's '+' as an entity, and "&#x2B;01:00" is not a date.
+        return W3cDateTime(System.Net.WebUtility.HtmlDecode(tag[content..end]).Trim());
+    }
+
+    // The profiles of the W3C datetime a sitemap's lastmod takes that carry a time: minutes, seconds, or
+    // fractional seconds, each with or without a zone (none is read as UTC).
+    private static readonly string[] Timestamps =
+        ["yyyy-MM-dd'T'HH:mmK", "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"];
+
+    /// <summary>
+    ///     <paramref name="value" /> as a W3C datetime — <c>YYYY</c>, <c>YYYY-MM</c>, <c>YYYY-MM-DD</c> or a
+    ///     timestamp — or <c>null</c> when it is none of them.
+    /// </summary>
+    /// <remarks>
+    ///     Parsed EXACTLY. A culture-aware parse reads "01/02/2026" and "Sep 10, 2026" as dates and publishes
+    ///     its guess about which day was meant; the whole point of the field is that it is not a guess.
+    /// </remarks>
+    private static string? W3cDateTime(string value)
+    {
+        if (value.Length == 4 && value.All(char.IsAsciiDigit))
+        {
+            return value;
+        }
+
+        if (value.Length == 7
+            && value[4] == '-'
+            && DateOnly.TryParseExact(value + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+        {
+            return value;
+        }
+
+        if (DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+        {
+            return value;
+        }
+
+        return DateTimeOffset.TryParseExact(
+            value, Timestamps, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var moment)
+            ? moment.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture)
+            : null;
     }
 
     /// <summary>Whether a written page belongs in the sitemap.</summary>

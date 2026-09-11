@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Components;
@@ -88,7 +89,7 @@ public sealed partial class GuideChrome : Component
             return
             [
                 BackLink(),
-                UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft).Message($"No guide found for “{Slug}”.")
+                UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft)[$"No guide found for “{Slug}”."]
             ];
         }
 
@@ -102,7 +103,8 @@ public sealed partial class GuideChrome : Component
             BackLink(),
             Chapters(headings),
             Div.Class("guide-layout")[
-                Div.Class("guide-content")[Markdown.Source(source)],
+                // The doc's own path, which its relative links are relative to.
+                Div.Class("guide-content")[Markdown.Source(source).SourcePath(GuideCatalog.SourcePath(Slug))],
                 OnThisPage(headings)
             ],
             PrevNext(prev, next)
@@ -120,7 +122,7 @@ public sealed partial class GuideChrome : Component
     private Component Banner() =>
         Div.Class("guide-banner")[
             UiIcon.Name(UiIconName.Info).Class("me-2"),
-            Span[$"You're reading the Rask v{RaskVersion.Current} guides."],
+            Span[$"You're reading the Rask v{RaskVersion.Current} guides.", Updated()],
             A
                 .Href($"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}")
                 .Target("_blank")
@@ -129,6 +131,22 @@ public sealed partial class GuideChrome : Component
                 UiIcon.Name(UiIconName.CodeBracket).Class("me-1"), "View source"
             ]
         ];
+
+    // When this guide last changed, in words and as a <time> — the same date the structured data's
+    // dateModified and the sitemap's <lastmod> carry. A machine-readable date with no visible one beside it is
+    // the combination search engines are told to distrust, and a reader deciding whether a page is stale
+    // wants the answer too. Nothing at all when the build could not ask git: no date beats an invented one.
+    private Component? Updated() =>
+        GuideHistory.LastModified(Slug) is { } date
+            ?
+            [
+                " Updated ",
+                Time.DateTime(date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))[
+                    date.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)
+                ],
+                "."
+            ]
+            : null;
 
     // The numbered Chapters TOC: each ## is a chapter; the ### under it become a nested sub-list. Mirrors
     // the "Chapters" box at the top of each guide.

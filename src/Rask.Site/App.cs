@@ -30,14 +30,12 @@ public partial class App : Component
     [
         // The fallback title. <title> is a singleton the framework resolves to the LAST contributor, so
         // every page that names itself wins over this; it is what the front door serves.
-        Title["Rask — the .NET One Person Framework"],
+        Title[SiteIdentity.Title],
         Meta.Charset("utf-8"),
         Meta.Name("viewport").Content("width=device-width, initial-scale=1, viewport-fit=cover"),
         // Arrived with the landing page and stays app-level: this is the description a crawler reads
         // for the site, and the front door is the page it reads it on.
-        Meta
-            .Name("description")
-            .Content("Rask is the .NET One Person Framework: one developer builds, runs, and ships a whole product — UI, data, auth, background work, and deploy — from one C# codebase on one SQLite-backed server. The same components run on Server and WebAssembly."),
+        Meta.Name("description").Content(SiteIdentity.Description),
         Meta.Name("theme-color").Content("#7c3aed"),
         // The theme, applied before the first paint and remembered — a kit component now, not a script
         // this app maintains. It writes NO data-theme when the reader has chosen nothing, which is what

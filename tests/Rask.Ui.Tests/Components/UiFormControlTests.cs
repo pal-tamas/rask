@@ -197,16 +197,6 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_floating_label_puts_its_text_before_the_control()
-    {
-        // daisyUI selects the control as the sibling AFTER the text, so the order is load-bearing.
-        var html = UiFloatingLabel.Text("Email")[Span["field"]].ToHtml();
-
-        Assert.StartsWith("<label class=\"floating-label\"><span>Email</span>", html,
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void A_filter_is_a_radio_group_with_a_reset()
     {
         // Radios rather than buttons is what lets daisyUI hide the unpicked options in CSS, and gives

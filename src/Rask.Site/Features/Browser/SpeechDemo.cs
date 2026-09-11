@@ -10,16 +10,17 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
 
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
-                Input
+                UiInput
                     .Value(_text)
+                    .Label("Text to speak")
                     .Id("speech-text")
-                    .Class($"{Tw.Input} mb-2")
+                    .Class("mb-2")
                     .OnInput(v => _text = v),
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Label("Speak").Tone(UiTone.Primary).Id("speech-speak").OnClick(Speak),
-                    UiButton.Label("Stop").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Id("speech-speak").OnClick(Speak)["Speak"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("speech-cancel")
-                        .OnClick(Cancel)
+                        .OnClick(Cancel)["Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-status")[_status ?? "(idle)"]]
             ];

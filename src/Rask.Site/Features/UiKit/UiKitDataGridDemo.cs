@@ -39,7 +39,7 @@ public sealed partial class UiKitDataGridDemo : Component
                 UiDataGrid.Data(Catalog).RowKey(r => r.Id).Zebra(true).Label("Packages")[c => [
                     c.Field(r => r.Name).Title("Package").Sortable(true),
                     c.Field(r => r.Channel).Title("Channel")
-                        .Cell(r => UiBadge.Label(r.Channel).Tone(r.Channel == "stable" ? UiTone.Success : UiTone.Info)),
+                        .Cell(r => UiBadge.Tone(r.Channel == "stable" ? UiTone.Success : UiTone.Info)[r.Channel]),
                     c.Field(r => r.Downloads).Title("Downloads").Sortable(true).Class("text-right")
                         .Footer(rows => rows.Sum(x => x.Downloads)),
                 ]]

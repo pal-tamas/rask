@@ -48,13 +48,13 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    UiButton.Label("Add item").Tone(UiTone.Primary).Id("mo-add").OnClick(() => _items++),
-                    UiButton.Label("Remove item").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Id("mo-add").OnClick(() => _items++)["Add item"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("mo-remove")
-                        .OnClick(() => { if (_items > 0) _items--; }),
-                    UiButton.Label("Toggle attribute").Variant(UiVariant.Outline)
+                        .OnClick(() => { if (_items > 0) _items--; })["Remove item"],
+                    UiButton.Variant(UiVariant.Outline)
                         .Id("mo-toggle")
-                        .OnClick(() => _highlight = !_highlight)
+                        .OnClick(() => _highlight = !_highlight)["Toggle attribute"]
                 ],
                 Div
                     .Ref(_target)

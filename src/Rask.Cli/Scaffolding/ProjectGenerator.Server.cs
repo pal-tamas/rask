@@ -40,7 +40,11 @@ internal static partial class ProjectGenerator
         // plugin next to Styles/app.css and the kit's sheet in wwwroot. It also brings the ~110 Ui*
         // components, which is a bonus here rather than the reason: the starter page writes daisyUI's
         // own class names, so it needs the plugin whether or not it ever names a component.
-        var packages = new List<string> { "Rask.Server", "Rask.Ui" };
+        //
+        // Rask.DevTools is named directly for the same build/-hooks reason: its targets are what keep the
+        // devtools out of a Release publish, and an app that does not reference the `Rask` meta-package —
+        // which is every scaffolded one — would otherwise never get them.
+        var packages = new List<string> { "Rask.Server", "Rask.Ui", "Rask.DevTools" };
 
         if (batteries.Cqrs)
         {

@@ -240,6 +240,25 @@ and each exclusion is read off the page's own rendered markup so the two can nev
 - a page whose **canonical points elsewhere** — an add form that canonicalises to its list is saying
   another URL is the real one, and a sitemap lists canonical URLs.
 
+**A `<lastmod>` comes from the page too.** A page that declares when it last changed gets that date in
+its sitemap entry:
+
+```csharp
+protected override Component? HeadAssets =>
+[
+    Meta.Property("article:modified_time").Content("2026-09-10"),
+];
+```
+
+The value must be a W3C datetime — `2026`, `2026-09`, `2026-09-10`, or a timestamp such as
+`2026-09-10T08:30:00+02:00` (one with no zone is read as UTC) — and is parsed exactly: anything else,
+`01/02/2026` included, is ignored rather than published as a guess or malformed, since one bad `lastmod`
+is reported against the whole sitemap. A page
+that declares no date gets no `lastmod`. The pass never fills one in with the publish time: that marks
+every URL as changed on every deploy, and a crawler that notices stops trusting the field for the whole
+site. The Open Graph tag rather than a Rask-specific one, because a page that wants a `lastmod` usually
+wants the tag anyway — and a second declaration of the same fact is the one that drifts.
+
 If the pass writes **no** pages at all, the build raises a warning — because the pass reports what it
 skipped and carries on, so "it ran" and "it produced something" are different questions.
 

@@ -21,23 +21,23 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
         UiCard.Class("shadow-sm")[
                 Div.Class("grid grid-cols-12 gap-4 mb-2")[
                     Div.Class("col-span-12 sm:col-span-4")[
-                        Input
+                        UiInput
                             .Value(_key)
+                            .Label("Key")
                             .Id("idb-key")
-                            .Class(Tw.Input)
                             .OnInput(v => _key = v)],
                     Div.Class("col-span-12 sm:col-span-8")[
-                        Input
+                        UiInput
                             .Value(_value)
+                            .Label("Value")
                             .Id("idb-value")
-                            .Class(Tw.Input)
                             .OnInput(v => _value = v)]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Label("Set").Tone(UiTone.Primary).Id("idb-set").OnClick(Set),
-                    UiButton.Label("Get").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("idb-get").OnClick(Get),
-                    UiButton.Label("List keys").Variant(UiVariant.Outline).Id("idb-keys").OnClick(Keys),
-                    UiButton.Label("Clear").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("idb-clear").OnClick(Clear)
+                    UiButton.Tone(UiTone.Primary).Id("idb-set").OnClick(Set)["Set"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("idb-get").OnClick(Get)["Get"],
+                    UiButton.Variant(UiVariant.Outline).Id("idb-keys").OnClick(Keys)["List keys"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("idb-clear").OnClick(Clear)["Clear"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],

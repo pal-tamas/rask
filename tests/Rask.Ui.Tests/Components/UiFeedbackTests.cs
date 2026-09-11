@@ -65,7 +65,7 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     [InlineData(UiTone.Success, "alert-success")]
     [InlineData(UiTone.Info, "alert-info")]
     public void Every_alert_tone_writes_its_own_class(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiAlert.Message("Payment failed").Tone(tone).ToHtml());
+        Assert.Contains(expected, UiAlert.Tone(tone)["Payment failed"].ToHtml());
 
     [Fact]
     public void A_progress_bar_is_a_real_progress_element()
