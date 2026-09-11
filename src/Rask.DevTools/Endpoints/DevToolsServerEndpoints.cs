@@ -141,9 +141,10 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
         // The token says the panel was opened from the page the server rendered for that session. A wrong or missing
         // one is answered like a session that does not exist, so neither can be probed for.
         var query = context.Request.Query;
-        var sessionId = query["inspect"].ToString();
-        if (!_tokens.Verify(sessionId, query["t"].ToString())
-            || context.RequestServices.GetRequiredService<LiveSessionStore>().Get(sessionId) is not { } inspected)
+        if (FindInspected(
+                context.RequestServices.GetRequiredService<LiveSessionStore>(),
+                query["inspect"].ToString(),
+                query["t"].ToString()) is not { } inspected)
         {
             return StatusCodes.Status404NotFound;
         }
@@ -161,6 +162,13 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
     }
 
     public bool CanResume(string path) => !Owns(path);
+
+    /// <summary>
+    ///     The session <paramref name="sessionId" /> names, when the devtools are on and <paramref name="token" /> is that
+    ///     session's token; null otherwise. Who is asking is the caller's check.
+    /// </summary>
+    internal LiveSession? FindInspected(LiveSessionStore store, string? sessionId, string? token) =>
+        _hostScriptUrl is not null && _tokens.Verify(sessionId, token) ? store.Get(sessionId!) : null;
 
     private static bool IsLoopback(IPAddress? address) => address is not null && IPAddress.IsLoopback(address);
 
