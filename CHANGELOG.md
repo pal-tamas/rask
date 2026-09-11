@@ -224,8 +224,7 @@ them until tagged releases begin.
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
   `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
-  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
-  not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all.
 
 - **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
   writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
@@ -399,6 +398,14 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **A state change made while its component is rendering is no longer lost.** A component's render cleared
+  its dirty flags only after `Render()` had read its state, so a `StateHasChanged()` from another thread in
+  that window was erased. That thread is typically an async lifecycle hook resuming on the thread pool, which
+  is the Server host's normal case. The stale output was cached and every later render replayed it, so the
+  page stopped updating until something else changed. The flags are now cleared before `Render()` runs, and
+  restored if it throws. This is what made `HttpPageTests` time out under a busy gate (#1067). WebAssembly
+  is single-threaded and never hit it.
 
 - **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
   compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island

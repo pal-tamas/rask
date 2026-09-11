@@ -7,11 +7,11 @@ namespace Rask.Site.Tests.Pages;
 
 /// <remarks>
 ///     The retry tests run the demo on a <see cref="ManualClock" /> and move it forward on every poll, instead of
-///     sleeping through the loop's real 150 ms delays and 5 s deadlines (#1067). That takes the timers off the
-///     thread pool, and makes a fetch that never settles testable at all: four deadlines would otherwise be 20 s
-///     of wall clock. What it cannot remove is the framework's own hop. <c>LifecycleSyncContext</c> resumes
-///     every await in a lifecycle hook through <c>Task.Run</c>, so each retry still takes one thread-pool turn,
-///     and the wait's budget bounds how long those turns may take.
+///     sleeping through the loop's real 150 ms delays and 5 s deadlines. That makes a fetch that never settles
+///     testable at all: four deadlines would otherwise be 20 s of wall clock. The persistent-failure test's old
+///     6 s timeouts (#1067) were not slowness. The demo's last continuation called StateHasChanged while a poll
+///     was mid-render, that render cleared the flag after reading the old state, and the page replayed its
+///     placeholder from then on. <c>RenderSkipTests</c> pins the fix in Rask.Core.
 /// </remarks>
 public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 {

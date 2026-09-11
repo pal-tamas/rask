@@ -101,6 +101,35 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
         Assert.True(root.RenderCount > afterFirst, "root must re-render on direct RenderAsLiveRoot");
     }
 
+    [Fact]
+    public async Task StateHasChanged_WhileTheComponentIsRendering_IsNotLost()
+    {
+        // A lifecycle continuation changes state and calls StateHasChanged on a pool thread, and nothing stops
+        // that landing while another thread's render of the same component is between reading the state and
+        // finishing. The render used to clear StateDirty at its END, wiping that request: the stale output was
+        // cached, and every later render replayed it. HttpPageTests timed out on exactly this (#1067); on the
+        // Server host it is a page that stops updating.
+        var sp = RenderHarness.EmptyServices();
+        using var reading = new ManualResetEventSlim();
+        using var resume = new ManualResetEventSlim();
+        var child = new PausingComponent(reading, resume);
+        var host = new StaticChildHost(child);
+
+        host.RenderAsLiveRoot(sp);
+
+        child.StateHasChanged();
+        child.PauseNextRender();
+        var walk = Task.Run(() => host.RenderAsLiveRoot(sp));
+        Assert.True(reading.Wait(TimeSpan.FromSeconds(10)), "the child's render never started");
+
+        child.Show("new");
+        child.StateHasChanged();
+        resume.Set();
+        await walk.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Contains("new", host.RenderAsLiveRoot(sp), StringComparison.Ordinal);
+    }
+
     private sealed class StaticChildHost : Component
     {
         private readonly Component _child;
@@ -112,6 +141,31 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
             var c = ctx.GetOrCreate(_ => _child);
             ctx.NotifyParameters(c, false);
             return c;
+        }
+    }
+
+    // Reads its state, then — once, on request — pauses inside Render() until the test lets it finish, so another
+    // thread can change that state mid-render at a point the test controls rather than one a race might hit.
+    private sealed class PausingComponent(ManualResetEventSlim reading, ManualResetEventSlim resume) : Component
+    {
+        private volatile string _shown = "old";
+        private volatile bool _pauseNext;
+
+        public void Show(string text) => _shown = text;
+
+        public void PauseNextRender() => _pauseNext = true;
+
+        protected override Component? Render()
+        {
+            var shown = _shown;
+            if (_pauseNext)
+            {
+                _pauseNext = false;
+                reading.Set();
+                resume.Wait(TimeSpan.FromSeconds(10));
+            }
+
+            return Span[shown];
         }
     }
 

@@ -1290,7 +1290,7 @@ public abstract partial class Component : RaskMarkup
         // firing lifecycle while an exception unwinds could throw again and swallow the original fault,
         // and it would be notifying a render that never happened.
         // The devtools want to know WHY this render ran. The flags that say so are still intact here — they are
-        // cleared at the end of this method — and the reason is only worked out when a probe is listening.
+        // cleared just below, before Render() runs — and the reason is only worked out when a probe is listening.
         //
         // The flags come first and the empty cache last. A component reaching this line failed the cache check above,
         // so if no flag explains it the cache was simply empty — which is also true of a re-render whose clean subtree
@@ -1307,58 +1307,84 @@ public abstract partial class Component : RaskMarkup
                 : Children is not null && this is not Element ? RenderCause.Children
                 : RenderCause.Uncached);
 
-        try
-        {
-            Live.CachedRenderResult = Render();
-        }
-        catch
-        {
-            if (Live.HasEntryChildren)
-            {
-                Live.HasEntryChildren = false;
-                BuilderRuntime.DrainSlots(this);
-            }
-
-            throw;
-        }
-
-        devTools?.ComponentRendered(this, devToolsStart);
-
-        // The Head override is part of THIS component's render, not of the walk that serializes it.
-        // Evaluating it here rather than at the serializer's collection point — which runs in the
-        // ENCLOSING component's parent scope, after that component's own render has finished and
-        // drained — is what gives an entry inside a Head override the right owner: its identity comes
-        // from this component's positional child map (counted on from the render's own children, since
-        // the reset above already ran), its pending reset drains with the rest below rather than a
-        // frame late, and a Context read inside a Head marks THIS component as ambient-reading.
+        // The dirty flags are cleared BEFORE Render() reads the state they stand for, never after. A
+        // StateHasChanged from another thread — an async lifecycle hook resuming on the thread pool while this
+        // render runs — sets StateDirty only after it has changed that state, so clearing first keeps a request
+        // that lands mid-render alive to force the next render. Clearing at the end wiped it, cached the output
+        // that had missed it, and every later render replayed that output (#1067). Blazor orders it the same
+        // way, clearing its pending-render flag before BuildRenderTree.
         //
-        // Cached alongside the render result because the registry that collects it is rebuilt every
-        // frame while this component may be served from the render cache: re-running the chain on a
-        // cache hit would hand out fresh positional identities on every frame (the counter is only
-        // reset by a real render), and re-running it at all is work a clean component does not owe.
-        Live.CachedHead = HeadAssets;
-
-        // Builder-surface commit point. A generated FACTORY assigns every prop and then calls
-        // NotifyParameters itself, because it knows when the props are done. A setter chain has no
-        // natural end — `Div.Class("a").Id("b")` could take another setter or the `[...]` indexer — so
-        // the entries defer that half to here: the moment Render() returns, every chain it built is
-        // complete and nothing can touch those props again before the walk reaches them.
-        //
-        // This is the exact factory ordering, not an approximation: the factory notifies during the
-        // parent's Render(), i.e. with the same ambient state (no Context provider pushed yet, since
-        // providers are pushed by the serializer) and always before the child is walked. Which is what
-        // makes Live.PropsDirty land in time for RenderForLive's cache check and TryReplayCleanSubtree
-        // on the child, and why a child that was built but then dropped from the tree still mounts.
-        //
-        // Gated on a flag armed by the entries themselves (LiveRenderContext.GetOrCreateEntry), so a
-        // tree built entirely from factories never walks the child map here.
-        if (Live.HasEntryChildren)
-        {
-            CommitEntryChildren();
-        }
-
+        // A render that does not complete has not rendered, so whatever asked for it is put back and the next
+        // walk retries instead of serving the cache: OR-ed in, so a request that arrived meanwhile is kept too.
+        var wasPropsDirty = Live.PropsDirty;
+        var wasStateDirty = Live.StateDirty;
         Live.PropsDirty = false;
         Live.StateDirty = false;
+        var completed = false;
+
+        try
+        {
+            try
+            {
+                Live.CachedRenderResult = Render();
+            }
+            catch
+            {
+                if (Live.HasEntryChildren)
+                {
+                    Live.HasEntryChildren = false;
+                    BuilderRuntime.DrainSlots(this);
+                }
+
+                throw;
+            }
+
+            devTools?.ComponentRendered(this, devToolsStart);
+
+            // The Head override is part of THIS component's render, not of the walk that serializes it.
+            // Evaluating it here rather than at the serializer's collection point — which runs in the
+            // ENCLOSING component's parent scope, after that component's own render has finished and
+            // drained — is what gives an entry inside a Head override the right owner: its identity comes
+            // from this component's positional child map (counted on from the render's own children, since
+            // the reset above already ran), its pending reset drains with the rest below rather than a
+            // frame late, and a Context read inside a Head marks THIS component as ambient-reading.
+            //
+            // Cached alongside the render result because the registry that collects it is rebuilt every
+            // frame while this component may be served from the render cache: re-running the chain on a
+            // cache hit would hand out fresh positional identities on every frame (the counter is only
+            // reset by a real render), and re-running it at all is work a clean component does not owe.
+            Live.CachedHead = HeadAssets;
+
+            // Builder-surface commit point. A generated FACTORY assigns every prop and then calls
+            // NotifyParameters itself, because it knows when the props are done. A setter chain has no
+            // natural end — `Div.Class("a").Id("b")` could take another setter or the `[...]` indexer — so
+            // the entries defer that half to here: the moment Render() returns, every chain it built is
+            // complete and nothing can touch those props again before the walk reaches them.
+            //
+            // This is the exact factory ordering, not an approximation: the factory notifies during the
+            // parent's Render(), i.e. with the same ambient state (no Context provider pushed yet, since
+            // providers are pushed by the serializer) and always before the child is walked. Which is what
+            // makes Live.PropsDirty land in time for RenderForLive's cache check and TryReplayCleanSubtree
+            // on the child, and why a child that was built but then dropped from the tree still mounts.
+            //
+            // Gated on a flag armed by the entries themselves (LiveRenderContext.GetOrCreateEntry), so a
+            // tree built entirely from factories never walks the child map here.
+            if (Live.HasEntryChildren)
+            {
+                CommitEntryChildren();
+            }
+
+            completed = true;
+        }
+        finally
+        {
+            if (!completed)
+            {
+                Live.PropsDirty |= wasPropsDirty;
+                Live.StateDirty |= wasStateDirty;
+            }
+        }
+
         return Live.CachedRenderResult;
     }
 
