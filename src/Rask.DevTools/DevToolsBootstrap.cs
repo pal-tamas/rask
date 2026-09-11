@@ -9,13 +9,21 @@ namespace Rask.DevTools;
 ///     when a Debug build carries this package. Renaming or moving it breaks that lookup silently, which is
 ///     what <c>DevToolsBootstrapTests</c> pins.
 /// </summary>
-internal sealed class DevToolsBootstrap : IRaskDevToolsBootstrap
+internal sealed partial class DevToolsBootstrap : IRaskDevToolsBootstrap
 {
     public void Attach(IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.TryAddSingleton<DevToolsRegistration>();
+        AttachHost(services);
     }
+
+    /// <summary>
+    ///     What only one host face adds. Implemented in a file compiled for that target framework alone
+    ///     (<c>DevToolsBootstrap.Server.cs</c>); a face with nothing to add has no implementation, and the
+    ///     compiler removes the call.
+    /// </summary>
+    static partial void AttachHost(IServiceCollection services);
 }
 
 /// <summary>
