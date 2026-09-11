@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Added
 
+- **Use an npm component as an island with no wrapper — its props come from its own TypeScript.** A class whose
+  `Module` names a package (`protected override string Module => "@mui/material/Button";`, or
+  `"@mui/material#Button"` for a named export) is a *package island*, and a committed `MuiButton.props.json`
+  beside it describes the package's props. From it the island generator declares the properties and a
+  reflection-free writer and the factory generator the chain steps —
+  `MuiButton.Variant(MuiButtonVariant.Contained).Disabled(saving).OnClick(Save)` — both reading one resolver, so
+  a step can never exist without its property. String-literal unions become generated enums sent as the
+  original literal; `number` is `double`; objects become generated records; `string | number` a generated
+  struct that takes either; dates cross tagged and arrive as a `Date`. An unset prop is left out rather than
+  sent as `null`, so the package's own default applies. A callback never forwards an event object —
+  `onChange(event, value)` is `Callback<double>` and only the number crosses (`$a`), which also stops a
+  package's synthetic event throwing inside the host's `JSON.stringify` and losing the call. A property
+  declared by hand wins and keeps its own type. RASK077–080 report a missing, unreadable or mismatched snapshot
+  and any prop that could not be generated. See
+  [Using a package component directly](docs/islands.md#using-a-package-component-directly).
+
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
   `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
@@ -198,6 +214,14 @@ them until tagged releases begin.
   `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
   than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
   not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+
+- **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
+  writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
+  adds beside the props shares one writer. Only a hand-written `ExternalComponent` subclass has to change —
+  `protected override void WriteProps(Utf8JsonWriter writer)` — and there is no reason to write one.
+- **A `Module` that names a package makes the island a package island**, including one that declares its props
+  by hand: an unset prop is left out of the props rather than written as `null`, so the package's default
+  applies, and each callback forwards only its first argument to C#.
 
 - **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
   in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
