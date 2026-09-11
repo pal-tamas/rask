@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "runtime": "vue",
+  "module": "fixture-vue",
+  "export": "default",
+  "package": {
+    "name": "fixture-vue",
+    "version": "2.0.1"
+  },
+  "tag": null,
+  "content": "node",
+  "props": [
+    {
+      "name": "disabled",
+      "required": false,
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "modelValue",
+      "required": false,
+      "doc": "Whether the toggle is on.",
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "onUpdate:modelValue",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "value",
+            "type": {
+              "kind": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onValue-change",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "value",
+            "type": {
+              "kind": "number"
+            }
+          },
+          {
+            "name": "source",
+            "type": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "size",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "lg",
+          "sm"
+        ]
+      }
+    }
+  ],
+  "skipped": []
+}

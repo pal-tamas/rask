@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "runtime": "svelte",
+  "module": "fixture-svelte",
+  "export": "LegacySelect",
+  "package": {
+    "name": "fixture-svelte",
+    "version": "0.4.0"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "items",
+      "required": false,
+      "type": {
+        "kind": "array",
+        "element": {
+          "kind": "string"
+        }
+      }
+    },
+    {
+      "name": "value",
+      "required": false,
+      "type": {
+        "kind": "string"
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "name": "on:change",
+      "reason": "legacy-event",
+      "detail": "CustomEvent<string>"
+    },
+    {
+      "name": "on:clear",
+      "reason": "legacy-event",
+      "detail": "CustomEvent<void>"
+    }
+  ]
+}
