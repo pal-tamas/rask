@@ -293,6 +293,39 @@ Two consequences worth knowing before an incident rather than during one:
   default), so it cannot grow without limit — but on a small box, size the volume with both databases in
   mind, and watch `rask.logs.dropped` to know whether the store is keeping up.
 
+### Uploaded files
+
+[`Rask.Storage`](file-storage.md) needs no variable from `rask deploy` to find the volume: with no
+`Storage__Disk__Root` set it writes to `/data/files` whenever `/data` exists, so uploads survive a redeploy
+the same way the database does. Where files go beyond that is configuration, passed with `--env` like any
+other variable, and the secrets among it are [remembered by name](secrets.md):
+
+| Variable | Effect |
+| --- | --- |
+| `Storage__Provider` | `Disk` (the default), `S3` or `Azure`. |
+| `Storage__MaxFileSize` | The largest file accepted, in bytes (default 52428800, 50 MB). |
+| `Storage__PublicBaseUrl` | An absolute `https` URL — a CDN or a public bucket domain — that public file links are built on. Unset, the app serves them itself. |
+| `Storage__Prefix` | A key prefix, so one bucket can hold several apps or environments (`shop-prod/`). |
+| `Storage__Disk__Root` | Where the disk provider writes; `/data/files` on the volume by default. |
+| `Storage__S3__ServiceUrl`, `__Bucket`, `__Region`, `__AccessKeyId`, `__SecretAccessKey`, `__SessionToken`, `__UsePathStyle` | An S3-compatible store: AWS S3, Cloudflare R2, Backblaze B2, MinIO, DigitalOcean Spaces, or Google Cloud Storage with HMAC keys. |
+| `Storage__Azure__ConnectionString`, `__Container` | Azure Blob Storage. |
+
+```bash
+rask deploy --env Storage__Provider=S3 \
+            --env Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
+            --env Storage__S3__Bucket=shop-files --env Storage__S3__Region=auto \
+            --env Storage__S3__AccessKeyId=… --env Storage__S3__SecretAccessKey=…
+```
+
+The same two cautions as the log store apply, and the first is sharper here:
+
+- **Files on disk are not backed up.** `rask db backup`, Litestream and snapshots cover `app.db` and nothing
+  else. The files' rows *are* in `app.db`, so a database restored onto a fresh box comes back pointing at
+  uploads that no longer exist. Backing up the disk store is not in the box yet — for files you can't afford
+  to lose, use S3 or Azure.
+- **They share the volume's disk.** `MaxFileSize` bounds one file, not the total, so size the volume for the
+  uploads you expect alongside both databases.
+
 ## Scaffolding a Dockerfile — `--docker`
 
 The three web templates take an opt-in `--docker` flag that drops a production-ready multi-stage

@@ -233,6 +233,11 @@ public static class GuideCatalog
             SearchTitle = "Database-backed IDistributedCache for ASP.NET Core",
             Description = "A cache stored in your app's own database instead of Redis: it implements IDistributedCache and adds a typed ICache with GetOrAddAsync and sliding expiry.",
         },
+        new("file-storage", "File storage", "Uploads kept on disk, S3 or Azure, with a row per file.", "One Person Framework")
+        {
+            SearchTitle = "File uploads in ASP.NET Core on disk, S3 or Azure",
+            Description = "Keep user uploads in .NET on disk, S3, R2 or Azure Blob with a row in your database: sniffed content types, size limits, public and signed temporary URLs.",
+        },
         new("outbox", "Outbox", "Crash-safe domain-event delivery on your database.",
             "One Person Framework")
         {

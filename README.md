@@ -120,8 +120,8 @@ rask db add AddProducts && rask db update                 # after you change the
 rask deploy --host root@box --domain shop.example.com     # bare box → Docker + auto-HTTPS, zero-downtime
 ```
 
-Auth, jobs, mail, cache and events are on by default, and every one of them rides the app's own
-SQLite database — a fresh app can register somebody, sign them in, confirm their address and reset
+Auth, jobs, mail, cache, events and file storage are on by default, and every one of them keeps its
+records in the app's own SQLite database (an upload's bytes go to disk or a bucket) — a fresh app can register somebody, sign them in, confirm their address and reset
 their password with no auth code written. Run `rask` with no arguments for a wizard.
 
 ## Documentation
@@ -132,7 +132,7 @@ their password with no auth code written. Run `rask` with no arguments for a wiz
 | **[Getting started](docs/getting-started.md)** · **[Tutorial](docs/tutorial/00-overview.md)** | The UI end to end; then a whole product, one pillar per chapter |
 | **[Building components](docs/building-components.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | How markup is written, the URLs it answers, and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |
-| **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[SQLite](docs/sqlite.md)** | The database-backed pillars |
+| **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[File storage](docs/file-storage.md)** · **[SQLite](docs/sqlite.md)** | The database-backed pillars |
 | **[HTTP APIs](docs/api-endpoints.md)** | API controllers and minimal APIs, hosted properly and called through a client generated from them |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | Day-to-day differences side by side; every RASK build error and its fix |
 
