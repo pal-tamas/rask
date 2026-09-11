@@ -61,7 +61,7 @@ internal sealed class DiskBlobBackend : IBlobBackend
         return Task.CompletedTask;
     }
 
-    public Task<Stream?> OpenReadAsync(string key, long offset, CancellationToken cancellationToken)
+    public Task<Stream?> OpenReadAsync(string key, long offset, long? count, CancellationToken cancellationToken)
     {
         var path = Resolve(key);
         try
@@ -82,6 +82,11 @@ internal sealed class DiskBlobBackend : IBlobBackend
         }
     }
 
+    // A file stream is already seekable and opening it costs nothing a round trip would.
+    public Task<Stream?> OpenForServingAsync(string key, long size, long? rangeFrom, long? rangeTo,
+        CancellationToken cancellationToken) =>
+        OpenReadAsync(key, 0, null, cancellationToken);
+
     public Task DeleteAsync(string key, CancellationToken cancellationToken)
     {
         try
@@ -100,7 +105,7 @@ internal sealed class DiskBlobBackend : IBlobBackend
         Enumerate(prefix, cancellationToken).ToAsyncEnumerable();
 
     public bool TryPresign(string key, TimeSpan lifetime, string contentType, string contentDisposition,
-        [NotNullWhen(true)] out Uri? url)
+        [NotNullWhen(true)] out string? url)
     {
         url = null;
         return false;
@@ -108,28 +113,7 @@ internal sealed class DiskBlobBackend : IBlobBackend
 
     public Task DeleteStaleSpoolAsync(DateTimeOffset olderThan, CancellationToken cancellationToken)
     {
-        var spool = new DirectoryInfo(Path.Combine(_root, SpoolFolder));
-        if (!spool.Exists)
-        {
-            return Task.CompletedTask;
-        }
-
-        foreach (var file in spool.EnumerateFiles("*.tmp"))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (file.LastWriteTimeUtc < olderThan.UtcDateTime)
-            {
-                try
-                {
-                    file.Delete();
-                }
-                catch (IOException)
-                {
-                    // Still open by a save in flight after all; the next sweep gets it.
-                }
-            }
-        }
-
+        SpoolCleanup.DeleteOlderThan(Path.Combine(_root, SpoolFolder), olderThan, cancellationToken);
         return Task.CompletedTask;
     }
 
@@ -185,5 +169,36 @@ internal sealed class DiskBlobBackend : IBlobBackend
         }
 
         return full;
+    }
+}
+
+/// <summary>Removes the spool files a crash mid-save leaves behind.</summary>
+internal static class SpoolCleanup
+{
+    internal static void DeleteOlderThan(string directory, DateTimeOffset olderThan, CancellationToken cancellationToken)
+    {
+        var spool = new DirectoryInfo(directory);
+        if (!spool.Exists)
+        {
+            return;
+        }
+
+        foreach (var file in spool.EnumerateFiles("*.tmp"))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (file.LastWriteTimeUtc >= olderThan.UtcDateTime)
+            {
+                continue;
+            }
+
+            try
+            {
+                file.Delete();
+            }
+            catch (IOException)
+            {
+                // Still open by a save in flight after all; the next sweep gets it.
+            }
+        }
     }
 }

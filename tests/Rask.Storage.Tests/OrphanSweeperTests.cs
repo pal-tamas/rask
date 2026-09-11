@@ -91,7 +91,7 @@ public sealed class OrphanSweeperTests
     public async Task The_sweep_stays_under_its_prefix()
     {
         await using var harness = new StorageHarness(o => o.Prefix = "app");
-        var outside = Path.Combine(harness.Root, KeyLayout.KeyOf("", Guid.NewGuid()));
+        var outside = Path.Combine(harness.Root, KeyLayout.KeyOf("", Guid.NewGuid(), isPublic: false));
         Directory.CreateDirectory(Path.GetDirectoryName(outside)!);
         await File.WriteAllBytesAsync(outside, [1]);
         var inside = WriteOrphan(harness, Guid.NewGuid());
@@ -106,7 +106,7 @@ public sealed class OrphanSweeperTests
 
     private static string WriteOrphan(StorageHarness harness, Guid id)
     {
-        var path = Path.Combine(harness.Root, KeyLayout.KeyOf(harness.Runtime.Options.Prefix, id));
+        var path = Path.Combine(harness.Root, KeyLayout.KeyOf(harness.Runtime.Options.Prefix, id, isPublic: false));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllBytes(path, [1, 2, 3]);
         return path;

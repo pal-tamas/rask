@@ -23,6 +23,8 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit"/>
+    <!-- ProviderSmokeTests reports SKIPPED unless scripts/run-storage-providers-local.sh started real stores. -->
+    <PackageReference Include="Xunit.SkippableFact"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

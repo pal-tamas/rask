@@ -17,6 +17,14 @@ them until tagged releases begin.
   `files.TemporaryUrlAsync(id, lifetime)` for one that expires, and `files.Download(id)` for an endpoint
   that has already checked the caller may see it. Files go to `/data/files` on the deploy volume by
   default, `storage/` under the content root otherwise, and `app.MapRaskStorage()` serves the links.
+  `Storage__Provider=S3` or `Azure` moves them into a bucket — AWS S3, Cloudflare R2, Backblaze B2, MinIO,
+  DigitalOcean Spaces, Google Cloud Storage's S3 interop, or Azure Blob — with **no cloud SDK behind it**:
+  S3 is signed in-process with SigV4 and Azure with Shared Key, and a temporary URL becomes the provider's
+  own signed URL, so the download never passes through the app. The signers are pinned to AWS's published
+  examples and proven against real MinIO and Azurite by `scripts/run-storage-providers-local.sh`.
+  - **Public and private files live under different key folders** (`public/`, `private/`), so a CDN or a
+    public bucket can be granted read on `public/` alone — a private file's key shows in its signed URL, and
+    one policy covering both would make a five-minute link permanent.
   - **The content type is sniffed from the bytes, never taken from the browser.** Only raster images, audio
     and video are ever served `inline`; everything else downloads as an attachment, and HTML, SVG and XML
     go out as `application/octet-stream`. Every response carries `nosniff`, a `sandbox` Content Security

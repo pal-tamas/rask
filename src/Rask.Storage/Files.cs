@@ -65,7 +65,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         }
 
         EnsureActiveProvider(file);
-        var stream = await runtime.Backend.OpenReadAsync(file.Key, 0, cancellationToken).ConfigureAwait(false);
+        var stream = await runtime.Backend.OpenReadAsync(file.Key, 0, null, cancellationToken).ConfigureAwait(false);
         if (stream is null)
         {
             runtime.Logger.LogError("Stored file {FileId} has a row but no bytes in {Provider}.", file.Id, file.Provider);
@@ -121,7 +121,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
 
     public string Url(Guid id) =>
         runtime.Options.PublicBaseUrl is { } baseUrl
-            ? baseUrl + KeyLayout.KeyOf(runtime.Options.Prefix, id)
+            ? baseUrl + KeyLayout.KeyOf(runtime.Options.Prefix, id, isPublic: true)
             : string.Concat(LiveOptions.PathBase, RaskStorageEndpointExtensions.RoutePrefix, "public/", id.ToString("N"));
 
     public async Task<string?> TemporaryUrlAsync(Guid id, TimeSpan lifetime, CancellationToken cancellationToken = default)
@@ -144,7 +144,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         var disposition = StoredFileHeaders.Disposition(file.ContentType, file.Name);
         if (runtime.Backend.TryPresign(file.Key, lifetime, contentType, disposition, out var signed))
         {
-            return signed.AbsoluteUri;
+            return signed;
         }
 
         return string.Concat(LiveOptions.PathBase, RaskStorageEndpointExtensions.RoutePrefix,
@@ -177,7 +177,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         var options = runtime.Options;
         var backend = runtime.Backend;
         var id = Guid.NewGuid();
-        var key = KeyLayout.KeyOf(options.Prefix, id);
+        var key = KeyLayout.KeyOf(options.Prefix, id, save.Public);
         var fileName = SafeFileName.Clean(name);
 
         var buffer = ArrayPool<byte>.Shared.Rent(CopyBufferSize);

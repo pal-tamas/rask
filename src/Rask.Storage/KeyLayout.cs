@@ -1,13 +1,19 @@
 namespace Rask.Storage;
 
 /// <summary>
-/// How a file's object key is derived from its id: <c>{prefix}{first two hex digits}/{id as 32 hex digits}</c>.
+/// How a file's object key is derived: <c>{prefix}{public|private}/{first two hex digits}/{id as 32 hex digits}</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// From the id alone, deliberately. That is what lets <see cref="IFiles.Url"/> build a public URL with no
-/// database read, which is what makes it usable inside a render. The two-digit fan-out keeps any one
+/// From the id and the visibility alone, deliberately. That is what lets <see cref="IFiles.Url"/> build a public
+/// URL with no database read, which is what makes it usable inside a render. The two-digit fan-out keeps any one
 /// directory of the disk store to a few thousand entries per million files.
+/// </para>
+/// <para>
+/// <b>Visibility is a folder so a bucket policy can follow it.</b> A CDN or a publicly readable bucket behind
+/// <see cref="StorageOptions.PublicBaseUrl"/> needs read access to <c>{prefix}public/</c> and nothing else. A
+/// private file's key is visible in its provider-signed temporary URL; were both kinds under one readable prefix,
+/// anyone who once held a five-minute link could rebuild a permanent one.
 /// </para>
 /// <para>
 /// Keys are generated here and nowhere else — an uploaded file name never reaches a path or a URL — and
@@ -17,12 +23,15 @@ namespace Rask.Storage;
 /// </remarks>
 internal static class KeyLayout
 {
+    internal const string PublicFolder = "public/";
+    internal const string PrivateFolder = "private/";
+
     private const int IdLength = 32;
 
-    internal static string KeyOf(string prefix, Guid id)
+    internal static string KeyOf(string prefix, Guid id, bool isPublic)
     {
         var hex = id.ToString("N");
-        return string.Concat(prefix, hex.AsSpan(0, 2), "/", hex);
+        return $"{prefix}{(isPublic ? PublicFolder : PrivateFolder)}{hex[..2]}/{hex}";
     }
 
     internal static bool TryParse(string key, string prefix, out Guid id)
@@ -34,6 +43,19 @@ internal static class KeyLayout
         }
 
         var rest = key.AsSpan(prefix.Length);
+        if (rest.StartsWith(PublicFolder, StringComparison.Ordinal))
+        {
+            rest = rest[PublicFolder.Length..];
+        }
+        else if (rest.StartsWith(PrivateFolder, StringComparison.Ordinal))
+        {
+            rest = rest[PrivateFolder.Length..];
+        }
+        else
+        {
+            return false;
+        }
+
         if (rest.Length != 2 + 1 + IdLength || rest[2] != '/')
         {
             return false;

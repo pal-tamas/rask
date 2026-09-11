@@ -88,7 +88,12 @@ internal sealed class StoredFileResult(Guid id, StoredFileAccess access) : IResu
             return;
         }
 
-        var stream = await runtime.Backend.OpenReadAsync(file.Key, 0, cancellationToken).ConfigureAwait(false);
+        // Seekable either way: a file stream on disk, a lazily opened range reader over a bucket — so ranges and
+        // conditional requests work the same, and a HEAD or a 304 never reads the object.
+        var (rangeFrom, rangeTo) = RangeHint.Of(httpContext.Request, file.Size);
+        var stream = await runtime.Backend
+            .OpenForServingAsync(file.Key, file.Size, rangeFrom, rangeTo, cancellationToken)
+            .ConfigureAwait(false);
         if (stream is null)
         {
             runtime.Logger.LogError(

@@ -1,10 +1,11 @@
 using System.Globalization;
+using Rask.Storage.Backends;
 
 namespace Rask.Storage;
 
 /// <summary>
 /// Where files go and what is accepted. Every option can also come from configuration under <c>Storage</c>
-/// (<c>Storage__Provider</c>, <c>Storage__MaxFileSize</c>, <c>Storage__Disk__Root</c>, …); code set here wins
+/// (<c>Storage__Provider</c>, <c>Storage__MaxFileSize</c>, <c>Storage__S3__Bucket</c>, …); code set here wins
 /// over configuration.
 /// </summary>
 public sealed class StorageOptions
@@ -31,6 +32,10 @@ public sealed class StorageOptions
     /// An absolute URL that public files are served from — a CDN or a public bucket domain — which
     /// <see cref="IFiles.Url"/> joins with the file's key. Unset, the app serves them itself.
     /// Configuration: <c>Storage__PublicBaseUrl</c>. Prefer an origin other than the app's own.
+    /// <para>
+    /// Grant public read on <c>{Prefix}public/</c> only. Private files are kept under <c>{Prefix}private/</c>, and a
+    /// private file's key is visible in its temporary URL — a policy covering both would make that link permanent.
+    /// </para>
     /// </summary>
     public string? PublicBaseUrl { get; set; }
 
@@ -52,10 +57,24 @@ public sealed class StorageOptions
     /// <summary>The <see cref="StorageProvider.Disk"/> settings.</summary>
     public DiskStorageOptions Disk { get; } = new();
 
+    /// <summary>The <see cref="StorageProvider.S3"/> settings.</summary>
+    public S3StorageOptions S3 { get; } = new();
+
+    /// <summary>The <see cref="StorageProvider.Azure"/> settings.</summary>
+    public AzureStorageOptions Azure { get; } = new();
+
     /// <summary>The deploy volume <c>rask deploy</c> mounts; a seam so tests never write to a real one.</summary>
     internal string DataVolume { get; set; } = "/data";
 
     internal const string MinimumGracePeriodText = "5 minutes";
+
+    /// <summary>The largest object one write to <paramref name="provider"/> can create.</summary>
+    internal static long MaxSinglePutBytes(StorageProvider provider) => provider switch
+    {
+        StorageProvider.S3 => S3StorageOptions.MaxSinglePutBytes,
+        StorageProvider.Azure => AzureStorageOptions.MaxSinglePutBytes,
+        _ => long.MaxValue,
+    };
 
     /// <summary>Checks the options and normalizes the ones with a canonical form. Throws naming what to change.</summary>
     internal void Validate(string? webRootPath)
@@ -91,9 +110,29 @@ public sealed class StorageOptions
         Prefix = NormalizePrefix(Prefix);
         PublicBaseUrl = NormalizePublicBaseUrl(PublicBaseUrl);
 
-        if (Provider == StorageProvider.Disk)
+        switch (Provider)
         {
-            ValidateDiskRoot(webRootPath);
+            case StorageProvider.Disk:
+                ValidateDiskRoot(webRootPath);
+                break;
+            case StorageProvider.S3:
+                S3.Validate();
+                break;
+            case StorageProvider.Azure:
+                Azure.Validate();
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"StorageOptions.Provider is {Provider}, which is not a storage provider. Use one of: "
+                    + string.Join(", ", Enum.GetNames<StorageProvider>()) + ".");
+        }
+
+        var singlePut = MaxSinglePutBytes(Provider);
+        if (MaxFileSize > singlePut)
+        {
+            throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
+                $"StorageOptions.MaxFileSize is {MaxFileSize} bytes, but one upload to {Provider} is limited to {singlePut} "
+                + $"and multipart upload is not supported. Lower it with o.MaxFileSize, or Storage__MaxFileSize."));
         }
     }
 
@@ -203,4 +242,150 @@ public sealed class DiskStorageOptions
     /// content root. Configuration: <c>Storage__Disk__Root</c>.
     /// </summary>
     public string? Root { get; set; }
+}
+
+/// <summary>
+/// Settings for <see cref="StorageProvider.S3"/> — Amazon S3 and every store that speaks its API. Requests are
+/// signed in-process (Signature Version 4); no cloud SDK is involved.
+/// </summary>
+public sealed class S3StorageOptions
+{
+    /// <summary>One PUT creates at most 5 GiB.</summary>
+    internal const long MaxSinglePutBytes = 5L * 1024 * 1024 * 1024;
+
+    /// <summary>
+    /// The service endpoint: <c>https://s3.us-east-1.amazonaws.com</c>,
+    /// <c>https://&lt;account&gt;.r2.cloudflarestorage.com</c>, <c>https://s3.us-west-004.backblazeb2.com</c>,
+    /// <c>https://storage.googleapis.com</c>, or a MinIO address. Configuration: <c>Storage__S3__ServiceUrl</c>.
+    /// </summary>
+    public Uri? ServiceUrl { get; set; }
+
+    /// <summary>The bucket. Configuration: <c>Storage__S3__Bucket</c>.</summary>
+    public string Bucket { get; set; } = "";
+
+    /// <summary>The signing region. Default <c>us-east-1</c>; Cloudflare R2 wants <c>auto</c>. Configuration: <c>Storage__S3__Region</c>.</summary>
+    public string Region { get; set; } = "us-east-1";
+
+    /// <summary>The access key id. Configuration: <c>Storage__S3__AccessKeyId</c>.</summary>
+    public string? AccessKeyId { get; set; }
+
+    /// <summary>The secret access key. Configuration: <c>Storage__S3__SecretAccessKey</c> — pass it as a secret.</summary>
+    public string? SecretAccessKey { get; set; }
+
+    /// <summary>An STS session token that pairs with a temporary access key. Configuration: <c>Storage__S3__SessionToken</c>.</summary>
+    public string? SessionToken { get; set; }
+
+    /// <summary>
+    /// Whether the bucket is a path segment (<c>host/bucket/key</c>) rather than a subdomain
+    /// (<c>bucket.host/key</c>). Default <c>true</c>, which R2, MinIO and most compatible stores require.
+    /// Configuration: <c>Storage__S3__UsePathStyle</c>.
+    /// </summary>
+    public bool UsePathStyle { get; set; } = true;
+
+    internal void Validate()
+    {
+        if (ServiceUrl is null || !ServiceUrl.IsAbsoluteUri || ServiceUrl.Scheme is not ("https" or "http"))
+        {
+            throw new InvalidOperationException(
+                "Storage__S3__ServiceUrl is required when Storage__Provider is S3: an absolute URL like "
+                + "https://s3.us-east-1.amazonaws.com, https://<account>.r2.cloudflarestorage.com or http://localhost:9000.");
+        }
+
+        if (!IsBucketName(Bucket))
+        {
+            throw new InvalidOperationException(
+                $"Storage__S3__Bucket '{Bucket}' is not a bucket name: 3 to 63 lowercase letters, digits, '.' and '-', "
+                + "starting and ending with a letter or digit.");
+        }
+
+        if (string.IsNullOrWhiteSpace(Region))
+        {
+            throw new InvalidOperationException("Storage__S3__Region is required, like us-east-1 (Cloudflare R2: auto).");
+        }
+
+        if (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey))
+        {
+            throw new InvalidOperationException(
+                "Storage__S3__AccessKeyId and Storage__S3__SecretAccessKey are both required when Storage__Provider is S3. "
+                + "Pass the secret with rask deploy --env, never in appsettings.json.");
+        }
+
+        // A bucket with dots under a wildcard certificate: bucket.name.s3.example.com matches no *.s3.example.com.
+        if (!UsePathStyle && ServiceUrl.Scheme == "https" && Bucket.Contains('.', StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"The bucket '{Bucket}' contains dots, which breaks TLS in virtual-host addressing. Set Storage__S3__UsePathStyle to true.");
+        }
+    }
+
+    private static bool IsBucketName(string? name)
+    {
+        if (name is not { Length: >= 3 and <= 63 } || !char.IsAsciiLetterOrDigit(name[0]) || !char.IsAsciiLetterOrDigit(name[^1]))
+        {
+            return false;
+        }
+
+        foreach (var c in name)
+        {
+            if (!(char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '.' or '-'))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
+/// <summary>
+/// Settings for <see cref="StorageProvider.Azure"/>. Requests are signed in-process (Shared Key, service SAS);
+/// no cloud SDK is involved.
+/// </summary>
+public sealed class AzureStorageOptions
+{
+    /// <summary>One Put Blob creates at most 5000 MiB.</summary>
+    internal const long MaxSinglePutBytes = 5000L * 1024 * 1024;
+
+    /// <summary>
+    /// The storage account's connection string. With <c>AccountName</c> and <c>AccountKey</c>, temporary URLs are
+    /// signed by Azure itself and downloads never pass through the app; with <c>BlobEndpoint</c> and
+    /// <c>SharedAccessSignature</c> only, the app serves them. <c>UseDevelopmentStorage=true</c> targets Azurite.
+    /// Configuration: <c>Storage__Azure__ConnectionString</c> — pass it as a secret.
+    /// </summary>
+    public string? ConnectionString { get; set; }
+
+    /// <summary>The container. Configuration: <c>Storage__Azure__Container</c>.</summary>
+    public string Container { get; set; } = "";
+
+    internal void Validate()
+    {
+        // Parsing is the validation: it names the part that is wrong and never repeats the value.
+        _ = AzureAccount.Parse(ConnectionString);
+
+        if (!IsContainerName(Container))
+        {
+            throw new InvalidOperationException(
+                $"Storage__Azure__Container '{Container}' is not a container name: 3 to 63 lowercase letters, digits and "
+                + "single hyphens, starting and ending with a letter or digit.");
+        }
+    }
+
+    private static bool IsContainerName(string? name)
+    {
+        if (name is not { Length: >= 3 and <= 63 } || !char.IsAsciiLetterOrDigit(name[0]) || !char.IsAsciiLetterOrDigit(name[^1]))
+        {
+            return false;
+        }
+
+        for (var i = 0; i < name.Length; i++)
+        {
+            var c = name[i];
+            if (!(char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || (c == '-' && name[i - 1] != '-')))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

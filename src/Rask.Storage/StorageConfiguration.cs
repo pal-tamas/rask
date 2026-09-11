@@ -10,7 +10,7 @@ namespace Rask.Storage;
 /// Here, inside <c>AddRaskStorage</c>, rather than in the meta package's wiring: a scaffolded app calls
 /// <c>AddRaskStorage&lt;AppDbContext&gt;()</c> directly and never passes through that wiring, so a key read there
 /// would be silently ignored by every app <c>rask new</c> writes. Explicit keys, not <c>ConfigurationBinder</c>,
-/// so nothing here needs reflection.
+/// so nothing here needs reflection. No message repeats a credential's value.
 /// </remarks>
 internal static class StorageConfiguration
 {
@@ -49,20 +49,33 @@ internal static class StorageConfiguration
             options.MaxFileSize = bytes;
         }
 
-        if (section["PublicBaseUrl"] is { Length: > 0 } publicBaseUrl)
+        Set(section["PublicBaseUrl"], v => options.PublicBaseUrl = v);
+        Set(section["Prefix"], v => options.Prefix = v);
+        Set(section["Disk:Root"], v => options.Disk.Root = v);
+
+        if (section["S3:ServiceUrl"] is { Length: > 0 } serviceUrl)
         {
-            options.PublicBaseUrl = publicBaseUrl;
+            options.S3.ServiceUrl = Uri.TryCreate(serviceUrl, UriKind.Absolute, out var uri)
+                ? uri
+                : throw new InvalidOperationException(
+                    $"Storage__S3__ServiceUrl '{serviceUrl}' is not an absolute URL, like https://s3.us-east-1.amazonaws.com.");
         }
 
-        if (section["Prefix"] is { Length: > 0 } prefix)
+        Set(section["S3:Bucket"], v => options.S3.Bucket = v);
+        Set(section["S3:Region"], v => options.S3.Region = v);
+        Set(section["S3:AccessKeyId"], v => options.S3.AccessKeyId = v);
+        Set(section["S3:SecretAccessKey"], v => options.S3.SecretAccessKey = v);
+        Set(section["S3:SessionToken"], v => options.S3.SessionToken = v);
+
+        if (section["S3:UsePathStyle"] is { Length: > 0 } pathStyle)
         {
-            options.Prefix = prefix;
+            options.S3.UsePathStyle = bool.TryParse(pathStyle, out var value)
+                ? value
+                : throw new InvalidOperationException($"Storage__S3__UsePathStyle is '{pathStyle}'; use true or false.");
         }
 
-        if (section["Disk:Root"] is { Length: > 0 } root)
-        {
-            options.Disk.Root = root;
-        }
+        Set(section["Azure:ConnectionString"], v => options.Azure.ConnectionString = v);
+        Set(section["Azure:Container"], v => options.Azure.Container = v);
     }
 
     /// <summary>
@@ -81,5 +94,13 @@ internal static class StorageConfiguration
         options.Disk.Root = Directory.Exists(options.DataVolume)
             ? Path.GetFullPath(Path.Combine(options.DataVolume, "files"))
             : Path.GetFullPath(Path.Combine(contentRootPath, "storage"));
+    }
+
+    private static void Set(string? value, Action<string> assign)
+    {
+        if (value is { Length: > 0 })
+        {
+            assign(value);
+        }
     }
 }

@@ -22,7 +22,7 @@ public sealed class FilesTests
         Assert.Equal(bytes.Length, file.Size);
         Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(bytes)), file.Sha256);
         Assert.Equal(StorageProvider.Disk, file.Provider);
-        Assert.Equal(KeyLayout.KeyOf("", file.Id), file.Key);
+        Assert.Equal(KeyLayout.KeyOf("", file.Id, isPublic: false), file.Key);
         Assert.False(file.Public);
 
         var stored = await harness.Files.FindAsync(file.Id);
@@ -159,7 +159,7 @@ public sealed class FilesTests
         });
         var id = Guid.Parse("3f2a0000-0000-0000-0000-000000000001");
 
-        Assert.Equal("https://cdn.example.com/files/myapp/3f/3f2a0000000000000000000000000001", harness.Files.Url(id));
+        Assert.Equal("https://cdn.example.com/files/myapp/public/3f/3f2a0000000000000000000000000001", harness.Files.Url(id));
     }
 
     [Fact]

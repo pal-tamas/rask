@@ -32,7 +32,7 @@ public sealed class DiskBlobBackendTests : IDisposable
         await backend.PutFileAsync("ab/abcd", spool, 5, Headers, default);
 
         Assert.False(File.Exists(spool));
-        await using var stream = await backend.OpenReadAsync("ab/abcd", 2, default);
+        await using var stream = await backend.OpenReadAsync("ab/abcd", 2, null, default);
         Assert.NotNull(stream);
         var rest = new MemoryStream();
         await stream!.CopyToAsync(rest);
@@ -61,7 +61,7 @@ public sealed class DiskBlobBackendTests : IDisposable
     {
         var backend = new DiskBlobBackend(_root);
 
-        Assert.Null(await backend.OpenReadAsync("ab/none", 0, default));
+        Assert.Null(await backend.OpenReadAsync("ab/none", 0, null, default));
         await backend.DeleteAsync("ab/none", default);
     }
 
@@ -87,7 +87,7 @@ public sealed class DiskBlobBackendTests : IDisposable
     {
         var backend = new DiskBlobBackend(_root);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => backend.OpenReadAsync(key, 0, default));
+        await Assert.ThrowsAsync<ArgumentException>(() => backend.OpenReadAsync(key, 0, null, default));
         await Assert.ThrowsAsync<ArgumentException>(() => backend.DeleteAsync(key, default));
     }
 

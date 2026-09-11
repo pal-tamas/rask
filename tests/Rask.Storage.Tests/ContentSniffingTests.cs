@@ -186,22 +186,26 @@ public sealed class SafeFileNameTests
 
 public sealed class KeyLayoutTests
 {
-    [Fact]
-    public void A_key_is_derived_from_the_id_alone_and_parses_back()
+    [Theory]
+    [InlineData(true, "app/public/3f/3f2a0000000000000000000000000001")]
+    [InlineData(false, "app/private/3f/3f2a0000000000000000000000000001")]
+    public void A_key_is_derived_from_the_id_and_its_visibility_and_parses_back(bool isPublic, string expected)
     {
         var id = Guid.Parse("3f2a0000-0000-0000-0000-000000000001");
-        var key = KeyLayout.KeyOf("app/", id);
+        var key = KeyLayout.KeyOf("app/", id, isPublic);
 
-        Assert.Equal("app/3f/3f2a0000000000000000000000000001", key);
+        Assert.Equal(expected, key);
         Assert.True(KeyLayout.TryParse(key, "app/", out var parsed));
         Assert.Equal(id, parsed);
     }
 
     [Theory]
-    [InlineData("other/3f/3f2a0000000000000000000000000001")]
-    [InlineData("app/aa/3f2a0000000000000000000000000001")]
-    [InlineData("app/3f/3F2A0000000000000000000000000001")]
-    [InlineData("app/3f/3f2a00000000000000000000000000")]
+    [InlineData("other/public/3f/3f2a0000000000000000000000000001")]
+    [InlineData("app/3f/3f2a0000000000000000000000000001")]
+    [InlineData("app/shared/3f/3f2a0000000000000000000000000001")]
+    [InlineData("app/public/aa/3f2a0000000000000000000000000001")]
+    [InlineData("app/public/3f/3F2A0000000000000000000000000001")]
+    [InlineData("app/private/3f/3f2a00000000000000000000000000")]
     [InlineData("app/backup.sql")]
     public void Anything_not_in_the_layout_is_foreign(string key) =>
         Assert.False(KeyLayout.TryParse(key, "app/", out _));

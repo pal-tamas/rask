@@ -29,5 +29,14 @@ public sealed class StorageDbCollectionGuardTests
             "KeyLayoutTests",
             "TemporaryUrlProtectorTests",
             "DiskBlobBackendTests",
-            "StorageOptionsTests");
+            "StorageOptionsTests",
+            // Signing, HTTP requests against a recording handler, and options: no EF.
+            "SigV4Tests",
+            "S3BlobBackendTests",
+            "AzureAccountTests",
+            "AzureSigningTests",
+            "AzureBlobBackendTests",
+            "BlobRangeStreamTests",
+            // Names StorageDbContext only as AddRaskStorage's type argument; resolves the store, never a context.
+            "ProviderOptionsTests");
 }

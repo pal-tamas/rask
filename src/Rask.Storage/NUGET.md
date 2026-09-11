@@ -30,4 +30,4 @@ app.MapGet("/invoices/{id}", (Guid id, IFiles files) => files.Download(id)); // 
 - **Orphaned bytes are swept**: a file whose row was never written is removed after a grace period.
 
 Included in the [`Rask`](https://www.nuget.org/packages/Rask) package and on by default. See the
-[storage guide](https://rask.sh/docs/guides/storage).
+[file storage guide](https://rask.sh/docs/guides/file-storage).

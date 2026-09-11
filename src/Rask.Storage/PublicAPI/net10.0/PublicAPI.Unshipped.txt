@@ -1,4 +1,30 @@
 #nullable enable
+Rask.Storage.AzureStorageOptions
+Rask.Storage.AzureStorageOptions.AzureStorageOptions() -> void
+Rask.Storage.AzureStorageOptions.ConnectionString.get -> string?
+Rask.Storage.AzureStorageOptions.ConnectionString.set -> void
+Rask.Storage.AzureStorageOptions.Container.get -> string!
+Rask.Storage.AzureStorageOptions.Container.set -> void
+Rask.Storage.S3StorageOptions
+Rask.Storage.S3StorageOptions.AccessKeyId.get -> string?
+Rask.Storage.S3StorageOptions.AccessKeyId.set -> void
+Rask.Storage.S3StorageOptions.Bucket.get -> string!
+Rask.Storage.S3StorageOptions.Bucket.set -> void
+Rask.Storage.S3StorageOptions.Region.get -> string!
+Rask.Storage.S3StorageOptions.Region.set -> void
+Rask.Storage.S3StorageOptions.S3StorageOptions() -> void
+Rask.Storage.S3StorageOptions.SecretAccessKey.get -> string?
+Rask.Storage.S3StorageOptions.SecretAccessKey.set -> void
+Rask.Storage.S3StorageOptions.ServiceUrl.get -> System.Uri?
+Rask.Storage.S3StorageOptions.ServiceUrl.set -> void
+Rask.Storage.S3StorageOptions.SessionToken.get -> string?
+Rask.Storage.S3StorageOptions.SessionToken.set -> void
+Rask.Storage.S3StorageOptions.UsePathStyle.get -> bool
+Rask.Storage.S3StorageOptions.UsePathStyle.set -> void
+Rask.Storage.StorageOptions.Azure.get -> Rask.Storage.AzureStorageOptions!
+Rask.Storage.StorageOptions.S3.get -> Rask.Storage.S3StorageOptions!
+Rask.Storage.StorageProvider.Azure = 2 -> Rask.Storage.StorageProvider
+Rask.Storage.StorageProvider.S3 = 1 -> Rask.Storage.StorageProvider
 Rask.Storage.DiskStorageOptions
 Rask.Storage.DiskStorageOptions.DiskStorageOptions() -> void
 Rask.Storage.DiskStorageOptions.Root.get -> string?

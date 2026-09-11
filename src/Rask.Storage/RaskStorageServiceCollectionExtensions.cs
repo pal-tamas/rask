@@ -13,6 +13,8 @@ namespace Rask.Storage;
 /// <summary>Registers file storage into an <see cref="IServiceCollection"/>.</summary>
 public static class RaskStorageServiceCollectionExtensions
 {
+    internal const string HttpClientName = "Rask.Storage";
+
     /// <summary>
     /// Registers <see cref="IFiles"/>, the store it writes to, and the background sweep that removes orphaned
     /// bytes. Map the table with <c>modelBuilder.AddRaskStorage()</c> in <c>OnModelCreating</c>, register your
@@ -36,8 +38,20 @@ public static class RaskStorageServiceCollectionExtensions
         // hosts persist the key ring to the deploy volume, so a link survives a redeploy.
         services.AddDataProtection();
 
+        // The S3 and Azure stores' client. Redirects are never followed — a signed request has no business
+        // being replayed somewhere else — and the logging handlers are removed, because a SAS token or a
+        // presigned query string in a request URL is a credential.
+        services.AddHttpClient(HttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            })
+            .ConfigureHttpClient(static client => client.Timeout = TimeSpan.FromMinutes(10))
+            .RemoveAllLoggers();
+
         services.TryAddSingleton(sp => BuildOptions(sp, configure));
-        services.TryAddSingleton(sp => CreateBackend(sp.GetRequiredService<StorageOptions>()));
+        services.TryAddSingleton(sp => CreateBackend(sp, sp.GetRequiredService<StorageOptions>()));
         services.TryAddSingleton(sp => new TemporaryUrlProtector(sp.GetRequiredService<IDataProtectionProvider>()));
         services.TryAddSingleton<StorageRuntime>();
         services.TryAddSingleton<IFiles, Files<TContext>>();
@@ -66,9 +80,15 @@ public static class RaskStorageServiceCollectionExtensions
         return options;
     }
 
-    private static IBlobBackend CreateBackend(StorageOptions options) => options.Provider switch
+    private static IBlobBackend CreateBackend(IServiceProvider services, StorageOptions options) => options.Provider switch
     {
         StorageProvider.Disk => new DiskBlobBackend(options.Disk.Root!),
+        StorageProvider.S3 => new S3BlobBackend(Client(services), options.S3, services.GetRequiredService<TimeProvider>()),
+        StorageProvider.Azure => new AzureBlobBackend(Client(services), AzureAccount.Parse(options.Azure.ConnectionString),
+            options.Azure.Container, services.GetRequiredService<TimeProvider>()),
         _ => throw new InvalidOperationException($"Storage provider {options.Provider} is not supported."),
     };
+
+    private static HttpClient Client(IServiceProvider services) =>
+        services.GetRequiredService<IHttpClientFactory>().CreateClient(HttpClientName);
 }
