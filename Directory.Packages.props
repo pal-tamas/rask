@@ -44,11 +44,6 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.62.0" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
-    <!-- Rask.MySql. Oracle's provider (Pomelo had no EF Core 10 release); 10.0.9 pulls MySql.Data 26.7.0, whose
-         dependency set was advisory-checked on 2026-09-11. Outside the Microsoft platform-stack pin family.
-         LICENCE: GPL-2.0-only WITH Universal-FOSS-exception-1.0 (requireLicenseAcceptance), not MIT — stated in
-         src/Rask.MySql/NUGET.md and docs/data.md; weigh it before any package bundles this one. -->
-    <PackageVersion Include="MySql.EntityFrameworkCore" Version="10.0.9" />
     <!-- Rask.Postgres. Npgsql versions on its own line (10.0.x tracks EF Core 10 but not its patch numbers), so it
          is deliberately outside the Microsoft platform-stack family the pin tests hold to one version. -->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
