@@ -487,7 +487,8 @@ public static partial class RaskEndpointExtensions
         // wanted neither.
         var selector = new RaskRootSelector(
             appFactory,
-            endpoints.ServiceProvider.GetServices<RaskMountedApp>().ToArray());
+            endpoints.ServiceProvider.GetServices<RaskMountedApp>().ToArray(),
+            endpoints.ServiceProvider.GetService<IRaskServerDevTools>());
 
         EnsureRuntimeMapped(endpoints, pathBaseNormalized, selector);
 
@@ -536,6 +537,15 @@ public static partial class RaskEndpointExtensions
                         await ForbidAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
                         return;
                 }
+            }
+
+            // The devtools' own pages decide per request who may open them: Development, this machine, the token the
+            // inspected page was rendered with, and that session's owner. Asked after the app's authorization and before
+            // a session is reserved, so a refused request costs nothing.
+            if (httpContext.RequestServices.GetService<IRaskServerDevTools>()?.RefusePanel(httpContext, path) is { } refusal)
+            {
+                httpContext.Response.StatusCode = refusal;
+                return;
             }
 
             // Session-cap backstop (RaskLiveOptions.MaxSessions). TryCreate reserves a slot
@@ -644,8 +654,9 @@ public static partial class RaskEndpointExtensions
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
             var dev = IsDevHotReloadEnabled(httpContext.RequestServices);
-            // The devtools host script, when AddRask attached the devtools and they switched on (Development).
-            var devToolsHost = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.HostScriptUrl(httpContext);
+            // The devtools host script and the panel it frames, when AddRask attached the devtools and they switched on
+            // (Development).
+            var devTools = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.PageTag(httpContext, session.Id);
             string content;
             if (interactive)
             {
@@ -658,7 +669,7 @@ public static partial class RaskEndpointExtensions
                     return;
                 }
 
-                content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev, devToolsHost);
+                content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev, devTools);
             }
             else
             {
@@ -676,7 +687,7 @@ public static partial class RaskEndpointExtensions
                         return;
                     }
 
-                    content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev, devToolsHost);
+                    content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev, devTools);
                 }
                 else
                 {
@@ -1702,6 +1713,14 @@ public static partial class RaskEndpointExtensions
         // belongs to, and building the wrong root here is the failure this selector exists to stop.
         var (path, query) = SplitUrl(record!.Url);
 
+        // A devtools panel is opened per request, never rebuilt from a record: the reload this forces is a GET, and the
+        // GET asks who may open it.
+        if (!selector.CanResume(path))
+        {
+            metrics?.ResumeRejected("devtools");
+            return null;
+        }
+
         var session = store.TryCreate(selector.FactoryFor(path));
         if (session is null)
         {
@@ -2019,7 +2038,7 @@ public static partial class RaskEndpointExtensions
     // is wired, so a scheme/port match would 403 a legitimate sign-in. Host is the CSRF-relevant axis
     // and the single-use session-bound ticket is the real authority (see RedeemAuthTicketAsync), so a
     // host-only check is the right belt-and-braces.
-    private static bool IsSameOrigin(HttpRequest request)
+    internal static bool IsSameOrigin(HttpRequest request)
     {
         var origin = request.Headers.Origin.ToString();
         if (string.IsNullOrEmpty(origin))
@@ -2050,7 +2069,7 @@ public static partial class RaskEndpointExtensions
     // session is matched by anyone — the unguessable sessionId is the only authority then (the same
     // posture the WS handshake takes); an authenticated session requires the request to carry the
     // same authenticated identity.
-    private static bool SameSessionUser(ClaimsPrincipal request, ClaimsPrincipal owner)
+    internal static bool SameSessionUser(ClaimsPrincipal request, ClaimsPrincipal owner)
     {
         if (owner.Identity?.IsAuthenticated != true)
         {
