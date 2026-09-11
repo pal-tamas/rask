@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **A Debug build running in Development loads Rask DevTools' host script into every live page.** `AddRask`
+  attaches the devtools when the build carries `Rask.DevTools`; `UseRask` then maps `/_rask-devtools/host.js` —
+  anonymous, so an app with a fallback authorization policy still loads its own tools — and each interactive
+  page gets a deferred, `data-rask-managed` `<script>` for it at the end of its `<head>`. Outside Development
+  nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
+  it. The script is an entry point so far; the in-page tools arrive in the next slices.
+
+  The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
+  load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
+  bundles both runtimes with the pinned esbuild, with and without the hooks, and fails past 250 minified bytes
+  (184 and 185 today). The three per-response `<body>` stamps now share one insertion helper.
+
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
   `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache

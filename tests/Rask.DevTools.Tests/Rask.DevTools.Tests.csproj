@@ -12,6 +12,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
@@ -29,9 +30,21 @@
     <!-- Rask.Core is PrivateAssets="all" from Rask.DevTools (it ships transitively from a host package),
          so an in-repo consumer must reference it directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <!-- Same reason: the devtools' Server face references the host PrivateAssets="all". -->
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The Server tests' host, shared rather than copied: the endpoint tests need the same AddRask/UseRask
+         wiring a real app gets. -->
+    <Compile Include="..\Rask.Server.Tests\Infrastructure\RaskTestHost.cs" Link="Infrastructure\RaskTestHost.cs"/>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
