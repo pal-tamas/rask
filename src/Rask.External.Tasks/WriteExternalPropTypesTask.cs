@@ -88,6 +88,12 @@ public sealed class WriteExternalPropTypesTask : Task
     /// <summary>The compiled assembly, which is what actually knows each island's runtime.</summary>
     public string IslandAssemblyPath { get; set; } = string.Empty;
 
+    /// <summary>
+    ///     Whether the build looked for package islands before the compile, so a package island missing from
+    ///     <see cref="FrontEndFiles" /> is one the scan missed rather than one it never looked for.
+    /// </summary>
+    public bool PackageIslandsScanned { get; set; }
+
     /// <summary>Whether the check config was written, so the caller knows there is one to run.</summary>
     [Output]
     public bool HasCheckConfig { get; private set; }
@@ -291,6 +297,32 @@ public sealed class WriteExternalPropTypesTask : Task
 
         foreach (var pair in modules)
         {
+            // A package island has no front-end file to find. What the build discovers for it is the snapshot
+            // beside the class, so that is what is looked for — and only where the scan ran at all.
+            if (ExternalPackageSpecifier.IsBare(pair.Value))
+            {
+                if (PackageIslandsScanned && !discovered.Contains(pair.Key + ".props.json"))
+                {
+                    Log.LogWarning(
+                        subcategory: null,
+                        warningCode: ExternalDiagnosticCodes.UnscannedPackageIsland,
+                        helpKeyword: null,
+                        file: null,
+                        lineNumber: 0,
+                        columnNumber: 0,
+                        endLineNumber: 0,
+                        endColumnNumber: 0,
+                        message: $"Rask.External: '{pair.Key}' names the package '{pair.Value}' as its Module, but the "
+                        + "build did not find it before the compile, so its props were not read from the package "
+                        + "and its snapshot was not refreshed. Return the module as a constant string from the "
+                        + "class's own body — protected override string Module => \"" + pair.Value + "\"; — "
+                        + "which is the form the build reads.",
+                        messageArgs: null);
+                }
+
+                continue;
+            }
+
             // Matched on the file NAME, which is the pairing rule everywhere else in this feature, and
             // the only one that survives a declared module written as "./Gauge.ts" against a discovered
             // item held as an absolute path.
