@@ -95,6 +95,27 @@ them until tagged releases begin.
   only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
   summary that SQL Server was not proven rather than counting it as a pass.
 
+- **MySQL, as the opt-in `Rask.MySql`.** `UseRaskMySql(cs, o => …)` wraps Oracle's `UseMySQL` provider —
+  Pomelo had no EF Core 10 release — and sends `innodb_lock_wait_timeout` (10s, whole seconds, validated below the
+  command timeout) and `max_execution_time` (30s) as one `SET` on every connection EF opens, sets a client
+  `CommandTimeout` (30s) and turns on the provider's retrying strategy through `o.Retry`. The knobs follow MySQL
+  rather than the other packages: `max_execution_time` stops read-only `SELECT`s only, so the command timeout is
+  the ceiling on a runaway write, and both timeouts round up — a short lock wait must not fall below MySQL's 1-second minimum, and a
+  0 `max_execution_time` means "no limit"; the lock wait is validated below the command timeout after rounding. The settings live on
+  the options extension, so calling it twice keeps one interceptor and the last call's values. It also registers a
+  model convention, because a real server showed Oracle's provider losing a `DateTimeOffset`'s fractional seconds
+  twice — a whole-second `datetime` column by default, and a reader that truncates even a `datetime(6)` one: every
+  `DateTimeOffset` without a converter of its own is stored as its UTC `DateTime` in `datetime(6)` and read back
+  at offset zero, the offset the provider returned anyway. The provider suite
+  gains MySQL 8.4 — a native image, so unlike SQL Server it is proven on every host and a host that cannot start it
+  fails the gate: the start-gated claim races, session settings re-applied on every open, fifty cache writers on one
+  key, a 513-character key rejected with its limit named, bulk insert into a backtick-quoted keyword table, and a
+  Guid, a +02:00 DateTimeOffset (back as the same instant at offset zero) and a microsecond `DateTime`
+  round-tripped through a server whose own time zone is +05:00. Three things to know: Oracle's packages are
+  `GPL-2.0-only WITH Universal-FOSS-exception-1.0` (Rask is MIT); MariaDB is not supported, having no
+  `max_execution_time`; and an app switching from `UseMySQL` needs a migration, since its `DateTimeOffset`
+  columns become `datetime(6)`.
+
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
   `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network
