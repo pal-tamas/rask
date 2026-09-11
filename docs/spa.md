@@ -68,14 +68,19 @@ and says so in its own words; Rask does not try to track it.
 Set `RaskSpaMinimumNode` if you want the build to insist on more than Rask does — it is a real
 comparison, so raising it raises the bar.
 
-`rask new --template react` runs the framework's **own** scaffolder — `create-vite` — and overlays
-four files onto what it produces. Everything else in the client is whatever Vite ships today. That
-is deliberate: a React skeleton Rask maintained by hand would be a worse React skeleton within a
-release or two, and it would not be what a React developer recognises.
+`rask new --template react` writes a client that was imported from the framework's **own** scaffolder
+— `create-vite`, asked for its **TypeScript** template (`react-ts`, never `react`) — and is committed
+under `src/Rask.Templates/`. So it needs **no Node.js and no network**, like every other template, and
+the same command produces the same app twice running.
 
-It asks `create-vite` for its **TypeScript** template — `react-ts`, never `react`. The cost is
-stated rather than hidden: these templates need **Node.js and a network** at `rask new` time, where
-the C# templates need neither.
+That reverses an earlier decision, and the reasoning is worth stating. Fetching `create-vite@latest`
+per scaffold kept the skeleton current, on the argument that one Rask maintained by hand would be
+worse within a release or two. What it also did was make the skeleton **invisible**: no manifest in
+the repository, nothing to review when the creator changed, and no way for Dependabot to bump a single
+front-end dependency — three templates were installing an older Tailwind than the C# host downloads
+and nobody could see it. A committed tree that Dependabot keeps current, and that
+`scripts/refresh-templates.sh` re-imports on demand, answers the original argument without the cost:
+drift becomes a reviewed commit instead of a different tree every morning.
 
 ## TypeScript only
 

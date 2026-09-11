@@ -69,7 +69,7 @@ public class DocumentedDiagnosticsExistTests
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var file in Directory.EnumerateFiles(srcRoot, "*.cs", SearchOption.AllDirectories))
+        foreach (var file in RepoFiles.EnumerateSourceFiles(srcRoot).Where(f => f.EndsWith(".cs", StringComparison.Ordinal)))
         {
             // obj/ and bin/ hold copies of the same sources plus generated files; counting them would
             // make a deleted descriptor look present until someone cleaned.
@@ -86,7 +86,7 @@ public class DocumentedDiagnosticsExistTests
         }
 
         // The build layers declare their own ids in MSBuild rather than in C#.
-        foreach (var file in Directory.EnumerateFiles(srcRoot, "*.targets", SearchOption.AllDirectories))
+        foreach (var file in RepoFiles.EnumerateSourceFiles(srcRoot).Where(f => f.EndsWith(".targets", StringComparison.Ordinal)))
         {
             foreach (Match m in Regex.Matches(File.ReadAllText(file), "\"(RASK[A-Z]*\\d+)\""))
             {

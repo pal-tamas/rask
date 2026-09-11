@@ -1,0 +1,22 @@
+@* An ordinary Blazor component. No circuit, no SignalR: Rask renders it into the first response
+   and carries its @onclick over the socket the page already has. *@
+
+<div class="island-counter" data-testid="blazor-counter">
+    <div class="caption">@Caption</div>
+    <button type="button" data-testid="blazor-counter-add" @onclick="Add">add @Step</button>
+    <span class="total">
+        total <strong data-testid="blazor-counter-total">@_total</strong>
+    </span>
+</div>
+
+@code {
+    private int _total;
+
+    /// <summary>The step C# hands it, which the component adds on each press.</summary>
+    [Parameter] public int Step { get; set; } = 1;
+
+    /// <summary>The caption above the counter.</summary>
+    [Parameter] public string Caption { get; set; } = "";
+
+    private void Add() => _total += Step;
+}

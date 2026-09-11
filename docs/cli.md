@@ -99,7 +99,7 @@ rask new MyApp --wasm                # + a browser bundle, published from this s
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
-rask new Shop --template react       # a React client on an ASP.NET host (needs Node.js)
+rask new Shop --template react       # a React client on an ASP.NET host (no Node needed to scaffold)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
 rask new Shop --template nuxt        # a Nuxt app Rask fronts and supervises (node at runtime)
 rask new Shop --template nextjs      # …or sveltekit, solidstart, tanstack-start, analog
@@ -157,14 +157,25 @@ sign-in from the starter's navbar.
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately.
 
-The front-end templates — `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` — are the
-ones that do **not** write their own client. Each runs the framework's own scaffolder
-(`create-vite` for all of them but Angular, which runs `ng new`) and overlays at most four files onto
-what that produces, so the skeleton is whatever Vite ships today rather than a copy Rask maintains.
-They therefore need **Node.js and a network** at `rask new` time, and they emit two projects rather
-than three: the client's half of every contract is generated TypeScript, so there is nothing for a
-`.Shared` to hold. Always the `-ts` half of each pair: Rask supports **TypeScript** SPA clients, and a
-client with no TypeScript configuration is refused at build time with `RASKSPA004`.
+The front-end templates — `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` — ship a
+client of their own. It was imported from the framework's own scaffolder (`create-vite` for all of
+them but Angular, which runs `ng new`) and is **committed** under `src/Rask.Templates/`, so `rask new`
+needs **no Node.js and no network**: it writes files, and the same command produces the same app twice
+running. That is the reverse of how it worked until #1009, when each scaffold fetched
+`create-vite@latest` and got whatever npm resolved that morning.
+
+What the change trades away is stated rather than hidden. The tree is a snapshot of what the creator
+wrote on the day it was imported, and `scripts/refresh-templates.sh` re-runs the real creators and
+shows the diff — upstream drift arrives as a reviewed commit instead of changing under every user.
+What it buys, besides determinism: every front-end dependency is now a committed manifest with a
+lockfile, which is a thing this repository can review and Dependabot can bump. Three templates were
+installing an older Tailwind than the C# host downloads, and nobody could see it.
+
+They emit two projects rather than three: the client's half of every contract is generated TypeScript,
+so there is nothing for a `.Shared` to hold. Always the `-ts` half of each pair: Rask supports
+**TypeScript** SPA clients, and a client with no TypeScript configuration is refused at build time
+with `RASKSPA004`. Each client lints and formats itself — `npm run lint`, `npm run format` — under the
+same ESLint flat config and Prettier settings, whichever template it came from.
 
 The set is the frameworks `create-vite` ships a TypeScript template for, plus Angular through its own
 CLI. **No data-fetching library and no router**: the starter calls `rask.dispatch` directly and renders
@@ -277,6 +288,35 @@ default list: the default set *is* the column.
 | Docker | ✅ | ✅ | ✅ |
 | localization *(in `Program.cs`, not a flag)* | ✅ | —² | — |
 | `--wasm` *(opt-in)* | ✅ | — | — |
+| `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | —³ |
+
+³ Islands put a front-end component **inside a C# host**, so they are for the templates whose markup is
+C#. On a template whose whole client already is a front end, `--islands` is refused rather than
+ignored — add a component to the client you already have.
+
+### `--islands` — a React, Vue, Svelte, Solid, Lit, Angular, Preact or Blazor component
+
+```bash
+rask new Shop --islands react                  # one runtime
+rask new Shop --islands react angular blazor   # several at once
+rask new Shop --template wasm --islands vue    # in the browser-WASM host too
+```
+
+Each runtime named gets a paired `.cs` and front-end file in a folder of its own, its npm dependencies
+merged into one root `package.json`, the tsconfig mapping that makes `@rask/<Name>.props` resolve, and
+the package reference it needs. The base class **is** the declaration; see
+[Islands](islands.md).
+
+Two combinations are refused, both by name and both because the build would refuse them later:
+
+- **`react` and `preact` together.** `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite`
+  pins a `@babel/core` 7 peer, so npm will not install both. A Preact component can also be rendered by
+  `ReactComponent` if the app aliases `react` to `preact/compat`.
+- **`--islands` on a SPA or meta template**, as above.
+
+`blazor` is the one kind with no npm side at all: the Razor SDK compiles the `.razor` and Rask renders
+it server-side into the first response, so a Blazor-only island project gets no `package.json` and
+never probes for Node.
 
 ¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
 rather than ignored. A sign-in flow used to be left out of these templates rather than half-scaffolded, because it had to be written

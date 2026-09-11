@@ -109,6 +109,13 @@ dotnet add package Rask.SQLite.Snapshots              # scheduled Online-Backup-
 dotnet add package Rask.SQLite.Browser                # a persistent SQLite database inside a WASM app
 ```
 
+SQLite stays the default. When one box is no longer enough:
+
+```bash
+dotnet add package Rask.Postgres                      # PostgreSQL via UseRaskPostgres: session timeouts + retry
+dotnet add package Rask.SqlServer                     # SQL Server via UseRaskSqlServer: XACT_ABORT, lock timeout + retry
+```
+
 **UI and testing:**
 
 ```bash

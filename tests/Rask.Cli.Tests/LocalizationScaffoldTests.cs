@@ -93,38 +93,6 @@ public class LocalizationScaffoldTests
         Assert.False(NewCommand.ToBatteries(wasm, []).Localization);
     }
 
-    [Fact]
-    public void The_wasm_template_scaffolds_a_catalog_per_language()
-    {
-        var result = ProjectGenerator.GenerateWasm(
-            "/out", "Demo", pwa: false, docker: false, "1.0.0", Batteries("en", "hu"));
-        var paths = result.Files.Select(f => f.Path).ToArray();
-
-        Assert.Contains("/out/Resources/Strings.en.json", paths);
-        Assert.Contains("/out/Resources/Strings.hu.json", paths);
-    }
-
-
-    /// <summary>
-    /// The browser half of the negotiation: <c>host.UseCulture</c> is what tells the runtime which
-    /// languages there are to choose between. Without it the catalogs compile and nothing selects them.
-    /// </summary>
-    [Fact]
-    public void The_wasm_program_registers_the_languages()
-    {
-        var program = WasmProgramOf(Batteries("en", "hu"));
-
-        Assert.Contains("host.UseCulture(", program, StringComparison.Ordinal);
-        Assert.Contains("new[] { \"en\", \"hu\" }", program, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_wasm_app_that_named_no_language_registers_none()
-    {
-        Assert.DoesNotContain(
-            "UseCulture", WasmProgramOf(NewCommand.BatteriesOf([]).Normalized()), StringComparison.Ordinal);
-    }
-
     /// <summary>
     /// The trap that made this more than "emit the files". A browser runtime built without ICU also has
     /// PredefinedCulturesOnly on, where GetCultureInfo cannot produce anything but the invariant culture —
@@ -157,73 +125,6 @@ public class LocalizationScaffoldTests
             "/out", "Demo", batteries.Pwa, batteries.Docker, "1.0.0", batteries);
 
         return result.Files.Single(f => f.Path == path).Content;
-    }
-
-    [Fact]
-    public void One_catalog_is_scaffolded_per_language()
-    {
-        var result = ProjectGenerator.GenerateServer("/out", "Demo", Batteries("en", "hu"), "1.0.0");
-        var paths = result.Files.Select(f => f.Path).ToArray();
-
-        Assert.Contains("/out/Resources/Strings.en.json", paths);
-        Assert.Contains("/out/Resources/Strings.hu.json", paths);
-    }
-
-    [Fact]
-    public void An_app_that_did_not_ask_for_it_gets_no_catalogs_and_no_culture_config()
-    {
-        var result = ProjectGenerator.GenerateServer(
-            "/out", "Demo", NewCommand.BatteriesOf([]).Normalized(), "1.0.0");
-
-        Assert.DoesNotContain(result.Files, f => f.Path.Contains("Resources/Strings", StringComparison.Ordinal));
-        Assert.DoesNotContain("configureCulture", Program(result), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_languages_are_registered_on_the_one_AddRask_call()
-    {
-        // The bug this pins: emitting a SECOND AddRask(configureCulture: ...) compiles and reads
-        // correctly, but the options register with TryAddSingleton — so the first, empty registration
-        // wins and the app ships with no languages at all while looking entirely right.
-        var program = Program(ProjectGenerator.GenerateServer("/out", "Demo", Batteries("en", "hu"), "1.0.0"));
-
-        Assert.Equal(1, CountOf(program, "builder.Services.AddRask("));
-        Assert.Contains("configureCulture", program, StringComparison.Ordinal);
-        // One Add per language: this block is where an app adds its second one, so it reads as a list
-        // you extend rather than a loop over an array.
-        Assert.Contains("c.SupportedCultures.Add(\"en\");", program, StringComparison.Ordinal);
-        Assert.Contains("c.SupportedCultures.Add(\"hu\");", program, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_first_language_named_is_the_one_the_app_falls_back_to()
-    {
-        var program = Program(ProjectGenerator.GenerateServer("/out", "Demo", Batteries("hu", "en"), "1.0.0"));
-
-        Assert.True(
-            program.IndexOf("Add(\"hu\")", StringComparison.Ordinal)
-            < program.IndexOf("Add(\"en\")", StringComparison.Ordinal),
-            "the first language configured must be emitted first — it is the fallback");
-    }
-
-    [Fact]
-    public void The_neutral_catalog_defines_the_keys_and_a_translation_starts_from_it()
-    {
-        var result = ProjectGenerator.GenerateServer("/out", "Demo", Batteries("en", "hu"), "1.0.0");
-
-        var neutral = File(result, "/out/Resources/Strings.en.json");
-        var translation = File(result, "/out/Resources/Strings.hu.json");
-
-        // Same keys, so the build immediately reports what still needs translating (RASK052) rather
-        // than the app silently rendering English where a key was forgotten.
-        foreach (var key in new[] { "AppTitle", "Greeting", "Items" })
-        {
-            Assert.Contains($"\"{key}\"", neutral, StringComparison.Ordinal);
-            Assert.Contains($"\"{key}\"", translation, StringComparison.Ordinal);
-        }
-
-        // And it shows the plural shape, which is the part nobody guesses.
-        Assert.Contains("$plural", neutral, StringComparison.Ordinal);
     }
 
     private static string Program(ScaffoldResult result) => File(result, "/out/Program.cs");

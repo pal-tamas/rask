@@ -63,8 +63,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override IReadOnlyList<string> Examples =>
     [
         "rask new Shop",
-        "rask new Shop --auth --data",
         "rask new Shop --wasm",
+        "rask new Shop --islands react angular",
         "rask new Shop --template wasm",
         "rask new Blog --no-push --no-ops",
         "rask new Tiny --no-data --no-docker --no-pwa",
@@ -79,6 +79,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
             .Flag("wasm", description: "Also publish a browser bundle from this project, so an eligible page moves into WebAssembly once it has downloaded. Publish takes minutes longer; `dotnet run` is unaffected.")
+            .MultiOption(
+                "islands",
+                valueHint: "runtime",
+                description:
+                    "Scaffold a front-end component as an ordinary Rask component, one per runtime named "
+                    + "(react, preact, vue, svelte, solid, lit, angular, blazor). Takes several: "
+                    + "`--islands react angular`. react and preact cannot share a project.",
+                choices: IslandRuntimes.All)
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
             .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, which every scaffolded feature dispatches through.")
@@ -207,6 +215,25 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         var batteries = ToBatteries(template, off, wasm);
 
+        // Islands ride on a C# host: the SPA and meta templates ARE a front end already, and a second
+        // bundler inside one is not a shape this supports.
+        var islands = parsed.MultiOption("islands");
+        if (islands.Count > 0)
+        {
+            if (SpaFramework.TryGet(template.Key, out _) || MetaTemplate.TryGet(template.Key, out _))
+            {
+                return Fail(
+                    $"--islands is not available on --template {template.Key}: that template's whole "
+                    + "client IS a front end. Islands put a front-end component inside a C# host — use "
+                    + "the server or wasm template, or add a component to the client you already have.");
+            }
+
+            if (IslandRuntimes.Refuse(islands) is { } refusal)
+            {
+                return Fail(refusal);
+            }
+        }
+
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
@@ -233,8 +260,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
-                        dir, name, batteries.Pwa, batteries.Docker, version, batteries),
-                    _ => ProjectGenerator.GenerateServer(dir, name, batteries, version),
+                        dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands),
+                    _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands),
                 };
             },
             cancellationToken).ConfigureAwait(false);
@@ -688,7 +715,18 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 _fileSystem.CreateDirectory(directory);
             }
 
-            _fileSystem.WriteAllText(file.Path, file.Content);
+            // Bytes for a file that is not text. The templates carry a PNG and two .ico favicons the
+            // front-end creators ship, and writing one of those through WriteAllText re-encodes it as
+            // UTF-8: the scaffold succeeds, the build succeeds, and the favicon is quietly corrupt.
+            if (file.Bytes is { } bytes)
+            {
+                _fileSystem.WriteAllBytes(file.Path, bytes);
+            }
+            else
+            {
+                _fileSystem.WriteAllText(file.Path, file.Content);
+            }
+
             WriteCreated(Path.GetRelativePath(_workingDirectory, file.Path));
         }
 
