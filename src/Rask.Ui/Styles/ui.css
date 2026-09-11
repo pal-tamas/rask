@@ -659,3 +659,48 @@
     visibility: visible;
   }
 }
+
+/*
+  AN ICON IN A BUTTON OR A BADGE IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
+
+  UiIcon draws `size-5 shrink-0` when nobody names a size: right beside a paragraph or inside an alert, too
+  big for a button's line and far too big for a badge. The icon used to be a UiButton prop, and the button
+  handed it `size-4`. It is a child now, which the kit does not build and cannot give a class to, so it is
+  sized here from what it sits in.
+
+  Matched on BOTH default classes. A call site that names any size gets no `size-5` at all (UiIcon drops
+  its default rather than competing with it), so an icon someone sized on purpose is never matched. In
+  `rask-ui-corrections` because `size-5` is a utility, and a rule in `rask` would lose to it.
+*/
+@layer rask-ui-corrections {
+  .btn > svg.size-5.shrink-0 {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .badge > svg.size-5.shrink-0 {
+    width: 1em;
+    height: 1em;
+  }
+}
+
+/*
+  AN ERROR HINT UNDER A FLOATING LABEL HAS TO BE REVEALED THROUGH THE LABEL.
+
+  daisyUI reveals `.validator-hint` with a GENERAL SIBLING selector from the control:
+  `:is(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"]), …) ~ .validator-hint`.
+  A floating label cannot keep the control a sibling of its hint — daisyUI draws the caption as the first
+  child of a <label> that HOLDS the control — so every kit text field that floats its label (the default)
+  put its hint out of that selector's reach. The hint would render with the right text and stay
+  `visibility: hidden`, the exact failure a browser test caught once already for a wrapping legend.
+
+  So the same two conditions are asked of the label's CONTENTS instead. Visibility and the error colour are
+  mirrored; daisyUI's `display: revert-layer` companion is not, because the kit never writes a hint with the
+  `hidden` utility it exists to undo.
+*/
+@layer rask-ui-corrections {
+  .floating-label:has(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"])) ~ .validator-hint {
+    visibility: visible;
+    color: var(--color-error);
+  }
+}

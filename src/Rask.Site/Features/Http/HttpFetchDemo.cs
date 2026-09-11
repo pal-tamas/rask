@@ -79,10 +79,7 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
 
         if (_post is null)
         {
-            return Div.Class("text-ui-muted flex items-center")[
-                Span.Class($"{Tw.Spinner} size-4 me-2"),
-                "Loading…"
-            ];
+            return UiLoading.Text("Loading…").Size(UiSize.Sm).Class("text-ui-muted");
         }
 
         // An <article> rather than UiCard's <div>: this is a self-contained syndicated item, and the

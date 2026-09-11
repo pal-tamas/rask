@@ -17,52 +17,43 @@ public sealed partial class NestedSubObjectDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission =
                 $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("flex flex-col gap-3")[
             Div[
-                Label.For("nf-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("nf-name").Class(Tw.Input),
+                UiInput.Bind(() => _model.Name).Label("Name").Id("nf-name").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Label.For("nf-email").Class($"{Tw.Label} text-sm mb-1")["Email"],
-                Input.Bind(() => _model.Email)
+                UiInput.Bind(() => _model.Email).Label("Email")
                     .Id("nf-email")
-                    .Type(InputType.Email)
-                    .Class(Tw.Input),
+                    .Type(InputType.Email).ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Fieldset.Class("border rounded p-3 mt-2")[
                 Legend.Class("text-base font-semibold")["Shipping address"],
                 Div.Class("flex flex-col gap-3")[
                     Div[
-                        Label.For("nf-street").Class($"{Tw.Label} text-sm mb-1")["Street"],
-                        Input.Bind(() => _model.Address.Street)
-                            .Id("nf-street")
-                            .Class(Tw.Input),
+                        UiInput.Bind(() => _model.Address.Street).Label("Street")
+                            .Id("nf-street").ShowValidation(false),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                     ],
                     Div[
-                        Label.For("nf-city").Class($"{Tw.Label} text-sm mb-1")["City"],
-                        Input.Bind(() => _model.Address.City)
-                            .Id("nf-city")
-                            .Class(Tw.Input),
+                        UiInput.Bind(() => _model.Address.City).Label("City")
+                            .Id("nf-city").ShowValidation(false),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                     ],
                     Div[
-                        Label.For("nf-country").Class($"{Tw.Label} text-sm mb-1")["Country (ISO)"],
-                        Input.Bind(() => _model.Address.Country)
+                        UiInput.Bind(() => _model.Address.Country).Label("Country (ISO)")
                             .Id("nf-country")
-                            .Class(Tw.Input)
-                            .MaxLength(2),
+                            .MaxLength(2).ShowValidation(false),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.Country)
                     ]
                 ]
             ],
             Div[
-                UiButton.Label("Place order").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-submit")
+                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-submit")[UiIcon.Name(UiIconName.CheckCircle), "Place order"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-result")[_submission]
+            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-result")[UiIcon.Name(UiIconName.CheckCircle), _submission]
     ];
 }
 

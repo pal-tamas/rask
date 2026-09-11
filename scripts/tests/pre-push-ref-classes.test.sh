@@ -55,7 +55,7 @@ expect_says() {
   local label="$1" stdin="$2" needle="$3"
   local out
   out="$(run_hook "$stdin")"
-  if printf '%s' "$out" | grep -qF "$needle"; then
+  if grep -qF -- "$needle" <<<"$out"; then
     printf '  ok   %s\n' "$label"
   else
     printf '  FAIL %s\n       expected to see: %s\n       got: %s\n' "$label" "$needle" "$out"
@@ -67,7 +67,7 @@ expect_silent_on() {
   local label="$1" stdin="$2" needle="$3"
   local out
   out="$(run_hook "$stdin")"
-  if printf '%s' "$out" | grep -qF "$needle"; then
+  if grep -qF -- "$needle" <<<"$out"; then
     printf '  FAIL %s\n       must NOT say: %s\n       got: %s\n' "$label" "$needle" "$out"
     failures=$((failures + 1))
   else

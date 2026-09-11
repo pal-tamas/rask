@@ -80,7 +80,7 @@ check "the README block was found"           yes "$([ -n "$readme" ] && printf y
 check "the NUGET.md block was found"         yes "$([ -n "$nuget" ]  && printf yes || printf no)"
 check "the site hero block was found"        yes "$([ -n "$hero" ]   && printf yes || printf no)"
 check "the README block is a whole class"    yes \
-    "$(printf '%s' "$readme" | grep -q '^}$' && printf yes || printf no)"
+    "$(grep -q '^}$' <<<"$readme" && printf yes || printf no)"
 
 check "NUGET.md matches the README"          "$readme" "$nuget"
 check "the site hero matches the README"     "$readme" "$hero"
@@ -109,7 +109,7 @@ check "the front-door filter is still where we think" yes \
     "$([ -n "$front_door_filter" ] && printf yes || printf no)"
 
 matches_front_doors() {
-    printf '%s\n' "$1" | grep -qE "$front_door_filter" && printf yes || printf no
+    grep -qE "$front_door_filter" <<<"$1" && printf yes || printf no
 }
 check "a README-only commit runs this guard"   yes "$(matches_front_doors README.md)"
 check "a NUGET.md-only commit runs this guard" yes "$(matches_front_doors NUGET.md)"
@@ -131,7 +131,7 @@ check "the gate filter is still where we think" yes \
     "$([ -n "$gate_filter" ] && printf yes || printf no)"
 
 runs_full_gate() {
-    printf '%s\n' "$1" | grep -qE "$gate_filter" && printf yes || printf no
+    grep -qE "$gate_filter" <<<"$1" && printf yes || printf no
 }
 
 # Every tree the suite actually gates. site/ is the published rask.sh app; it is listed explicitly

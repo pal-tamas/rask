@@ -3,7 +3,7 @@ using System.Text;
 namespace Rask.Ui;
 
 /// <summary>
-/// The base of every kit component that IS one HTML element — a button, a badge, a table, a list.
+/// The base of every kit component that IS one HTML element — a button, a badge, an alert, a table, a list.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,33 +37,66 @@ public abstract partial class UiElement : Element
     /// </returns>
     protected virtual IReadOnlyDictionary<string, string?>? ResolveAria() => Aria;
 
+    /// <summary>
+    ///     The <c>role</c> this element renders — by default exactly <see cref="Element.Role" />. For a kit
+    ///     component whose role follows from its props, as an alert's does from its tone; a role the call
+    ///     site set wins.
+    /// </summary>
+    /// <remarks>
+    ///     Kit-internal on purpose. <see cref="ResolveAria" /> is the extension point a component of your own
+    ///     needs; a role derived from props is rare enough that it stays the kit's until one exists outside it.
+    /// </remarks>
+    private protected virtual string? ResolveRole() => Role;
+
     /// <inheritdoc />
     /// <remarks>
-    ///     Core writes <c>aria-*</c> from <see cref="Element.Aria" /> in the middle of its attribute walk — after
-    ///     role and tabindex, before <see cref="Element.Attributes" /> and any tag-specific attribute — and that
-    ///     order is part of its contract. Appending the resolved entries afterwards would break it, and would
-    ///     write a key twice when the call site had set it too. So the resolved bag stands in for the call
-    ///     site's for the length of the walk, and the call site's is put back before this returns, including
-    ///     when the walk throws. An element that resolves nothing new takes the walk untouched.
+    ///     Core writes <c>role</c> and <c>aria-*</c> from <see cref="Element.Role" /> and <see cref="Element.Aria" />
+    ///     in the middle of its attribute walk — after data-*, before <see cref="Element.Attributes" /> and any
+    ///     tag-specific attribute — and that order is part of its contract. Appending the resolved values
+    ///     afterwards would break it, and would write an attribute twice when the call site had set it too.
+    ///     So the resolved values stand in for the call site's for the length of the walk, and the call
+    ///     site's are put back before this returns, including when the walk throws. An element that resolves
+    ///     nothing new takes the walk untouched.
     /// </remarks>
     protected override void WriteAttributes(StringBuilder sb)
     {
-        var own = Aria;
-        var resolved = ResolveAria();
-        if (ReferenceEquals(resolved, own))
+        var ownAria = Aria;
+        var ownRole = Role;
+        var aria = ResolveAria();
+        var role = ResolveRole();
+        var swapAria = !ReferenceEquals(aria, ownAria);
+        var swapRole = !string.Equals(role, ownRole, StringComparison.Ordinal);
+        if (!swapAria && !swapRole)
         {
             base.WriteAttributes(sb);
             return;
         }
 
-        Aria = resolved;
+        if (swapAria)
+        {
+            Aria = aria;
+        }
+
+        if (swapRole)
+        {
+            Role = role;
+        }
+
         try
         {
             base.WriteAttributes(sb);
         }
         finally
         {
-            Aria = own;
+            if (swapAria)
+            {
+                Aria = ownAria;
+            }
+
+            if (swapRole)
+            {
+                Role = ownRole;
+            }
         }
     }
 }

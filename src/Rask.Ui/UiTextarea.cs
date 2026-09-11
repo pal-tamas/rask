@@ -13,10 +13,24 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiTextarea<T> : UiFormField<T>
 {
-
+    /// <inheritdoc cref="UiInput{T}.Placeholder" />
     public string? Placeholder { get; set; }
 
+    /// <inheritdoc cref="UiInput{T}.Floating" />
+    public bool? Floating { get; set; }
+
+    /// <inheritdoc />
+    private protected override bool FloatsLabel => Floating != false;
+
+    private string PlaceholderText => Label is not null && FloatsLabel ? Label : Placeholder ?? string.Empty;
+
     public int? Rows { get; set; }
+
+    /// <inheritdoc cref="UiInput{T}.OnInput" />
+    public Callback<string>? OnInput { get; set; }
+
+    /// <inheritdoc cref="UiInput{T}.Name" />
+    public string? Name { get; set; }
 
     /// <summary>
     ///     daisyUI defines only <see cref="UiVariant.Ghost" /> for a text control — the borderless form
@@ -32,9 +46,11 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
             return Textarea
                 .Bind(bind)
                 .Id(FieldId)
+                .Name(Name)
+                .OnInput(OnInput)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
-                .Placeholder(Placeholder ?? string.Empty)
+                .Placeholder(PlaceholderText)
                 .Rows(Rows ?? 3)
                 .Aria(ControlAria())
                 .Disabled(Disabled == true)
@@ -44,8 +60,10 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
         return Textarea
             .Value(Value)
             .Id(FieldId)
+            .Name(Name)
+            .OnInput(OnInput)
             .OnChange(OnChange)
-            .Placeholder(Placeholder ?? string.Empty)
+            .Placeholder(PlaceholderText)
             .Rows(Rows ?? 3)
             .Aria(ControlAria())
             .Disabled(Disabled == true)

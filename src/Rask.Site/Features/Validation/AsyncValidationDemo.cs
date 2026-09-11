@@ -15,28 +15,19 @@ public sealed partial class AsyncValidationDemo : Component
         _ctx.AddValidator(new UniqueUsernameValidator());
     }
 
-    private static Component Checking() =>
-        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking availability..."
-        ];
-
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("flex flex-col gap-3")[
+            // A bound kit field shows "Checking…" while the async validator is out, then the message it
+            // records — no ValidatingIndicator or ValidationMessage to place beside it.
+            UiInput.Bind(() => _model.Username).Label("Username").Id("v3-username"),
             Div[
-                Label.For("v3-username").Class($"{Tw.Label} text-sm mb-1")["Username"],
-                Input.Bind(() => _model.Username).Id("v3-username").Class(Tw.Input),
-                ValidatingIndicator.Template(Checking).For(() => _model.Username),
-                ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])])
-                    .For(() => _model.Username)
-            ],
-            Div[
-                UiButton.Label("Sign up").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit)
+                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), "Sign up"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
+            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
     ];
 }
 

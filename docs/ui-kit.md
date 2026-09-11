@@ -228,7 +228,7 @@ Colour, fill and size are independent and compose, so an outlined error button n
 own:
 
 ```csharp
-UiButton.Label("Delete").Tone(UiTone.Error).Variant(UiVariant.Outline).Size(UiSize.Lg)
+UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Size(UiSize.Lg)["Delete"]
 ```
 
 | Enum | Members |
@@ -250,16 +250,29 @@ Other axes follow the same rule: `UiPlacement`, `UiModalPlacement`, `UiMaskShape
 
 ## Components that are one element
 
-A table is a `<table>`, and a list is a `<ul>`. `UiTable` and `UiList` do not wrap a raw element; they
-are the element. They derive from **`UiElement`**, which derives from `Element`, so every step an element
-takes works on them unchanged:
+A button is a `<button>`, and a table is a `<table>`. `UiButton`, `UiBadge`, `UiAlert`, `UiTable` and
+`UiList` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
+from `Element`, so every step an element takes works on them unchanged, the events included. What they
+show is their **children**, the same as a raw element's:
 
 ```csharp
+UiButton.Id("save").Tone(UiTone.Primary).OnClick(SaveAsync)[UiIcon.Name(UiIconName.Check), "Save"]
+
+UiBadge.Tone(UiTone.Success)["Live"]
+
+UiAlert.Tone(UiTone.Error)[UiIcon.Name(UiIconName.Warning), Span["Payment failed: "], Code[error]]
+
 UiTable.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
     Thead[Tr[Th["Order"], Th["Total"]]],
     Tbody[rows]
 ]
 ```
+
+A bare `UiIcon.Name(…)` is the right size in all of these. The kit's stylesheet sizes an icon nobody sized
+from the button or badge it sits in, and leaves alone an icon that has a size class of its own.
+
+A square or circle button holds one glyph, so it names itself with **`AccessibleLabel`**:
+`UiButton.AccessibleLabel("Close").Square(true)[UiIcon.Name(UiIconName.Close)]`.
 
 The kit's classes and ARIA compose with yours instead of replacing them. `.Class("mb-0")` is added to the
 kit's classes through `ResolveClass()`. A label you set with `.Aria(…)` wins over one the kit would derive
@@ -289,7 +302,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiFloatingLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiNotice` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
@@ -367,6 +380,27 @@ Form.Model(_order)[
 ]
 ```
 
+**A labelled text field floats its label.** `UiInput`, `UiTextarea` and a native `UiSelect` draw `Label`
+as daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
+way. It is still the field's real `<label>`, linked to the control. `Floating(false)` puts it back above
+the field as a legend. Controls with no text to float over keep the legend: checkboxes, ranges, ratings,
+and a `UiSelect` that draws its own list.
+
+```csharp
+UiInput.Bind(() => _account.Email).Label("Email")                   // floats
+UiInput.Bind(() => _account.Seats).Label("Seats").Floating(false)   // legend above the field
+```
+
+While the label floats it is also the placeholder, and a `Placeholder` you set is ignored. A different
+placeholder would sit in the box in the label's place until someone focused the field. Put guidance about
+the value in `Hint`, under the field, where it stays visible while typing. `Placeholder` still applies to
+a field with no visible label and to one with `Floating(false)`.
+
+**A bound field says what it knows.** Under the control it shows its validation message and, while an async
+validator is still out, a small spinner with "Checking…". The words are announced; the spinner is
+decoration. Opt out of either with `ShowValidation(false)` or `ShowValidating(false)`, where the page shows
+those states some other way, such as a summary at the top of the form.
+
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two
 sources of truth for one field, and the compiler enforces it — both live on the control's entry, so
@@ -427,9 +461,9 @@ rather than wrapping, so the header is exactly one row tall however many tabs th
 
 **Every control has a name.** A label is required, not optional, and it becomes the accessible name
 rather than a placeholder — a placeholder disappears the moment typing starts, so the one thing saying
-what a field is for vanishes exactly when a reader might check it. An icon-only button puts its label
-in `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed toast changes its
-**icon** and not only its colour.
+what a field is for vanishes exactly when a reader might check it. An icon-only button names itself with
+`AccessibleLabel`, written as `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed
+toast changes its **icon** and not only its colour.
 
 ## Names
 

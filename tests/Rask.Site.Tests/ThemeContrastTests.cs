@@ -30,7 +30,7 @@ namespace Rask.Site.Tests;
 ///     run in the unit suite: 36 palettes × 24 pairs in a few milliseconds, with no browser. What it
 ///     cannot see is a colour that arrives from somewhere other than these sheets — a literal hex in a
 ///     component's scoped CSS, or a raw Tailwind hue like the <c>sky-*</c> family this file's first run
-///     found in <c>Tw.cs</c>. <c>ChromeStylesheetTests</c> and the no-literal-colour assertion below are
+///     found in the showcase's old class-constants file. <c>ChromeStylesheetTests</c> and the no-literal-colour assertion below are
 ///     what keep that surface closed.
 ///     </para>
 /// </remarks>
@@ -54,7 +54,7 @@ public sealed partial class ThemeContrastTests
     ///     <para>
     ///     The inverted rows are not redundant. Contrast is symmetric, so <c>ui-bg</c> read on a
     ///     <c>ui-brand-ink</c> fill is the same number as <c>ui-brand-ink</c> read on <c>ui-bg</c> — and
-    ///     that symmetry is precisely why a filled control in <c>Tw.cs</c> is
+    ///     that symmetry is precisely why a filled control is
     ///     <c>bg-ui-brand-ink text-ui-bg</c> rather than a saturated fill with a white label. They are
     ///     spelled out anyway so the table reads as the design does.
     ///     </para>
@@ -96,7 +96,7 @@ public sealed partial class ThemeContrastTests
         ("--color-ui-neutral-ink", "--color-ui-bg", "a neutral fill's label"),
         ("--color-ui-neutral-ink", "--color-ui-well", "neutral text on the page ground"),
 
-        // Filled controls: the ground read on an -ink fill (Tw.Btn*).
+        // Filled controls: the ground read on an -ink fill.
         ("--color-ui-bg", "--color-ui-ink", "a dark button's label"),
         ("--color-ui-bg", "--color-ui-muted", "a dark button's label, hovered"),
         ("--color-ui-bg", "--color-ui-brand-ink", "a primary button's label"),
@@ -105,7 +105,7 @@ public sealed partial class ThemeContrastTests
         ("--color-ui-bg", "--color-ui-danger-ink", "an error button's label"),
         ("--color-ui-bg", "--color-ui-info-ink", "an info button's label"),
 
-        // Tw.BtnSecondary's hover, which is the one alpha fill left in the vocabulary.
+        // A secondary control's hover: an alpha fill, so the ground it composites over is part of the pair.
         (
             "--color-ui-ink",
             "color-mix(in srgb, var(--color-ui-line) 40%, var(--color-ui-well))",
@@ -189,9 +189,8 @@ public sealed partial class ThemeContrastTests
                 continue;
             }
 
-            // Comments name these classes to explain them — including the one beside Tw.CheckInput
-            // saying which token NOT to use — and a scanner that reads prose reports a class the
-            // markup never writes.
+            // Comments name these classes to explain them — including ones saying which token NOT to
+            // use — and a scanner that reads prose reports a class the markup never writes.
             foreach (Match m in TextUtility().Matches(CSharpComment().Replace(File.ReadAllText(file), " ")))
             {
                 written.Add("--color-ui-" + m.Groups["token"].Value);
@@ -406,7 +405,7 @@ public sealed partial class ThemeContrastTests
                     (a.B * weight) + (b.B * (1 - weight))),
 
                 // srgb mixes gamma-encoded channels, which is also what compositing an alpha fill over a
-                // background does — the one place the showcase still has one (Tw.BtnSecondary's hover).
+                // background does — a secondary control's hover is one.
                 "in srgb" => FromEncoded(
                     Encoded(a).Zip(Encoded(b), (x, y) => (x * weight) + (y * (1 - weight))).ToArray()),
 

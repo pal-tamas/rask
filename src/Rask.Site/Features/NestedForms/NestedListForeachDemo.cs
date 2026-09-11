@@ -23,21 +23,20 @@ public sealed partial class NestedListForeachDemo : Component
             var captured = item; // foreach already captures per-iteration but make it loud.
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Input.Bind(() => captured.Description).Class(Tw.Input),
+                    UiInput.Bind(() => captured.Description).AccessibleLabel("Description").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Description)
                 ],
                 Td.Style("width: 6rem;")[
-                    Input.Bind(() => captured.Quantity).Class(Tw.Input),
+                    UiInput.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
                     UiButton
-                        .Label("Remove item")
-                        .Icon(UiIconName.Close)
+                        .AccessibleLabel("Remove item")
                         .Square(true)
                         .Tone(UiTone.Error)
                         .Variant(UiVariant.Outline)
-                        .OnClick(() => _model.Items.Remove(captured))
+                        .OnClick(() => _model.Items.Remove(captured))[UiIcon.Name(UiIconName.Close)]
                 ]
             ]);
         }
@@ -50,11 +49,11 @@ public sealed partial class NestedListForeachDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    UiButton.Label("Add row").Icon(UiIconName.Plus).Variant(UiVariant.Outline)
+                    UiButton.Variant(UiVariant.Outline)
                         .Id("nf-list-add")
                         .OnClick(() =>
-                            _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 })),
-                    UiButton.Label("Submit").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-list-submit")
+                            _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[UiIcon.Name(UiIconName.Plus), "Add row"],
+                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-list-submit")[UiIcon.Name(UiIconName.CheckCircle), "Submit"]
                 ]
             ],
             _submission is null

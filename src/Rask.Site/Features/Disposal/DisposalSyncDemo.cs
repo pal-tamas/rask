@@ -11,14 +11,14 @@ public sealed partial class DisposalSyncDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                UiButton.Label("Mount sync probe").Icon(UiIconName.Play).Tone(UiTone.Primary)
+                UiButton.Tone(UiTone.Primary)
                     .Id("dispose-sync-mount")
                     .Disabled(_syncMounted)
-                    .OnClick(MountSync),
-                UiButton.Label("Unmount sync probe").Icon(UiIconName.Stop).Variant(UiVariant.Outline)
+                    .OnClick(MountSync)[UiIcon.Name(UiIconName.Play), "Mount sync probe"],
+                UiButton.Variant(UiVariant.Outline)
                     .Id("dispose-sync-unmount")
                     .Disabled(!_syncMounted)
-                    .OnClick(UnmountSync)
+                    .OnClick(UnmountSync)[UiIcon.Name(UiIconName.Stop), "Unmount sync probe"]
             ],
             _syncMounted
                 ? DisposableTimerProbe.Log(AppendSyncLog).InstanceId(_nextSyncId)

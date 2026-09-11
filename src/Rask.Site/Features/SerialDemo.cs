@@ -21,36 +21,30 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Label.Class("text-sm text-ui-muted mb-0").For("serial-baud")["Baud"],
-                    Input
-                        .Value(_baudRate.ToString())
+                    UiInput.Value(_baudRate.ToString()).Label("Baud")
                         .Id("serial-baud")
                         .Type(InputType.Number)
-                        .Class(Tw.Input)
-                        .Style("width: 7rem")
                         .Disabled(_port is not null)
                         .OnInput(v => int.TryParse(v, out _baudRate)),
-                    UiButton.Label("Connect").Icon(UiIconName.Cube).Tone(UiTone.Primary)
+                    UiButton.Tone(UiTone.Primary)
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClick(Connect),
-                    UiButton.Label("Disconnect").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                        .OnClick(Connect)[UiIcon.Name(UiIconName.Cube), "Connect"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("serial-disconnect")
                         .Disabled(_port is null)
-                        .OnClick(Disconnect)
+                        .OnClick(Disconnect)["Disconnect"]
                 ],
-                Div.Class($"{Tw.InputGroup} mb-2")[
-                    Input
-                        .Value(_outgoing)
+                Div.Class("flex items-stretch gap-2 mb-2")[
+                    UiInput.Value(_outgoing).AccessibleLabel("Line to send")
                         .Id("serial-outgoing")
-                        .Class(Tw.Input)
                         .Placeholder("Line to send")
                         .Disabled(_port is null)
                         .OnInput(v => _outgoing = v),
-                    UiButton.Label("Send").Tone(UiTone.Primary)
+                    UiButton.Tone(UiTone.Primary)
                         .Id("serial-send")
                         .Disabled(_port is null)
-                        .OnClick(Send)
+                        .OnClick(Send)["Send"]
                 ],
                 Pre
                     .Class("text-sm bg-slate-900 text-slate-100 rounded p-2 mb-2")

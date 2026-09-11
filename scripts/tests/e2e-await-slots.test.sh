@@ -68,7 +68,7 @@ assert_says() {
   haystack="$2"
   needle="$3"
   checked=$((checked + 1))
-  if printf '%s' "$haystack" | grep -q -- "$needle"; then
+  if grep -q -- "$needle" <<<"$haystack"; then
     printf '  ok   %s\n' "$name"
   else
     printf '  FAIL %s (no match for: %s)\n' "$name" "$needle" >&2

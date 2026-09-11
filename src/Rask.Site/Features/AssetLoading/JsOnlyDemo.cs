@@ -14,7 +14,7 @@ public sealed partial class JsOnlyDemo(IJSRuntime js) : Component
 
     protected override Component? Render() =>
         Div.Class("flex gap-3 items-center flex-wrap items-center")[
-            UiButton.Label("Click to bump (via scoped JS)").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("js-only-btn").OnClick(HandleClickAsync),
+            UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("js-only-btn").OnClick(HandleClickAsync)["Click to bump (via scoped JS)"],
             Span.Class("text-ui-muted")["Bumped ", Strong[_clicks], " times"]
         ];
 

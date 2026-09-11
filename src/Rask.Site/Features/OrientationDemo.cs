@@ -16,14 +16,14 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Label("Read current").Tone(UiTone.Primary).Id("orientation-read").OnClick(Read),
-                    UiButton.Label("Lock portrait").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Id("orientation-read").OnClick(Read)["Read current"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("orientation-portrait")
-                        .OnClick(() => Lock(OrientationLock.Portrait)),
-                    UiButton.Label("Lock landscape").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                        .OnClick(() => Lock(OrientationLock.Portrait))["Lock portrait"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("orientation-landscape")
-                        .OnClick(() => Lock(OrientationLock.Landscape)),
-                    UiButton.Label("Unlock").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("orientation-unlock").OnClick(Unlock)
+                        .OnClick(() => Lock(OrientationLock.Landscape))["Lock landscape"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("orientation-unlock").OnClick(Unlock)["Unlock"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],

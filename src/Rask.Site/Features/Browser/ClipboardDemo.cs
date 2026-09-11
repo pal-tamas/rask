@@ -12,9 +12,9 @@ public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("mb-2 flex gap-2")[
-                    Input.Value(_input).Class(Tw.Input).Id("clipboard-input").OnInput(v => _input = v),
-                    UiButton.Label("Copy").Tone(UiTone.Primary).Id("clipboard-copy").OnClick(Copy),
-                    UiButton.Label("Paste").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("clipboard-paste").OnClick(Paste)
+                    UiInput.Value(_input).AccessibleLabel("Text to copy").Id("clipboard-input").OnInput(v => _input = v),
+                    UiButton.Tone(UiTone.Primary).Id("clipboard-copy").OnClick(Copy)["Copy"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("clipboard-paste").OnClick(Paste)["Paste"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Pasted: ", Code.Id("clipboard-read-value")[_read ?? "(nothing yet)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("clipboard-status")[_status ?? "(idle)"]]

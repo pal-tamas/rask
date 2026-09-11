@@ -30,6 +30,15 @@ them until tagged releases begin.
   Never the publish time: that marks every URL changed on every deploy, and a crawler that notices stops
   trusting the field for the whole site. See `docs/prerendering.md`.
 
+- **A bound kit field shows that its async validator is still checking.** `UiInput`, `UiTextarea` and
+  `UiSelect` render a small spinner and "Checking…" under the control while a validation is in flight. It
+  uses Core's `ValidatingIndicator`, sticky tail included, so a quick check is still on screen long enough
+  to read. A field whose validator goes to the network used to be silent for the whole round trip, and a
+  reader who tabbed away took the silence for a pass. The words are announced (`role="status"`); the
+  spinner is `aria-hidden`. `ShowValidating(false)` opts out, mirroring `ShowValidation`. The site's async
+  demos drop their hand-placed indicator and message, and the forms journey asserts the checking state by
+  the words on screen.
+
 - **Bearer tokens, opt-in and cookie-first.** `AuthOptions.Bearer` adds a JWT scheme **beside** the
   cookie — never instead of it — for the callers a cookie cannot serve: a native client, a CLI, a
   service-to-service call. A caller asks with `X-Rask-Auth-Mode: bearer` on login and gets the token in
@@ -60,6 +69,71 @@ them until tagged releases begin.
   is it documented — and nothing asked whether a documented rule existed.
 
 ### Changed
+
+- **`Tw.cs` is gone: every control on rask.sh is a `Rask.Ui` component.** The site's class-string
+  vocabulary ends here. The last 180 uses of `Tw.Input`, `Tw.Label` and `Tw.Select` move onto kit
+  fields, along with the checkbox, spinner, input-group, blockquote and figure-caption constants, and the
+  file is deleted.
+
+  - **Fields.** A `Label[…]` beside its `Input`/`Textarea`/`Select` becomes one `UiInput`/`UiTextarea`/
+    `UiSelect` with `.Label(…)`, which floats by default. Every id a browser test selects on is kept. Where
+    a demo renders its own `ValidationMessage` or a `ValidationSummary` (the thing it is teaching), the
+    field gets `.ShowValidation(false)`, so an error is never said twice.
+  - **Unlabelled controls.** Table-row inputs, toolbar rows and search boxes are named with
+    `AccessibleLabel`. A standalone field gets a visible label instead of the bare placeholder it had.
+  - **Selects.** Selects take a typed `Options` list instead of `Option` children, the enum demos
+    included. `RegistrationModel.Plan` and the async-binding demo's model become nullable, so an unpicked
+    select shows its placeholder rather than the first option while the model holds nothing.
+    `BindingNullableDemo` keeps a real "— none —" option, because clearing to null is what it shows.
+  - **Elements pages.** These pages' subject is the raw tag, so their inputs, selects, textareas and
+    labels stay raw, styled with daisyUI's own `input`/`select`/`textarea`/`label` classes.
+
+  **Kit gaps the migration found, filled:** `UiInput.Name` and `UiTextarea.Name` (the post name, as
+  `UiSelect` already had); `UiTextarea.OnInput` (as `UiInput` already had); and `Id` on `UiCheckbox` and
+  `UiFileInput`, the two controls that draw their own markup and had none, which left a browser test
+  nothing to click.
+
+- **A labelled `UiInput`, `UiTextarea` or native `UiSelect` floats its label by default.** It uses
+  daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
+  way. It is still the field's real `<label>`, linked by `for`/`id` as well as by holding the control.
+  `Floating(false)` puts the label back above the field as a legend. A checkbox, range, rating or other
+  control with no text to float over keeps the legend, and so does a `UiSelect` that draws its own list.
+  A field with no `Label` renders exactly as before.
+
+  While the label floats it is also the placeholder, and a `Placeholder` the call site set is ignored.
+  daisyUI raises the caption from a *shown* placeholder, and a different placeholder would sit in the box in
+  the label's place until someone focused the field. Guidance about the value goes in `Hint`, under the
+  field. `Placeholder` still applies to an unlabelled field and to `Floating(false)`. The site's floating
+  fields moved their placeholder guidance into `Hint`, and dropped bare prompts like "Type…".
+
+  Holding the control inside the label takes it out of daisyUI's sibling selector for `.validator-hint`,
+  the failure that once kept an `Error` message invisible behind a wrapping legend. A kit stylesheet rule
+  reveals the hint through the label instead.
+
+  **`UiFloatingLabel` is deleted.** It wrapped a field that already carried its own label, so the kit
+  showcase drew two captions around one input. The site's Bootstrap-era `FloatingInput`, `FloatingSelect`
+  and `FloatingTextarea` helpers are gone too: the floating-labels demo is five kit fields, and
+  `Tw.FormFloating` goes with them. So do four constants nothing used: `Tw.Progress`, `Tw.ProgressBar`,
+  `Tw.NavLink` and `Tw.NavTabs`.
+
+- **`UiButton`, `UiBadge` and `UiAlert` are their elements too, and what they show is their children.**
+  They move onto `UiElement`, so `UiButton` is the `<button>` (or the `<a>`, given `Href`), `UiBadge` the
+  `<span>` and `UiAlert` the `<div>`. The props they mirrored from `Element` are retired: `Id`, `Class`,
+  `Data`, `Role`, `TabIndex`, `Aria`, `OnClick`, `OnDoubleClick` and `OnContextMenu`. Each was a hand-kept
+  copy of a step `Element` already had, under the same name, so those call sites read exactly as before.
+  `UiAlert` gains `Role` as a result, where the kit used to write it with no way to change it; the tone
+  still supplies the default.
+
+  `Label`, `Message` and `Icon` are gone. What a component shows is its children:
+  `UiButton[UiIcon.Name(UiIconName.Check), "Save"]`, `UiBadge.Tone(UiTone.Success)["Live"]`,
+  `UiAlert.Tone(UiTone.Error)[UiIcon.Name(UiIconName.Warning), "Payment failed"]`. A square or circle
+  button that shows only an icon names itself with **`AccessibleLabel`**, written as `aria-label` through
+  `ResolveAria()`, and an `aria-label` set with `Aria` wins over it.
+
+  An icon placed in a button or a badge is sized by the kit's stylesheet from what it sits in. The rule
+  matches only `UiIcon`'s default size, so an icon a call site sized on purpose is left alone. A link
+  button's `href` goes through the same sanitiser Core's `A` uses, so a `javascript:` URL is refused as it
+  was before. The 305 call sites across the site, the console and the kit move to the children form.
 
 - **`UiTable` and `UiList` are their elements now, on a new `UiElement` base.** Both used to wrap a raw
   `Table`/`Ul` and mirror a hand-picked prop or two onto it, so an `id` on a kit table, a `data-*` a test
@@ -155,6 +229,13 @@ them until tagged releases begin.
 - **`NoTwoPagesShareATitleOrADescription` checks the site rather than one page.** Its "claims to be this
   page" filter compared the canonical, which always ends in a slash, with the bare route path, which never
   does — so it skipped every page except `/` and asserted uniqueness over a set of one.
+
+- **Three gate script tests no longer fail on a match.** `pre-push-ref-classes`, `e2e-await-slots` and
+  `front-doors` checked output with `printf … | grep -q …` under `set -o pipefail`. `grep -q` exits on the
+  first match; if `printf` was still writing it died of SIGPIPE, and `pipefail` reported the pipeline as
+  failed. A found match came back as a miss, and only under load, so a commit's gate could reject a change
+  that passed when rerun (#1053). They pass the text as a here-string now, which leaves no second process
+  to kill.
 
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
   right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,

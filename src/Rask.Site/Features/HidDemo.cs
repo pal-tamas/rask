@@ -20,15 +20,15 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Label("Pair device").Icon(UiIconName.Cube).Tone(UiTone.Primary).Id("hid-request").OnClick(RequestDevice),
-                    UiButton.Label("Open & watch").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Id("hid-request").OnClick(RequestDevice)[UiIcon.Name(UiIconName.Cube), "Pair device"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("hid-watch")
                         .Disabled(_device is null || _watch is not null)
-                        .OnClick(Watch),
-                    UiButton.Label("Release").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                        .OnClick(Watch)["Open & watch"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("hid-close")
                         .Disabled(_device is null)
-                        .OnClick(Release)
+                        .OnClick(Release)["Release"]
                 ],
                 _info is null
                     ? Div.Class("text-sm text-ui-muted")["No device paired."]

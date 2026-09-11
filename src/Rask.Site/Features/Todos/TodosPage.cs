@@ -106,7 +106,7 @@ public sealed partial class TodosPage : Component
                 Span.Class("text-ui-muted text-sm")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
-                UiButton.Label("New todo").Icon(UiIconName.Plus).Tone(UiTone.Primary).OnClick(OpenAdd)
+                UiButton.Tone(UiTone.Primary).OnClick(OpenAdd)[UiIcon.Name(UiIconName.Plus), "New todo"]
             ],
             _todos.Count == 0
                 ? Div.Class("text-ui-muted text-sm")["No todos yet — click \"New todo\" to add one."]
@@ -130,18 +130,16 @@ public sealed partial class TodosPage : Component
                         // square button holds one glyph, so UiButton writes the label as aria-label
                         // rather than as visible text.
                         UiButton
-                            .Label($"Edit {item.Title}")
-                            .Icon(UiIconName.Pencil)
+                            .AccessibleLabel($"Edit {item.Title}")
                             .Square(true)
                             .Variant(UiVariant.Outline)
-                            .OnClick(() => OpenEdit(item)),
+                            .OnClick(() => OpenEdit(item))[UiIcon.Name(UiIconName.Pencil)],
                         UiButton
-                            .Label($"Delete {item.Title}")
-                            .Icon(UiIconName.Trash)
+                            .AccessibleLabel($"Delete {item.Title}")
                             .Square(true)
                             .Tone(UiTone.Error)
                             .Variant(UiVariant.Outline)
-                            .OnClick(() => Delete(item))
+                            .OnClick(() => Delete(item))[UiIcon.Name(UiIconName.Trash)]
                     ])
                 ],
             CodeSample
@@ -208,21 +206,18 @@ public sealed partial class TodoFormDialog : Component
                 })[
                 H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],
                 Form.Model(Model).OnValidSubmit(OnSave).Class("flex flex-col gap-3")[
-                    Label.For("todo-title").Class("text-sm font-medium")["Title"],
                     // autofocus fires when the browser PARSES the element -- a deep link to /todos/new
                     // lands in the field. Opening the dialog through the live diff inserts it after
                     // parse, where browsers ignore the attribute, so that path still needs a click.
                     // Reliable focus-on-open would need ElementRef + IJSRuntime; this page is a routed
                     // CRUD flow, not a dialog implementation.
-                    Input.Bind(() => Model.Title).Id("todo-title").Autofocus(true).Class(Tw.Input),
+                    UiInput.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus(true).ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => Model.Title),
                     Div.Class("flex justify-end gap-2")[
-                        UiButton.Label("Cancel").Variant(UiVariant.Outline).OnClick(OnCancel),
+                        UiButton.Variant(UiVariant.Outline).OnClick(OnCancel)["Cancel"],
                         UiButton
-                            .Label(IsAdding ? "Add" : "Save")
-                            .Icon(UiIconName.CheckCircle)
                             .Tone(UiTone.Primary)
-                            .Type(UiButtonType.Submit)
+                            .Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), IsAdding ? "Add" : "Save"]
                     ]
                 ]
             ]

@@ -20,10 +20,10 @@ public sealed partial class UiKitFeedbackDemo : Component
             "Alert",
             "Tone and fill compose, as everywhere else in the kit.",
             Div.Data(Testid("ui-alert")).Class("space-y-2")[
-                UiAlert.Key("i").Message("A new version is available.").Tone(UiTone.Info),
-                UiAlert.Key("s").Message("Saved.").Tone(UiTone.Success).Variant(UiVariant.Soft),
-                UiAlert.Key("w").Message("Two jobs are close to their retry limit.").Tone(UiTone.Warning),
-                UiAlert.Key("e").Message("Payment failed.").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                UiAlert.Key("i").Tone(UiTone.Info)["A new version is available."],
+                UiAlert.Key("s").Tone(UiTone.Success).Variant(UiVariant.Soft)["Saved."],
+                UiAlert.Key("w").Tone(UiTone.Warning)["Two jobs are close to their retry limit."],
+                UiAlert.Key("e").Tone(UiTone.Error).Variant(UiVariant.Outline)["Payment failed."]
             ]),
 
         Section(
@@ -45,10 +45,10 @@ public sealed partial class UiKitFeedbackDemo : Component
             Div.Data(Testid("ui-progress")).Class("space-y-3")[
                 UiProgress.Label("Upload").Value(_progress).Max(100).Tone(UiTone.Primary),
                 Div.Class("flex gap-2")[
-                    UiButton.Key("less").Label("−10").Size(UiSize.Sm)
-                        .OnClick(() => { _progress = Math.Max(0, _progress - 10); }),
-                    UiButton.Key("more").Label("+10").Size(UiSize.Sm)
-                        .OnClick(() => { _progress = Math.Min(100, _progress + 10); })
+                    UiButton.Key("less").Size(UiSize.Sm)
+                        .OnClick(() => { _progress = Math.Max(0, _progress - 10); })["−10"],
+                    UiButton.Key("more").Size(UiSize.Sm)
+                        .OnClick(() => { _progress = Math.Min(100, _progress + 10); })["+10"]
                 ],
                 UiRadialProgress.Label("Disk used").Percent(_progress)
             ]),
@@ -59,13 +59,13 @@ public sealed partial class UiKitFeedbackDemo : Component
             + "that matters should live only here. Open shows one without a hover.",
             Div.Data(Testid("ui-tooltip")).Class("flex flex-wrap items-center gap-8 pt-8")[
                 UiTooltip.Key("t").Tip("Above").Placement(UiPlacement.Top)[
-                    UiButton.Label("Top").Size(UiSize.Sm)
+                    UiButton.Size(UiSize.Sm)["Top"]
                 ],
                 UiTooltip.Key("r").Tip("Beside").Placement(UiPlacement.Right).Tone(UiTone.Info)[
-                    UiButton.Label("Right").Size(UiSize.Sm)
+                    UiButton.Size(UiSize.Sm)["Right"]
                 ],
                 UiTooltip.Key("o").Tip("Always shown").Placement(UiPlacement.Top).Open(true)[
-                    UiButton.Label("Open").Size(UiSize.Sm)
+                    UiButton.Size(UiSize.Sm)["Open"]
                 ]
             ]),
 
@@ -84,10 +84,10 @@ public sealed partial class UiKitFeedbackDemo : Component
             + "everything below it the moment an action completes.",
             Div.Data(Testid("ui-toast"))[
                 Div.Class("flex gap-2")[
-                    UiButton.Key("ok").Label("Save").Tone(UiTone.Primary)
-                        .OnClick(() => { _toast = "Saved."; }),
-                    UiButton.Key("bad").Label("Fail").Tone(UiTone.Error)
-                        .OnClick(() => { _toast = "Payment failed."; })
+                    UiButton.Key("ok").Tone(UiTone.Primary)
+                        .OnClick(() => { _toast = "Saved."; })["Save"],
+                    UiButton.Key("bad").Tone(UiTone.Error)
+                        .OnClick(() => { _toast = "Payment failed."; })["Fail"]
                 ],
                 _toast is { } message
                     ? UiToast

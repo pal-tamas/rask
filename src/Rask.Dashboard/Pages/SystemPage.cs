@@ -216,7 +216,7 @@ public sealed partial class SystemPage(
                             Span[$"every {DashboardParts.Duration(r.Interval)}"],
                             r.LastEnqueuedAt is { } lastSmall
                                 ? Span.Title(lastSmall.ToString("u"))[DashboardParts.Ago(lastSmall, now)]
-                                : UiBadge.Label("never")
+                                : UiBadge["never"]
                         ]
                     ],
                     Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[DashboardParts.Duration(r.Interval)],
@@ -226,7 +226,7 @@ public sealed partial class SystemPage(
                                 DashboardParts.Ago(last, now)
                             ]
                             // Declared but never fired: either the app just started, or this one is stuck.
-                            : UiBadge.Label("never")
+                            : UiBadge["never"]
                     ]
                 ])]
             ]

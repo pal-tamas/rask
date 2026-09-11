@@ -32,33 +32,29 @@ public sealed partial class InlineValidateDemo : Component
             .Validate(m =>
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
             Div[
-                Label.For("v4-email").Class($"{Tw.Label} text-sm mb-1")["Email"],
-                Input.Bind(() => _model.Email)
+                UiInput.Bind(() => _model.Email).Label("Email")
                     .Id("v4-email")
                     .Type(InputType.Email)
-                    .Class(Tw.Input)
                     .Validate(v =>
                         v.Contains('@')
                             ? Array.Empty<string>()
-                            : new[] { "Email looks wrong." }),
+                            : new[] { "Email looks wrong." }).ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Div[
-                Label.For("v4-password").Class($"{Tw.Label} text-sm mb-1")["Password"],
-                Input.Bind(() => _model.Password).Id("v4-password").Type(InputType.Password).Class(Tw.Input)
+                UiInput.Bind(() => _model.Password).Label("Password").Id("v4-password").Type(InputType.Password)
             ],
             Div[
-                Label.For("v4-confirm").Class($"{Tw.Label} text-sm mb-1")["Confirm"],
-                Input.Bind(() => _model.Confirm).Id("v4-confirm").Type(InputType.Password).Class(Tw.Input)
+                UiInput.Bind(() => _model.Confirm).Label("Confirm").Id("v4-confirm").Type(InputType.Password)
             ],
             ValidationSummary.Template(SummaryAlert),
             Div[
-                UiButton.Label("Sign in").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit)
+                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), "Sign in"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
+            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
     ];
 }
 

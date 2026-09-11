@@ -18,23 +18,21 @@ public sealed partial class FirstErrorWinsDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Activated: {m.Code}").Class("flex flex-col gap-3")[
             Div[
-                Label.For("v8-code").Class($"{Tw.Label} text-sm mb-1")["License code"],
-                Input.Bind(() => _model.Code)
+                UiInput.Bind(() => _model.Code).Label("License code")
                     .Id("v8-code")
-                    .Class(Tw.Input)
                     .Validate(v =>
                         string.IsNullOrWhiteSpace(v)
                             ? new[] { "Code is required." }
-                            : Array.Empty<string>()),
+                            : Array.Empty<string>()).ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
-                UiButton.Label("Activate").Icon(UiIconName.Unlock).Tone(UiTone.Primary).Type(UiButtonType.Submit)
+                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.Unlock), "Activate"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
+            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
     ];
 }
 

@@ -53,7 +53,7 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_indicator_puts_its_badge_over_its_child()
     {
-        var html = UiIndicator.Badge(UiBadge.Label("9"))[UiButton.Label("Inbox")].ToHtml();
+        var html = UiIndicator.Badge(UiBadge["9"])[UiButton["Inbox"]].ToHtml();
 
         Assert.Contains("indicator", html);
         Assert.Contains("Inbox", html);
@@ -62,11 +62,11 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void A_join_groups_its_children_into_one_control() =>
-        Assert.Contains("join", UiJoin[UiButton.Label("1"), UiButton.Label("2")].ToHtml());
+        Assert.Contains("join", UiJoin[UiButton["1"], UiButton["2"]].ToHtml());
 
     [Fact]
     public void A_vertical_join_says_so() =>
-        Assert.Contains("join-vertical", UiJoin.Vertical(true)[UiButton.Label("1")].ToHtml());
+        Assert.Contains("join-vertical", UiJoin.Vertical(true)[UiButton["1"]].ToHtml());
 
     [Fact]
     public void An_avatar_keeps_its_alt_text()

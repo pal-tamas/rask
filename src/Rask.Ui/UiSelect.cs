@@ -125,6 +125,20 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     // reports it at the call site — this is only what happens when nothing was said either way.
     private bool DrawsOwnList => Native is { } native ? !native : OptionTemplate is not null;
 
+    /// <summary>
+    ///     Whether a <c>Label</c> floats over the box rather than sitting above it as a legend. On unless this
+    ///     is <see langword="false" />.
+    /// </summary>
+    /// <remarks>
+    ///     Native only. daisyUI styles a floating label for a real <c>&lt;select&gt;</c>; the drawn list is a
+    ///     button and a popover, which a floating caption does not know how to sit over, so it keeps the
+    ///     legend whatever this says.
+    /// </remarks>
+    public bool? Floating { get; set; }
+
+    /// <inheritdoc />
+    private protected override bool FloatsLabel => Floating != false && !DrawsOwnList;
+
     /// <inheritdoc />
     /// <inheritdoc />
     protected override Component Control() => DrawsOwnList ? Custom() : NativeSelect();

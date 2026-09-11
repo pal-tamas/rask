@@ -27,21 +27,21 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                     ]
                 ],
             Div.Class("flex-wrap")[
-                UiButton.Label("SetQuery page=1").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                     .Id("nav-set-page1")
-                    .OnClick(() => nav.SetQuery("page", "1")),
-                UiButton.Label("SetQuery page=2").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    .OnClick(() => nav.SetQuery("page", "1"))["SetQuery page=1"],
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                     .Id("nav-set-page2")
-                    .OnClick(() => nav.SetQuery("page", "2")),
-                UiButton.Label("SetQuery sort=asc").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    .OnClick(() => nav.SetQuery("page", "2"))["SetQuery page=2"],
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                     .Id("nav-set-sort")
-                    .OnClick(() => nav.SetQuery("sort", "asc")),
-                UiButton.Label("RemoveQuery page").Variant(UiVariant.Outline)
+                    .OnClick(() => nav.SetQuery("sort", "asc"))["SetQuery sort=asc"],
+                UiButton.Variant(UiVariant.Outline)
                     .Id("nav-remove-page")
-                    .OnClick(() => nav.RemoveQuery("page")),
-                UiButton.Label("ClearQuery").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                    .OnClick(() => nav.RemoveQuery("page"))["RemoveQuery page"],
+                UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                     .Id("nav-clear")
-                    .OnClick(() => nav.ClearQuery())
+                    .OnClick(() => nav.ClearQuery())["ClearQuery"]
             ]
         ];
 

@@ -77,7 +77,7 @@ public sealed partial class DragDropKanbanDemo : Component
                 Div.Class("dd-column h-full")[
                     Div.Class("dd-column-header flex justify-between items-center")[
                         Span.Class("font-semibold")[_columnLabels[zone]],
-                        UiBadge.Label(cards.Count.ToString()).Tone(UiTone.Neutral).Variant(UiVariant.Soft)
+                        UiBadge.Tone(UiTone.Neutral).Variant(UiVariant.Soft)[cards.Count.ToString()]
                     ],
                     Div
                         .Class(bodyCls)
