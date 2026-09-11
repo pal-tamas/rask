@@ -48,6 +48,26 @@ internal static class ShellCachePolicy
         //
         // `Vary: Cookie` because "anonymous" is itself a function of the cookie: a cache that
         // stored this without varying on it could serve the logged-out page to a signed-in user.
-        return new ShellCacheDecision("private, max-age=0, must-revalidate", null, "Cookie");
+        return new ShellCacheDecision(StoredCopyCacheControl, null, "Cookie");
     }
+
+    /// <summary>
+    ///     The headers for a response served from the public-page cache.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The same answer as an anonymous static page, and for the same reasons: a stored copy carries no
+    ///         session id and belongs to no one, so it drops <c>no-store</c> — restoring bfcache — while
+    ///         <c>private</c> keeps every shared cache out and <c>max-age=0, must-revalidate</c> keeps the
+    ///         browser asking. Here the asking is cheap, because the copy has an ETag: a repeat visit is a 304.
+    ///     </para>
+    ///     <para>
+    ///         <c>Vary: Cookie</c> matters more here than anywhere: whether a signed-in visitor is served the
+    ///         copy at all depends on the cookie, so a cache that ignored it could hand the anonymous copy of a
+    ///         page that reads the user to the user.
+    ///     </para>
+    /// </remarks>
+    internal static ShellCacheDecision ForStoredCopy() => new(StoredCopyCacheControl, null, "Cookie");
+
+    private const string StoredCopyCacheControl = "private, max-age=0, must-revalidate";
 }

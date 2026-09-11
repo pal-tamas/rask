@@ -32,7 +32,7 @@
     <RaskPrerenderCompanionOutput Condition=" '$(RaskPrerenderCompanionOutput)' == '' ">$(BaseIntermediateOutputPath)rask-prerender-bin\</RaskPrerenderCompanionOutput>
   </PropertyGroup>
 
-  <Target Name="RaskGeneratePrerenderCompanion" Condition=" '$(RaskPrerender)' == 'true' ">
+  <Target Name="RaskGeneratePrerenderCompanion" Condition=" '$(RaskPrerender)' == 'true' and '$(RaskWasm)' == 'true' ">
 
     <!--
       No framework version to sniff and no source-tree escape hatch: the companion carries the app's OWN
@@ -191,7 +191,7 @@
   </Target>
 
   <Target Name="RaskPrerenderPages"
-          Condition=" '$(RaskPrerender)' == 'true' "
+          Condition=" '$(RaskPrerender)' == 'true' and '$(RaskWasm)' == 'true' "
           DependsOnTargets="RaskGeneratePrerenderCompanion"
           AfterTargets="Publish">
 

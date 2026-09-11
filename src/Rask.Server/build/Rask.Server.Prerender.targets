@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Server-side prerendering: the public-page cache.
+
+    <RaskPrerender>true</RaskPrerender> on a Rask.Server app turns on the runtime cache of public pages.
+    A page whose route needs no sign-in is rendered once for nobody in particular, served from memory
+    with an ETag, and rendered again in the background once its copy is older than
+    RenderModes.RevalidateAfter. It is the same property a browser-WebAssembly app sets to prerender at
+    publish, so an app says "prerender my pages" once, whichever host it runs on.
+
+    There is nothing to run at build time: a server renders its own pages. So this only records the
+    choice in the assembly, where AddRask reads it back — which is what keeps Program.cs untouched.
+
+    Gated away from what it does not mean. A browser-WebAssembly app (RaskWasm, or the browser target
+    framework) prerenders at publish through Rask.Wasm.Prerender.targets instead, and a library has no
+    host to cache anything in. The condition sits on an ItemGroup, whose conditions MSBuild evaluates
+    after every property in the project, so the SDK's OutputType and TargetPlatformIdentifier are
+    already final here however early this file is imported.
+  -->
+
+  <ItemGroup Condition=" '$(RaskPrerender)' == 'true' and '$(RaskWasm)' != 'true' and '$(TargetPlatformIdentifier)' != 'browser' and '$(OutputType)' == 'Exe' ">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Rask.Prerender</_Parameter1>
+      <_Parameter2>true</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

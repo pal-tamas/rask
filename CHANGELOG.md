@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask.Server caches public pages, with the property a WASM app already prerenders with:
+  `<RaskPrerender>true</RaskPrerender>`.** A page whose route needs no sign-in is rendered in the
+  background for nobody — anonymous, no query string, no request behind it — stored, and served to every
+  visitor with a strong ETag, `br`/`gzip` and `private, max-age=0, must-revalidate`. Serving a copy costs no
+  session, no DI scope and no render, and still answers while the host is at `MaxSessions` or draining. A
+  copy older than the new `RenderModes.RevalidateAfter` (60 seconds) is served while the next one renders,
+  so a page's data catches up without a redeploy; a refresh that throws or stalls keeps the old copy, and
+  one that answers 404 or redirects removes it.
+
+  What may be served from a copy is kept narrow on purpose. Only planned paths — literal routes plus what
+  an `IPrerenderPaths` supplies — so traffic cannot grow the cache; no query string and no `?culture=`;
+  never an `[Authorize]` page; and a signed-in visitor only on a page whose render never read the user,
+  counted on `IUserProvider`, with a replaced provider assumed to read it. Off in Development. This release
+  stores pages that need no live session (`RenderModes.Static`); interactive pages follow when the socket
+  can take a stored page over.
+
+  Pages now answer `HEAD`. The WASM prerender targets also require `<RaskWasm>true</RaskWasm>`, so the one
+  property cannot start a browser companion on a server project, and the browser-rung companion pins it off.
+  New metrics `rask.prerender.requests`, `.bypassed`, `.revalidations` and `.bytes`, and
+  `PageRequestBenchmarks` measures a page GET through the whole pipeline, which no benchmark did.
+
 - **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
   nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
   the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`

@@ -30,6 +30,9 @@ public sealed class RaskMetrics : IDisposable
     private readonly Counter<long> _sessionsCreated;
     private readonly Counter<long> _sessionsEvicted;
     private readonly Counter<long> _sessionsRejected;
+    private readonly Counter<long> _prerenderRequests;
+    private readonly Counter<long> _prerenderBypassed;
+    private readonly Counter<long> _prerenderRevalidations;
 
     /// <summary>
     ///     Constructs the meter. Prefers the DI-supplied <see cref="IMeterFactory" /> (so the
@@ -68,6 +71,15 @@ public sealed class RaskMetrics : IDisposable
             "rask.render.duration", "ms", "Wall-clock time to render a session and write its frame.");
         _payloadBytes = _meter.CreateHistogram<long>(
             "rask.payload.bytes", "By", "Size of a frame sent to a client.");
+        _prerenderRequests = _meter.CreateCounter<long>(
+            "rask.prerender.requests", "{request}",
+            "Page requests that consulted the public-page cache, tagged hit, stale or miss.");
+        _prerenderBypassed = _meter.CreateCounter<long>(
+            "rask.prerender.bypassed", "{request}",
+            "Page requests served live without the public-page cache, tagged with why.");
+        _prerenderRevalidations = _meter.CreateCounter<long>(
+            "rask.prerender.revalidations", "{render}",
+            "Background renders of a public page, tagged with what happened to its stored copy.");
     }
 
     // Exposed for tests so a MeterListener can scope to this exact meter instance and ignore
@@ -109,6 +121,17 @@ public sealed class RaskMetrics : IDisposable
     public void TrackPendingHandlers(Func<int> readCount) =>
         _meter.CreateObservableGauge(
             "rask.handlers.pending", readCount, "{handler}", "Action dispatches queued across all sessions.");
+
+    /// <summary>
+    ///     Registers the gauge of bytes the public-page cache holds, compressed copies included.
+    /// </summary>
+    /// <remarks>
+    ///     Read against the cache's budget: a reading that sits at the budget means pages are being refused
+    ///     a copy and rendered for every request instead.
+    /// </remarks>
+    public void TrackPrerenderBytes(Func<long> readBytes) =>
+        _meter.CreateObservableGauge(
+            "rask.prerender.bytes", readBytes, "By", "Bytes held by the public-page cache, compressed copies included.");
 
     /// <summary>
     ///     Counts one live session accepted. Read beside <see cref="SessionRejected" />, this is what shows
@@ -182,6 +205,35 @@ public sealed class RaskMetrics : IDisposable
     /// </summary>
     public void ResumeRejected(string reason) =>
         _sessionsResumeRejected.Add(1, new KeyValuePair<string, object?>("reason", reason));
+
+    /// <summary>
+    ///     Counts a page request that consulted the public-page cache, tagged with the answer: <c>hit</c>
+    ///     (a fresh copy served), <c>stale</c> (a copy past <c>RenderModes.RevalidateAfter</c> served while
+    ///     a new one renders) or <c>miss</c> (no copy yet, so the request was served live).
+    /// </summary>
+    public void PrerenderServed(string result) =>
+        _prerenderRequests.Add(1, new KeyValuePair<string, object?>("result", result));
+
+    /// <summary>
+    ///     Counts a page request served live without consulting the public-page cache, tagged with why:
+    ///     <c>query</c>, <c>protected</c>, <c>unplanned</c>, <c>readsuser</c>, <c>refused</c> and the rest.
+    /// </summary>
+    /// <remarks>
+    ///     The number to read when a page is expected to be cached and is not. A steady <c>unplanned</c>
+    ///     count on a parameterised route means no <c>IPrerenderPaths</c> supplies its values; <c>refused</c>
+    ///     means its renders are being turned down, and the reason is in the <c>Rask.Prerender</c> log.
+    /// </remarks>
+    public void PrerenderBypassed(string reason) =>
+        _prerenderBypassed.Add(1, new KeyValuePair<string, object?>("reason", reason));
+
+    /// <summary>
+    ///     Counts a background render of a public page, tagged with its outcome: <c>stored</c>,
+    ///     <c>unchanged</c>, <c>kept</c> (a failed render left the previous copy serving), <c>evicted</c> or
+    ///     <c>refused</c>.
+    /// </summary>
+    public void PrerenderRevalidated(string outcome) =>
+        _prerenderRevalidations.Add(1, new KeyValuePair<string, object?>("outcome", outcome));
+
     /// <summary>
     ///     Records how long one render-and-send took.
     /// </summary>

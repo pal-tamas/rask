@@ -711,10 +711,10 @@ public static class GuideCatalog
             SearchTitle = "WebAssembly AOT compilation for .NET apps",
             Description = "Publish a .NET WebAssembly app AOT-compiled with one MSBuild property. Covers mixed mode, custom IParsable registration, JSON source generation and limits.",
         },
-        new("prerendering", "Prerendering", "Render a standalone WASM app's pages to HTML at publish.", "Advanced")
+        new("prerendering", "Prerendering", "Render WASM pages to HTML at publish, or cache a server app's public pages.", "Advanced")
         {
-            SearchTitle = "Prerender a .NET WebAssembly app to static HTML",
-            Description = "Render each route of a .NET WebAssembly app to HTML at publish time, so crawlers see content, not a spinner. Also writes sitemap.xml and robots.txt.",
+            SearchTitle = "Prerender .NET WebAssembly and cache server pages",
+            Description = "Render a .NET WebAssembly app's routes to HTML at publish, with sitemap.xml, or serve an ASP.NET Core app's public pages from a cache with ETags.",
         },
         new("code-analysis", "Code analysis", "The analyzers and warnings-as-errors adoption.", "Advanced")
         {

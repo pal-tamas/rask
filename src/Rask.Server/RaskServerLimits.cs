@@ -1,3 +1,6 @@
+using System.Reflection;
+using Rask.Server.Prerender;
+
 namespace Rask.Server;
 
 /// <summary>
@@ -74,6 +77,46 @@ internal sealed class RaskServerLimits
     /// <summary>Budget for the graceful shutdown drain. Zero = off (abort immediately, as before).</summary>
     public TimeSpan ShutdownDrainTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    ///     Whether public pages are served from the page cache — <c>&lt;RaskPrerender&gt;true&lt;/RaskPrerender&gt;</c>
+    ///     on the app.
+    /// </summary>
+    public bool Prerender { get; init; }
+
+    /// <summary>How old a stored copy may get before it is rendered again. See <see cref="RaskRenderModes.RevalidateAfter" />.</summary>
+    public TimeSpan RevalidateAfter { get; init; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    ///     Whether a page that needs a live session may be stored as well.
+    /// </summary>
+    /// <remarks>
+    ///     Off until the socket can take a stored page over. Served without a session, such a page would
+    ///     sit on screen with nothing to answer its handlers.
+    /// </remarks>
+    public bool BakeInteractivePages { get; init; }
+
+    /// <summary>The most bytes the page cache holds, counting every copy and its compressed forms.</summary>
+    public long PageCacheMaxBytes { get; init; } = 128L * 1024 * 1024;
+
+    /// <summary>The largest single copy the page cache keeps.</summary>
+    public long PageCacheMaxEntryBytes { get; init; } = 2L * 1024 * 1024;
+
+    /// <summary>
+    ///     The most paths the page cache plans copies for — literal routes plus what the app's
+    ///     <c>IPrerenderPaths</c> supply.
+    /// </summary>
+    public int PageCacheMaxPaths { get; init; } = 50_000;
+
+    /// <summary>How often the app's <c>IPrerenderPaths</c> are asked again for the paths to plan.</summary>
+    public TimeSpan PlannedPathsRefresh { get; init; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>How many pages may render in the background at once.</summary>
+    /// <remarks>
+    ///     A quarter of the cores, between one and four: revalidation is a background courtesy, and the
+    ///     requests a host is serving live come first.
+    /// </remarks>
+    public int RevalidationConcurrency { get; init; } = Math.Clamp(Environment.ProcessorCount / 4, 1, 4);
+
     /// <summary>Projects a validated <see cref="RaskServerOptions" /> into the per-host limit snapshot.</summary>
     public static RaskServerLimits From(RaskServerOptions o) => new()
     {
@@ -93,5 +136,9 @@ internal sealed class RaskServerLimits
         SessionResume = o.SessionResume,
         ResumeTokenLifetime = o.ResumeTokenLifetime,
         ShutdownDrainTimeout = o.ShutdownDrainTimeout,
+        // The build switch lives on the app's assembly; a host that is not an app — a test — says so on
+        // the options instead.
+        Prerender = o.Prerender ?? PrerenderSwitch.IsOn(Assembly.GetEntryAssembly()),
+        RevalidateAfter = o.RenderModes.RevalidateAfter,
     };
 }

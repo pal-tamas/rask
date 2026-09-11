@@ -28,6 +28,10 @@ Rask.Server.Diagnostics.RaskMetrics.SessionsAbandonedAtDrain(int count) -> void
 Rask.Server.Diagnostics.RaskMetrics.TrackActiveSessions(System.Func<int>! readCount) -> void
 Rask.Server.Diagnostics.RaskMetrics.TrackConnectedSessions(System.Func<int>! readCount) -> void
 Rask.Server.Diagnostics.RaskMetrics.TrackPendingHandlers(System.Func<int>! readCount) -> void
+Rask.Server.Diagnostics.RaskMetrics.PrerenderBypassed(string! reason) -> void
+Rask.Server.Diagnostics.RaskMetrics.PrerenderRevalidated(string! outcome) -> void
+Rask.Server.Diagnostics.RaskMetrics.PrerenderServed(string! result) -> void
+Rask.Server.Diagnostics.RaskMetrics.TrackPrerenderBytes(System.Func<long>! readBytes) -> void
 Rask.Server.Diagnostics.RaskReadinessHealthCheck
 Rask.Server.Diagnostics.RaskReadinessHealthCheck.CheckHealthAsync(Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult>!
 Rask.Server.Diagnostics.RaskTelemetry
@@ -58,6 +62,8 @@ Rask.Server.RaskRenderModes
 Rask.Server.RaskRenderModes.QuiescenceTimeout.get -> System.TimeSpan
 Rask.Server.RaskRenderModes.QuiescenceTimeout.set -> void
 Rask.Server.RaskRenderModes.RaskRenderModes() -> void
+Rask.Server.RaskRenderModes.RevalidateAfter.get -> System.TimeSpan
+Rask.Server.RaskRenderModes.RevalidateAfter.set -> void
 Rask.Server.RaskRenderModes.ServerInteractivity.get -> bool
 Rask.Server.RaskRenderModes.ServerInteractivity.set -> void
 Rask.Server.RaskRenderModes.Static.get -> bool

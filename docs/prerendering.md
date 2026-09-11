@@ -1,4 +1,11 @@
-# Build-time prerendering (WASM)
+# Prerendering
+
+One property — `<RaskPrerender>true</RaskPrerender>` — with a meaning on each host:
+
+- **A browser-WebAssembly app** renders each route to real HTML at publish time, so a visitor and a
+  crawler get the page rather than a boot spinner. Most of this page is that pass.
+- **A Rask.Server app** keeps copies of its public pages in memory and serves them without rendering —
+  see [On the Server](#on-the-server-public-pages-are-served-from-a-cache).
 
 A browser-WebAssembly app has no server to render it per request, so the first thing **every**
 visitor and every crawler receives is the boot shell: a spinner, and the word "Loading". The app's
@@ -396,16 +403,112 @@ Two things worth repeating as shapes, both found here:
   which is a framework gap rather than a fact about this page
   ([#1030](https://github.com/pal-tamas/rask/issues/1030)).
 
+## On the Server: public pages are served from a cache
+
+A Rask.Server app renders every request, so it has no boot shell to replace — but every first visit,
+every crawler and every link preview still pays for a DI scope and a render, and on an interactive page
+for a session it may never connect. The same property turns on the Server's answer to that:
+
+```xml
+<PropertyGroup>
+  <RaskPrerender>true</RaskPrerender>
+</PropertyGroup>
+```
+
+Nothing in `Program.cs` changes and nothing runs at publish. A server renders its own pages, so the
+switch is recorded in the assembly and `AddRask` reads it back.
+
+### Which pages
+
+**Pages that need no sign-in.** A page is cached when nothing on its route chain — the page, or a layout
+above it — carries `[Authorize]`, or when an `[AllowAnonymous]` below the guard clears it. A guarded page
+is never stored, whatever its policy happens to admit today: what a policy admits can change without the
+page changing.
+
+Only **planned** paths are cached: every literal route, plus whatever your `IPrerenderPaths` supply for
+the parameterised ones — the same registration the WASM pass reads. A request for any other path is
+served live, so traffic cannot make the cache grow.
+
+**In this release a page is stored when it needs no live session**, which is what
+[`RenderModes.Static`](render-modes.md#a-page-that-needs-nothing-live-is-served-as-a-document) detects. A
+page that renders a handler keeps being served live, as every page is while `Static` is off; storing
+interactive pages comes with the socket taking a stored page over.
+
+### How a copy is made and served
+
+- The first request for a page finds no copy. It is served live, exactly as before, and asks for one.
+- A background render then renders the page **for nobody** — anonymous, with no query string and no request
+  behind it — and stores that. A copy is never a visitor's render, so nothing one visitor's cookies or
+  headers did to a page can reach the next one.
+- Later requests get the stored bytes: `br` or `gzip` when the browser accepts it, a strong `ETag` so a
+  repeat visit is a `304`, and `Cache-Control: private, max-age=0, must-revalidate` with `Vary: Cookie` —
+  the visitor's browser may keep it, nothing shared may. No session, no DI scope, no render, and a copy is
+  served even while the host is at `MaxSessions` or draining.
+
+### Keeping copies fresh
+
+A copy older than `RenderModes.RevalidateAfter` — 60 seconds by default — is still served, so no visitor
+waits on a refresh, and the request that found it starts one in the background. The request after that
+gets the new page:
+
+```csharp
+builder.Services.AddRask(configureServer: o =>
+    o.RenderModes.RevalidateAfter = TimeSpan.FromMinutes(5));
+```
+
+`TimeSpan.Zero` refreshes after every request that finds a copy, still one render at a time per page.
+`Timeout.InfiniteTimeSpan` keeps the first copy until the host restarts.
+
+A refresh that throws, does not settle, or is left waiting on JavaScript does **not** replace a good copy:
+the old one keeps serving, and the page is tried again later. A page that now answers `404`, redirects,
+or signs someone in has its copy removed.
+
+### Who is served the copy
+
+| Request | Served |
+| --- | --- |
+| Anonymous, no query string | the copy |
+| Signed in, on a page whose render never reads the user | the copy |
+| Signed in, on a page that reads the user through `IUserProvider` or `Authorize` | live, for them |
+| Any query string | live |
+| A language picked with `?culture=` | live, because it sets the culture cookie — each language otherwise gets its own copy |
+| An `[Authorize]` page, the not-found page, a mounted app such as `/_rask` | live |
+| Development | live: every page keeps its session there, so an edit repaints |
+
+**Read the user through `IUserProvider` or the `Authorize` component.** That is how the cache learns that a
+page depends on who is signed in. A page that reads the user straight off the request with
+`IHttpContextAccessor` looks the same to everyone to the cache, and a signed-in visitor would be served
+the anonymous copy.
+
+### What it tells you
+
+A page that cannot be cached says why, once, under `Rask.Prerender`:
+
+```
+Rask.Prerender: /dashboard is served live, not cached — it needs a live session.
+```
+
+The meter has `rask.prerender.requests` (tagged `hit`, `stale` or `miss`), `rask.prerender.bypassed`
+(why a request went live), `rask.prerender.revalidations` and `rask.prerender.bytes`. The cache holds at
+most 128 MB, and 2 MB for one page; a page past either is served live, and the first is logged. Each host
+instance keeps its own copies.
+
 ## Limits
 
-- WASM only. A Server app already renders every request, and `RenderModes` covers serving a page
-  that needs nothing live as a cacheable document — see [Render modes](render-modes.md).
-- Parameterised and catch-all routes are never covered; there is no hook yet for supplying the
-  values to enumerate them.
-- The per-page budget is 30 seconds.
+- On the Server, this release stores only pages that need no live session. Interactive pages are served
+  live until the socket can take a stored page over.
+- A parameterised route is covered for exactly the values an `IPrerenderPaths` supplies; a catch-all route
+  never is.
+- A public page cannot opt out yet. One that must differ per request — a random pick, an experiment — is
+  bounded by `RevalidateAfter`.
+- On WASM the per-page budget is 30 seconds. On the Server a background render has
+  `RenderModes.QuiescenceTimeout`, the same as a request.
 
 ## See also
 
-- [Render modes](render-modes.md) — the Server-side equivalents, and moving a page into WebAssembly
+- [Render modes](render-modes.md) — which Server pages need a session, how responses are cached, and
+  moving a page into WebAssembly
+- [Authentication](authentication.md) — `[Authorize]` and the `Authorize` component, and how each keeps a
+  page, or a signed-in visitor, away from the Server's page cache
 - [Mobile & PWA](pwa.md) — the rest of the standalone-WASM deployment story
 - [Deployment](deployment.md) — publishing the bundle

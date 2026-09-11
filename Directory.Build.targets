@@ -73,6 +73,11 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets') "/>
 
+  <!-- Server-side prerendering, the in-repo half of what Rask.Server.targets imports for a package
+       consumer. Gates itself on RaskPrerender, and away from a browser app, which prerenders at publish. -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Prerender.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Prerender.targets') "/>
+
   <!--
     Auto-enable the repo's git hooks (pre-commit: dotnet format + unit; pre-push: browser E2E) so a fresh
     clone picks them up on first build — no manual `git config core.hooksPath .githooks`. The hook contents

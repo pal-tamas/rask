@@ -23,6 +23,38 @@ public class RenderModesTests
         Assert.False(modes.Streaming);
         Assert.False(modes.Wasm);
         Assert.Equal(TimeSpan.FromSeconds(5), modes.QuiescenceTimeout);
+        Assert.Equal(TimeSpan.FromSeconds(60), modes.RevalidateAfter);
+    }
+
+    [Theory]
+    [InlineData(0)] // refresh after every request that finds a copy
+    [InlineData(300)]
+    public void AFreshnessBoundOfZeroOrMore_IsAccepted(int seconds)
+    {
+        var modes = new RaskRenderModes { RevalidateAfter = TimeSpan.FromSeconds(seconds) };
+
+        Assert.Null(Record.Exception(modes.Validate));
+    }
+
+    [Fact]
+    public void KeepingTheFirstCopyUntilRestart_IsSpelledInfinite()
+    {
+        var modes = new RaskRenderModes { RevalidateAfter = Timeout.InfiniteTimeSpan };
+
+        Assert.Null(Record.Exception(modes.Validate));
+    }
+
+    [Fact]
+    public void ANegativeFreshnessBound_DoesNotStart()
+    {
+        // A negative bound means nothing — a copy cannot be stale before it exists — and it is what a
+        // configuration binding produces when someone writes "-00:00:05" meaning "never". Named, rather
+        // than silently read as "refresh always".
+        var modes = new RaskRenderModes { RevalidateAfter = TimeSpan.FromSeconds(-5) };
+
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(modes.Validate);
+
+        Assert.Equal(nameof(RaskRenderModes.RevalidateAfter), ex.ParamName);
     }
 
     [Fact]

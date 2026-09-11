@@ -304,6 +304,14 @@ public static partial class RaskEndpointExtensions
         services.AddScoped<IUserProvider>(sp => sp.GetRequiredService<SessionUserProvider>());
         services.AddAuthorization();
 
+        // The public-page cache and the background renders that fill it. Registered unconditionally and inert
+        // unless the app built with <RaskPrerender>true</RaskPrerender>: the revalidator returns at once, and
+        // the handler's one check is a flag. TryAdd throughout, so a host whose AddRask and AddRaskServer both
+        // run gets one of each — and a test can stand a manual clock in for the system one.
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<Prerender.PageCache>();
+        services.AddHostedService<Prerender.PageRevalidator>();
+
         // IJSRuntime compatibility. RaskJSRuntime + LiveSessionAccessor are scoped — one
         // pair per LiveSession DI scope. LiveSessionStore.Create sets accessor.Session
         // immediately after constructing the session, so any component that takes IJSRuntime
@@ -490,6 +498,13 @@ public static partial class RaskEndpointExtensions
 
         EnsureRuntimeMapped(endpoints, pathBaseNormalized, selector);
 
+        // The public-page cache renders its copies in the background with this same selector, so a copy is
+        // built with the root and the route table the live page would have been — and a mounted
+        // application's paths are never mistaken for the host's. Resolved once here rather than per request:
+        // the handler's only cost when the cache is off is reading its flag. The first host to attach wins.
+        var pageCache = endpoints.ServiceProvider.GetRequiredService<Prerender.PageCache>();
+        pageCache.Attach(selector);
+
         // Scope the catch-all SPA route under the prefix when set. The pattern
         // default ("/{**path}") is interpreted relative to the prefix root, so
         // a request to /sub/users/42 matches as Path.Value="/sub/users/42";
@@ -534,6 +549,26 @@ public static partial class RaskEndpointExtensions
                     case RouteAuthorizationOutcome.Forbid:
                         await ForbidAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
                         return;
+                }
+            }
+
+            // A public page with a stored copy is answered from it here, before any session, DI scope or
+            // render exists — which is the whole of what the cache saves. Only when the app built with
+            // <RaskPrerender> and this is not Development; otherwise this costs one flag. After the auth
+            // guard, so a guarded page is challenged exactly as before, and a request the cache does not
+            // answer carries on below unchanged, negotiating its language again where the response is set.
+            if (pageCache.Enabled)
+            {
+                var cacheCulture = ServerCultureNegotiation.TryNegotiate(
+                    httpContext.Request, httpContext.RequestServices, out var negotiatedForCache)
+                    ? negotiatedForCache
+                    : (CultureNegotiation?)null;
+
+                if (await pageCache
+                        .TryServeAsync(httpContext, path, chain, matched && !isNotFound, cacheCulture, user, selector)
+                        .ConfigureAwait(false))
+                {
+                    return;
                 }
             }
 
@@ -761,7 +796,10 @@ public static partial class RaskEndpointExtensions
             store.ScheduleRemoval(session.Id, limits.UnconnectedSessionGracePeriod);
         });
 
-        endpoints.MapGet(scopedPattern, pageHandler);
+        // GET and HEAD. A HEAD is what an uptime check and a link checker send, and answering it with 405
+        // told them the page did not exist. A stored copy answers it without a body; a live one renders as a
+        // GET would, and the server drops the body.
+        endpoints.MapMethods(scopedPattern, PageMethods, pageHandler);
 
         // A mounted application needs its own endpoint when the host's pattern does not reach it. The
         // default catch-all does, and ASP.NET prefers the more specific route either way, so this is
@@ -773,7 +811,7 @@ public static partial class RaskEndpointExtensions
                 ? mount.Pattern
                 : pathBaseNormalized + (mount.Pattern.StartsWith('/') ? mount.Pattern : "/" + mount.Pattern);
 
-            endpoints.MapGet(mountPattern, pageHandler);
+            endpoints.MapMethods(mountPattern, PageMethods, pageHandler);
         }
 
         return endpoints;
@@ -810,6 +848,9 @@ public static partial class RaskEndpointExtensions
 
     private static Task ForbidAsync(HttpContext ctx, string? scheme) =>
         scheme is null ? ctx.ForbidAsync() : ctx.ForbidAsync(scheme);
+
+    // The methods a page answers — one shared array, so neither mapping allocates its own.
+    private static readonly string[] PageMethods = [HttpMethods.Get, HttpMethods.Head];
 
     /// <summary>
     ///     Answers a page whose session could not be admitted once its render was over.

@@ -90,8 +90,16 @@ public static class ScopedAssetCompression
         return (compressed, etag);
     }
 
+    /// <summary>
+    ///     Compresses <paramref name="data" /> as <paramref name="encoding" /> (<c>"br"</c> or <c>"gzip"</c>)
+    ///     at <see cref="CompressionLevel.Optimal" />.
+    /// </summary>
+    /// <remarks>
+    ///     Internal so the Server's page cache compresses its stored pages with exactly this, rather than a
+    ///     second compressor that could drift from the one the scoped assets use.
+    /// </remarks>
     [UnsupportedOSPlatform("browser")]
-    private static byte[] Compress(ReadOnlySpan<byte> data, string encoding)
+    internal static byte[] Compress(ReadOnlySpan<byte> data, string encoding)
     {
         using var ms = new MemoryStream();
         if (encoding == "br")

@@ -29,4 +29,23 @@ internal static class PageDocument
                 RaskEndpointExtensions.WasmBootModuleUrl(limits)),
             dev,
             dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null);
+
+    /// <summary>
+    ///     A render shaped to be stored and served to anyone: the bytes a live request is sent for a page
+    ///     that needs no session — no session id, and no runtime script. <c>null</c> when the page needs a
+    ///     live session, or when its runtime script is not exactly where it belongs.
+    /// </summary>
+    /// <remarks>
+    ///     A page that needs a session is not stored yet: served without one it would sit on screen with
+    ///     nothing to answer its handlers, which changes once the socket can take a stored page over. The
+    ///     splice fails closed for the reason the live request's does — a document that might still carry a
+    ///     session-bearing script is the one thing never worth sharing.
+    /// </remarks>
+    /// <param name="render">The neutral render of a public page.</param>
+    /// <param name="pathBase">
+    ///     The prefix the runtime script's URL was rendered with — <c>LiveOptions.PathBase</c> at the call
+    ///     site. Passed in rather than read here, so the splice matches the render it is given.
+    /// </param>
+    internal static string? Baked(in PageRenderResult render, string pathBase) =>
+        render.NeedsSession ? null : Http.RuntimeScriptSplice.TryRemove(render.Html, pathBase);
 }

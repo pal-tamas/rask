@@ -76,6 +76,18 @@ public sealed class RaskServerOptions
     public RaskRenderModes RenderModes { get; } = new();
 
     /// <summary>
+    ///     Overrides whether public pages are served from the page cache, for a host that is not an app
+    ///     built with the switch — a test. <c>null</c>, the default, reads
+    ///     <c>&lt;RaskPrerender&gt;</c> off the entry assembly.
+    /// </summary>
+    /// <remarks>
+    ///     Internal on purpose. An app turns the cache on in its project file, where a browser-WebAssembly
+    ///     app turns prerendering on too, and a second public switch in code would be a second place for
+    ///     the two to disagree.
+    /// </remarks>
+    internal bool? Prerender { get; set; }
+
+    /// <summary>
     ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
     ///     session itself survives under <see cref="SessionGracePeriod" /> for reconnect, so this only
     ///     reclaims the idle socket (and its receive loop), not the component tree. Bounds a silently

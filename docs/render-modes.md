@@ -323,6 +323,7 @@ Conservative by construction, and never something you have to remember:
 | Faulted, or status ≥ 400 | `no-store, no-cache, must-revalidate, private` |
 | Static, authenticated | `no-store, no-cache, must-revalidate, private` |
 | Static, anonymous | `private, max-age=0, must-revalidate` + `Vary: Cookie` |
+| Served from the public-page cache | `private, max-age=0, must-revalidate` + `Vary: Cookie`, with an `ETag` |
 
 Dropping `no-store` is the user-visible win: it restores bfcache, so browser back/forward is
 instant. `private` keeps every shared cache out, and `Vary: Cookie` matters because "anonymous" is
@@ -331,6 +332,10 @@ user. On a localized app the language is already in the `Vary` too.
 
 "Authenticated" is the union of the request principal and the one after the render, because a render
 can sign someone in.
+
+An app built with `<RaskPrerender>true</RaskPrerender>` goes one step further for a static page that needs
+no sign-in: it is stored, served from memory without a render, and carries an `ETag`, so a repeat visit is
+a `304`. See [Prerendering on the Server](prerendering.md#on-the-server-public-pages-are-served-from-a-cache).
 
 ## Saying what the response is
 

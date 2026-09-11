@@ -56,7 +56,21 @@ internal sealed class RaskRootSelector
     public IReadOnlyList<Route> RoutesFor(string? path) =>
         Match(path) is { } hit
             ? RouteRegistry.BuildTree(hit.Mount.RoutesFrom)
-            : RouteRegistry.BuildTreeExcept(_mountedAssemblies);
+            : HostRoutes;
+
+    /// <summary>
+    ///     The host application's own route table: every route except those of the applications mounted
+    ///     under their own prefix.
+    /// </summary>
+    /// <remarks>
+    ///     What the page cache plans its copies from. A mounted application — the operator console at
+    ///     <c>/_rask</c> — is not the host's to cache, and its routes resolve against their own table in
+    ///     any case. Built per read for the same hot-reload reason as <see cref="RoutesFor" />.
+    /// </remarks>
+    public IReadOnlyList<Route> HostRoutes => RouteRegistry.BuildTreeExcept(_mountedAssemblies);
+
+    /// <summary>Whether <paramref name="path" /> belongs to a mounted application rather than the host.</summary>
+    public bool IsMounted(string? path) => Match(path) is not null;
 
     private (RaskMountedApp Mount, Func<IServiceProvider, Component> Factory)? Match(string? path)
     {

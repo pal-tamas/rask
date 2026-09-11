@@ -37,27 +37,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_dir, "Features"));
         File.WriteAllText(Path.Combine(_dir, "Features", "Demo.cs"), "// read back at render time");
         File.WriteAllText(Path.Combine(_dir, "Features", "Notes.txt"), "no LogicalName of its own");
-        File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <RootNamespace>Fixture</RootNamespace>
-                <RaskPrerender>true</RaskPrerender>
-              </PropertyGroup>
-              <ItemGroup>
-                <Using Include="Fixture.Widgets"/>
-                <Using Include="Fixture.Helpers" Static="true"/>
-                <Using Include="System.Collections.Generic" Alias="Coll"/>
-              </ItemGroup>
-              <ItemGroup>
-                <EmbeddedResource Include="Features/Demo.cs">
-                  <LogicalName>raksrc/Demo.cs</LogicalName>
-                </EmbeddedResource>
-                <EmbeddedResource Include="Features/Notes.txt"/>
-              </ItemGroup>
-              <Import Project="{Path.Combine(SrcDir, "Rask.Wasm", "build", "Rask.Wasm.Prerender.targets")}"/>
-            </Project>
-            """);
+        WriteProject(raskWasm: true);
     }
 
     public void Dispose()
@@ -167,6 +147,45 @@ public class PrerenderCompanionGenerationTests : IDisposable
         Assert.Equal(1, Occurrences(project.Replace('\\', '/'), "Link=\"Features/Notes.txt\""));
     }
 
+    [Fact]
+    public void AProjectThatIsNotABrowserAppGeneratesNoCompanion()
+    {
+        // RaskPrerender is one property with a meaning on each host. On a server app it turns on the
+        // page cache, and nothing about that is a browser companion: generating one there compiles the
+        // server's Program.cs for a desktop entry point and fails the publish. The WASM pass answers only
+        // to an app that says it is one.
+        WriteProject(raskWasm: false);
+
+        var (exitCode, output) = Run();
+
+        Assert.True(exitCode == 0, $"the build failed:\n{output}");
+        Assert.False(File.Exists(GeneratedPath), $"a non-WASM project generated a companion:\n{output}");
+    }
+
+    private void WriteProject(bool raskWasm) =>
+        File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <RootNamespace>Fixture</RootNamespace>
+                <RaskPrerender>true</RaskPrerender>
+                {(raskWasm ? "<RaskWasm>true</RaskWasm>" : string.Empty)}
+              </PropertyGroup>
+              <ItemGroup>
+                <Using Include="Fixture.Widgets"/>
+                <Using Include="Fixture.Helpers" Static="true"/>
+                <Using Include="System.Collections.Generic" Alias="Coll"/>
+              </ItemGroup>
+              <ItemGroup>
+                <EmbeddedResource Include="Features/Demo.cs">
+                  <LogicalName>raksrc/Demo.cs</LogicalName>
+                </EmbeddedResource>
+                <EmbeddedResource Include="Features/Notes.txt"/>
+              </ItemGroup>
+              <Import Project="{Path.Combine(SrcDir, "Rask.Wasm", "build", "Rask.Wasm.Prerender.targets")}"/>
+            </Project>
+            """);
+
     private static int Occurrences(string haystack, string needle)
     {
         var count = 0;
@@ -180,7 +199,18 @@ public class PrerenderCompanionGenerationTests : IDisposable
         return count;
     }
 
+    private string GeneratedPath => Path.Combine(_dir, "obj", "rask-prerender", "App.Prerender.csproj");
+
     private string Generate()
+    {
+        var (exitCode, output) = Run();
+
+        Assert.True(exitCode == 0, $"generation failed:\n{output}");
+        Assert.True(File.Exists(GeneratedPath), $"no companion was generated:\n{output}");
+        return File.ReadAllText(GeneratedPath);
+    }
+
+    private (int ExitCode, string Output) Run()
     {
         var psi = new ProcessStartInfo("dotnet")
         {
@@ -200,11 +230,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
         var stderr = p.StandardError.ReadToEnd();
         p.WaitForExit();
 
-        Assert.True(p.ExitCode == 0, $"generation failed:\n{stdout}\n{stderr}");
-
-        var generated = Path.Combine(_dir, "obj", "rask-prerender", "App.Prerender.csproj");
-        Assert.True(File.Exists(generated), $"no companion was generated:\n{stdout}");
-        return File.ReadAllText(generated);
+        return (p.ExitCode, stdout + "\n" + stderr);
     }
 
     private static string SrcDir

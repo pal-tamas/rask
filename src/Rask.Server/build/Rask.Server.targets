@@ -17,6 +17,11 @@
   <Import Project="$(MSBuildThisFileDirectory)Rask.Server.Browser.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Server.Browser.targets') "/>
 
+  <!-- Server-side prerendering: records <RaskPrerender> for AddRask to read back. Gates itself on the
+       property, so importing it unconditionally costs an app that has not opted in nothing. -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Server.Prerender.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Server.Prerender.targets') "/>
+
   <!--
     Tailwind. Packed alongside this file by src\RaskTailwindBuildPack.targets, and imported from here
     because NuGet auto-imports only build/<PackageId>.{props,targets}. Referencing this host package is

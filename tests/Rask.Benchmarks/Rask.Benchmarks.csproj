@@ -14,6 +14,9 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet"/>
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- PageRequestBenchmarks drives the page endpoint in memory: the cost under measurement is the
+         handler's, and a socket would only add noise the same on both sides of a comparison. -->
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
   </ItemGroup>
 
   <ItemGroup>

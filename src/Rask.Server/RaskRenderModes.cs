@@ -122,10 +122,42 @@ public sealed class RaskRenderModes
     public TimeSpan QuiescenceTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    ///     How old a stored copy of a public page may get before it is rendered again in the background.
+    ///     Default 60&#160;seconds. Read only when the app prerenders its pages with
+    ///     <c>&lt;RaskPrerender&gt;true&lt;/RaskPrerender&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A copy past this age is still served — no visitor waits on the refresh — and asking for it
+    ///         starts one, so the request after the refresh lands gets the new page. This is how data a
+    ///         public page shows catches up without a redeploy, and why the value is a freshness bound
+    ///         rather than a lifetime.
+    ///     </para>
+    ///     <para>
+    ///         <see cref="TimeSpan.Zero" /> refreshes after every request that finds a copy, still one
+    ///         render at a time per page. <see cref="Timeout.InfiniteTimeSpan" /> keeps the first copy
+    ///         until the host restarts.
+    ///     </para>
+    /// </remarks>
+    public TimeSpan RevalidateAfter { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
     ///     Refuses a combination that cannot serve a working page. Called when the host is built.
     /// </summary>
     internal void Validate()
     {
+        // Negative has no meaning — a copy cannot be stale before it exists — and it is the one value a
+        // configuration binding produces by accident (a "-1" meant as "never"), so it is named rather
+        // than read as "always". The spelling that does mean "never" is accepted.
+        if (RevalidateAfter < TimeSpan.Zero && RevalidateAfter != Timeout.InfiniteTimeSpan)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(RevalidateAfter),
+                RevalidateAfter,
+                "RenderModes.RevalidateAfter must be TimeSpan.Zero or longer, or Timeout.InfiniteTimeSpan to "
+                + "keep a page's first copy until the host restarts.");
+        }
+
         // Announced rather than ignored. A switch that reads as supported and does nothing is worse
         // than one that is absent: the app looks configured for something it is not doing.
         if (Streaming)

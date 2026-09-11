@@ -158,6 +158,14 @@
       <_RaskCompanionLine Include="    &lt;AssemblyName&gt;$(RaskBrowserCompanionName)&lt;/AssemblyName&gt;"/>
       <_RaskCompanionLine Include="    &lt;RaskWasm&gt;true&lt;/RaskWasm&gt;"/>
       <!--
+        Prerendering is the server's here. The bundle this companion builds boots from a page the server
+        rendered, so the browser app's publish-time pass has nothing to write. Pinned rather than left
+        unset because the companion sits in the app's obj\, under the app's Directory.Build.props: an app
+        that turns RaskPrerender on there would otherwise hand it to a project that also says RaskWasm,
+        and start a prerender companion inside the browser companion.
+      -->
+      <_RaskCompanionLine Include="    &lt;RaskPrerender&gt;false&lt;/RaskPrerender&gt;"/>
+      <!--
         The takeover boots from a server-rendered page, which carries no import map. Fingerprinted
         framework assets are mapped through one the SDK writes into the bundle's own index.html — a
         document nobody loads here — so the boot would 404 in a publish and work in a build.

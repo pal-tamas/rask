@@ -337,6 +337,13 @@ Authorize.Roles(["admin", "editor"])// ANY-of; omit for "any authenticated user"
 Use `Authorize` for *content* gating; use `[Authorize]` on a page for *route* gating; inject `IUserProvider`
 and read `.Current` directly when you need imperative logic.
 
+**Both matter to the Server's page cache** (`<RaskPrerender>true</RaskPrerender>`, see
+[Prerendering](prerendering.md#on-the-server-public-pages-are-served-from-a-cache)). A page behind
+`[Authorize]` is never stored. A public page whose render reads the user — through `Authorize` or
+`IUserProvider` — is stored as nobody sees it and served that way only to visitors who are not signed in;
+a signed-in visitor gets their own render. Reading the user some other way, straight off the request, is
+invisible to the cache, so a signed-in visitor would be handed the signed-out copy.
+
 The imperative form, live — gate in `Render()` on the current user (sign in / out to flip the branch):
 
 <!-- demo:auth-user-gate -->

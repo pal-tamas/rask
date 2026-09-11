@@ -183,6 +183,16 @@ public class BrowserCompanionGenerationTests : IDisposable
     }
 
     [Fact]
+    public void TheCompanionNeverPrerendersItself()
+    {
+        // RaskPrerender on a server app turns on its page cache. The companion sits in the app's obj/,
+        // under the app's Directory.Build.props, and says RaskWasm — so a value set there would reach it
+        // and start the browser app's publish-time pass inside the browser companion. Its pages come
+        // from the server; there is nothing for that pass to write.
+        Assert.Contains("<RaskPrerender>false</RaskPrerender>", Generate(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheCompanionPublishesOutsideItsOwnProjectDirectory()
     {
         // Publishing into the companion's own folder makes each publish an input to the next: the
