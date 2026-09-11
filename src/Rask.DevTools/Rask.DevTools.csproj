@@ -53,13 +53,20 @@
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     <ProjectReference Include="..\Rask.Server\Rask.Server.csproj" PrivateAssets="all"/>
+    <!-- No browser runtime here to read a page origin from. -->
+    <Compile Remove="DevToolsBootstrap.Browser.cs"/>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-host.js"
                       LogicalName="Rask.DevTools.Resources.rask-devtools-host.js"/>
   </ItemGroup>
 
-  <!-- The browser face has no Server host to map endpoints on. -->
+  <!--
+    The browser face has no Server host to map endpoints on. It reads the page's origin from Rask.Wasm, which is
+    PrivateAssets="all" for Rask.Server's reason: only a WASM host runs this half of the bootstrap, so every app in which
+    it runs already references Rask.Wasm.
+  -->
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
     <Compile Remove="DevToolsBootstrap.Server.cs;Endpoints\**"/>
+    <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
   <!--
