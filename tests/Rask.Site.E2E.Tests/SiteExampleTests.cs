@@ -48,6 +48,18 @@ public sealed class SiteExampleTests
             await Expect(page.Locator("#front-ends a")).ToHaveCountAsync(4);
             await Expect(page.Locator("#front-ends")).ToContainTextAsync("Meta framework");
 
+            // The batteries lead: they sit directly under the hero, where a byte table against Blazor
+            // used to be, and the front-end section says what Rask is to the frameworks it hosts.
+            // Prerendered as well, so again no timeout extension.
+            await Expect(page.Locator("#batteries")).ToHaveCountAsync(1);
+            Assert.True(
+                await page.EvaluateAsync<bool>(
+                    "() => !!(document.getElementById('batteries').compareDocumentPosition("
+                    + "document.getElementById('front-ends')) & Node.DOCUMENT_POSITION_FOLLOWING)"),
+                "the batteries section does not come before the front ends.");
+            await Expect(page.Locator("#front-ends")).ToContainTextAsync("superset");
+            await Expect(page.GetByText("Rask vs Blazor")).ToHaveCountAsync(0);
+
             // Note there is deliberately no "the marker is present" assertion here. It is true only
             // until the runtime takes over, and the runtime may well have taken over by the time this
             // line runs — asserting it in a live journey is a race that would pass on a slow machine and
