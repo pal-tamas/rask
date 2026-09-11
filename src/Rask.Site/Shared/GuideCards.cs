@@ -50,7 +50,7 @@ public sealed partial class GuideCards : Component
     private static Component Card(GuideEntry g) =>
         Div.Class("col-span-12 md:col-span-6 lg:col-span-4").Key(g.Slug)[
             NavLink
-                .Href(Features.Routes.GuidePage(g.Slug))
+                .Href(PageMeta.LinkTo(Features.Routes.GuidePage(g.Slug)))
                 .ActiveClass("")
                 .Class("block h-full no-underline")[
                 // A card is a link, so it needs a hover and a focus state. It had neither.

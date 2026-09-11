@@ -73,7 +73,7 @@ public sealed partial class GuideLinkTests : global::Rask.Core.RaskMarkup
         // is absolute.
         var matches = System.Text.RegularExpressions.Regex.Matches(
             Render(),
-            "href=\"/docs/guides/(?<slug>[a-z0-9-]+)\"");
+            "href=\"/docs/guides/(?<slug>[a-z0-9-]+)/\"");
 
         return matches.Select(m => m.Groups["slug"].Value).ToList();
     }

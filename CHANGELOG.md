@@ -26,6 +26,13 @@ them until tagged releases begin.
   the component-level seams; no benchmark reaches handler dispatch or a session's render-to-send loop (see
   #1062), so those seams rest on how they are built and on the Server, WASM and Core suites.
 
+- **A shared rask.sh link unfurls as a card.** Every page names a 1200×630 social card — the site's bolt,
+  its own type and palette, the one-line pitch and a real markup chain — as `og:image` with its size, type
+  and alt text, and as a `summary_large_image` Twitter card; guides and the front door carry it as the
+  structured data's `image` too. Until now a link posted to Slack, X, LinkedIn or Discord unfurled as a
+  line of text. The card is a designed page (`assets/og-card.html`) rendered by a browser, not a generated
+  placeholder, and `PageMetaTests` reads the committed PNG's header so a re-render at the wrong size fails.
+
 - **PostgreSQL is back, as the opt-in `Rask.Postgres`.** SQLite stays the default and the recommendation;
   this reverses only the part of the earlier removal that left a production app with no supported door out of
   one box. `UseRaskPostgres(cs, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
@@ -171,6 +178,13 @@ them until tagged releases begin.
   is it documented — and nothing asked whether a documented rule existed.
 
 ### Changed
+
+- **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
+  in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
+  They were bare, and GitHub Pages answers `/docs/guides/cqrs` with a 301 to `/docs/guides/cqrs/`, so every
+  internal link a crawler followed cost a redirect and pointed at the non-canonical URL (#1057). The active
+  sidebar link still lights up, since `NavLink` compares paths without the slash; the Todos add form now
+  recognises `/docs/todos/new/`, the path a reload always arrived with.
 
 - **`QuiescentRender.RunAsync` and `RaskPrerender.RenderDocumentAsync` take a `CancellationToken`.** It is
   the last parameter and defaulted, as the API style guide asks of every awaitable, so existing calls
@@ -329,6 +343,13 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **The builder allocation pins no longer fail a busy machine's gate.** `BuilderEntryAllocationPinTests`
+  runs in a non-parallel collection. It reads the measuring thread's allocations, which looked immune to
+  other tests but is not: the render path borrows from one `StringBuilder` pool shared by every thread, and
+  while another class rendered in parallel the probe found it drained and allocated its own. Its head probe,
+  the heaviest pool user, failed four gates in three days at 1818–1904 B against its 1800 B pin — always
+  under load, always green alone and across its assembly (#1056). The ceiling is unchanged.
 
 - **Bulk insert's fast path runs the connection interceptors, and retries a failed batch.**
   `BulkInsertAsync(o => o.SkipChangeTracking = true)` opened the `DbConnection` itself, and EF only runs its
