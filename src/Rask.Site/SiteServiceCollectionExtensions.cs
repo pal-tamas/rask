@@ -22,6 +22,10 @@ public static class ExampleServiceCollectionExtensions
         Func<IServiceProvider, Uri> httpBaseAddress)
     {
         services.AddSingleton(sp => new HttpClient { BaseAddress = httpBaseAddress(sp) });
+
+        // The clock the HTTP demo's retry delays and per-attempt deadline run on: the system clock here. A
+        // test hands the demo a clock it advances itself, rather than sleeping through the delays (#1067).
+        services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IBannedWordService, BannedWordService>();
 
         // Toggleable demo auth for the User-gating showcase (/user). Registered as the concrete
