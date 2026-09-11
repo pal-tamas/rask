@@ -541,6 +541,16 @@ them until tagged releases begin.
   `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
   makes the kit's own messages independent of it.
 
+- **rask.sh and the README lead with the batteries, not a benchmark against Blazor.** The byte-for-byte
+  "Rask vs Blazor" table that sat directly under the landing page's hero is gone, and so is the README's
+  paragraph of head-to-head numbers. The two battery sections — what is in the box, and the whole
+  DB-backed back end — now come straight after the hero, and the README gains a `## Batteries included`
+  list linking each pillar's guide. The front doors (landing page, README, NUGET.md, llms.txt) also say
+  what Rask is to the frameworks it hosts: a superset, not a rival — React, Vue, Svelte, Angular and Lit
+  islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
+  ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
+  gate are unchanged.
+
 ### Fixed
 
 - **A `RaskApp` with its Web Push keys in configuration starts.** The keys were enough to switch the battery on

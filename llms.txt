@@ -7,6 +7,9 @@
 > over WebSockets or client-side on WebAssembly; markup is a chain —
 > you name the component and set properties on it (`Div.Class("panel")[Span["hi"]]`), with anything a
 > component requires asked for first, so an incomplete component is a compile error rather than a null.
+> Rask is a superset of the other front ends rather than a rival: React/Preact/Solid/Vue/Svelte/Angular/Lit
+> islands, real Blazor components (Rask.Blazor), TypeScript SPAs and meta frameworks (Nuxt, Next.js,
+> SvelteKit, …) run on it, and it builds on standard ASP.NET Core and EF Core rather than replacing them.
 > Batteries: the `rask` CLI, a CQRS+EF CRUD slice pattern, Rask.Cqrs, Rask.Data, production SQLite
 > (pragmas + backup),
 > auth, background jobs, transactional email, cache, outbox, file storage for uploads (disk, S3 or
