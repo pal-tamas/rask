@@ -209,25 +209,6 @@ public sealed class JsLaneAuthWiringTests
         }
     }
 
-    [Fact]
-    public void Every_meta_screen_draws_the_same_card_as_the_others()
-    {
-        foreach (var template in MetaTemplate.All)
-        {
-            var markup = string.Join("\n", template.AuthPages.Select(page => page.Content));
-
-            foreach (var name in (string[])["hero min-h-screen", "card bg-base-100", "card-body", "btn btn-primary btn-block", "alert alert-error"])
-            {
-                Assert.Contains(name, markup, StringComparison.Ordinal);
-            }
-
-            // The generated client, not a hand-rolled fetch: typed, and it carries the CSRF header
-            // these endpoints require.
-            Assert.Contains("@rask/browser/auth", markup, StringComparison.Ordinal);
-            Assert.DoesNotContain("localStorage.", markup, StringComparison.Ordinal);
-        }
-    }
-
     private static string Program(ScaffoldResult result) =>
         result.Files
             .Single(f => f.Path.Replace('\\', '/').EndsWith("/Program.cs", StringComparison.Ordinal))

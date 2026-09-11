@@ -15,6 +15,14 @@
       imports Rask.Core.targets, so there is no item to remove yet.
     -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+
+    <!--
+      The devtools probe seams, observable in every configuration. RaskDevTools defaults to Debug-only, but the unit
+      gate (scripts/run-unit-local.sh) runs this assembly in Release — so without this the switch is off there,
+      RaskDevToolsHook.Active is always null, and DevToolsProbeSeamTests could never see a seam fire. No probe is
+      attached outside those tests, so every other test runs exactly as before.
+    -->
+    <RaskDevTools>true</RaskDevTools>
   </PropertyGroup>
 
   <ItemGroup>
@@ -100,6 +108,14 @@
   <ItemGroup>
     <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts"
                                 Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts"/>
+  </ItemGroup>
+
+  <!-- The repo-walking helper, source-linked rather than referenced: it prunes build output, vendored
+       dependencies and the scaffolder's template payload, so a convention test here never reports
+       another project's code (or fifteen Company.RaskServer.csproj files) as though it were ours. -->
+  <ItemGroup>
+    <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
 </Project>

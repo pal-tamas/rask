@@ -1,0 +1,27 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "Features/Shared/AppDbContext.cs": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/lib/AuthForm.svelte": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/routes/login/+page.svelte": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/routes/register/+page.svelte": [
+      "cqrs",
+      "data"
+    ]
+  },
+  "template": "sveltekit"
+}

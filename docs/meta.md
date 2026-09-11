@@ -8,7 +8,7 @@ backend it integrates with, and the two ship as **one container on one port**.
 rask new Shop --template nuxt   # or nextjs, sveltekit, solidstart, tanstack-start, analog
 ```
 
-That runs the framework's **own** creator — `nuxi`, `create-next-app`, `sv`, `create-solid`,
+That writes a client imported from the framework's **own** creator — `nuxi`, `create-next-app`, `sv`, `create-solid`,
 `@tanstack/cli`, `create-analog` — and then adjusts two things it could not know about: the build has
 to emit a **node server**, and the dev server has to **proxy `/_rask`** back to the host. Everything
 else is whatever that creator ships today, which is the point.

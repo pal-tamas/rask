@@ -1,0 +1,27 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "Features/Shared/AppDbContext.cs": [
+      "cqrs",
+      "data"
+    ],
+    "client/app/auth-form.tsx": [
+      "cqrs",
+      "data"
+    ],
+    "client/app/login/page.tsx": [
+      "cqrs",
+      "data"
+    ],
+    "client/app/register/page.tsx": [
+      "cqrs",
+      "data"
+    ]
+  },
+  "template": "nextjs"
+}

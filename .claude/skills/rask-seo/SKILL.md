@@ -41,6 +41,8 @@ Fix the code, never the test. Each of these failed silently at least once before
 | `/llms.txt`, `/llms-full.txt`, `/docs/guides/{slug}.md` generated at publish, links rewritten to resolve on the site | `Features/Guides/LlmsText.cs`, `Program.cs` | `LlmsTextTests`, `SiteExampleTests` (E2E) |
 | In-doc links route to guides (a `../guide.md` link included) and every anchor names a heading | `Shared/Markdown.cs` | `DocsLinkTests`, `GuidesTests` |
 | Site identity (title, description, author, repo) stated once | `Shared/SiteIdentity.cs` | — |
+| Every page: `og:image` = the 1200×630 card, `twitter:card=summary_large_image`; the committed PNG really is that size | `PageMeta.cs`, `wwwroot/img/og-card.png` | `PageMetaTests`, `SiteExampleTests` (E2E) |
+| Every internal link carries the trailing-slash URL the host serves (`PageMeta.LinkTo`), never a bare path that 301s | `PageMeta.cs` and each link builder | `PageMetaTests.EveryInternalLinkPointsAtTheUrlTheHostServes` |
 
 ## Per change
 
@@ -49,7 +51,8 @@ Fix the code, never the test. Each of these failed silently at least once before
   the doc a descriptive `# H1`, link it from at least one related guide, and — for a pillar — from a
   home-page card. It reaches the sitemap, `llms.txt` and `llms-full.txt` by itself.
 - **New routable page**: `HeadAssets => PageMeta.For(...)` with a generated `Routes.X()`, never a
-  literal. A demo target nobody should find gets `Meta.Name("robots").Content("noindex")` instead.
+  literal. **New link to a page**: `NavLink.Href(PageMeta.LinkTo(Routes.X()))`, so it names the URL the
+  host serves rather than one that redirects. A demo target nobody should find gets `Meta.Name("robots").Content("noindex")` instead.
 - **Renamed or removed slug/route**: a crawler holds the old URL. Keep it answering (repeat `[Route]`
   — the first is canonical) unless the page is truly gone.
 - **Package metadata**: the first sentence of `<Description>` says what it is in searchable words
@@ -85,6 +88,22 @@ Then paste a guide URL into Google's Rich Results Test (breadcrumb + article mus
 PageSpeed Insights (the anonymous API quota runs out quickly — use the web UI or a key). Watch Core Web
 Vitals: the WebAssembly boot is the likeliest LCP cost, not the host.
 
+## The social card
+
+`assets/og-card.html` is the source of `src/Rask.Site/wwwroot/img/og-card.png`: the site's own mark, fonts
+and palette. Change the identity line or the look there, then re-render at exactly 1200×630 and commit
+both (`PageMetaTests` reads the PNG header and fails on any other size):
+
+```bash
+SHELL_BIN=$(find ~/Library/Caches/ms-playwright -name chrome-headless-shell -type f | sort | tail -1)
+"$SHELL_BIN" --headless --disable-gpu --hide-scrollbars --allow-file-access-from-files \
+  --force-device-scale-factor=1 --window-size=1200,630 --virtual-time-budget=3000 \
+  --screenshot="$PWD/src/Rask.Site/wwwroot/img/og-card.png" "file://$PWD/assets/og-card.html"
+```
+
+Look at the PNG before committing it. Social caches hold the old card for days; after changing it, re-scrape
+a URL in the platforms' debuggers (LinkedIn Post Inspector, the Facebook Sharing Debugger).
+
 ## Periodic audit (on request, or when a pillar ships)
 
 Search each query in the table (WebSearch) and note where rask.sh lands; ask an assistant the same
@@ -99,8 +118,6 @@ top results cover that the guide does not.
 - Links from where .NET developers look: awesome-dotnet / awesome-blazor lists, the NuGet READMEs
   (`NUGET.md` → rask.sh pages), the GitHub repo homepage + topics, posts on r/dotnet, dev.to, Hacker
   News, .NET newsletters and talks. One real article linking a guide beats any on-page tweak.
-- A 1200×630 social card (`og:image`, `twitter:card=summary_large_image`) is the owner's design call —
-  `PageMeta` deliberately ships none until a real image exists.
 
 ## Don't
 

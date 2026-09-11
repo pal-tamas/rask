@@ -247,6 +247,27 @@ internal sealed class ArgumentSchema
                 }
 
                 values.Add(value);
+
+                // A multi-option that declares CHOICES also takes several values in a row, so
+                // `--islands react angular blazor` reads the way it is written rather than forcing the
+                // flag to be repeated three times. Bounded by the choice list: consumption stops at the
+                // first token that is not one, which is what keeps `rask new --islands react Shop` from
+                // swallowing the app's name. Without declared choices there is nothing to stop on, so
+                // the option stays strictly one-value-per-occurrence.
+                var allowed = _declared
+                    .FirstOrDefault(o => o.LongName.Equals(longName, StringComparison.Ordinal))?.Choices;
+
+                if (allowed is not null)
+                {
+                    while (i + 1 < args.Count
+                        && !IsOptionToken(args[i + 1])
+                        && allowed.Contains(args[i + 1], StringComparer.OrdinalIgnoreCase))
+                    {
+                        var extra = args[++i];
+                        TryNormalizeChoice(longName, ref extra, errors);
+                        values.Add(extra);
+                    }
+                }
             }
             else
             {

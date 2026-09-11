@@ -262,7 +262,7 @@ public abstract partial class SharedSmokeTests
         // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
         // across the whole example→guide migration.
         var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Core\")").First;
-        var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing\"]");
+        var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing/\"]");
         await core.ClickAsync(); // collapse
         await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
         await core.ClickAsync(); // re-expand
@@ -339,7 +339,7 @@ public abstract partial class SharedSmokeTests
     {
         await SideAsync("All guides", "Guides");
         // A guide card links to /guides/{slug}; open the Routing guide.
-        await Page.Locator($"main a[href$='{Docs}/guides/routing']").First.ClickAsync();
+        await Page.Locator($"main a[href$='{Docs}/guides/routing/']").First.ClickAsync();
         await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("Routing",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         // The markdown's relative .md cross-links are rewritten to SPA-routed /guides/* anchors.

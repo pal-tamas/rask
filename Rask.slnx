@@ -13,12 +13,15 @@
         <Project Path="src/Rask.Cqrs.Client/Rask.Cqrs.Client.csproj" />
         <Project Path="src/Rask.Cqrs.Server/Rask.Cqrs.Server.csproj" />
         <Project Path="src/Rask.Dashboard/Rask.Dashboard.csproj" />
+        <Project Path="src/Rask.DevTools/Rask.DevTools.csproj" />
         <Project Path="src/Rask.Ui/Rask.Ui.csproj" />
         <Project Path="src/Rask.Data/Rask.Data.csproj" />
         <Project Path="src/Rask.Jobs/Rask.Jobs.csproj" />
         <Project Path="src/Rask.Logging/Rask.Logging.csproj" />
         <Project Path="src/Rask.Mail/Rask.Mail.csproj" />
         <Project Path="src/Rask.Outbox/Rask.Outbox.csproj" />
+        <Project Path="src/Rask.Postgres/Rask.Postgres.csproj" />
+        <Project Path="src/Rask.SqlServer/Rask.SqlServer.csproj" />
         <Project Path="src/Rask.Blazor/Rask.Blazor.csproj" />
         <Project Path="src/Rask.External/Rask.External.csproj" />
         <Project Path="src/Rask.External.Tasks/Rask.External.Tasks.csproj" />
@@ -69,6 +72,9 @@
         <Project Path="tests/Rask.Cqrs.Server.Tests/Rask.Cqrs.Server.Tests.csproj" />
         <Project Path="tests/Rask.Cqrs.Transport.Tests/Rask.Cqrs.Transport.Tests.csproj" />
         <Project Path="tests/Rask.Dashboard.Tests/Rask.Dashboard.Tests.csproj" />
+        <Project Path="tests/Rask.DevTools.Tests/Rask.DevTools.Tests.csproj" />
+        <Project Path="tests/Rask.DevTools.Fixture.Server/Rask.DevTools.Fixture.Server.csproj" />
+        <Project Path="tests/Rask.DevTools.Fixture.Wasm/Rask.DevTools.Fixture.Wasm.csproj" />
         <Project Path="tests/Rask.Ui.Tests/Rask.Ui.Tests.csproj" />
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj" />
         <Project Path="tests/Rask.Blazor.Library.Fixture/Rask.Blazor.Library.Fixture.csproj" />
@@ -79,6 +85,9 @@
         <Project Path="tests/Rask.Logging.Tests/Rask.Logging.Tests.csproj" />
         <Project Path="tests/Rask.Mail.Tests/Rask.Mail.Tests.csproj" />
         <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj" />
+        <Project Path="tests/Rask.Postgres.Tests/Rask.Postgres.Tests.csproj" />
+        <Project Path="tests/Rask.SqlServer.Tests/Rask.SqlServer.Tests.csproj" />
+        <Project Path="tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj" />
     <Project Path="tests/Rask.ScopedAssets.Fixture/Rask.ScopedAssets.Fixture.csproj" />
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj" />
@@ -90,6 +99,7 @@
         <Project Path="tests/Rask.Storage.Tests/Rask.Storage.Tests.csproj" />
         <Project Path="tests/Rask.Query.Tests/Rask.Query.Tests.csproj" />
         <Project Path="tests/Rask.Meta.Hosting.E2E.Tests/Rask.Meta.Hosting.E2E.Tests.csproj" />
+        <Project Path="tests/Rask.Templates.E2E.Tests/Rask.Templates.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Meta.Hosting.Tests/Rask.Meta.Hosting.Tests.csproj" />
         <Project Path="tests/Rask.Spa.Hosting.Tests/Rask.Spa.Hosting.Tests.csproj" />
         <Project Path="tests/Rask.Spa.Tasks.Tests/Rask.Spa.Tasks.Tests.csproj" />

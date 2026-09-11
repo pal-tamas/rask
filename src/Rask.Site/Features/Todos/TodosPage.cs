@@ -38,7 +38,9 @@ public sealed partial class TodosPage : Component
             + "dialogs, form validation and the full source, running in WebAssembly.",
             Routes.TodosPage());
 
-    private bool IsAdding => _route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
+    // Trimmed first: the host serves /docs/todos/new/, which is the path a reload — and now a link — arrives
+    // with, and "/new/" does not end with "/new".
+    private bool IsAdding => _route.Path.TrimEnd('/').EndsWith("/new", StringComparison.OrdinalIgnoreCase);
 
     private TodoItem? EditingItem =>
         Id is { } id ? _todos.FirstOrDefault(t => t.Id == id) : null;

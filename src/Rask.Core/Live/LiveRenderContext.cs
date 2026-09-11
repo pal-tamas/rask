@@ -309,8 +309,24 @@ public sealed class LiveRenderContext : IDisposable
     internal string RegisterHandlerFor(Component owner, Delegate handler)
     {
         _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
+
+        // The slot belongs to OWNER, but the clean-subtree cache snapshots only the component being
+        // walked. An owner that is not that component (an island, serialized down the element branch
+        // inside some page) would have its registration skipped by the page's replay, leaving an id in
+        // the markup that resolves to nothing — so keep the enclosing subtree off the replay path.
+        if (!ReferenceEquals(owner, CurrentParent))
+        {
+            HtmlSerializer.MarkNestedComponent();
+        }
+
         return _root.RegisterHandler(handler, owner);
     }
+
+    /// <summary>
+    ///     Keeps the subtree currently being walked out of the clean-subtree frame cache, for a
+    ///     component whose serialization does work a replay would skip.
+    /// </summary>
+    internal void MarkSubtreeUncacheable() => HtmlSerializer.MarkNestedComponent();
 
     /// <summary>
     ///     Record that something in this render needs a live connection. Forwarded to the handle,

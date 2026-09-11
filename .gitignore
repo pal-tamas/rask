@@ -75,6 +75,12 @@ _ReSharper.Caches/
 
 # Visual Studio Code
 .vscode/
+# ...except inside the template trees, where a .vscode/ folder is PAYLOAD rather than one of our own
+# working files: create-vite and the Angular CLI ship editor recommendations, and `rask new` has to be
+# able to write them into the scaffolded app. Without this, eight files are silently left out of the
+# templates and nothing says so. The directory itself has to be re-included, not just the files —
+# a path under an excluded directory cannot be negated.
+!/src/Rask.Templates/**/.vscode/
 
 # OS
 .DS_Store

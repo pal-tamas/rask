@@ -1,0 +1,114 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- rask:if wasm -->
+    <!-- Publish a browser bundle from this same project: see docs/render-modes.md. -->
+    <RaskBrowserRung>true</RaskBrowserRung>
+    <RaskBrowserRootComponent>$(RootNamespace).Features.Shared.App</RaskBrowserRootComponent>
+    <!-- rask:if cqrs -->
+    <!-- The bundle registers its own services here: it has no Program.cs of its own. -->
+    <RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
+    <!-- rask:end -->
+    <!-- rask:end -->
+    <!-- rask:if cqrs data -->
+    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->
+    <RaskLitestreamDownload>false</RaskLitestreamDownload>
+    <!-- rask:end -->
+    <!-- The UI kit's compiled sheet as a cached file in wwwroot, rather than inlined in every
+         document. Linked FIRST in Features/Shared/App.cs: it declares the @layer order. -->
+    <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+    <!-- daisyUI's plugin, copied beside Styles/app.css so this project compiles daisyUI itself.
+         No npm and no node_modules: `dotnet build` is still the whole toolchain. -->
+    <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <!-- In-page devtools: present in a Debug build in Development, absent from a Release
+         publish. Named directly rather than reached through the meta-package, because a
+         package's build/ hooks are imported for a DIRECT reference only — and those hooks are
+         what drop it from a Release publish. -->
+    <PackageReference Include="Rask.DevTools" Version="{{RaskVersion}}"/>
+    <!-- rask:if islands -->
+    <!-- Islands: the base classes a .tsx/.vue/.svelte/.ts component derives from, plus the MSBuild
+         layer that discovers each pair, generates its prop types and bundles it with Vite. -->
+    <PackageReference Include="Rask.External" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if islands-blazor -->
+    <!-- A real Blazor component hosted as an ordinary Rask component. No npm side: the Razor SDK
+         compiles the .razor and Rask renders it into the first response. -->
+    <PackageReference Include="Rask.Blazor" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if cqrs -->
+    <PackageReference Include="Rask.Cqrs" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.Query" Version="{{RaskVersion}}"/>
+    <!-- rask:if data -->
+    <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.SQLite.Litestream" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.Auth" Version="{{RaskVersion}}"/>
+    <!-- rask:if outbox -->
+    <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if jobs -->
+    <PackageReference Include="Rask.Jobs" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if mail -->
+    <PackageReference Include="Rask.Mail" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if cache -->
+    <PackageReference Include="Rask.Cache" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if storage -->
+    <PackageReference Include="Rask.Storage" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if snapshots -->
+    <PackageReference Include="Rask.SQLite.Snapshots" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:end -->
+    <!-- rask:end -->
+    <!-- rask:if logs -->
+    <PackageReference Include="Rask.Logging" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if push pwa -->
+    <PackageReference Include="Rask.WebPush" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if cqrs data ops -->
+    <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if wasm -->
+    <PackageReference Include="Rask.Wasm.Hosting" Version="{{RaskVersion}}"/>
+    <!-- rask:if cqrs -->
+    <PackageReference Include="Rask.Cqrs.Server" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:end -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The kit's namespace, project-wide, so a page names Ui* with no per-file using. -->
+    <Using Include="Rask.Ui"/>
+  </ItemGroup>
+
+  <!-- rask:if wasm -->
+  <ItemGroup>
+    <RaskBrowserPackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <!-- rask:if cqrs -->
+    <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+  </ItemGroup>
+  <!-- rask:end -->
+
+  <!-- rask:if islands-blazor -->
+  <ItemGroup>
+    <!-- The Razor Class Library holding this app's Blazor components. A separate project because a
+         .razor compiled in THIS project is generated during this same compilation, so Rask cannot
+         read its [Parameter]s and generates no chain steps for them (RASK066). -->
+    <ProjectReference Include="Company.RaskServer.Components\Company.RaskServer.Components.csproj"/>
+  </ItemGroup>
+  <!-- rask:end -->
+
+</Project>

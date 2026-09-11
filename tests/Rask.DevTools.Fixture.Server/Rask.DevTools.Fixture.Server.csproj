@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The smallest Server app that carries Rask.DevTools, published by hand to prove the gate: a Debug
+    publish contains the devtools and a Release publish contains none of them — no assembly, no deps.json
+    entry — and still starts. Rask.DevTools.targets fails the Release publish on its own if that stops
+    being true; this project is what gives it something real to publish.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.DevTools\Rask.DevTools.csproj"/>
+    <!-- PrivateAssets="all" from both of the above, so an in-repo app names it itself. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

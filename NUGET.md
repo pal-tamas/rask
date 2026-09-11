@@ -91,6 +91,7 @@ dotnet add package Rask.Storage           # keep uploaded files, with a row per 
 dotnet add package Rask.Logging           # durable log store (its own SQLite file)
 dotnet add package Rask.Dashboard         # the /_rask operator dashboard over every pillar
 dotnet add package Rask.Ui                # the component kit those surfaces are drawn with
+dotnet add package Rask.DevTools          # Debug-only devtools host, absent from every Release publish (tools in progress)
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 ```
@@ -103,6 +104,13 @@ dotnet add package Rask.SQLite.EntityFrameworkCore    # the EF Core provider glu
 dotnet add package Rask.SQLite.Litestream             # managed continuous replication
 dotnet add package Rask.SQLite.Snapshots              # scheduled Online-Backup-API copies
 dotnet add package Rask.SQLite.Browser                # a persistent SQLite database inside a WASM app
+```
+
+SQLite stays the default. When one box is no longer enough:
+
+```bash
+dotnet add package Rask.Postgres                      # PostgreSQL via UseRaskPostgres: session timeouts + retry
+dotnet add package Rask.SqlServer                     # SQL Server via UseRaskSqlServer: XACT_ABORT, lock timeout + retry
 ```
 
 **UI and testing:**
