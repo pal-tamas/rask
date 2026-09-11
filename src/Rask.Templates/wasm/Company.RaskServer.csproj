@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Rask WASM marker (gates the framework's wwwroot staging + scoped-asset bake). -->
+    <RaskWasm>true</RaskWasm>
+    <!-- The UI kit's compiled sheet as a cached file in wwwroot, rather than inlined in every
+         document. Linked FIRST in Features/Shared/App.cs: it declares the @layer order. -->
+    <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+    <!-- daisyUI's plugin, copied beside Styles/app.css so this project compiles daisyUI itself.
+         No npm and no node_modules: `dotnet build` is still the whole toolchain. -->
+    <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+    <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders on
+         publish so static-host (GitHub Pages) redeploys stay subresource-integrity-safe. -->
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- Full WASM AOT is opt-in: publish with -p:RaskWasmAot=true (needs the wasm-tools workload)
+         to AOT-compile IL->WASM; the default keeps the Mono interpreter. Both are gated off the fast
+         no-native build: the SDK's runtime-pack default for this property is empty, so even 'false'
+         is a relink trigger conflicting with -p:WasmBuildNative=false. -->
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' == 'true' ">true</RunAOTCompilation>
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' != 'true' and '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+    <!-- Trimming is trim-safe: page types reach the runtime via the route registry's generated
+         module initialiser, which emits a [DynamicDependency] per registered page. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <!-- ICU is dropped by default. Uncomment to ship it, which you need as soon as the app formats
+         dates, numbers or currency per culture, or shows text in more than one language. One
+         property: it also clears PredefinedCulturesOnly, which otherwise defaults to true here and
+         makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall back. -->
+    <!-- <RaskGlobalization>true</RaskGlobalization> -->
+    <!-- IL2104 comes from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner; apps
+         that only INVOKE JS never hit it. If you mark methods [JSInvokable], add a
+         [DynamicDependency] on them (standard Blazor WASM mitigation) instead of suppressing. -->
+    <NoWarn>$(NoWarn);IL2104</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Rask.Wasm" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The kit's namespace, project-wide, so a page names Ui* with no per-file using. -->
+    <Using Include="Rask.Ui"/>
+  </ItemGroup>
+
+</Project>

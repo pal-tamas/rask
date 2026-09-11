@@ -1,0 +1,33 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Browser/BrowserStartup.cs": [
+      "cqrs",
+      "wasm"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "Features/Push/PushSubscriptions.cs": [
+      "push",
+      "pwa"
+    ],
+    "Features/Shared/AppDbContext.cs": [
+      "cqrs",
+      "data"
+    ],
+    "Features/Shared/User.cs": [
+      "cqrs",
+      "data"
+    ],
+    "wwwroot/icon.svg": [
+      "pwa"
+    ],
+    "wwwroot/offline.html": [
+      "pwa"
+    ]
+  },
+  "template": "server"
+}

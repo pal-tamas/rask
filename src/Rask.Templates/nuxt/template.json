@@ -1,0 +1,31 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "Features/Shared/AppDbContext.cs": [
+      "cqrs",
+      "data"
+    ],
+    "client/app/components/AuthForm.vue": [
+      "cqrs",
+      "data"
+    ],
+    "client/app/pages/index.vue": [
+      "cqrs",
+      "data"
+    ],
+    "client/app/pages/login.vue": [
+      "cqrs",
+      "data"
+    ],
+    "client/app/pages/register.vue": [
+      "cqrs",
+      "data"
+    ]
+  },
+  "template": "nuxt"
+}

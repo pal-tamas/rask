@@ -1,0 +1,87 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- rask:if wasm -->
+    <!-- Publish a browser bundle from this same project: see docs/render-modes.md. -->
+    <RaskBrowserRung>true</RaskBrowserRung>
+    <RaskBrowserRootComponent>$(RootNamespace).Features.Shared.App</RaskBrowserRootComponent>
+    <!-- rask:if cqrs -->
+    <!-- The bundle registers its own services here: it has no Program.cs of its own. -->
+    <RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
+    <!-- rask:end -->
+    <!-- rask:end -->
+    <!-- rask:if cqrs data -->
+    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->
+    <RaskLitestreamDownload>false</RaskLitestreamDownload>
+    <!-- rask:end -->
+    <!-- The UI kit's compiled sheet as a cached file in wwwroot, rather than inlined in every
+         document. Linked FIRST in Features/Shared/App.cs: it declares the @layer order. -->
+    <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
+    <!-- daisyUI's plugin, copied beside Styles/app.css so this project compiles daisyUI itself.
+         No npm and no node_modules: `dotnet build` is still the whole toolchain. -->
+    <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <!-- rask:if cqrs -->
+    <PackageReference Include="Rask.Cqrs" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.Query" Version="{{RaskVersion}}"/>
+    <!-- rask:if data -->
+    <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.SQLite.Litestream" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Rask.Auth" Version="{{RaskVersion}}"/>
+    <!-- rask:if outbox -->
+    <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if jobs -->
+    <PackageReference Include="Rask.Jobs" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if mail -->
+    <PackageReference Include="Rask.Mail" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if cache -->
+    <PackageReference Include="Rask.Cache" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if snapshots -->
+    <PackageReference Include="Rask.SQLite.Snapshots" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:end -->
+    <!-- rask:end -->
+    <!-- rask:if logs -->
+    <PackageReference Include="Rask.Logging" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if push pwa -->
+    <PackageReference Include="Rask.WebPush" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if cqrs data ops -->
+    <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if wasm -->
+    <PackageReference Include="Rask.Wasm.Hosting" Version="{{RaskVersion}}"/>
+    <!-- rask:if cqrs -->
+    <PackageReference Include="Rask.Cqrs.Server" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:end -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The kit's namespace, project-wide, so a page names Ui* with no per-file using. -->
+    <Using Include="Rask.Ui"/>
+  </ItemGroup>
+
+  <!-- rask:if wasm -->
+  <ItemGroup>
+    <RaskBrowserPackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <!-- rask:if cqrs -->
+    <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+  </ItemGroup>
+  <!-- rask:end -->
+
+</Project>

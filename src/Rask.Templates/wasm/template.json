@@ -1,0 +1,17 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "nginx.conf": [
+      "docker"
+    ],
+    "wwwroot/icon.svg": [
+      "pwa"
+    ]
+  },
+  "template": "wasm"
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>client</title>
+    <!-- rask:if pwa -->
+    <link href="/manifest.webmanifest" rel="manifest"/>
+    <meta content="#512BD4" name="theme-color"/>
+    <script>
+        // Registered at the origin root, so the worker controls every route rather than
+        // whichever one the user happened to land on. Failures are ignored: a browser
+        // without service workers (or a page on plain http) is not a broken app.
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/rask-sw.js").catch(() => {});
+            });
+        }
+    </script>
+    <!-- rask:end -->
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

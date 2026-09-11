@@ -52,8 +52,9 @@ public sealed class PackagingContractTests
         // about its consumers.
         var packed = new List<string>();
 
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories)
-                     .Concat(Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.targets", SearchOption.AllDirectories)))
+        foreach (var file in RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src"))
+                     .Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)
+                         || f.EndsWith(".targets", StringComparison.Ordinal)))
         {
             var doc = TryLoad(file);
 
@@ -228,7 +229,7 @@ public sealed class PackagingContractTests
     }
 
     private static Dictionary<string, string> SourceProjects() =>
-        Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories)
+        RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src")).Where(f => f.EndsWith(".csproj", StringComparison.Ordinal))
             .ToDictionary(path => Path.GetFileNameWithoutExtension(path), path => path, StringComparer.Ordinal);
 
     private static bool IsPackableProject(string csprojPath) =>
@@ -386,6 +387,8 @@ public sealed class PackagingContractTests
         // from any pack would pass a DLL listed beside the wrong package's targets, which ships exactly
         // the broken package this test exists to catch.
         var owners = unpackable
+            // Top-level src/ only, and deliberately not a recursive walk: the build packs sit directly
+            // there, so there is nothing to prune and nothing under a template tree to trip over.
             ? Directory.GetFiles(Path.Combine(_repoRoot, "src"), "Rask*BuildPack.targets")
                 .Where(path => XDocument.Load(path).Descendants("None").Any(e =>
                     (e.Attribute("Include")?.Value ?? string.Empty)
@@ -769,7 +772,7 @@ public sealed class PackagingContractTests
         // Rask.External repeated it. Hence a contract, not a comment.
         var offenders = new List<string>();
 
-        foreach (var csproj in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories))
+        foreach (var csproj in RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src")).Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)))
         {
             var doc = TryLoad(csproj);
             if (doc?.Root is null)
@@ -815,7 +818,7 @@ public sealed class PackagingContractTests
 
         var offenders = new List<string>();
 
-        foreach (var csproj in Directory.EnumerateFiles(Path.Combine(_repoRoot, "src"), "*.csproj", SearchOption.AllDirectories))
+        foreach (var csproj in RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src")).Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)))
         {
             var doc = TryLoad(csproj);
             if (doc?.Root is null)

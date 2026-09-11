@@ -53,6 +53,27 @@
     <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 
+  <!-- The template trees ARE the scaffolder's payload: `rask new` writes these bytes out, so editing a
+       file under src/Rask.Templates/ changes what the next scaffold produces, with no second copy in C#
+       to drift from it. They live in a sibling directory rather than under this project because a
+       template holds .cs and .csproj files of its own, which this project's Compile glob and MSBuild's
+       project discovery would otherwise pick up as source.
+
+       LogicalName is set explicitly because the default resource name replaces directory separators
+       with dots, which is ambiguous the moment a file is called Company.RaskServer.csproj — there is no
+       way back to the path. Keeping '/' means the resource name IS the relative path. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Rask.Templates\**\*" Visible="false">
+      <LogicalName>RaskTemplate/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      <!-- WithCulture=false, or MSBuild reads a culture out of the FILENAME and routes the file into a
+           satellite assembly: the server template's Resources/Strings.en.json becomes
+           en/Rask.Cli.resources.dll and disappears from the payload. The scaffold then writes an app
+           whose localization catalog is simply absent, with a green build and nothing said. Every
+           template file is an opaque blob to us, never a culture resource. -->
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cli.Tests" />
     <InternalsVisibleTo Include="Rask.Cli.E2E.Tests" />

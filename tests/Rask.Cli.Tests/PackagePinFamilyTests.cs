@@ -145,7 +145,7 @@ public sealed class PackagePinFamilyTests
                 continue;
             }
 
-            foreach (var csproj in Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories))
+            foreach (var csproj in RepoFiles.EnumerateSourceFiles(directory).Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)))
             {
                 var document = XDocument.Load(csproj);
                 var packages = document.Descendants()
