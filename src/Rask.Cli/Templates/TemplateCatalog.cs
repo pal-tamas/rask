@@ -63,7 +63,7 @@ internal static class TemplateCatalog
     /// A pure browser-WASM SPA has no server to run them on.
     /// </summary>
     private static readonly string[] DatabaseFlags =
-        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "ops"];
+        ["cqrs", "data", "jobs", "mail", "cache", "storage", "outbox", "snapshots", "logs", "ops"];
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [

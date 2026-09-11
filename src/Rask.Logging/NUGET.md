@@ -18,20 +18,29 @@ service. What happened survives the restart that hid it.
 
 ```csharp
 // Program.cs
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+builder.Services.AddRaskLogging();
 ```
 
-That is the whole setup — the schema is created on first use, so there is no migration to add.
+That is the whole setup — the store opens the `Rask:ConnectionStrings:Logs` connection string, and the schema
+is created on first use, so there is no migration to add. Every option is configuration too:
 
-```csharp
-builder.Services.AddRaskLogging(connectionString, o =>
+```jsonc
+// appsettings.json
 {
-    o.MinimumLevel = LogLevel.Warning;      // a floor, not an override (see below)
-    o.Retention    = TimeSpan.FromDays(30);
-    o.MaxRows      = 250_000;               // the backstop against a log storm
-});
+  "Rask": {
+    "ConnectionStrings": {
+      "Logs": "Data Source=logs.db"
+    },
+    "Logging": {
+      "MinimumLevel": "Warning",      // a floor, not an override (see below)
+      "Retention": "30.00:00:00",
+      "MaxRows": 250000               // the backstop against a log storm
+    }
+  }
+}
 ```
+
+A callback — `AddRaskLogging(o => …)` — runs after the `Rask:Logging` section and wins.
 
 ```csharp
 // Read it back from your own code.

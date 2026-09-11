@@ -1,4 +1,5 @@
 using Rask.Core.Live;
+using Rask.Server.DevTools;
 
 namespace Rask.Server.Prerender;
 
@@ -23,17 +24,18 @@ internal static class PageDocument
     ///         that can answer is <c>rask dev</c>, the process that launched this one.
     ///     </para>
     ///     <para>
-    ///         <paramref name="devToolsHostUrl" /> is a separate gate from <paramref name="dev" />: that one also
-    ///         needs <c>dotnet watch</c>, and the devtools switch on for a plain <c>dotnet run</c> of a Debug build
-    ///         in Development.
+    ///         <paramref name="devTools" /> is a separate gate from <paramref name="dev" />: that one also needs
+    ///         <c>dotnet watch</c>, and the devtools switch on for a plain <c>dotnet run</c> of a Debug build in
+    ///         Development.
     ///     </para>
     /// </remarks>
-    internal static string Live(string html, string sessionId, bool dev, string? devToolsHostUrl) =>
+    internal static string Live(string html, string sessionId, bool dev, DevToolsPageTag? devTools) =>
         LivePayload.InjectDevToolsScript(
             LivePayload.InjectIslandsDevAttr(
                 LivePayload.InjectRootAttr(
                     html, sessionId, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
                 dev,
                 dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null),
-            devToolsHostUrl);
+            devTools?.ScriptUrl,
+            devTools?.PanelUrl);
 }

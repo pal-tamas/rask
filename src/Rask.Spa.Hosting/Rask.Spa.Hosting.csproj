@@ -27,6 +27,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
+  <!-- SpaHostingOptions binds Rask:Spa. The configuration binding source generator writes that bind at
+       compile time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
   <!--
     Deliberately no reference to Rask.Core or Rask.Wasm. Serving a build output needs neither: a
     WebAssembly bundle's scoped assets are files the publish already baked, so this host has no

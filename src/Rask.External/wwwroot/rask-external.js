@@ -38,7 +38,7 @@ let hmrClient = null;
 /**
  * Where the islands' Vite dev server is, or null outside `rask dev`.
  *
- * Stamped on <body> by the server, the same way data-rask-dev-status and data-rask-wasm are. Read
+ * Stamped on <body> by the server, the same way data-rask-dev-status is. Read
  * lazily rather than at module scope: this file is a module in <head>, so <body> may not exist yet.
  */
 function devServer() {

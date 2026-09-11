@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "runtime": "vue",
+  "module": "fixture-vue",
+  "export": "Card",
+  "package": {
+    "name": "fixture-vue",
+    "version": "2.0.1"
+  },
+  "tag": null,
+  "content": "node",
+  "props": [
+    {
+      "name": "title",
+      "required": true,
+      "type": {
+        "kind": "string"
+      }
+    }
+  ],
+  "skipped": []
+}

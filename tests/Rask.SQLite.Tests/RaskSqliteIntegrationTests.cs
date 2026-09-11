@@ -16,7 +16,7 @@ public sealed class RaskSqliteIntegrationTests : IDisposable
     public async Task Factory_connection_reports_the_configured_pragmas()
     {
         var services = new ServiceCollection();
-        services.AddRaskSqlite($"Data Source={_dbPath}");
+        services.AddRaskSqliteAt($"Data Source={_dbPath}");
         await using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISqlite>();
 

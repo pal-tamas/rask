@@ -353,6 +353,25 @@ where `UseRaskSpa` places the bundle's scoped assets.
 
 ### Options
 
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "Spa": {
+      "DevServerUrl": "http://localhost:5173",
+      "ImmutablePathPrefixes": [ "/static/" ]   // added to the defaults, not replacing them
+    }
+  }
+}
+```
+
+A [Rask WebAssembly app](#a-rask-webassembly-app) reads the same section. Its `/_framework/` and `/_rask/a/`
+rules apply whatever the section says, and the `/assets/` default is left out for it until you change the
+list.
+
+`Rask:Spa` is read when `UseRaskSpa` maps the app. The two delegates, `ExcludeFromFallback` and
+`OnPrepareResponse`, can only be set in code, on the callback — which runs after the section and wins:
+
 ```csharp
 app.UseRaskSpa(configure: options =>
 {

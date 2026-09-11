@@ -15,14 +15,14 @@ WORKDIR /app
 COPY --from=build /app .
 
 # rask:if cqrs data
-# The replicator binary Program.cs drives when Litestream__ReplicaUrl is set (see docs/sqlite.md).
+# The replicator binary Program.cs drives when Rask__Litestream__ReplicaUrl is set (see docs/sqlite.md).
 COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream
 
 
 # rask:end
 # A writable data directory for the SQLite database, owned by the image's non-root runtime user
 # ($APP_UID). `rask deploy` mounts a named volume here and points the app at /data/app.db (via
-# ConnectionStrings:App), so the database survives container replacement across redeploys. A fresh
+# Rask:ConnectionStrings:App), so the database survives container replacement across redeploys. A fresh
 # named volume inherits this directory's ownership, so the non-root app can create app.db in it.
 USER root
 RUN mkdir -p /data && chown $APP_UID:$APP_UID /data

@@ -89,8 +89,10 @@
       built — so it is collected, and if it is ever genuinely missing the pack FAILS instead of
       quietly shipping without it.
     -->
-    <None Include="build\**" Exclude="build\Rask.External.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Exclude="build\Rask.External.Tasks.dll;build\rask-extract-props.mjs" Pack="true" PackagePath="build\"/>
     <None Include="build\Rask.External.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <!-- Named explicitly for the same reason as the task assembly: it is written by a target, after the glob. -->
+    <None Include="build\rask-extract-props.mjs" Pack="true" PackagePath="build\"/>
     <!-- The adapters, shipped as source the way Rask.Spa.Hosting ships its client. Vendored into obj/
          on every build, so upgrading this package upgrades both halves together. -->
     <None Include="client\**" Pack="true" PackagePath="client\"/>
@@ -99,5 +101,32 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.External.Tests"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <_RaskExtractorTs Include="extractor\**\*.ts"/>
+  </ItemGroup>
+
+  <!--
+    The package-island props extractor, bundled into build/ where the targets run it from: one ESM file for Node.
+    It imports only the TYPES of `typescript` and loads the Rask-pinned compiler at run time from the path the
+    build hands it, so no copy of the compiler is bundled in.
+
+    ResolveProjectReferences for the reason the island test project states: ResolveTypeScriptToolTask is loaded
+    from a Rask.TypeScript.Tasks.dll that the reference edge produces (#878).
+  -->
+  <Target Name="_RaskBundleExtractor" BeforeTargets="CoreCompile" DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="@(_RaskExtractorTs)"
+          Outputs="$(MSBuildProjectDirectory)/build/rask-extract-props.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/extractor/extract-props.ts&quot; --bundle --platform=node --format=esm --target=node22 --external:typescript --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/build/rask-extract-props.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
 
 </Project>

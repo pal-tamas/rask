@@ -9,6 +9,66 @@ them until tagged releases begin.
 
 ### Added
 
+- **The Rask pill opens a live panel in Debug Development builds, and only the developer who owns the page can open it.** Each
+  interactive page's devtools tag now names its panel, `/_rask-devtools/?inspect={session}&t={token}`. The panel is
+  a Rask application mounted beside the app with its own document and route table, drawn with Rask.Ui and following
+  the OS light or dark setting, so the corner pill now appears. The host admits a panel request only when all of these hold:
+  - it is running in Development;
+  - the request comes from this machine, unless `RASK_DEVTOOLS_ALLOW_REMOTE=1`;
+  - it carries that session's token, an HMAC of the session id under a per-process key, compared in constant time;
+  - it comes from the page's origin, with the identity that owns the inspected session.
+
+  A wrong token and an unknown session both answer 404, so neither can be probed for. The check runs after the app's
+  own authorization and before a session is reserved, so a refused request costs nothing. A panel session is never
+  rebuilt from a resume record, so a reconnect goes back through the same check. The panel's pages are internal; only
+  the generator's `Routes` and entry classes join `Rask.DevTools`' public surface. The panel uses the app's own
+  Rask.Ui rather than bringing one, so a Release publish carries nothing of either: every `rask new` app and the `Rask`
+  package reference Rask.Ui, and an app without it gets no devtools and one startup warning saying to add it.
+
+- **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
+  and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
+  `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own
+  database; the app keeps the `Guid` on its entity and gets a link back three ways — `files.Url(id)` for a
+  file saved as public (built from the id alone, so it costs nothing inside a render),
+  `files.TemporaryUrlAsync(id, lifetime)` for one that expires, and `files.Download(id)` for an endpoint
+  that has already checked the caller may see it. Files go to `/data/files` on the deploy volume by
+  default, `storage/` under the content root otherwise, and `app.MapRaskStorage()` serves the links.
+  It is **on** in the `Rask` package like every other battery — the table is mapped on `RaskAppDbContext`
+  and `RaskApp` maps the routes, so an app writes nothing — and `app.Configure(c => c.Storage.Off())` or
+  `c.Storage.Configure(o => …)` is the one place it differs. `Storage__Provider=S3` or `Azure` moves them into a bucket — AWS S3, Cloudflare R2, Backblaze B2, MinIO,
+  DigitalOcean Spaces, Google Cloud Storage's S3 interop, or Azure Blob — with **no cloud SDK behind it**:
+  S3 is signed in-process with SigV4 and Azure with Shared Key, and a temporary URL becomes the provider's
+  own signed URL, so the download never passes through the app. The signers are pinned to AWS's published
+  examples and proven against real MinIO and Azurite by `scripts/run-storage-providers-local.sh`.
+  - **`rask new` scaffolds it** — the package, `AddRaskStorage<AppDbContext>()`, the table in `AppDbContext`
+    and `app.MapRaskStorage()` in the right place for each host — and `--no-storage` leaves it out.
+  - **The operator console gains a read-only Storage tab** at `/_rask/storage`: files, bytes and public
+    files, usage per provider, a searchable newest-first list, and a plain warning whenever files sit on disk,
+    which nothing backs up.
+  - **Public and private files live under different key folders** (`public/`, `private/`), so a CDN or a
+    public bucket can be granted read on `public/` alone — a private file's key shows in its signed URL, and
+    one policy covering both would make a five-minute link permanent.
+  - **The content type is sniffed from the bytes, never taken from the browser.** Only raster images, audio
+    and video are ever served `inline`; everything else downloads as an attachment, and HTML, SVG and XML
+    go out as `application/octet-stream`. Every response carries `nosniff`, a `sandbox` Content Security
+    Policy and `no-referrer`; ranges, `If-None-Match` and `HEAD` are ASP.NET's own handling, with the
+    file's SHA-256 as its entity tag.
+  - **Uploads are capped** at 50 MB by default, before a byte is read when the size is declared and while
+    copying when it is not; `AllowedTypes` narrows what is accepted, by what the bytes are. A refused file is
+    a `FileRejectedException` whose message names the setting to change and never repeats the file name.
+  - **A temporary URL on disk is a Data Protection token** under a purpose of its own, carrying only the
+    file id. Expired, tampered, unknown and deleted all answer one identical `404`, so a response never says
+    whether a file exists — and deleting the file revokes every link to it.
+  - **Bytes are written before the row, and a sweep removes what a failed save leaves behind.** It fails
+    closed (a database error deletes nothing), re-checks each candidate just before deleting it, only ever
+    touches keys in its own layout under `Storage__Prefix`, and refuses outright when it would remove more
+    than a tenth of what it looked at — the signature of an app pointed at the wrong database. It deletes
+    nothing against an empty table, and on S3 or Azure nothing at all until `Storage__Prefix` is set: a bucket
+    is easily shared, and a key's shape cannot tell this app's orphans from another environment's files.
+  - Configuration comes from `Storage__*` keys read inside `AddRaskStorage`, so an app `rask new` wrote
+    honours them; code set in the delegate wins. A bad value fails the boot, and a storage directory inside
+    `wwwroot` is refused because the static-file middleware would serve uploads with none of these checks.
+
 - **A Debug build running in Development loads Rask DevTools' host script into every live page.** `AddRask`
   attaches the devtools when the build carries `Rask.DevTools`; `UseRask` then maps `/_rask-devtools/host.js` —
   anonymous, so an app with a fallback authorization policy still loads its own tools — and each interactive
@@ -16,7 +76,7 @@ them until tagged releases begin.
   nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
   it. The script carries the corner pill and the drawer it opens — docked to the bottom or the right, remembered,
   toggled by Ctrl+Shift+D (Cmd+Shift+D on a Mac) without the keystroke reaching the app, and drawn in a shadow root
-  the app's stylesheets cannot reach — and shows them once the panel page they frame exists, in the next slice.
+  the app's stylesheets cannot reach — and shows them only when the page names a panel for them to frame.
 
   The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
   load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
@@ -38,6 +98,48 @@ them until tagged releases begin.
   declared by hand wins and keeps its own type. RASK077–080 report a missing, unreadable or mismatched snapshot
   and any prop that could not be generated. See
   [Using a package component directly](docs/islands.md#using-a-package-component-directly).
+
+- **`dotnet build` writes and refreshes a package island's `props.json` from the installed package.** Before the
+  compile the build finds the classes whose `Module` names a package, installs, and reads each component's props
+  with the TypeScript compiler Rask pins (`RaskExternalTypeScriptVersion`, 6.0.3, fetched once into
+  `~/.rask/typescript` and never the project's own copy) — React, Preact and Solid packages for now; a Vue,
+  Svelte, Lit or Angular package island compiles from a snapshot committed by hand, and a Solid package island
+  beside React or Preact islands is refused by name, since Solid's plugin cannot be confined to it. A changed
+  snapshot is rewritten and announced with its version move, so it arrives in review; a build that cannot read
+  the package compiles from the committed file. `RaskExternalPropsLocked` (on under `ContinuousIntegrationBuild`)
+  turns drift into an error instead of a rewrite. The entry imports the package by its bare specifier (a `#Export`
+  as a named import), and a React or Preact app of package islands is no longer asked to install the runtime's
+  Vite plugin. RASKISLAND005–010 name a bad declaration, a missing snapshot, a package or export that could not
+  be read, drift on a locked build, an island the scan missed, and a snapshot from another version than
+  `package-lock.json` pins. See [The build keeps it current](docs/islands.md#the-build-keeps-it-current).
+
+- **Vue and Svelte package islands get their props from the package too, and a component can be a member of an
+  export.** Vue components are read from their instance `$props` (`defineComponent`, vue-tsc's `<script setup>`
+  output) or their call signature (generic and functional components); emits declared only as `$emit` overloads
+  become handler props named as Vue matches them (`onUpdate:modelValue`), and a default slot makes the island take
+  content. Svelte 5 components are read from `Component<Props>`, with a snippet prop skipped and a `children` snippet
+  taken as content; Svelte 4 typings give their props from `$$prop_def` and list their `on:` events as `legacy-event`
+  skips. `Module => "bits-ui#Switch.Root"` names the `Root` member of the `Switch` export, for libraries that export
+  namespaces of parts. Extraction got more exact for every runtime on the way: `string | boolean` is a union rather
+  than an enum of "false" and "true", a template-literal member opens an enum, literals beside other kinds form one
+  enum while a boolean beside other literals stays one of its values (MUI's `'auto' | true | false`), more than 64
+  literals cross as a plain string, rest-tuple callback parameters become labelled arguments, and a destructured
+  parameter is `argN`. A Svelte 4 component typed by svelte-package — a class and a function at once — has its
+  `$$events` and `$$slots` read as events and content rather than listed as props.
+
+- **Lit and Angular package islands get their props from the package too, so every runtime's do.** A Lit element's
+  props are its public, writable fields; its tag comes from `HTMLElementTagNameMap`, or is named in `Module` for a
+  module that only registers an element (`"@spectrum-web-components/button/sp-button.js#sp-button"`), and the entry
+  imports that module for its side effect so the registration is never elided. A tag counts only when the island's own
+  module, or a file it imports directly, registers it, so a class module that registers nothing never borrows the tag
+  another island's module registers. Where the package ships a `custom-elements.json`, the events it lists become `On…`
+  handler props that the Lit adapter now adds as event listeners — one per event, swapped when C# replaces the
+  handler; every public field stays a prop, `attribute: false` ones included. An Angular component's inputs and
+  outputs, including those it inherits from a base class, are read from the declaration ng-packagr compiles: an input
+  is set by its public alias (signal inputs, `model()` and transformed inputs included), and an output is subscribed to,
+  which the Angular adapter now does. A directive or a component that is not standalone is refused with RASKISLAND007.
+  In both adapters a prop C# stops sending goes back to the element's or component's own default, as it does in the
+  other runtimes, rather than keeping the last value set.
 
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
@@ -65,7 +167,7 @@ them until tagged releases begin.
 
 - **PostgreSQL is back, as the opt-in `Rask.Postgres`.** SQLite stays the default and the recommendation;
   this reverses only the part of the earlier removal that left a production app with no supported door out of
-  one box. `UseRaskPostgres(cs, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
+  one box. `UseRaskPostgres(sp, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
   `LockTimeout` (10s, validated below the statement timeout so lock contention is never reported as a slow
   query) and `IdleInTransactionSessionTimeout` (1m) to every session, and turns on Npgsql's retrying
   strategy through `o.Retry`. Compared with the package that shipped in v0.20.0, `RaskPostgresOptions` is now
@@ -81,7 +183,7 @@ them until tagged releases begin.
   succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
   (`docs/data.md#postgresql`).
 
-- **SQL Server is back too, as the opt-in `Rask.SqlServer`.** `UseRaskSqlServer(cs, o => …)` is a drop-in for
+- **SQL Server is back too, as the opt-in `Rask.SqlServer`.** `UseRaskSqlServer(sp, o => …)` — connection string from `Rask:ConnectionStrings:App`, options from `Rask:SqlServer` — is a drop-in for
   `UseSqlServer` that sends `SET XACT_ABORT ON` and `SET LOCK_TIMEOUT` (10s, validated below the command
   timeout) as one batch on every connection EF opens — SQL Server takes no session settings in the connection
   string, and SqlClient resets them on every pooled open — sets a client `CommandTimeout` (30s, rounded up to
@@ -94,27 +196,6 @@ them until tagged releases begin.
   claim, cache, session-settings and bulk-insert scenarios against SQL Server 2022 — started on amd64 hosts
   only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
   summary that SQL Server was not proven rather than counting it as a pass.
-
-- **MySQL, as the opt-in `Rask.MySql`.** `UseRaskMySql(cs, o => …)` wraps Oracle's `UseMySQL` provider —
-  Pomelo had no EF Core 10 release — and sends `innodb_lock_wait_timeout` (10s, whole seconds, validated below the
-  command timeout) and `max_execution_time` (30s) as one `SET` on every connection EF opens, sets a client
-  `CommandTimeout` (30s) and turns on the provider's retrying strategy through `o.Retry`. The knobs follow MySQL
-  rather than the other packages: `max_execution_time` stops read-only `SELECT`s only, so the command timeout is
-  the ceiling on a runaway write, and both timeouts round up — a short lock wait must not fall below MySQL's 1-second minimum, and a
-  0 `max_execution_time` means "no limit"; the lock wait is validated below the command timeout after rounding. The settings live on
-  the options extension, so calling it twice keeps one interceptor and the last call's values. It also registers a
-  model convention, because a real server showed Oracle's provider losing a `DateTimeOffset`'s fractional seconds
-  twice — a whole-second `datetime` column by default, and a reader that truncates even a `datetime(6)` one: every
-  `DateTimeOffset` without a converter of its own is stored as its UTC `DateTime` in `datetime(6)` and read back
-  at offset zero, the offset the provider returned anyway. The provider suite
-  gains MySQL 8.4 — a native image, so unlike SQL Server it is proven on every host and a host that cannot start it
-  fails the gate: the start-gated claim races, session settings re-applied on every open, fifty cache writers on one
-  key, a 513-character key rejected with its limit named, bulk insert into a backtick-quoted keyword table, and a
-  Guid, a +02:00 DateTimeOffset (back as the same instant at offset zero) and a microsecond `DateTime`
-  round-tripped through a server whose own time zone is +05:00. Three things to know: Oracle's packages are
-  `GPL-2.0-only WITH Universal-FOSS-exception-1.0` (Rask is MIT); MariaDB is not supported, having no
-  `max_execution_time`; and an app switching from `UseMySQL` needs a migration, since its `DateTimeOffset`
-  columns become `datetime(6)`.
 
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
@@ -250,13 +331,13 @@ them until tagged releases begin.
   renders, and answers with the no-store headers every session-bearing page already carried. A page whose
   buttons used to go silently inert under `RenderModes.Static` now works, at the cost of a session per page
   load (bounded, as before, by the unconnected grace period and `MaxSessions`). The initial render's wait
-  budget moves from `o.RenderModes.QuiescenceTimeout` to `o.QuiescenceTimeout`:
+  budget moves from `RenderModes.QuiescenceTimeout` to `QuiescenceTimeout`, one level up in `Rask:Server`:
 
-  ```csharp
+  ```jsonc
   // before
-  builder.Services.AddRask(configureServer: o => o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(2));
-  // after
-  builder.Services.AddRask(configureServer: o => o.QuiescenceTimeout = TimeSpan.FromSeconds(2));
+  { "Rask": { "Server": { "RenderModes": { "QuiescenceTimeout": "00:00:02" } } } }
+  // after — or Rask__Server__QuiescenceTimeout, or AddRask(configureServer: o => o.QuiescenceTimeout = …)
+  { "Rask": { "Server": { "QuiescenceTimeout": "00:00:02" } } }
   ```
 
   WebAssembly is a single-page app, never a render mode: a booting browser runtime always paints its own
@@ -322,6 +403,54 @@ them until tagged releases begin.
   builder.Services.AddRaskSpaHost();
   app.UseRaskSpa();
   ```
+
+- **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
+  own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
+  `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer`,
+  `Rask:Litestream`, `Rask:Snapshots`, `Rask:Cache`, `Rask:Jobs`, `Rask:Logging`, `Rask:Mail`, `Rask:Outbox`,
+  `Rask:Cqrs`, `Rask:Cqrs:Server`, `Rask:WebPush` — and the connection strings are `Rask:ConnectionStrings:App` and
+  `Rask:ConnectionStrings:Logs`. Nothing is bound by hand any more (`GetSection("Rask").Bind(o)` is gone from the
+  docs), and a deployed app is tuned with environment variables alone: `Rask__Mail__Smtp__Host`,
+  `Rask__Server__SessionGracePeriod`. The order is the options' defaults, then configuration (appsettings, the
+  environment, user secrets), then the `AddRaskX(o => …)` callback — code still wins — then validation. That
+  validation now runs when the host STARTS and throws `OptionsValidationException` naming the section, where
+  `AddRaskX` used to throw at registration; a container that is not a host builds the options on first resolve.
+  `Rask:Cqrs` is the one section read while services are registered, because the handler lifetime decides which
+  services exist; browser apps keep their code-only configuration. `RaskApp` adds its development defaults
+  (`app.db`, `logs.db`, strict tables, a From address, a snapshot directory) as the LOWEST-precedence
+  configuration, so every one of them is overridable from appsettings; and `rask new` writes the values it used to
+  hard-code in `Program.cs` — the database file, `StrictTables`, the mail From and pickup directory, the snapshot
+  schedule, the Web Push subject, the culture list, and `RequireAuthenticatedUser = false`
+  for an app without accounts — into the scaffolded `appsettings.json`, which now uses the template markers
+  (`// rask:if mail`) to carry only the sections its batteries need. Every key: `docs/configuration.md`.
+
+  **The old keys are no longer read, and nothing warns.** Rename them before upgrading:
+
+  | Before | Now |
+  |---|---|
+  | `ConnectionStrings:App` / `ConnectionStrings__App` | `Rask:ConnectionStrings:App` / `Rask__ConnectionStrings__App` |
+  | `ConnectionStrings:Logs` | `Rask:ConnectionStrings:Logs` |
+  | `Litestream:ReplicaUrl` | `Rask:Litestream:ReplicaUrl` |
+  | `Sqlite:SnapshotDirectory` | `Rask:Snapshots:DestinationDirectory` |
+  | `Mail:PickupDirectory` | `Rask:Mail:PickupDirectory` |
+  | `WebPush:PublicKey` / `WebPush:PrivateKey` | `Rask:WebPush:VapidKeys:PublicKey` / `…:PrivateKey` |
+  | `WebPush:Subject` | `Rask:WebPush:Subject` |
+  | `Rask:MaxPendingHandlers` (the flat shape the docs taught) | `Rask:Server:MaxPendingHandlers` |
+
+  `rask deploy` now injects `Rask__ConnectionStrings__App` and `Rask__ConnectionStrings__Logs`, and its backup
+  warning names `Rask__Litestream__ReplicaUrl`. **Upgrade the CLI and the packages together**: an app on the old
+  packages deployed by the new CLI — or the reverse — reads no connection string, falls back to a database inside
+  the container, and loses it on the next deploy.
+
+- **BREAKING — the connection-string overloads are gone; the connection string is configuration.**
+  `UseRaskSqlite(cs, …)` is `UseRaskSqlite(sp, …)` (`AddDbContextFactory<T>((sp, o) => o.UseRaskSqlite(sp))`),
+  `UseRaskPostgres(cs, …)` is `UseRaskPostgres(sp, …)` (and likewise `UseRaskSqlServer`), `AddRaskSqlite(cs, …)` is `AddRaskSqlite(…)` and
+  `AddRaskLogging(cs, …)` is `AddRaskLogging(…)`. Each reads `Rask:ConnectionStrings:App` (or `:Logs`) and,
+  when it is missing, stops with an error naming the key in both spellings rather than opening a file wherever the
+  process happens to be — which in a container is somewhere the next deploy deletes. A design-time factory builds
+  a service provider over its configuration and passes that. `AddRaskSqliteLitestream`, `AddRaskSqliteSnapshots`
+  and `AddRaskWebPush` no longer require a callback, and the first two default their database path to the file
+  behind `Rask:ConnectionStrings:App`.
 
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
@@ -500,6 +629,16 @@ them until tagged releases begin.
   `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
   makes the kit's own messages independent of it.
 
+- **rask.sh and the README lead with the batteries, not a benchmark against Blazor.** The byte-for-byte
+  "Rask vs Blazor" table that sat directly under the landing page's hero is gone, and so is the README's
+  paragraph of head-to-head numbers. The two battery sections — what is in the box, and the whole
+  DB-backed back end — now come straight after the hero, and the README gains a `## Batteries included`
+  list linking each pillar's guide. The front doors (landing page, README, NUGET.md, llms.txt) also say
+  what Rask is to the frameworks it hosts: a superset, not a rival — React, Vue, Svelte, Angular and Lit
+  islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
+  ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
+  gate are unchanged.
+
 ### Removed
 
 - **The render ladder and the WebAssembly takeover** (pre-1.0, no `[Obsolete]`), replaced by "every page is
@@ -538,6 +677,31 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **`rask new --cqrs` without `--wasm` scaffolds an app that compiles again.** The server template wrote the
+  database-free `AddRaskCqrsServer()` call outside its WebAssembly region.
+  The `Rask.Cqrs.Server` package and its `using` are written only with `--wasm`, so a `--cqrs` app with no
+  database failed with CS1061. The call now sits inside that region. So does its
+  `Rask:Cqrs:Server:RequireAuthenticatedUser` setting in `appsettings.json`, which described endpoints a
+  server-only app does not have. The CLI build gate's two cases for it pass, and a unit test pins the absence
+  of both without `--wasm` (#1071).
+
+- **A `RaskApp` with its Web Push keys in configuration starts.** The keys were enough to switch the battery on
+  but were never copied into its options, so an app configured the documented way stopped at startup on a
+  missing key pair. The section is now bound like every other, so the keys reach the sender — and keys without a
+  subject are refused naming `Subject`.
+
+- **`rask db backup` backs up the database the app uses.** The locator parsed `appsettings.json` as strict JSON,
+  and every scaffolded one carries comments, so it failed quietly and copied `app.db` whatever the file named. It
+  now reads the file the way .NET does — comments and trailing commas allowed — and reads
+  `Rask:ConnectionStrings:App`.
+
+- **`UseRask<App>()` keeps a path base set in `AddRask`.** Its `pathBase` argument defaults to `""`, and it wrote
+  that over the configured value unconditionally, so `AddRask(o => o.PathBase = "/app")` served from the root.
+  An explicit argument still wins; an omitted one no longer resets `Rask:Live:PathBase`.
+
+- **A second `AddRaskWebPush` or `AddRaskSignaling` no longer registers everything twice.** Both appended their
+  options (and a second typed client or hub) where every other battery keeps the first call's.
 
 - **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
   compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island

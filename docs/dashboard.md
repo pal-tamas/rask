@@ -2,7 +2,7 @@
 
 Every DB-backed pillar keeps its state in a table in your application's own database. That is what makes
 `Rask.Dashboard` possible: one package reference and one line mounts an operator dashboard at `/_rask` over
-the outbox, background jobs, queued mail and cache — no exporter, no second datastore, no agent.
+the outbox, background jobs, queued mail, cache and stored files — no exporter, no second datastore, no agent.
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -57,6 +57,7 @@ own for `UseRaskServer<TApp>` to name.
 | **Overview** | Is anything wrong? One tile per queue, plus a banner the moment any dead letter exists. |
 | **Queues** — outbox / jobs / mail | Due, delayed, **failed**, processed, as a row of counts that is also the filter. Open a row for its last error and stored payload. |
 | **Cache** | Keys, sizes, expiry, and how many are expired but not yet swept. |
+| **Storage** | At `/_rask/storage`, read-only: how many files and bytes [`Rask.Storage`](file-storage.md) holds, how many are public, usage per provider, and a searchable list of recent files — plus a notice when files are on disk, which no backup covers. |
 | **Logs** | A live tail of the `ILogger` pipeline — the failures that leave no row anywhere — plus a searchable **History** over the stored log when [`Rask.Logging`](logging.md) is installed. |
 | **System** | SQLite pragmas read live, database size, and the recurring-job schedule with when each last fired. |
 
@@ -85,11 +86,12 @@ MaxAttempts`, the inverse of their own drain query. It is not a status column; t
 
 ## Security
 
-The dashboard shows job payloads, stored email bodies and log lines. Treat `/_rask` as a view of your
-database, because that is what it is.
+The dashboard shows job payloads, stored email bodies, log lines and the names of uploaded files. Treat
+`/_rask` as a view of your database, because that is what it is.
 
 `/_rask` is the framework's own reserved prefix — scoped assets are served from `/_rask/a/{hash}.{ext}`,
-and the live runtime owns `/_rask/auth/redeem`, `/_rask/upload/{id}` and `/_rask/download/{id}/{token}`.
+the live runtime owns `/_rask/auth/redeem`, `/_rask/upload/{id}` and `/_rask/download/{id}/{token}`, and
+[`Rask.Storage`](file-storage.md) owns `/_rask/files/public/{id}` and `/_rask/files/{token}`.
 Those are literal routes and the dashboard's pages resolve through a catch-all, so they coexist by
 ordinary routing precedence and none of them shadows an application route of yours.
 
@@ -112,6 +114,11 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
+> **`AllowAnonymousAccess` is configuration too.** `Rask:Dashboard:AllowAnonymousAccess` set to `true`
+> opens the console to everyone, in every environment, and like every `Rask:Dashboard` key it can arrive as
+> an environment variable (`Rask__Dashboard__AllowAnonymousAccess=true`). The panels show job payloads,
+> stored email bodies and log lines, so guard the deploy environment's variables as carefully as the code.
+
 ## Actions
 
 Reading tells you what broke; these fix it.
@@ -124,11 +131,19 @@ Reading tells you what broke; these fix it.
 | Delete an outstanding row | Destructive | `ProcessedAt IS NULL` |
 | Flush the whole cache | Destructive | — |
 
-```csharp
-builder.Services.AddRaskDashboard<AppDbContext>(o => o.Actions = RaskDashboardActions.All);
+```jsonc
+{
+  "Rask": {
+    "Dashboard": {
+      "Actions": "All"
+    }
+  }
+}
 ```
 
-`Actions` defaults to `Safe`. Buttons for a tier that is off are hidden, not disabled.
+Every dashboard option is `Rask:Dashboard` in `appsettings.json`; a callback —
+`AddRaskDashboard<AppDbContext>(o => o.Actions = RaskDashboardActions.All)` — runs after the section and
+wins. `Actions` defaults to `Safe`. Buttons for a tier that is off are hidden, not disabled.
 
 **Why retry is safe against a live queue.** Its guard is the inverse of the drain query, so it can only
 ever match rows a processor has already given up on — a row currently in flight is invisible to it. Every
@@ -141,13 +156,16 @@ you pass.
 
 ## Logs
 
-```csharp
-builder.Services.AddRaskDashboard<AppDbContext>(o =>
+```jsonc
 {
-    o.LogBufferSize   = 500;
-    o.LogMinimumLevel = LogLevel.Information;
-    // o.CaptureLogs  = false;   // registers no logging provider at all
-});
+  "Rask": {
+    "Dashboard": {
+      "LogBufferSize": 500,
+      "LogMinimumLevel": "Information"
+      // "CaptureLogs": false      // the logging provider drops everything
+    }
+  }
+}
 ```
 
 A bounded in-memory ring buffer fed by a registered `ILoggerProvider`, so it sees exactly what every other
@@ -165,8 +183,7 @@ Install [`Rask.Logging`](logging.md) and the page grows a second mode:
 | **History** | The durable store, paged, with level/category filters and a full-text search | Yes | One query per refresh, against the log store's **own** SQLite file — never the application database |
 
 ```csharp
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+builder.Services.AddRaskLogging();   // opens Rask:ConnectionStrings:Logs
 ```
 
 They are two modes rather than one merged view because the store's writer flushes on an interval: the newest
@@ -212,7 +229,7 @@ builder.Services.AddSingleton<IDashboardBackupProbe, BackupProbe>();
 ```
 
 > **Take those dependencies as optional.** `AddRaskSqliteLitestream` is config-gated in everything
-> `rask new` scaffolds: with no `Litestream:ReplicaUrl` set it never runs, so `LitestreamStatus` is not in
+> `rask new` scaffolds: with no `Rask:Litestream:ReplicaUrl` set it never runs, so `LitestreamStatus` is not in
 > the container. A probe that requires it starts cleanly and then throws the first time somebody opens the
 > System panel — a failure that shows up only in the environment which skipped the configuration.
 
@@ -228,13 +245,16 @@ The loop is **bounded** (`MaxPollDuration`, default 5 minutes) and then offers a
 is deliberate: every open tab is a reader competing with the processors for SQLite's single write lock, so
 a dashboard left open on a wall display is a real cost, not a free convenience.
 
-```csharp
-builder.Services.AddRaskDashboard<AppDbContext>(o =>
+```jsonc
 {
-    o.RefreshInterval = TimeSpan.FromSeconds(5);
-    o.MaxPollDuration = TimeSpan.FromMinutes(10);
-    o.PageSize        = 50;
-});
+  "Rask": {
+    "Dashboard": {
+      "RefreshInterval": "00:00:05",
+      "MaxPollDuration": "00:10:00",
+      "PageSize": 50
+    }
+  }
+}
 ```
 
 ## How it looks, and why you cannot change it
@@ -265,5 +285,5 @@ stylesheet, its reset and its theme reach nothing of yours.
 
 - [Observability](observability.md) — logging categories, the `Rask.Server` meter, tracing, health checks.
 - [The UI kit](ui-kit.md) — the daisyUI components the console is drawn with, and the theme scope.
-- [Jobs](jobs.md) · [Outbox](outbox.md) · [Mail](mail.md) · [Cache](cache.md) — the pillars it reads.
+- [Jobs](jobs.md) · [Outbox](outbox.md) · [Mail](mail.md) · [Cache](cache.md) · [File storage](file-storage.md) — the pillars it reads.
 - [SQLite](sqlite.md) — pragmas, continuous backup, and snapshots.

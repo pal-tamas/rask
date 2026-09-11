@@ -137,7 +137,7 @@ internal static class TemplateMaterializer
     {
         ArgumentNullException.ThrowIfNull(batteries);
 
-        var on = new List<string>(13);
+        var on = new List<string>(15);
         Add(batteries.Pwa, "pwa");
         Add(batteries.Cqrs, "cqrs");
         Add(batteries.Data, "data");
@@ -145,6 +145,7 @@ internal static class TemplateMaterializer
         Add(batteries.Jobs, "jobs");
         Add(batteries.Mail, "mail");
         Add(batteries.Cache, "cache");
+        Add(batteries.Storage, "storage");
         Add(batteries.Outbox, "outbox");
         Add(batteries.Push, "push");
         Add(batteries.Snapshots, "snapshots");

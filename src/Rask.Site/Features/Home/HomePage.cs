@@ -8,10 +8,10 @@ namespace Rask.Site.Pages;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Light, mobile-first, and built from the same kit the operator console is — <see cref="UiMetricRow" />,
-/// <see cref="UiDetailList" />, <see cref="UiStatusDot" /> and <see cref="UiIcon" /> are the console's,
-/// unchanged. What is NOT taken from the kit is its chrome: a marketing page has no tab bar to put in a
-/// <c>UiNav</c> and no breadcrumb to switch, so the sections below are ordinary Tailwind over the kit's
+/// Light, mobile-first, and built from the same kit the operator console is — <see cref="UiIcon" /> and
+/// the theme dropdown are the console's, unchanged. What is NOT taken from the kit is its chrome: a
+/// marketing page has no tab bar to put in a <c>UiNav</c> and no breadcrumb to switch, so the sections
+/// below are ordinary Tailwind over the kit's
 /// palette. Borrowing furniture that does not fit would have been the drift the kit was extracted to stop.
 /// </para>
 /// <para>
@@ -80,11 +80,10 @@ public sealed partial class HomePage : Component
     [
         TopBar(),
         Hero(),
-        BytesSection(),
-        HostsSection(),
-        FrontEndsSection(),
         FeaturesSection(),
         WholeBackEndSection(),
+        HostsSection(),
+        FrontEndsSection(),
         InstallSection(),
         FooterSection()
     ];
@@ -221,69 +220,6 @@ public sealed partial class HomePage : Component
             body.Length == 0 ? null : P.Class(Lede)[body]
         ];
 
-    // ---- bytes / benchmarks ----
-    private Component BytesSection() =>
-        Section.Class(SectionPad)[
-            Div.Class(Wrap)[
-                SecHead("Rask vs Blazor · CI-enforced baselines",
-                    "Fewer bytes than Blazor — on every scenario.",
-                    "Rask treats the network as the real bottleneck: after first paint, a state change ships a minimal diff. Each pair below is the ", B["same"], " state change — Blazor's payload beside Rask's."),
-
-                // The kit's metric row, unchanged from the console. Two columns on a phone, four from sm
-                // up, with the hairlines drawn as a lined background rather than per-cell borders.
-                Div.Class("mb-6")[
-                    UiMetricRow.Columns(4)[
-                        UiMetric.Key("wire").Label("Bytes on the wire").Value("~41 B")
-                            .Caption("counter on a 24 KB page · vs 186 B"),
-                        UiMetric.Key("alloc").Label("Less allocated / update").Value("~40×")
-                            .Caption("1,072 B · vs Blazor 42,972 B"),
-                        UiMetric.Key("heap").Label("Leaner retained heap").Value("~30%")
-                            .Caption("158 KB · vs 224 KB (200 rows)"),
-                        UiMetric.Key("render").Label("Faster render hot path").Value("1.76×")
-                            .Caption("598 ns · vs 1,052 ns")
-                    ]
-                ],
-
-                // A table rather than the animated bars this replaced. The bars were drawn by a script
-                // that set each one's height from a data- attribute, so with no script they were all
-                // zero — a chart of nothing, on the page's central claim.
-                Div.Class($"{Card} overflow-hidden")[
-                    Div.Class("overflow-x-auto")[
-                        Table.Class("w-full text-left text-sm")[
-                            Thead.Class("border-b border-ui-line text-xs uppercase tracking-wide text-ui-muted")[
-                                Tr[
-                                    Th.Class("px-4 py-3 font-medium")["Scenario"],
-                                    Th.Class("px-4 py-3 text-right font-medium")["Blazor"],
-                                    Th.Class("px-4 py-3 text-right font-medium")["Rask"],
-                                    Th.Class("px-4 py-3 text-right font-medium")["Fewer bytes"]
-                                ]
-                            ],
-                            Tbody[
-                                ByteRow("Counter on a 24 KB page", "186 B", "41 B", "4.5×"),
-                                ByteRow("Deep-tree tick", "1,722 B", "137 B", "12.6×"),
-                                ByteRow("Deep mutation ×200", "6,522 B", "441 B", "14.8×"),
-                                ByteRow("Remove 100 rows", "2,080 B", "37 B", "56×")
-                            ]
-                        ]
-                    ]
-                ],
-
-                P.Class("mt-6 rounded-xl border border-ui-line bg-ui-bg p-4 text-sm text-ui-muted")["Retained heap used to be Blazor's one win — a pure-element page now keeps a compact frame snapshot instead of an object-per-element graph, so ", B.Class("text-ui-ink")["Rask leads on every measured axis."], " Numbers from the CI-enforced ", A
-                    .Class("text-ui-brand-ink underline underline-offset-2")
-                    .Href("https://github.com/pal-tamas/rask/blob/main/tests/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md")
-                    .Target("_blank")
-                    .Rel("noopener")["vs-blazor baselines"], " (Apple M4 Pro, .NET 10.0.5)."]
-            ]
-        ];
-
-    private static Component ByteRow(string scenario, string blazor, string rask, string win) =>
-        Tr.Key(scenario).Class("border-b border-ui-line/60 last:border-0")[
-            Td.Class("px-4 py-3 text-ui-ink")[scenario],
-            Td.Class("px-4 py-3 text-right font-mono text-xs tabular-nums text-ui-muted")[blazor],
-            Td.Class("px-4 py-3 text-right font-mono text-xs font-semibold tabular-nums text-ui-ink")[rask],
-            Td.Class("px-4 py-3 text-right text-sm font-semibold text-ui-ok-ink")[win]
-        ];
-
     // ---- hosts & front-end lanes ----
     private static Component LaneCard(
         UiIconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
@@ -340,7 +276,7 @@ public sealed partial class HomePage : Component
             Div.Class(Wrap)[
                 SecHead("Four front ends · one back end",
                     "Bring your own front end — or don't.",
-                    "Every lane answers to the same C# back end over the same typed wire. Pick one per project; islands also compose inside a Rask component tree, so those two mix freely."),
+                    "Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, a real Blazor component, a TypeScript SPA or a Nuxt or Next.js app all run on it, against the same C# back end over the same typed wire. Pick one per project; islands also compose inside a Rask component tree, so those two mix freely."),
                 Div.Class("grid gap-4 md:grid-cols-2")[
                     LaneCard(UiIconName.CodeBracket, "Rask.Core", "Rask components", "render-modes", "rask new Shop",
                         "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Add ", Code["--wasm"], " and the same components also publish as a WebAssembly bundle out of the same project."),
@@ -396,7 +332,7 @@ public sealed partial class HomePage : Component
     /// origin root and under a sub-path.
     /// </remarks>
     private Component FeaturesSection() =>
-        Section.Class(SectionPad)[
+        Section.Id(BatteriesSectionId).Class(SectionPad)[
             Div.Class(Wrap)[
                 SecHead("Batteries included · all type-safe",
                     "A full framework, generated at compile time.",
@@ -411,11 +347,21 @@ public sealed partial class HomePage : Component
                     Feature(UiIconName.Cube, "50 typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
                     Feature(UiIconName.ShieldOk, "Secure by default", "best-practices", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code["javascript:"], " → ", Code["about:blank"], "). Safe output is the default, not a flag."),
                     Feature(UiIconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
-                    Feature(UiIconName.Sparkles, "Prerendering & render modes", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, ", Code["RenderModes"], " decides per page whether it needs a live session at all."),
+                    Feature(UiIconName.Sparkles, "Prerendering", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, every page is live, and ", Code["QuiescenceTimeout"], " holds its first response until its data has loaded."),
                     Feature(UiIconName.Terminal, "One CLI", "cli", Code["rask new"], ", ", Code["rask dev"], ", ", Code["rask db"], ", ", Code["rask deploy"], " — scaffold, run, migrate and ship without leaving the terminal.")
                 ]
             ]
         ];
+
+    /// <summary>
+    ///     The batteries section's DOM id — the handle its tests address it by.
+    /// </summary>
+    /// <remarks>
+    /// It is the first section under the hero, where a byte table against Blazor used to be:
+    /// <c>HomePageTests</c> and the site journey assert that it still is, so a section slotted in above
+    /// it has to mean to push the batteries down.
+    /// </remarks>
+    internal const string BatteriesSectionId = "batteries";
 
     // ---- one person's whole back end ----
     private Component WholeBackEndSection() =>
@@ -423,7 +369,7 @@ public sealed partial class HomePage : Component
             Div.Class(Wrap)[
                 SecHead("DB-backed by default · no external services",
                     "One person's whole back end.",
-                    "Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. Adding one is a package reference, not a new box to operate."),
+                    "Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. They build on the standard .NET pieces — EF Core, hosted services, ILogger, IDistributedCache — so adding one is a package reference, not a new box to operate."),
                 Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
                     Feature(UiIconName.Stack, "A feature slice", "cqrs", "A CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — written once in the tutorial and repeated per feature. Small enough to type, so nothing is generated you can't read."),
                     Feature(UiIconName.Clock, "Background jobs", "jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
@@ -436,7 +382,7 @@ public sealed partial class HomePage : Component
                     Feature(UiIconName.Rocket, "One-command deploy", "deployment", Code["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps."),
                     Feature(UiIconName.Bell, "Web Push", "webpush", "Send Web Push from your backend on your own VAPID keys (RFC 8292/8291) — zero external dependencies."),
                     Feature(UiIconName.Globe, "WebRTC signaling", "browser-apis", Code["Rask.Signaling"], " hosts the relay that ", Code["IWebRtc"], " connects to, so peer-to-peer works without a third-party service."),
-                    Feature(UiIconName.Storage, "Object storage", "http-and-files", Code["Rask.ObjectStore"], " puts uploads behind one typed abstraction — the local disk in development, S3-compatible storage in production.")
+                    Feature(UiIconName.Storage, "File storage", "file-storage", Code["Rask.Storage"], " keeps uploads on disk, in S3-compatible storage or in Azure Blob, with a row per file on your database — public or expiring links, and the content type sniffed from the bytes rather than taken from the browser.")
                 ]
             ]
         ];

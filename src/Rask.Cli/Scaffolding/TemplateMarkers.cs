@@ -30,9 +30,10 @@ namespace Rask.Cli.Scaffolding;
 ///         home page's nav links to the docs when there are no accounts to sign into).
 ///     </para>
 ///     <para>
-///         JSON carries no comments and therefore no markers. Nothing needs them: of the fifteen trees,
-///         not one has a conditional JSON file, and if one ever does the condition belongs in
-///         <c>template.json</c> where it can be expressed as data.
+///         Plain JSON carries no comments and therefore no markers; a file that is conditional as a whole
+///         says so in <c>template.json</c>, where it can be expressed as data. The exception is the
+///         <c>appsettings*.json</c> files: .NET reads them as JSONC — comments and trailing commas allowed —
+///         so they use the <c>//</c> form, and a battery's section appears only when its battery is on.
 ///     </para>
 /// </remarks>
 internal static partial class TemplateMarkers

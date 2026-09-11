@@ -61,12 +61,13 @@ It renders in **waves**: render, wait for what that render started, render again
 because resolved data mounts new components, which start their own work — a page whose list loads and whose
 rows then load is two waves, not one longer wait.
 
-```csharp
-builder.Services.AddRask(configureServer: o =>
-{
-    o.QuiescenceTimeout = TimeSpan.FromSeconds(5); // default; Zero disables the wait
-});
+```jsonc
+{ "Rask": { "Server": { "QuiescenceTimeout": "00:00:05" } } }   // default; "00:00:00" disables the wait
 ```
+
+It is also an environment variable (`Rask__Server__QuiescenceTimeout=00:00:05`), and
+`AddRask(configureServer: o => o.QuiescenceTimeout = TimeSpan.FromSeconds(5))` still works, running after the
+section.
 
 Blowing the budget is not an error. The page is served as it stands, and the load finishes over the live
 connection. It does mean a slow page holds a request open for up to that long, so size it together with

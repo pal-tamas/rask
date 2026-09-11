@@ -7,21 +7,31 @@
 //
 // You own this file. It is refreshed on build only while the header line above is intact.
 
+import { reflectComponentType } from '@angular/core'
 import type { ApplicationRef, ComponentRef, Type } from '@angular/core'
 import { createApplication } from '@angular/platform-browser'
 import type { ExternalAdapter, ExternalProps } from './adapter'
 
+/** One output a handler is subscribed to, kept so an update can tell whether the handler changed. */
+interface BoundOutput {
+  handler: unknown
+  subscription: { unsubscribe(): void }
+}
+
 /**
  * What `mount` hands back immediately, before Angular has booted.
  *
- * Everything but `node`, `props` and `disposed` is optional, because the handle exists before the
- * application does. Rask hands it back to `update` and `unmount` either way.
+ * Everything but `node`, `props`, `outputs` and `disposed` is optional, because the handle exists before
+ * the application does. Rask hands it back to `update` and `unmount` either way.
  */
 interface AngularHandle {
   app?: ApplicationRef
   component?: ComponentRef<unknown>
   node: HTMLElement
   props: ExternalProps
+  outputs: Map<string, BoundOutput>
+  /** Each input's value before this adapter first set it, keyed by alias, to restore when C# stops sending it. */
+  originals: Map<string, unknown>
   disposed: boolean
 }
 
@@ -43,7 +53,7 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
       const node = document.createElement('div')
       element.appendChild(node)
 
-      const handle: AngularHandle = { node, props: { ...props }, disposed: false }
+      const handle: AngularHandle = { node, props: { ...props }, outputs: new Map(), originals: new Map(), disposed: false }
 
       void createApplication()
         .then((app) => {
@@ -63,7 +73,7 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
           // `handle.props`, not the `props` this closure was created with: an update may have landed
           // while the promise was in flight, and applying the mount-time values would render the
           // island one state behind with nothing to correct it.
-          apply(ref, handle.props)
+          apply(ref, component, handle)
         })
         .catch((error: unknown) => {
           console.error('[rask-external] Angular island failed to bootstrap', error)
@@ -76,7 +86,7 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
       handle.props = { ...props }
 
       if (handle.component) {
-        apply(handle.component, handle.props)
+        apply(handle.component, component, handle)
       }
 
       return handle
@@ -84,6 +94,11 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
 
     unmount(handle) {
       handle.disposed = true
+      for (const bound of handle.outputs.values()) {
+        bound.subscription.unsubscribe()
+      }
+
+      handle.outputs.clear()
       handle.app?.destroy()
       handle.node.remove()
     },
@@ -91,22 +106,103 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
 }
 
 /**
- * Writes props as component INPUTS.
+ * Writes props as component INPUTS, and binds a prop named `@alias` to the output of that name.
  *
  * `setInput` is the only route that marks the view dirty, so assigning to the instance directly would
  * update the field and never repaint. It also skips a value that is unchanged by `Object.is`, which
  * is what keeps a re-render from invalidating the whole island — and why the runtime's handler cache
- * keeping callback identity matters here too.
+ * keeping callback identity matters here too. An input is set by its PUBLIC name, the alias, which is
+ * the name the build sends it under.
+ *
+ * An output is not an input and cannot be set: it is subscribed to. The build names such a prop
+ * `@valueChange`; the component's own metadata says which property carries that output.
  *
  * A prop that is not declared `@Input()` (or `input()`) cannot be set: Angular reports it in a
  * development build and ignores it silently in a production one.
  */
-function apply(ref: ComponentRef<unknown>, props: ExternalProps): void {
-  for (const key of Object.keys(props)) {
-    ref.setInput(key, props[key])
+function apply(ref: ComponentRef<unknown>, component: Type<unknown>, handle: AngularHandle): void {
+  const mirror = reflectComponentType(component)
+  const outputs = mirror?.outputs ?? []
+  const inputs = mirror?.inputs ?? []
+
+  for (const key of Object.keys(handle.props)) {
+    if (key.startsWith('@')) {
+      bindOutput(ref, outputs, key.slice(1), handle.props[key], handle.outputs)
+      continue
+    }
+
+    if (!handle.originals.has(key)) {
+      handle.originals.set(key, currentInput(ref, inputs, key))
+    }
+
+    ref.setInput(key, handle.props[key])
+  }
+
+  for (const [alias, bound] of [...handle.outputs]) {
+    if (!Object.prototype.hasOwnProperty.call(handle.props, `@${alias}`)) {
+      bound.subscription.unsubscribe()
+      handle.outputs.delete(alias)
+    }
+  }
+
+  // C# leaves an unset prop out rather than sending null, so an input that is no longer sent goes back to the value the
+  // component held before Rask first set it — its own default, as the other runtimes get by re-rendering from all props.
+  for (const [alias, original] of [...handle.originals]) {
+    if (!Object.prototype.hasOwnProperty.call(handle.props, alias)) {
+      ref.setInput(alias, original)
+      handle.originals.delete(alias)
+    }
   }
 
   // Explicit, because the island is driven from outside Angular: the props were written by Rask's
   // runtime, not by an Angular event handler, so nothing has scheduled a tick for them.
   ref.changeDetectorRef.detectChanges()
+}
+
+/** The value the input published as `alias` holds now — a signal input's value, not the signal. */
+function currentInput(
+  ref: ComponentRef<unknown>,
+  inputs: ReadonlyArray<{ readonly propName: string; readonly templateName: string; readonly isSignal?: boolean }>,
+  alias: string,
+): unknown {
+  const input = inputs.find((i) => i.templateName === alias)
+  if (!input) {
+    return undefined
+  }
+
+  const value = (ref.instance as Record<string, unknown>)[input.propName]
+  return input.isSignal && typeof value === 'function' ? (value as () => unknown)() : value
+}
+
+/** Subscribes `handler` to the output published as `alias`, replacing a different handler bound before it. */
+function bindOutput(
+  ref: ComponentRef<unknown>,
+  outputs: ReadonlyArray<{ readonly propName: string; readonly templateName: string }>,
+  alias: string,
+  handler: unknown,
+  bound: Map<string, BoundOutput>,
+): void {
+  const previous = bound.get(alias)
+  if (previous?.handler === handler) {
+    return
+  }
+
+  previous?.subscription.unsubscribe()
+  bound.delete(alias)
+
+  const output = outputs.find((o) => o.templateName === alias)
+  const emitter = output
+    ? ((ref.instance as Record<string, unknown>)[output.propName] as
+        | { subscribe?(next: (value: unknown) => void): { unsubscribe(): void } }
+        | undefined)
+    : undefined
+
+  if (typeof handler !== 'function' || typeof emitter?.subscribe !== 'function') {
+    return
+  }
+
+  bound.set(alias, {
+    handler,
+    subscription: emitter.subscribe((value) => (handler as (value: unknown) => void)(value)),
+  })
 }

@@ -41,6 +41,9 @@
                       ReferenceOutputAssembly="false"/>
     <!-- NodeFixture, which runs the host-script fixtures below. -->
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
+    <!-- The panel is drawn with Rask.Ui, which Rask.DevTools references privately: an app brings its own copy, and so
+         does this test host. -->
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

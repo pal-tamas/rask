@@ -270,6 +270,17 @@ public sealed class RaskApp
         }
 
         app.UseRask<TApp>(pathBase: pathBase);
+
+        // The routes that serve public files and the temporary links the app signs itself. After UseRask, which
+        // sets the path base they live under; routing precedence, not order, is what keeps the literal
+        // /_rask/files prefix ahead of the catch-alls. Only when storage was actually wired — turning the
+        // database off takes it with it.
+        if (_options.Storage.Enabled
+            && app.Services.GetService<IServiceProviderIsService>()?.IsService(typeof(Storage.IFiles)) == true)
+        {
+            Storage.RaskStorageEndpointExtensions.MapRaskStorage(app);
+        }
+
         return app;
     }
 }

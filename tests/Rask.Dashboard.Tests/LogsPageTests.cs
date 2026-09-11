@@ -191,7 +191,7 @@ public sealed class LogsPageTests
             _dashboard ??= new DashboardHarness(
                 Batteries.None,
                 configure: configure,
-                extra: services => services.AddRaskLogging($"Data Source={_dbPath}"));
+                extra: services => services.AddRaskLoggingAt($"Data Source={_dbPath}"));
 
         private DashboardHarness? _dashboard;
 

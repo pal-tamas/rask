@@ -153,6 +153,7 @@ public sealed partial class DashboardLayout(
         }
 
         yield return Tab(Routes.CachePage(), "Cache", exact: false);
+        yield return Tab(Routes.StoragePage(), "Storage", exact: false);
         yield return Tab(Routes.LogsPage(), "Logs", exact: false);
         yield return Tab(Routes.SystemPage(), "System", exact: false);
     }

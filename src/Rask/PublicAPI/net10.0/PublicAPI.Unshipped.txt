@@ -31,6 +31,7 @@ Rask.RaskAppOptions.Auth.get -> Rask.Battery<Rask.Auth.AuthOptions!>!
 Rask.RaskAppOptions.BehindProxy.get -> bool
 Rask.RaskAppOptions.BehindProxy.set -> void
 Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Cache.CacheOptions!>!
+Rask.RaskAppOptions.Storage.get -> Rask.Battery<Rask.Storage.StorageOptions!>!
 Rask.RaskAppOptions.ConnectionString.get -> string?
 Rask.RaskAppOptions.ConnectionString.set -> void
 Rask.RaskAppOptions.Cqrs.get -> Rask.Battery!

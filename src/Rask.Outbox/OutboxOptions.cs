@@ -59,8 +59,9 @@ public sealed class OutboxOptions
     public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// Validates the option values. Called from <c>AddRaskOutbox</c>, so a bad value fails fast at
-    /// registration rather than throwing out of <c>new PeriodicTimer(...)</c> on the background thread —
+    /// Validates the option values once <c>Rask:Outbox</c> and the callback have applied. The options
+    /// validation <c>AddRaskOutbox</c> registers runs it at host start, so a bad value fails fast there
+    /// rather than throwing out of <c>new PeriodicTimer(...)</c> on the background thread —
     /// which, with the default <c>BackgroundServiceExceptionBehavior.StopHost</c>, takes the host down at
     /// an unrelated moment with an unrelated-looking stack.
     /// </summary>

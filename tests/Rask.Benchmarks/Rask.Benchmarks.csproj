@@ -17,6 +17,8 @@
     <!-- PageRequestBenchmarks drives the page endpoint in memory: the cost under measurement is the
          handler's, and a socket would only add noise the same on both sides of a comparison. -->
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <!-- ConfigurationBuilder: UseRaskSqlite reads Rask:ConnectionStrings:App, which TestConnectionStrings supplies. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
   </ItemGroup>
 
   <ItemGroup>

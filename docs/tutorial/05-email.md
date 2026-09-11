@@ -46,19 +46,22 @@ public sealed partial class OrderReceipt : Component
 Chapter 1's `rask new` already registered mail, so there is nothing to add. Had you scaffolded with
 `--no-mail`, these are the two lines to add yourself:
 
-- `builder.Services.AddRaskMail<AppDbContext>(…)` in `Program.cs`, and
+- `builder.Services.AddRaskMail<AppDbContext>()` in `Program.cs`, and
 - the mail table mapped with `modelBuilder.AddRaskMail();` in `OnModelCreating`.
 
-All that's left is your real sender address and, for production, an SMTP server — edit the registration it added:
+All that's left is your real sender address and, for production, an SMTP server. Both are settings rather
+than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.json`:
 
-```csharp
-builder.Services.AddRaskMail<AppDbContext>(o =>
-{
-    o.From = "shop@example.com";
-    // Dev: leave Smtp unset and mail is written to a pickup directory / logged instead of sent.
-    // Prod: point at your SMTP server.
-    o.Smtp = new SmtpOptions { Host = "smtp.example.com", Port = 587, User = "…", Password = "…" };
-});
+```jsonc
+"Rask": {
+  "Mail": {
+    "From": "shop@example.com",
+    // Dev: with no Smtp section, each message is written to this directory instead of sent.
+    "PickupDirectory": "mail-pickup"
+    // Prod: add "Smtp": { "Host": "smtp.example.com", "Port": 587, "User": "…" },
+    // and put the password in the environment as Rask__Mail__Smtp__Password — never in this file.
+  }
+}
 ```
 
 Then create the table:
@@ -68,7 +71,7 @@ rask db add AddMail
 rask db update
 ```
 
-> **Zero-config in development.** If you omit `o.Smtp`, Rask.Mail doesn't try to reach a server — it writes
+> **Zero-config in development.** With no `Smtp` section, Rask.Mail doesn't try to reach a server — it writes
 > messages to a pickup directory (or logs them), so you can build and test the flow with no mail account.
 >
 > **No database yet?** `AddRaskMail<TContext>` needs a `DbContext` to queue into — add the two lines above

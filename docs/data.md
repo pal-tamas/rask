@@ -553,7 +553,7 @@ Two more rules follow from how it works:
 - **An ambient transaction still owns the commit.** Called inside your own `BeginTransaction`, the load joins
   it and commits nothing itself, so it composes with surrounding work.
 
-Under a retrying execution strategy (`UseRaskSqlite(..., o => o.Retry.Enabled = true)`), a `SingleTransaction`
+Under a retrying execution strategy (`Rask:Sqlite:Retry:Enabled`, or `UseRaskSqlite(sp, o => o.Retry.Enabled = true)`), a `SingleTransaction`
 load is one retryable unit and a lazy sequence is buffered so the retry can re-enumerate it; the default
 per-batch mode lets EF retry each batch on its own, which is both cheaper and free of replay.
 
@@ -612,7 +612,7 @@ Requires `UseRaskSqlite(...)`, which registers the generator and the exception t
 provider — including a plain `UseSqlite` — the rule would be silently ignored, so `AddRaskData<TContext>`
 **refuses to boot** instead, naming the entity and the call that enforces it. Both are inert
 until an entity declares a rule, and the rule composes with
-[`o => o.StrictTables = true`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
+[`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
 
 ## PostgreSQL
@@ -622,14 +622,19 @@ is no longer enough — a managed database, several app instances — `Rask.Post
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskPostgres(builder.Configuration.GetConnectionString("App")!)
+    .UseRaskPostgres(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
+
+The connection string is `Rask:ConnectionStrings:App` — in production usually the whole string, password
+included, as `Rask__ConnectionStrings__App` in the environment — and a missing one is an error naming that key.
 
 `UseRaskPostgres` is a drop-in for `UseNpgsql` that gives every session production timeouts —
 `StatementTimeout` (30s), `LockTimeout` (10s, and it must stay below the statement timeout so lock contention
 is not reported as a slow query), `IdleInTransactionSessionTimeout` (1m) — and turns on Npgsql's
-transient-failure retrying (`o.Retry`). The timeouts travel as startup parameters in the connection string, so
+transient-failure retrying (`Retry`). Each is `Rask:Postgres` in `appsettings.json` (`"StatementTimeout":
+"00:00:10"`, `"Retry": { "MaxCount": 3 }`); a callback — `UseRaskPostgres(sp, p => …)` — runs after the
+section and wins. The timeouts travel as startup parameters in the connection string, so
 they are the session's defaults: they survive the pool resetting a returned connection, add no round trip per
 query, and reach code that opens the `DbConnection` itself. Behind PgBouncer in transaction mode, add `options`
 to its `ignore_startup_parameters`, or set the timeouts to `TimeSpan.Zero` and configure them on the role.
@@ -645,7 +650,7 @@ against a real server. Three things change:
   Measure it against the batched default before choosing it for a remote database.
 - **Retrying refuses a transaction you open yourself** outside the execution strategy. Wrap a hand-written
   `BeginTransaction` in `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set
-  `o.Retry.Enabled = false`.
+  `Rask:Postgres:Retry:Enabled` to `false`.
 - **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
   there is no file — back up with your provider's snapshots or `pg_dump`.
 
@@ -655,21 +660,26 @@ When SQL Server is already the house database, `Rask.SqlServer` is the provider 
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlServer(builder.Configuration.GetConnectionString("App")!)
+    .UseRaskSqlServer(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
+
+The connection string is `Rask:ConnectionStrings:App` (`Rask__ConnectionStrings__App` in the environment), and a
+missing one is an error naming that key.
 
 `UseRaskSqlServer` is a drop-in for `UseSqlServer`. SQL Server has no server-side statement timeout, so the
 ceiling on a runaway query is the client `CommandTimeout` (30s). On every connection EF opens it sends
 `SET XACT_ABORT ON` — so a run-time error rolls the whole transaction back instead of leaving it open with its
 locks — and `SET LOCK_TIMEOUT` (10s, below the command timeout, so lock contention is not reported as a slow
 query). Those go as one batch per open: SQL Server takes no session settings in the connection string, and
-SqlClient resets them on every pooled open. Retrying (`o.Retry`) is SQL Server's own strategy.
+SqlClient resets them on every pooled open. Retrying (`Retry`) is SQL Server's own strategy. Each is
+`Rask:SqlServer` in `appsettings.json` (`"LockTimeout": "00:00:03"`, `"Retry": { "MaxCount": 3 }`); a callback —
+`UseRaskSqlServer(sp, s => …)` — runs after the section and wins.
 
 Everything in this guide works unchanged, with the same three things to know as on PostgreSQL:
 
 - **Retrying refuses a transaction you open yourself** outside the execution strategy — wrap it in
-  `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `o.Retry.Enabled = false`.
+  `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `Rask:SqlServer:Retry:Enabled` to `false`.
 - **Litestream and snapshots do not apply.** Back up with `BACKUP DATABASE` or your provider's snapshots.
 - **Open connections through EF** (`context.Database.OpenConnectionAsync()`) in hand-written ADO code, or the
   session settings are not sent.
@@ -677,39 +687,6 @@ Everything in this guide works unchanged, with the same three things to know as 
 One model detail is handled for you: a SQL Server index key holds 450 `nvarchar` characters, and `Rask.Cache`
 configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.
 A longer cache key cannot be stored there; `ICache` rejects it with an error naming the limit, so hash long keys.
-
-## MySQL
-
-When MySQL is the house database, `Rask.MySql` is the provider package. It wraps Oracle's `UseMySQL` provider:
-
-```csharp
-builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskMySql(builder.Configuration.GetConnectionString("App")!)
-    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-```
-
-On every connection EF opens, `UseRaskMySql` sends one `SET` for `innodb_lock_wait_timeout` (`LockTimeout`, 10s —
-MySQL's own 50s outlasts the command timeout and reports lock contention as a slow query) and `max_execution_time`
-(`StatementTimeout`, 30s). That second one is narrower than its name: MySQL applies it to read-only `SELECT`s
-only, so the ceiling on a runaway write is the client `CommandTimeout` (30s). Retrying (`o.Retry`) is the
-provider's own strategy.
-
-It also keeps a `DateTimeOffset`'s fractional seconds. Oracle's provider loses them twice: it maps one to `datetime`,
-which holds whole seconds, and even from a `datetime(6)` column its reader truncates the value to the second.
-`UseRaskMySql` stores every `DateTimeOffset` as its UTC `DateTime` in `datetime(6)` and reads it back as that
-instant at offset zero — the offset the provider returned anyway. A precision or column type you configure is kept,
-and a property with its own value converter is left alone. An app moving to `UseRaskMySql` from a plain
-`UseMySQL` therefore needs a migration (`rask db add`): its `DateTimeOffset` columns become `datetime(6)`.
-
-Two things to check before choosing it. Oracle's `MySql.EntityFrameworkCore` and `MySql.Data` are licensed
-`GPL-2.0-only WITH Universal-FOSS-exception-1.0`, not MIT like Rask. And MariaDB is not supported: it has no
-`max_execution_time`, so the session `SET` fails on every open.
-
-The same three things to know as on the other client-server databases apply — retrying refuses a transaction you
-open outside the execution strategy, Litestream and snapshots do not apply (use `mysqldump` or your provider's
-snapshots), and hand-written ADO code should open connections through EF so the session settings are sent — plus
-one of MySQL's own: **DDL commits implicitly**, so a migration that fails part-way leaves the schema part-applied.
-Review generated migrations before running them in production.
 
 ## Notes
 

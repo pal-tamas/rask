@@ -59,7 +59,7 @@ They emit the same starter pages, so the rest of this guide applies whichever yo
 
 **Each arrives with every battery it can carry.** On `server` that is a SQLite database, the
 [Rask.Cqrs](cqrs.md) mediator, background jobs, transactional email, a cache, a transactional outbox,
-scheduled backups, a durable log store, the [operator dashboard](dashboard.md), an installable
+[file storage](file-storage.md) for uploads, scheduled backups, a durable log store, the [operator dashboard](dashboard.md), an installable
 [PWA](pwa.md) with Web Push, a Dockerfile for [`rask deploy`](cli.md), and the localization machinery —
 wiring, not sample pages. `wasm` takes the PWA and the Dockerfile; the rest need a host to put a
 database in. Languages are configured in `Program.cs` rather than on the command line — a server app
@@ -110,7 +110,7 @@ WASM templates differ mainly in `Program.cs`):
   ```
 
   `RaskApp.Create` builds the host and turns on **every battery** — the database, mediator, background
-  jobs, transactional email, cache, outbox, operator dashboard, durable logs, Web Push, snapshots and
+  jobs, transactional email, cache, outbox, file storage, operator dashboard, durable logs, Web Push, snapshots and
   continuous backup. `app.Run<App>()` mounts your root component as the whole site and applies the
   middleware order: forwarded headers, the health endpoint, HSTS and HTTPS redirection, static assets,
   authentication, your own endpoints, then Rask's catch-all.
@@ -130,6 +130,13 @@ WASM templates differ mainly in `Program.cs`):
   directly and yours wins. And to map your own endpoints, use `app.MapEndpoints(e => …)` — a named place
   for them rather than an ordering rule, since routing matches on precedence and any route you write is
   more specific than Rask's catch-all.
+
+  **Settings are not code.** A From address, a connection string, a session cap — every Rask setting lives
+  in `appsettings.json` under `Rask`, which each battery reads for itself (`Rask:Mail:From`), and an
+  environment variable overrides any of them with double underscores (`Rask__Mail__From`). A `Configure`
+  callback like the one above runs after configuration and wins. Until you set anything, `RaskApp` boots on
+  development defaults — a local `app.db`, `no-reply@example.com` — that every one of those sources
+  overrides. See [Configuration](configuration.md).
 
 - **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.

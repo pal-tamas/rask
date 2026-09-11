@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using static Rask.External.Tests.IslandBuild;
 
 namespace Rask.External.Tests;
 
@@ -118,52 +118,7 @@ public sealed class IslandScopedTsSeparationTests
         }
         finally
         {
-            try
-            {
-                Directory.Delete(temp, recursive: true);
-            }
-            catch (IOException)
-            {
-                // A leftover temp directory is not worth failing a green test over.
-            }
+            DeleteQuietly(temp);
         }
-    }
-
-    /// <remarks>
-    ///     Both pipes are drained CONCURRENTLY, for the reason <see cref="IslandNodeFloorGateTests" />
-    ///     records: awaiting stdout to completion first deadlocks whenever the child fills the stderr
-    ///     buffer while the parent is still blocked on stdout.
-    /// </remarks>
-    private static async Task<(int Exit, string Output)> Run(string file, string arguments, string workingDirectory)
-    {
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo(file, arguments)
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                WorkingDirectory = workingDirectory,
-            },
-        };
-
-        process.Start();
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        return (process.ExitCode, await stdout + await stderr);
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Rask.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        Assert.NotNull(directory);
-        return directory!.FullName;
     }
 }

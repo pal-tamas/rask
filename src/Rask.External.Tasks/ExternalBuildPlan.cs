@@ -18,6 +18,19 @@ internal sealed class ExternalEntry
 
     /// <summary>Which adapter wraps it — a key from <see cref="ExternalRuntime.All" />.</summary>
     public string Runtime { get; set; } = ExternalRuntime.React.Key;
+
+    /// <summary>
+    ///     The package a package island imports, as its <c>Module</c> names it (<c>@mui/material#Button</c>), or
+    ///     null for an island with a front-end file.
+    /// </summary>
+    /// <remarks>A package island's <see cref="Source" /> is its snapshot, which nothing imports.</remarks>
+    public string? Package { get; set; }
+
+    /// <summary>
+    ///     The tag a Lit package island's element registers, as its snapshot records it, or null. Unused when the
+    ///     <see cref="Package" /> names the tag itself.
+    /// </summary>
+    public string? Tag { get; set; }
 }
 
 /// <summary>
@@ -55,8 +68,63 @@ internal static class ExternalBuildPlan
                           $"Island '{island.Name}' names the runtime '{island.Runtime}', which Rask has no adapter "
                           + $"for. Known runtimes: {ExternalRuntime.KeyList}.");
 
-        var source = Specifier(island.Source);
         var adapter = Specifier(Path.Combine(adapterDirectory, runtime.AdapterModule));
+
+        if (island.Package is { } package)
+        {
+            // A package is imported by its bare specifier as written, never through Specifier(), which would
+            // prefix './' and send the bundler looking for a file of that name beside the entry.
+            var (specifier, export) = ExternalPackageSpecifier.Split(package);
+            if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
+            {
+                throw new InvalidOperationException(
+                    $"Island '{island.Name}' names the export '{export}', which is not an identifier.");
+            }
+
+            if (ReferenceEquals(runtime, ExternalRuntime.Lit))
+            {
+                // A custom element registers itself when its module runs, and mounting it takes only its tag. So the
+                // module is imported for that side effect alone: a binding the entry never used would be elided by
+                // the TypeScript transform, and the registration with it.
+                var tag = ExternalPackageSpecifier.IsTag(export) ? export : island.Tag;
+                if (!ExternalPackageSpecifier.IsTag(tag))
+                {
+                    throw new InvalidOperationException(
+                        $"Island '{island.Name}' is a Lit package island whose tag is not known: name it after the '#' — "
+                        + $"\"{specifier}#my-element\" — or build once with the package installed so its snapshot records it.");
+                }
+
+                return $$"""
+                    {{Header}}
+                    import {{Literal(specifier)}}
+                    import { litComponent } from '{{adapter}}'
+
+                    export default litComponent({{Literal(tag!)}})
+
+                    """;
+            }
+
+            // A dotted export names a member of an export — bits-ui's `Switch.Root` — so the export is bound first
+            // and the component read off it.
+            var dot = export.IndexOf('.');
+            var binding = string.Equals(export, "default", StringComparison.Ordinal)
+                ? $"import {runtime.ImportName} from {Literal(specifier)}"
+                : dot < 0
+                    ? $"import {{ {export} as {runtime.ImportName} }} from {Literal(specifier)}"
+                    : $"import {{ {export.Substring(0, dot)} as __raskExport }} from {Literal(specifier)}\n"
+                      + $"const {runtime.ImportName} = __raskExport.{export.Substring(dot + 1)}";
+
+            return $$"""
+                {{Header}}
+                {{binding}}
+                import { {{runtime.AdapterFactory}} } from '{{adapter}}'
+
+                export default {{runtime.AdapterFactory}}({{runtime.ImportName}})
+
+                """;
+        }
+
+        var source = Specifier(island.Source);
 
         return $$"""
             {{Header}}
@@ -66,6 +134,18 @@ internal static class ExternalBuildPlan
             export default {{runtime.AdapterFactory}}({{runtime.ImportName}})
 
             """;
+    }
+
+    /// <summary>The top-level <c>tag</c> a props snapshot records, or null when it records none.</summary>
+    /// <remarks>
+    ///     Read by hand, like every other JSON this assembly reads. The snapshot writes <c>tag</c> before its props, so
+    ///     the first match is the top-level key; a <c>"tag"</c> inside a string is escaped and cannot match.
+    /// </remarks>
+    public static string? SnapshotTag(string snapshot)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            snapshot, "\"tag\"\\s*:\\s*\"(?<tag>[^\"\\\\]*)\"", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        return match.Success ? match.Groups["tag"].Value : null;
     }
 
     /// <summary>
@@ -112,10 +192,18 @@ internal static class ExternalBuildPlan
 
         Refuse(islands, present);
 
-        var used = present.Where(r => r.PluginImport is not null).ToList();
+        // A runtime whose only islands are packages of compiled JavaScript needs no plugin: nothing of its
+        // dialect is left to transform, so a React app of package islands is not asked to install one.
+        var used = present
+            .Where(r => r.PluginImport is not null)
+            .Where(r => islands.Any(i => string.Equals(i.Runtime, r.Key, StringComparison.Ordinal)
+                                         && (i.Package is null || r.PackagesNeedPlugin)))
+            .ToList();
+
+        RefuseUnscopablePackages(islands, used);
 
         var pluginImports = string.Concat(used.Select(r => $"import {r.PluginImport}\n"));
-        var pluginCalls = string.Concat(used.Select(r => $"{PluginCall(r, present, islands, tsConfigPath)}, "));
+        var pluginCalls = string.Concat(used.Select(r => $"{PluginCall(r, used, islands, tsConfigPath)}, "));
         var server = ServerBlock(devServerUrl);
 
         return $$"""
@@ -376,6 +464,7 @@ internal static class ExternalBuildPlan
     public static string? AngularTsConfig(IReadOnlyList<ExternalEntry> islands, string directory)
     {
         var files = islands
+            .Where(i => i.Package is null)
             .Where(i => string.Equals(i.Runtime, ExternalRuntime.Angular.Key, StringComparison.Ordinal))
             .Select(i => Posix(i.Source))
             .OrderBy(f => f, StringComparer.Ordinal)
@@ -420,9 +509,13 @@ internal static class ExternalBuildPlan
         return json.ToString();
     }
 
-    /// <summary>The distinct directories a runtime's islands live in, sorted so the config is stable.</summary>
+    /// <summary>
+    ///     The distinct directories a runtime's file islands live in, sorted so the config is stable. A package
+    ///     island has no source directory to scope a plugin to.
+    /// </summary>
     private static IEnumerable<string> Directories(IReadOnlyList<ExternalEntry> islands, ExternalRuntime runtime) =>
         islands
+            .Where(i => i.Package is null)
             .Where(i => string.Equals(i.Runtime, runtime.Key, StringComparison.Ordinal))
             .Select(i => Posix(Path.GetDirectoryName(i.Source) ?? string.Empty))
             .Where(d => d.Length > 0)
@@ -504,6 +597,47 @@ internal static class ExternalBuildPlan
                     }
                 }
             }
+        }
+    }
+
+    /// <summary>
+    ///     Refuses a package island whose runtime needs its plugin while another runtime in the config competes for
+    ///     the same extensions.
+    /// </summary>
+    /// <remarks>
+    ///     Scoping by directory is how two JSX runtimes share a project, and a package has no directory of its own.
+    ///     Left unscoped, the plugin claims the other runtime's files; scoped to its file islands, it never compiles
+    ///     the package. Both build, ship and mount nothing, so the combination is named here until a scope for a
+    ///     package has been measured.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Such a package island exists.</exception>
+    private static void RefuseUnscopablePackages(IReadOnlyList<ExternalEntry> islands, IReadOnlyList<ExternalRuntime> used)
+    {
+        foreach (var runtime in used)
+        {
+            var rival = used.FirstOrDefault(runtime.SharesExtensionWith);
+            if (!runtime.PackagesNeedPlugin || rival is null)
+            {
+                continue;
+            }
+
+            var packages = islands
+                .Where(i => i.Package is not null && string.Equals(i.Runtime, runtime.Key, StringComparison.Ordinal))
+                .Select(i => i.Name)
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToList();
+
+            if (packages.Count == 0)
+            {
+                continue;
+            }
+
+            throw new InvalidOperationException(
+                $"Rask islands: the {runtime.Key} package island(s) {string.Join(", ", packages)} need {runtime.Key}'s "
+                + $"Vite plugin, and this project also has {rival.Key} islands ({Naming(islands, rival)}), which compile "
+                + "the same files. The two plugins can only share a project confined to separate folders, and a package "
+                + "has no folder to confine a plugin to. Keep the " + runtime.Key + " package islands and the "
+                + rival.Key + " islands in separate projects.");
         }
     }
 

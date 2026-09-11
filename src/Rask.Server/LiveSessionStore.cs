@@ -140,7 +140,8 @@ public sealed class LiveSessionStore : IAsyncDisposable
 
     /// <summary>
     ///     Hard cap on concurrent sessions (<c>0</c> = unlimited). Set from
-    ///     <see cref="Rask.Core.Live.RaskLiveOptions.MaxSessions" /> at registration. Enforced
+    ///     <see cref="Rask.Core.Live.RaskLiveOptions.MaxSessions" /> (bound from <c>Rask:Live</c>) when the
+    ///     store is first resolved. Enforced
     ///     atomically by <see cref="TryCreate" /> (a reservation taken before the component tree
     ///     is built), so a concurrent GET burst cannot exceed it. Tests set it directly on the
     ///     resolved singleton.

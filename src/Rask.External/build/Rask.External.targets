@@ -54,7 +54,9 @@
       './' is not a relative path at all but a BARE specifier, which the bundler resolves against
       node_modules and fails on. The failure names a package nobody wrote.
     -->
-    <_RaskExternalObj>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask-external'))\</_RaskExternalObj>
+    <!-- Combined rather than concatenated, so an ABSOLUTE IntermediateOutputPath (BenchmarkDotNet's generated
+         projects set one) is used as it is instead of being nested under the project directory. -->
+    <_RaskExternalObj>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)rask-external'))))\</_RaskExternalObj>
     <_RaskExternalAdapters>$(_RaskExternalObj)rask\</_RaskExternalAdapters>
     <!-- Where the generated prop types land. Under obj/ because they are build output: a generated
          file in the source tree is one somebody edits by hand and loses on the next build. -->
@@ -172,6 +174,18 @@
     </_RaskExternalFile>
 
     <_RaskExternalAdapterSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
+
+    <!--
+      Committed props snapshots, as additional files the island and factory generators read. Globbed at
+      EVALUATION, so a design-time build (the IDE) sees every generated chain step with nothing extracted, and
+      ungated like the front-end globs above: a snapshot generates C# with no package.json in sight.
+
+      Kept out of @(Content) by pattern, so the web SDK never publishes one.
+    -->
+    <_RaskExternalSnapshot Include="$(MSBuildProjectDirectory)/**/*.props.json"
+                           Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*"/>
+    <AdditionalFiles Include="@(_RaskExternalSnapshot)"/>
+    <Content Remove="**/*.props.json"/>
   </ItemGroup>
 
   <UsingTask TaskName="Rask.External.Tasks.WriteExternalPropTypesTask"
@@ -221,6 +235,11 @@
 
     Known limit: this compares the TARGETS, which is the change the failure reports. A change to the task
     SOURCE alone leaves the stamp valid, and that DLL is refreshed one build later by the ProjectReference.
+
+    The verdict gates the TASKS, never a target Condition. A target's Condition is evaluated before its
+    DependsOnTargets run, so in a project where nothing ran this check earlier the property still reads empty
+    there, and the stale DLL was handed the new parameter anyway: MSB4064 in Rask.TypeScript.Tasks, the moment
+    a task gained one. A task's Condition is evaluated after the dependencies have run.
   -->
   <Target Name="_RaskExternalCheckTaskStamp"
           Condition="'$(DesignTimeBuild)' != 'true'
@@ -251,13 +270,13 @@
 
   <Target Name="_RaskExternalWritePropTypes"
           AfterTargets="CoreCompile"
-          DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles;_RaskExternalCheckTaskStamp"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalPairLitFiles;_RaskExternalFindPackageIslands;_RaskExternalCheckTaskStamp"
           Condition="'$(RaskExternalPropTypes)' != 'false' AND '$(DesignTimeBuild)' != 'true'
-                     AND '$(_RaskExternalTaskStale)' != 'true'
                      AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')"
           Inputs="@(IntermediateAssembly);@(_RaskExternalFile)"
           Outputs="$(_RaskExternalObj)types.stamp">
-    <WriteExternalPropTypesTask AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
+    <WriteExternalPropTypesTask Condition="'$(_RaskExternalTaskStale)' != 'true'"
+                                AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 OutputDirectory="$(_RaskExternalTypes)"
                                 TsConfigPath="$(_RaskExternalStableObj)tsconfig.paths.json"
                                 CheckConfigPath="$(_RaskExternalObj)tsconfig.check.json"
@@ -268,9 +287,10 @@
                                 AngularConfigPath="$(_RaskExternalObj)tsconfig.angular.json"
                                 IslandAssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 FrontEndFiles="@(_RaskExternalFile)"
+                                PackageIslandsScanned="$(_RaskExternalBundlable)"
                                 ProjectDirectory="$(MSBuildProjectDirectory)"/>
-    <MakeDir Directories="$(_RaskExternalObj)"/>
-    <Touch Files="$(_RaskExternalObj)types.stamp" AlwaysCreate="true"/>
+    <MakeDir Directories="$(_RaskExternalObj)" Condition="'$(_RaskExternalTaskStale)' != 'true'"/>
+    <Touch Files="$(_RaskExternalObj)types.stamp" AlwaysCreate="true" Condition="'$(_RaskExternalTaskStale)' != 'true'"/>
   </Target>
 
   <UsingTask TaskName="Rask.External.Tasks.WriteExternalBuildInputsTask"
@@ -508,9 +528,9 @@
   <Target Name="_RaskExternalPairLitFiles"
           DependsOnTargets="ResolveProjectReferences;_RaskExternalCheckTaskStamp"
           Condition="'@(_RaskExternalLitCandidate)' != '' AND '$(DesignTimeBuild)' != 'true'
-                     AND '$(_RaskExternalTaskStale)' != 'true'
                      AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')">
-    <FindExternalIslandsTask Sources="@(Compile)"
+    <FindExternalIslandsTask Condition="'$(_RaskExternalTaskStale)' != 'true'"
+                             Sources="@(Compile)"
                              Candidates="@(_RaskExternalLitCandidate)"
                              ScopedFiles="@(_RaskScopedTs)">
       <Output TaskParameter="Islands" ItemName="_RaskExternalTsIsland"/>
@@ -545,6 +565,127 @@
           Condition="'@(_RaskExternalLitCandidate)' != '' AND '$(DesignTimeBuild)' != 'true'">
     <ItemGroup>
       <_RaskScopedTs Remove="@(_RaskExternalScopedIsland)"/>
+    </ItemGroup>
+  </Target>
+
+  <UsingTask TaskName="Rask.External.Tasks.FindExternalPackageIslandsTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.External.Tasks.dll"/>
+  <UsingTask TaskName="Rask.External.Tasks.WriteExternalPropsRequestTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.External.Tasks.dll"/>
+  <UsingTask TaskName="Rask.External.Tasks.SyncExternalPropsSnapshotsTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.External.Tasks.dll"/>
+  <UsingTask TaskName="Rask.External.Tasks.CheckExternalPropsSnapshotsTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.External.Tasks.dll"/>
+
+  <!--
+    Package islands' props, extracted BEFORE the compile.
+
+    Before it, because the snapshot is an additional file the compile reads: the first build of a new package
+    island has to extract it to generate the island's steps at all. Anchored beside Rask.Core's scoped
+    TypeScript (GenerateMSBuildEditorConfigFileShouldRun), where additional files are still being decided.
+
+    Every gate on the TOOLCHAIN (RaskTsgoVersion) is a target condition, never a property: this file is imported
+    before Rask.Core.targets, so at evaluation the pin reads empty.
+
+    A target's Condition is evaluated before its DependsOnTargets run, which is why the ORDER below carries the
+    logic: discovery first, then the check or the extraction, each conditioned on what discovery produced, then
+    the snapshots a first extraction created join the compile.
+  -->
+  <Target Name="_RaskExternalPackageProps"
+          BeforeTargets="GenerateMSBuildEditorConfigFileShouldRun;CoreCompile"
+          DependsOnTargets="_RaskExternalFindPackageIslands;_RaskExternalCheckSnapshots;_RaskExternalExtractProps;_RaskExternalAddSnapshots"
+          Condition="'$(DesignTimeBuild)' != 'true'"/>
+
+  <!--
+    Gated on package.json: a package island needs its package installed to bundle at all, and scanning every .cs
+    file of every project with no package.json would be a cost paid for nothing. Such a project still compiles
+    from its committed snapshots, and WriteExternalPropTypesTask is told the scan did not run.
+  -->
+  <Target Name="_RaskExternalFindPackageIslands"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalCheckTaskStamp"
+          Condition="'$(_RaskExternalBundlable)' == 'true' AND '$(DesignTimeBuild)' != 'true'
+                     AND Exists('$(MSBuildThisFileDirectory)Rask.External.Tasks.dll')">
+    <FindExternalPackageIslandsTask Condition="'$(_RaskExternalTaskStale)' != 'true'"
+                                    Sources="@(Compile)"
+                                    ProjectDirectory="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="PackageIslands" ItemName="_RaskExternalPackageIsland"/>
+    </FindExternalPackageIslandsTask>
+
+    <!-- Joined to the island list, so the probe, the install, the entries and the bundle all include them. -->
+    <ItemGroup>
+      <_RaskExternalFile Include="@(_RaskExternalPackageIsland)"/>
+    </ItemGroup>
+
+    <!-- Decided here, once, where every property it reads is known: RaskTsgoVersion is empty at evaluation. -->
+    <PropertyGroup>
+      <_RaskExternalCanExtract Condition="'$(_RaskExternalEnabled)' == 'true' AND '$(RaskExternalPropsExtract)' != 'false' AND '$(RaskTsgoVersion)' != ''">true</_RaskExternalCanExtract>
+    </PropertyGroup>
+  </Target>
+
+  <!-- A build that cannot extract still needs a snapshot to generate from, so it says which one is missing. -->
+  <Target Name="_RaskExternalCheckSnapshots"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'@(_RaskExternalPackageIsland)' != '' AND '$(_RaskExternalCanExtract)' != 'true'">
+    <PropertyGroup>
+      <_RaskExternalNoExtract Condition="'$(RaskExternalBuild)' == 'false'">RaskExternalBuild=false</_RaskExternalNoExtract>
+      <_RaskExternalNoExtract Condition="'$(_RaskExternalNoExtract)' == '' AND '$(RaskExternalPropsExtract)' == 'false'">RaskExternalPropsExtract=false</_RaskExternalNoExtract>
+      <_RaskExternalNoExtract Condition="'$(_RaskExternalNoExtract)' == ''">Rask.Core's TypeScript toolchain is not imported</_RaskExternalNoExtract>
+    </PropertyGroup>
+    <CheckExternalPropsSnapshotsTask Islands="@(_RaskExternalPackageIsland)"
+                                     Reason="$(_RaskExternalNoExtract)"
+                                     LockFile="$(MSBuildProjectDirectory)/package-lock.json"/>
+  </Target>
+
+  <PropertyGroup>
+    <_RaskExternalPropsStamp>$(_RaskExternalObj)props-$(RaskExternalTypeScriptVersion)-$(RaskExternalPropsLocked).stamp</_RaskExternalPropsStamp>
+    <!-- npm's install receipt, only where it exists: a MISSING input makes MSBuild run the target on every build,
+         and under npm workspaces or pnpm node_modules is not laid out here at all. -->
+    <_RaskExternalPropsInstallReceipt Condition="Exists('$(MSBuildProjectDirectory)/node_modules/.package-lock.json')">$(MSBuildProjectDirectory)/node_modules/.package-lock.json</_RaskExternalPropsInstallReceipt>
+    <_RaskExternalPropsInstallReceipt Condition="'$(_RaskExternalPropsInstallReceipt)' == '' AND Exists('$(MSBuildProjectDirectory)/package-lock.json')">$(MSBuildProjectDirectory)/package-lock.json</_RaskExternalPropsInstallReceipt>
+  </PropertyGroup>
+
+  <!--
+    Re-extracts when a declaring class, a committed snapshot, the installed packages, the extractor or the pinned
+    compiler changes. The snapshots are inputs too, so a snapshot edited or deleted by hand is put back: a
+    missing input makes MSBuild run the target rather than skip it.
+  -->
+  <Target Name="_RaskExternalExtractProps"
+          DependsOnTargets="ResolveProjectReferences;_RaskExternalProbeNode;_RaskExternalInstallCore"
+          Condition="'@(_RaskExternalPackageIsland)' != '' AND '$(_RaskExternalCanExtract)' == 'true'"
+          Inputs="@(_RaskExternalPackageIsland->'%(DeclaringFile)');@(_RaskExternalPackageIsland);$(MSBuildProjectDirectory)/package.json;$(_RaskExternalPropsInstallReceipt);$(MSBuildThisFileDirectory)rask-extract-props.mjs"
+          Outputs="$(_RaskExternalPropsStamp)">
+    <ResolveTypeScriptToolTask Tool="typescript"
+                               Version="$(RaskExternalTypeScriptVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskExternalTypeScriptPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <Delete Files="$(_RaskExternalObj)props/result.json"/>
+    <WriteExternalPropsRequestTask Islands="@(_RaskExternalPackageIsland)"
+                                   TypeScriptPath="$(_RaskExternalTypeScriptPath)"
+                                   ProjectDirectory="$(MSBuildProjectDirectory)"
+                                   OutputDirectory="$(_RaskExternalObj)props"
+                                   RequestPath="$(_RaskExternalObj)props/request.json"/>
+
+    <Message Importance="high" Text="Rask.External: reading the props of @(_RaskExternalPackageIsland->Count()) package island(s)"/>
+    <Exec Command="node &quot;$(MSBuildThisFileDirectory)rask-extract-props.mjs&quot; &quot;$(_RaskExternalObj)props/request.json&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreStandardErrorWarningFormat="true"/>
+
+    <SyncExternalPropsSnapshotsTask Islands="@(_RaskExternalPackageIsland)"
+                                    OutputDirectory="$(_RaskExternalObj)props"
+                                    Locked="$(RaskExternalPropsLocked)"/>
+
+    <Touch Files="$(_RaskExternalPropsStamp)" AlwaysCreate="true"/>
+  </Target>
+
+  <!-- A snapshot the extraction just created did not exist when the glob above ran, so it joins here. -->
+  <Target Name="_RaskExternalAddSnapshots" Condition="'@(_RaskExternalPackageIsland)' != ''">
+    <ItemGroup>
+      <AdditionalFiles Remove="@(_RaskExternalPackageIsland)"/>
+      <AdditionalFiles Include="@(_RaskExternalPackageIsland)" Condition="Exists('%(FullPath)')"/>
     </ItemGroup>
   </Target>
 
@@ -622,9 +763,16 @@
            Text="Rask.External: building the islands in $(MSBuildProjectName) needs Node.js $(RaskExternalMinimumNode) or newer, but 'node --version' reported $(_RaskExternalNodeFound). Vite asks for ^20.19.0 || >=22.12.0, so a 20.19.x or 21.x Node fails inside the bundler instead. Install the current LTS (nvm install --lts, or https://nodejs.org), then build again. Set RaskExternalMinimumNode if you want a different bar."/>
   </Target>
 
-  <!-- Its own target with its own up-to-date check, because it is the expensive one. -->
-  <Target Name="_RaskExternalInstall"
-          DependsOnTargets="_RaskExternalWriteInputs;_RaskExternalProbeNode"
+  <!--
+    Its own target with its own up-to-date check, because it is the expensive one.
+
+    Split from _RaskExternalInstall so the props extraction can install BEFORE the compile without dragging the
+    post-compile entry writing along: MSBuild never runs a target twice, so depending on the whole of
+    _RaskExternalInstall there would have written the entries with no assembly to read runtimes from. A project
+    with only file islands still installs after the compile, exactly as before.
+  -->
+  <Target Name="_RaskExternalInstallCore"
+          DependsOnTargets="_RaskExternalProbeNode"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''"
           Inputs="$(MSBuildProjectDirectory)/package.json"
           Outputs="$(IntermediateOutputPath)rask-external.install.stamp">
@@ -638,6 +786,10 @@
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <Touch Files="$(IntermediateOutputPath)rask-external.install.stamp" AlwaysCreate="true"/>
   </Target>
+
+  <Target Name="_RaskExternalInstall"
+          DependsOnTargets="_RaskExternalWriteInputs;_RaskExternalProbeNode;_RaskExternalInstallCore"
+          Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''"/>
 
   <!--
     The bundle is written INTO wwwroot but after @(Content) has already been globbed, so nothing the

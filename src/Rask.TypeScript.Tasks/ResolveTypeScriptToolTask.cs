@@ -11,29 +11,31 @@ using Task = Microsoft.Build.Utilities.Task;
 namespace Rask.TypeScript.Tasks;
 
 /// <summary>
-///     Resolves a native TypeScript tool — the esbuild bundler or the tsgo type checker — fetching it
-///     once into a per-user cache if it is not already there.
+///     Resolves a TypeScript tool — the esbuild bundler, the tsgo type checker, or the compiler library —
+///     fetching it once into a per-user cache if it is not already there.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         This is the Tailwind resolver's design, applied to a second pair of tools: pinned version,
-///         per-user cache, checksum verified before anything is executed, and a single property that
-///         turns the whole thing off. Read <c>Rask.Tailwind.Tasks.ResolveTailwindCliTask</c> alongside
-///         it — the reasoning there for why a build-time download is acceptable at all (fetched once
-///         rather than per build, pinned rather than floating, and switchable off) applies here
-///         unchanged, and this repo has the scar that produced those three rules.
+///         This is the Tailwind resolver's design, applied to more tools: pinned version, per-user cache,
+///         checksum verified before anything is executed, and a single property that turns the whole thing
+///         off. Read <c>Rask.Tailwind.Tasks.ResolveTailwindCliTask</c> alongside it — the reasoning there for
+///         why a build-time download is acceptable at all (fetched once rather than per build, pinned rather
+///         than floating, and switchable off) applies here unchanged, and this repo has the scar that
+///         produced those three rules.
 ///     </para>
 ///     <para>
 ///         There is no npm fallback, and its absence is the point rather than an omission. Tailwind
 ///         needs one because it publishes no standalone binary for several platforms that its npm engine
 ///         does support. esbuild and tsgo publish native builds for every platform they support at all,
 ///         so a fallback through npm could only ever cover platforms where the direct download would
-///         have worked — it would add a Node dependency and reach nothing new.
+///         have worked — it would add a Node dependency and reach nothing new. The compiler library is one
+///         package for every platform, and pinning it here rather than taking the project's own copy is what
+///         makes two machines extract the same props snapshot.
 ///     </para>
 /// </remarks>
 public sealed class ResolveTypeScriptToolTask : Task
 {
-    /// <summary><c>esbuild</c> or <c>tsgo</c>.</summary>
+    /// <summary><c>esbuild</c>, <c>tsgo</c> or <c>typescript</c>.</summary>
     [Required]
     public string Tool { get; set; } = string.Empty;
 
@@ -60,7 +62,7 @@ public sealed class ResolveTypeScriptToolTask : Task
     /// <summary>Refuse to fetch, and fail if nothing is cached.</summary>
     public bool Offline { get; set; }
 
-    /// <summary>The executable to run.</summary>
+    /// <summary>The executable to run — or, for the compiler library, the <c>typescript.js</c> to load.</summary>
     [Output]
     public string ToolPath { get; set; } = string.Empty;
 
@@ -69,16 +71,23 @@ public sealed class ResolveTypeScriptToolTask : Task
     {
         if (!TryParseTool(Tool, out var tool))
         {
-            Log.LogError($"Rask.TypeScript: '{Tool}' is not a tool this task knows; expected 'esbuild' or 'tsgo'.");
+            Log.LogError(
+                $"Rask.TypeScript: '{Tool}' is not a tool this task knows; expected 'esbuild', 'tsgo' or 'typescript'.");
             return false;
         }
 
         var os = TypeScriptTools.CurrentOs();
-        var packageName = os is null
-            ? null
-            : TypeScriptTools.PackageName(tool, os.Value, RuntimeInformation.ProcessArchitecture);
+        var native = TypeScriptTools.IsNative(tool);
 
-        if (os is null || packageName is null)
+        // The compiler library is the same package on every platform, so only a native tool needs the OS
+        // and architecture to be ones it publishes for. Any value stands in for an unknown OS here: the
+        // library's name and layout do not depend on it.
+        var platform = os ?? ToolOs.Linux;
+        var packageName = os is null && native
+            ? null
+            : TypeScriptTools.PackageName(tool, platform, RuntimeInformation.ProcessArchitecture);
+
+        if (packageName is null)
         {
             Log.LogError(
                 $"Rask.TypeScript: {Tool} publishes no native build for this platform "
@@ -97,7 +106,8 @@ public sealed class ResolveTypeScriptToolTask : Task
         }
 
         var directory = TypeScriptTools.CacheDirectory(CacheRoot, tool, Version, packageName);
-        var executable = Path.Combine(directory, TypeScriptTools.ExecutablePath(tool, os.Value));
+        var entry = TypeScriptTools.ExecutablePath(tool, platform);
+        var executable = Path.Combine(directory, entry);
 
         if (File.Exists(executable))
         {
@@ -117,7 +127,7 @@ public sealed class ResolveTypeScriptToolTask : Task
 
         try
         {
-            Fetch(tool, packageName, directory, tarball);
+            Fetch(packageName, directory, tarball, native ? entry : null);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or WebException or UnauthorizedAccessException)
         {
@@ -132,8 +142,7 @@ public sealed class ResolveTypeScriptToolTask : Task
         {
             Log.LogError(
                 $"Rask.TypeScript: {packageName}@{Version} was fetched and unpacked, but it contains no "
-                + $"'{TypeScriptTools.ExecutablePath(tool, os.Value)}'. This is a packaging change rather "
-                + "than a problem with your project; please report it.");
+                + $"'{entry}'. This is a packaging change rather than a problem with your project; please report it.");
             return false;
         }
 
@@ -141,7 +150,14 @@ public sealed class ResolveTypeScriptToolTask : Task
         return true;
     }
 
-    private void Fetch(TypeScriptTool tool, string packageName, string directory, string tarballUrl)
+    /// <param name="packageName">The package to fetch.</param>
+    /// <param name="directory">The cache directory it lands in.</param>
+    /// <param name="tarballUrl">Where the tarball is.</param>
+    /// <param name="executable">
+    ///     The entry to mark executable, relative to the package root — null for the compiler library, a
+    ///     JavaScript file Node loads rather than a binary anything runs.
+    /// </param>
+    private void Fetch(string packageName, string directory, string tarballUrl, string? executable)
     {
         Log.LogMessage(
             MessageImportance.High,
@@ -178,7 +194,10 @@ public sealed class ResolveTypeScriptToolTask : Task
         try
         {
             TarGz.ExtractTo(bytes, staging);
-            MakeExecutable(Path.Combine(staging, TypeScriptTools.ExecutablePath(tool, TypeScriptTools.CurrentOs()!.Value)));
+            if (executable is not null)
+            {
+                MakeExecutable(Path.Combine(staging, executable));
+            }
 
             Directory.CreateDirectory(Path.GetDirectoryName(directory)!);
             if (Directory.Exists(directory))
@@ -245,6 +264,9 @@ public sealed class ResolveTypeScriptToolTask : Task
                 return true;
             case "tsgo":
                 tool = TypeScriptTool.Tsgo;
+                return true;
+            case "typescript":
+                tool = TypeScriptTool.TypeScript;
                 return true;
             default:
                 tool = default;

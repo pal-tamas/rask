@@ -9,6 +9,7 @@ using Rask.Mail;
 using Rask.Outbox;
 using Rask.Server;
 using Rask.SQLite.Snapshots;
+using Rask.Storage;
 using Rask.WebPush;
 
 namespace Rask;
@@ -80,6 +81,17 @@ public sealed class RaskAppOptions
 
     /// <summary>A database-backed cache: the standard <c>IDistributedCache</c> plus a typed <c>ICache</c>.</summary>
     public Battery<CacheOptions> Cache { get; } = new();
+
+    /// <summary>
+    /// Uploaded files: bytes on disk or in an S3-compatible or Azure bucket, with a <c>StoredFile</c> row per file on
+    /// the app's own database, handed back as public URLs, temporary URLs or downloads. See <c>IFiles</c>.
+    /// </summary>
+    /// <remarks>
+    /// Where the bytes go is configuration — <c>Storage__Provider</c> and the keys beside it — so moving from the
+    /// deploy volume to a bucket changes no code. Turning it off leaves the table mapped, like every other
+    /// database-backed battery.
+    /// </remarks>
+    public Battery<StorageOptions> Storage { get; } = new();
 
     /// <summary>The transactional outbox for durable domain-event delivery.</summary>
     public Battery<OutboxOptions> Outbox { get; } = new();
@@ -171,7 +183,8 @@ public sealed class RaskAppOptions
     /// Litestream replica's source path and the snapshot source among them.
     /// </summary>
     /// <remarks>
-    /// Read from <c>ConnectionStrings:App</c> when unset, falling back to a local <c>app.db</c>.
+    /// Read from <c>Rask:ConnectionStrings:App</c> when unset, falling back to a local <c>app.db</c>.
+    /// When set, it wins over that key wherever it came from (appsettings, environment, user-secrets).
     /// <c>rask deploy</c> sets that key to a path on the mounted volume, so the database outlives the
     /// container the same way the key ring does.
     /// </remarks>

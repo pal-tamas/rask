@@ -235,6 +235,11 @@ public static class GuideCatalog
             SearchTitle = "Database-backed IDistributedCache for ASP.NET Core",
             Description = "A cache stored in your app's own database instead of Redis: it implements IDistributedCache and adds a typed ICache with GetOrAddAsync and sliding expiry.",
         },
+        new("file-storage", "File storage", "Uploads kept on disk, S3 or Azure, with a row per file.", "One Person Framework")
+        {
+            SearchTitle = "File uploads in ASP.NET Core on disk, S3 or Azure",
+            Description = "Keep user uploads in .NET on disk, S3, R2 or Azure Blob with a row in your database: sniffed content types, size limits, public and signed temporary URLs.",
+        },
         new("outbox", "Outbox", "Crash-safe domain-event delivery on your database.",
             "One Person Framework")
         {
@@ -402,10 +407,10 @@ public static class GuideCatalog
             SearchTitle = ".NET metrics, tracing and health checks",
             Description = "Monitor a .NET web app in production with structured logging, Meter metrics, ActivitySource tracing and health checks, ready to export via OpenTelemetry.",
         },
-        new("configuration", "Configuration", "App configuration and settings.", "Integration")
+        new("configuration", "Configuration", "Every setting, under Rask in appsettings.json.", "Integration")
         {
-            SearchTitle = "Configuring runtime and WebSocket server options",
-            Description = "Configure shared runtime and server-only options in code or appsettings.json: WebSocket limits, session grace periods, reconnect, uploads and MaxSessions.",
+            SearchTitle = "Configuring a .NET web app from appsettings.json",
+            Description = "Configure every Rask package from appsettings.json: the Rask section each one reads, overriding it with environment variables or code, and startup validation.",
         },
 
         // ---- Mobile & devices ----

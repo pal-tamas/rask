@@ -26,7 +26,7 @@ public sealed class RangeExclusionCheckTests
 
         // Names the entity, the provider that ignores it, and the call that enforces it.
         Assert.StartsWith("Slot declares HasNonOverlappingRange, but Microsoft.EntityFrameworkCore.Sqlite does not enforce it", error.Message);
-        Assert.Contains("Configure SlotContext with UseRaskSqlite(connectionString)", error.Message);
+        Assert.Contains("Configure SlotContext with UseRaskSqlite(services)", error.Message);
     }
 
     [Fact]

@@ -122,6 +122,31 @@
          have admitted 21.x and let it fail in the bundler anyway. 22.12.0 is the lowest version with
          no hole beneath it, and Node 20 "Iron" is EOL besides. -->
     <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">22.12.0</RaskExternalMinimumNode>
+
+    <!--
+      Package islands: an island whose Module names an npm package gets its props from the package's own
+      TypeScript, read into a {Island}.props.json committed beside the class.
+
+      RaskExternalPropsExtract=false keeps the committed snapshots exactly as they are, even where Node and the
+      package are installed, for a build that must not touch source files.
+    -->
+    <RaskExternalPropsExtract Condition="'$(RaskExternalPropsExtract)' == ''">true</RaskExternalPropsExtract>
+
+    <!--
+      A LOCKED build reads the package, compares, and never writes: a snapshot that no longer matches is
+      RASKISLAND008 instead of a refreshed file. On by default under ContinuousIntegrationBuild, because a build
+      that rewrites its own inputs cannot go red on a stale one. That is right on a laptop and wrong for the run
+      that is supposed to prove the committed files are true.
+    -->
+    <RaskExternalPropsLocked Condition="'$(RaskExternalPropsLocked)' == '' AND '$(ContinuousIntegrationBuild)' == 'true'">true</RaskExternalPropsLocked>
+    <RaskExternalPropsLocked Condition="'$(RaskExternalPropsLocked)' == ''">false</RaskExternalPropsLocked>
+
+    <!--
+      The TypeScript compiler the props extractor loads, pinned and fetched by Rask like tsgo and esbuild, never
+      the project's own copy, or two machines would extract different snapshots. 6.x because 7.x is the native
+      compiler and ships no JavaScript API (no main entry, only bin/tsc).
+    -->
+    <RaskExternalTypeScriptVersion Condition="'$(RaskExternalTypeScriptVersion)' == ''">6.0.3</RaskExternalTypeScriptVersion>
   </PropertyGroup>
 
 </Project>

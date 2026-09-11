@@ -106,8 +106,8 @@ rask new Shop --template nextjs      # …or sveltekit, solidstart, tanstack-sta
 ```
 
 **Batteries are included.** `rask new MyApp` gives you everything the template carries as standard — a
-SQLite database, CQRS, background jobs, transactional email, a cache, a transactional outbox, scheduled
-backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
+SQLite database, CQRS, background jobs, transactional email, a cache, a transactional outbox, file
+storage for uploads, scheduled backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
 and the localization machinery. Not a sample page to delete: the wiring, ready for your first feature.
 
 **Three things are left to you**, because they are the ones that change what the app *is* rather than
@@ -192,7 +192,7 @@ MyApp/
   MyApp.csproj
   Program.cs                      every battery composed, in the order that works
   Dockerfile  .dockerignore       a production image
-  appsettings.json                logging levels (incl. Rask's own diagnostic categories)
+  appsettings.json                every Rask setting, under "Rask"; logging levels
   appsettings.Production.json     overrides applied when deployed
   Features/
     Shared/App.cs                 the root component every page renders through
@@ -237,10 +237,11 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--wasm` | Write the UI as a WebAssembly app in `Client/` (server template), with message records in `Shared/`; the server answers its API and serves it with `UseRaskSpa()` rather than rendering pages — see [single-page apps](spa.md#a-rask-webassembly-app). Publish takes minutes longer. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator — and [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
-| `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
+| `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
 | `--no-jobs` | Leave out durable background jobs (`AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
 | `--no-cache` | Leave out the database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. |
+| `--no-storage` | Leave out [file storage](file-storage.md) for uploads — a `StoredFile` row per file on the database, the bytes on disk (or in S3 or Azure, by configuration), and the routes that serve public and temporary links. |
 | `--no-outbox` | Leave out the transactional outbox for durable domain-event delivery. With it on, the outbox claims delivery and the in-process publisher stands down, so events aren't delivered twice. |
 | `--no-push` | Leave out server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. The PWA stays. |
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
@@ -282,7 +283,7 @@ default list: the default set *is* the column.
 | Battery | `server` | `wasm` | front-end |
 | --- | :-: | :-: | :-: |
 | database, CQRS | ✅ | — | ✅¹ |
-| jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ |
+| jobs, mail, cache, storage, outbox, snapshots, logs, ops | ✅ | — | ✅ |
 | PWA | ✅ | ✅ | ✅ |
 | Web Push | ✅ | — | ✅ |
 | Docker | ✅ | ✅ | ✅ |
@@ -350,7 +351,7 @@ Turning one off takes its dependents with it, so you never end up with a registr
 `DbContext` that isn't there:
 
 ```bash
-rask new Shop --no-data     # …and no jobs, mail, cache, outbox, snapshots or dashboard
+rask new Shop --no-data     # …and no jobs, mail, cache, storage, outbox, snapshots or dashboard
 rask new Shop --no-cqrs     # …and no database either — every feature dispatches through the mediator
 rask new Shop --no-pwa      # …and no Web Push, which subscribes through the service worker
 rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own
@@ -709,7 +710,9 @@ rask db restore nightly.db --remote --yes     # ...and the deployed one, unatten
 one of the [production pragmas](sqlite.md) — committed transactions live in the `-wal` sidecar until a
 checkpoint, so the `.db` file on its own is torn or stale. Both paths go through SQLite instead: locally
 via the Online Backup API, remotely via `VACUUM INTO`. Either way what lands is a single self-contained
-file with the WAL already folded in, taken while the app keeps serving.
+file with the WAL already folded in, taken while the app keeps serving. Locally, the database is the file
+named by `Rask:ConnectionStrings:App` in the project's `appsettings.json` (comments and trailing commas are
+fine — it reads the file as JSONC).
 
 The remote path needs **nothing installed on the host**. It runs the copy inside a throwaway container
 mounted on the app's data volume — the same shape the deploy's readiness probe uses — and brings the
@@ -774,7 +777,7 @@ passed the same gate — and still exits non-zero, so a bad image costs you a bl
 Use `rask deploy rollback` to undo a deploy that *did* come up healthy.
 
 **Your database survives redeploys.** Each deploy runs a fresh container, so `rask deploy` mounts a
-per-app named volume and points the app at it (`ConnectionStrings:App` → `Data Source=/data/app.db`) — the
+per-app named volume and points the app at it (`Rask:ConnectionStrings:App` → `Data Source=/data/app.db`) — the
 SQLite database persists across container replacements. The old container keeps serving for a moment after
 the proxy switches (so a request already in flight to it isn't cut), then is stopped gracefully (SIGTERM →
 its Litestream flush + WAL checkpoint) before removal. The `rask new` Dockerfile prepares a

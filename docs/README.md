@@ -17,7 +17,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → push → ops → deploy to one box. One chapter per pillar; you build the app as you go, starting from `rask new Shop`. |
 | [**Cheat sheet**](cheatsheet.md) | The one page to keep open — every CLI command, feature field token, wiring one-liner (`AddRask…`), and code idiom, dense and scannable. |
 | [**Recipes**](recipes.md) | Task-first "how do I do X?" — add a feature to an existing database, gate a page, run a job, cache a query, deploy an update — the command, the wiring line, and where to go deeper. |
-| [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache) and what's next (broadcast). |
+| [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache, file storage) and what's next (broadcast). |
 
 ## Guides
 
@@ -70,15 +70,16 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJob` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
 | [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMail` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |
 | [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrAddAsync`, absolute/sliding expiry. |
+| [File storage](file-storage.md) | Uploaded files kept on disk, in an S3-compatible bucket or in Azure Blob via `AddRaskStorage<Ctx>()` (standalone `Rask.Storage`) — a `StoredFile` row per file on the app's own database, content types sniffed from the bytes, public and temporary URLs, and downloads behind your own authorization check. |
 | [Outbox](outbox.md) | Durable, crash-safe domain-event delivery via `AddRaskOutbox<Ctx>()` (standalone `Rask.Outbox`) — events committed in the same transaction as your data, delivered post-commit with retries. |
-| [Web Push](webpush.md) | Server-sent Web Push from your backend via `AddRaskWebPush(...)` + `IWebPush` (standalone `Rask.WebPush`) — VAPID + aes128gcm, zero deps; pairs with the client `IWebPush`. |
+| [Web Push](webpush.md) | Server-sent Web Push from your backend via `AddRaskWebPush()` + `IWebPush` (standalone `Rask.WebPush`) — VAPID + aes128gcm, zero deps; pairs with the client `IWebPush`. |
 | [Secrets](secrets.md) | Where an app's passwords and API keys live, how they reach the server, and what Rask deliberately doesn't do with them. |
 | [Dashboard](dashboard.md) | A built-in operator dashboard at `/_rask` via `AddRaskDashboard<Ctx>()` (standalone `Rask.Dashboard`) — queue depth and dead letters for the outbox/jobs/mail, cache contents, a live log tail (plus searchable history with `Rask.Logging`), SQLite pragmas; fail-closed behind an authorization policy. |
 | [UI kit](ui-kit.md) | Every daisyUI component as a typed Rask component (standalone `Rask.Ui`) — buttons, dialogs, menus, forms, calendars, mockups and the chrome the framework's own surfaces are drawn with. Mobile-first, ships no JavaScript, and brings its own compiled stylesheet with daisyUI inside it, so a consuming app needs no npm install and no Tailwind configuration. |
 | [Data grid](data-grid.md) | `UiDataGrid` — sortable headers, paging, selection, expandable detail rows, grouping, a column chooser, and a card layout on a phone. Columns arrive through a factory because C# cannot infer a cell lambda any other way; rows come from a list, an `IQueryable` or an awaited `Source`. |
-| [Logging](logging.md) | A durable log store via `AddRaskLogging(...)` (standalone `Rask.Logging`) — the `ILogger` pipeline kept in a SQLite file of its own, buffered off the request thread, with retention by age and row count and a searchable view in the dashboard. |
+| [Logging](logging.md) | A durable log store via `AddRaskLogging()` (standalone `Rask.Logging`) — the `ILogger` pipeline kept in a SQLite file of its own, buffered off the request thread, with retention by age and row count and a searchable view in the dashboard. |
 | [Observability](observability.md) | Structured logging, the `Rask.Server` meter and activity source, health checks — what to export and what the numbers mean. |
-| [Configuration](configuration.md) | The options every host reads, and where to set them. |
+| [Configuration](configuration.md) | Every setting lives in `appsettings.json` under `Rask`: precedence, environment variables, value formats, every section and its options type, what stays in code, and migrating from the old keys. |
 | [Deployment](deployment.md) | Ship to a single box with `rask deploy`: Docker over SSH, a shared Caddy proxy for automatic HTTPS, zero-downtime blue-green swaps gated on `/health`, and bare-VPS setup. |
 | [Scaling](scaling.md) | How far one box goes — measured, in sessions and in events per second — what survives a restart or a deploy, where the wall actually is, and what it takes to get past it. |
 
