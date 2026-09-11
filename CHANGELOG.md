@@ -532,6 +532,13 @@ them until tagged releases begin.
     threw `No service for type 'Rask.Auth.AuthOptions'`. Every front-end template now carries the same
     `Features/Shared/User.cs` the server template has, owned by the same batteries as its `AppDbContext`.
 
+- **`--storage` is a server-template flag now, because `Rask.Storage` cannot run anywhere else.**
+  `MapRaskStorage()` is called at startup and its body names `Rask.Core.Live` types, so the JIT loads
+  `Rask.Core` there and then — and the front-end hosts ship no copy of it. Every one of the thirteen
+  templates aborted with `FileNotFoundException: Rask.Core` before `Main` with the battery on. Filed as
+  #1086: uploads from a JavaScript front end are a real thing to want, and making the package work on
+  those lanes is the fix; listing the flag where it works is the stopgap.
+
 - **The operator dashboard was scaffolded onto lanes that can never serve it.** `Rask.Dashboard` is built
   from Rask components carrying `[Route]`, so it is reachable only through `UseRask<TApp>()` — which only
   the server template calls. The thirteen front-end templates registered `AddRaskDashboard<AppDbContext>()`
