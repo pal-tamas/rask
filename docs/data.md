@@ -946,39 +946,6 @@ One model detail is handled for you: a SQL Server index key holds 450 `nvarchar`
 configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.
 A longer cache key cannot be stored there; `ICache` rejects it with an error naming the limit, so hash long keys.
 
-## MySQL
-
-When MySQL is the house database, `Rask.MySql` is the provider package. It wraps Oracle's `UseMySQL` provider:
-
-```csharp
-builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskMySql(builder.Configuration.GetConnectionString("App")!)
-    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-```
-
-On every connection EF opens, `UseRaskMySql` sends one `SET` for `innodb_lock_wait_timeout` (`LockTimeout`, 10s —
-MySQL's own 50s outlasts the command timeout and reports lock contention as a slow query) and `max_execution_time`
-(`StatementTimeout`, 30s). That second one is narrower than its name: MySQL applies it to read-only `SELECT`s
-only, so the ceiling on a runaway write is the client `CommandTimeout` (30s). Retrying (`o.Retry`) is the
-provider's own strategy.
-
-It also keeps a `DateTimeOffset`'s fractional seconds. Oracle's provider loses them twice: it maps one to `datetime`,
-which holds whole seconds, and even from a `datetime(6)` column its reader truncates the value to the second.
-`UseRaskMySql` stores every `DateTimeOffset` as its UTC `DateTime` in `datetime(6)` and reads it back as that
-instant at offset zero — the offset the provider returned anyway. A precision or column type you configure is kept,
-and a property with its own value converter is left alone. An app moving to `UseRaskMySql` from a plain
-`UseMySQL` therefore needs a migration (`rask db add`): its `DateTimeOffset` columns become `datetime(6)`.
-
-Two things to check before choosing it. Oracle's `MySql.EntityFrameworkCore` and `MySql.Data` are licensed
-`GPL-2.0-only WITH Universal-FOSS-exception-1.0`, not MIT like Rask. And MariaDB is not supported: it has no
-`max_execution_time`, so the session `SET` fails on every open.
-
-The same three things to know as on the other client-server databases apply — retrying refuses a transaction you
-open outside the execution strategy, Litestream and snapshots do not apply (use `mysqldump` or your provider's
-snapshots), and hand-written ADO code should open connections through EF so the session settings are sent — plus
-one of MySQL's own: **DDL commits implicitly**, so a migration that fails part-way leaves the schema part-applied.
-Review generated migrations before running them in production.
-
 ## Notes
 
 - **Server-side.** These interceptors run against a real EF Core provider (SQLite by default in Rask);
