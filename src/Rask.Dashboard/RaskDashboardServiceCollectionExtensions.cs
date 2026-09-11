@@ -68,10 +68,17 @@ public static class RaskDashboardServiceCollectionExtensions
         // a document is not cosmetic: the console's stylesheet then applied to the host's own pages, and
         // the host's [NotFound] answered a mistyped console URL.
         //
-        // TryAddEnumerable keyed on the implementation instance would not dedupe, so this is guarded by
-        // the options singleton above: a repeated AddRaskDashboard call finds the options already
-        // registered and would otherwise mount the console twice.
-        if (!services.Any(d => d.ServiceType == typeof(RaskMountedApp)))
+        // TryAddEnumerable keyed on the implementation instance would not dedupe, so a repeated
+        // AddRaskDashboard call is guarded by looking for THIS console's mount. Only this one: the guard
+        // used to skip on any RaskMountedApp at all, so a second application mounted first — another
+        // package's own console — silently took the dashboard off the host with nothing reporting it.
+        //
+        // Keyed descriptors are skipped before ImplementationInstance is read, because that property THROWS
+        // on a keyed descriptor — a host that registered some keyed mount would otherwise fail to start here.
+        if (!services.Any(d => d.ServiceType == typeof(RaskMountedApp)
+                               && !d.IsKeyedService
+                               && d.ImplementationInstance is RaskMountedApp { Root: var root }
+                               && root == typeof(RaskDashboardShell)))
         {
             services.AddSingleton(new RaskMountedApp(
                 typeof(RaskDashboardShell),

@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
+  nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
+  the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`
+  meta-package.
+
+  Debug-only is enforced by the build, because a package's dependency list cannot depend on the
+  consumer's configuration. `Rask.DevTools.targets` (shipped in `build/` and `buildTransitive/`) defaults
+  `RaskDevTools` to Debug, carries it into the runtime as the trimmable `Rask.DevTools.IsEnabled` feature
+  switch — so a trimmed Release publish folds every framework branch behind it away — removes the package
+  from a publish that has it off, and then **fails that publish** if any `Rask.DevTools` file or
+  `deps.json` entry is still in the output. The hosts find the devtools by name, so an app without the
+  package, or a Release build, finds nothing and pays nothing.
+
 - **rask.sh is built to be found — by search engines and by AI assistants.** Every guide carries search
   copy of its own (`GuideEntry.SearchTitle` and `Description`, both `required`, so a guide added without
   them does not compile): "IBattery — Guides — Rask" became "Battery Status API in C# and .NET (IBattery)
@@ -69,6 +82,19 @@ them until tagged releases begin.
   is it documented — and nothing asked whether a documented rule existed.
 
 ### Changed
+
+- **`QuiescentRender.RunAsync` and `RaskPrerender.RenderDocumentAsync` take a `CancellationToken`.** It is
+  the last parameter and defaulted, as the API style guide asks of every awaitable, so existing calls
+  compile unchanged. Cancelling abandons the render: a wait in progress stops at once and
+  `OperationCanceledException` is thrown, rather than placeholder markup returned as though it were a
+  result. A render nobody is waiting for any more — a page re-rendered in the background when the host
+  stops — no longer holds shutdown for the rest of its budget.
+
+  Behind it, the Server GET's page render moved out of the request handler into one internal function
+  that returns every decision a response is built from: whether the page redirected, its status, whether
+  it needs a live session, and whether its markup read the signed-in user. Responses are unchanged — the
+  existing endpoint suites pass as they were — and the two copies of the live-document composition in the
+  handler are now one. This is groundwork for caching public pages on the Server.
 
 - **`Tw.cs` is gone: every control on rask.sh is a `Rask.Ui` component.** The site's class-string
   vocabulary ends here. The last 180 uses of `Tw.Input`, `Tw.Label` and `Tw.Select` move onto kit
@@ -214,6 +240,11 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **Mounting a second application no longer takes the operator console off the host.**
+  `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
+  `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
+  reporting it. The guard now looks for the console's own mount.
 
 - **An island's callbacks no longer go dead when the page around it re-renders from cache.** An island
   (`ReactComponent`, `VueComponent`, …) is serialized as an element, so it never told its enclosing

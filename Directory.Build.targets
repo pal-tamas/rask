@@ -60,6 +60,16 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Ui\build\Rask.Ui.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Ui\build\Rask.Ui.targets') "/>
 
+  <!--
+    The devtools gate: RaskDevTools (Debug by default), the Rask.DevTools.IsEnabled feature switch, and the
+    Release-publish exclusion. Imported unconditionally, like Rask.Core's: a package consumer gets the same
+    file from the package's build/ and buildTransitive/ folders, and in-repo a ProjectReference carries
+    neither. For a project that does not reference Rask.DevTools the switch finds no bootstrap and the
+    exclusion names a package it does not have, so both cost nothing.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.DevTools\buildTransitive\Rask.DevTools.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.DevTools\buildTransitive\Rask.DevTools.targets') "/>
+
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets') "/>
 
