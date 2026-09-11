@@ -51,40 +51,28 @@ Chapter 1's `rask new` already registered mail and mapped its table (`modelBuild
 registration it wrote in `Program.cs` is:
 
 ```csharp
-builder.Services.AddRaskMail<AppDbContext>(o =>
-{
-    o.From = "no-reply@example.com";
-    o.PickupDirectory = builder.Configuration["Mail:PickupDirectory"] ?? "mail-pickup";
-});
+builder.Services.AddRaskMail<AppDbContext>();
 ```
 
-All that's left is your real sender address and, for production, an SMTP server. Edit that line:
+All that's left is your real sender address and, for production, an SMTP server. Both are settings rather
+than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.json`:
 
-```csharp
-builder.Services.AddRaskMail<AppDbContext>(o =>
-{
-    o.From = "shop@example.com";
-    o.PickupDirectory = builder.Configuration["Mail:PickupDirectory"] ?? "mail-pickup";
-
-    // Prod: point at your SMTP server. Leave it unconfigured in development and every message is
-    // written to ./mail-pickup as an .eml file instead of being sent.
-    if (builder.Configuration["Mail:SmtpHost"] is { Length: > 0 } host)
-    {
-        o.Smtp = new SmtpOptions
-        {
-            Host = host,
-            Port = 587,
-            User = builder.Configuration["Mail:SmtpUser"],
-            Password = builder.Configuration["Mail:SmtpPassword"],
-        };
-    }
-});
+```jsonc
+"Rask": {
+  "Mail": {
+    "From": "shop@example.com",
+    // Dev: with no Smtp section, each message is written to this directory instead of sent.
+    "PickupDirectory": "mail-pickup"
+    // Prod: add "Smtp": { "Host": "smtp.example.com", "Port": 587, "User": "…" },
+    // and put the password in the environment as Rask__Mail__Smtp__Password — never in this file.
+  }
+}
 ```
 
-> **Zero-config in development.** With no SMTP host configured, Rask.Mail doesn't try to reach a server — it
-> writes each message to `mail-pickup`, so you can build and test the flow with no mail account. The
-> credentials come from configuration: user-secrets on your machine, the deploy's environment file in
-> production ([Chapter 11](11-deploy.md)) — never typed into `Program.cs`.
+> **Zero-config in development.** With no `Smtp` section, Rask.Mail doesn't try to reach a server — it writes
+> each message to `mail-pickup` as an `.eml` file, so you can build and test the flow with no mail account.
+> The SMTP password comes from the environment — user-secrets on your machine, the deploy's environment file
+> in production ([Chapter 11](11-deploy.md)) — never from `appsettings.json` or `Program.cs`.
 
 ## 3. Send it from the job
 
@@ -125,7 +113,7 @@ just queues the row; the background sender delivers it. You now have the full ch
 
 - With no SMTP host configured, placing an order writes a mail row and (within the poll interval) an `.eml`
   file in `mail-pickup` — body rendered from your `OrderReceipt` component.
-- Configure `Mail:SmtpHost` for a real server (or a local catcher like Mailpit) and the receipt actually arrives.
+- Add a `Smtp` section under `Rask:Mail` for a real server (or a local catcher like Mailpit) and the receipt actually arrives.
 
 **Learn more:** [transactional email](../mail.md) · [background jobs](../jobs.md)
 

@@ -86,8 +86,8 @@ builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ }); modelBuil
 app.MapRaskStorage();   // file storage's public/temporary link routes — after app.UseRask<App>()
 
 // production SQLite — a drop-in for .UseSqlite that installs the pragma interceptor:
-.UseRaskSqlite("Data Source=app.db")
-builder.Services.AddRaskSqliteLitestream(o => { /* off-box backup */ });
+.UseRaskSqlite(sp)                            // in AddDbContextFactory((sp, o) => o…); reads Rask:ConnectionStrings:App
+builder.Services.AddRaskSqliteLitestream();   // off-box backup; reads Rask:Litestream
 ```
 
 After any `modelBuilder.AddRask…` line: `rask db add <Name>` → `rask db update`.

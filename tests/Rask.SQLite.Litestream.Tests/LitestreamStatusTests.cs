@@ -27,7 +27,7 @@ public sealed class LitestreamStatusTests
     {
         var executor = new BlockingExecutor();
         await using var provider = Build(executor, out var status);
-        var service = provider.GetServices<IHostedService>().Single();
+        var service = provider.GetServices<IHostedService>().OfType<LitestreamReplicationService>().Single();
 
         await service.StartAsync(CancellationToken.None);
         try
@@ -54,7 +54,7 @@ public sealed class LitestreamStatusTests
     {
         var executor = new CrashingExecutor(blockAfter: 3);
         await using var provider = Build(executor, out var status);
-        var service = provider.GetServices<IHostedService>().Single();
+        var service = provider.GetServices<IHostedService>().OfType<LitestreamReplicationService>().Single();
 
         await service.StartAsync(CancellationToken.None);
         try
@@ -80,7 +80,7 @@ public sealed class LitestreamStatusTests
     {
         var executor = new ThrowingExecutor();
         await using var provider = Build(executor, out var status);
-        var service = provider.GetServices<IHostedService>().Single();
+        var service = provider.GetServices<IHostedService>().OfType<LitestreamReplicationService>().Single();
 
         await service.StartAsync(CancellationToken.None);
         try

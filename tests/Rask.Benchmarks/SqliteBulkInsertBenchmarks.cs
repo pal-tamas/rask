@@ -323,7 +323,7 @@ public sealed class BenchContext(string connectionString) : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
         optionsBuilder
-            .UseRaskSqlite(_connectionString)
+            .UseRaskSqliteAt(_connectionString)
             .AddInterceptors(new AuditingInterceptor(TimeProvider.System));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

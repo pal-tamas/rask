@@ -79,5 +79,5 @@ public sealed class PostgresBulkInsertTests : IAsyncLifetime
     }
 
     private static BulkDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<BulkDbContext>().UseRaskPostgres(Postgres.Required).Options);
+        new(new DbContextOptionsBuilder<BulkDbContext>().UseRaskPostgresAt(Postgres.Required).Options);
 }

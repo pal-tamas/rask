@@ -360,10 +360,19 @@ two parts it depends on are worth recognising:
 
 ```csharp
 builder.Services.AddRaskData<AppDbContext>();
-var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
+    .UseRaskSqlite(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+…with the connection string it reads, in `appsettings.json` (a `--no-data` scaffold has none yet):
+
+```jsonc
+"Rask": {
+  "ConnectionStrings": {
+    "App": "Data Source=app.db"
+  }
+}
 ```
 
 and one line after the container is built:
@@ -384,9 +393,10 @@ Db.Configure(app.Services);
   Rask pages are long-lived and can render concurrently, so every read and write makes its own short-lived
   context instead of sharing one. `UseRaskSqlite` is a drop-in for `UseSqlite` that also applies the
   production pragmas (WAL, `busy_timeout`, `foreign_keys`) — so the app handles concurrent writers (the
-  jobs, email, and outbox you add in later chapters) without hitting `database is locked`. It defaults to a
-  local `app.db` file next to the app but honours a `ConnectionStrings:App` override, which is how a deploy
-  points it at a persistent volume.
+  jobs, email, and outbox you add in later chapters) without hitting `database is locked`. It reads its
+  connection string from `Rask:ConnectionStrings:App` — a local `app.db` in `appsettings.json` — which is
+  why it takes the service provider, and a deploy overrides it with `Rask__ConnectionStrings__App`, which is
+  how it points at a persistent volume.
 
 When you need EF Core itself — a domain operation with its own rules, or several changes in one
 transaction — you inject that same factory, `IDbContextFactory<AppDbContext>`, and call

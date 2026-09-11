@@ -182,7 +182,8 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("Rask.SQLite.Litestream", files["App.csproj"], StringComparison.Ordinal);
 
         // Inert by default: no replica URL, no replicator, and the app still starts.
-        Assert.Contains("""builder.Configuration["Litestream:ReplicaUrl"]""", program, StringComparison.Ordinal);
+        Assert.Contains("""builder.Configuration["Rask:Litestream:ReplicaUrl"]""", program, StringComparison.Ordinal);
+        Assert.Contains("\"ReplicaUrl\": \"\"", files["appsettings.json"], StringComparison.Ordinal);
         Assert.Contains("AddRaskSqliteLitestream", program, StringComparison.Ordinal);
 
         // The restore must be guarded — RestoreSqliteFromLitestreamAsync throws when nothing is registered,
@@ -303,8 +304,8 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskDbContext(options)", context, StringComparison.Ordinal);
         Assert.Contains("modelBuilder.ApplyRaskConventions();", context, StringComparison.Ordinal);
 
-        // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that honours a ConnectionStrings:App
-        // override so `rask deploy` can redirect it to a mounted volume.
+        // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that reads Rask:ConnectionStrings:App,
+        // which appsettings.json carries and `rask deploy` redirects to a mounted volume.
         var program = on["Program.cs"];
         // The GENERIC overload: it is what names the context to the model surface. The non-generic one
         // registers only the interceptors, and Db.Configure then has nothing to bind.
@@ -318,8 +319,9 @@ public sealed class ProjectGeneratorTests
             < program.IndexOf("Db.Configure(app.Services);", StringComparison.Ordinal),
             "Db.Configure must come after the container is built.");
         Assert.Contains("AddDbContextFactory<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains(".UseRaskSqlite(", program, StringComparison.Ordinal);
-        Assert.Contains("builder.Configuration.GetConnectionString(\"App\")", program, StringComparison.Ordinal);
+        Assert.Contains(".UseRaskSqlite(sp)", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetConnectionString(", program, StringComparison.Ordinal);
+        Assert.Contains("\"App\": \"Data Source=app.db\"", on["appsettings.json"], StringComparison.Ordinal);
 
         // --data implies --cqrs (feature handlers dispatch through the mediator).
         Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);

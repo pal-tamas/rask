@@ -80,7 +80,7 @@ public sealed class RaskDashboardOptions
     /// </summary>
     public bool AllowAnonymousAccess { get; set; }
 
-    /// <summary>Validates the option values at registration, so a bad value fails fast.</summary>
+    /// <summary>Validates the option values once <c>Rask:Dashboard</c> and the callback have applied, at host start, so a bad value fails fast.</summary>
     internal void Validate()
     {
         if (RefreshInterval <= TimeSpan.Zero)

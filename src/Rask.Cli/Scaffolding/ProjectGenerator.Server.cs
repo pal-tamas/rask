@@ -62,7 +62,7 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.SQLite.EntityFrameworkCore");
 
             // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
-            // inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
+            // inert until Rask:Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
             // one-env-var path from "single copy on one disk" to "the box is disposable".
             packages.Add("Rask.SQLite.Litestream");
 
@@ -163,8 +163,8 @@ internal static partial class ProjectGenerator
         if (batteries.Push)
         {
             steps.Append("\nWeb Push needs a VAPID key pair. Generate one and save it to user-secrets:\n");
-            steps.Append("  dotnet user-secrets set \"WebPush:PublicKey\" \"<public>\"\n");
-            steps.Append("  dotnet user-secrets set \"WebPush:PrivateKey\" \"<private>\"\n");
+            steps.Append("  dotnet user-secrets set \"Rask:WebPush:VapidKeys:PublicKey\" \"<public>\"\n");
+            steps.Append("  dotnet user-secrets set \"Rask:WebPush:VapidKeys:PrivateKey\" \"<private>\"\n");
             steps.Append("  (VapidKeys.Generate() prints a pair; the private key must never be served.)\n");
         }
 
@@ -301,13 +301,13 @@ internal static partial class ProjectGenerator
     // Both layers carry their own leading blank line so a filled slot is separated from what precedes it,
     // and an empty slot collapses cleanly instead of leaving one behind.
     private const string LitestreamLayer =
-        "\n# The replicator binary Program.cs drives when Litestream__ReplicaUrl is set (see docs/sqlite.md).\n"
+        "\n# The replicator binary Program.cs drives when Rask__Litestream__ReplicaUrl is set (see docs/sqlite.md).\n"
         + "COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream\n";
 
     private const string DataDirectoryLayer =
         "\n# A writable data directory for the SQLite database, owned by the image's non-root runtime user\n"
         + "# ($APP_UID). `rask deploy` mounts a named volume here and points the app at /data/app.db (via\n"
-        + "# ConnectionStrings:App), so the database survives container replacement across redeploys. A fresh\n"
+        + "# Rask:ConnectionStrings:App), so the database survives container replacement across redeploys. A fresh\n"
         + "# named volume inherits this directory's ownership, so the non-root app can create app.db in it.\n"
         + "USER root\n"
         + "RUN mkdir -p /data && chown $APP_UID:$APP_UID /data\n"

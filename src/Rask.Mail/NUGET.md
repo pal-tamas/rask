@@ -9,7 +9,7 @@ request thread, with no broker or Redis.
   delivers it over SMTP — **at-least-once**, with **exponential-backoff** retries up to `MaxAttempts` (then
   left as a dead letter for inspection).
 - **Delayed** send with `ScheduleAsync(email, delay)`.
-- **Zero-config in development** — with no SMTP configured, mail is logged; point `PickupDirectory` at a folder
+- **Zero-config in development** — with no SMTP configured, mail is logged; point `Rask:Mail:PickupDirectory` at a folder
   to write `.eml` files instead. Production sends over SMTP via [MailKit](https://github.com/jstedfast/MailKit).
 
 ## Use
@@ -24,17 +24,28 @@ public sealed class WelcomeEmail : Component
 }
 
 // Program.cs
-builder.Services.AddRaskMail<AppDbContext>(o =>
-{
-    o.From = "hello@example.com";
-    o.Smtp = new SmtpOptions { Host = "smtp.example.com", Port = 587, User = "…", Password = "…" };
-});
+builder.Services.AddRaskMail<AppDbContext>();   // reads Rask:Mail
 
 builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=app.db"));
 
 // AppDbContext.OnModelCreating:  modelBuilder.AddRaskMail();
 // then:  rask db add AddMail && rask db update
 ```
+
+```jsonc
+// appsettings.json — the SMTP password goes in the environment: Rask__Mail__Smtp__Password
+{
+  "Rask": {
+    "Mail": {
+      "From": "hello@example.com",
+      "Smtp": { "Host": "smtp.example.com", "Port": 587, "User": "…" }
+    }
+  }
+}
+```
+
+Any `Rask:Mail:Smtp` key turns SMTP delivery on. A callback — `AddRaskMail<AppDbContext>(o => …)` — runs
+after the section and wins.
 
 ```csharp
 // send from anywhere IMail is injected:

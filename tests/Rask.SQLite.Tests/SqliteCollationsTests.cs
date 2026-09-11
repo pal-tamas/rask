@@ -29,7 +29,7 @@ public sealed class SqliteCollationsTests : IDisposable
         try
         {
             var services = new ServiceCollection();
-            services.AddRaskSqlite($"Data Source={_dbPath}");
+            services.AddRaskSqliteAt($"Data Source={_dbPath}");
             await using var provider = services.BuildServiceProvider();
             var factory = provider.GetRequiredService<ISqlite>();
 

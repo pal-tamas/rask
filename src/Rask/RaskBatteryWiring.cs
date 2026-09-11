@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Api;
 using Rask.Auth;
@@ -43,12 +44,50 @@ namespace Rask;
 /// <c>IDbContextFactory&lt;TContext&gt;</c>. The log store is the exception — it owns a SQLite file of its
 /// own, so it never depended on the application database in either direction.
 /// </para>
+/// <para>
+/// Every battery reads its own <c>Rask:&lt;Area&gt;</c> section. What this adds is the defaults a battery that is on
+/// by default needs in order to boot by default — a database file, a From address — and it adds them as the
+/// LOWEST-precedence configuration, so appsettings.json, the environment and every <c>Configure</c> callback still win.
+/// </para>
 /// </remarks>
 internal static class RaskBatteryWiring
 {
+    /// <summary>
+    /// The development defaults, as configuration keys. Each one is what a fresh app needs to start before anybody has
+    /// configured anything, and each is overridden by the same key set anywhere else.
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string?> Defaults = new Dictionary<string, string?>
+    {
+        ["Rask:ConnectionStrings:App"] = "Data Source=app.db",
+        ["Rask:ConnectionStrings:Logs"] = "Data Source=logs.db",
+        ["Rask:Sqlite:StrictTables"] = "true",
+
+        // A FROM ADDRESS IS REQUIRED — MailOptions.Validate throws without one. example.com is IANA-reserved for
+        // documentation, so an app that never sets this cannot accidentally send as a domain somebody owns. With no
+        // SMTP configured, each message is written to ./mail-pickup as an .eml.
+        ["Rask:Mail:From"] = "no-reply@example.com",
+        ["Rask:Mail:PickupDirectory"] = "mail-pickup",
+
+        // A DESTINATION IS REQUIRED — AddRaskSqliteSnapshots validates and refuses to start without one.
+        ["Rask:Snapshots:DestinationDirectory"] = "snapshots",
+    };
+
     internal static void Apply(WebApplicationBuilder builder, RaskAppOptions options)
     {
         var services = builder.Services;
+
+        // Underneath every source the builder already has — appsettings.json, the environment, user secrets, the
+        // command line — so each of them overrides these.
+        builder.Configuration.Sources.Insert(0, new MemoryConfigurationSource { InitialData = Defaults });
+
+        // A connection string set in code beats every configuration source, the same way a Configure callback does.
+        // Written into configuration rather than passed along, so everything that derives from the database — the
+        // Litestream and snapshot source paths, the dashboard — reads the one value.
+        if (options.ConnectionString is { } connectionString)
+        {
+            builder.Configuration.AddInMemoryCollection(
+                [new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", connectionString)]);
+        }
 
         // The mediator, and the query cache that rides with it. A dispatcher without a cache means every
         // render refetches, which is the first thing anyone building over IDispatcher needs solved.
@@ -59,7 +98,17 @@ internal static class RaskBatteryWiring
 
         if (options.Cqrs.Enabled)
         {
-            services.AddRaskCqrs(o => o.ValidateRequests = options.Validation.Enabled);
+            // With validation off there are no validators to run, so code turns the behavior off. With it on, the
+            // behavior's default is on and Rask:Cqrs:ValidateRequests still decides: a callback that always
+            // assigned would be code, and code beats configuration, so the setting would be silently dropped.
+            if (options.Validation.Enabled)
+            {
+                services.AddRaskCqrs();
+            }
+            else
+            {
+                services.AddRaskCqrs(o => o.ValidateRequests = false);
+            }
             services.AddRaskQuery();
 
             if (options.Validation.Enabled)
@@ -81,20 +130,16 @@ internal static class RaskBatteryWiring
             // Its own file, deliberately: log lines arrive at machine rates, and the line you most want is
             // the one written while a transaction is failing — which on the app's context would roll back
             // with it. EF's per-command logging is excluded, or an EF app's log is mostly its own SQL.
-            var logOptions = new RaskLoggingOptions();
-            options.Logs.Apply(logOptions);
-            services.AddRaskLogging(
-                builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db",
-                o =>
-                {
-                    o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database");
-                    options.Logs.Apply(o);
-                });
+            services.AddRaskLogging(o =>
+            {
+                o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database");
+                options.Logs.Apply(o);
+            });
         }
 
-        // Web Push needs a VAPID key pair, and AddRaskWebPush validates its options and throws without
-        // one. A freshly scaffolded app has to run before anybody has generated any keys, so this is wired
-        // when the keys exist rather than refusing to start when they do not.
+        // Web Push needs a VAPID key pair, and AddRaskWebPush validates its options and refuses to start without
+        // one. A freshly scaffolded app has to run before anybody has generated any keys, so this is wired when the
+        // keys exist rather than refusing to start when they do not.
         if (options.Push.Enabled && HasVapidKeys(builder.Configuration, options))
         {
             services.AddRaskWebPush(o => options.Push.Apply(o));
@@ -136,20 +181,12 @@ internal static class RaskBatteryWiring
             return;
         }
 
-        var connectionString = options.ConnectionString
-                               ?? builder.Configuration.GetConnectionString("App")
-                               ?? "Data Source=app.db";
-
         // Continuous backup, inert until a replica is configured. It is what makes one box a safe place to
-        // keep your only copy: if the machine dies, a fresh one restores from the replica and carries on.
-        var replicaUrl = builder.Configuration["Litestream:ReplicaUrl"];
-        if (!string.IsNullOrWhiteSpace(replicaUrl))
+        // keep your only copy: if the machine dies, a fresh one restores from the replica and carries on. The
+        // database it replicates defaults to the file behind Rask:ConnectionStrings:App.
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:Litestream:ReplicaUrl"]))
         {
-            services.AddRaskSqliteLitestream(o =>
-            {
-                o.DatabasePath = DataSourceOf(connectionString);
-                o.ReplicaUrl = replicaUrl;
-            });
+            services.AddRaskSqliteLitestream();
         }
 
         if (options.Snapshots.Enabled)
@@ -157,16 +194,7 @@ internal static class RaskBatteryWiring
             // A second line of defence beside the continuous replication. Taken through SQLite's Online
             // Backup API rather than a file copy: with WAL on, copying the .db can capture a torn database
             // because the committed data is split across the file and the -wal.
-            services.AddRaskSqliteSnapshots(o =>
-            {
-                o.DatabasePath = DataSourceOf(connectionString);
-
-                // A DESTINATION IS REQUIRED — AddRaskSqliteSnapshots validates and throws without one. A
-                // battery that is on by default has to boot by default, so it gets a working directory
-                // rather than a demand; the app overrides it below, or through configuration.
-                o.DestinationDirectory = builder.Configuration["Sqlite:SnapshotDirectory"] ?? "snapshots";
-                options.Snapshots.Apply(o);
-            });
+            services.AddRaskSqliteSnapshots(o => options.Snapshots.Apply(o));
         }
 
         // The pillars need the application's DbContext as a type argument. The app already named it, in
@@ -185,7 +213,7 @@ internal static class RaskBatteryWiring
             // library the app has not yet touched would make "are there entities?" answer differently
             // depending on what ran first.
             services.AddDbContextFactory<RaskAppDbContext>((sp, o) => o
-                .UseRaskSqlite(connectionString, sqlite => sqlite.StrictTables = true)
+                .UseRaskSqlite(sp)
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
             WireContextBatteries(services, options, typeof(RaskAppDbContext));
@@ -257,16 +285,7 @@ internal static class RaskBatteryWiring
 
         if (options.Mail.Enabled)
         {
-            services.AddRaskMail<TContext>(o =>
-            {
-                // A FROM ADDRESS IS REQUIRED — MailOptions.Validate throws without one, and a battery that
-                // is on by default has to boot by default. example.com is IANA-reserved for documentation,
-                // so an app that never sets this cannot accidentally send as a domain somebody owns. With
-                // no SMTP configured the dev default writes each message to ./mail-pickup as an .eml.
-                o.From = "no-reply@example.com";
-                o.PickupDirectory = "mail-pickup";
-                options.Mail.Apply(o);
-            });
+            services.AddRaskMail<TContext>(o => options.Mail.Apply(o));
         }
 
         if (options.Cache.Enabled)
@@ -284,6 +303,7 @@ internal static class RaskBatteryWiring
 
         if (options.Ops.Enabled)
         {
+            // Configured through Rask:Dashboard.
             services.AddRaskDashboard<TContext>();
         }
     }
@@ -298,7 +318,8 @@ internal static class RaskBatteryWiring
         Display = DisplayMode.Standalone,
     };
 
-    // Web Push is configured either through the block or straight from configuration; either is enough.
+    // Web Push is configured either through the block or through Rask:WebPush:VapidKeys; either is enough, and
+    // AddRaskWebPush binds the section itself.
     private static bool HasVapidKeys(IConfiguration configuration, RaskAppOptions options)
     {
         var probe = new WebPushOptions();
@@ -308,23 +329,7 @@ internal static class RaskBatteryWiring
             return true;
         }
 
-        return !string.IsNullOrWhiteSpace(configuration["WebPush:PublicKey"])
-               && !string.IsNullOrWhiteSpace(configuration["WebPush:PrivateKey"]);
-    }
-
-    // The file path out of a connection string, for the backup paths that need the file rather than the
-    // string. Kept here rather than referencing Microsoft.Data.Sqlite's builder for one property.
-    private static string DataSourceOf(string connectionString)
-    {
-        foreach (var part in connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var pair = part.Split('=', 2);
-            if (pair.Length == 2 && pair[0].Trim().Equals("Data Source", StringComparison.OrdinalIgnoreCase))
-            {
-                return pair[1].Trim();
-            }
-        }
-
-        return connectionString;
+        return !string.IsNullOrWhiteSpace(configuration["Rask:WebPush:VapidKeys:PublicKey"])
+               && !string.IsNullOrWhiteSpace(configuration["Rask:WebPush:VapidKeys:PrivateKey"]);
     }
 }

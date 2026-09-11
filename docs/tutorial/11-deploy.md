@@ -54,7 +54,7 @@ Two layers keep the SQLite database safe, and you should understand both:
 
 - **Across redeploys — a persistent volume.** Every `rask deploy` runs a *fresh* container, so the database
   can't live inside it. `rask deploy` mounts a per-app Docker volume and points the app at it
-  (`ConnectionStrings:App` → `Data Source=/data/app.db`); the volume — and your data — persists across
+  (`Rask:ConnectionStrings:App` → `Data Source=/data/app.db`); the volume — and your data — persists across
   container replacements. The old container is stopped gracefully (SIGTERM) before removal, so in-flight
   writes are checkpointed first rather than killed — inside a
   [budget](../deployment.md#the-shutdown-ladder) that also covers open pages, running jobs and queued
@@ -69,7 +69,7 @@ one-shot `--env` values — they're secrets, so only the `--env-file` **path** i
 file, and every deploy will have them:
 
 ```bash
-rask deploy --env-file .env.production   # AWS_ACCESS_KEY_ID=… / AWS_SECRET_ACCESS_KEY=… inside
+rask deploy --env-file .env.production   # Rask__Litestream__ReplicaUrl=… / AWS_ACCESS_KEY_ID=… / AWS_SECRET_ACCESS_KEY=… inside
 ```
 
 ## Verify

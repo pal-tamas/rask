@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Rask.Cache;
 
 namespace Rask.SqlServer.Tests;
@@ -15,6 +17,8 @@ namespace Rask.SqlServer.Tests;
 public sealed class UseRaskSqlServerTests
 {
     private const string ConnectionString = "Server=localhost;Database=rask;User Id=sa;Password=x;TrustServerCertificate=true";
+
+    private static readonly IServiceProvider Services = ServicesWith(new() { ["Rask:ConnectionStrings:App"] = ConnectionString });
 
     [Fact]
     public void It_selects_the_SQL_Server_provider()
@@ -49,6 +53,40 @@ public sealed class UseRaskSqlServerTests
     }
 
     [Fact]
+    public void The_Rask_SqlServer_section_sets_the_timeouts()
+    {
+        var services = ServicesWith(new()
+        {
+            ["Rask:ConnectionStrings:App"] = ConnectionString,
+            ["Rask:SqlServer:CommandTimeout"] = "00:00:12",
+            ["Rask:SqlServer:LockTimeout"] = "00:00:03",
+        });
+
+        var options = new DbContextOptionsBuilder<PlainContext>().UseRaskSqlServer(services).Options;
+
+        Assert.Equal(12, RelationalOptionsExtension.Extract(options).CommandTimeout);
+        using var db = new PlainContext(options);
+        var effective = RaskSqlServerConnectionInterceptor.OptionsFor(db);
+        Assert.NotNull(effective);
+        Assert.Equal("SET XACT_ABORT ON;SET LOCK_TIMEOUT 3000;", SqlServerSessionSettings.BuildScript(effective));
+    }
+
+    [Fact]
+    public void The_configure_delegate_wins_over_the_section()
+    {
+        var services = ServicesWith(new()
+        {
+            ["Rask:ConnectionStrings:App"] = ConnectionString,
+            ["Rask:SqlServer:Retry:Enabled"] = "true",
+        });
+
+        using var db = new PlainContext(
+            new DbContextOptionsBuilder<PlainContext>().UseRaskSqlServer(services, s => s.Retry.Enabled = false).Options);
+
+        Assert.False(db.Database.CreateExecutionStrategy().RetriesOnFailure);
+    }
+
+    [Fact]
     public void It_registers_the_connection_interceptor()
     {
         var options = Options<PlainContext>();
@@ -60,7 +98,11 @@ public sealed class UseRaskSqlServerTests
     [Fact]
     public void It_validates_the_configured_options()
     {
-        Assert.Throws<InvalidOperationException>(() => Options<PlainContext>(s => s.LockTimeout = TimeSpan.FromMinutes(5)));
+        // It names the section, because the value may just as well have come from appsettings as from the callback.
+        var error = Assert.Throws<OptionsValidationException>(
+            () => Options<PlainContext>(s => s.LockTimeout = TimeSpan.FromMinutes(5)));
+
+        Assert.Contains("Rask:SqlServer", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -80,21 +122,31 @@ public sealed class UseRaskSqlServerTests
     }
 
     [Fact]
-    public void It_rejects_an_empty_connection_string()
+    public void It_names_the_connection_string_it_could_not_find()
     {
-        Assert.Throws<ArgumentException>(() => new DbContextOptionsBuilder().UseRaskSqlServer(""));
+        var error = Assert.Throws<InvalidOperationException>(
+            () => new DbContextOptionsBuilder().UseRaskSqlServer(ServicesWith([])));
+
+        Assert.Contains("Rask:ConnectionStrings:App", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_top_level_connection_string_is_not_read()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            new DbContextOptionsBuilder().UseRaskSqlServer(ServicesWith(new() { ["ConnectionStrings:App"] = ConnectionString })));
     }
 
     [Fact]
     public void It_rejects_a_null_builder()
     {
-        Assert.Throws<ArgumentNullException>(() => ((DbContextOptionsBuilder)null!).UseRaskSqlServer(ConnectionString));
+        Assert.Throws<ArgumentNullException>(() => ((DbContextOptionsBuilder)null!).UseRaskSqlServer(Services));
     }
 
     [Fact]
     public void The_generic_overload_keeps_the_typed_options()
     {
-        var options = new DbContextOptionsBuilder<PlainContext>().UseRaskSqlServer(ConnectionString).Options;
+        var options = new DbContextOptionsBuilder<PlainContext>().UseRaskSqlServer(Services).Options;
 
         Assert.IsType<DbContextOptions<PlainContext>>(options, exactMatch: false);
     }
@@ -141,8 +193,8 @@ public sealed class UseRaskSqlServerTests
         // An app configures the context, then a test or an environment override configures it again. The override
         // must win — not stack a second interceptor that keeps sending the first call's SET on every open.
         var builder = new DbContextOptionsBuilder<PlainContext>();
-        builder.UseRaskSqlServer(ConnectionString);
-        builder.UseRaskSqlServer(ConnectionString, s =>
+        builder.UseRaskSqlServer(Services);
+        builder.UseRaskSqlServer(Services, s =>
         {
             s.AbortOnError = false;
             s.LockTimeout = TimeSpan.Zero;
@@ -178,10 +230,19 @@ public sealed class UseRaskSqlServerTests
 
     private static DbContextOptions<TContext> Options<TContext>(Action<SqlServerOptions>? configure = null)
         where TContext : DbContext =>
-        new DbContextOptionsBuilder<TContext>().UseRaskSqlServer(ConnectionString, configure).Options;
+        new DbContextOptionsBuilder<TContext>().UseRaskSqlServer(Services, configure).Options;
 
     private static int? KeyLength(Microsoft.EntityFrameworkCore.Metadata.IModel model) =>
         model.FindEntityType(typeof(CacheEntry))!.FindProperty(nameof(CacheEntry.Key))!.GetMaxLength();
+
+    private static IServiceProvider ServicesWith(Dictionary<string, string?> settings) =>
+        new ConfigurationServices(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
+
+    // Just the configuration: that is all UseRaskSqlServer asks the provider for.
+    private sealed class ConfigurationServices(IConfiguration configuration) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => serviceType == typeof(IConfiguration) ? configuration : null;
+    }
 
     private sealed class PlainContext(DbContextOptions<PlainContext> options) : DbContext(options);
 

@@ -6,7 +6,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Hosting.Shared;
 
 namespace Rask.Signaling;
 
@@ -33,17 +36,20 @@ namespace Rask.Signaling;
 public static class RaskSignalingExtensions
 {
     /// <summary>Registers the signaling relay. Pair with <see cref="MapRaskSignaling" />.</summary>
+    /// <remarks>
+    ///     <see cref="RaskSignalingOptions" /> reads the <c>Rask:Signaling</c> configuration section first, then
+    ///     <paramref name="configure" />, so code wins. <see cref="RaskSignalingOptions.AuthorizeRoom" /> is a
+    ///     delegate and can only be set in code. Idempotent: the first call's options win.
+    /// </remarks>
     public static IServiceCollection AddRaskSignaling(
         this IServiceCollection services, Action<RaskSignalingOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = new RaskSignalingOptions();
-        configure?.Invoke(options);
-        Validate(options);
-
-        services.AddSingleton(options);
-        services.AddSingleton<SignalingHub>();
+        // Validated when the host starts — and MapRaskSignaling resolves the options while mapping, so a bad
+        // value stops the app before a single peer can connect either way.
+        services.AddRaskOptions("Rask:Signaling", static (section, o) => section.Bind(o), configure, Validate);
+        services.TryAddSingleton<SignalingHub>();
         return services;
     }
 
@@ -76,20 +82,22 @@ public static class RaskSignalingExtensions
         return endpoints;
     }
 
+    // The parameter name is left to the caller-expression default, so a failure names the setting
+    // ("o.MaxPeersPerRoom ('1') must be greater than or equal to '2'") — the key someone has to go and fix.
     private static void Validate(RaskSignalingOptions o)
     {
         if (!o.Path.StartsWith('/'))
         {
-            throw new ArgumentException($"Signaling Path must start with '/', not '{o.Path}'.", nameof(o));
+            throw new InvalidOperationException($"Path must start with '/', not '{o.Path}'.");
         }
 
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxMessageBytes, 1024, nameof(o));
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxPayloadBytes, 256, nameof(o));
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(o.MaxPayloadBytes, o.MaxMessageBytes, nameof(o));
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxPeersPerRoom, 2, nameof(o));
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxRooms, 1, nameof(o));
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxRoomIdLength, 1, nameof(o));
-        ArgumentOutOfRangeException.ThrowIfNegative(o.MaxMessagesPerSecond, nameof(o));
+        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxMessageBytes, 1024);
+        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxPayloadBytes, 256);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(o.MaxPayloadBytes, o.MaxMessageBytes);
+        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxPeersPerRoom, 2);
+        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxRooms, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxRoomIdLength, 1);
+        ArgumentOutOfRangeException.ThrowIfNegative(o.MaxMessagesPerSecond);
     }
 
     private static async Task RunAsync(HttpContext ctx)

@@ -18,9 +18,12 @@ You already have this. `rask new` writes `UseRaskSqlite` rather than `UseSqlite`
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
+    .UseRaskSqlite(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
+
+There is no connection string in `Program.cs`: `UseRaskSqlite` reads `Rask:ConnectionStrings:App` from
+`appsettings.json` — `Data Source=app.db` while you develop — which is why it takes the service provider.
 
 It is a drop-in for `UseSqlite` that also installs the pragma interceptor — one word, and every background
 processor (jobs, mail, outbox), every page, and every `Product.Where(…)` or `Product.CreateAsync(…)` shares a
@@ -34,17 +37,26 @@ non-blocking write-retry story.
 
 ## 2. Snapshots — the cheap half
 
-Every `rask new` app takes scheduled point-in-time backups (`--no-snapshots` leaves them out):
+`rask new` wires scheduled point-in-time backups:
 
 ```csharp
-builder.Services.AddRaskSqliteSnapshots(o =>
-{
-    o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
-    o.DestinationDirectory = builder.Configuration["Sqlite:SnapshotDirectory"] ?? "snapshots";
-    o.Interval = TimeSpan.FromHours(6);
-    o.Retain = 7;
-});
+builder.Services.AddRaskSqliteSnapshots();
 ```
+
+…tuned in `appsettings.json`, beside the connection string:
+
+```jsonc
+"Rask": {
+  "Snapshots": {
+    "DestinationDirectory": "snapshots",
+    "Interval": "06:00:00",
+    "Retain": 7
+  }
+}
+```
+
+It snapshots the database behind `Rask:ConnectionStrings:App`, so there is no second path to keep in step
+with the first.
 
 These go through SQLite's **Online Backup API**, not a file copy. That distinction is the whole value: with
 WAL on, `cp app.db backup.db` can capture a torn database, because the committed data you want is split
@@ -54,19 +66,15 @@ live database. No external binary, no credentials.
 ## 3. Litestream — the off-box half
 
 Snapshots on the same disk protect you from a bad migration, not from losing the disk. That's what
-continuous backup is for, and the database block `rask new` wrote in Chapter 1 already wired it —
-`Rask.SQLite.Litestream` runs [Litestream](https://litestream.io) as a managed background service that
-**streams every change off the box** to object storage (S3, GCS, Azure Blob, or a file target):
+continuous backup is for, and `rask new` already wired it in Chapter 1 — `Rask.SQLite.Litestream` runs
+[Litestream](https://litestream.io) as a managed background service that **streams every change off the
+box** to object storage (S3, GCS, Azure Blob, or a file target):
 
 ```csharp
-var replicaUrl = builder.Configuration["Litestream:ReplicaUrl"];
+var replicaUrl = builder.Configuration["Rask:Litestream:ReplicaUrl"];
 if (!string.IsNullOrWhiteSpace(replicaUrl))
 {
-    builder.Services.AddRaskSqliteLitestream(o =>
-    {
-        o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
-        o.ReplicaUrl = replicaUrl;
-    });
+    builder.Services.AddRaskSqliteLitestream();
 }
 
 var app = builder.Build();
@@ -82,10 +90,12 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 
 Two details the scaffold gets right and are easy to get wrong by hand:
 
-- **The restore runs first**, before any query or pillar processor opens the database. Restore is skipped
-  once the file exists, so putting it later means a fresh machine quietly starts with an empty database
-  instead of your data.
-- **Both halves are gated on the same config.** Litestream stays off until you set a replica URL, so
+- **The restore runs first**, before the schema is created or any pillar's processor starts. Restore is
+  skipped once the file exists, so putting it later means a fresh machine quietly starts with an empty
+  database instead of your data.
+- **Both halves are gated on the same key.** `AddRaskSqliteLitestream` reads the rest of `Rask:Litestream`
+  itself, and replicates the database behind `Rask:ConnectionStrings:App`; the scaffolded
+  `appsettings.json` leaves `ReplicaUrl` empty. Litestream stays off until you set a replica URL, so
   `dotnet run` works on a laptop with no `litestream` binary and no cloud credentials. (The restore call
   throws when Litestream was never registered — useful for a real wiring mistake, fatal for a fresh
   scaffold, hence the guard.) The csproj also sets `RaskLitestreamDownload=false`: the binary belongs in
@@ -95,7 +105,7 @@ Two details the scaffold gets right and are easy to get wrong by hand:
 Set the replica when you deploy:
 
 ```bash
-Litestream__ReplicaUrl=s3://my-bucket/shop
+rask deploy --env "Rask__Litestream__ReplicaUrl=s3://my-bucket/shop"
 ```
 
 Now the box is **disposable**: if it dies, a fresh box restores `app.db` from the replica on startup and

@@ -70,16 +70,19 @@ The `server` template is deliberately small — a handful of files, no example p
 - **`Program.cs`** — host setup. `builder.Services.AddRask()` registers the framework and
   `app.UseRask<App>()` mounts your root component. Between them, one commented registration per battery,
   each naming the app's context — `AddRaskAuth<AppDbContext>()`, `AddRaskJobs<AppDbContext>()`,
-  `AddRaskMail<AppDbContext>(…)` and so on. When a later chapter configures a pillar, it edits that pillar's
-  line here. The database part is these lines, plus `Db.Configure(app.Services)` after the app is built:
+  `AddRaskMail<AppDbContext>()` and so on. None of them carries settings: each reads its own section of
+  `appsettings.json` (`Rask:Mail`, `Rask:Jobs`, …), so when a later chapter tunes a pillar, that section is
+  what it edits. The database part is these lines, plus `Db.Configure(app.Services)` after the app is built:
 
   ```csharp
   builder.Services.AddRaskData<AppDbContext>();
-  var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
   builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-      .UseRaskSqlite(connectionString, o => o.StrictTables = true)
+      .UseRaskSqlite(sp)
       .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
   ```
+
+  `UseRaskSqlite(sp)` reads the connection string from `Rask:ConnectionStrings:App` — `Data Source=app.db`
+  in the scaffolded `appsettings.json` — which is why it takes the service provider.
 
   You'll also see `builder.Services.AddRaskCqrs()`. It's plumbing: the jobs and outbox batteries hand their
   work to your handlers through it. Nothing in this tutorial calls it.

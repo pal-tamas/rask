@@ -123,10 +123,9 @@ Look at what the scaffold wrote into `Program.cs`:
 
 ```csharp
 builder.Services.AddRaskData<AppDbContext>();
-var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
 builder.Services.AddRaskOutbox<AppDbContext>();
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
+    .UseRaskSqlite(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
 

@@ -14,18 +14,24 @@ installs — so `--no-pwa` takes push with it.
 ## 1. What the scaffold gave you
 
 ```csharp
-var vapidPublicKey = builder.Configuration["WebPush:PublicKey"];
-var vapidPrivateKey = builder.Configuration["WebPush:PrivateKey"];
-if (!string.IsNullOrWhiteSpace(vapidPublicKey) && !string.IsNullOrWhiteSpace(vapidPrivateKey))
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:WebPush:VapidKeys:PublicKey"])
+    && !string.IsNullOrWhiteSpace(builder.Configuration["Rask:WebPush:VapidKeys:PrivateKey"]))
 {
-    builder.Services.AddRaskWebPush(o =>
-    {
-        o.VapidKeys = new VapidKeys(vapidPublicKey, vapidPrivateKey);
-        o.Subject = builder.Configuration["WebPush:Subject"] ?? "mailto:admin@example.com";
-    });
+    builder.Services.AddRaskWebPush();
 }
 
 builder.Services.AddSingleton<PushSubscriptionStore>();
+```
+
+`AddRaskWebPush()` reads `Rask:WebPush` itself — the key pair, and the contact address the scaffold puts in
+`appsettings.json`:
+
+```jsonc
+"Rask": {
+  "WebPush": {
+    "Subject": "mailto:admin@example.com"
+  }
+}
 ```
 
 …plus `Features/Push/PushSubscriptions.cs`: an in-memory store of subscribed browsers and three endpoints —
@@ -48,10 +54,13 @@ Console.WriteLine(keys.PrivateKey);
 ```
 
 ```bash
-dotnet user-secrets set "WebPush:PublicKey"  "<public>"
-dotnet user-secrets set "WebPush:PrivateKey" "<private>"
-dotnet user-secrets set "WebPush:Subject"    "mailto:you@example.com"
+dotnet user-secrets set "Rask:WebPush:VapidKeys:PublicKey"  "<public>"
+dotnet user-secrets set "Rask:WebPush:VapidKeys:PrivateKey" "<private>"
 ```
+
+Change `Rask:WebPush:Subject` in `appsettings.json` to an address you read — it is not a secret. When you
+deploy, the keys go in the environment instead: `Rask__WebPush__VapidKeys__PublicKey` and
+`Rask__WebPush__VapidKeys__PrivateKey`.
 
 The **public** key is handed to the browser to subscribe with. The **private** key signs the request and
 must never be served — which is why `/_push/key` returns only the public one.
