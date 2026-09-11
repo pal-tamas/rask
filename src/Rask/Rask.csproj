@@ -45,6 +45,13 @@
          packages' lib/, so listing it as a nuspec dependency would name a package on no feed. The same
          arrangement Rask.Dashboard and Rask.Mail use, guarded by PackageDependencyTests. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!--
+      The devtools, on both faces. Referenced unconditionally because a package's dependency list cannot
+      depend on the CONSUMER's configuration — restore is configuration-agnostic. What keeps them out of a
+      Release publish is Rask.DevTools.targets, which arrives through buildTransitive/ for exactly this
+      case: an app that names only `Rask`.
+    -->
+    <ProjectReference Include="..\Rask.DevTools\Rask.DevTools.csproj"/>
   </ItemGroup>
 
   <!--

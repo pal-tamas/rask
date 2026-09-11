@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
+  nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
+  the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`
+  meta-package.
+
+  Debug-only is enforced by the build, because a package's dependency list cannot depend on the
+  consumer's configuration. `Rask.DevTools.targets` (shipped in `build/` and `buildTransitive/`) defaults
+  `RaskDevTools` to Debug, carries it into the runtime as the trimmable `Rask.DevTools.IsEnabled` feature
+  switch — so a trimmed Release publish folds every framework branch behind it away — removes the package
+  from a publish that has it off, and then **fails that publish** if any `Rask.DevTools` file or
+  `deps.json` entry is still in the output. The hosts find the devtools by name, so an app without the
+  package, or a Release build, finds nothing and pays nothing.
+
 - **Bearer tokens, opt-in and cookie-first.** `AuthOptions.Bearer` adds a JWT scheme **beside** the
   cookie — never instead of it — for the callers a cookie cannot serve: a native client, a CLI, a
   service-to-service call. A caller asks with `X-Rask-Auth-Mode: bearer` on login and gets the token in
@@ -159,6 +172,11 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **Mounting a second application no longer takes the operator console off the host.**
+  `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
+  `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
+  reporting it. The guard now looks for the console's own mount.
 
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
   right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,
