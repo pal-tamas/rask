@@ -25,6 +25,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
     onChange?: (event: Event, value: number) => void;
     onClose?: () => void;
+    /** MUI's shape: a boolean or a literal — one enum of three values the package accepts. */
+    scrollButtons?: "auto" | true | false;
+    density?: boolean | "sm" | "md";
+    /** A boolean or any string: a union, not an enum of "false" and "true". */
+    wrap?: string | boolean;
     startedAt?: Date;
     tags?: string[];
     swatch?: Swatch;

@@ -646,7 +646,7 @@
                                      LockFile="$(MSBuildProjectDirectory)/package-lock.json"/>
     <CheckExternalPropsSnapshotsTask Condition="'$(_RaskExternalCanExtract)' == 'true' AND '@(_RaskExternalUnreadIsland)' != ''"
                                      Islands="@(_RaskExternalUnreadIsland)"
-                                     Reason="props are read from React, Preact and Solid packages so far"
+                                     Reason="props are read from React, Preact, Solid, Vue and Svelte packages so far"
                                      LockFile="$(MSBuildProjectDirectory)/package-lock.json"/>
   </Target>
 

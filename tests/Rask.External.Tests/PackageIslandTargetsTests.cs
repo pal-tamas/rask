@@ -26,9 +26,9 @@ public sealed class PackageIslandTargetsTests
         "namespace Shop;\n\npublic sealed partial class MuiButton : Rask.External.ReactComponent\n{\n"
         + "    protected override string Module => \"@mui/material#Button\";\n}\n";
 
-    private const string VueIsland =
-        "namespace Shop;\n\npublic sealed partial class Toggle : Rask.External.VueComponent\n{\n"
-        + "    protected override string Module => \"@acme/toggle\";\n}\n";
+    private const string LitIsland =
+        "namespace Shop;\n\npublic sealed partial class Gauge : Rask.External.LitComponent\n{\n"
+        + "    protected override string Module => \"@acme/gauge\";\n}\n";
 
     private const string Snapshot =
         "{\n  \"schema\": 1,\n  \"runtime\": \"react\",\n  \"module\": \"@mui/material\",\n  \"export\": \"Button\",\n"
@@ -85,14 +85,14 @@ public sealed class PackageIslandTargetsTests
     [Fact]
     public async Task A_runtime_whose_packages_are_not_read_yet_is_held_to_its_snapshot_instead()
     {
-        // Extraction is possible here, and still a Vue package island is not sent to the extractor, which would
+        // Extraction is possible here, and still a Lit package island is not sent to the extractor, which would
         // fail it (RASKISLAND007) on every build. It is held to its committed snapshot, which is missing.
         var (exit, output) = await Build(
-            packageJson: true, snapshot: false, "-t:_RaskExternalPackageProps", source: VueIsland, name: "Toggle");
+            packageJson: true, snapshot: false, "-t:_RaskExternalPackageProps", source: LitIsland, name: "Gauge");
 
         Assert.NotEqual(0, exit);
         Assert.Contains("RASKISLAND006", output, StringComparison.Ordinal);
-        Assert.Contains("React, Preact and Solid", output, StringComparison.Ordinal);
+        Assert.Contains("Vue and Svelte packages so far", output, StringComparison.Ordinal);
         Assert.DoesNotContain("RASKISLAND007", output, StringComparison.Ordinal);
     }
 

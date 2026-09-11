@@ -75,9 +75,15 @@ internal static class ExternalBuildPlan
                     $"Island '{island.Name}' names the export '{export}', which is not an identifier.");
             }
 
+            // A dotted export names a member of an export — bits-ui's `Switch.Root` — so the export is bound first
+            // and the component read off it.
+            var dot = export.IndexOf('.');
             var binding = string.Equals(export, "default", StringComparison.Ordinal)
                 ? $"import {runtime.ImportName} from {Literal(specifier)}"
-                : $"import {{ {export} as {runtime.ImportName} }} from {Literal(specifier)}";
+                : dot < 0
+                    ? $"import {{ {export} as {runtime.ImportName} }} from {Literal(specifier)}"
+                    : $"import {{ {export.Substring(0, dot)} as __raskExport }} from {Literal(specifier)}\n"
+                      + $"const {runtime.ImportName} = __raskExport.{export.Substring(dot + 1)}";
 
             return $$"""
                 {{Header}}

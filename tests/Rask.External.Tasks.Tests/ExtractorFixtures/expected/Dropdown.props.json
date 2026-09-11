@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "runtime": "svelte",
+  "module": "fixture-svelte",
+  "export": "Dropdown",
+  "package": {
+    "name": "fixture-svelte",
+    "version": "0.4.0"
+  },
+  "tag": null,
+  "content": "node",
+  "props": [
+    {
+      "name": "label",
+      "required": true,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "open",
+      "required": false,
+      "type": {
+        "kind": "boolean"
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "name": "on:select",
+      "reason": "legacy-event",
+      "detail": "CustomEvent<string>"
+    }
+  ]
+}
