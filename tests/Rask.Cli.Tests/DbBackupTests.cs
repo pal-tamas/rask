@@ -131,7 +131,7 @@ public sealed class DbBackupTests
     public void The_database_is_found_from_the_apps_own_connection_string()
     {
         var fs = new FakeFileSystem();
-        fs.Seed("/app/appsettings.json", """{"ConnectionStrings":{"App":"Data Source=data/shop.db"}}""");
+        fs.Seed("/app/appsettings.json", """{"Rask":{"ConnectionStrings":{"App":"Data Source=data/shop.db"}}}""");
 
         var (path, error) = SqliteDatabaseLocator.Locate(fs, "/app");
 
@@ -140,13 +140,51 @@ public sealed class DbBackupTests
     }
 
     [Fact]
+    public void A_scaffolded_settings_file_with_comments_is_read()
+    {
+        // Every scaffolded appsettings.json is JSONC — commented, trailing commas — and .NET reads it that way.
+        // Parsed strictly, it failed and the locator quietly backed up app.db whatever the file named.
+        var fs = new FakeFileSystem();
+        fs.Seed("/app/appsettings.json", """
+            {
+              // Rask's own settings.
+              "Rask": {
+                "ConnectionStrings": {
+                  // A local file while developing.
+                  "App": "Data Source=data/shop.db",
+                },
+              },
+            }
+            """);
+
+        var (path, error) = SqliteDatabaseLocator.Locate(fs, "/app");
+
+        Assert.Null(error);
+        Assert.Equal(Path.GetFullPath(Path.Combine("/app", "data/shop.db")), path);
+    }
+
+    [Fact]
+    public void A_top_level_connection_string_is_not_read()
+    {
+        // The app no longer reads ConnectionStrings:App, so a backup taken from it would copy a database the app
+        // is not using.
+        var fs = new FakeFileSystem();
+        fs.Seed("/app/appsettings.json", """{"ConnectionStrings":{"App":"Data Source=data/shop.db"}}""");
+
+        var (path, _) = SqliteDatabaseLocator.Locate(fs, "/app");
+
+        Assert.EndsWith("app.db", path!, StringComparison.Ordinal);
+        Assert.DoesNotContain("shop.db", path!, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_environment_override_wins_over_the_base_settings()
     {
         // Configuration's own precedence: the Development override is the database you have locally, and
         // the one you mean when you ask for a backup.
         var fs = new FakeFileSystem();
-        fs.Seed("/app/appsettings.json", """{"ConnectionStrings":{"App":"Data Source=prod.db"}}""");
-        fs.Seed("/app/appsettings.Development.json", """{"ConnectionStrings":{"App":"Data Source=dev.db"}}""");
+        fs.Seed("/app/appsettings.json", """{"Rask":{"ConnectionStrings":{"App":"Data Source=prod.db"}}}""");
+        fs.Seed("/app/appsettings.Development.json", """{"Rask":{"ConnectionStrings":{"App":"Data Source=dev.db"}}}""");
 
         var (path, _) = SqliteDatabaseLocator.Locate(fs, "/app");
 
@@ -156,8 +194,8 @@ public sealed class DbBackupTests
     [Fact]
     public void An_app_with_no_configured_string_falls_back_to_the_scaffolded_default()
     {
-        // The generated Program.cs reads `GetConnectionString("App") ?? "Data Source=app.db"`, so an app
-        // that never configured one still has a database — and it must still be backed up.
+        // A scaffolded appsettings.json starts at `Data Source=app.db`, so an app whose settings name no database
+        // still has that one — and it must still be backed up.
         var (path, error) = SqliteDatabaseLocator.Locate(new FakeFileSystem(), "/app");
 
         Assert.Null(error);
@@ -168,7 +206,7 @@ public sealed class DbBackupTests
     public void A_non_file_data_source_is_refused_rather_than_guessed_at()
     {
         var fs = new FakeFileSystem();
-        fs.Seed("/app/appsettings.json", """{"ConnectionStrings":{"App":"Data Source=:memory:"}}""");
+        fs.Seed("/app/appsettings.json", """{"Rask":{"ConnectionStrings":{"App":"Data Source=:memory:"}}}""");
 
         var (path, error) = SqliteDatabaseLocator.Locate(fs, "/app");
 

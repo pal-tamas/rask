@@ -48,7 +48,7 @@ internal sealed class RawNonBlockingScenario() : WriteScenario("raw-nonblocking"
         // Its own ServiceCollection: AddRaskSqlite is idempotent per collection, so a shared one would
         // silently bind every arm to the first arm's database.
         var services = new ServiceCollection();
-        services.AddRaskSqlite(Db.ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); });
+        services.AddRaskSqliteAt(Db.ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); });
         _provider = services.BuildServiceProvider();
         _factory = _provider.GetRequiredService<ISqlite>();
         return Task.CompletedTask;
@@ -141,10 +141,10 @@ internal sealed class EfScenario : WriteScenario
         // negative control.
         var builder = new DbContextOptionsBuilder<WritesDbContext>();
         _options = _retry
-            ? builder.UseRaskSqlite(
+            ? builder.UseRaskSqliteAt(
                 Db.ConnectionString,
                 o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); }).Options
-            : builder.UseRaskSqlite(Db.ConnectionString).Options;
+            : builder.UseRaskSqliteAt(Db.ConnectionString).Options;
 
         return Task.CompletedTask;
     }

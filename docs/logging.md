@@ -28,33 +28,52 @@ restart. This is the other half — the log you can still read tomorrow, and sea
 
 ```csharp
 // Program.cs
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+builder.Services.AddRaskLogging();
 ```
 
-That is the whole setup. The schema is created on first use, so **there is no migration to add** — unlike the
-other database-backed pillars, this one doesn't touch your `DbContext`.
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "ConnectionStrings": {
+      "Logs": "Data Source=logs.db"
+    }
+  }
+}
+```
 
-`rask new MyApp` scaffolds exactly the line above — the log store is on by default (`--no-logs` leaves it out).
+That is the whole setup. The store opens `Rask:ConnectionStrings:Logs`, and a missing one is an error naming
+the key to set. The schema is created on first use, so **there is no migration to add** — unlike the other
+database-backed pillars, this one doesn't touch your `DbContext`.
+
+`rask new MyApp` scaffolds exactly the lines above — the log store is on by default (`--no-logs` leaves it out).
 
 ### Options
 
-```csharp
-builder.Services.AddRaskLogging(connectionString, o =>
-{
-    o.MinimumLevel = LogLevel.Warning;       // a floor, not an override — see below
-    o.Retention    = TimeSpan.FromDays(30);  // TimeSpan.Zero keeps entries forever
-    o.MaxRows      = 250_000;                // 0 removes the cap
-    o.FlushInterval = TimeSpan.FromSeconds(1);
-    o.BatchSize     = 500;
-    o.QueueCapacity = 10_000;
-    o.ExcludedCategories.Add("Microsoft.AspNetCore.");
+Every option is `Rask:Logging` in `appsettings.json`:
 
-    o.CaptureScopes        = true;  // store ambient ILogger.BeginScope state (default)
-    o.MaxScopeValues       = 16;    // per entry
-    o.MaxScopeValueLength  = 256;   // per value
-});
+```jsonc
+{
+  "Rask": {
+    "Logging": {
+      "MinimumLevel": "Warning",        // a floor, not an override — see below
+      "Retention": "30.00:00:00",       // "00:00:00" keeps entries forever
+      "MaxRows": 250000,                // 0 removes the cap
+      "FlushInterval": "00:00:01",
+      "BatchSize": 500,
+      "QueueCapacity": 10000,
+      "ExcludedCategories": [ "Microsoft.AspNetCore." ],
+
+      "CaptureScopes": true,            // store ambient ILogger.BeginScope state (default)
+      "MaxScopeValues": 16,             // per entry
+      "MaxScopeValueLength": 256        // per value
+    }
+  }
+}
 ```
+
+`ExcludedCategories` is appended to rather than replaced. A callback — `AddRaskLogging(o => …)` — runs after
+the section and wins.
 
 ### Scopes
 
@@ -89,9 +108,9 @@ will contain. Two levers, and the first is usually the right one:
 "Logging": { "LogLevel": { "Microsoft.EntityFrameworkCore.Database.Command": "Warning" } }
 ```
 
-```csharp
+```jsonc
 // …or skip a category for this sink only, leaving your console output alone
-o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database");
+"Rask": { "Logging": { "ExcludedCategories": [ "Microsoft.EntityFrameworkCore.Database" ] } }
 ```
 
 > **`MinimumLevel` is a floor, not an override.** The logging pipeline applies your `Logging:LogLevel`
@@ -188,7 +207,7 @@ dotnet-counters monitor --counters Rask.Logging
 
 ## Deploying
 
-`rask deploy` sets `ConnectionStrings__Logs=Data Source=/data/logs.db`, on the same named volume as the
+`rask deploy` sets `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db`, on the same named volume as the
 application database — without it the log would land in the container's writable layer and be destroyed by the
 very restart it exists to survive.
 

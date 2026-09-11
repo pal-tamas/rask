@@ -1,29 +1,34 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Rask.Cli;
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
 
-public sealed class DeployCommandTests
+public sealed partial class DeployCommandTests
 {
     private const string WorkingDir = "/proj";
 
     [Fact]
-    public void Every_example_naming_a_connection_string_uses_the_key_the_app_reads()
+    public void No_example_names_a_connection_string_key_the_app_no_longer_reads()
     {
-        // The scaffolded app reads ConnectionStrings:App, and BuildRunArguments injects
-        // ConnectionStrings__App. An example naming anything else is copy-pasteable and silently wrong —
-        // the app starts on its default database and nobody finds out until the data is in the wrong place.
+        // The app reads Rask:ConnectionStrings:<name>, and BuildRunArguments injects Rask__ConnectionStrings__App
+        // (DeployDatabaseTests pins that). A top-level ConnectionStrings__App in an example is copy-pasteable and
+        // silently ignored — the app starts on its default database and nobody finds out until the data is in
+        // the wrong place. A plain Contains("ConnectionStrings__App") would accept exactly that, so the check is
+        // for the prefix being absent.
         var command = new DeployCommand(new StringConsole(), new FakeFileSystem(), new FakeProcessRunner(), WorkingDir);
 
-        var wrong = command.Examples
-            .Where(example => example.Contains("ConnectionStrings__", StringComparison.Ordinal)
-                && !example.Contains("ConnectionStrings__App", StringComparison.Ordinal))
-            .ToArray();
+        var wrong = command.Examples.Where(example => UnprefixedConnectionString().IsMatch(example)).ToArray();
 
         Assert.Empty(wrong);
+        Assert.Matches(UnprefixedConnectionString(), "rask deploy --env ConnectionStrings__App=Data Source=x.db");
+        Assert.DoesNotMatch(UnprefixedConnectionString(), "rask deploy --env Rask__ConnectionStrings__App=Data Source=x.db");
     }
+
+    [GeneratedRegex("(?<!Rask__)ConnectionStrings__")]
+    private static partial Regex UnprefixedConnectionString();
 
     // ── Pure builders ───────────────────────────────────────────────────────────────────────────────
 
@@ -54,8 +59,8 @@ public sealed class DeployCommandTests
             "--label", "rask.port=8080",
             // The environment, DB volume and connection string all come before the user env, so --env wins.
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
-            "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
-            "-e", "ConnectionStrings__Logs=Data Source=/data/logs.db",
+            "-v", "shop-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db",
+            "-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db",
             "-e", "A=1", "shop:current",
         ], args);
     }
@@ -74,8 +79,8 @@ public sealed class DeployCommandTests
             // Labelled but with no rask.domain, so the host inventory sees it and the proxy doesn't.
             "--label", "rask.managed=true", "--label", "rask.app=shop", "--label", "rask.port=8080",
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
-            "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
-            "-e", "ConnectionStrings__Logs=Data Source=/data/logs.db",
+            "-v", "shop-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db",
+            "-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db",
             "shop:current",
         ], args);
     }

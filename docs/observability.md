@@ -56,8 +56,7 @@ single-box deployment usually means the container's stdout — gone with the nex
 [`Rask.Logging`](logging.md) to keep them:
 
 ```csharp
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+builder.Services.AddRaskLogging();   // a SQLite file of its own, at Rask:ConnectionStrings:Logs
 ```
 
 It registers an `ILoggerProvider`, so it captures exactly what every other sink sees — the categories above
@@ -173,7 +172,7 @@ above (or any `ActivityListener`).
 Register them on your health-checks pipeline:
 
 ```csharp
-builder.Services.AddRask(o => o.MaxSessions = 1000);
+builder.Services.AddRask();   // "Rask": { "Live": { "MaxSessions": 1000 } } in appsettings.json
 builder.Services.AddHealthChecks().AddRaskLiveSessions();
 // ...
 app.MapHealthChecks("/health");

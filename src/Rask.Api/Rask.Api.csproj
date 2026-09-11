@@ -24,6 +24,16 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
+  <!-- ApiOptions binds Rask:Api. The configuration binding source generator writes that bind at compile
+       time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+  </ItemGroup>
+
   <!--
     The client generator, referenced as an analyzer (no runtime assembly reference). It ships with the
     HOSTING package rather than with Rask.Api.Client, and that is load-bearing: it has to run in the

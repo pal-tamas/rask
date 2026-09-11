@@ -27,16 +27,9 @@ dotnet add package Rask.SQLite.Litestream
 ## Use
 
 ```csharp
-var dbPath = "/data/app.db";   // local disk — see the notes on network filesystems
+builder.Services.AddRaskSqliteLitestream();
 
-builder.Services.AddRaskSqliteLitestream(o =>
-{
-    o.DatabasePath = dbPath;
-    o.ReplicaUrl = "s3://my-bucket/app";     // or gcs://, abs:// (Azure Blob), file:///backups/app
-    // o.ExecutablePath = "/usr/local/bin/litestream";  // if it isn't on PATH
-});
-
-builder.Services.AddDbContextFactory<AppDb>(o => o.UseRaskSqlite($"Data Source={dbPath}"));
+builder.Services.AddDbContextFactory<AppDb>((sp, o) => o.UseRaskSqlite(sp));
 
 var app = builder.Build();
 
@@ -45,6 +38,25 @@ await app.Services.RestoreSqliteFromLitestreamAsync();
 
 // ... EnsureCreated / migrate / seed, then app.Run();
 ```
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "ConnectionStrings": {
+      "App": "Data Source=/data/app.db"      // local disk — see the notes on network filesystems
+    },
+    "Litestream": {
+      "ReplicaUrl": "s3://my-bucket/app"     // or gcs://, abs:// (Azure Blob), file:///backups/app
+      // "ExecutablePath": "/usr/local/bin/litestream"   // if it isn't on PATH
+    }
+  }
+}
+```
+
+The replicated database defaults to the file behind `Rask:ConnectionStrings:App`, and the replica usually
+arrives from the environment as `Rask__Litestream__ReplicaUrl`. A callback — `AddRaskSqliteLitestream(o => …)`
+— runs after the `Rask:Litestream` section and wins.
 
 Continuous replication then runs automatically as a hosted service until the app stops; on shutdown
 it interrupts `litestream` and lets it flush (see `ShutdownGracePeriod`).
@@ -65,9 +77,9 @@ it interrupts `litestream` and lets it flush (see `ShutdownGracePeriod`).
   writing to the wrong prefix, or a bucket whose credentials were rotated to read-only, keeps
   `IsReplicating` true right up until the restore. Turn on `Verification` to prove the round trip:
 
-  ```csharp
-  o.Verification.Enabled = true;              // off by default — see the cost note below
-  o.Verification.Interval = TimeSpan.FromHours(24);
+  ```jsonc
+  "Rask": { "Litestream": { "Verification": { "Enabled": true, "Interval": "1.00:00:00" } } }
+  // Enabled is off by default — see the cost note below
   ```
 
   Each pass writes a sentinel row, waits for replication to carry it, restores to a temp path and checks
