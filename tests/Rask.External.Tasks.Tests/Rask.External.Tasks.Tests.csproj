@@ -27,6 +27,8 @@
     -->
     <PackageReference Include="Microsoft.Build.Utilities.Core"/>
     <PackageReference Include="xunit"/>
+    <!-- PropsExtractorTests runs the extractor under node and skips, by name, where node is absent. -->
+    <PackageReference Include="Xunit.SkippableFact"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -39,6 +41,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.External.Tasks\Rask.External.Tasks.csproj"/>
+    <!-- For PropsExtractorTests: the pinned compiler is fetched the way the build fetches it. -->
+    <ProjectReference Include="..\..\src\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"/>
+    <!-- Build order only: Rask.External bundles build/rask-extract-props.mjs, which PropsExtractorTests runs. -->
+    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
   </ItemGroup>
 
 </Project>

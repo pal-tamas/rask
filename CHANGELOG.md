@@ -83,6 +83,20 @@ them until tagged releases begin.
   and any prop that could not be generated. See
   [Using a package component directly](docs/islands.md#using-a-package-component-directly).
 
+- **`dotnet build` writes and refreshes a package island's `props.json` from the installed package.** Before the
+  compile the build finds the classes whose `Module` names a package, installs, and reads each component's props
+  with the TypeScript compiler Rask pins (`RaskExternalTypeScriptVersion`, 6.0.3, fetched once into
+  `~/.rask/typescript` and never the project's own copy) — React, Preact and Solid packages for now; a Vue,
+  Svelte, Lit or Angular package island compiles from a snapshot committed by hand, and a Solid package island
+  beside React or Preact islands is refused by name, since Solid's plugin cannot be confined to it. A changed
+  snapshot is rewritten and announced with its version move, so it arrives in review; a build that cannot read
+  the package compiles from the committed file. `RaskExternalPropsLocked` (on under `ContinuousIntegrationBuild`)
+  turns drift into an error instead of a rewrite. The entry imports the package by its bare specifier (a `#Export`
+  as a named import), and a React or Preact app of package islands is no longer asked to install the runtime's
+  Vite plugin. RASKISLAND005–010 name a bad declaration, a missing snapshot, a package or export that could not
+  be read, drift on a locked build, an island the scan missed, and a snapshot from another version than
+  `package-lock.json` pins. See [The build keeps it current](docs/islands.md#the-build-keeps-it-current).
+
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
   `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
@@ -267,16 +281,6 @@ them until tagged releases begin.
 
 ### Changed
 
-- **rask.sh and the README lead with the batteries, not a benchmark against Blazor.** The byte-for-byte
-  "Rask vs Blazor" table that sat directly under the landing page's hero is gone, and so is the README's
-  paragraph of head-to-head numbers. The two battery sections — what is in the box, and the whole
-  DB-backed back end — now come straight after the hero, and the README gains a `## Batteries included`
-  list linking each pillar's guide. The front doors (landing page, README, NUGET.md, llms.txt) also say
-  what Rask is to the frameworks it hosts: a superset, not a rival — React, Vue, Svelte, Angular and Lit
-  islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
-  ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
-  gate are unchanged.
-
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
   `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
@@ -453,6 +457,16 @@ them until tagged releases begin.
   sibling selector at all. Both are in place, and they are complementary rather than alternatives — the
   `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
   makes the kit's own messages independent of it.
+
+- **rask.sh and the README lead with the batteries, not a benchmark against Blazor.** The byte-for-byte
+  "Rask vs Blazor" table that sat directly under the landing page's hero is gone, and so is the README's
+  paragraph of head-to-head numbers. The two battery sections — what is in the box, and the whole
+  DB-backed back end — now come straight after the hero, and the README gains a `## Batteries included`
+  list linking each pillar's guide. The front doors (landing page, README, NUGET.md, llms.txt) also say
+  what Rask is to the frameworks it hosts: a superset, not a rival — React, Vue, Svelte, Angular and Lit
+  islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
+  ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
+  gate are unchanged.
 
 ### Fixed
 

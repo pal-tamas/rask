@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "runtime": "react",
+  "module": "fixture-button",
+  "export": "Badge",
+  "package": {
+    "name": "fixture-button",
+    "version": "1.2.3"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "max",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "number",
+        "values": [
+          9,
+          99
+        ]
+      }
+    },
+    {
+      "name": "tone",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "info",
+          "warn"
+        ]
+      }
+    }
+  ],
+  "skipped": []
+}
