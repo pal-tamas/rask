@@ -36,7 +36,7 @@ dotnet add package Rask.SQLite
 ```
 
 ```csharp
-builder.Services.AddRaskSqlite($"Data Source={dbPath}");
+builder.Services.AddRaskSqlite();
 
 // inject ISqlite, then:
 await using var connection = await factory.CreateOpenAsync(ct);   // pragmas already applied
@@ -50,9 +50,26 @@ await using var connection = await factory.CreateOpenAsync(ct);   // pragmas alr
 the pragma interceptor:
 
 ```csharp
-builder.Services.AddDbContextFactory<AppDb>(o =>
-    o.UseRaskSqlite($"Data Source={dbPath}"));
+builder.Services.AddDbContextFactory<AppDb>((sp, o) => o.UseRaskSqlite(sp));
 ```
+
+Both read the connection string from `Rask:ConnectionStrings:App` — which is why `UseRaskSqlite` takes the
+service provider — and the pragma settings below from `Rask:Sqlite`:
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "ConnectionStrings": {
+      "App": "Data Source=app.db"
+    }
+  }
+}
+```
+
+A missing connection string is an error naming the key to set (`Rask:ConnectionStrings:App`, or
+`Rask__ConnectionStrings__App` in the environment), never a file quietly opened wherever the process happens
+to be running.
 
 ## The defaults
 
@@ -72,10 +89,25 @@ The defaults are the battle-tested production set for a web-facing SQLite databa
 | `cell_size_check` | `ON` | catches a corrupt b-tree page as it is read, instead of letting the damage reach your results |
 | `analysis_limit` | `400` | bounds `PRAGMA optimize` to a few milliseconds per index |
 
-Override any of them, or set one to `null` to leave SQLite's own default:
+Override any of them in `Rask:Sqlite`:
+
+```jsonc
+{
+  "Rask": {
+    "Sqlite": {
+      "BusyTimeout": "00:00:10",
+      "CacheSize": -20000,
+      "TempStore": "Memory"
+    }
+  }
+}
+```
+
+A callback runs after the section, so it wins — and it is where you set one to `null` to leave SQLite's own
+default (`AddRaskSqlite(p => …)` takes the same callback):
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", p =>
+o.UseRaskSqlite(sp, p =>
 {
     p.BusyTimeout = TimeSpan.FromSeconds(10);
     p.CacheSize = -20_000;              // negative ⇒ KiB, so 20 MB
@@ -118,9 +150,17 @@ index, or a silently wrong result. EF Core's model keeps your C# honest, but not
 rejected at the source instead. EF Core has no support for them, so Rask supplies a migrations SQL
 generator:
 
-```csharp
-o.UseRaskSqlite(connectionString, o => o.StrictTables = true);
+```jsonc
+{
+  "Rask": {
+    "Sqlite": {
+      "StrictTables": true
+    }
+  }
+}
 ```
+
+(or `o.UseRaskSqlite(sp, o => o.StrictTables = true)` in code)
 
 ```sql
 CREATE TABLE "Products" (
@@ -144,8 +184,8 @@ only the type. Use `ANY` to exempt a single column.
 
 **It is off by default, and on for new apps.** Strictness is a property of a table, decided when the
 table is created — so turning it on affects tables created from then on, needs no migration, and
-converting an existing table means rebuilding it. `rask new` therefore scaffolds it on, where it
-is free; an existing database is the case where you have to weigh it.
+converting an existing table means rebuilding it. `rask new` therefore scaffolds it on in
+`appsettings.json`, and a `RaskApp` defaults it on, where it is free; an existing database is the case where you have to weigh it.
 
 `decimal` is unaffected: it is `TEXT` in SQLite, which STRICT allows, and it still orders through the
 [invariant collation](data-access.md#does-sqlite-support-decimal).
@@ -197,14 +237,25 @@ await factory.InImmediateTransactionAsync(async (connection, ct) =>
 });
 ```
 
-Tune the retry when registering (defaults: 5 s timeout, 1 ms interval):
+Tune the retry in `Rask:Sqlite:Retry` (defaults: 5 s timeout, 1 ms interval):
+
+```jsonc
+{
+  "Rask": {
+    "Sqlite": {
+      "Retry": {
+        "Timeout": "00:00:10",
+        "PollInterval": "00:00:00.001"
+      }
+    }
+  }
+}
+```
+
+or in code, which wins over the section:
 
 ```csharp
-builder.Services.AddRaskSqlite($"Data Source={dbPath}",
-    o => { o.Retry.Enabled = true; {
-        o.Retry.Timeout = TimeSpan.FromSeconds(10; });
-        r.PollInterval = TimeSpan.FromMilliseconds(1);
-    });
+builder.Services.AddRaskSqlite(o => o.Retry.Timeout = TimeSpan.FromSeconds(10));
 ```
 
 For a transaction you drive yourself, `connection.BeginImmediate()` gives you a `SqliteTransaction`
@@ -243,11 +294,12 @@ after which the loss is surfaced as a `SqliteException` with SQLite's own `SQLIT
 
 ### Entity Framework Core — opt-in retry strategy
 
-Pass `configureRetry` (even empty) to register a fair-interval execution strategy so `SaveChanges`
-and queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED`:
+Set `Retry.Enabled` to register a fair-interval execution strategy so `SaveChanges` and queries retry on
+`SQLITE_BUSY`/`SQLITE_LOCKED` — `"Rask": { "Sqlite": { "Retry": { "Enabled": true } } }` in
+`appsettings.json`, or in code:
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", o => o.Retry.Enabled = true);
+o.UseRaskSqlite(sp, o => o.Retry.Enabled = true);
 ```
 
 Enabling it turns SQLite's native busy handler off (`busy_timeout=0`) and lowers
@@ -452,16 +504,9 @@ container to orchestrate:
 > Included in the [`Rask`](../README.md) package — nothing to install.
 
 ```csharp
-var dbPath = "/data/app.db";
+builder.Services.AddRaskSqliteLitestream();
 
-builder.Services.AddRaskSqliteLitestream(o =>
-{
-    o.DatabasePath = dbPath;
-    o.ReplicaUrl = "s3://my-bucket/app";     // or gcs://, abs:// (Azure Blob), file:///backups/app
-    // o.ExecutablePath = "/usr/local/bin/litestream";  // if it isn't on PATH
-});
-
-builder.Services.AddDbContextFactory<AppDb>(o => o.UseRaskSqlite($"Data Source={dbPath}"));
+builder.Services.AddDbContextFactory<AppDb>((sp, o) => o.UseRaskSqlite(sp));
 
 var app = builder.Build();
 
@@ -471,6 +516,26 @@ await app.Services.RestoreSqliteFromLitestreamAsync();
 // ... EnsureCreated / migrate / seed ...
 app.Run();
 ```
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "ConnectionStrings": {
+      "App": "Data Source=/data/app.db"
+    },
+    "Litestream": {
+      "ReplicaUrl": "s3://my-bucket/app"     // or gcs://, abs:// (Azure Blob), file:///backups/app
+      // "ExecutablePath": "/usr/local/bin/litestream"   // if it isn't on PATH
+    }
+  }
+}
+```
+
+The database it replicates defaults to the file behind `Rask:ConnectionStrings:App`; set
+`Rask:Litestream:DatabasePath` only to replicate a different one. Where the replica lives is usually the
+deployment's decision rather than the repository's, so it tends to arrive as `Rask__Litestream__ReplicaUrl`
+in the environment. A callback — `AddRaskSqliteLitestream(o => …)` — runs after the section and wins.
 
 `AddRaskSqliteLitestream` registers a hosted `BackgroundService` that runs `litestream replicate` for
 the lifetime of the process and stops it on shutdown — sending a graceful interrupt so the last WAL
@@ -511,15 +576,18 @@ Verification proves the round trip instead of assuming it: write a sentinel into
 for replication to carry it, restore the replica **to a temporary path**, and check the sentinel came
 back.
 
-```csharp
-builder.Services.AddRaskSqliteLitestream(o =>
+```jsonc
 {
-    o.DatabasePath = dbPath;
-    o.ReplicaUrl = "s3://my-bucket/app";
-
-    o.Verification.Enabled = true;                      // off by default — see the cost note
-    o.Verification.Interval = TimeSpan.FromHours(24);   // a daily audit, not a health poll
-});
+  "Rask": {
+    "Litestream": {
+      "ReplicaUrl": "s3://my-bucket/app",
+      "Verification": {
+        "Enabled": true,              // off by default — see the cost note
+        "Interval": "1.00:00:00"      // a daily audit, not a health poll
+      }
+    }
+  }
+}
 ```
 
 `status.Verification` is `null` until a pass has run — which means *nobody has checked*, not *the backup
@@ -616,15 +684,25 @@ last night's database." The **`Rask.SQLite.Snapshots`** package does exactly tha
 > ```
 
 ```csharp
-builder.Services.AddRaskSqliteSnapshots(o =>
-{
-    o.DatabasePath = "/data/app.db";
-    o.DestinationDirectory = "/backups";
-    o.Interval = TimeSpan.FromHours(6);
-    o.Retain = 14;                  // keep the 14 newest, prune the rest
-    o.SnapshotOnStartup = true;     // also snapshot at boot
-});
+builder.Services.AddRaskSqliteSnapshots();
 ```
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "Snapshots": {
+      "DestinationDirectory": "/backups",
+      "Interval": "06:00:00",
+      "Retain": 14,                 // keep the 14 newest, prune the rest
+      "SnapshotOnStartup": true     // also snapshot at boot
+    }
+  }
+}
+```
+
+It snapshots the database behind `Rask:ConnectionStrings:App` unless `DatabasePath` names another, and a
+callback — `AddRaskSqliteSnapshots(o => …)` — runs after the section and wins.
 
 Each snapshot is a complete standalone database (`app-20260714-030000000.db`). Need one on demand — say,
 right before a risky migration? Inject `ISqliteSnapshotter` and `await snapshotter.SnapshotAsync(ct)`.

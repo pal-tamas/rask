@@ -402,10 +402,10 @@ public static class GuideCatalog
             SearchTitle = ".NET metrics, tracing and health checks",
             Description = "Monitor a .NET web app in production with structured logging, Meter metrics, ActivitySource tracing and health checks, ready to export via OpenTelemetry.",
         },
-        new("configuration", "Configuration", "App configuration and settings.", "Integration")
+        new("configuration", "Configuration", "Every setting, under Rask in appsettings.json.", "Integration")
         {
-            SearchTitle = "Configuring runtime and WebSocket server options",
-            Description = "Configure shared runtime and server-only options in code or appsettings.json: WebSocket limits, session grace periods, reconnect, uploads and MaxSessions.",
+            SearchTitle = "Configuring a .NET web app from appsettings.json",
+            Description = "Configure every Rask package from appsettings.json: the Rask section each one reads, overriding it with environment variables or code, and startup validation.",
         },
 
         // ---- Mobile & devices ----

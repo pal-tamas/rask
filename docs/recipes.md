@@ -137,8 +137,8 @@ modelBuilder.AddRaskOutbox();                                        // then: ra
 `busy_timeout` on every open). Add Litestream for continuous off-box backup.
 
 ```csharp
-.UseRaskSqlite("Data Source=app.db")                                // was .UseSqlite("Data Source=app.db")
-builder.Services.AddRaskSqliteLitestream(o => { /* S3/replica … */ });
+.UseRaskSqlite(sp)                         // was .UseSqlite("Data Source=app.db"); reads Rask:ConnectionStrings:App
+builder.Services.AddRaskSqliteLitestream();   // reads Rask:Litestream — set ReplicaUrl to turn it on
 ```
 
 → Reference: [production SQLite](sqlite.md) · Learn it: [Tutorial Ch 8](tutorial/08-production-sqlite.md)

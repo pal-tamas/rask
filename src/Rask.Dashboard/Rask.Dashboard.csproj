@@ -68,9 +68,23 @@
     <!-- The dashboard defines its own authorization policy default, so it references authorization
          directly rather than relying on Rask.Core's (PrivateAssets) transitive reference. -->
     <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
+    <!-- RaskDashboardOptions binds Rask:Dashboard. Named here because this package takes no FrameworkReference. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Options"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+  </ItemGroup>
+
+  <!-- The configuration binding source generator writes the Rask:Dashboard bind at compile time, so no
+       reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
 
   <!--
     THE DASHBOARD'S OWN STYLESHEET, compiled here rather than by the consuming app.

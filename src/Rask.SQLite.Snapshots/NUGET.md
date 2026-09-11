@@ -19,15 +19,25 @@ dotnet add package Rask.SQLite.Snapshots
 ## Use
 
 ```csharp
-builder.Services.AddRaskSqliteSnapshots(o =>
-{
-    o.DatabasePath = "/data/app.db";
-    o.DestinationDirectory = "/backups";
-    o.Interval = TimeSpan.FromHours(6);
-    o.Retain = 14;                  // keep the 14 newest
-    o.SnapshotOnStartup = true;     // also take one at boot
-});
+builder.Services.AddRaskSqliteSnapshots();
 ```
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "Snapshots": {
+      "DestinationDirectory": "/backups",
+      "Interval": "06:00:00",
+      "Retain": 14,                 // keep the 14 newest
+      "SnapshotOnStartup": true     // also take one at boot
+    }
+  }
+}
+```
+
+It snapshots the database behind `Rask:ConnectionStrings:App` unless `DatabasePath` names another. A
+callback — `AddRaskSqliteSnapshots(o => …)` — runs after the `Rask:Snapshots` section and wins.
 
 Snapshots land as `app-20260714-030000000.db` — each a complete, standalone SQLite database you can
 open, copy or archive.

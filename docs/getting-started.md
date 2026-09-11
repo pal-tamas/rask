@@ -131,6 +131,13 @@ WASM templates differ mainly in `Program.cs`):
   for them rather than an ordering rule, since routing matches on precedence and any route you write is
   more specific than Rask's catch-all.
 
+  **Settings are not code.** A From address, a connection string, a session cap — every Rask setting lives
+  in `appsettings.json` under `Rask`, which each battery reads for itself (`Rask:Mail:From`), and an
+  environment variable overrides any of them with double underscores (`Rask__Mail__From`). A `Configure`
+  callback like the one above runs after configuration and wins. Until you set anything, `RaskApp` boots on
+  development defaults — a local `app.db`, `no-reply@example.com` — that every one of those sources
+  overrides. See [Configuration](configuration.md).
+
 - **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.
   `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`

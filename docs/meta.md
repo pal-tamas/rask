@@ -281,6 +281,11 @@ builder.Services.AddRaskMeta(o =>
 });
 ```
 
+Both can equally be `Rask:Meta` in `appsettings.json` — `"Framework": "nextjs"` takes the same names as
+`<RaskMetaFramework>` (`nuxt`, `nextjs`, `tanstack-start`, `solidstart`, `sveltekit`, `analog`). Precedence,
+lowest first: what the build baked in, the `Rask:Meta` section, the callback, and finally a `rask dev`
+session's dev server.
+
 Point it at the loopback address this host is listening on and an SSR dispatch never leaves the
 container. It is a configured value rather than one derived from the incoming request, and
 deliberately so: a header an attacker can influence, turned into the destination of a request that

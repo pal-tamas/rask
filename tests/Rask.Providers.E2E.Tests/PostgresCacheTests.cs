@@ -39,7 +39,7 @@ public sealed class PostgresCacheTests : IAsyncLifetime
 
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDbContextFactory<CacheDbContext>(o => o.UseRaskPostgres(Postgres.Required));
+        services.AddDbContextFactory<CacheDbContext>(o => o.UseRaskPostgresAt(Postgres.Required));
         services.AddRaskCache<CacheDbContext>();
         _provider = services.BuildServiceProvider();
 

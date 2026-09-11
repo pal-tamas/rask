@@ -84,8 +84,8 @@ builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ }); modelBuil
 // the outbox claims domain-event delivery on its own — AddRaskData stays bare, in any order
 
 // production SQLite — a drop-in for .UseSqlite that installs the pragma interceptor:
-.UseRaskSqlite("Data Source=app.db")
-builder.Services.AddRaskSqliteLitestream(o => { /* off-box backup */ });
+.UseRaskSqlite(sp)                            // in AddDbContextFactory((sp, o) => o…); reads Rask:ConnectionStrings:App
+builder.Services.AddRaskSqliteLitestream();   // off-box backup; reads Rask:Litestream
 ```
 
 After any `modelBuilder.AddRask…` line: `rask db add <Name>` → `rask db update`.

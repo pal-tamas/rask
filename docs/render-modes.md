@@ -14,17 +14,26 @@ Every rung is automatic — a page climbs as far as it needs to and no further, 
 to be set for an app to work. The switches are a **ceiling**, for an app that wants a rung it will
 never use turned off rather than merely unused:
 
-```csharp
-builder.Services.AddRask(configureServer: o =>
+```jsonc
+// appsettings.json
 {
-    o.RenderModes.Static = true;                 // serve a page needing nothing live as a document
-    o.RenderModes.ServerInteractivity = true;    // the WebSocket (default)
-    o.RenderModes.Streaming = false;             // not implemented yet
-    o.RenderModes.Wasm = false;                  // move eligible pages into the browser
-    o.RenderModes.WasmBundle = "/main.js";       // where the bundle's boot module is served
-    o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(5);
-});
+  "Rask": {
+    "Server": {
+      "RenderModes": {
+        "Static": true,                  // serve a page needing nothing live as a document
+        "ServerInteractivity": true,     // the WebSocket (default)
+        "Streaming": false,              // not implemented yet
+        "Wasm": false,                   // move eligible pages into the browser
+        "WasmBundle": "/main.js",        // where the bundle's boot module is served
+        "QuiescenceTimeout": "00:00:05"
+      }
+    }
+  }
+}
 ```
+
+Each is also an environment variable (`Rask__Server__RenderModes__Static=true`), and
+`AddRask(configureServer: o => o.RenderModes.Static = true)` still works, running after the section.
 
 Defaults are today's behaviour exactly: server-interactive, no static pages, no streaming, no browser
 runtime. An app that configures nothing notices nothing.
@@ -87,8 +96,13 @@ parallel project whose only job is to compile the same files again:
 </PropertyGroup>
 ```
 
+```jsonc
+// appsettings.json
+{ "Rask": { "Server": { "RenderModes": { "Wasm": true } } } }
+```
+
 ```csharp
-builder.Services.AddRask(configureServer: o => o.RenderModes.Wasm = true);
+builder.Services.AddRask();
 builder.Services.AddRaskWasmHost();
 
 var app = builder.Build();
@@ -213,11 +227,8 @@ It renders in **waves**: render, wait for what that render started, render again
 right unit because resolved data mounts new components, which start their own work — a page whose
 list loads and whose rows then load is two waves, not one longer wait.
 
-```csharp
-builder.Services.AddRask(configureServer: o =>
-{
-    o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(5); // default; Zero disables the wait
-});
+```jsonc
+{ "Rask": { "Server": { "RenderModes": { "QuiescenceTimeout": "00:00:05" } } } }   // default; "00:00:00" disables the wait
 ```
 
 Blowing the budget is not an error. The page is served as it stands and keeps its live session, so
@@ -277,8 +288,8 @@ revalidate only arises after a navigation inside a live session, never on a firs
 
 Opt in with `RenderModes.Static`:
 
-```csharp
-builder.Services.AddRask(configureServer: o => o.RenderModes.Static = true);
+```jsonc
+{ "Rask": { "Server": { "RenderModes": { "Static": true } } } }
 ```
 
 A page with no event handler, no form, no element `Ref` and no call into JavaScript is inert once it

@@ -1,57 +1,254 @@
 # Configuration
 
-`AddRask` takes two optional callbacks: `configure` for **shared** runtime options
-(`RaskLiveOptions`, used by both the Server and WASM runtimes) and `configureServer` for the
-**server-host-only** limits (`RaskServerOptions` — the WebSocket caps and session grace periods that
-only the ASP.NET host has):
-
-```csharp
-builder.Services.AddRask(
-    live   => live.MaxSessions = 1000,
-    server => { server.MaxInboundFramesPerSecond = 500; server.SessionGracePeriod = TimeSpan.FromSeconds(20); });
-```
-
-Every option has a production-safe default, so `AddRask()` with no callback is fully functional. The
-defaults are unchanged from previous releases — these knobs only *expose* limits that were previously
-hardcoded, so upgrading changes nothing until you set one.
-
-## Binding from appsettings.json
-
-Both options objects are plain POCOs — bind them from configuration inside the callback:
-
-```csharp
-builder.Services.AddRask(
-    configureServer: o => builder.Configuration.GetSection("Rask").Bind(o));
-```
+**Every Rask setting lives in `appsettings.json`, under `Rask`.** Each registration reads its own section
+when the host builds its options — `AddRask` reads `Rask:Live`, `Rask:Server`, `Rask:Culture` and
+`Rask:Uploads`, `AddRaskMail` reads `Rask:Mail`, and so on — so `Program.cs` says what the app is made of
+and `appsettings.json` says how it is tuned:
 
 ```jsonc
 // appsettings.json
 {
   "Rask": {
-    "MaxInboundFramesPerSecond": 500,
-    "SessionGracePeriod": "00:00:20"   // TimeSpan: "hh:mm:ss" (or "d.hh:mm:ss")
+    "ConnectionStrings": {
+      "App": "Data Source=app.db"
+    },
+    "Server": {
+      "MaxInboundFramesPerSecond": 500,
+      "SessionGracePeriod": "00:00:20"
+    },
+    "Mail": {
+      "From": "no-reply@example.com"
+    }
   }
 }
 ```
 
-`TimeSpan` values bind from the standard `"[d.]hh:mm:ss"` format. `AddRask` validates the bound values
-and throws `ArgumentOutOfRangeException` at startup on an out-of-range one (a negative grace period, a
-non-positive `MaxInboundFrameBytes`), so a typo fails the boot rather than misbehaving at runtime.
+```csharp
+builder.Services.AddRask();
+builder.Services.AddRaskMail<AppDbContext>();
+```
 
-## Shared options — `RaskLiveOptions` (`configure`)
+Nobody writes `GetSection(...).Bind(...)`. Every option has a production-safe default, so a section appears
+only when the app sets something, and `AddRask()` with no configuration at all is fully functional.
 
-Applied to both the Server and WASM runtimes.
+## Precedence
+
+Lowest first — each step overrides the ones above it:
+
+1. The options type's own defaults.
+2. **`RaskApp` only:** the [development defaults](#raskapps-development-defaults) that let a battery which
+   is on by default start with nothing configured.
+3. `appsettings.json`.
+4. `appsettings.{Environment}.json`.
+5. User secrets (in Development).
+6. Environment variables.
+7. Command-line arguments.
+8. The code callback on the registration — `AddRaskMail<AppDbContext>(o => …)`, or
+   `app.Configure(c => c.Mail.Configure(o => …))` in a `RaskApp`.
+9. Validation, which sees the result of all of the above.
+
+**Code wins over configuration.** A callback is for the rare value that has to be code; a value that is
+merely a value belongs in `appsettings.json`, where a deployment can override it without a rebuild.
+
+Steps 3–7 are ASP.NET Core's standard configuration sources as `WebApplication.CreateBuilder` adds them, so a
+source you add yourself (a key vault, a custom provider) takes part in the same order.
+
+## Environment variables
+
+A nested key uses a double underscore in the variable name:
+
+```bash
+Rask__Mail__From=orders@example.com
+Rask__ConnectionStrings__App="Data Source=/data/app.db"
+Rask__Server__SessionGracePeriod=00:00:20
+```
+
+That is how a deployment overrides a committed value, and how a secret reaches the app without being in
+source: `rask deploy --env "Rask__Mail__Smtp__Password=…"`. See [Secrets](secrets.md).
+
+## Value formats
+
+| Kind | Write it as | Example |
+| --- | --- | --- |
+| `TimeSpan` | `"[d.]hh:mm:ss[.fffffff]"` | `"00:00:20"` (20 s), `"1.00:00:00"` (one day) |
+| Enum | The member's name | `"DisabledFull"`, `"Warning"` |
+| `bool` | `true` / `false` | `"SessionResume": false` |
+| Number | A JSON number | `"MaxSessions": 1000` |
+| List | A JSON array, or an index per key | `"SupportedCultures": [ "en", "hu" ]`, `Rask__Culture__SupportedCultures__0=en` |
+
+**A list that already has entries is appended to, not replaced.** This matters for three lists:
+`Rask:Culture:SupportedCultures`, `Rask:Logging:ExcludedCategories` and `Rask:Spa:ImmutablePathPrefixes`.
+Configuration adds to whatever the defaults (or an earlier source) put there; index `0` in configuration is
+the first entry *configuration* adds, not the first entry of the list. To remove a default entry, do it in
+the callback.
+
+## A bad value stops the host starting
+
+Options are validated when the host starts, and a bad value fails the start with
+`Microsoft.Extensions.Options.OptionsValidationException`. The message names the section, whether the value
+came from `appsettings.json`, the environment or a callback:
+
+```text
+Microsoft.Extensions.Options.OptionsValidationException: Rask:Server: SessionGracePeriod must be positive. …
+```
+
+A value the binder cannot convert at all — `"five"` for a `TimeSpan` — is reported the same way. Before this,
+most `AddRaskX` calls threw from the registration line itself; now nothing is read until the options are
+built, so a source added after the registration still counts.
+
+A few things to know:
+
+- **A bearer signing key that cannot sign refuses to start outside Development** (`Rask:Auth`). In
+  Development the app stays on cookies, so a first run needs no configuration.
+- **A container with no `IConfiguration`** — a bare `ServiceCollection` in a unit test — reads no section
+  and gets the defaults plus the callback, exactly what it got before configuration existed.
+- **`Rask:Cqrs` is the one section read while services are registered**, because the handler lifetime and
+  the validation switch decide which services exist. It is read from the host builder's configuration as
+  it stands at the `AddRaskCqrs` call, so appsettings, user secrets and environment variables are all there;
+  a bare container reads none.
+- **A database connection string is required, not guessed.** `UseRaskSqlite(sp)`, `UseRaskPostgres(sp)`,
+  `AddRaskSqlite()` and `AddRaskLogging()` throw when their connection string is missing, naming the key
+  to set (`Rask:ConnectionStrings:App` / `Rask__ConnectionStrings__App`). A database quietly opened in the
+  working directory is how a container writes its data somewhere the next deploy deletes.
+
+## Every section
+
+| Section | Options type | Package | Notes |
+| --- | --- | --- | --- |
+| `Rask:Live` | `RaskLiveOptions` | `Rask.Server` | `DiffMode`, `MaxSessions`, `MinifyScopedAssets`, `PathBase`. A non-empty `UseRask<App>(pathBase:)` argument wins over `PathBase`. [Details](#live-runtime--rasklive). |
+| `Rask:Server` | `RaskServerOptions` | `Rask.Server` | WebSocket caps, grace periods, resume, shutdown drain, and `RenderModes`. [Details](#server-host--raskserver). |
+| `Rask:Culture` | `RaskCultureOptions` | `Rask.Server` | `SupportedCultures` (the first is the default; appended to), negotiation switches. See [localization](localization.md). |
+| `Rask:Uploads` | `RaskUploadOptions` | `Rask.Server` | [File uploads](#file-uploads--raskuploads). |
+| `Rask:DataProtection:KeyPath` | — | `Rask.Server` | Where the key ring persists. See [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy). |
+| `Rask:Auth` | `AuthOptions` | `Rask.Auth` | `Bearer`, `BearerSigningKey`, `BearerLifetime`, `FirstRunToken`, `CookieName`, the page paths, password and lockout rules. Keep `BearerSigningKey` in user secrets or the environment. See [authentication](authentication.md). |
+| `Rask:Api` | `ApiOptions` | `Rask.Api` | `NotFound`, `Controllers`. |
+| `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization` and the relay limits. `AuthorizeRoom` is code-only. |
+| `Rask:Dashboard` | `RaskDashboardOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
+| `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `UseRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [TypeScript front ends](spa.md). |
+| `Rask:Meta` | `MetaHostingOptions` | `Rask.Meta.Hosting` | `Framework` by the build's names (`nuxt`, `nextjs`, `tanstack-start`, `solidstart`, `sveltekit`, `analog`). Precedence: build metadata, then this section, then the callback, then a `rask dev` session's dev server. See [meta frameworks](meta.md). |
+| `Rask:Data` | `RaskDataOptions` | `Rask.Data` | See [Rask.Data](data.md). |
+| `Rask:ConnectionStrings:App` | — | `Rask.SQLite`, `Rask.SQLite.EntityFrameworkCore`, `Rask.Postgres` | The application database. Also the default `DatabasePath` for Litestream and snapshots. |
+| `Rask:Sqlite` | `SqliteOptions` | `Rask.SQLite` | The pragmas, `StrictTables`, and `Retry`. Read by `AddRaskSqlite()` and by `UseRaskSqlite(sp)`. See [SQLite](sqlite.md). |
+| `Rask:Postgres` | `PostgresOptions` | `Rask.Postgres` | The session timeouts and `Retry`. Read by `UseRaskPostgres(sp)`. See [PostgreSQL](data.md#postgresql). |
+| `Rask:Litestream` | `LitestreamOptions` | `Rask.SQLite.Litestream` | `ReplicaUrl`, `ConfigPath`, `ExecutablePath`, `Verification`. `DatabasePath` defaults to the file behind `Rask:ConnectionStrings:App`. See [continuous backup](sqlite.md#continuous-backup-with-litestream). |
+| `Rask:Snapshots` | `SqliteSnapshotOptions` | `Rask.SQLite.Snapshots` | `DestinationDirectory`, `Interval`, `Retain`. `DatabasePath` defaults the same way. See [snapshots](sqlite.md#scheduled-snapshots). |
+| `Rask:Cache` | `CacheOptions` | `Rask.Cache` | See [cache](cache.md). |
+| `Rask:Jobs` | `JobOptions` | `Rask.Jobs` | `AddRecurring` is code-only. See [jobs](jobs.md). |
+| `Rask:ConnectionStrings:Logs` | — | `Rask.Logging` | The log store's own file. |
+| `Rask:Logging` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |
+| `Rask:Mail` | `MailOptions` | `Rask.Mail` | Any `Rask:Mail:Smtp` key turns SMTP delivery on; put `Rask__Mail__Smtp__Password` in the environment. See [mail](mail.md). |
+| `Rask:Outbox` | `OutboxOptions` | `Rask.Outbox` | See [outbox](outbox.md). |
+| `Rask:WebPush` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`. The keys belong in user secrets or the environment. See [Web Push](webpush.md). |
+| `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `NotificationPublishStrategy`, `StopOnFirstNotificationException`, `ValidateRequests`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
+| `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits. |
+
+### Guard the environment like code
+
+Configuration can turn things *off* as easily as on. `Rask:Dashboard:AllowAnonymousAccess`,
+`Rask:Signaling:RequireAuthorization` and `Rask:Cqrs:Server:RequireAuthenticatedUser` are all settable from
+an environment variable, which is the point of them being configuration — and it means whoever can set the
+deploy environment's variables can open the operator console to the internet. Treat the deploy environment
+(`.env.production`, CI secrets, the host's Docker access) with the same care as the code.
+
+## What stays in code
+
+Configuration carries values. Anything that is behaviour stays on the callback:
+
+- Delegates: `RaskSignalingOptions.AuthorizeRoom`, `SpaHostingOptions.ExcludeFromFallback` and
+  `SpaHostingOptions.OnPrepareResponse`.
+- Builder methods: `JobOptions.AddRecurring` (a schedule is code), `CqrsOptions.AddBehavior` and
+  `CqrsOptions.AddOpenBehavior`.
+- A `MetaHostingOptions.Framework` preset for a framework Rask has no name for.
+- Removing an entry a list starts with.
+
+**Browser apps are code-only.** A WebAssembly app built with `WasmHostBuilder` has no `appsettings.json` to
+read — anything in its bundle is readable by every visitor anyway — so its options come from the callbacks
+alone.
+
+## `RaskApp`'s development defaults
+
+An app built with the `Rask` package's `RaskApp` turns every battery on, and a few of them cannot start
+without a value. `RaskApp` supplies those as the **lowest-precedence** configuration source, beneath
+`appsettings.json`, so every one of them is overridden by the same key set anywhere else:
+
+| Key | Default |
+| --- | --- |
+| `Rask:ConnectionStrings:App` | `Data Source=app.db` |
+| `Rask:ConnectionStrings:Logs` | `Data Source=logs.db` |
+| `Rask:Sqlite:StrictTables` | `true` |
+| `Rask:Mail:From` | `no-reply@example.com` |
+| `Rask:Mail:PickupDirectory` | `mail-pickup` |
+| `Rask:Snapshots:DestinationDirectory` | `snapshots` |
+
+`example.com` is reserved for documentation, so an app that never sets a From address cannot send as a
+domain somebody owns. The consequence of booting with these is that a running app writes `app.db`,
+`logs.db`, `mail-pickup/` and `snapshots/` beside itself (`rask new` gitignores them); `rask deploy` points
+both connection strings at its volume.
+
+`RaskAppOptions.ConnectionString`, set in code, beats every configuration source for
+`Rask:ConnectionStrings:App` — the same way a callback does.
+
+> **Migrating from the old keys.** Before every options type read its own section, a handful of settings
+> lived at top-level keys. **Those keys are no longer read, and nothing warns you** — an app that still sets
+> them silently runs on the defaults.
+>
+> | Old key | New key |
+> | --- | --- |
+> | `ConnectionStrings:App` | `Rask:ConnectionStrings:App` |
+> | `ConnectionStrings:Logs` | `Rask:ConnectionStrings:Logs` |
+> | `Litestream:ReplicaUrl` | `Rask:Litestream:ReplicaUrl` |
+> | `Sqlite:SnapshotDirectory` | `Rask:Snapshots:DestinationDirectory` |
+> | `WebPush:PublicKey` / `WebPush:PrivateKey` | `Rask:WebPush:VapidKeys:PublicKey` / `Rask:WebPush:VapidKeys:PrivateKey` |
+> | `WebPush:Subject` | `Rask:WebPush:Subject` |
+> | `Mail:PickupDirectory` | `Rask:Mail:PickupDirectory` |
+> | `Rask:<ServerOption>` (e.g. `Rask:MaxInboundFramesPerSecond`) | `Rask:Server:<ServerOption>` |
+>
+> Environment variables follow the same rename: `ConnectionStrings__App` is now
+> `Rask__ConnectionStrings__App`. **Upgrade the `rask` CLI together with the packages** — `rask deploy` now
+> sets `Rask__ConnectionStrings__App` and `Rask__ConnectionStrings__Logs`, which an older app does not read,
+> and an older CLI sets the old names, which a newer app does not read.
+>
+> Four overloads lost their connection-string parameter; the connection string comes from configuration:
+>
+> | Was | Now |
+> | --- | --- |
+> | `o.UseRaskSqlite(connectionString, configure)` | `AddDbContextFactory<AppDbContext>((sp, o) => o.UseRaskSqlite(sp, configure))` |
+> | `services.AddRaskSqlite(connectionString, configure)` | `services.AddRaskSqlite(configure)` |
+> | `services.AddRaskLogging(connectionString, configure)` | `services.AddRaskLogging(configure)` |
+> | `o.UseRaskPostgres(connectionString, configure)` | `AddDbContextFactory<AppDbContext>((sp, o) => o.UseRaskPostgres(sp, configure))` |
+>
+> `AddRaskSqliteLitestream`, `AddRaskSqliteSnapshots` and `AddRaskWebPush` no longer require a callback.
+> And a `configureServer: o => builder.Configuration.GetSection("Rask").Bind(o)` written against the old
+> guidance can simply be deleted: `Rask:Server` is bound for you.
+
+## Live runtime — `Rask:Live`
+
+`RaskLiveOptions`, shared by the Server and WASM runtimes (on the Server host, read from `Rask:Live`; in a
+browser app, set in code).
 
 | Option | Default | Purpose |
 | --- | --- | --- |
 | `DiffMode` | `Auto` | Wire payload shape — `Auto` ships a diff when smaller, `DisabledFull` always full HTML, `Forced` always a diff. |
-| `PathBase` | `""` | URL prefix so two Rask apps share one origin (e.g. `/appA`). |
+| `PathBase` | `""` | URL prefix so two Rask apps share one origin (e.g. `/appA`). An explicit, non-empty `UseRask<App>(pathBase: …)` wins over it. |
 | `MaxSessions` | `0` (uncapped) | Hard cap on concurrent live sessions; a GET past the cap gets `503` + `Retry-After`. Pairs with the [health check](observability.md#health-checks). See [sizing it for a memory budget](#sizing-maxsessions-for-a-memory-budget). |
 | `MinifyScopedAssets` | `null` (auto) | Minify the scoped-CSS bundle (strip comments + insignificant whitespace) before it's hashed and served. `null` = **auto**: on outside `Development`, off in `Development` (so hot-reloaded CSS stays readable) — resolved by `UseRask` from `IHostEnvironment`. Set `true`/`false` to force it. Minifying before hashing keeps the digest, immutable URL, and brotli/gzip caches all keyed off the minified bytes. Conservative: only the CSS bundle is minified (JS is served as-is), and only whitespace around `{ } ; ,` is stripped, so combinators and `calc()` are untouched. |
 
-## Server-host-only options — `RaskServerOptions` (`configureServer`)
+```jsonc
+{
+  "Rask": {
+    "Live": {
+      "MaxSessions": 1000,
+      "PathBase": "/appA"
+    }
+  }
+}
+```
 
-WebSocket safety caps and session grace periods — only the ASP.NET host has these.
+In the environment: `Rask__Live__MaxSessions=1000`.
+
+## Server host — `Rask:Server`
+
+`RaskServerOptions`: WebSocket safety caps and session grace periods — only the ASP.NET host has these.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
@@ -67,6 +264,32 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | `ResumeTokenLifetime` | `1 h` | How long a resume record stays redeemable. Not the reconnect grace period: that covers a blip against the *intact* session, this covers the session being gone. |
 | `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
 | `ShutdownDrainTimeout` | `5 s` | Budget for the graceful shutdown drain: announce the shutdown, let in-flight handlers finish, close each socket with a real handshake, dispose the sessions. `0` disables the drain (abort immediately). See [Shutdown and redeploy](#shutdown-and-redeploy). |
+| `RenderModes` | — | The render-mode ceiling, nested: `Static`, `Streaming`, `ServerInteractivity`, `Wasm`, `WasmBundle`, `QuiescenceTimeout`. See [render modes](render-modes.md). |
+
+```jsonc
+{
+  "Rask": {
+    "Server": {
+      "MaxInboundFramesPerSecond": 500,
+      "SessionGracePeriod": "00:00:20",
+      "RenderModes": {
+        "Static": true
+      }
+    }
+  }
+}
+```
+
+In the environment: `Rask__Server__SessionGracePeriod=00:00:20`, `Rask__Server__RenderModes__Static=true`.
+
+`AddRask` still takes the two callbacks — `configure` for `RaskLiveOptions` and `configureServer` for
+`RaskServerOptions` — and they run after the sections, so a value set there wins:
+
+```csharp
+builder.Services.AddRask(
+    live   => live.MaxSessions = 1000,
+    server => server.SessionGracePeriod = TimeSpan.FromSeconds(20));
+```
 
 ### Shutdown and redeploy
 
@@ -148,9 +371,9 @@ overlay handles the user-facing side automatically — nothing to configure:
 >     _data = await http.GetFromJsonAsync<T>(url, CancellationToken))["Load"]
 > ```
 
-### File uploads
+### File uploads — `Rask:Uploads`
 
-`RaskUploadOptions` (registered separately) caps uploads:
+`RaskUploadOptions` caps uploads:
 
 | Option | Default | Purpose |
 | --- | --- | --- |
@@ -158,9 +381,18 @@ overlay handles the user-facing side automatically — nothing to configure:
 | `MaxFilesPerRequest` | `16` | Maximum files in one multipart upload request. |
 | `MaxBytesPerSession` | `0` (off) | Maximum cumulative staged-upload bytes one session may hold at once; a request over the quota is rejected with `413`. Released when the session ends. |
 
-```csharp
-builder.Services.Configure<RaskUploadOptions>(o => o.MaxFileSize = 10 * 1024 * 1024);
+```jsonc
+{
+  "Rask": {
+    "Uploads": {
+      "MaxFileSize": 10485760
+    }
+  }
+}
 ```
+
+In the environment: `Rask__Uploads__MaxFileSize=10485760`. `AddRask` has no callback for these; a
+`builder.Services.Configure<RaskUploadOptions>(o => …)` after it still runs last and wins.
 
 ## Surviving a restart or a redeploy
 
@@ -298,9 +530,15 @@ the connected cost of your **largest** page — then leave headroom, because `Ma
 sessions created by a bare `GET` whose WebSocket never arrived (they hold a slot for
 `UnconnectedSessionGracePeriod`, 10 s), and because a rejected user gets a `503`.
 
-```csharp
+```jsonc
 // ~2 GiB of session budget for an app whose heaviest page measures ~1.34 MB connected.
-builder.Services.AddRask(live => live.MaxSessions = 1200);
+{
+  "Rask": {
+    "Live": {
+      "MaxSessions": 1200
+    }
+  }
+}
 ```
 
 Two caveats before you trust the table. These are **framework floors** — they exclude the WebSocket

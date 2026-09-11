@@ -41,4 +41,4 @@ override Rask.SQLite.Snapshots.SqliteSnapshotInfo.GetHashCode() -> int
 override Rask.SQLite.Snapshots.SqliteSnapshotInfo.ToString() -> string!
 static Rask.SQLite.Snapshots.SqliteSnapshotInfo.operator !=(Rask.SQLite.Snapshots.SqliteSnapshotInfo? left, Rask.SQLite.Snapshots.SqliteSnapshotInfo? right) -> bool
 static Rask.SQLite.Snapshots.SqliteSnapshotInfo.operator ==(Rask.SQLite.Snapshots.SqliteSnapshotInfo? left, Rask.SQLite.Snapshots.SqliteSnapshotInfo? right) -> bool
-static Rask.SQLite.Snapshots.SqliteSnapshotsServiceCollectionExtensions.AddRaskSqliteSnapshots(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.SQLite.Snapshots.SqliteSnapshotOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.SQLite.Snapshots.SqliteSnapshotsServiceCollectionExtensions.AddRaskSqliteSnapshots(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.SQLite.Snapshots.SqliteSnapshotOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

@@ -87,7 +87,7 @@ public sealed class SearchIsAShareableLinkTests
         public DashboardHarness Dashboard() =>
             _dashboard ??= new DashboardHarness(
                 Batteries.None,
-                extra: services => services.AddRaskLogging($"Data Source={_dbPath}"));
+                extra: services => services.AddRaskLoggingAt($"Data Source={_dbPath}"));
 
         public async ValueTask DisposeAsync()
         {

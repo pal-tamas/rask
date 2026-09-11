@@ -112,6 +112,11 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
+> **`AllowAnonymousAccess` is configuration too.** `Rask:Dashboard:AllowAnonymousAccess` set to `true`
+> opens the console to everyone, in every environment, and like every `Rask:Dashboard` key it can arrive as
+> an environment variable (`Rask__Dashboard__AllowAnonymousAccess=true`). The panels show job payloads,
+> stored email bodies and log lines, so guard the deploy environment's variables as carefully as the code.
+
 ## Actions
 
 Reading tells you what broke; these fix it.
@@ -124,11 +129,19 @@ Reading tells you what broke; these fix it.
 | Delete an outstanding row | Destructive | `ProcessedAt IS NULL` |
 | Flush the whole cache | Destructive | — |
 
-```csharp
-builder.Services.AddRaskDashboard<AppDbContext>(o => o.Actions = RaskDashboardActions.All);
+```jsonc
+{
+  "Rask": {
+    "Dashboard": {
+      "Actions": "All"
+    }
+  }
+}
 ```
 
-`Actions` defaults to `Safe`. Buttons for a tier that is off are hidden, not disabled.
+Every dashboard option is `Rask:Dashboard` in `appsettings.json`; a callback —
+`AddRaskDashboard<AppDbContext>(o => o.Actions = RaskDashboardActions.All)` — runs after the section and
+wins. `Actions` defaults to `Safe`. Buttons for a tier that is off are hidden, not disabled.
 
 **Why retry is safe against a live queue.** Its guard is the inverse of the drain query, so it can only
 ever match rows a processor has already given up on — a row currently in flight is invisible to it. Every
@@ -141,13 +154,16 @@ you pass.
 
 ## Logs
 
-```csharp
-builder.Services.AddRaskDashboard<AppDbContext>(o =>
+```jsonc
 {
-    o.LogBufferSize   = 500;
-    o.LogMinimumLevel = LogLevel.Information;
-    // o.CaptureLogs  = false;   // registers no logging provider at all
-});
+  "Rask": {
+    "Dashboard": {
+      "LogBufferSize": 500,
+      "LogMinimumLevel": "Information"
+      // "CaptureLogs": false      // the logging provider drops everything
+    }
+  }
+}
 ```
 
 A bounded in-memory ring buffer fed by a registered `ILoggerProvider`, so it sees exactly what every other
@@ -165,8 +181,7 @@ Install [`Rask.Logging`](logging.md) and the page grows a second mode:
 | **History** | The durable store, paged, with level/category filters and a full-text search | Yes | One query per refresh, against the log store's **own** SQLite file — never the application database |
 
 ```csharp
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+builder.Services.AddRaskLogging();   // opens Rask:ConnectionStrings:Logs
 ```
 
 They are two modes rather than one merged view because the store's writer flushes on an interval: the newest
@@ -212,7 +227,7 @@ builder.Services.AddSingleton<IDashboardBackupProbe, BackupProbe>();
 ```
 
 > **Take those dependencies as optional.** `AddRaskSqliteLitestream` is config-gated in everything
-> `rask new` scaffolds: with no `Litestream:ReplicaUrl` set it never runs, so `LitestreamStatus` is not in
+> `rask new` scaffolds: with no `Rask:Litestream:ReplicaUrl` set it never runs, so `LitestreamStatus` is not in
 > the container. A probe that requires it starts cleanly and then throws the first time somebody opens the
 > System panel — a failure that shows up only in the environment which skipped the configuration.
 
@@ -228,13 +243,16 @@ The loop is **bounded** (`MaxPollDuration`, default 5 minutes) and then offers a
 is deliberate: every open tab is a reader competing with the processors for SQLite's single write lock, so
 a dashboard left open on a wall display is a real cost, not a free convenience.
 
-```csharp
-builder.Services.AddRaskDashboard<AppDbContext>(o =>
+```jsonc
 {
-    o.RefreshInterval = TimeSpan.FromSeconds(5);
-    o.MaxPollDuration = TimeSpan.FromMinutes(10);
-    o.PageSize        = 50;
-});
+  "Rask": {
+    "Dashboard": {
+      "RefreshInterval": "00:00:05",
+      "MaxPollDuration": "00:10:00",
+      "PageSize": 50
+    }
+  }
+}
 ```
 
 ## How it looks, and why you cannot change it

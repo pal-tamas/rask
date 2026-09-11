@@ -553,7 +553,7 @@ Two more rules follow from how it works:
 - **An ambient transaction still owns the commit.** Called inside your own `BeginTransaction`, the load joins
   it and commits nothing itself, so it composes with surrounding work.
 
-Under a retrying execution strategy (`UseRaskSqlite(..., o => o.Retry.Enabled = true)`), a `SingleTransaction`
+Under a retrying execution strategy (`Rask:Sqlite:Retry:Enabled`, or `UseRaskSqlite(sp, o => o.Retry.Enabled = true)`), a `SingleTransaction`
 load is one retryable unit and a lazy sequence is buffered so the retry can re-enumerate it; the default
 per-batch mode lets EF retry each batch on its own, which is both cheaper and free of replay.
 
@@ -612,7 +612,7 @@ Requires `UseRaskSqlite(...)`, which registers the generator and the exception t
 provider — including a plain `UseSqlite` — the rule would be silently ignored, so `AddRaskData<TContext>`
 **refuses to boot** instead, naming the entity and the call that enforces it. Both are inert
 until an entity declares a rule, and the rule composes with
-[`o => o.StrictTables = true`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
+[`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
 
 ## PostgreSQL
@@ -622,14 +622,19 @@ is no longer enough — a managed database, several app instances — `Rask.Post
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskPostgres(builder.Configuration.GetConnectionString("App")!)
+    .UseRaskPostgres(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
+
+The connection string is `Rask:ConnectionStrings:App` — in production usually the whole string, password
+included, as `Rask__ConnectionStrings__App` in the environment — and a missing one is an error naming that key.
 
 `UseRaskPostgres` is a drop-in for `UseNpgsql` that gives every session production timeouts —
 `StatementTimeout` (30s), `LockTimeout` (10s, and it must stay below the statement timeout so lock contention
 is not reported as a slow query), `IdleInTransactionSessionTimeout` (1m) — and turns on Npgsql's
-transient-failure retrying (`o.Retry`). The timeouts travel as startup parameters in the connection string, so
+transient-failure retrying (`Retry`). Each is `Rask:Postgres` in `appsettings.json` (`"StatementTimeout":
+"00:00:10"`, `"Retry": { "MaxCount": 3 }`); a callback — `UseRaskPostgres(sp, p => …)` — runs after the
+section and wins. The timeouts travel as startup parameters in the connection string, so
 they are the session's defaults: they survive the pool resetting a returned connection, add no round trip per
 query, and reach code that opens the `DbConnection` itself. Behind PgBouncer in transaction mode, add `options`
 to its `ignore_startup_parameters`, or set the timeouts to `TimeSpan.Zero` and configure them on the role.
@@ -645,7 +650,7 @@ against a real server. Three things change:
   Measure it against the batched default before choosing it for a remote database.
 - **Retrying refuses a transaction you open yourself** outside the execution strategy. Wrap a hand-written
   `BeginTransaction` in `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set
-  `o.Retry.Enabled = false`.
+  `Rask:Postgres:Retry:Enabled` to `false`.
 - **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
   there is no file — back up with your provider's snapshots or `pg_dump`.
 

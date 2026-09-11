@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Rask.Postgres.Tests;
@@ -13,10 +15,12 @@ public sealed class UseRaskPostgresTests
 {
     private const string ConnectionString = "Host=localhost;Database=rask;Username=rask;Password=rask";
 
+    private static readonly IServiceProvider Services = ServicesWith(new() { ["Rask:ConnectionStrings:App"] = ConnectionString });
+
     [Fact]
     public void It_selects_the_Npgsql_provider()
     {
-        using var db = Context(o => o.UseRaskPostgres(ConnectionString));
+        using var db = Context(o => o.UseRaskPostgres(Services));
 
         Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", db.Database.ProviderName);
     }
@@ -24,7 +28,7 @@ public sealed class UseRaskPostgresTests
     [Fact]
     public void The_session_timeouts_travel_in_the_connection_string()
     {
-        using var db = Context(o => o.UseRaskPostgres(ConnectionString));
+        using var db = Context(o => o.UseRaskPostgres(Services));
 
         var builder = new NpgsqlConnectionStringBuilder(db.Database.GetConnectionString());
         Assert.Equal(
@@ -38,7 +42,7 @@ public sealed class UseRaskPostgresTests
     {
         // The settings are startup parameters, so there is no interceptor sending a SET — and no extra round
         // trip on every query EF runs.
-        var options = new DbContextOptionsBuilder().UseRaskPostgres(ConnectionString).Options;
+        var options = new DbContextOptionsBuilder().UseRaskPostgres(Services).Options;
 
         Assert.Empty(options.FindExtension<CoreOptionsExtension>()?.Interceptors ?? []);
     }
@@ -46,7 +50,7 @@ public sealed class UseRaskPostgresTests
     [Fact]
     public void It_applies_the_configure_delegate()
     {
-        using var db = Context(o => o.UseRaskPostgres(ConnectionString, p =>
+        using var db = Context(o => o.UseRaskPostgres(Services, p =>
         {
             p.StatementTimeout = TimeSpan.FromSeconds(5);
             p.LockTimeout = TimeSpan.FromSeconds(1);
@@ -59,18 +63,53 @@ public sealed class UseRaskPostgresTests
     }
 
     [Fact]
+    public void The_Rask_Postgres_section_sets_the_timeouts()
+    {
+        var services = ServicesWith(new()
+        {
+            ["Rask:ConnectionStrings:App"] = ConnectionString,
+            ["Rask:Postgres:StatementTimeout"] = "00:00:05",
+            ["Rask:Postgres:LockTimeout"] = "00:00:01",
+            ["Rask:Postgres:IdleInTransactionSessionTimeout"] = "00:00:00",
+        });
+
+        using var db = Context(o => o.UseRaskPostgres(services));
+
+        Assert.Equal(
+            "-c statement_timeout=5000 -c lock_timeout=1000",
+            new NpgsqlConnectionStringBuilder(db.Database.GetConnectionString()).Options);
+    }
+
+    [Fact]
+    public void The_configure_delegate_wins_over_the_section()
+    {
+        var services = ServicesWith(new()
+        {
+            ["Rask:ConnectionStrings:App"] = ConnectionString,
+            ["Rask:Postgres:Retry:Enabled"] = "true",
+        });
+
+        using var db = Context(o => o.UseRaskPostgres(services, p => p.Retry.Enabled = false));
+
+        Assert.False(db.Database.CreateExecutionStrategy().RetriesOnFailure);
+    }
+
+    [Fact]
     public void It_validates_the_configured_options()
     {
         // Validation runs inside UseRaskPostgres, not only when someone calls Validate by hand — otherwise a
-        // contradictory pair of timeouts surfaces as confusing behaviour in production.
-        Assert.Throws<InvalidOperationException>(() =>
-            new DbContextOptionsBuilder().UseRaskPostgres(ConnectionString, p => p.LockTimeout = TimeSpan.FromMinutes(5)));
+        // contradictory pair of timeouts surfaces as confusing behaviour in production. It names the section,
+        // because the value may just as well have come from appsettings.
+        var error = Assert.Throws<OptionsValidationException>(() =>
+            new DbContextOptionsBuilder().UseRaskPostgres(Services, p => p.LockTimeout = TimeSpan.FromMinutes(5)));
+
+        Assert.Contains("Rask:Postgres", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Retrying_is_on_by_default()
     {
-        using var db = Context(o => o.UseRaskPostgres(ConnectionString));
+        using var db = Context(o => o.UseRaskPostgres(Services));
 
         Assert.True(db.Database.CreateExecutionStrategy().RetriesOnFailure);
     }
@@ -78,27 +117,37 @@ public sealed class UseRaskPostgresTests
     [Fact]
     public void Retrying_can_be_turned_off()
     {
-        using var db = Context(o => o.UseRaskPostgres(ConnectionString, p => p.Retry.Enabled = false));
+        using var db = Context(o => o.UseRaskPostgres(Services, p => p.Retry.Enabled = false));
 
         Assert.False(db.Database.CreateExecutionStrategy().RetriesOnFailure);
     }
 
     [Fact]
-    public void It_rejects_an_empty_connection_string()
+    public void It_names_the_connection_string_it_could_not_find()
     {
-        Assert.Throws<ArgumentException>(() => new DbContextOptionsBuilder().UseRaskPostgres(""));
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            new DbContextOptionsBuilder().UseRaskPostgres(ServicesWith([])));
+
+        Assert.Contains("Rask:ConnectionStrings:App", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_top_level_connection_string_is_not_read()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            new DbContextOptionsBuilder().UseRaskPostgres(ServicesWith(new() { ["ConnectionStrings:App"] = ConnectionString })));
     }
 
     [Fact]
     public void It_rejects_a_null_builder()
     {
-        Assert.Throws<ArgumentNullException>(() => ((DbContextOptionsBuilder)null!).UseRaskPostgres(ConnectionString));
+        Assert.Throws<ArgumentNullException>(() => ((DbContextOptionsBuilder)null!).UseRaskPostgres(Services));
     }
 
     [Fact]
     public void The_generic_overload_keeps_the_typed_options()
     {
-        var options = new DbContextOptionsBuilder<TestContext>().UseRaskPostgres(ConnectionString).Options;
+        var options = new DbContextOptionsBuilder<TestContext>().UseRaskPostgres(Services).Options;
 
         Assert.IsType<DbContextOptions<TestContext>>(options, exactMatch: false);
 
@@ -111,6 +160,15 @@ public sealed class UseRaskPostgresTests
         var builder = new DbContextOptionsBuilder<TestContext>();
         configure(builder);
         return new TestContext(builder.Options);
+    }
+
+    private static IServiceProvider ServicesWith(Dictionary<string, string?> settings) =>
+        new ConfigurationServices(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
+
+    // Just the configuration: that is all UseRaskPostgres asks the provider for.
+    private sealed class ConfigurationServices(IConfiguration configuration) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => serviceType == typeof(IConfiguration) ? configuration : null;
     }
 
     private sealed class TestContext(DbContextOptions<TestContext> options) : DbContext(options);

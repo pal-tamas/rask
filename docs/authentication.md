@@ -52,14 +52,26 @@ A native client, a CLI or a service-to-service call has no cookie jar. `AuthOpti
 scheme **beside** the cookie — never instead of it — so every page, form and redirect behaves exactly
 as before, and only a caller sending `Authorization: Bearer …` takes the new path.
 
-```csharp
-builder.Services.AddRaskAuth<AppDbContext>(o =>
+```jsonc
+// appsettings.json
 {
-    o.Bearer = true;
-    o.BearerSigningKey = builder.Configuration["Auth:BearerSigningKey"];  // never in source
-    o.BearerLifetime = TimeSpan.FromHours(1);
-});
+  "Rask": {
+    "Auth": {
+      "Bearer": true,
+      "BearerLifetime": "01:00:00"
+    }
+  }
+}
 ```
+
+```bash
+# The signing key never goes in that file.
+dotnet user-secrets set "Rask:Auth:BearerSigningKey" "<at least 32 bytes>"   # development
+rask deploy --env "Rask__Auth__BearerSigningKey=…"                           # deployed
+```
+
+`AddRaskAuth<AppDbContext>()` reads `Rask:Auth` itself. A callback — `AddRaskAuth<AppDbContext>(o => …)` —
+runs after the section and wins.
 
 Ask for a token by sending `X-Rask-Auth-Mode: bearer` alongside the usual `X-Rask-Auth` header on
 `POST /api/auth/login`. The answer is a `BearerSession` — the token, its type, its remaining seconds and
@@ -189,7 +201,10 @@ warn: Rask.Auth[1]
 ```
 
 Every registration after that is an ordinary open one. Both behaviours are options:
-`c.Auth.Configure(o => o.FirstUserIsAdmin = false)` and `o.RequireFirstRunToken = false`.
+`c.Auth.Configure(o => o.FirstUserIsAdmin = false)` and `o.RequireFirstRunToken = false` — or
+`Rask:Auth:FirstUserIsAdmin` and `Rask:Auth:RequireFirstRunToken` in configuration. To make the token
+predictable rather than reading it from the log, set `Rask:Auth:FirstRunToken` (in the environment,
+`Rask__Auth__FirstRunToken`).
 
 **The Server cookie handshake.** A WebSocket can't write a `Set-Cookie`, so sign-in is a four-step relay:
 `IAuthSignIn.SignInAsync(principal)` (in an event handler) → the framework issues a single-use,

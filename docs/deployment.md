@@ -39,7 +39,7 @@ Dockerfile below (override with `--dockerfile`).
   page, and then at their previous scroll position, with the fields the user had edited restored. See
   [Shutdown and redeploy](configuration.md#shutdown-and-redeploy).
 - **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
-  `rask deploy` mounts a per-app named volume and points the app at it (`ConnectionStrings:App` →
+  `rask deploy` mounts a per-app named volume and points the app at it (`Rask:ConnectionStrings:App` →
   `Data Source=/data/app.db`), so your data persists across redeploys; the old container is stopped
   gracefully (SIGTERM) before removal so in-flight writes are checkpointed first. The `rask new`
   Dockerfile prepares a writable `/data`; a custom Dockerfile needs the same
@@ -161,11 +161,11 @@ rask db restore last-good.db --remote   # stops the app, replaces it, starts it 
 ```
 
 **"The server is gone"** is the rest of this section. `rask deploy` mounts a named volume so the database survives redeploys — but a volume is still **one copy
-on one disk**. An app scaffolded with `--data` is already wired for [Litestream](sqlite.md#continuous-backup-with-litestream),
+on one disk**. An app scaffolded by `rask new` is already wired for [Litestream](sqlite.md#continuous-backup-with-litestream),
 which streams the write-ahead log to object storage; it stays inert until you point it somewhere:
 
 ```bash
-rask deploy --env "Litestream__ReplicaUrl=s3://your-bucket/app" \
+rask deploy --env "Rask__Litestream__ReplicaUrl=s3://your-bucket/app" \
             --env "AWS_ACCESS_KEY_ID=…" --env "AWS_SECRET_ACCESS_KEY=…"
 ```
 
@@ -186,11 +186,17 @@ Beyond your own `--env` values, every deployed container gets:
 | Setting | Why |
 | --- | --- |
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
-| `ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
-| `ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
+| `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
+| `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
 | `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
 | `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |
+
+> **Upgrade the `rask` CLI and the packages together.** Those two connection strings moved under `Rask`
+> (they were `ConnectionStrings__App` and `ConnectionStrings__Logs`). A current CLI deploying an app on older
+> packages sets names the app does not read, and an older CLI deploying a current app does the same the other
+> way round — either way the database lands inside the container, and the next deploy deletes it. See
+> [migrating from the old keys](configuration.md#raskapps-development-defaults).
 
 The scaffolded app is set up to match: it honours forwarded headers (so `Request.Scheme` and the client
 IP are the visitor's, not the proxy's), reports live-session capacity and readiness on `/health` (so a host
@@ -281,7 +287,7 @@ never again.
 ### The log store
 
 [`Rask.Logging`](logging.md) keeps its own SQLite file rather than mapping onto your `DbContext`, so it needs
-its own pointer onto the volume — which is what `ConnectionStrings__Logs` above is. Without it the log would
+its own pointer onto the volume — which is what `Rask__ConnectionStrings__Logs` above is. Without it the log would
 land in the container's writable layer and be destroyed by the very restart it exists to survive.
 
 Two consequences worth knowing before an incident rather than during one:

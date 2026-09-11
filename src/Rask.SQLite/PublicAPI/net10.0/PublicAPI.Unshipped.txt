@@ -70,7 +70,7 @@ static Rask.SQLite.SqlitePragmas.Apply(Microsoft.Data.Sqlite.SqliteConnection! c
 static Rask.SQLite.SqlitePragmas.ApplyAsync(Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.SQLite.SqlitePragmas.BuildScript(Rask.SQLite.SqliteOptions! options) -> string!
 static Rask.SQLite.SqlitePragmas.Optimize(Microsoft.Data.Sqlite.SqliteConnection! connection) -> void
-static Rask.SQLite.SqliteServiceCollectionExtensions.AddRaskSqlite(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, System.Action<Rask.SQLite.SqliteOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.SQLite.SqliteServiceCollectionExtensions.AddRaskSqlite(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.SQLite.SqliteOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.SQLite.SqliteStrictTypes.Describe(string! table, string! column, string? columnType) -> string!
 static Rask.SQLite.SqliteStrictTypes.IsAllowed(string? columnType) -> bool
 static readonly Rask.SQLite.SqliteStrictTypes.Allowed -> System.Collections.Generic.IReadOnlySet<string!>!

@@ -192,7 +192,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
     {
         await using (var context = new IndexedDbContext(
             new DbContextOptionsBuilder<IndexedDbContext>()
-                .UseRaskSqlite($"Data Source={_dbPath}")
+                .UseRaskSqliteAt($"Data Source={_dbPath}")
                 .Options))
         {
             await context.Database.EnsureCreatedAsync();
@@ -236,7 +236,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
 
     private ProbeDbContext NewContext() =>
         new(new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}")
+            .UseRaskSqliteAt($"Data Source={_dbPath}")
             .Options);
 
     private async Task SeedAsync()

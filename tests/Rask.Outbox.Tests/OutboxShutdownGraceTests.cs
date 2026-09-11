@@ -100,22 +100,25 @@ public sealed class OutboxShutdownGraceTests : IDisposable
     {
         // Outbox was the only battery whose registration never validated (Jobs, Mail and Cache all did), so
         // PollInterval = Zero used to throw out of `new PeriodicTimer(...)` on the background thread and
-        // take the host down at an unrelated moment. Closes #562.
-        var services = new ServiceCollection();
-        services.AddLogging();
-
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            services.AddRaskOutbox<OutboxDbContext>(o => o.PollInterval = TimeSpan.Zero));
+        // take the host down at an unrelated moment. Closes #562. Refused when the options are built — at host
+        // start, or on the first resolve here — rather than later on a background thread.
+        AssertRejected(o => o.PollInterval = TimeSpan.Zero);
     }
 
     [Fact]
-    public void A_negative_grace_is_rejected_at_registration()
+    public void A_negative_grace_is_rejected_when_the_options_are_built() =>
+        AssertRejected(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(-1));
+
+    private static void AssertRejected(Action<OutboxOptions> configure)
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddRaskOutbox<OutboxDbContext>(configure);
+        using var provider = services.BuildServiceProvider();
 
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            services.AddRaskOutbox<OutboxDbContext>(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(-1)));
+        var ex = Assert.Throws<Microsoft.Extensions.Options.OptionsValidationException>(
+            () => provider.GetRequiredService<OutboxOptions>());
+        Assert.Contains("Rask:Outbox", ex.Message, StringComparison.Ordinal);
     }
 
     private IHostedService Processor =>
