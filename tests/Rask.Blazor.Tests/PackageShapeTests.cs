@@ -38,7 +38,8 @@ public sealed class PackageShapeTests
     {
         var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Rask.Blazor", "Rask.Blazor.csproj"));
 
-        Assert.Contains("<TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>", csproj, StringComparison.Ordinal);
+        // Both faces, on every .NET version the repo ships — the list itself lives in Directory.Build.props.
+        Assert.Contains("<TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>", csproj, StringComparison.Ordinal);
 
         // The browser target has no shared framework, so the renderer has to come from the package.
         // Losing this reference does not fail the server build — only the browser one, which is the

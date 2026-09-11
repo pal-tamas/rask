@@ -162,9 +162,27 @@
       layout the same everywhere means a project that gains a second framework later gets a new
       empty baseline to fill in, rather than a gate that quietly starts contradicting itself.
     -->
-    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Shipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Shipped.txt') "/>
-    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt') "/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Shipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Shipped.txt') "/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "/>
   </ItemGroup>
+
+  <!--
+    Which baseline folder a build reads: one per FACE, not one per .NET version.
+
+    A package's net11.0 build is the same source as its net10.0 build — there is no #if NET11 anywhere —
+    so it is checked against the same PublicAPI\net10.0 files, and net11.0-browser against
+    net10.0-browser. That is not a weaker gate. The analyzer still runs in every inner build, so a member
+    that exists on one version only is RS0016 on that build and RS0017 on the other: a divergence is still
+    a build failure, there is simply no second copy of every file to keep in step by hand.
+
+    A project whose versions genuinely diverge sets this in its own body, conditioned on
+    $(TargetFramework), and gets a folder of its own. An unconditioned override would point every
+    framework of the project at one folder, which is why RaskVerifyPublicApiBaseline refuses a folder
+    that exists but that its framework does not read.
+  -->
+  <PropertyGroup>
+    <RaskPublicApiTfm Condition=" '$(RaskPublicApiTfm)' == '' ">$(TargetFramework.Replace('net11.0', 'net10.0'))</RaskPublicApiTfm>
+  </PropertyGroup>
 
   <!--
     The Exists() conditions above are what let a project be added before its baseline is written. They
@@ -174,8 +192,31 @@
   -->
   <Target Name="RaskVerifyPublicApiBaseline" BeforeTargets="CoreCompile"
           Condition=" '$(RaskPublicApiTracked)' == 'true' AND '$(TargetFramework)' != '' ">
-    <Error Condition=" !Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt') "
-           Text="$(MSBuildProjectName) is covered by the public-API gate but has no baseline for $(TargetFramework). Create PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt (first line '#nullable enable') and PublicAPI.Shipped.txt (empty), then build: every public member is reported as RS0016 with the exact line to record. See docs/api-style.md. To exempt this project instead, set &lt;RaskPublicApiTracked&gt;false&lt;/RaskPublicApiTracked&gt; in its .csproj and say why." />
+    <Error Condition=" !Exists('$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "
+           Text="$(MSBuildProjectName) is covered by the public-API gate but has no baseline for $(TargetFramework). Create PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt (first line '#nullable enable') and PublicAPI.Shipped.txt (empty), then build: every public member is reported as RS0016 with the exact line to record. See docs/api-style.md. To exempt this project instead, set &lt;RaskPublicApiTracked&gt;false&lt;/RaskPublicApiTracked&gt; in its .csproj and say why." />
+    <!-- A baseline nothing reads is a gate that passes by not running: every edit to it would go unchecked. -->
+    <Error Condition=" '$(RaskPublicApiTfm)' != '$(TargetFramework)' AND Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)') "
+           Text="$(MSBuildProjectName) has a PublicAPI\$(TargetFramework) folder, but its $(TargetFramework) build is checked against PublicAPI\$(RaskPublicApiTfm). Delete the folder, or give this framework its own baseline with &lt;RaskPublicApiTfm Condition=&quot;'%24(TargetFramework)' == '$(TargetFramework)'&quot;&gt;$(TargetFramework)&lt;/RaskPublicApiTfm&gt; in the .csproj." />
+  </Target>
+
+  <!--
+    Every shipped package follows the repo's .NET versions, which Directory.Build.props states once as
+    RaskNetTargets / RaskBrowserTargets.
+
+    A project that writes its frameworks out literally keeps building — on the versions it names — so
+    adding a .NET version would quietly skip it: the package would publish without the new lib/ folder and
+    nothing would fail. This turns that into a build error on the project that drifted. It is MSBuild, not
+    a unit test, because the scoped test runner does not run a csproj-scanning test on the commit that
+    edits a csproj, which is exactly the commit that would drift.
+
+    Build tooling (generators, tasks) is never tracked, so it is not asked. A shipped project that must
+    stay on one framework — the `rask` tool rolls forward onto any newer runtime instead — sets
+    <RaskTargetFrameworksExempt>true</RaskTargetFrameworksExempt> and says why.
+  -->
+  <Target Name="RaskVerifyTargetFrameworks" BeforeTargets="CoreCompile"
+          Condition=" '$(RaskPublicApiTracked)' == 'true' AND '$(RaskTargetFrameworksExempt)' != 'true' ">
+    <Error Condition=" '$(TargetFrameworks)' != '$(RaskNetTargets)' AND '$(TargetFrameworks)' != '$(RaskNetTargets);$(RaskBrowserTargets)' "
+           Text="$(MSBuildProjectName) ships as a package but targets '$(TargetFrameworks)$(TargetFramework)' rather than the repo's .NET versions. Write &lt;TargetFrameworks&gt;%24(RaskNetTargets)&lt;/TargetFrameworks&gt; — or %24(RaskNetTargets);%24(RaskBrowserTargets) for a package with a browser face — so it follows Directory.Build.props. A shipped project that must stay on one framework sets &lt;RaskTargetFrameworksExempt&gt;true&lt;/RaskTargetFrameworksExempt&gt; and says why." />
   </Target>
 
 </Project>

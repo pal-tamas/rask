@@ -167,6 +167,24 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         Assert.Contains("Client/wwwroot/index.html is missing", output, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("net10.0", "net10.0-browser")]
+    [InlineData("net11.0", "net11.0-browser")]
+    public void The_browser_app_targets_the_server_halfs_dotnet_version(string server, string bundle)
+    {
+        // The companion compiles the app's Client/ sources, so it builds them for the .NET version the app
+        // targets — and the development manifest UseRaskSpa serves is looked for under that framework's bin
+        // folder. A literal net10.0-browser compiled a net11.0 app for an older framework than its server.
+        var csproj = Path.Combine(_dir, "App.csproj");
+        File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
+            "<TargetFramework>net10.0</TargetFramework>",
+            $"<TargetFramework>{server}</TargetFramework>",
+            StringComparison.Ordinal));
+
+        Assert.Contains($"<TargetFramework>{bundle}</TargetFramework>", Generate(), StringComparison.Ordinal);
+        Assert.Equal(bundle, Evaluate("-getProperty:_RaskClientFramework").Trim());
+    }
+
     [GeneratedRegex("<Compile Include=\"(?<path>[^\"]*\\*\\*[^\"]*)\" />")]
     private static partial Regex CompileGlob();
 

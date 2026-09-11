@@ -1,0 +1,32 @@
+<Project>
+
+  <!--
+    Bundles Rask.Core.dll (and its XML docs) into the host package's lib/ folder, once per framework.
+
+    Rask.Core is IsPackable=false: it ships inside every host package rather than on its own, and the host
+    references it PrivateAssets="all" so no package named Rask.Core appears in the nuspec. That makes this
+    target the only thing that puts Core in front of a consumer — a host package without it restores
+    cleanly and dies on the first render with a FileNotFoundException.
+
+    BuildOutputInPackage rather than hand-written lib/ paths, so NuGet names the folder the way it names the
+    host's own DLL's folder (lib/net10.0/, lib/net10.0-browser1.0/, and whatever the next version is). The
+    paths used to be literal, and a literal lib/net10.0/ is correct for exactly one framework: add another
+    and its folder ships without Core while the pack stays green. A missing file here is NU5019, not a
+    silent omission.
+
+    Runs per inner build (TargetsForTfmSpecificBuildOutput), where $(OutputPath) already names the
+    framework — which a static item in the project body cannot rely on once the project multi-targets,
+    because pack evaluates that body with no framework at all.
+  -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_RaskBundleCoreIntoLib</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <Target Name="_RaskBundleCoreIntoLib">
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Core.dll"/>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Core.xml"/>
+    </ItemGroup>
+  </Target>
+
+</Project>

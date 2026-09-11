@@ -9,7 +9,7 @@
 
       Rask.Core and Rask.Wasm already multi-target exactly like this, so the shape is the repo's, not new.
     -->
-    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask</RootNamespace>
@@ -19,7 +19,7 @@
     <Description>The one reference a Rask application needs, server or browser. On net10.0 it brings the ASP.NET host plus every battery — database, mediator, background jobs, transactional email, cache, file storage, outbox, operator dashboard, durable logs, Web Push, and SQLite snapshots and continuous backup — with RaskApp.Create(args) as the entry point. On net10.0-browser it brings the WebAssembly host, the source-generated mediator, the query cache and remote dispatch. Everything referenced is wired and on; app.Configure(c =&gt; c.Jobs.Off()) is how an app does without one. Reference Rask.Server for a lean host with no database.</Description>
   </PropertyGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
@@ -61,7 +61,7 @@
 
     Not PrivateAssets: a consumer must see these, since referencing Rask IS referencing all of them.
   -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <ProjectReference Include="..\Rask.Server\Rask.Server.csproj"/>
 
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
@@ -119,7 +119,7 @@
     mean a shared component library whose rules run on the server and silently do not in the browser —
     the failure this repo treats as its worst.
   -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
@@ -139,7 +139,7 @@
   </ItemGroup>
 
   <!-- RaskApp needs WebApplicationBuilder, so the server files compile into the server half only. -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
     <Compile Remove="RaskApp.cs"/>
     <Compile Remove="RaskAppOptions.cs"/>
     <Compile Remove="RaskAppDbContext.cs"/>
@@ -148,7 +148,7 @@
     <Compile Remove="ApiValidation.cs"/>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <Compile Remove="Browser\**\*.cs"/>
   </ItemGroup>
 

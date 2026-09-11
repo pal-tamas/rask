@@ -340,7 +340,10 @@ app.UseRaskSpa();
 `dotnet build` publishes the client — any referenced project declaring `<RaskWasm>true</RaskWasm>` — and
 `dotnet publish` copies its bundle into the host's `wwwroot`, where `UseRaskSpa` finds it with no
 arguments. A host serves one client: two WebAssembly clients are refused as `RASKSPA006`, and a
-WebAssembly client beside a front-end `client` folder as `RASKSPA007`.
+WebAssembly client beside a front-end `client` folder as `RASKSPA007`. The client's framework is read
+from its own evaluation, so a `Directory.Build.props` or another .NET version is honoured; a client that
+reports no framework is `RASKSPA008`, and one that builds for several is `RASKSPA009`, because a bundle is
+published for one.
 
 **`rask dev` serves the client's build output, not its publish.** A published bundle is trimmed, and
 trimming turns hot reload off in the browser, so the session passes `RaskSpaBuild=false`: the client's

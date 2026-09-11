@@ -342,11 +342,12 @@
                           ReferenceOutputAssembly="false"
                           SkipGetTargetFrameworkProperties="true"/>
 
-    The two metadata flags are what MSBuild needs to reference a browser-wasm project from a net10.0 host
+    The two metadata flags are what MSBuild needs to reference a browser-wasm project from a server host
     without linking its output. The client is recognised by the <RaskWasm>true</RaskWasm> in its own
     project file, read with XmlPeek. The probe runs in every project, one XmlPeek per ProjectReference,
     because a target's Condition is evaluated before its DependsOnTargets run and so cannot wait for it;
-    everything after it no-ops when it finds nothing.
+    everything after it no-ops when it finds nothing. The client's framework is asked of MSBuild once one
+    client is found (below).
 
     Then the bundler lane's steps, with a .NET publish in place of `npm run build`:
       1. `dotnet publish` the client before this project builds.
@@ -366,21 +367,11 @@
              Condition="'%(ProjectReference.FullPath)' != ''">
       <Output TaskParameter="Result" PropertyName="_RaskSpaWasmProbe"/>
     </XmlPeek>
-    <!-- The TFM too, so the bundle and manifest paths do not hardcode net10.0-browser. -->
-    <XmlPeek XmlInputPath="%(ProjectReference.FullPath)"
-             Query="/Project/PropertyGroup/TargetFramework/text()"
-             Condition="'%(ProjectReference.FullPath)' != '' AND '$(_RaskSpaWasmProbe)' == 'true'">
-      <Output TaskParameter="Result" PropertyName="_RaskSpaWasmTfmProbe"/>
-    </XmlPeek>
     <ItemGroup>
-      <_RaskSpaWasmClient Include="%(ProjectReference.FullPath)" Condition="'$(_RaskSpaWasmProbe)' == 'true'">
-        <Tfm Condition="'$(_RaskSpaWasmTfmProbe)' != ''">$(_RaskSpaWasmTfmProbe)</Tfm>
-        <Tfm Condition="'$(_RaskSpaWasmTfmProbe)' == ''">net10.0-browser</Tfm>
-      </_RaskSpaWasmClient>
+      <_RaskSpaWasmClient Include="%(ProjectReference.FullPath)" Condition="'$(_RaskSpaWasmProbe)' == 'true'"/>
     </ItemGroup>
     <PropertyGroup>
       <_RaskSpaWasmProbe></_RaskSpaWasmProbe>
-      <_RaskSpaWasmTfmProbe></_RaskSpaWasmTfmProbe>
     </PropertyGroup>
   </Target>
 
@@ -391,9 +382,43 @@
     <Error Condition="'@(_RaskSpaWasmClient->Count())' == '1' AND '$(_RaskSpaDir)' != ''"
            Code="RASKSPA007"
            Text="Rask.Spa.Hosting: this project has two clients, the WebAssembly project @(_RaskSpaWasmClient) and the front end in $(_RaskSpaDir). UseRaskSpa serves one app per host: remove one, or serve it from its own host."/>
+
+    <!--
+      The client's framework, asked of MSBuild rather than read off the file: the bundle and manifest paths
+      name it.
+
+      An XmlPeek of a literal <TargetFramework> element, with net10.0-browser assumed otherwise, is right for
+      one .NET version only. A client whose framework comes from a Directory.Build.props or a property, or
+      that targets another version, would bake a path under bin/<config>/net10.0-browser/ that no publish
+      writes, and the host would answer its whole app with 404s from a green build.
+
+      GetTargetFrameworks is the ProjectReference protocol's own question, answered by the client's full
+      evaluation. The host's TargetFramework and RuntimeIdentifier are removed so its own face is not pushed
+      onto a project with a different SDK. Only the one matched client is evaluated, so a host with no
+      WebAssembly client pays nothing.
+
+      "Exactly one" is COUNTED from the list, never read off HasSingleTargetFramework: MSBuild sets that flag
+      from which property a project uses, so a one-entry <TargetFrameworks>net10.0-browser</TargetFrameworks>
+      reports false although it names one framework, which is all the paths need.
+    -->
+    <MSBuild Projects="@(_RaskSpaWasmClient)"
+             Targets="GetTargetFrameworks"
+             RemoveProperties="TargetFramework;RuntimeIdentifier;SelfContained"
+             Condition="'@(_RaskSpaWasmClient->Count())' == '1'">
+      <Output TaskParameter="TargetOutputs" ItemName="_RaskSpaWasmClientFrameworks"/>
+    </MSBuild>
+    <ItemGroup Condition="'@(_RaskSpaWasmClient->Count())' == '1'">
+      <_RaskSpaWasmFramework Include="%(_RaskSpaWasmClientFrameworks.TargetFrameworks)"/>
+    </ItemGroup>
+    <Error Condition="'@(_RaskSpaWasmClient->Count())' == '1' AND '@(_RaskSpaWasmFramework->Count())' == '0'"
+           Code="RASKSPA008"
+           Text="Rask.Spa.Hosting: the WebAssembly client @(_RaskSpaWasmClient) reported no target framework, so the bundle it publishes cannot be located."/>
+    <Error Condition="'@(_RaskSpaWasmClient->Count())' == '1' AND '@(_RaskSpaWasmFramework->Count())' &gt; '1'"
+           Code="RASKSPA009"
+           Text="Rask.Spa.Hosting: the WebAssembly client @(_RaskSpaWasmClient) must build for exactly one framework for its bundle to be served, but it targets '@(_RaskSpaWasmFramework)'. Give it a single &lt;TargetFramework&gt;, such as net10.0-browser."/>
     <PropertyGroup Condition="'@(_RaskSpaWasmClient->Count())' == '1'">
       <_RaskSpaWasmProject>%(_RaskSpaWasmClient.FullPath)</_RaskSpaWasmProject>
-      <_RaskSpaWasmBin>$([System.IO.Path]::GetDirectoryName('%(_RaskSpaWasmClient.FullPath)'))/bin/$(Configuration)/%(_RaskSpaWasmClient.Tfm)</_RaskSpaWasmBin>
+      <_RaskSpaWasmBin>$([System.IO.Path]::GetDirectoryName('%(_RaskSpaWasmClient.FullPath)'))/bin/$(Configuration)/@(_RaskSpaWasmFramework)</_RaskSpaWasmBin>
       <_RaskSpaWasmDist>$(_RaskSpaWasmBin)/publish/wwwroot</_RaskSpaWasmDist>
       <_RaskSpaWasmDevManifest>$(_RaskSpaWasmBin)/$([System.IO.Path]::GetFileNameWithoutExtension('%(_RaskSpaWasmClient.FullPath)')).staticwebassets.runtime.json</_RaskSpaWasmDevManifest>
     </PropertyGroup>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -113,9 +113,12 @@
 
     ResolveProjectReferences for the reason the island test project states: ResolveTypeScriptToolTask is loaded
     from a Rask.TypeScript.Tasks.dll that the reference edge produces (#878).
+
+    One inner build owns the file, the primary framework's: build/ is shared by every framework, so a second
+    one would race the first to write it.
   -->
   <Target Name="_RaskBundleExtractor" BeforeTargets="CoreCompile" DependsOnTargets="ResolveProjectReferences"
-          Condition="'$(DesignTimeBuild)' != 'true'"
+          Condition="'$(DesignTimeBuild)' != 'true' AND '$(TargetFramework)' == '$(RaskPrimaryNetTarget)'"
           Inputs="@(_RaskExtractorTs)"
           Outputs="$(MSBuildProjectDirectory)/build/rask-extract-props.mjs">
     <ResolveTypeScriptToolTask Tool="esbuild"

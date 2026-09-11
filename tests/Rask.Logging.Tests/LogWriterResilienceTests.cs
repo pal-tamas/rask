@@ -123,7 +123,79 @@ public sealed class LogWriterResilienceTests
         Assert.Equal("pending at shutdown", Assert.Single(store.Appended).Message);
     }
 
-    private static LogWriter Build(ILogs store, out LogChannel channel, RaskLoggingOptions options)
+    /// <summary>
+    /// A store that stays broken — a log table whose migration has not run, an unwritable disk — fails every flush.
+    /// It is reported once, then at most once a minute, and its recovery once: an error with a stack trace every
+    /// second would bury the console it is meant to warn.
+    /// </summary>
+    [Fact]
+    public async Task AStoreThatKeepsFailingIsReportedOnceAMinuteAndItsRecoveryOnce()
+    {
+        var store = new FaultyLogStore { Fail = true };
+        var clock = new FakeTimeProvider(DateTimeOffset.UnixEpoch);
+        var logger = new RecordingLogger();
+        using var writer = Build(
+            store,
+            out var channel,
+            new RaskLoggingOptions { FlushInterval = TimeSpan.FromMilliseconds(20) },
+            clock,
+            logger);
+
+        await writer.StartAsync(CancellationToken.None);
+        try
+        {
+            // An entry per cycle, so every cycle has a batch to fail on.
+            await FailAtLeastAsync(store, channel, attempts: 3);
+            Assert.Equal(1, logger.Count(LogLevel.Error));
+
+            // A cycle with nothing to flush still sweeps retention, and this store serves that fine — as a disk that
+            // takes deletes but not inserts would. A sweep is not a write, so it must neither announce a recovery
+            // nor start the run over (which would report the very next failure as a first one).
+            await WaitUntilAsync(() => store.Purges >= 1);
+            Assert.Equal(0, logger.Count(LogLevel.Information));
+
+            await FailAtLeastAsync(store, channel, attempts: store.Attempts + 3);
+            Assert.Equal(1, logger.Count(LogLevel.Error));
+
+            // A minute on, the next failure is reported again — once.
+            clock.Advance(LogWriter.FailureReminderInterval);
+            await FailAtLeastAsync(store, channel, attempts: store.Attempts + 4);
+            Assert.Equal(2, logger.Count(LogLevel.Error));
+
+            store.Fail = false;
+            channel.Write(Entry("after recovery"));
+            await WaitUntilAsync(() => logger.Count(LogLevel.Information) == 1);
+        }
+        finally
+        {
+            await writer.StopAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(2, logger.Count(LogLevel.Error));
+        Assert.Equal(1, logger.Count(LogLevel.Information));
+    }
+
+    private static async Task FailAtLeastAsync(FaultyLogStore store, LogChannel channel, int attempts)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (store.Attempts < attempts)
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException($"the store was attempted {store.Attempts} times, not {attempts}.");
+            }
+
+            channel.Write(Entry("while broken"));
+            await Task.Delay(10);
+        }
+    }
+
+    private static LogWriter Build(
+        ILogs store,
+        out LogChannel channel,
+        RaskLoggingOptions options,
+        TimeProvider? clock = null,
+        ILogger<LogWriter>? logger = null)
     {
         var metrics = new LogMetrics();
         channel = new LogChannel(options, metrics);
@@ -132,8 +204,40 @@ public sealed class LogWriterResilienceTests
             store,
             options,
             metrics,
-            TimeProvider.System,
-            NullLogger<LogWriter>.Instance);
+            clock ?? TimeProvider.System,
+            logger ?? NullLogger<LogWriter>.Instance);
+    }
+
+    /// <summary>Counts what the writer reports, by level.</summary>
+    private sealed class RecordingLogger : ILogger<LogWriter>
+    {
+        private readonly Lock _gate = new();
+        private readonly List<LogLevel> _levels = [];
+
+        public int Count(LogLevel level)
+        {
+            lock (_gate)
+            {
+                return _levels.Count(l => l == level);
+            }
+        }
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            lock (_gate)
+            {
+                _levels.Add(logLevel);
+            }
+        }
     }
 
     private static LogRecord Entry(string message) =>
@@ -159,12 +263,16 @@ public sealed class LogWriterResilienceTests
         private readonly Lock _gate = new();
         private readonly List<LogRecord> _appended = [];
         private int _attempts;
+        private int _purges;
 
         public bool Fail { get; set; }
 
         public bool Hang { get; set; }
 
         public int Attempts => Volatile.Read(ref _attempts);
+
+        /// <summary>How many retention sweeps reached the store. They always succeed, even while appends fail.</summary>
+        public int Purges => Volatile.Read(ref _purges);
 
         public IReadOnlyList<LogRecord> Appended
         {
@@ -204,7 +312,11 @@ public sealed class LogWriterResilienceTests
         public Task<int> PurgeAsync(
             TimeSpan retention,
             int maxRows,
-            CancellationToken cancellationToken = default) => Task.FromResult(0);
+            CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _purges);
+            return Task.FromResult(0);
+        }
 
         public Task ClearAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

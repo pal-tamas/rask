@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **The devtools panel lists the inspected page's wire traffic.** Every frame the page and the app exchange is
+  listed newest first, under totals for each direction: events and navigations the page sent, and render frames and
+  acks it received. Each row shows the frame's size, how many edit ops a render diff carried, and the time since the
+  frame before it. The panel follows the page live and refreshes at most every 200 ms however busy the page is; it
+  keeps the last 1,000 frames per session, and lists the newest 200. It checks the session's token and owner again on
+  every render, so a panel that navigates itself to another session's id finds nothing.
+
 - **The Rask pill opens a live panel in Debug Development builds, and only the developer who owns the page can open it.** Each
   interactive page's devtools tag now names its panel, `/_rask-devtools/?inspect={session}&t={token}`. The panel is
   a Rask application mounted beside the app with its own document and route table, drawn with Rask.Ui and following
@@ -196,6 +203,32 @@ them until tagged releases begin.
   claim, cache, session-settings and bulk-insert scenarios against SQL Server 2022 — started on amd64 hosts
   only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
   summary that SQL Server was not proven rather than counting it as a pass.
+
+- **The log store can live in the application's database.** `AddRaskLogging<TContext>()` with
+  `modelBuilder.AddRaskLogging()` keeps the log as a `RaskLog` table in a PostgreSQL or SQL Server app's own database,
+  created by its migrations. The SQLite file store (`AddRaskLogging()`) stays, and stays the choice on
+  SQLite.
+  - **Same behaviour as the file store.** `ILogs`, `LogQuery`, the dashboard and the metrics are unchanged. One
+    contract suite runs against both stores, covering filters, paging, retention and scopes.
+  - **Survives a rollback.** Every flush runs on a context and a connection of its own, so a line logged inside a
+    transaction that rolls back is kept.
+  - **Portable queries.** Text search ignores case even on PostgreSQL, and the scope filter matches the JSON-encoded
+    `"key":"value"` pair exactly.
+  - **Safe retention.** Deletes read each page's ids first, so two instances of the app sweeping retention at once
+    remove each row once.
+  - **No self-logging.** An async-local marks the store's own flow, so the SQL EF Core logs while it writes is not
+    captured back into it, while the application's SQL still is.
+  - **Driver categories.** `Npgsql` and `Microsoft.Data.SqlClient` join `Microsoft.Data.Sqlite` as always excluded.
+  - **NUL characters.** A NUL in a message, exception or category is stored as U+FFFD by both stores. PostgreSQL
+    rejects NUL in text, and one such line would otherwise fail its whole batch.
+  - **Quieter failures.** A store that keeps failing, such as a log table whose migration has not run yet, reports
+    its first failure, then at most once a minute, and logs when it recovers. It no longer logs an error every
+    flush. The dropped entries are still counted on `rask.logs.dropped`.
+  - **Boot check.** A model that never mapped the table fails the boot naming `modelBuilder.AddRaskLogging();`, through
+    the same check every battery has.
+  - **Real-server tests.** The provider gate runs the store against PostgreSQL and SQL Server: case-insensitive
+    search, exact scope matching, paged retention, two hosts purging at once, and a line appended during a
+    transaction surviving its rollback.
 
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
@@ -403,6 +436,39 @@ them until tagged releases begin.
   builder.Services.AddRaskSpaHost();
   app.UseRaskSpa();
   ```
+
+- **Every shipped package reads its .NET versions from one place** — the groundwork for building each package
+  for .NET 10 and .NET 11 side by side. `Directory.Build.props` now states `RaskNetTargets` /
+  `RaskBrowserTargets`, and all 39 packable projects take `<TargetFrameworks>` from them instead of spelling
+  `net10.0` out. What a consumer installs is unchanged — a fresh-tree pack lists the same files and nuspecs as
+  before — with one exception that was a leak: `Rask.Auth` no longer ships its compiled stylesheet's build
+  intermediate (`obj/net10.0/auth.generated.css`) as a NuGet content file, which put a stray `obj/` item into
+  every consuming project. The pages never used it; the stylesheet is embedded in `Rask.Auth.dll` as before.
+  - **Faces are chosen by platform, not by version string.** The 21 `'$(TargetFramework)' == 'net10.0'`
+    conditions that pick a package's server or browser half now ask `GetTargetPlatformIdentifier`, so a second
+    .NET version lands on the right half — one of them (`!= 'net10.0'` in Rask.DevTools) would have sent it
+    to the browser branch, and `RASK_BROWSER` would have compiled Rask.Wasm's browser build with no exports.
+  - **Rask.Core is bundled by `src/RaskCoreBundle.targets`** for Rask.Server and Rask.Wasm, through
+    `BuildOutputInPackage`, so NuGet names each `lib/` folder. The literal `lib/net10.0/` paths would have
+    shipped a second version's folder without `Rask.Core.dll` while pack stayed green.
+  - **Two new build errors keep it that way.** `RaskVerifyTargetFrameworks` fails a shipped project that writes
+    its frameworks literally (the `rask` tool is exempt: it rolls forward instead), and the public-API gate
+    maps each version onto its face's baseline (`RaskPublicApiTfm`) and refuses a `PublicAPI/<tfm>` folder no
+    build reads. `PackageDependencyTests` now follows the imports the bundling moved into, and fails if it
+    stops seeing Rask.Server and Rask.Wasm bundle Core rather than passing on nothing.
+- **The build targets shipped to apps follow the app's .NET version instead of assuming .NET 10.** The browser
+  companion generated for a `Client/` app now targets the server half's framework as `-browser` (`net11.0` →
+  `net11.0-browser`), and the prerender companion the browser app's desktop twin (`net11.0-browser` →
+  `net11.0`); both were literal `net10.0` names.
+  - **`Rask.Spa.Hosting` asks MSBuild for a referenced WASM client's framework** (`GetTargetFrameworks`) rather than
+    reading a literal `<TargetFramework>` element off its csproj and assuming `net10.0-browser` otherwise. A
+    client whose framework comes from a `Directory.Build.props` or a property now gets the right bundle path
+    baked in, where on any other .NET version the host would have served its whole app as 404s from a green
+    build.
+  - **A WASM client that targets several frameworks is now a build error on the host** (`RASKSPA009`, "must build for
+    exactly one framework"), where the probe used to guess `net10.0-browser`. A bundle is published for one
+    framework; give the client a single `<TargetFramework>`. One framework written as a one-entry
+    `<TargetFrameworks>` list still counts as one and is served.
 
 - **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
   own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
@@ -677,6 +743,15 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **Filtering the log by a scope key that looks like a JSON path now finds its entries.**
+  - **The cause.** The SQLite file store filtered scopes with `json_extract(Scopes, '$.' || key)`, which reads the
+    key as a JSON path.
+    - A dotted or bracketed key such as `user.id` or `items[0]` was taken as a nested path and silently matched
+      nothing.
+    - A key starting with a double quote made the search throw.
+  - **The fix.** Both log stores now match the JSON-encoded `"key":"value"` pair, which is exact whatever the key
+    holds.
 
 - **`rask new --cqrs` without `--wasm` scaffolds an app that compiles again.** The server template wrote the
   database-free `AddRaskCqrsServer()` call outside its WebAssembly region.

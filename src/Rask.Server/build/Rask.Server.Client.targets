@@ -5,9 +5,9 @@
 
     `rask new` with its wasm option writes ONE project whose browser app lives in a Client/ folder, the way a
     TypeScript front end lives in client/. A .csproj carries exactly one SDK, and the two halves need
-    different ones — Microsoft.NET.Sdk.Web on net10.0 for the server, Microsoft.NET.Sdk.WebAssembly on
-    net10.0-browser for the browser — so the build generates the second project into obj/ and drives it,
-    rather than asking the author to maintain a parallel one.
+    different ones — Microsoft.NET.Sdk.Web on net10.0 (or a later version) for the server, and
+    Microsoft.NET.Sdk.WebAssembly on the matching -browser framework for the browser — so the build generates
+    the second project into obj/ and drives it, rather than asking the author to maintain a parallel one.
 
     Three places say which half a file belongs to:
 
@@ -44,6 +44,13 @@
       first publish succeeds and every one after it fails, which is the worst version of this to diagnose.
     -->
     <RaskClientCompanionOutput Condition=" '$(RaskClientCompanionOutput)' == '' ">$(BaseIntermediateOutputPath)rask-client-out\</RaskClientCompanionOutput>
+    <!--
+      The bundle's framework follows the SERVER half's, version for version: a net10.0 app ships a
+      net10.0-browser bundle and a net11.0 app a net11.0-browser one. A literal would compile the app's own
+      Client/ sources for a .NET version the app does not target, or run the bundle on an older runtime than
+      its server. Empty in a multi-targeted project's outer evaluation, where nothing below runs.
+    -->
+    <_RaskClientFramework Condition=" '$(TargetFramework)' != '' ">net$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)', 2))-browser</_RaskClientFramework>
   </PropertyGroup>
 
   <!--
@@ -138,6 +145,13 @@
     <Error Condition=" '$(_RaskClientBySource)' != 'true' And '$(_RaskClientVersion)' == '' "
            Text="Rask: Client/Program.cs makes this a one-project WebAssembly app, but no Rask.Server PackageReference was found to take a version from. The browser half is a separate project and must reference the same framework build as this one."/>
 
+    <!--
+      A multi-targeted server publishes one framework at a time (-f), and a publish without one fails before
+      this runs, so this fires only when the target is invoked outside a build of one framework.
+    -->
+    <Error Condition=" '$(_RaskClientFramework)' == '' "
+           Text="Rask: Client/Program.cs makes this a one-project WebAssembly app, and the browser app's framework is derived from this project's TargetFramework, which is not set. Build or publish with -f &lt;framework&gt;."/>
+
     <Error Condition=" !Exists('$(_RaskClientApp)\Client\wwwroot\index.html') "
            Text="Rask: Client/Program.cs makes this a one-project WebAssembly app, but Client/wwwroot/index.html is missing — it is the page the browser loads to boot the app. Add one (`rask new --template wasm` writes the standard shell), or turn the client off with &lt;RaskClient&gt;false&lt;/RaskClient&gt;."/>
 
@@ -154,7 +168,7 @@
                        Include="  &lt;Import Project=&quot;$(RaskClientCompanionSrc)\Rask.Wasm\build\Rask.Wasm.props&quot; /&gt;"/>
 
       <_RaskClientLine Include="  &lt;PropertyGroup&gt;"/>
-      <_RaskClientLine Include="    &lt;TargetFramework&gt;net10.0-browser&lt;/TargetFramework&gt;"/>
+      <_RaskClientLine Include="    &lt;TargetFramework&gt;$(_RaskClientFramework)&lt;/TargetFramework&gt;"/>
       <_RaskClientLine Include="    &lt;RuntimeIdentifier&gt;browser-wasm&lt;/RuntimeIdentifier&gt;"/>
       <_RaskClientLine Include="    &lt;OutputType&gt;Exe&lt;/OutputType&gt;"/>
       <_RaskClientLine Include="    &lt;Nullable&gt;$(Nullable)&lt;/Nullable&gt;"/>
@@ -335,7 +349,7 @@
           BeforeTargets="GetAssemblyAttributes">
     <PropertyGroup>
       <_RaskClientOutDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(RaskClientCompanionOutput)'))</_RaskClientOutDir>
-      <_RaskClientBinDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(RaskClientCompanionDir)', 'bin', '$(Configuration)', 'net10.0-browser'))</_RaskClientBinDir>
+      <_RaskClientBinDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(RaskClientCompanionDir)', 'bin', '$(Configuration)', '$(_RaskClientFramework)'))</_RaskClientBinDir>
     </PropertyGroup>
     <ItemGroup>
       <AssemblyMetadata Include="Rask.SpaDistDir" Value="$(_RaskClientOutDir)wwwroot"/>
