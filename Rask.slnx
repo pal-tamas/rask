@@ -20,7 +20,6 @@
         <Project Path="src/Rask.Logging/Rask.Logging.csproj" />
         <Project Path="src/Rask.Mail/Rask.Mail.csproj" />
         <Project Path="src/Rask.Outbox/Rask.Outbox.csproj" />
-        <Project Path="src/Rask.MySql/Rask.MySql.csproj" />
         <Project Path="src/Rask.Postgres/Rask.Postgres.csproj" />
         <Project Path="src/Rask.SqlServer/Rask.SqlServer.csproj" />
         <Project Path="src/Rask.Blazor/Rask.Blazor.csproj" />
@@ -85,7 +84,6 @@
         <Project Path="tests/Rask.Logging.Tests/Rask.Logging.Tests.csproj" />
         <Project Path="tests/Rask.Mail.Tests/Rask.Mail.Tests.csproj" />
         <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj" />
-        <Project Path="tests/Rask.MySql.Tests/Rask.MySql.Tests.csproj" />
         <Project Path="tests/Rask.Postgres.Tests/Rask.Postgres.Tests.csproj" />
         <Project Path="tests/Rask.SqlServer.Tests/Rask.SqlServer.Tests.csproj" />
         <Project Path="tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj" />
