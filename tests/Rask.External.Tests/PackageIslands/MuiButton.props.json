@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "runtime": "react",
+  "module": "@mui/material/Button",
+  "export": "default",
+  "package": {
+    "name": "@mui/material",
+    "version": "7.3.1"
+  },
+  "tag": null,
+  "content": "node",
+  "props": [
+    {
+      "name": "aria-label",
+      "required": false,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "classes",
+      "required": false,
+      "doc": "Override or extend the styles applied to the component.",
+      "type": {
+        "kind": "ref",
+        "name": "ButtonClasses"
+      }
+    },
+    {
+      "name": "disabled",
+      "required": false,
+      "doc": "If `true`, the component is disabled.",
+      "default": "false",
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "elevation",
+      "required": false,
+      "type": {
+        "kind": "number"
+      }
+    },
+    {
+      "name": "onChange",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "ChangeEvent"
+            }
+          },
+          {
+            "name": "value",
+            "type": {
+              "kind": "number"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onClick",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "MouseEvent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "size",
+      "required": false,
+      "doc": "The size of the component.",
+      "default": "'medium'",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "large",
+          "medium",
+          "small"
+        ]
+      }
+    },
+    {
+      "name": "startedAt",
+      "required": false,
+      "type": {
+        "kind": "date"
+      }
+    },
+    {
+      "name": "variant",
+      "required": false,
+      "doc": "The variant to use.",
+      "default": "'text'",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "contained",
+          "outlined",
+          "text"
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "name": "children",
+      "reason": "node"
+    },
+    {
+      "name": "sx",
+      "reason": "unsupported",
+      "detail": "SxProps<Theme>"
+    }
+  ],
+  "types": {
+    "ButtonClasses": {
+      "kind": "object",
+      "members": [
+        {
+          "name": "label",
+          "required": false,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "root",
+          "required": true,
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    }
+  }
+}

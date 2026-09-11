@@ -9,6 +9,34 @@ them until tagged releases begin.
 
 ### Added
 
+- **A Debug build running in Development loads Rask DevTools' host script into every live page.** `AddRask`
+  attaches the devtools when the build carries `Rask.DevTools`; `UseRask` then maps `/_rask-devtools/host.js` —
+  anonymous, so an app with a fallback authorization policy still loads its own tools — and each interactive
+  page gets a deferred, `data-rask-managed` `<script>` for it at the end of its `<head>`. Outside Development
+  nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
+  it. The script is an entry point so far; the in-page tools arrive in the next slices.
+
+  The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
+  load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
+  bundles both runtimes with the pinned esbuild, with and without the hooks, and fails past 250 minified bytes
+  (184 and 185 today). The three per-response `<body>` stamps now share one insertion helper.
+
+- **Use an npm component as an island with no wrapper — its props come from its own TypeScript.** A class whose
+  `Module` names a package (`protected override string Module => "@mui/material/Button";`, or
+  `"@mui/material#Button"` for a named export) is a *package island*, and a committed `MuiButton.props.json`
+  beside it describes the package's props. From it the island generator declares the properties and a
+  reflection-free writer and the factory generator the chain steps —
+  `MuiButton.Variant(MuiButtonVariant.Contained).Disabled(saving).OnClick(Save)` — both reading one resolver, so
+  a step can never exist without its property. String-literal unions become generated enums sent as the
+  original literal; `number` is `double`; objects become generated records; `string | number` a generated
+  struct that takes either; dates cross tagged and arrive as a `Date`. An unset prop is left out rather than
+  sent as `null`, so the package's own default applies. A callback never forwards an event object —
+  `onChange(event, value)` is `Callback<double>` and only the number crosses (`$a`), which also stops a
+  package's synthetic event throwing inside the host's `JSON.stringify` and losing the call. A property
+  declared by hand wins and keeps its own type. RASK077–080 report a missing, unreadable or mismatched snapshot
+  and any prop that could not be generated. See
+  [Using a package component directly](docs/islands.md#using-a-package-component-directly).
+
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
   `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
@@ -203,6 +231,13 @@ them until tagged releases begin.
   ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
   gate are unchanged.
 
+- **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
+  writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
+  adds beside the props shares one writer. Only a hand-written `ExternalComponent` subclass has to change —
+  `protected override void WriteProps(Utf8JsonWriter writer)` — and there is no reason to write one.
+- **A `Module` that names a package makes the island a package island**, including one that declares its props
+  by hand: an unset prop is left out of the props rather than written as `null`, so the package's default
+  applies, and each callback forwards only its first argument to C#.
 - **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
   in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
   They were bare, and GitHub Pages answers `/docs/guides/cqrs` with a 301 to `/docs/guides/cqrs/`, so every
