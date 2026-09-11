@@ -393,6 +393,20 @@ them until tagged releases begin.
   also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
   the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
 
+- **An island takes children of its own runtime.** A React island accepts React islands, text, numbers
+  and dates — `MuiCard["Revenue ", _total, MuiButton.OnClick(Save)["Save"]]` — a Vue island Vue islands,
+  and so on across all seven runtimes, and a list of islands or of text binds directly
+  (`MuiList[_names]`). Children travel inside the host's `props` as `$c`, and its framework renders
+  them, so the whole tree reconciles there and the host element stays empty on the server. Every
+  hand-written island accepts children; a package island does when its snapshot says its component
+  takes content. Each built entry now also exports its framework component, which is what a parent
+  loads to render it. **Breaking:** RASK062 no longer reports every indexer on a JS island. It reports
+  a child the island cannot render — Rask markup, another runtime's island, or anything for a component
+  that takes no content — at the brackets, naming what the island accepts, including
+  `var x = MuiCard[Span["x"]]`, which the compiler alone lets through; and it now reports assigning
+  `Children` on any island. A Blazor island still takes no children. The adapters take the children as an
+  optional third argument to `mount` and `update`, so an adapter you vendored and edited keeps working and
+  renders no children until you add them.
 
 - **The Rask pill opens the devtools panel on WASM pages too.** A Debug build of a WASM app served from this machine
   (`localhost` or a loopback address) gets the same pill and drawer as a Server app, and the Wire tab lists the page's

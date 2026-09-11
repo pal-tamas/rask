@@ -173,7 +173,9 @@
       <Runtime Condition="'%(RaskExternal.Runtime)' == ''">lit</Runtime>
     </_RaskExternalFile>
 
-    <_RaskExternalAdapterSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
+    <!-- The .svelte files are the Svelte adapter's host components: a child island has to become a real
+         `children` snippet, which only Svelte markup can express. -->
+    <_RaskExternalAdapterSource Include="$(MSBuildThisFileDirectory)../client/*.ts;$(MSBuildThisFileDirectory)../client/*.svelte"/>
 
     <!--
       Committed props snapshots, as additional files the island and factory generators read. Globbed at
