@@ -615,6 +615,19 @@ internal static class HtmlSerializer
         }
     }
 
+    /// <summary>
+    ///     Tells the component whose subtree is being walked that the walk did work the clean-subtree
+    ///     cache cannot replay, exactly as a nested user component does.
+    /// </summary>
+    /// <remarks>
+    ///     A replay re-emits the cached component's frames and re-registers only the handler run on ITS
+    ///     OWN slots. Anything a walk does on behalf of another component — a handler whose slot belongs
+    ///     to an island serialized down the element branch, a head asset that component contributes —
+    ///     would be skipped, so the enclosing subtree must stay on the walk path. Cheap by construction:
+    ///     only those callers pay, never the per-element walk.
+    /// </remarks>
+    internal static void MarkNestedComponent() => _sawNestedComponent = true;
+
     private static void SerializeErrorBoundary(ErrorBoundary boundary, StringBuilder sb)
     {
         var live = LiveRenderContext.CurrentSync;
