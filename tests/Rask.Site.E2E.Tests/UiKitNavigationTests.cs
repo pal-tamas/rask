@@ -120,7 +120,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         await Expect(pager.Locator("button")).ToHaveCountAsync(0);
 
         var href = await pager.Locator("a.join-item").First.GetAttributeAsync("href") ?? "";
-        Assert.EndsWith("/ui/navigation?page=2", href, StringComparison.Ordinal);
+        Assert.EndsWith("/ui/navigation/?page=2", href, StringComparison.Ordinal);
     });
 
     private async Task OpenAsync()

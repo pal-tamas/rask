@@ -103,6 +103,16 @@ public sealed partial class LogsPage(
 
         var query = BuildQuery(Level, Category, Query, Page, options.PageSize);
         _history = await _store!.SearchAsync(query, cancellationToken).ConfigureAwait(false);
+
+        // A page past the end — a bookmarked ?page= that retention has since trimmed — reads the last page there
+        // is, rather than an empty table beside the stored count and a pager that cannot reach it.
+        if (_history.Entries.Count == 0 && _history.TotalCount > 0 && _history.Page > _history.PageCount)
+        {
+            Page = _history.PageCount;
+            _history = await _store
+                .SearchAsync(BuildQuery(Level, Category, Query, Page, options.PageSize), cancellationToken)
+                .ConfigureAwait(false);
+        }
         _storedCategories = await _store.CategoriesAsync(cancellationToken).ConfigureAwait(false);
 
         // Total plus the ids on screen: a new entry changes the total, and paging changes the ids.
@@ -299,19 +309,22 @@ public sealed partial class LogsPage(
         if (paged)
         {
             grid = grid
-                .PageSize(options.PageSize)
+                // The store's page size, not the option: the store caps it, and a pager counting in the option
+                // would offer pages past the rows the store can hand back.
+                .PageSize(_history.PageSize)
                 .Page(CurrentPage - 1)
                 .TotalCount((int)Math.Min(_history.TotalCount, int.MaxValue))
                 .PageHref(page => Link(Level, Category, page + 1));
         }
 
-        // The message is the column an operator came for, so it is the one every width keeps; the category
-        // waits for room, and on a phone each column becomes its own labelled line.
+        // Every column at every table width. The category used to fold under the message on a narrow screen, so
+        // hiding it between sm and lg would lose a fact the old table kept; on a phone each column becomes its own
+        // labelled line.
         return grid[c => [
             c.Field(r => r.Timestamp).Title("When").Cell(r =>
                 Span.Title(r.Timestamp.UtcDateTime.ToString("u"))[DashboardParts.Ago(r.Timestamp.UtcDateTime, now)]),
             c.Field(r => r.Level).Title("Level").Cell(r => LevelBadge(r.Level)),
-            c.Field(r => r.Category).Title("Category").Mono(true).ShowFrom(UiBreakpoint.Lg),
+            c.Field(r => r.Category).Title("Category").Mono(true),
             c.Field(r => r.Message).Title("Message").Cell(MessageCell),
         ]];
     }

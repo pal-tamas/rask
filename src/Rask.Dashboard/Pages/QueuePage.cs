@@ -56,6 +56,14 @@ public sealed partial class QueuePage(
             .PageAsync(Filter, _page * options.PageSize, options.PageSize, cancellationToken)
             .ConfigureAwait(false);
 
+        if (_rows.Count == 0 && _page > DashboardParts.LastPageIndex(_total, options.PageSize))
+        {
+            _page = DashboardParts.LastPageIndex(_total, options.PageSize);
+            (_rows, _total) = await _panel
+                .PageAsync(Filter, _page * options.PageSize, options.PageSize, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         // Row identity plus attempt count is enough to notice any change that matters: a row moving state
         // changes the filter it appears in, and a retry bumps Attempts.
         return string.Join('|',
@@ -165,27 +173,20 @@ public sealed partial class QueuePage(
     // Mail's "type" column is really its subject; calling it Type on that page would be a small lie.
     private string TypeColumnLabel() => _panel!.Slug == "mail" ? "Subject" : "Type";
 
-    // A space between the buttons rather than a class: a text node is the gap every inline control already
-    // gets in a line of prose, and the console writes no class strings.
+    // Keyed buttons and nothing between them. The grid cell spaces adjacent buttons itself; a " " text node here
+    // mixed unkeyed text into keyed siblings, which makes the live diff match by position — so after a Retry the
+    // focused Retry button could be patched into Delete in place, one Enter away from the delete prompt.
     private IEnumerable<Component> RowButtons(QueueRow row, bool isDead)
     {
-        var first = true;
+        foreach (var button in RowActionButtons(row, isDead))
+        {
+            yield return button;
+        }
 
         // Opens the detail sheet. A button rather than a clickable row: a <tr> is not focusable, and the
         // console has no script to make one behave like a control.
-        var details = UiButton.Key("details").Size(UiSize.Sm)
+        yield return UiButton.Key("details").Size(UiSize.Sm)
             .OnClick(() => Open(row.Id))[UiIcon.Name(UiIconName.ChevronRight), "Details"];
-
-        foreach (var button in RowActionButtons(row, isDead).Append(details))
-        {
-            if (!first)
-            {
-                yield return " ";
-            }
-
-            first = false;
-            yield return button;
-        }
     }
 
     private static string StatusText(QueueRow row, bool isDead, DateTime now) => row switch

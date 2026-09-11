@@ -113,8 +113,12 @@ public sealed partial class SystemPage(
             return null;
         }
 
+        // A probe that only takes snapshots has no replication or verification to report, and a Backup card with a
+        // heading and nothing under it reads as a broken panel rather than as "not applicable".
+        var stats = BackupStats(now).ToList();
+
         return [
-            UiCard.Key("backup").Heading("Backup")[UiGrid[BackupStats(now)]],
+            stats.Count == 0 ? null : UiCard.Key("backup").Heading("Backup")[UiGrid[stats]],
             UiCard.Key("snapshots").Heading("Snapshots")[SnapshotList(now)]
         ];
     }

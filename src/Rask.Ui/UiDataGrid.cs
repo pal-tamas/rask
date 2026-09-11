@@ -1175,6 +1175,20 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private IEnumerable<Component?> Rows(
         IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> rows, int span, int offset)
     {
+        // A cell's class depends on its column and on the grid, never on the row, so it is composed once per
+        // column here rather than once per cell. A polling grid re-renders on every update, and composing per cell
+        // was a builder and a string for every cell of every row, every time, for the same few values.
+        var classes = new string[visible.Count];
+        var clickable = OnRowClick is null ? null : new string[visible.Count];
+        for (var c = 0; c < visible.Count; c++)
+        {
+            classes[c] = CellClass(visible[c]);
+            if (clickable is not null)
+            {
+                clickable[c] = UiClass.Compose(classes[c], "cursor-pointer");
+            }
+        }
+
         for (var i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
@@ -1192,7 +1206,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                     RowClass?.Invoke(row)))[
                 SelectionEnabled ? Td.Class("w-0")[SelectBox(row)] : null,
                 Expandable ? Td.Class("w-0")[Expander(row, key, open)] : null,
-                visible.Select(column => Cell(column, row))
+                Cells(visible, row, classes, clickable)
             ];
 
             if (open && Detail?.Invoke(row) is { } detail)
@@ -1204,11 +1218,22 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         }
     }
 
-    private Component Cell(UiColumn<T> column, T row)
+    private Component?[] Cells(IReadOnlyList<UiColumn<T>> visible, T row, string[] classes, string[]? clickable)
+    {
+        var cells = new Component?[visible.Count];
+        for (var c = 0; c < visible.Count; c++)
+        {
+            cells[c] = Cell(visible[c], row, classes[c], clickable?[c]);
+        }
+
+        return cells;
+    }
+
+    private Component Cell(UiColumn<T> column, T row, string cellClass, string? clickableClass)
     {
         var cell = Td
             .Key(column.FieldName ?? column.Title ?? "")
-            .Class(CellClass(column));
+            .Class(cellClass);
 
         // Only where the stacked layout will read it. Passing null writes a BARE `data-label`, so a grid
         // with its own card markup carried an empty attribute on every cell it had.
@@ -1219,9 +1244,9 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
         // The row-click handler goes on the CELLS rather than the row, so a column can carve itself out
         // of it — see UiColumn.RowClickable for why a custom cell does so by default.
-        if (column.IsRowClickable && RowClickHandler(row) is { } click)
+        if (column.IsRowClickable && clickableClass is not null && RowClickHandler(row) is { } click)
         {
-            cell = cell.OnClick(click).Class(UiClass.Compose(CellClass(column), "cursor-pointer"));
+            cell = cell.OnClick(click).Class(clickableClass);
         }
 
         return cell[column.Body(row)];

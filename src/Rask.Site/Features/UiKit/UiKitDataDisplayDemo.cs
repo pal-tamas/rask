@@ -103,7 +103,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 UiGrid[
                     UiCard
                         .Key("queue")
-                        .Href(Routes.UiKitDataGridPage())
+                        .Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))
                         .Icon(UiIconName.Gear)
                         .Heading("Jobs")
                         .Action(UiStatusDot.Label("2 failed").Tone(UiTone.Error))[

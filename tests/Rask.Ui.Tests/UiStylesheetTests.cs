@@ -92,6 +92,9 @@ public sealed class UiStylesheetTests
         Assert.Contains(".ui-grid-cell{overflow-wrap:anywhere", css, StringComparison.Ordinal);
         Assert.Contains(".ui-grid-cell:where(.badge:not(.font-mono)", css, StringComparison.Ordinal);
         Assert.Contains("white-space:nowrap", css, StringComparison.Ordinal);
+
+        // …and buttons side by side in a cell are spaced by the kit, so a page puts no text node between them.
+        Assert.Contains(".ui-grid-cell:where(.btn+.btn)", css, StringComparison.Ordinal);
     }
 
     [Fact]

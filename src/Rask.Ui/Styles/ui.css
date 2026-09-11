@@ -16,10 +16,10 @@
   where cascade ORDER decides the outcome that #914 removed. Utilities only: the app keeps its own reset and
   its own base layer.
 
-  The one exception is keyed so that no application can match it: the console frame's reset further down
-  applies only under `.rask-ops`, the class UiShell writes. Rask.Dashboard is a mounted application that
-  owns its whole document (RaskMountedApp) and draws it with nothing but this kit, so that reset is the only
-  one its page gets.
+  The one exception is keyed to the console frame: the reset further down applies only under `.rask-ops`, the
+  class UiShell writes, so a page that does not frame itself with UiShell matches none of it — and one that
+  does has asked for a whole document of its own. Rask.Dashboard is a mounted application that owns its whole
+  document (RaskMountedApp) and draws it with nothing but this kit, so that reset is the only one its page gets.
 
   THE PALETTE IS INLINE BELOW, and it has to be. Moving it to a sibling ui.tokens.css and pulling it back
   with `@import` compiled without error and emitted a sheet of the right size — with ZERO ui-* utilities
@@ -709,6 +709,15 @@
   .ui-grid-cell :where(.badge:not(.font-mono), .btn, .tab, .status, .loading) {
     overflow-wrap: normal;
     white-space: nowrap;
+  }
+
+  /*
+    Buttons side by side in a cell — Retry, Delete, Details — keep a gap without a " " text node between them.
+    A text node there made the row's children a mix of keyed buttons and unkeyed text, which forces the live
+    diff to match by position: after a Retry, the focused Retry button could be patched into Delete in place.
+  */
+  .ui-grid-cell :where(.btn + .btn) {
+    margin-inline-start: 0.25rem;
   }
 }
 

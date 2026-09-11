@@ -42,6 +42,14 @@ public sealed partial class CachePage(
             .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
             .ConfigureAwait(false);
 
+        if (_rows.Count == 0 && _page > DashboardParts.LastPageIndex(_total, options.PageSize))
+        {
+            _page = DashboardParts.LastPageIndex(_total, options.PageSize);
+            (_rows, _total) = await cache
+                .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return string.Join('|',
             [$"{_stats.Entries}:{_stats.Bytes}:{_stats.Expired}:{_total}",
              .. _rows.Select(r => $"{r.Key}:{r.ExpiresAt.Ticks}")]);
@@ -109,6 +117,8 @@ public sealed partial class CachePage(
             .Page(_page)
             .TotalCount(_total)
             .OnPageChange(GoAsync)
+            // An expired key still reads until the sweep takes it; a neutral tint says it is on its way out.
+            .RowTone(r => r.ExpiresAt <= now ? UiTone.Neutral : null)
             .Toolbar(UiSearch
                 .Placeholder("Search keys")
                 .AccessibleLabel("Search cache keys")

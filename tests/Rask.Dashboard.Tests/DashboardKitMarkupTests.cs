@@ -52,6 +52,69 @@ public sealed class DashboardKitMarkupTests
         Assert.Contains("Failed", card.TextContent, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Queue_row_buttons_are_keyed_siblings_with_no_text_between_them()
+    {
+        // Unkeyed text among keyed buttons forces the diff to match by position, so a focused Retry could be
+        // patched into Delete. The grid cell spaces the buttons instead.
+        await using var h = new DashboardHarness(
+            Batteries.Jobs,
+            configure: o => o.Actions = RaskDashboardActions.Safe | RaskDashboardActions.Destructive);
+        var now = h.Clock.GetUtcNow().UtcDateTime;
+        await SaveAsync(h, new Job
+        {
+            Type = "Some.Job",
+            Payload = "{}",
+            RunAt = now.AddHours(-1),
+            CreatedAt = now.AddHours(-1),
+            Attempts = h.Get<JobOptions>().MaxAttempts,
+            Error = "boom",
+        });
+
+        var component = ActivatorUtilities.CreateInstance<QueuePage>(h.Services);
+        component.Queue = "jobs";
+        component.Show = "failed";
+        var page = RaskTest.Render(component, h.Services);
+        await page.WaitForAsync("dead letter");
+
+        Assert.Contains("</button><button", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("</button> <button", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_probe_that_only_takes_snapshots_draws_no_empty_backup_card()
+    {
+        await using var h = new DashboardHarness(
+            Batteries.None,
+            extra: services => services.AddSingleton<IDashboardBackupProbe>(new SnapshotsOnlyProbe()));
+
+        var html = await RaskTest.Render(ActivatorUtilities.CreateInstance<SystemPage>(h.Services), h.Services)
+            .WaitForAsync("Snapshots");
+
+        Assert.DoesNotContain(">Backup<", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, 25, 0)]
+    [InlineData(1, 25, 0)]
+    [InlineData(25, 25, 0)]
+    [InlineData(26, 25, 1)]
+    [InlineData(51, 25, 2)]
+    public void The_last_page_is_counted_from_the_total(int total, int pageSize, int expected) =>
+        Assert.Equal(expected, DashboardParts.LastPageIndex(total, pageSize));
+
+    private sealed class SnapshotsOnlyProbe : IDashboardBackupProbe
+    {
+        public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<BackupReplicationInfo?>(null);
+
+        public Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<BackupSnapshotInfo>>([]);
+
+        public Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<BackupVerificationInfo?>(null);
+    }
+
     private static async Task SaveAsync(DashboardHarness harness, Job job)
     {
         await using var db = harness.NewContext();

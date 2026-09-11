@@ -116,7 +116,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         // One link, and the figures are inside it rather than beside it.
         await Expect(card).ToHaveCountAsync(1);
         await Expect(card).ToContainTextAsync("Outstanding");
-        Assert.EndsWith("/ui/data-grid", await card.GetAttributeAsync("href") ?? "", StringComparison.Ordinal);
+        Assert.EndsWith("/ui/data-grid/", await card.GetAttributeAsync("href") ?? "", StringComparison.Ordinal);
     });
 
     [Fact]

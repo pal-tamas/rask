@@ -135,6 +135,25 @@ public sealed class LogsPageTests
         Assert.DoesNotContain("join-item btn\" disabled", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task AHistoryPagePastTheEndShowsTheLastPageThereIs()
+    {
+        // A bookmarked ?page= that retention has since trimmed must not show an empty table beside the stored
+        // count: the page steps back to the last one there is.
+        await using var store = new LogStoreFixture();
+        await using var harness = store.Dashboard(o => o.PageSize = 2);
+        for (var i = 0; i < 5; i++)
+        {
+            await store.AppendAsync($"entry {i}");
+        }
+
+        var html = await RenderHistoryAsync(harness, page => page.Page = 99);
+
+        // Newest first, two to a page: the third and last page holds the oldest entry, and says it is current.
+        Assert.Contains("entry 0", html, StringComparison.Ordinal);
+        Assert.Contains(">3</span>", html, StringComparison.Ordinal);
+    }
+
     // ── The query-string → store-query mapping ──────────────────────────────────────────────────────
     // Where a filter would actually go missing. The store's own filtering is covered in Rask.Logging.Tests.
 

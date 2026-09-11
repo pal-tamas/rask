@@ -42,6 +42,14 @@ public sealed partial class StoragePage(
             .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
             .ConfigureAwait(false);
 
+        if (_rows.Count == 0 && _page > DashboardParts.LastPageIndex(_total, options.PageSize))
+        {
+            _page = DashboardParts.LastPageIndex(_total, options.PageSize);
+            (_rows, _total) = await storage
+                .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return string.Join('|',
             [$"{_stats.Files}:{_stats.Bytes}:{_stats.Public}:{_total}",
              .. _rows.Select(r => r.Id.ToString("N"))]);
@@ -117,8 +125,9 @@ public sealed partial class StoragePage(
         return Task.CompletedTask;
     }
 
-    // The name is the column an operator came for, so it is the one every width keeps; the type, the provider
-    // and the id wait until the table has room for them, and a phone lists every one as its own line.
+    // The name is the column an operator came for, so it is the one every width keeps. The type and the provider
+    // wait until the table has room; the id shows at every width, as it always did under the name, and a phone
+    // lists every column as its own line.
     private Component FileGrid(DateTime now) =>
         UiDataGrid.Data(_rows)
             .RowKey(r => r.Id)
@@ -140,7 +149,7 @@ public sealed partial class StoragePage(
                 c.Field(r => r.ContentType).Title("Type").Mono(true).ShowFrom(UiBreakpoint.Md),
                 c.Field(r => r.Size).Title("Size").Value(r => DashboardParts.Bytes(r.Size)),
                 c.Field(r => r.Provider).Title("Provider").ShowFrom(UiBreakpoint.Lg),
-                c.Field(r => r.Id).Title("Id").Mono(true).ShowFrom(UiBreakpoint.Xl).Value(r => r.Id.ToString("N")),
+                c.Field(r => r.Id).Title("Id").Mono(true).Value(r => r.Id.ToString("N")),
                 c.Field(r => r.CreatedAt).Title("Saved").Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]),
             ]];

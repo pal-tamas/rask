@@ -168,13 +168,13 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
         await grid.Locator("a.join-item").Filter(new LocatorFilterOptions { HasText = "2" }).ClickAsync();
 
         // A link, not a handler: the page is in the address now, and the grid read it back from there.
-        await Expect(Page).ToHaveURLAsync(new Regex(@"ui/data-grid\?page=2$"));
+        await Expect(Page).ToHaveURLAsync(new Regex(@"ui/data-grid/\?page=2$"));
         await Expect(grid.GetByText("Rask.Data", new LocatorGetByTextOptions { Exact = true })).ToBeVisibleAsync();
         await Expect(grid.Locator("[aria-current='page']")).ToHaveTextAsync("2");
 
         await Page.GoBackAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex(@"ui/data-grid$"));
+        await Expect(Page).ToHaveURLAsync(new Regex(@"ui/data-grid/$"));
         await Expect(grid.Locator("[aria-current='page']")).ToHaveTextAsync("1");
     });
 

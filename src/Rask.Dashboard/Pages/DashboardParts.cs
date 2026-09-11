@@ -33,6 +33,13 @@ internal static class DashboardParts
 
     public static string Duration(TimeSpan span) => Humanize(span);
 
+    /// <summary>
+    /// The last page there is, counted from zero, for <paramref name="total" /> rows in pages of
+    /// <paramref name="pageSize" />. A page past it reads empty while the counts above still say otherwise — the
+    /// rows drained or were evicted under an operator on a later page — so the panels step back to this one.
+    /// </summary>
+    public static int LastPageIndex(int total, int pageSize) => total <= 0 ? 0 : (total - 1) / pageSize;
+
     private static string Humanize(TimeSpan span) => span switch
     {
         { TotalSeconds: < 60 } => $"{span.TotalSeconds.ToString("0", CultureInfo.InvariantCulture)}s",

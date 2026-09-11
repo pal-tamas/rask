@@ -82,7 +82,7 @@ public sealed partial class UiKitNavigationDemo : Component
                     UiPagination
                         .Pages(4)
                         .Current(1)
-                        .Href(page => Routes.UiKitNavigationPage() with { QueryString = $"?page={page}" })
+                        .Href(page => PageMeta.LinkTo(Routes.UiKitNavigationPage() with { QueryString = $"?page={page}" }))
                 ]
             ])
     ];
