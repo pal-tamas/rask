@@ -20,9 +20,7 @@ async function submit() {
   failure.value = null
 
   const credentials = { email: email.value, password: password.value }
-  const result = registering.value
-    ? await register(credentials)
-    : await login(credentials)
+  const result = registering.value ? await register(credentials) : await login(credentials)
 
   busy.value = false
   if (result.ok) window.location.assign('/')

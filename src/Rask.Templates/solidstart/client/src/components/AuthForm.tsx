@@ -30,9 +30,7 @@ export default function AuthForm(props: { mode: 'login' | 'register' }) {
   return (
     <main class="hero min-h-screen bg-base-200">
       <div class="hero-content w-full max-w-sm flex-col">
-        <h1 class="text-2xl font-bold">
-          {registering() ? 'Create an account' : 'Sign in'}
-        </h1>
+        <h1 class="text-2xl font-bold">{registering() ? 'Create an account' : 'Sign in'}</h1>
 
         <form class="card bg-base-100 w-full shadow-sm" onSubmit={submit}>
           <div class="card-body gap-4">

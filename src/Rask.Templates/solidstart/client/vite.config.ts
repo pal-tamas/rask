@@ -1,12 +1,12 @@
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from "vite";
-import { nitro } from "nitro/vite";
-import { solidStart } from "@solidjs/start/config";
-import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from 'vite'
+import { nitro } from 'nitro/vite'
+import { solidStart } from '@solidjs/start/config'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   resolve: {
-    alias: { '@rask/': fileURLToPath(new URL('./src/rask/', import.meta.url)) }
+    alias: { '@rask/': fileURLToPath(new URL('./src/rask/', import.meta.url)) },
   },
   server: {
     // In development the browser talks to this dev server, and it forwards the CQRS calls to
@@ -16,12 +16,8 @@ export default defineConfig({
     proxy: {
       '/_rask': { target: 'http://localhost:5000', changeOrigin: true },
       // The accounts endpoints, which sit at /api/auth rather than under /_rask.
-      '/api/auth': { target: 'http://localhost:5000', changeOrigin: true }
-    }
+      '/api/auth': { target: 'http://localhost:5000', changeOrigin: true },
+    },
   },
-  plugins: [
-    solidStart(),
-    tailwindcss(),
-    nitro()
-  ]
-});
+  plugins: [solidStart(), tailwindcss(), nitro()],
+})

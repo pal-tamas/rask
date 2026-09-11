@@ -1,13 +1,24 @@
-import { Component } from '@angular/core';
+import { Component } from '@angular/core'
 
 @Component({
   selector: 'app-analog-welcome',
   styles: [
     `
       :host {
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
-          'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Helvetica Neue',
+          Arial,
+          'Noto Sans',
+          sans-serif,
+          'Apple Color Emoji',
+          'Segoe UI Emoji',
+          'Segoe UI Symbol',
           'Noto Color Emoji';
         display: flex;
         padding: 2rem 1rem 8rem;
@@ -55,8 +66,8 @@ import { Component } from '@angular/core';
         width: 3rem;
       }
       .intro-badge {
-        transition-property: color, background-color, border-color,
-          text-decoration-color, fill, stroke;
+        transition-property:
+          color, background-color, border-color, text-decoration-color, fill, stroke;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
         font-weight: 500;
@@ -108,8 +119,8 @@ import { Component } from '@angular/core';
         margin-left: 1rem;
       }
       .darkBtn {
-        transition-property: color, background-color, border-color,
-          text-decoration-color, fill, stroke;
+        transition-property:
+          color, background-color, border-color, text-decoration-color, fill, stroke;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
         color: rgb(250 250 250);
@@ -130,8 +141,8 @@ import { Component } from '@angular/core';
         background-color: rgb(9 9 11 / 0.9);
       }
       .lightBtn {
-        transition-property: color, background-color, border-color,
-          text-decoration-color, fill, stroke;
+        transition-property:
+          color, background-color, border-color, text-decoration-color, fill, stroke;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
         color: rgb(24, 24, 27);
@@ -215,15 +226,11 @@ import { Component } from '@angular/core';
             src="https://analogjs.org/img/logos/analog-logo.svg"
             alt="AnalogJs logo. Two red triangles and a white analog wave in front"
           />
-          <a
-            class="intro-badge"
-            target="_blank"
-            href="https://twitter.com/analogjs"
+          <a class="intro-badge" target="_blank" href="https://twitter.com/analogjs"
             >Follow along on Twitter</a
           >
           <h1 class="intro-heading">
-            <span class="intro-analog">Analog.</span> The fullstack Angular
-            meta-framework
+            <span class="intro-analog">Analog.</span> The fullstack Angular meta-framework
           </h1>
           <p class="intro-description">
             Analog is for building applications and websites with Angular.
@@ -241,7 +248,7 @@ import { Component } from '@angular/core';
           </div>
         </div>
       </section>
-    <section id="counter-demo" class="section">
+      <section id="counter-demo" class="section">
         <div class="counter-container">
           <h2 class="counter-heading">Counter</h2>
           <p class="counter-description">
@@ -256,9 +263,9 @@ import { Component } from '@angular/core';
   `,
 })
 export class AnalogWelcome {
-  count = 0;
+  count = 0
 
   increment() {
-    this.count++;
+    this.count++
   }
 }

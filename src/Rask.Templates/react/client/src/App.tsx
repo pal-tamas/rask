@@ -12,15 +12,18 @@ export default function App() {
   // rask.dispatch and nothing else. The message carries its own result type, so `greeting` is
   // a Greeting with no cast and no wire name spelled out here — renaming a property in the C#
   // record breaks this at build time rather than on the wire.
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setError(null)
-    try {
-      setGreeting(await rask.dispatch(getGreeting({ name }), { signal }))
-    } catch (e) {
-      // An aborted request is the previous keystroke being superseded, not a failure.
-      if (!signal?.aborted) setError(e instanceof Error ? e.message : String(e))
-    }
-  }, [name])
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setError(null)
+      try {
+        setGreeting(await rask.dispatch(getGreeting({ name }), { signal }))
+      } catch (e) {
+        // An aborted request is the previous keystroke being superseded, not a failure.
+        if (!signal?.aborted) setError(e instanceof Error ? e.message : String(e))
+      }
+    },
+    [name],
+  )
 
   // Refetch as the name changes, and abort the request in flight so a slow earlier one
   // cannot land after a later one and show the wrong answer.
@@ -51,7 +54,9 @@ export default function App() {
           <span className="px-2 text-lg font-semibold tracking-tight">Rask + React</span>
         </div>
         <div className="navbar-end">
-          <a className="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+          <a className="link link-hover link-primary" href="https://rask.sh/docs">
+            Docs
+          </a>
         </div>
       </nav>
 
@@ -78,7 +83,9 @@ export default function App() {
                   <span className="loading loading-spinner loading-sm" aria-label="Loading" />
                 )}
                 {error && (
-                  <div role="alert" className="alert alert-error"><span>{error}</span></div>
+                  <div role="alert" className="alert alert-error">
+                    <span>{error}</span>
+                  </div>
                 )}
 
                 {greeting && (
@@ -90,7 +97,9 @@ export default function App() {
                         own time zone. */}
                     <p className="text-sm text-base-content/70">
                       Server time:{' '}
-                      {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
+                      {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
+                        greeting.seenAt,
+                      )}
                     </p>
                     <div className="stat p-0">
                       <div className="stat-title">Visits</div>
@@ -111,7 +120,9 @@ export default function App() {
       </main>
 
       <footer className="footer footer-center bg-base-100 p-4 text-base-content/70">
-        <aside><p>Built with Rask.</p></aside>
+        <aside>
+          <p>Built with Rask.</p>
+        </aside>
       </footer>
     </div>
   )

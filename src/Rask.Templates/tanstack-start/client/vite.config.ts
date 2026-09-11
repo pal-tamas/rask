@@ -16,8 +16,8 @@ const config = defineConfig({
     proxy: {
       '/_rask': { target: 'http://localhost:5000', changeOrigin: true },
       // The accounts endpoints, which sit at /api/auth rather than under /_rask.
-      '/api/auth': { target: 'http://localhost:5000', changeOrigin: true }
-    }
+      '/api/auth': { target: 'http://localhost:5000', changeOrigin: true },
+    },
   },
   resolve: { tsconfigPaths: true },
   plugins: [

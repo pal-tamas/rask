@@ -21,10 +21,9 @@ async function load() {
   error.value = null
 
   try {
-    greeting.value = await rask.dispatch(
-      getGreeting({ name: name.value }),
-      { signal: controller.signal },
-    )
+    greeting.value = await rask.dispatch(getGreeting({ name: name.value }), {
+      signal: controller.signal,
+    })
   } catch (e) {
     if (!controller.signal.aborted) error.value = e instanceof Error ? e.message : String(e)
   }
@@ -64,9 +63,7 @@ const serverTime = computed(() =>
       <div class="hero-content text-center">
         <div class="max-w-md">
           <h1 class="text-4xl font-bold">Rask + Vue</h1>
-          <p class="py-4 text-base-content/70">
-            One query and one command, over your C# records.
-          </p>
+          <p class="py-4 text-base-content/70">One query and one command, over your C# records.</p>
 
           <div class="card bg-base-100 w-full max-w-md shadow-sm">
             <div class="card-body gap-4 text-left">

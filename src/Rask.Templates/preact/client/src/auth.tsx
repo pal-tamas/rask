@@ -30,9 +30,7 @@ export function Auth({ mode }: { mode: 'login' | 'register' }) {
   return (
     <main className="hero min-h-screen bg-base-200">
       <div className="hero-content w-full max-w-sm flex-col">
-        <h1 className="text-2xl font-bold">
-          {registering ? 'Create an account' : 'Sign in'}
-        </h1>
+        <h1 className="text-2xl font-bold">{registering ? 'Create an account' : 'Sign in'}</h1>
 
         <form className="card bg-base-100 w-full shadow-sm" onSubmit={submit}>
           <div className="card-body gap-4">

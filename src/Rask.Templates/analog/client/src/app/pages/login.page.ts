@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component } from '@angular/core'
 
-import { AuthForm } from './auth-form';
+import { AuthForm } from './auth-form'
 
 @Component({
   selector: 'app-login',

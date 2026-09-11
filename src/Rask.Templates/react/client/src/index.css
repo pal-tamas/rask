@@ -6,7 +6,7 @@
    class="btn px-8" give you .btn's padding and not px-8: correct markup, quietly ignored. */
 @layer properties, theme, base, components, daisyui, utilities;
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* daisyUI, the same version the C# hosts compile, so a project scaffolded with this front end
    looks like one scaffolded with any other. Its class names are what the starter is written

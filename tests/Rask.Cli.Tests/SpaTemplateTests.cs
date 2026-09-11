@@ -294,7 +294,7 @@ public sealed class SpaTemplateTests
                 Root, "Shop", framework, new ServerBatteries(), "1.2.3");
 
             var sheet = Content(result, $"/client/{framework.GlobalStylesheet}");
-            Assert.Contains("@import \"tailwindcss\";", sheet, StringComparison.Ordinal);
+            Assert.Matches("@import ['\"]tailwindcss['\"];", sheet);
 
             // v4 needs no config file and no content array: it detects the sources itself.
             Assert.DoesNotContain("content:", sheet, StringComparison.Ordinal);
@@ -363,7 +363,9 @@ public sealed class SpaTemplateTests
             Assert.True(Has(result, "/client/public/rask-sw.js"));
 
             var worker = Content(result, "/client/public/rask-sw.js");
-            Assert.Contains("addEventListener(\"push\"", worker, StringComparison.Ordinal);
+            // Quote-agnostic: the templates are Prettier-formatted with singleQuote, and pinning a
+            // quote style here makes a formatting pass look like a behaviour change.
+            Assert.Matches("addEventListener\\(['\"]push['\"]", worker);
             Assert.Contains("notificationclick", worker, StringComparison.Ordinal);
 
             // Deliberately no app-shell cache: the bundler fingerprints its assets and rewrites index.html

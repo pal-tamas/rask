@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -87,8 +88,135 @@ internal static class IslandAssembly
             files.Add(IsTsConfig(file) ? WithIslandPaths(file, runtimes) : file);
         }
 
-        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "package.json"), Manifest(name, dependencies)));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "package.json"), Manifest(name, dependencies, runtimes)));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "eslint.config.mjs"), EsLintConfig(runtimes)));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".prettierrc"), PrettierRc));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".prettierignore"), PrettierIgnore));
         return files;
+    }
+
+    /// <summary>
+    ///     The linting packages every island project gets, and the plugin each runtime adds.
+    /// </summary>
+    /// <remarks>
+    ///     The same set the front-end templates declare, kept in step by a test: an island written in
+    ///     React and a React client that lint under different rules is a project that argues with
+    ///     itself. Angular's plugin is deliberately absent here as it is there — angular-eslint expects
+    ///     its own builder wiring, and half-connecting someone else's linting is worse than the base.
+    /// </remarks>
+    private static readonly (string Package, string Version)[] LintBase =
+    [
+        ("eslint", "^10.10.0"),
+        ("@eslint/js", "^10.0.1"),
+        ("typescript-eslint", "^8.70.0"),
+        ("prettier", "^3.9.6"),
+        ("eslint-config-prettier", "^10.1.8"),
+        ("globals", "^17.12.0"),
+    ];
+
+    private static readonly FrozenDictionary<string, (string Package, string Version)> LintPlugin =
+        new Dictionary<string, (string, string)>(StringComparer.Ordinal)
+        {
+            ["react"] = ("eslint-plugin-react-hooks", "^7.1.1"),
+            ["preact"] = ("eslint-plugin-react-hooks", "^7.1.1"),
+            ["vue"] = ("eslint-plugin-vue", "^10.11.0"),
+            ["svelte"] = ("eslint-plugin-svelte", "^3.23.0"),
+            ["solid"] = ("eslint-plugin-solid", "^0.18.0"),
+            ["lit"] = ("eslint-plugin-lit", "^2.3.1"),
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+
+    private const string PrettierRc = """
+        {
+          "semi": false,
+          "singleQuote": true,
+          "printWidth": 100,
+          "trailingComma": "all"
+        }
+
+        """;
+
+    private const string PrettierIgnore = """
+        # Everything under obj/ and bin/ is generated or built — including the island prop types and the
+        # Vite config Rask writes for the bundle.
+        obj/
+        bin/
+        node_modules/
+        wwwroot/_rask/
+
+        # Written by npm; reformatting one makes every diff unreadable.
+        package-lock.json
+
+        """;
+
+    /// <summary>The flat config, carrying a plugin for each runtime the project actually holds.</summary>
+    private static string EsLintConfig(IReadOnlyList<string> runtimes)
+    {
+        var imports = new StringBuilder()
+            .AppendLine("import js from '@eslint/js'")
+            .AppendLine("import ts from 'typescript-eslint'")
+            .AppendLine("import globals from 'globals'")
+            .AppendLine("import prettier from 'eslint-config-prettier/flat'");
+
+        var blocks = new StringBuilder()
+            .AppendLine("  js.configs.recommended,")
+            .AppendLine("  ...ts.configs.recommended,");
+
+        if (runtimes.Any(r => r is "react" or "preact"))
+        {
+            imports.AppendLine("import reactHooks from 'eslint-plugin-react-hooks'");
+            blocks.AppendLine("  reactHooks.configs.flat['recommended-latest'],");
+        }
+
+        if (runtimes.Contains("vue", StringComparer.Ordinal))
+        {
+            imports.AppendLine("import vue from 'eslint-plugin-vue'");
+            blocks.AppendLine("  ...vue.configs['flat/recommended'],");
+            blocks.AppendLine("  { files: ['**/*.vue'], languageOptions: { parserOptions: { parser: ts.parser } } },");
+        }
+
+        if (runtimes.Contains("svelte", StringComparer.Ordinal))
+        {
+            imports.AppendLine("import svelte from 'eslint-plugin-svelte'");
+            blocks.AppendLine("  ...svelte.configs.recommended,");
+            blocks.AppendLine("  { files: ['**/*.svelte'], languageOptions: { parserOptions: { parser: ts.parser } } },");
+        }
+
+        if (runtimes.Contains("solid", StringComparer.Ordinal))
+        {
+            imports.AppendLine("import solid from 'eslint-plugin-solid'");
+            blocks.AppendLine("  solid.configs['flat/typescript'],");
+        }
+
+        if (runtimes.Contains("lit", StringComparer.Ordinal))
+        {
+            imports.AppendLine("import lit from 'eslint-plugin-lit'");
+            blocks.AppendLine("  lit.configs['flat/recommended'],");
+        }
+
+        // $$ so that a single brace is literal and {{…}} interpolates: this emits JavaScript, which is
+        // mostly braces, and a raw string literal does not use the {{ doubling that a plain
+        // interpolated string does.
+        return $$"""
+            // ESLint's flat config for this project's islands. Close to the recommended sets on purpose:
+            // a starter that argues about style on its first run is a starter people delete the config
+            // from. eslint-config-prettier goes LAST and turns off every rule the formatter would fight.
+            //
+            // obj/ is ignored: the prop types and the Vite config Rask generates live there, and linting
+            // generated code reports problems in files nobody may edit.
+            {{imports}}
+            export default ts.config(
+              {
+                ignores: ['obj/**', 'bin/**', 'node_modules/**', 'wwwroot/_rask/**'],
+              },
+            {{blocks}}  {
+                languageOptions: {
+                  globals: { ...globals.browser },
+                },
+              },
+              prettier,
+            )
+
+            """;
     }
 
     /// <summary>The flags the templates' island regions are marked with.</summary>
@@ -221,10 +349,21 @@ internal static class IslandAssembly
     ///     The root manifest an island project needs: the chosen runtimes' packages, plus vite and
     ///     TypeScript, which every one of them is bundled and checked by.
     /// </summary>
-    private static string Manifest(string name, SortedDictionary<string, string> dependencies)
+    private static string Manifest(
+        string name, SortedDictionary<string, string> dependencies, IReadOnlyList<string> runtimes)
     {
-        dependencies.TryAdd("typescript", "^5.9.3");
-        dependencies.TryAdd("vite", "^8.2.2");
+        foreach (var (package, version) in LintBase)
+        {
+            dependencies.TryAdd(package, version);
+        }
+
+        foreach (var runtime in runtimes)
+        {
+            if (LintPlugin.TryGetValue(runtime, out var plugin))
+            {
+                dependencies.TryAdd(plugin.Package, plugin.Version);
+            }
+        }
 
         var manifest = new JsonObject
         {
@@ -234,6 +373,12 @@ internal static class IslandAssembly
             ["description"] =
                 "Island dependencies. Rask discovers each .cs/front-end pair, generates its prop types "
                 + "and bundles it with Vite; there is no entry point here and nothing to run by hand.",
+            ["scripts"] = new JsonObject
+            {
+                ["lint"] = "eslint .",
+                ["format"] = "prettier --write .",
+                ["format:check"] = "prettier --check .",
+            },
             ["devDependencies"] = new JsonObject(
                 dependencies.Select(d => new KeyValuePair<string, JsonNode?>(d.Key, d.Value))),
         };

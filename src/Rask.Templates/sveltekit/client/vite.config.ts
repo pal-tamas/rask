@@ -1,7 +1,7 @@
-import tailwindcss from '@tailwindcss/vite';
-import adapter from '@sveltejs/adapter-node';
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite'
+import adapter from '@sveltejs/adapter-node'
+import { sveltekit } from '@sveltejs/kit/vite'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
   server: {
@@ -12,18 +12,19 @@ export default defineConfig({
     proxy: {
       '/_rask': { target: 'http://localhost:5000', changeOrigin: true },
       // The accounts endpoints, which sit at /api/auth rather than under /_rask.
-      '/api/auth': { target: 'http://localhost:5000', changeOrigin: true }
-    }
+      '/api/auth': { target: 'http://localhost:5000', changeOrigin: true },
+    },
   },
-	plugins: [
-		tailwindcss(),
-		sveltekit({
-			alias: { '@rask': 'src/rask' },
-			compilerOptions: {
-				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
-				runes: ({ filename }) => filename.split(/[/\\]/).includes('node_modules') ? undefined : true
-			},
-			adapter: adapter()
-		})
-	]
-});
+  plugins: [
+    tailwindcss(),
+    sveltekit({
+      alias: { '@rask': 'src/rask' },
+      compilerOptions: {
+        // Force runes mode for the project, except for libraries. Can be removed in svelte 6.
+        runes: ({ filename }) =>
+          filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
+      },
+      adapter: adapter(),
+    }),
+  ],
+})

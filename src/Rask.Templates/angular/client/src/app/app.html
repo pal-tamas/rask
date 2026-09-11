@@ -1,5 +1,5 @@
 @if (route === '/login' || route === '/register') {
-  <app-auth [mode]="route === '/register' ? 'register' : 'login'" />
+<app-auth [mode]="route === '/register' ? 'register' : 'login'" />
 } @else {
 <div class="flex min-h-screen flex-col bg-base-200">
   <nav class="navbar bg-base-100 shadow-sm">
@@ -15,9 +15,7 @@
     <div class="hero-content text-center">
       <div class="max-w-md">
         <h1 class="text-4xl font-bold">Rask + Angular</h1>
-        <p class="py-4 text-base-content/70">
-          One query and one command, over your C# records.
-        </p>
+        <p class="py-4 text-base-content/70">One query and one command, over your C# records.</p>
 
         <div class="card bg-base-100 w-full max-w-md shadow-sm">
           <div class="card-body gap-4 text-left">
@@ -31,20 +29,16 @@
             </label>
 
             @if (!greeting() && !error()) {
-              <span class="loading loading-spinner loading-sm" aria-label="Loading"></span>
-            }
-
-            @if (error(); as message) {
-              <div role="alert" class="alert alert-error"><span>{{ message }}</span></div>
-            }
-
-            @if (greeting(); as data) {
-              <p>{{ data.message }}</p>
-              <p class="text-sm text-base-content/70">Server time: {{ time(data.seenAt) }}</p>
-              <div class="stat p-0">
-                <div class="stat-title">Visits</div>
-                <div class="stat-value text-2xl">{{ data.visits }}</div>
-              </div>
+            <span class="loading loading-spinner loading-sm" aria-label="Loading"></span>
+            } @if (error(); as message) {
+            <div role="alert" class="alert alert-error"><span>{{ message }}</span></div>
+            } @if (greeting(); as data) {
+            <p>{{ data.message }}</p>
+            <p class="text-sm text-base-content/70">Server time: {{ time(data.seenAt) }}</p>
+            <div class="stat p-0">
+              <div class="stat-title">Visits</div>
+              <div class="stat-value text-2xl">{{ data.visits }}</div>
+            </div>
             }
 
             <div class="card-actions justify-end">

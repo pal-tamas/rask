@@ -81,17 +81,17 @@ export class MyElement extends LitElement {
     return html`
       <main class="hero min-h-screen bg-base-200">
         <div class="hero-content w-full max-w-sm flex-col">
-          <h1 class="text-2xl font-bold">
-            ${registering ? 'Create an account' : 'Sign in'}
-          </h1>
+          <h1 class="text-2xl font-bold">${registering ? 'Create an account' : 'Sign in'}</h1>
 
           <form class="card bg-base-100 w-full shadow-sm" @submit=${this.submitAuth}>
             <div class="card-body gap-4">
-              ${this.authFailure
-                ? html`<div role="alert" class="alert alert-error">
-                    <span>${this.authFailure.message ?? this.authFailure.error}</span>
-                  </div>`
-                : ''}
+              ${
+                this.authFailure
+                  ? html`<div role="alert" class="alert alert-error">
+                      <span>${this.authFailure.message ?? this.authFailure.error}</span>
+                    </div>`
+                  : ''
+              }
 
               <label class="fieldset">
                 <span class="fieldset-legend">Email</span>
@@ -175,28 +175,39 @@ export class MyElement extends LitElement {
                     />
                   </label>
 
-                  ${!this.greeting && !this.error
-                    ? html`<span class="loading loading-spinner loading-sm" aria-label="Loading"></span>`
-                    : ''}
-                  ${this.error
-                    ? html`<div role="alert" class="alert alert-error"><span>${this.error}</span></div>`
-                    : ''}
-                  ${this.greeting
-                    ? html`
-                        <p>${this.greeting.message}</p>
-                        <!-- seenAt is a real Date, revived because the C# type said so. -->
-                        <p class="text-sm text-base-content/70">
-                          Server time:
-                          ${new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
-                            this.greeting.seenAt,
-                          )}
-                        </p>
-                        <div class="stat p-0">
-                          <div class="stat-title">Visits</div>
-                          <div class="stat-value text-2xl">${this.greeting.visits}</div>
-                        </div>
-                      `
-                    : ''}
+                  ${
+                    !this.greeting && !this.error
+                      ? html`<span
+                          class="loading loading-spinner loading-sm"
+                          aria-label="Loading"
+                        ></span>`
+                      : ''
+                  }
+                  ${
+                    this.error
+                      ? html`<div role="alert" class="alert alert-error">
+                          <span>${this.error}</span>
+                        </div>`
+                      : ''
+                  }
+                  ${
+                    this.greeting
+                      ? html`
+                          <p>${this.greeting.message}</p>
+                          <!-- seenAt is a real Date, revived because the C# type said so. -->
+                          <p class="text-sm text-base-content/70">
+                            Server time:
+                            ${new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
+                              this.greeting.seenAt,
+                            )}
+                          </p>
+                          <div class="stat p-0">
+                            <div class="stat-title">Visits</div>
+                            <div class="stat-value text-2xl">${this.greeting.visits}</div>
+                          </div>
+                        `
+                      : ''
+                  }
 
                   <div class="card-actions justify-end">
                     <button class="btn btn-primary" ?disabled=${this.busy} @click=${this.record}>
@@ -235,10 +246,9 @@ export class MyElement extends LitElement {
     this.error = null
 
     try {
-      this.greeting = await rask.dispatch(
-        getGreeting({ name: this.name }),
-        { signal: controller.signal },
-      )
+      this.greeting = await rask.dispatch(getGreeting({ name: this.name }), {
+        signal: controller.signal,
+      })
     } catch (e) {
       if (!controller.signal.aborted) {
         this.error = e instanceof Error ? e.message : String(e)

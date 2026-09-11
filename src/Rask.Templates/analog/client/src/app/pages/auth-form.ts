@@ -1,6 +1,6 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core'
 
-import { login, register, type AuthFailure } from '@rask/browser/auth';
+import { login, register, type AuthFailure } from '@rask/browser/auth'
 
 /**
  * Sign in and registration, over the endpoints Rask.Auth maps at /api/auth. The generated
@@ -68,26 +68,24 @@ import { login, register, type AuthFailure } from '@rask/browser/auth';
   `,
 })
 export class AuthForm {
-  readonly mode = input.required<'login' | 'register'>();
+  readonly mode = input.required<'login' | 'register'>()
 
-  protected readonly registering = computed(() => this.mode() === 'register');
-  protected readonly email = signal('');
-  protected readonly password = signal('');
-  protected readonly failure = signal<AuthFailure | null>(null);
-  protected readonly busy = signal(false);
+  protected readonly registering = computed(() => this.mode() === 'register')
+  protected readonly email = signal('')
+  protected readonly password = signal('')
+  protected readonly failure = signal<AuthFailure | null>(null)
+  protected readonly busy = signal(false)
 
   protected async submit(event: Event): Promise<void> {
-    event.preventDefault();
-    this.busy.set(true);
-    this.failure.set(null);
+    event.preventDefault()
+    this.busy.set(true)
+    this.failure.set(null)
 
-    const credentials = { email: this.email(), password: this.password() };
-    const result = this.registering()
-      ? await register(credentials)
-      : await login(credentials);
+    const credentials = { email: this.email(), password: this.password() }
+    const result = this.registering() ? await register(credentials) : await login(credentials)
 
-    this.busy.set(false);
-    if (result.ok) window.location.assign('/');
-    else this.failure.set(result.failure);
+    this.busy.set(false)
+    if (result.ok) window.location.assign('/')
+    else this.failure.set(result.failure)
   }
 }

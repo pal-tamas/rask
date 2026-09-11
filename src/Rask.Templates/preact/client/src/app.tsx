@@ -11,14 +11,17 @@ export function App() {
 
   // The message carries its own result type, so `greeting` is a Greeting with no cast and no
   // wire name spelled out here.
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setError(null)
-    try {
-      setGreeting(await rask.dispatch(getGreeting({ name }), { signal }))
-    } catch (e) {
-      if (!signal?.aborted) setError(e instanceof Error ? e.message : String(e))
-    }
-  }, [name])
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setError(null)
+      try {
+        setGreeting(await rask.dispatch(getGreeting({ name }), { signal }))
+      } catch (e) {
+        if (!signal?.aborted) setError(e instanceof Error ? e.message : String(e))
+      }
+    },
+    [name],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -43,7 +46,9 @@ export function App() {
           <span className="px-2 text-lg font-semibold tracking-tight">Rask + Preact</span>
         </div>
         <div className="navbar-end">
-          <a className="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+          <a className="link link-hover link-primary" href="https://rask.sh/docs">
+            Docs
+          </a>
         </div>
       </nav>
 
@@ -70,7 +75,9 @@ export function App() {
                   <span className="loading loading-spinner loading-sm" aria-label="Loading" />
                 )}
                 {error && (
-                  <div role="alert" className="alert alert-error"><span>{error}</span></div>
+                  <div role="alert" className="alert alert-error">
+                    <span>{error}</span>
+                  </div>
                 )}
 
                 {greeting && (
@@ -79,7 +86,9 @@ export function App() {
                     {/* seenAt is a real Date, revived because the C# type said it was an instant. */}
                     <p className="text-sm text-base-content/70">
                       Server time:{' '}
-                      {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(greeting.seenAt)}
+                      {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
+                        greeting.seenAt,
+                      )}
                     </p>
                     <div className="stat p-0">
                       <div className="stat-title">Visits</div>
@@ -100,7 +109,9 @@ export function App() {
       </main>
 
       <footer className="footer footer-center bg-base-100 p-4 text-base-content/70">
-        <aside><p>Built with Rask.</p></aside>
+        <aside>
+          <p>Built with Rask.</p>
+        </aside>
       </footer>
     </div>
   )

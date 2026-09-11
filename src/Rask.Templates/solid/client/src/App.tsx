@@ -30,7 +30,9 @@ export default function App() {
           <span class="px-2 text-lg font-semibold tracking-tight">Rask + Solid</span>
         </div>
         <div class="navbar-end">
-          <a class="link link-hover link-primary" href="https://rask.sh/docs">Docs</a>
+          <a class="link link-hover link-primary" href="https://rask.sh/docs">
+            Docs
+          </a>
         </div>
       </nav>
 
@@ -71,7 +73,9 @@ export default function App() {
                       {/* seenAt is a real Date, revived because the C# type said it was an instant. */}
                       <p class="text-sm text-base-content/70">
                         Server time:{' '}
-                        {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(data().seenAt)}
+                        {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
+                          data().seenAt,
+                        )}
                       </p>
                       <div class="stat p-0">
                         <div class="stat-title">Visits</div>
@@ -93,7 +97,9 @@ export default function App() {
       </main>
 
       <footer class="footer footer-center bg-base-100 p-4 text-base-content/70">
-        <aside><p>Built with Rask.</p></aside>
+        <aside>
+          <p>Built with Rask.</p>
+        </aside>
       </footer>
     </div>
   )

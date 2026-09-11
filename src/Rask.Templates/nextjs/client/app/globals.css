@@ -1,6 +1,6 @@
 @layer properties, theme, base, components, daisyui, utilities;
 
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "daisyui";
 
 :root {
