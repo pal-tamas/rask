@@ -225,6 +225,32 @@ them until tagged releases begin.
   only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
   summary that SQL Server was not proven rather than counting it as a pass.
 
+- **The log store can live in the application's database.** `AddRaskLogging<TContext>()` with
+  `modelBuilder.AddRaskLogging()` keeps the log as a `RaskLog` table in a PostgreSQL or SQL Server app's own database,
+  created by its migrations. The SQLite file store (`AddRaskLogging()`) stays, and stays the choice on
+  SQLite.
+  - **Same behaviour as the file store.** `ILogs`, `LogQuery`, the dashboard and the metrics are unchanged. One
+    contract suite runs against both stores, covering filters, paging, retention and scopes.
+  - **Survives a rollback.** Every flush runs on a context and a connection of its own, so a line logged inside a
+    transaction that rolls back is kept.
+  - **Portable queries.** Text search ignores case even on PostgreSQL, and the scope filter matches the JSON-encoded
+    `"key":"value"` pair exactly.
+  - **Safe retention.** Deletes read each page's ids first, so two instances of the app sweeping retention at once
+    remove each row once.
+  - **No self-logging.** An async-local marks the store's own flow, so the SQL EF Core logs while it writes is not
+    captured back into it, while the application's SQL still is.
+  - **Driver categories.** `Npgsql` and `Microsoft.Data.SqlClient` join `Microsoft.Data.Sqlite` as always excluded.
+  - **NUL characters.** A NUL in a message, exception or category is stored as U+FFFD by both stores. PostgreSQL
+    rejects NUL in text, and one such line would otherwise fail its whole batch.
+  - **Quieter failures.** A store that keeps failing, such as a log table whose migration has not run yet, reports
+    its first failure, then at most once a minute, and logs when it recovers. It no longer logs an error every
+    flush. The dropped entries are still counted on `rask.logs.dropped`.
+  - **Boot check.** A model that never mapped the table fails the boot naming `modelBuilder.AddRaskLogging();`, through
+    the same check every battery has.
+  - **Real-server tests.** The provider gate runs the store against PostgreSQL and SQL Server: case-insensitive
+    search, exact scope matching, paged retention, two hosts purging at once, and a line appended during a
+    transaction surviving its rollback.
+
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
   `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network
@@ -589,6 +615,15 @@ them until tagged releases begin.
   gate are unchanged.
 
 ### Fixed
+
+- **Filtering the log by a scope key that looks like a JSON path now finds its entries.**
+  - **The cause.** The SQLite file store filtered scopes with `json_extract(Scopes, '$.' || key)`, which reads the
+    key as a JSON path.
+    - A dotted or bracketed key such as `user.id` or `items[0]` was taken as a nested path and silently matched
+      nothing.
+    - A key starting with a double quote made the search throw.
+  - **The fix.** Both log stores now match the JSON-encoded `"key":"value"` pair, which is exact whatever the key
+    holds.
 
 - **`rask new --cqrs` without `--wasm` scaffolds an app that compiles again.** The server template wrote the
   database-free `AddRaskCqrsServer()` call outside its WebAssembly region.
