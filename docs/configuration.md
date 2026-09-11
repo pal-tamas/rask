@@ -107,7 +107,7 @@ A few things to know:
   it stands at the `AddRaskCqrs` call, so appsettings, user secrets and environment variables are all there;
   a bare container reads none.
 - **A database connection string is required, not guessed.** `UseRaskSqlite(sp)`, `UseRaskPostgres(sp)`,
-  `UseRaskSqlServer(sp)`, `UseRaskMySql(sp)`, `AddRaskSqlite()` and `AddRaskLogging()` throw when their
+  `UseRaskSqlServer(sp)`, `AddRaskSqlite()` and `AddRaskLogging()` throw when their
   connection string is missing, naming the key
   to set (`Rask:ConnectionStrings:App` / `Rask__ConnectionStrings__App`). A database quietly opened in the
   working directory is how a container writes its data somewhere the next deploy deletes.
@@ -128,11 +128,10 @@ A few things to know:
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `UseRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [TypeScript front ends](spa.md). |
 | `Rask:Meta` | `MetaHostingOptions` | `Rask.Meta.Hosting` | `Framework` by the build's names (`nuxt`, `nextjs`, `tanstack-start`, `solidstart`, `sveltekit`, `analog`). Precedence: build metadata, then this section, then the callback, then a `rask dev` session's dev server. See [meta frameworks](meta.md). |
 | `Rask:Data` | `RaskDataOptions` | `Rask.Data` | See [Rask.Data](data.md). |
-| `Rask:ConnectionStrings:App` | — | `Rask.SQLite`, `Rask.SQLite.EntityFrameworkCore`, `Rask.Postgres`, `Rask.SqlServer`, `Rask.MySql` | The application database. Also the default `DatabasePath` for Litestream and snapshots. |
+| `Rask:ConnectionStrings:App` | — | `Rask.SQLite`, `Rask.SQLite.EntityFrameworkCore`, `Rask.Postgres`, `Rask.SqlServer` | The application database. Also the default `DatabasePath` for Litestream and snapshots. |
 | `Rask:Sqlite` | `SqliteOptions` | `Rask.SQLite` | The pragmas, `StrictTables`, and `Retry`. Read by `AddRaskSqlite()` and by `UseRaskSqlite(sp)`. See [SQLite](sqlite.md). |
 | `Rask:Postgres` | `PostgresOptions` | `Rask.Postgres` | The session timeouts and `Retry`. Read by `UseRaskPostgres(sp)`. See [PostgreSQL](data.md#postgresql). |
 | `Rask:SqlServer` | `SqlServerOptions` | `Rask.SqlServer` | `CommandTimeout`, `LockTimeout`, `AbortOnError` and `Retry`. Read by `UseRaskSqlServer(sp)`. See [SQL Server](data.md#sql-server). |
-| `Rask:MySql` | `MySqlOptions` | `Rask.MySql` | `CommandTimeout`, `StatementTimeout`, `LockTimeout` and `Retry`. Read by `UseRaskMySql(sp)`. See [MySQL](data.md#mysql). |
 | `Storage` (not yet under `Rask`) | `StorageOptions` | `Rask.Storage` | The one exception for now: file storage still reads its own top-level section — `Storage__Provider`, `Storage__S3__Bucket` and the rest. See [file storage](file-storage.md). |
 | `Rask:Litestream` | `LitestreamOptions` | `Rask.SQLite.Litestream` | `ReplicaUrl`, `ConfigPath`, `ExecutablePath`, `Verification`. `DatabasePath` defaults to the file behind `Rask:ConnectionStrings:App`. See [continuous backup](sqlite.md#continuous-backup-with-litestream). |
 | `Rask:Snapshots` | `SqliteSnapshotOptions` | `Rask.SQLite.Snapshots` | `DestinationDirectory`, `Interval`, `Retain`. `DatabasePath` defaults the same way. See [snapshots](sqlite.md#scheduled-snapshots). |
@@ -212,7 +211,7 @@ both connection strings at its volume.
 > sets `Rask__ConnectionStrings__App` and `Rask__ConnectionStrings__Logs`, which an older app does not read,
 > and an older CLI sets the old names, which a newer app does not read.
 >
-> Six overloads lost their connection-string parameter; the connection string comes from configuration:
+> Five overloads lost their connection-string parameter; the connection string comes from configuration:
 >
 > | Was | Now |
 > | --- | --- |
@@ -221,7 +220,6 @@ both connection strings at its volume.
 > | `services.AddRaskLogging(connectionString, configure)` | `services.AddRaskLogging(configure)` |
 > | `o.UseRaskPostgres(connectionString, configure)` | `AddDbContextFactory<AppDbContext>((sp, o) => o.UseRaskPostgres(sp, configure))` |
 > | `o.UseRaskSqlServer(connectionString, configure)` | `AddDbContextFactory<AppDbContext>((sp, o) => o.UseRaskSqlServer(sp, configure))` |
-> | `o.UseRaskMySql(connectionString, configure)` | `AddDbContextFactory<AppDbContext>((sp, o) => o.UseRaskMySql(sp, configure))` |
 >
 > `AddRaskSqliteLitestream`, `AddRaskSqliteSnapshots` and `AddRaskWebPush` no longer require a callback.
 > And a `configureServer: o => builder.Configuration.GetSection("Rask").Bind(o)` written against the old

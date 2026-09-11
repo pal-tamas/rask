@@ -125,11 +125,13 @@ public sealed class WriteExternalBuildInputsTask : Task
                 return false;
             }
 
+            var package = item.GetMetadata("PackageModule");
             islands.Add(new ExternalEntry
             {
                 Name = name,
                 Source = source,
                 Runtime = runtime,
+                Package = string.IsNullOrEmpty(package) ? null : package,
             });
         }
 

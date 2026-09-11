@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "runtime": "react",
+  "module": "fixture-button",
+  "export": "Switch",
+  "package": {
+    "name": "fixture-button",
+    "version": "1.2.3"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "checked",
+      "required": false,
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "defaultChecked",
+      "required": false,
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "onToggle",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "checked",
+            "type": {
+              "kind": "boolean"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "skipped": []
+}

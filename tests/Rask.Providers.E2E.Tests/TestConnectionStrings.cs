@@ -1,13 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Rask.MySql;
 using Rask.Postgres;
 using Rask.SqlServer;
 
 /// <summary>
-/// <c>UseRaskPostgres</c>, <c>UseRaskSqlServer</c> and <c>UseRaskMySql</c> read their connection string from
-/// <c>Rask:ConnectionStrings:App</c>. These tests point every context at the server the gate started, so this hands the
-/// real overloads a service provider carrying exactly that one key.
+/// <c>UseRaskPostgres</c> and <c>UseRaskSqlServer</c> read their connection string from <c>Rask:ConnectionStrings:App</c>.
+/// These tests point every context at the server the gate started, so this hands the real overloads a service provider
+/// carrying exactly that one key.
 /// </summary>
 internal static class TestConnectionStrings
 {
@@ -28,15 +27,6 @@ internal static class TestConnectionStrings
         this DbContextOptionsBuilder<TContext> builder, string connectionString, Action<SqlServerOptions>? configure = null)
         where TContext : DbContext =>
         builder.UseRaskSqlServer(App(connectionString), configure);
-
-    internal static DbContextOptionsBuilder UseRaskMySqlAt(
-        this DbContextOptionsBuilder builder, string connectionString, Action<MySqlOptions>? configure = null) =>
-        builder.UseRaskMySql(App(connectionString), configure);
-
-    internal static DbContextOptionsBuilder<TContext> UseRaskMySqlAt<TContext>(
-        this DbContextOptionsBuilder<TContext> builder, string connectionString, Action<MySqlOptions>? configure = null)
-        where TContext : DbContext =>
-        builder.UseRaskMySql(App(connectionString), configure);
 
     private static IServiceProvider App(string connectionString) =>
         new ConfigurationServices(new ConfigurationBuilder()

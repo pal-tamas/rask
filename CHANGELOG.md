@@ -83,6 +83,20 @@ them until tagged releases begin.
   and any prop that could not be generated. See
   [Using a package component directly](docs/islands.md#using-a-package-component-directly).
 
+- **`dotnet build` writes and refreshes a package island's `props.json` from the installed package.** Before the
+  compile the build finds the classes whose `Module` names a package, installs, and reads each component's props
+  with the TypeScript compiler Rask pins (`RaskExternalTypeScriptVersion`, 6.0.3, fetched once into
+  `~/.rask/typescript` and never the project's own copy) — React, Preact and Solid packages for now; a Vue,
+  Svelte, Lit or Angular package island compiles from a snapshot committed by hand, and a Solid package island
+  beside React or Preact islands is refused by name, since Solid's plugin cannot be confined to it. A changed
+  snapshot is rewritten and announced with its version move, so it arrives in review; a build that cannot read
+  the package compiles from the committed file. `RaskExternalPropsLocked` (on under `ContinuousIntegrationBuild`)
+  turns drift into an error instead of a rewrite. The entry imports the package by its bare specifier (a `#Export`
+  as a named import), and a React or Preact app of package islands is no longer asked to install the runtime's
+  Vite plugin. RASKISLAND005–010 name a bad declaration, a missing snapshot, a package or export that could not
+  be read, drift on a locked build, an island the scan missed, and a snapshot from another version than
+  `package-lock.json` pins. See [The build keeps it current](docs/islands.md#the-build-keeps-it-current).
+
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
   `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
@@ -138,27 +152,6 @@ them until tagged releases begin.
   claim, cache, session-settings and bulk-insert scenarios against SQL Server 2022 — started on amd64 hosts
   only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
   summary that SQL Server was not proven rather than counting it as a pass.
-
-- **MySQL, as the opt-in `Rask.MySql`.** `UseRaskMySql(sp, o => …)` — connection string from `Rask:ConnectionStrings:App`, options from `Rask:MySql` — wraps Oracle's `UseMySQL` provider —
-  Pomelo had no EF Core 10 release — and sends `innodb_lock_wait_timeout` (10s, whole seconds, validated below the
-  command timeout) and `max_execution_time` (30s) as one `SET` on every connection EF opens, sets a client
-  `CommandTimeout` (30s) and turns on the provider's retrying strategy through `o.Retry`. The knobs follow MySQL
-  rather than the other packages: `max_execution_time` stops read-only `SELECT`s only, so the command timeout is
-  the ceiling on a runaway write, and both timeouts round up — a short lock wait must not fall below MySQL's 1-second minimum, and a
-  0 `max_execution_time` means "no limit"; the lock wait is validated below the command timeout after rounding. The settings live on
-  the options extension, so calling it twice keeps one interceptor and the last call's values. It also registers a
-  model convention, because a real server showed Oracle's provider losing a `DateTimeOffset`'s fractional seconds
-  twice — a whole-second `datetime` column by default, and a reader that truncates even a `datetime(6)` one: every
-  `DateTimeOffset` without a converter of its own is stored as its UTC `DateTime` in `datetime(6)` and read back
-  at offset zero, the offset the provider returned anyway. The provider suite
-  gains MySQL 8.4 — a native image, so unlike SQL Server it is proven on every host and a host that cannot start it
-  fails the gate: the start-gated claim races, session settings re-applied on every open, fifty cache writers on one
-  key, a 513-character key rejected with its limit named, bulk insert into a backtick-quoted keyword table, and a
-  Guid, a +02:00 DateTimeOffset (back as the same instant at offset zero) and a microsecond `DateTime`
-  round-tripped through a server whose own time zone is +05:00. Three things to know: Oracle's packages are
-  `GPL-2.0-only WITH Universal-FOSS-exception-1.0` (Rask is MIT); MariaDB is not supported, having no
-  `max_execution_time`; and an app switching from `UseMySQL` needs a migration, since its `DateTimeOffset`
-  columns become `datetime(6)`.
 
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
@@ -290,7 +283,7 @@ them until tagged releases begin.
 
 - **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
   own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
-  `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer`, `Rask:MySql`,
+  `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer`,
   `Rask:Litestream`, `Rask:Snapshots`, `Rask:Cache`, `Rask:Jobs`, `Rask:Logging`, `Rask:Mail`, `Rask:Outbox`,
   `Rask:Cqrs`, `Rask:Cqrs:Server`, `Rask:WebPush` — and the connection strings are `Rask:ConnectionStrings:App` and
   `Rask:ConnectionStrings:Logs`. Nothing is bound by hand any more (`GetSection("Rask").Bind(o)` is gone from the
@@ -328,7 +321,7 @@ them until tagged releases begin.
 
 - **BREAKING — the connection-string overloads are gone; the connection string is configuration.**
   `UseRaskSqlite(cs, …)` is `UseRaskSqlite(sp, …)` (`AddDbContextFactory<T>((sp, o) => o.UseRaskSqlite(sp))`),
-  `UseRaskPostgres(cs, …)` is `UseRaskPostgres(sp, …)` (and likewise `UseRaskSqlServer` and `UseRaskMySql`), `AddRaskSqlite(cs, …)` is `AddRaskSqlite(…)` and
+  `UseRaskPostgres(cs, …)` is `UseRaskPostgres(sp, …)` (and likewise `UseRaskSqlServer`), `AddRaskSqlite(cs, …)` is `AddRaskSqlite(…)` and
   `AddRaskLogging(cs, …)` is `AddRaskLogging(…)`. Each reads `Rask:ConnectionStrings:App` (or `:Logs`) and,
   when it is missing, stops with an error naming the key in both spellings rather than opening a file wherever the
   process happens to be — which in a container is somewhere the next deploy deletes. A design-time factory builds
