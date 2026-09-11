@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Added
 
+- **The Rask pill opens a live panel in Debug Development builds, and only the developer who owns the page can open it.** Each
+  interactive page's devtools tag now names its panel, `/_rask-devtools/?inspect={session}&t={token}`. The panel is
+  a Rask application mounted beside the app with its own document and route table, drawn with Rask.Ui and following
+  the OS light or dark setting, so the corner pill now appears. The host admits a panel request only when all of these hold:
+  - it is running in Development;
+  - the request comes from this machine, unless `RASK_DEVTOOLS_ALLOW_REMOTE=1`;
+  - it carries that session's token, an HMAC of the session id under a per-process key, compared in constant time;
+  - it comes from the page's origin, with the identity that owns the inspected session.
+
+  A wrong token and an unknown session both answer 404, so neither can be probed for. The check runs after the app's
+  own authorization and before a session is reserved, so a refused request costs nothing. A panel session is never
+  rebuilt from a resume record, so a reconnect goes back through the same check. The panel's pages are internal; only
+  the generator's `Routes` and entry classes join `Rask.DevTools`' public surface. The panel uses the app's own
+  Rask.Ui rather than bringing one, so a Release publish carries nothing of either: every `rask new` app and the `Rask`
+  package reference Rask.Ui, and an app without it gets no devtools and one startup warning saying to add it.
+
 - **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
   and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
   `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own
@@ -60,7 +76,7 @@ them until tagged releases begin.
   nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
   it. The script carries the corner pill and the drawer it opens — docked to the bottom or the right, remembered,
   toggled by Ctrl+Shift+D (Cmd+Shift+D on a Mac) without the keystroke reaching the app, and drawn in a shadow root
-  the app's stylesheets cannot reach — and shows them once the panel page they frame exists, in the next slice.
+  the app's stylesheets cannot reach — and shows them only when the page names a panel for them to frame.
 
   The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
   load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
@@ -110,6 +126,20 @@ them until tagged releases begin.
   literals cross as a plain string, rest-tuple callback parameters become labelled arguments, and a destructured
   parameter is `argN`. A Svelte 4 component typed by svelte-package — a class and a function at once — has its
   `$$events` and `$$slots` read as events and content rather than listed as props.
+
+- **Lit and Angular package islands get their props from the package too, so every runtime's do.** A Lit element's
+  props are its public, writable fields; its tag comes from `HTMLElementTagNameMap`, or is named in `Module` for a
+  module that only registers an element (`"@spectrum-web-components/button/sp-button.js#sp-button"`), and the entry
+  imports that module for its side effect so the registration is never elided. A tag counts only when the island's own
+  module, or a file it imports directly, registers it, so a class module that registers nothing never borrows the tag
+  another island's module registers. Where the package ships a `custom-elements.json`, the events it lists become `On…`
+  handler props that the Lit adapter now adds as event listeners — one per event, swapped when C# replaces the
+  handler; every public field stays a prop, `attribute: false` ones included. An Angular component's inputs and
+  outputs, including those it inherits from a base class, are read from the declaration ng-packagr compiles: an input
+  is set by its public alias (signal inputs, `model()` and transformed inputs included), and an output is subscribed to,
+  which the Angular adapter now does. A directive or a component that is not standalone is refused with RASKISLAND007.
+  In both adapters a prop C# stops sending goes back to the element's or component's own default, as it does in the
+  other runtimes, rather than keeping the last value set.
 
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
@@ -552,6 +582,16 @@ them until tagged releases begin.
   sibling selector at all. Both are in place, and they are complementary rather than alternatives — the
   `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
   makes the kit's own messages independent of it.
+
+- **rask.sh and the README lead with the batteries, not a benchmark against Blazor.** The byte-for-byte
+  "Rask vs Blazor" table that sat directly under the landing page's hero is gone, and so is the README's
+  paragraph of head-to-head numbers. The two battery sections — what is in the box, and the whole
+  DB-backed back end — now come straight after the hero, and the README gains a `## Batteries included`
+  list linking each pillar's guide. The front doors (landing page, README, NUGET.md, llms.txt) also say
+  what Rask is to the frameworks it hosts: a superset, not a rival — React, Vue, Svelte, Angular and Lit
+  islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
+  ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
+  gate are unchanged.
 
 ### Fixed
 

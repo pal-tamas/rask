@@ -1,1 +1,6 @@
 #nullable enable
+Rask.DevTools.Panel.Routes
+RaskBuilderSettersRask_DevTools
+RaskEntriesRask_DevTools
+static Rask.DevTools.Panel.Routes.DevToolsLayout() -> Rask.Core.Routing.RouteUrl
+static Rask.DevTools.Panel.Routes.DevToolsOverviewPage() -> Rask.Core.Routing.RouteUrl
