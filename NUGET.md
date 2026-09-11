@@ -13,6 +13,10 @@ Write components as plain C# classes. Return a tree of HTML from `Render()`: sta
 event handler is a delegate. The *same* component code runs server-rendered with live WebSocket
 updates or fully client-side on WebAssembly.
 
+Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, real Blazor components
+(`Rask.Blazor`), TypeScript SPAs and Nuxt or Next.js apps all run on it — and it builds on ASP.NET Core
+and EF Core rather than replacing them.
+
 ```csharp
 [Route("/counter")]
 public sealed partial class Counter : Component

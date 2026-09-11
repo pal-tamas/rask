@@ -47,8 +47,11 @@ dotnet add package Rask
 
 ## Four front ends, one back end
 
-Pick one per project — all four sit on the same C# back end. Islands also compose *inside* a Rask
-component tree, so those two mix freely.
+Rask is a superset, not a rival: your React, Vue, Svelte, Angular or Lit components,
+[a real Blazor component](docs/blazor-components.md), a TypeScript SPA or a Nuxt or Next.js app all run
+on it — and it builds on ASP.NET Core and EF Core rather than replacing them. Pick one per project — all
+four sit on the same C# back end. Islands also compose *inside* a Rask component tree, so those two mix
+freely.
 
 ### Rask components
 
@@ -122,9 +125,43 @@ rask db add AddProducts && rask db update                 # after you change the
 rask deploy --host root@box --domain shop.example.com     # bare box → Docker + auto-HTTPS, zero-downtime
 ```
 
+Run `rask` with no arguments for a wizard.
+
+## Batteries included
+
 Auth, jobs, mail, cache, events and file storage are on by default, and every one of them keeps its
-records in the app's own SQLite database (an upload's bytes go to disk or a bucket) — a fresh app can register somebody, sign them in, confirm their address and reset
-their password with no auth code written. Run `rask` with no arguments for a wizard.
+records in the app's own SQLite database (an upload's bytes go to disk or a bucket) — no broker, no
+Redis, no second service to run. A fresh app can register somebody, sign them in, confirm their address
+and reset their password with no auth code written.
+
+- **[Auth](docs/authentication.md)** — accounts out of the box: register, sign in, sign out, route
+  guards, and the first account to register is the administrator.
+- **[Background jobs](docs/jobs.md)** — enqueued, delayed and recurring work on your database,
+  at-least-once with exponential backoff.
+- **[Email](docs/mail.md)** — transactional mail queued in the same database and delivered over SMTP
+  off the request thread; bodies are Rask components.
+- **[Outbox](docs/outbox.md)** — domain events committed in the same transaction as your data and
+  relayed at-least-once, with no message broker.
+- **[Cache](docs/cache.md)** — the standard `IDistributedCache` plus a typed `ICache` with
+  `GetOrAddAsync`.
+- **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** — audit stamps, soft delete, optimistic
+  concurrency and domain events on EF Core, and a source-generated, reflection-free mediator.
+- **[Production SQLite](docs/sqlite.md)** — WAL and busy-timeout pragmas, continuous Litestream backup,
+  scheduled snapshots.
+- **[Logging](docs/logging.md)** — the `ILogger` pipeline kept in a SQLite file of its own, with
+  retention by age and row count.
+- **[Operator console](docs/dashboard.md)** — `/_rask`: queue depth, dead letters and the errors behind
+  them, cache contents and a log tail, behind an authorization policy.
+- **[PWA](docs/pwa.md)** · **[Web Push](docs/webpush.md)** — installable, offline apps, and push sent
+  from your backend on your own VAPID keys.
+- **[File storage](docs/file-storage.md)** — uploads on disk, in S3-compatible storage or in Azure
+  Blob, with a row per file on your database and public or expiring links.
+- **[Deploy](docs/deployment.md)** — `rask deploy` takes a bare VPS to a live HTTPS site with
+  zero-downtime swaps.
+
+They build on the standard .NET pieces — EF Core, hosted services, `ILogger`, `IDistributedCache`,
+ASP.NET Core authentication — so adding one is a package reference, not a new stack to learn or a new
+box to operate.
 
 ## Documentation
 
@@ -142,11 +179,7 @@ The full index is **[`docs/`](docs/)**, and the other packages are listed in
 **[NUGET.md](NUGET.md)**. To see it running, [rask.sh](https://rask.sh) *is* a Rask app — landing page,
 guides and every live demo — built from [`src/Rask.Site`](src/Rask.Site).
 
-*Rask* is the Norwegian/Danish/Swedish word for **fast**, and the engine earns it: after first paint a
-counter tick on a 24 KB page goes out as ~41 bytes. It ships fewer bytes on the wire than Blazor on
-every scenario in the head-to-head suite, allocates ~40× less per update and holds a ~30% leaner
-retained tree per mounted page — the numbers, enforced by the local pre-push gate, are in the
-**[Rask vs Blazor baselines ↗](tests/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
+*Rask* is the Norwegian/Danish/Swedish word for **fast**.
 
 ## Status
 
