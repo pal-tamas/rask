@@ -21,7 +21,7 @@ public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
 /// <summary>Where the harness keeps the log: the two <see cref="ILogs"/> implementations a contract runs against.</summary>
 public enum LogStoreKind
 {
-    /// <summary><c>AddRaskLogging(connectionString)</c>: a SQLite file of its own.</summary>
+    /// <summary><c>AddRaskLogging()</c>: a SQLite file of its own, at <c>Rask:ConnectionStrings:Logs</c>.</summary>
     File,
 
     /// <summary><c>AddRaskLogging&lt;TContext&gt;()</c>: the RaskLog table in the application's database.</summary>
@@ -70,7 +70,7 @@ public sealed class LoggingHarness : IAsyncDisposable
 
         if (kind == LogStoreKind.File)
         {
-            services.AddRaskLogging(ConnectionString, Options);
+            services.AddRaskLoggingAt(ConnectionString, Options);
         }
         else
         {

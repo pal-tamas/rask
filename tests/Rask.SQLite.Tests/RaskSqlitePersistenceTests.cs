@@ -14,7 +14,7 @@ public sealed class RaskSqlitePersistenceTests : IDisposable
     public async Task Rows_written_on_one_connection_are_visible_on_a_fresh_one()
     {
         var services = new ServiceCollection();
-        services.AddRaskSqlite($"Data Source={_dbPath}");
+        services.AddRaskSqliteAt($"Data Source={_dbPath}");
         await using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISqlite>();
 

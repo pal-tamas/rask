@@ -20,7 +20,7 @@ public sealed class PostgresSessionSettingsTests
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
 
         var options = new DbContextOptionsBuilder<SettingsContext>()
-            .UseRaskPostgres(Postgres.Required, o =>
+            .UseRaskPostgresAt(Postgres.Required, o =>
             {
                 o.StatementTimeout = TimeSpan.FromSeconds(42);
                 o.LockTimeout = TimeSpan.FromSeconds(7);

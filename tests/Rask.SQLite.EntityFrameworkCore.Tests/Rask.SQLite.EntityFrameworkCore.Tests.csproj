@@ -27,6 +27,8 @@
          lever under CPM — transitive pinning does not move it. See Directory.Packages.props. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <!-- ConfigurationBuilder: UseRaskSqlite reads Rask:ConnectionStrings:App, which TestConnectionStrings supplies. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
   </ItemGroup>
 
   <ItemGroup>

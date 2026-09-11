@@ -133,7 +133,7 @@ static Rask.Logging.LogRecord.operator ==(Rask.Logging.LogRecord? left, Rask.Log
 static Rask.Logging.LogScopeValue.operator !=(Rask.Logging.LogScopeValue left, Rask.Logging.LogScopeValue right) -> bool
 static Rask.Logging.LogScopeValue.operator ==(Rask.Logging.LogScopeValue left, Rask.Logging.LogScopeValue right) -> bool
 static Rask.Logging.LoggingModelBuilderExtensions.AddRaskLogging(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! connectionString, System.Action<Rask.Logging.RaskLoggingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Logging.RaskLoggingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Logging.RaskLoggingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 ~override Rask.Logging.LogScopeValue.Equals(object obj) -> bool
 ~override Rask.Logging.LogScopeValue.ToString() -> string

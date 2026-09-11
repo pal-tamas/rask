@@ -1,0 +1,273 @@
+{
+  "schema": 1,
+  "runtime": "react",
+  "module": "fixture-button",
+  "export": "default",
+  "package": {
+    "name": "fixture-button",
+    "version": "1.2.3"
+  },
+  "tag": null,
+  "content": "node",
+  "props": [
+    {
+      "name": "density",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          false,
+          "md",
+          "sm",
+          true
+        ]
+      }
+    },
+    {
+      "name": "disabled",
+      "required": false,
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "elevation",
+      "required": false,
+      "type": {
+        "kind": "number"
+      }
+    },
+    {
+      "name": "label",
+      "required": true,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onChange",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "Event"
+            }
+          },
+          {
+            "name": "value",
+            "type": {
+              "kind": "number"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onClick",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "MouseEvent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onClose",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": []
+      }
+    },
+    {
+      "name": "primary",
+      "required": false,
+      "type": {
+        "kind": "object",
+        "members": [
+          {
+            "name": "label",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          {
+            "name": "value",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "scrollButtons",
+      "required": false,
+      "doc": "MUI's shape: a boolean or a literal — one enum of three values the package accepts.",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "auto",
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "secondary",
+      "required": false,
+      "type": {
+        "kind": "object",
+        "members": [
+          {
+            "name": "label",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          {
+            "name": "value",
+            "required": true,
+            "type": {
+              "kind": "number"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "size",
+      "required": false,
+      "doc": "The size of the component; any other string names a size the theme adds.",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "open": true
+      }
+    },
+    {
+      "name": "startedAt",
+      "required": false,
+      "type": {
+        "kind": "date"
+      }
+    },
+    {
+      "name": "swatch",
+      "required": false,
+      "type": {
+        "kind": "ref",
+        "name": "Swatch"
+      }
+    },
+    {
+      "name": "tags",
+      "required": false,
+      "type": {
+        "kind": "array",
+        "element": {
+          "kind": "string"
+        }
+      }
+    },
+    {
+      "name": "variant",
+      "required": false,
+      "doc": "The variant to use.",
+      "default": "'text'",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "contained",
+          "outlined",
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "wrap",
+      "required": false,
+      "doc": "A boolean or any string: a union, not an enum of \"false\" and \"true\".",
+      "type": {
+        "kind": "union",
+        "of": [
+          {
+            "kind": "boolean"
+          },
+          {
+            "kind": "string"
+          }
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "name": "$internal",
+      "reason": "unsupported",
+      "detail": "a name starting with '$' is reserved by the props wire"
+    },
+    {
+      "name": "children",
+      "reason": "node"
+    },
+    {
+      "name": "container",
+      "reason": "unsupported",
+      "detail": "HTMLElement"
+    },
+    {
+      "name": "count",
+      "reason": "unsupported",
+      "detail": "bigint"
+    },
+    {
+      "name": "sx",
+      "reason": "any"
+    }
+  ],
+  "types": {
+    "Swatch": {
+      "kind": "object",
+      "members": [
+        {
+          "name": "alpha",
+          "required": false,
+          "type": {
+            "kind": "number"
+          }
+        },
+        {
+          "name": "hex",
+          "required": true,
+          "doc": "The hex value, with its leading '#'.",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    }
+  }
+}

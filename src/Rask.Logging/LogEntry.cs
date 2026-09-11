@@ -94,7 +94,7 @@ public static class LoggingModelBuilderExtensions
     /// context's <c>OnModelCreating</c>, then create the table with <c>rask db add AddLogs &amp;&amp; rask db update</c>.
     /// </summary>
     /// <remarks>
-    /// Only for the application-database store. <c>AddRaskLogging(connectionString)</c> keeps its log in a SQLite
+    /// Only for the application-database store. <c>AddRaskLogging()</c> keeps its log in a SQLite
     /// file of its own and needs nothing in your model.
     /// </remarks>
     /// <param name="modelBuilder">The model being built.</param>

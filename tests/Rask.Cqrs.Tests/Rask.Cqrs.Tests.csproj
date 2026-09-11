@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <!-- ConfigurationBuilder: AddRaskCqrs reads Rask:Cqrs off the host builder's configuration. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
   </ItemGroup>
 
   <ItemGroup>

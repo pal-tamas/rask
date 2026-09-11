@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Rask.Logging;
-using Rask.SqlServer;
 
 namespace Rask.Providers.E2E.Tests;
 
@@ -255,7 +254,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDbContextFactory<PgLogDbContext>(o => o.UseRaskPostgres(Postgres.Required));
+        services.AddDbContextFactory<PgLogDbContext>(o => o.UseRaskPostgresAt(Postgres.Required));
         services.AddRaskLogging<PgLogDbContext>();
 
         var host = services.BuildServiceProvider();
@@ -336,7 +335,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDbContextFactory<MsLogDbContext>(o => o.UseRaskSqlServer(SqlServer.Database(MsLogDbContext.DatabaseName)));
+        services.AddDbContextFactory<MsLogDbContext>(o => o.UseRaskSqlServerAt(SqlServer.Database(MsLogDbContext.DatabaseName)));
         services.AddRaskLogging<MsLogDbContext>();
 
         var host = services.BuildServiceProvider();

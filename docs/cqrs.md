@@ -114,6 +114,12 @@ public sealed class DispatchLogBehavior<TRequest, TResult>(CqrsCounterStore stor
 builder.Services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(DispatchLogBehavior<,>)));
 ```
 
+Behaviors are code. The dispatcher's plain switches — `HandlerLifetime`, `NotificationPublishStrategy`,
+`StopOnFirstNotificationException`, `ValidateRequests` — can also be set in `Rask:Cqrs` in
+`appsettings.json`, and the callback runs after them. Unlike every other Rask section, `Rask:Cqrs` is read
+while `AddRaskCqrs` itself runs, because those switches decide which services get registered; it comes from
+the host builder's configuration, so a container that is not a host reads none.
+
 ## It all fits together
 
 The demo below is one vertical slice — the query, the result-command, the notification the command
@@ -164,10 +170,12 @@ absent from the server by design, so a file using it has to be somewhere the ser
 Keep your handlers under `Server/`, which the browser half does not compile. That is what keeps a
 connection string, a table name or a pricing rule out of a download anybody can read.
 
-> **Without a database, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default
-> is on, and that is right for an app with accounts — but an app with no database has none to require,
-> so it would answer 401 to every message, and the failure reads as broken transport rather than as the
-> secure default working. Add `--data` and delete the argument.
+> **Without a database, the scaffold sets `Rask:Cqrs:Server:RequireAuthenticatedUser` to `false` in
+> `appsettings.json` and says why.** The default is on, and that is right for an app with accounts — but an
+> app with no database has none to require, so it would answer 401 to every message, and the failure reads
+> as broken transport rather than as the secure default working. Once the app has a database, delete the
+> key. And because it is configuration, an environment variable can turn it off too — guard the deploy
+> environment like code.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a

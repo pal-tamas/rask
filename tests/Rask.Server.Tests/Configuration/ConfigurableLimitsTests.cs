@@ -1,5 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Rask.Core.Globalization;
+using Rask.Core.Live;
+using Rask.Server.Files;
 
 namespace Rask.Server.Tests.Configuration;
 
@@ -48,26 +52,32 @@ public class ConfigurableLimitsTests
         Assert.Equal(TimeSpan.FromSeconds(7), limits.HandlerTimeout);
     }
 
+    // An out-of-range limit is refused when the options are built — at host start through ValidateOnStart, or
+    // on the first resolve in a bare container like this one — and the failure names the Rask:Server section.
     [Fact]
-    public void AddRask_NegativeHandlerTimeout_ThrowsAtStartup()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ServiceCollection().AddRask(configureServer: o => o.HandlerTimeout = TimeSpan.FromSeconds(-1)));
-    }
+    public void AddRask_NegativeHandlerTimeout_IsRejected() =>
+        AssertRejected(o => o.HandlerTimeout = TimeSpan.FromSeconds(-1));
 
     [Fact]
-    public void AddRask_NegativeIdleSocketTimeout_ThrowsAtStartup()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ServiceCollection().AddRask(configureServer: o => o.IdleSocketTimeout = TimeSpan.FromSeconds(-1)));
-    }
+    public void AddRask_NegativeIdleSocketTimeout_IsRejected() =>
+        AssertRejected(o => o.IdleSocketTimeout = TimeSpan.FromSeconds(-1));
 
     [Fact]
-    public void AddRask_NegativePendingHandlerBytes_ThrowsAtStartup()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ServiceCollection().AddRask(configureServer: o => o.MaxPendingHandlerBytes = -1));
-    }
+    public void AddRask_NegativePendingHandlerBytes_IsRejected() =>
+        AssertRejected(o => o.MaxPendingHandlerBytes = -1);
+
+    [Fact]
+    public void AddRask_NegativeGracePeriod_IsRejected() =>
+        AssertRejected(o => o.SessionGracePeriod = TimeSpan.FromSeconds(-1));
+
+    // 0 would abort every non-empty frame; a frame-size cap is mandatory, so it must be rejected.
+    [Fact]
+    public void AddRask_ZeroFrameByteCap_IsRejected() =>
+        AssertRejected(o => o.MaxInboundFrameBytes = 0);
+
+    [Fact]
+    public void AddRask_NegativeFrameRateCap_IsRejected() =>
+        AssertRejected(o => o.MaxInboundFramesPerSecond = -1);
 
     [Fact]
     public void AddRask_NoConfigureServer_RegistersDefaultLimits()
@@ -87,32 +97,9 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void AddRask_NegativeGracePeriod_ThrowsAtStartup()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ServiceCollection().AddRask(configureServer: o => o.SessionGracePeriod = TimeSpan.FromSeconds(-1)));
-    }
-
-    [Fact]
-    public void AddRask_ZeroFrameByteCap_ThrowsAtStartup()
-    {
-        // 0 would abort every non-empty frame; a frame-size cap is mandatory, so it must be rejected.
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ServiceCollection().AddRask(configureServer: o => o.MaxInboundFrameBytes = 0));
-    }
-
-    [Fact]
-    public void AddRask_NegativeFrameRateCap_ThrowsAtStartup()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ServiceCollection().AddRask(configureServer: o => o.MaxInboundFramesPerSecond = -1));
-    }
-
-    [Fact]
     public void Validate_AllowsZeroForTheCountBasedCaps()
     {
         // 0 is the documented "disable this cap" value for the two count caps — Validate must accept it.
-        // Tested directly (not via AddRask) so it doesn't seed the process-global statics.
         var o = new RaskServerOptions { MaxPendingHandlers = 0, MaxInboundFramesPerSecond = 0 };
         Assert.Null(Record.Exception(o.Validate));
     }
@@ -150,29 +137,140 @@ public class ConfigurableLimitsTests
         var services = new ServiceCollection()
             .AddRask(configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromSeconds(3));
 
-        var limits = services.BuildServiceProvider().GetRequiredService<RaskServerLimits>();
+        using var provider = services.BuildServiceProvider();
+        var limits = provider.GetRequiredService<RaskServerLimits>();
 
         Assert.Equal(TimeSpan.FromSeconds(3), limits.ShutdownDrainTimeout);
     }
 
     [Fact]
-    public void AppSettings_BindIntoServerOptions_RoundTrips()
+    public void TheRaskServerSection_SeedsThePerHostLimits()
     {
-        // The documented operator pattern: AddRask(configureServer: o => config.GetSection("Rask").Bind(o)).
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Rask:MaxInboundFramesPerSecond"] = "250",
-                ["Rask:MaxPendingHandlers"] = "64",
-                ["Rask:SessionGracePeriod"] = "00:00:15"
-            })
-            .Build();
+        using var provider = Provider(new()
+        {
+            ["Rask:Server:MaxInboundFramesPerSecond"] = "250",
+            ["Rask:Server:MaxPendingHandlers"] = "64",
+            ["Rask:Server:SessionGracePeriod"] = "00:00:15",
+            ["Rask:Server:RenderModes:QuiescenceTimeout"] = "00:00:02",
+        });
 
-        var o = new RaskServerOptions();
-        config.GetSection("Rask").Bind(o);
+        var limits = provider.GetRequiredService<RaskServerLimits>();
 
-        Assert.Equal(250, o.MaxInboundFramesPerSecond);
-        Assert.Equal(64, o.MaxPendingHandlers);
-        Assert.Equal(TimeSpan.FromSeconds(15), o.SessionGracePeriod);
+        Assert.Equal(250, limits.MaxInboundFramesPerSecond);
+        Assert.Equal(64, limits.MaxPendingHandlers);
+        Assert.Equal(TimeSpan.FromSeconds(15), limits.SessionGracePeriod);
+        Assert.Equal(TimeSpan.FromSeconds(2), limits.InitialRenderQuiescenceTimeout);
     }
+
+    [Fact]
+    public void ConfigureServer_WinsOverTheRaskServerSection()
+    {
+        using var provider = Provider(
+            new() { ["Rask:Server:MaxPendingHandlers"] = "64", ["Rask:Server:MaxInboundFramesPerSecond"] = "250" },
+            server: o => o.MaxPendingHandlers = 7);
+
+        var limits = provider.GetRequiredService<RaskServerLimits>();
+
+        Assert.Equal(7, limits.MaxPendingHandlers);
+        Assert.Equal(250, limits.MaxInboundFramesPerSecond);
+    }
+
+    [Fact]
+    public void AnOutOfRangeConfiguredLimit_IsRejectedNamingTheSection()
+    {
+        using var provider = Provider(new() { ["Rask:Server:SessionGracePeriod"] = "-00:00:01" });
+
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskServerLimits>());
+        Assert.Contains("Rask:Server", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheFlatRaskSection_IsNotRead()
+    {
+        // The shape docs/configuration.md used to teach, before every host had its own Rask:<Area> section.
+        using var provider = Provider(new() { ["Rask:MaxPendingHandlers"] = "64" });
+
+        Assert.Equal(512, provider.GetRequiredService<RaskServerLimits>().MaxPendingHandlers);
+    }
+
+    // The session store is IAsyncDisposable only, so the containers that resolve it are disposed asynchronously.
+    [Fact]
+    public async Task TheRaskLiveSection_ReachesTheSessionStore()
+    {
+        await using var provider = Provider(new()
+        {
+            ["Rask:Live:MaxSessions"] = "5",
+            ["Rask:Live:DiffMode"] = nameof(LiveDiffMode.DisabledFull),
+        });
+
+        var store = provider.GetRequiredService<LiveSessionStore>();
+
+        Assert.Equal(5, store.MaxSessions);
+        Assert.Equal(LiveDiffMode.DisabledFull, store.DiffMode);
+    }
+
+    [Fact]
+    public async Task Configure_WinsOverTheRaskLiveSection()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(Configuration(new() { ["Rask:Live:MaxSessions"] = "5" }));
+        services.AddRask(configure: o => o.MaxSessions = 9);
+        await using var provider = services.BuildServiceProvider();
+
+        Assert.Equal(9, provider.GetRequiredService<LiveSessionStore>().MaxSessions);
+    }
+
+    [Fact]
+    public void TheRaskUploadsSection_SetsTheUploadLimits()
+    {
+        using var provider = Provider(new() { ["Rask:Uploads:MaxFileSize"] = "1024" });
+
+        Assert.Equal(1024, provider.GetRequiredService<RaskUploadOptions>().MaxFileSize);
+    }
+
+    [Fact]
+    public void TheRaskCultureSection_SetsTheCultures()
+    {
+        using var provider = Provider(new()
+        {
+            ["Rask:Culture:SupportedCultures:0"] = "en",
+            ["Rask:Culture:SupportedCultures:1"] = "hu",
+            ["Rask:Culture:UseCookie"] = "false",
+        });
+
+        var culture = provider.GetRequiredService<RaskCultureOptions>();
+
+        Assert.Equal(["en", "hu"], culture.SupportedCultures);
+        Assert.False(culture.UseCookie);
+    }
+
+    [Fact]
+    public async Task WithoutConfiguration_AddRaskStillBuilds()
+    {
+        // A bare container — a test fixture, a benchmark harness — has no IConfiguration at all.
+        await using var provider = new ServiceCollection().AddRask().BuildServiceProvider();
+
+        Assert.Equal(0, provider.GetRequiredService<LiveSessionStore>().MaxSessions);
+        Assert.Empty(provider.GetRequiredService<RaskCultureOptions>().SupportedCultures);
+    }
+
+    private static void AssertRejected(Action<RaskServerOptions> configureServer)
+    {
+        using var provider = new ServiceCollection().AddRask(configureServer: configureServer).BuildServiceProvider();
+
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskServerLimits>());
+        Assert.Contains("Rask:Server", ex.Message, StringComparison.Ordinal);
+    }
+
+    private static ServiceProvider Provider(
+        Dictionary<string, string?> settings, Action<RaskServerOptions>? server = null)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(Configuration(settings));
+        services.AddRask(configureServer: server);
+        return services.BuildServiceProvider();
+    }
+
+    private static IConfiguration Configuration(Dictionary<string, string?> settings) =>
+        new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
 }

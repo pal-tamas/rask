@@ -33,9 +33,22 @@
          table mapping. The file store uses neither. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Options"/>
+  </ItemGroup>
+
+  <!-- RaskLoggingOptions binds Rask:Logging and the store's connection string comes from Rask:ConnectionStrings:Logs.
+       The configuration binding source generator writes the bind at compile time, so no reflection binder runs. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
 
   <!-- The boot-time "is the log table mapped?" check for AddRaskLogging<TContext>, source-linked like every

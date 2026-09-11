@@ -14,7 +14,7 @@ public sealed class RaskSqliteInterceptorTests : IDisposable
     public async Task Ef_interceptor_reports_the_configured_pragmas_on_open()
     {
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}")
+            .UseRaskSqliteAt($"Data Source={_dbPath}")
             .Options;
 
         await using var context = new ProbeDbContext(options);
@@ -32,7 +32,7 @@ public sealed class RaskSqliteInterceptorTests : IDisposable
     public async Task Ef_interceptor_honors_pragma_overrides()
     {
         var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}", p => p.BusyTimeout = TimeSpan.FromSeconds(12))
+            .UseRaskSqliteAt($"Data Source={_dbPath}", p => p.BusyTimeout = TimeSpan.FromSeconds(12))
             .Options;
 
         await using var context = new ProbeDbContext(options);

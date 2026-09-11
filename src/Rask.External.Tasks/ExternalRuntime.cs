@@ -29,8 +29,12 @@ internal sealed class ExternalRuntime
         string? pluginFactory = null,
         string? adapterModule = null,
         string[]? extensions = null,
-        string? pluginOptions = null)
+        string? pluginOptions = null,
+        bool packagesNeedPlugin = false,
+        bool propsExtracted = false)
     {
+        PackagesNeedPlugin = packagesNeedPlugin;
+        PropsExtracted = propsExtracted;
         Key = key;
         ImportName = importName;
         AdapterFactory = adapterFactory;
@@ -83,6 +87,24 @@ internal sealed class ExternalRuntime
     /// <summary>The identifier the plugin was imported under, called to build the plugin.</summary>
     public string? PluginFactory { get; }
 
+    /// <summary>
+    ///     Whether a PACKAGE island of this runtime still needs the runtime's Vite plugin.
+    /// </summary>
+    /// <remarks>
+    ///     React and Preact packages ship compiled JavaScript, so an app whose islands of those runtimes are all
+    ///     packages has nothing for a JSX transform to do. Solid packages publish JSX source under a
+    ///     <c>solid</c> export condition, Vue and Svelte packages ship single-file components, and Angular
+    ///     packages ship partial-Ivy code that has to be linked, so those keep their plugin.
+    /// </remarks>
+    public bool PackagesNeedPlugin { get; }
+
+    /// <summary>Whether the props extractor reads a package component of this runtime yet.</summary>
+    /// <remarks>
+    ///     A package island of any other runtime is never sent to it: it compiles from a snapshot committed by
+    ///     hand, and a missing one is reported as missing rather than as an extraction that failed.
+    /// </remarks>
+    public bool PropsExtracted { get; }
+
     /// <summary>Options every call carries, whether or not the plugin also needs scoping.</summary>
     /// <remarks>
     ///     Only Angular has any. Its plugin looks for <c>tsconfig.app.json</c> by default and merely
@@ -127,7 +149,8 @@ internal sealed class ExternalRuntime
             "reactComponent",
             "react from '@vitejs/plugin-react'",
             "react",
-            extensions: [".tsx", ".jsx"]);
+            extensions: [".tsx", ".jsx"],
+            propsExtracted: true);
 
     /// <summary>
     ///     Preact directly, without <c>preact/compat</c> in the way.
@@ -146,7 +169,8 @@ internal sealed class ExternalRuntime
             "preactComponent",
             "preact from '@preact/preset-vite'",
             "preact",
-            extensions: [".tsx", ".jsx"]);
+            extensions: [".tsx", ".jsx"],
+            propsExtracted: true);
 
     /// <summary>Solid, whose JSX compiles to DOM operations rather than to a virtual tree.</summary>
     public static ExternalRuntime Solid { get; } =
@@ -156,7 +180,9 @@ internal sealed class ExternalRuntime
             "solidComponent",
             "solid from 'vite-plugin-solid'",
             "solid",
-            extensions: [".tsx", ".jsx"]);
+            extensions: [".tsx", ".jsx"],
+            packagesNeedPlugin: true,
+            propsExtracted: true);
 
     /// <summary>A single-file component, compiled by a Vite plugin rather than its own compiler.</summary>
     public static ExternalRuntime Vue { get; } =
@@ -165,7 +191,9 @@ internal sealed class ExternalRuntime
             "Component",
             "vueComponent",
             "vue from '@vitejs/plugin-vue'",
-            "vue");
+            "vue",
+            packagesNeedPlugin: true,
+            propsExtracted: true);
 
     /// <summary>A single-file component, compiled by a Vite plugin rather than its own compiler.</summary>
     public static ExternalRuntime Svelte { get; } =
@@ -175,7 +203,9 @@ internal sealed class ExternalRuntime
             "svelteComponent",
             "{ svelte } from '@sveltejs/vite-plugin-svelte'",
             "svelte",
-            adapterModule: "svelte.svelte");
+            adapterModule: "svelte.svelte",
+            packagesNeedPlugin: true,
+            propsExtracted: true);
 
     /// <summary>
     ///     Angular, compiled ahead of time by the Analog plugin.
@@ -206,7 +236,8 @@ internal sealed class ExternalRuntime
             "angularComponent",
             "angular from '@analogjs/vite-plugin-angular'",
             "angular",
-            pluginOptions: "jit: false");
+            pluginOptions: "jit: false",
+            packagesNeedPlugin: true);
 
     /// <summary>
     ///     Every runtime, in the order their plugins are written into the Vite config.

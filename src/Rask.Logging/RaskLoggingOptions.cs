@@ -100,7 +100,7 @@ public sealed class RaskLoggingOptions
     /// <c>Rask.SQLite</c> applies to the application database — WAL matters here in particular, since it is
     /// what lets a dashboard read the store while the writer is flushing.
     /// <para>
-    /// For the SQLite file store (<c>AddRaskLogging(connectionString)</c>) only. The application-database store
+    /// For the SQLite file store (<c>AddRaskLogging()</c>) only. The application-database store
     /// connects through your context, with whatever its <c>UseRaskX</c> call configured.
     /// </para>
     /// </summary>
@@ -147,7 +147,7 @@ public sealed class RaskLoggingOptions
         return false;
     }
 
-    /// <summary>Validates the option values at registration, so a bad value fails fast.</summary>
+    /// <summary>Validates the option values once <c>Rask:Logging</c> and the callback have applied, at host start, so a bad value fails fast.</summary>
     internal void Validate()
     {
         if (Retention < TimeSpan.Zero)

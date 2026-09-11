@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Data;
+using Rask.Hosting.Shared;
 
 namespace Rask.Outbox;
 
@@ -13,7 +15,8 @@ public static class RaskOutboxServiceCollectionExtensions
     /// Registers the <see cref="OutboxInterceptor"/> (add it to your context with
     /// <c>o.AddInterceptors(sp.GetServices&lt;ISaveChangesInterceptor&gt;())</c>) and the background
     /// <see cref="OutboxProcessor{TContext}"/>. Map the table with <c>modelBuilder.AddRaskOutbox()</c> in
-    /// <c>OnModelCreating</c>. Idempotent.
+    /// <c>OnModelCreating</c>. <see cref="OutboxOptions"/> reads the <c>Rask:Outbox</c> configuration section first
+    /// and then <paramref name="configure"/>, so code wins. Idempotent.
     /// </summary>
     /// <remarks>
     /// This call is all it takes to hand domain-event delivery to the outbox: it registers an
@@ -29,14 +32,11 @@ public static class RaskOutboxServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = new OutboxOptions();
-        configure?.Invoke(options);
-        // Fail fast here, the way AddRaskJobs/AddRaskMail/AddRaskCache already do. Without this a value
+        // Validated when the host starts, the way AddRaskJobs/AddRaskMail/AddRaskCache are. Without it a value
         // like PollInterval = Zero throws out of `new PeriodicTimer(...)` on the background thread, which
         // (BackgroundServiceExceptionBehavior.StopHost) tears the host down at an unrelated moment.
-        options.Validate();
-
-        services.TryAddSingleton(options);
+        services.AddRaskOptions<OutboxOptions>("Rask:Outbox", static (section, o) => section.Bind(o), configure,
+            static o => o.Validate());
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<OutboxMetrics>();
 

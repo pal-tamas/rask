@@ -25,6 +25,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <!-- ConfigurationBuilder: the options bind Rask:Litestream and derive the database from Rask:ConnectionStrings:App. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
   </ItemGroup>
 
   <ItemGroup>

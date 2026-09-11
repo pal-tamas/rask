@@ -36,9 +36,14 @@ public sealed class SqliteSnapshotsServiceCollectionExtensionsTests
     [Fact]
     public void AddRaskSqliteSnapshots_requires_destination_without_a_custom_store()
     {
+        // Refused when the options are built — at host start, or on the first resolve here — naming the section.
         var services = new ServiceCollection();
-        Assert.Throws<InvalidOperationException>(() =>
-            services.AddRaskSqliteSnapshots(o => o.DatabasePath = "/data/app.db"));   // no directory, no custom store
+        services.AddRaskSqliteSnapshots(o => o.DatabasePath = "/data/app.db");   // no directory, no custom store
+        using var provider = services.BuildServiceProvider();
+
+        var ex = Assert.Throws<Microsoft.Extensions.Options.OptionsValidationException>(
+            () => provider.GetRequiredService<SqliteSnapshotOptions>());
+        Assert.Contains("Rask:Snapshots", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
