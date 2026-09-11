@@ -156,6 +156,78 @@ public sealed class PageMetaTests
         Assert.Equal(canonical, crumbs[^1].GetProperty("item").GetString());
     }
 
+    [Theory]
+    [MemberData(nameof(PrerenderableRoutes))]
+    public async Task EveryIndexablePageUnfurlsWithTheSocialCard(string path)
+    {
+        // Without an image a shared link unfurls as a line of text, and summary_large_image renders as an
+        // empty panel. The declared size is what lets an unfurler lay the card out before it has fetched it.
+        var head = await HeadAt(path);
+        if (!ClaimsToBeThePage(head, path))
+        {
+            return;
+        }
+
+        Assert.Contains($"property=\"og:image\" content=\"{PageMeta.SocialImageUrl}\"", head, StringComparison.Ordinal);
+        Assert.Contains($"property=\"og:image:width\" content=\"{PageMeta.SocialImageWidth}\"", head, StringComparison.Ordinal);
+        Assert.Contains($"property=\"og:image:height\" content=\"{PageMeta.SocialImageHeight}\"", head, StringComparison.Ordinal);
+        Assert.Contains("name=\"twitter:card\" content=\"summary_large_image\"", head, StringComparison.Ordinal);
+        Assert.Contains($"name=\"twitter:image\" content=\"{PageMeta.SocialImageUrl}\"", head, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheSocialCardIsTheImageItClaimsToBe()
+    {
+        // Read off the committed file rather than trusted from the constants: a card re-rendered at the wrong
+        // size is cropped by every unfurler, while the head still declares 1200×630 and every other test passes.
+        var file = Path.Combine(
+            [RepoRoot(), "src", "Rask.Site", "wwwroot", .. PageMeta.SocialImagePath.TrimStart('/').Split('/')]);
+        Assert.True(File.Exists(file), $"the social card is missing: {file}");
+
+        var bytes = File.ReadAllBytes(file);
+
+        // A PNG, whose IHDR chunk always starts at byte 16: width, then height, both big-endian.
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, bytes[..8]);
+        Assert.Equal(PageMeta.SocialImageWidth, System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(16, 4)));
+        Assert.Equal(PageMeta.SocialImageHeight, System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(20, 4)));
+
+        // Unfurlers fetch it on every share and give up on slow images; X refuses anything over 5 MB.
+        Assert.True(bytes.Length < 1_000_000, $"the social card is {bytes.Length} bytes; keep it under 1 MB");
+    }
+
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/docs")]
+    [InlineData("/docs/guides/cqrs")]
+    public async Task EveryInternalLinkPointsAtTheUrlTheHostServes(string path)
+    {
+        // GitHub Pages 301s /docs/x to /docs/x/. A link to the bare form costs a crawler a redirect on every
+        // internal link it follows, and votes for the non-canonical URL (#1057). The front door, the docs
+        // index with its sidebar, and a guide with its cross-links and prev/next cover every link builder.
+        var html = await DocumentAt(path);
+        var internalLinks = Regex.Matches(html, "<a [^>]*href=\"(?<path>/[^\"#?]*)[^\"]*\"")
+            .Select(match => match.Groups["path"].Value)
+            .Where(href => !System.IO.Path.HasExtension(href))
+            .ToList();
+
+        // Guard the extractor: a pattern that matched nothing would pass on a page with no links at all.
+        Assert.True(internalLinks.Count >= 5, $"only {internalLinks.Count} internal link(s) found at {path}");
+
+        var bare = internalLinks.Where(href => !href.EndsWith('/')).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(bare.Count == 0, $"{path} links to URLs that redirect: {string.Join(", ", bare.Take(10))}");
+    }
+
+    [Fact]
+    public void ALinkKeepsItsQueryAndFragmentBehindTheSlash()
+    {
+        Assert.Equal("/docs/guides/forms/", (string)PageMeta.LinkTo("/docs/guides/forms"));
+        Assert.Equal("/docs/guides/forms/#binding", (string)PageMeta.LinkTo("/docs/guides/forms#binding"));
+        Assert.Equal("/docs/todos/?filter=open", (string)PageMeta.LinkTo("/docs/todos?filter=open"));
+        // The generated routes, not "/" and "/docs/": RASK033 holds tests to the same rule as the site.
+        Assert.Equal("/", (string)PageMeta.LinkTo(Rask.Site.Pages.Routes.HomePage()));
+        Assert.Equal("/docs/", (string)PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage()));
+    }
+
     [Fact]
     public async Task AHostileGuideSlugCannotCloseTheStructuredDataScript()
     {
@@ -351,12 +423,26 @@ public sealed class PageMetaTests
     /// </summary>
     private static async Task<string> HeadAt(string path)
     {
+        var html = await DocumentAt(path);
+
+        var start = html.IndexOf("<head", StringComparison.OrdinalIgnoreCase);
+        var end = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+        Assert.True(start >= 0 && end > start, $"{path} rendered no <head>");
+        return html[start..end];
+    }
+
+    /// <summary>
+    ///     The whole document a visitor at <paramref name="path" /> is served — rendered through the App and
+    ///     its router, which is what the prerender pass does.
+    /// </summary>
+    private static async Task<string> DocumentAt(string path)
+    {
         var sp = TestServices.Default(routeState: TestRouteState.At(path));
 
         // The prerender engine itself, not RaskTest.RenderDocument: these pages load on an async mount,
         // and a single synchronous render returns the placeholder — or the error page, for one that
         // awaits. Going through RenderDocumentAsync means this asserts on the same bytes the publish
-        // writes, which is the only version of the head that a crawler ever sees.
+        // writes, which is the only version of the page that a crawler ever sees.
         var result = await RaskPrerender.RenderDocumentAsync(
             new global::Rask.Site.App(), sp, TimeSpan.FromSeconds(10));
 
@@ -368,10 +454,7 @@ public sealed class PageMetaTests
             $"{path} faulted while rendering: {result.Error?.GetType().Name}: {result.Error?.Message}");
         Assert.False(result.TimedOut, $"{path} did not settle");
 
-        var start = result.Html.IndexOf("<head", StringComparison.OrdinalIgnoreCase);
-        var end = result.Html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-        Assert.True(start >= 0 && end > start, $"{path} rendered no <head>");
-        return result.Html[start..end];
+        return result.Html;
     }
 
     private static string? CanonicalOf(string head)

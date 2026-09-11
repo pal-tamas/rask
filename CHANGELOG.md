@@ -25,6 +25,48 @@ them until tagged releases begin.
   and any prop that could not be generated. See
   [Using a package component directly](docs/islands.md#using-a-package-component-directly).
 
+- **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
+  attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
+  `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
+  bypass, ambient state, children, or an empty cache), the serializer's walk and its replay of a captured
+  subtree, `StateHasChanged`, handler dispatch, the tree commit, and per session the walk, the diff-or-full
+  decision and every frame sent or received. A build without the devtools folds that read to null. Both
+  browser runtimes gained matching `send`, `recv` and `commit` hooks, and a frame-span walker locates a
+  component's DOM nodes with the differ's own slot rules — cross-checked against the differ's op paths.
+
+  Handler dispatch is now a non-async forwarder that enters an instrumented path only when a probe is
+  attached, so the dispatch every event takes gains no async state-machine field.
+
+  Measured: all 45 `LiveRenderRoundTrip`, `HtmlSerializerLiveRoot`, `RenderRoundTrip`, `FrameDiffer`,
+  `LivePayloadUtf8`, `WsDispatch` and `WasmDispatch` cases allocate exactly what they did before. That reaches
+  the component-level seams; no benchmark reaches handler dispatch or a session's render-to-send loop (see
+  #1062), so those seams rest on how they are built and on the Server, WASM and Core suites.
+
+- **A shared rask.sh link unfurls as a card.** Every page names a 1200×630 social card — the site's bolt,
+  its own type and palette, the one-line pitch and a real markup chain — as `og:image` with its size, type
+  and alt text, and as a `summary_large_image` Twitter card; guides and the front door carry it as the
+  structured data's `image` too. Until now a link posted to Slack, X, LinkedIn or Discord unfurled as a
+  line of text. The card is a designed page (`assets/og-card.html`) rendered by a browser, not a generated
+  placeholder, and `PageMetaTests` reads the committed PNG's header so a re-render at the wrong size fails.
+
+- **PostgreSQL is back, as the opt-in `Rask.Postgres`.** SQLite stays the default and the recommendation;
+  this reverses only the part of the earlier removal that left a production app with no supported door out of
+  one box. `UseRaskPostgres(cs, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
+  `LockTimeout` (10s, validated below the statement timeout so lock contention is never reported as a slow
+  query) and `IdleInTransactionSessionTimeout` (1m) to every session, and turns on Npgsql's retrying
+  strategy through `o.Retry`. Compared with the package that shipped in v0.20.0, `RaskPostgresOptions` is now
+  `PostgresOptions` with the retry knobs nested under `Retry` (as `SqliteOptions` nests its own), and the
+  timeouts travel as connection-string startup parameters instead of a `SET` sent on every open. That is one
+  round trip less on every query EF runs; the values are the session's defaults, so the pool's reset restores
+  rather than removes them; and a connection opened without EF gets them too. Timeouts round up to whole
+  milliseconds, because PostgreSQL reads 0 as "no limit", and one beyond a 32-bit millisecond count is refused
+  at startup rather than on every connection open. A new `Rask.Providers.E2E.Tests` suite, run by
+  `scripts/run-providers-local.sh` against a real PostgreSQL 17 in Docker, proves the jobs claim never hands
+  a job to two of twenty racing instances, the settings survive the pool, bulk insert lands 10,000 rows in a
+  keyword-named table under the retrying strategy, and fifty concurrent writers on one cold cache key all
+  succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
+  (`docs/data.md#postgresql`).
+
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
   `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network
@@ -160,6 +202,12 @@ them until tagged releases begin.
 - **A `Module` that names a package makes the island a package island**, including one that declares its props
   by hand: an unset prop is left out of the props rather than written as `null`, so the package's default
   applies, and each callback forwards only its first argument to C#.
+- **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
+  in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
+  They were bare, and GitHub Pages answers `/docs/guides/cqrs` with a 301 to `/docs/guides/cqrs/`, so every
+  internal link a crawler followed cost a redirect and pointed at the non-canonical URL (#1057). The active
+  sidebar link still lights up, since `NavLink` compares paths without the slash; the Todos add form now
+  recognises `/docs/todos/new/`, the path a reload always arrived with.
 
 - **`QuiescentRender.RunAsync` and `RaskPrerender.RenderDocumentAsync` take a `CancellationToken`.** It is
   the last parameter and defaulted, as the API style guide asks of every awaitable, so existing calls
@@ -319,6 +367,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The builder allocation pins no longer fail a busy machine's gate.** `BuilderEntryAllocationPinTests`
+  runs in a non-parallel collection. It reads the measuring thread's allocations, which looked immune to
+  other tests but is not: the render path borrows from one `StringBuilder` pool shared by every thread, and
+  while another class rendered in parallel the probe found it drained and allocated its own. Its head probe,
+  the heaviest pool user, failed four gates in three days at 1818–1904 B against its 1800 B pin — always
+  under load, always green alone and across its assembly (#1056). The ceiling is unchanged.
+
+- **Bulk insert's fast path runs the connection interceptors, and retries a failed batch.**
+  `BulkInsertAsync(o => o.SkipChangeTracking = true)` opened the `DbConnection` itself, and EF only runs its
+  connection interceptors on an open it performs — so every row it wrote ran with `UseRaskSqlite`'s pragmas
+  unapplied (`foreign_keys`, `busy_timeout` at SQLite's defaults), along with anything else an app registered on
+  connection open. It now opens through EF, which also counts opens and so still leaves a caller's open
+  connection open. Each batch that owns its transaction now runs inside the execution strategy, so a retrying
+  strategy replays the failed batch alone instead of surfacing the first transient error.
 
 - **Three templates installed an older Tailwind than the C# host downloads.** solidstart `^4.0.7`,
   nextjs `^4` and tanstack-start `^4.1.18` against a pinned 4.3 — floors their own creators wrote, which
@@ -338,6 +400,7 @@ them until tagged releases begin.
 
 - **`rask new --help` advertised a command that fails.** The examples still showed `--auth --data`; both
   were retired, so the documented example exited non-zero.
+
 - **A `HasNonOverlappingRange` rule the provider would ignore now fails the boot.** The rule is model
   metadata that a provider has to turn into DDL, and only `UseRaskSqlite` did. On a plain `UseSqlite` — or
   any other provider — an app built, migrated and passed every test that didn't collide two ranges on

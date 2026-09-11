@@ -221,7 +221,7 @@ public sealed partial class Markdown : Component
             // showcase moved from / to /docs every in-doc link in every guide pointed at a URL that no
             // longer existed — silently, because a dead href renders exactly like a live one.
             return target.GuideSlug is { } slug
-                ? $"href=\"{Features.Routes.GuidePage(slug)}{fragment}\" data-rask-nav"
+                ? $"href=\"{PageMeta.LinkTo(Features.Routes.GuidePage(slug))}{fragment}\" data-rask-nav"
                 : $"href=\"{target.GitHubUrl}{fragment}\"";
         });
 

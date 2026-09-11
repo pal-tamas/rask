@@ -335,6 +335,8 @@ import "../../Rask.Core/Resources/rask-events.js";
             } catch (err) {
                 return;
             }
+            const devtools = window.__raskDevtoolsHook;
+            if (devtools) devtools.recv(data, new TextEncoder().encode(e.data).length);
             // Once the session is known-gone, ignore any late frames still in flight — they would apply
             // against a session the server has already discarded, flashing inconsistent UI before reload.
             if (sessionExpired) {
@@ -1343,7 +1345,10 @@ import "../../Rask.Core/Resources/rask-events.js";
         const applyBody = () => {
             // Each op carries a Path (childNodes indices from the document root) and an
             // op-specific payload.
+            const devtools = window.__raskDevtoolsHook;
+            const startedAt = devtools ? performance.now() : 0;
             applyDiff((data.ops ?? []) as DiffOp[], Array.isArray(data.names) ? data.names : undefined);
+            if (devtools) devtools.commit(data, startedAt);
             if (data.history && typeof data.history.url === "string") {
                 let diffTarget = prependBase(data.history.url);
                 if (data.history.action === "replace") {
@@ -1390,7 +1395,10 @@ import "../../Rask.Core/Resources/rask-events.js";
 
         const commit = () => {
             if (freshHtml) {
+                const devtools = window.__raskDevtoolsHook;
+                const startedAt = devtools ? performance.now() : 0;
                 morph(document.documentElement, freshHtml);
+                if (devtools) devtools.commit(data, startedAt);
                 root = document.querySelector("[data-rask-root]") || root;
                 // Every full frame re-stamps data-rask-root, so this is where a rebuilt session's NEW
                 // id arrives — the server answered our hello by building a fresh session around the
@@ -1516,6 +1524,8 @@ import "../../Rask.Core/Resources/rask-events.js";
         if (suppressEvents) return;
         stampSeq(payload as Record<string, unknown>);
         const msg = JSON.stringify(payload);
+        const devtools = window.__raskDevtoolsHook;
+        if (devtools) devtools.send(payload, new TextEncoder().encode(msg).length);
         if (open && ws && ws.readyState === WebSocket.OPEN) ws.send(msg);
         else queue.push(msg);
     }

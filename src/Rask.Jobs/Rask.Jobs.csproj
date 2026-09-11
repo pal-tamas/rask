@@ -33,6 +33,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
+    <!-- The real-server suite races ClaimAsync from many "instances" against one database. -->
+    <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
   </ItemGroup>
 
   <ItemGroup>

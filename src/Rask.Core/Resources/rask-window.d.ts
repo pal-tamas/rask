@@ -32,6 +32,13 @@ interface Window {
     /** Incremented on every applied hot reload. The watch E2E waits on it rather than sleeping. */
     __raskHotReloadCount?: number;
 
+    /**
+     * Rask DevTools' hook into this runtime, installed only by a Debug build's devtools script. Every call
+     * site reads it once and does nothing when it is absent, so a page without the devtools pays one
+     * property read per frame and nothing else.
+     */
+    __raskDevtoolsHook?: RaskDevtoolsHook;
+
     /** Guards against the runtime IIFE executing twice in one document (see rask.ts). */
     __raskBooted?: boolean;
 
@@ -514,6 +521,20 @@ interface RaskFrameReply {
     };
     /** A navigation the render performed, so the client can update history and scroll. */
     history?: { url?: string; replace?: boolean; scroll?: string | null; action?: string };
+}
+
+/**
+ * What the Server and WASM runtimes call on Rask DevTools' page script. Each call is fire-and-forget: it must
+ * not throw, and it must not keep the frame it is handed beyond the call — on WASM that frame was read from a
+ * transient view over the .NET write buffer.
+ */
+interface RaskDevtoolsHook {
+    /** An outbound event, after it was stamped and serialised; `bytes` is its UTF-8 size on the wire. */
+    send(payload: unknown, bytes: number): void;
+    /** An inbound frame, after it parsed; `bytes` is its UTF-8 size on the wire. */
+    recv(frame: RaskFrameReply, bytes: number): void;
+    /** A frame finished patching the DOM; `startedAt` is the `performance.now()` taken before it started. */
+    commit(frame: RaskFrameReply, startedAt: number): void;
 }
 
 /** One entry of a frame's jsInvokes list, as both hosts read it. */
