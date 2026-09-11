@@ -144,8 +144,8 @@ public sealed class SiteExampleTests
             // touch, and these cards all carried target="_blank" — so every card on the front door
             // opened a SECOND TAB and cold-booted the whole WASM bundle, boot screen and all.
             //
-            // WITH `data-rask-nav`: that attribute IS the interception's selector, and only NavLink
-            // writes it. A bare <a href> to an in-app route is a full document navigation no matter
+            // WITH `data-rask-nav`: that attribute IS the interception's selector, and NavLink
+            // writes it (so does a kit button or link given a generated route). A bare <a href> to an in-app route is a full document navigation no matter
             // how internal the URL is, which is the other half of the same defect. (#1058)
             await Expect(guideLinks.First).Not.ToHaveAttributeAsync("target", "_blank");
             Assert.Equal(await guideLinks.CountAsync(), await page.Locator("a.guide-link[data-rask-nav]").CountAsync());

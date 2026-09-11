@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A kit button or link given a generated route navigates inside the app.** `UiButton.Href` and
+  `UiLink.Href` take a `RouteUrl`, so `UiButton.Href(Routes.CreateProduct())["New product"]` renders an
+  `<a>` carrying `data-rask-nav` and the deploy's path base, and the runtime routes the click without
+  reloading the page, as it does for a `NavLink`. A string still converts and still renders an ordinary
+  link, which is what a URL leaving the app wants, and `NewTab(true)` is never intercepted. Until now a
+  button-shaped link to one of the app's own pages reloaded the whole app to get there. The tutorial's
+  New, Edit, Cancel and Back links are kit buttons and links now, and rask.sh's `PageMeta.LinkTo` keeps
+  the route's page type through the trailing slash it adds.
+
 - **A shared rask.sh link unfurls as a card.** Every page names a 1200×630 social card — the site's bolt,
   its own type and palette, the one-line pitch and a real markup chain — as `og:image` with its size, type
   and alt text, and as a `summary_large_image` Twitter card; guides and the front door carry it as the

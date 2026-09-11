@@ -95,7 +95,7 @@ login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`)
 ```csharp
 UiHeader.Heading("Products").Actions(
     Authorize[                             // only rendered for signed-in users
-        NavLink.Href(Routes.CreateProduct())["New product"]
+        UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]
     ])
 ```
 

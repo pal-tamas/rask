@@ -133,7 +133,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
 
     protected override Component? Render() =>
     [
-        UiHeader.Heading("New product").Actions(NavLink.Href(Routes.ProductsPage())["Cancel"]),
+        UiHeader.Heading("New product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
         UiCard[
             _error is null ? null : UiAlert.Tone(UiTone.Error)[_error],
             Form.Model(_model).OnValidSubmit(SaveAsync)[
@@ -154,9 +154,9 @@ URL, so renaming a route breaks the build instead of the link. See [routing](../
 The page is built from the [Rask.Ui kit](../ui-kit.md), so there isn't a class string in it. `UiInput` is
 a whole field in one line: its label floats inside the box until you type (put guidance in `Hint`, under
 the field, rather than in a placeholder), and the field's own validation message appears under it.
-`UiButton.Type(UiButtonType.Submit)` is the form's submit button. The one plain tag is `NavLink`, for
-**Cancel**: a link inside your own app stays a `NavLink`, because that is what the runtime navigates without
-reloading the page.
+`UiButton.Type(UiButtonType.Submit)` is the form's submit button, and **Cancel** is a `UiButton` too. Given
+`Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
+the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
 
 Nothing in that form mentions validation, and the `[Required]` / `[MaxLength]` you put on `Product` are
 still enforced: they were copied onto `ProductModel`, and `Form<T>` validates its model on its own, with
@@ -227,13 +227,13 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
         if (!_found)
         {
             return UiAlert.Tone(UiTone.Warning)[
-                "Product not found. ", NavLink.Href(Routes.ProductsPage())["Back to the list"], "."
+                "Product not found. ", UiLink.Href(Routes.ProductsPage()).Text("Back to the list"), "."
             ];
         }
 
         return
         [
-            UiHeader.Heading("Edit product").Actions(NavLink.Href(Routes.ProductsPage())["Cancel"]),
+            UiHeader.Heading("Edit product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             UiCard[
                 _error is null ? null : UiAlert.Tone(UiTone.Error)[_error],
                 Form.Model(_model).OnValidSubmit(SaveAsync)[
@@ -329,13 +329,13 @@ public sealed partial class ProductsPage : Component
 
     protected override Component? Render() =>
     [
-        UiHeader.Heading("Products").Actions(NavLink.Href(Routes.CreateProduct())["New product"]),
+        UiHeader.Heading("Products").Actions(UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]),
         UiDataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(true),
             c.Field(p => p.Price).Title("Price").Sortable(true),
             c.Field(p => p.InStock).Title("In stock"),
             c.Column().Title("Actions").Cell(p => Div[
-                NavLink.Href(Routes.UpdateProduct(p.Id))["Edit"],
+                UiButton.Variant(UiVariant.Ghost).Size(UiSize.Sm).Href(Routes.UpdateProduct(p.Id))["Edit"],
                 // The grid re-runs its query on every render, so asking for one is the whole refresh.
                 DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
             ]),
