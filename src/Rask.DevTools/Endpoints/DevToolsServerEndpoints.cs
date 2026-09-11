@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Core.Diagnostics;
+using Rask.Core.Diagnostics.DevTools;
+using Rask.DevTools.Probe;
 using Rask.Server;
 using Rask.Server.Authentication;
 using Rask.Server.DevTools;
@@ -17,7 +19,7 @@ namespace Rask.DevTools.Endpoints;
 internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
 {
     /// <summary>Everything the devtools serve lives under this prefix, their own panel pages included.</summary>
-    internal const string Prefix = "/_rask-devtools";
+    internal const string Prefix = DevToolsProbe.PanelPrefix;
 
     /// <summary>Where the host script is served, under the app's path base.</summary>
     internal const string HostScriptPath = Prefix + "/host.js";
@@ -68,6 +70,19 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
                 + "have one.");
             return;
         }
+
+        // The probe the runtime reports to, now that the devtools are on. Installed here, where both conditions were just
+        // decided, and taken back out when this host stops — only if it is still this host's — so a process that builds
+        // another host afterwards (a test run, an in-process restart) never reports into a stopped host's feeds.
+        var probe = endpoints.ServiceProvider.GetRequiredService<DevToolsProbe>();
+        RaskDevToolsHook.Probe = probe;
+        endpoints.ServiceProvider.GetService<IHostApplicationLifetime>()?.ApplicationStopping.Register(() =>
+        {
+            if (ReferenceEquals(RaskDevToolsHook.Probe, probe))
+            {
+                RaskDevToolsHook.Probe = null;
+            }
+        });
 
         // A RequestDelegate, not a minimal-API Delegate, for the reason UseRask gives for its own endpoints:
         // RequestDelegateFactory is RequiresDynamicCode, and nothing generates this library's delegates.
@@ -126,9 +141,10 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
         // The token says the panel was opened from the page the server rendered for that session. A wrong or missing
         // one is answered like a session that does not exist, so neither can be probed for.
         var query = context.Request.Query;
-        var sessionId = query["inspect"].ToString();
-        if (!_tokens.Verify(sessionId, query["t"].ToString())
-            || context.RequestServices.GetRequiredService<LiveSessionStore>().Get(sessionId) is not { } inspected)
+        if (FindInspected(
+                context.RequestServices.GetRequiredService<LiveSessionStore>(),
+                query["inspect"].ToString(),
+                query["t"].ToString()) is not { } inspected)
         {
             return StatusCodes.Status404NotFound;
         }
@@ -146,6 +162,13 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
     }
 
     public bool CanResume(string path) => !Owns(path);
+
+    /// <summary>
+    ///     The session <paramref name="sessionId" /> names, when the devtools are on and <paramref name="token" /> is that
+    ///     session's token; null otherwise. Who is asking is the caller's check.
+    /// </summary>
+    internal LiveSession? FindInspected(LiveSessionStore store, string? sessionId, string? token) =>
+        _hostScriptUrl is not null && _tokens.Verify(sessionId, token) ? store.Get(sessionId!) : null;
 
     private static bool IsLoopback(IPAddress? address) => address is not null && IPAddress.IsLoopback(address);
 

@@ -25,6 +25,7 @@ namespace Rask.DevTools.Tests;
 ///         marks them as a LAN address instead.
 ///     </para>
 /// </remarks>
+[Collection(DevToolsHookCollection.Name)]
 public sealed partial class DevToolsPanelAdmissionTests
 {
     [Fact]
@@ -36,7 +37,8 @@ public sealed partial class DevToolsPanelAdmissionTests
         var response = await host.Http.GetAsync(panel);
 
         response.EnsureSuccessStatusCode();
-        Assert.Contains("Inspecting session", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        // The Wire tab's empty state: the page found the session it was opened for.
+        Assert.Contains("No traffic yet.", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }
 
     [Fact]

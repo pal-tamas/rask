@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **The devtools panel lists the inspected page's wire traffic.** Every frame the page and the app exchange is
+  listed newest first, under totals for each direction: events and navigations the page sent, and render frames and
+  acks it received. Each row shows the frame's size, how many edit ops a render diff carried, and the time since the
+  frame before it. The panel follows the page live and refreshes at most every 200 ms however busy the page is; it
+  keeps the last 1,000 frames per session, and lists the newest 200. It checks the session's token and owner again on
+  every render, so a panel that navigates itself to another session's id finds nothing.
+
 - **The Rask pill opens a live panel in Debug Development builds, and only the developer who owns the page can open it.** Each
   interactive page's devtools tag now names its panel, `/_rask-devtools/?inspect={session}&t={token}`. The panel is
   a Rask application mounted beside the app with its own document and route table, drawn with Rask.Ui and following

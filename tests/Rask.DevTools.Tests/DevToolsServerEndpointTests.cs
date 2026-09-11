@@ -16,6 +16,7 @@ namespace Rask.DevTools.Tests;
 ///     <see cref="RaskDevToolsLoader.Attach" />, because the unit gate builds Release, where the switch is off
 ///     and <c>AddRask</c>'s own attach does nothing.
 /// </summary>
+[Collection(DevToolsHookCollection.Name)]
 public sealed class DevToolsServerEndpointTests
 {
     [Fact]
