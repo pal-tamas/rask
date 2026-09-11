@@ -1,0 +1,6 @@
+{
+  "name": "fixture-lit",
+  "version": "1.4.0",
+  "types": "index.d.ts",
+  "customElements": "custom-elements.json"
+}

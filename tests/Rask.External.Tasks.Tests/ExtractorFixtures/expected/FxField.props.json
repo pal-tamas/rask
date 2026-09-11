@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "runtime": "angular",
+  "module": "fixture-angular",
+  "export": "FxField",
+  "package": {
+    "name": "fixture-angular",
+    "version": "3.0.0"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "onFocused",
+      "wire": "@focused",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": []
+      }
+    },
+    {
+      "name": "size",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "lg",
+          "sm"
+        ]
+      }
+    },
+    {
+      "name": "tone",
+      "required": false,
+      "doc": "The base's tone, published as `color`.",
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "value",
+      "required": true,
+      "type": {
+        "kind": "string"
+      }
+    }
+  ],
+  "skipped": []
+}
