@@ -4,37 +4,34 @@ public sealed partial class BindingNullableDemo : Component
 {
     public enum Color { Red, Green, Blue }
 
+    private static readonly (Color? Value, string Text)[] Colors =
+        [(null, "— none —"), (Color.Red, "Red"), (Color.Green, "Green"), (Color.Blue, "Blue")];
+
     private readonly Holder _model = new();
 
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Label.For("bind-null-age").Class($"{Tw.Label} text-sm")["Optional age (int?)"],
-            Input.Bind(() => _model.OptionalAge)
+            UiInput.Bind(() => _model.OptionalAge).Label("Optional age (int?)")
                 .Id("bind-null-age")
-                .Class(Tw.Input)
-                .Placeholder("leave empty for null")
+                .Hint("Leave it empty for null.")
         ],
         Div.Class("mb-3")[
-            Label.For("bind-null-start").Class($"{Tw.Label} text-sm")["Optional start date (DateOnly?)"],
-            Input.Bind(() => _model.StartDate)
+            UiInput.Bind(() => _model.StartDate).Label("Optional start date (DateOnly?)")
                 .Id("bind-null-start")
-                .Class(Tw.Input)
         ],
         Div.Class("mb-3")[
-            Label.For("bind-null-color").Class($"{Tw.Label} text-sm")["Optional colour (Color?)"],
-            Select.Bind(() => _model.Favorite)
+            // "— none —" is a real option rather than a Placeholder: choosing it clears the value back to null,
+            // which is the point of this demo. A placeholder cannot be chosen.
+            UiSelect.Bind(() => _model.Favorite)
+                .Options(Colors)
+                .Label("Optional colour (Color?)")
                 .Id("bind-null-color")
-                .Class(Tw.Select)[
-                Option.Value("")["— none —"], Option.Value("Red")["Red"], Option.Value("Green")["Green"], Option.Value("Blue")["Blue"]
-            ]
         ],
         Div.Class("mb-3")[
-            Label.For("bind-null-nick").Class($"{Tw.Label} text-sm")["Nickname (string?)"],
-            Input.Bind(() => _model.Nickname)
+            UiInput.Bind(() => _model.Nickname).Label("Nickname (string?)")
                 .Id("bind-null-nick")
-                .Class(Tw.Input)
-                .Placeholder("clear me for null")
+                .Hint("Clear it for null.")
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[

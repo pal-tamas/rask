@@ -74,12 +74,7 @@ public sealed partial class HomePage : Component
     // most likely to be shared: without og:title and og:description a link to rask.sh unfurls as a bare
     // URL. The canonical also settles "/" against "/index.html", which a static host serves as both.
     protected override Component? HeadAssets =>
-        PageMeta.For(
-            "Rask — the .NET One Person Framework",
-            "Rask is the .NET One Person Framework: one developer builds, runs and ships a whole product "
-            + "— UI, data, auth, background work and deploy — from one C# codebase on one SQLite-backed "
-            + "server. The same components run on Server and WebAssembly.",
-            "/");
+        PageMeta.For(SiteIdentity.Title, SiteIdentity.Description, "/");
 
     protected override Component? Render() =>
     [
@@ -141,7 +136,7 @@ public sealed partial class HomePage : Component
     /// </remarks>
     private static Component NavItem(string label, RouteUrl href, bool hideOnPhone) =>
         NavLink
-            .Href(href)
+            .Href(PageMeta.LinkTo(href))
             .ActiveClass("")
             .Class((hideOnPhone ? "hidden sm:inline-flex " : "inline-flex ") + NavItemClass)[label];
 
@@ -179,7 +174,7 @@ public sealed partial class HomePage : Component
                         P.Class(Sub)["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
                             NavLink
-                                .Href(Rask.Site.Features.Routes.GuidesIndexPage())
+                                .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage()))
                                 .Id("cta-docs")
                                 .ActiveClass("")
                                 .Class(BtnPrimary)["Docs"],
@@ -293,7 +288,7 @@ public sealed partial class HomePage : Component
     private static Component LaneCard(
         UiIconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
         NavLink
-            .Href(Rask.Site.Features.Routes.GuidePage(guide))
+            .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage(guide)))
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-6 no-underline transition-colors "
@@ -379,7 +374,7 @@ public sealed partial class HomePage : Component
     /// </remarks>
     private static Component Feature(UiIconName icon, string title, string guide, params Component?[] desc) =>
         NavLink
-            .Href(Rask.Site.Features.Routes.GuidePage(guide))
+            .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage(guide)))
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-5 no-underline transition-colors "
@@ -469,7 +464,7 @@ public sealed partial class HomePage : Component
                         // "Docs", not "Open the live demo". The hero's CTA was renamed when calling the
                         // docs "the live demo" left the docs themselves with no name; this one was
                         // missed, so the same page called the same destination two different things.
-                        NavLink.Href(Rask.Site.Features.Routes.GuidesIndexPage()).ActiveClass("").Class(BtnPrimary)["Docs"],
+                        NavLink.Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage())).ActiveClass("").Class(BtnPrimary)["Docs"],
                         A
                             .Class(BtnGhost)
                             .Href("https://github.com/pal-tamas/rask")
@@ -486,7 +481,7 @@ public sealed partial class HomePage : Component
                     Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-ui-muted "
                               + "[&>a]:no-underline [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center "
                               + "[&>a]:px-2 hover:[&>a]:text-ui-ink")[
-                        NavLink.Href(Rask.Site.Features.Routes.GuidesIndexPage()).ActiveClass("")["Docs"],
+                        NavLink.Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage())).ActiveClass("")["Docs"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],

@@ -113,6 +113,7 @@ modelBuilder.Entity<Booking>()
 Ranges are half-open (`[lo, hi)`), so `100-200` and `200-300` are neighbours rather than a conflict. With
 `Rask.SQLite.EntityFrameworkCore`'s `UseRaskSqlite(...)`, migrations emit the triggers that enforce it and a
 violating save throws `RangeOverlapException`. Enforcement lives in the database, so raw SQL is bound by it
-too.
+too. On a provider that emits no such DDL — a plain `UseSqlite`, or any other — the rule would be silently
+ignored, so `AddRaskData<TContext>()` refuses to boot instead, naming the entity and the call that enforces it.
 
 Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

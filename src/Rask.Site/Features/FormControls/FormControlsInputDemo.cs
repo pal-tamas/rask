@@ -1,6 +1,6 @@
 namespace Rask.Site.Features;
 
-// Input<T> in both shapes side by side.
+// UiInput<T> — Rask.Core's Input<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur/Enter) and
 //     re-renders this consumer so the "Echo:" readout updates (the controlled-OnChange fix).
 //   • Bound — Input.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.
@@ -12,24 +12,18 @@ public sealed partial class FormControlsInputDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
-                Label.Class($"{Tw.Label} font-semibold")["Controlled (Value + OnChange)"],
-                Input
-                    .Value(_controlled)
+                UiInput.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
-                    .Class($"{Tw.Input} mb-2")
-                    .Placeholder("Type, then blur…")
-                    .Id("fc-input-controlled"),
+                    .Hint("Type, then leave the field — OnChange fires on commit.")
+                    .Id("fc-input-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-input-controlled-out")[
                     "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]
                 ]
             ],
             Div.Class("col-span-12 md:col-span-6")[
-                Label.Class($"{Tw.Label} font-semibold")["Bound (two-way)"],
                 Form.Model(_model)[
-                    Input.Bind(() => _model.Text)
-                        .Class($"{Tw.Input} mb-2")
-                        .Placeholder("Type…")
-                        .Id("fc-input-bound")
+                    UiInput.Bind(() => _model.Text).Label("Bound (two-way)")
+                        .Id("fc-input-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-input-bound-out")[
                     "Echo: ", Strong[_model.Text.Length == 0 ? "(empty)" : _model.Text]

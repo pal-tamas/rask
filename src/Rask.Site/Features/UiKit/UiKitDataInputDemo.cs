@@ -44,16 +44,15 @@ public sealed partial class UiKitDataInputDemo : Component
                 // element: daisyUI reveals the hint with `.validator ~ .validator-hint`, so a field that
                 // grew a label and a wrapper stopped being its sibling and the message silently vanished.
                 UiInput.Value(_email).Key("email").Label("Email").Type(InputType.Email)
-                    .Placeholder("you@example.com")
+                    .Hint("For example, you@example.com.")
                     .Tone(_email.Length > 0 && !_email.Contains('@') ? UiTone.Error : (UiTone?)null)
                     .Error(_email.Length > 0 && !_email.Contains('@')
                         ? "That does not look like an email address."
                         : null)
                     .OnChange(v => { _email = v; }),
-                UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost)
-                    .Placeholder("Ghost"),
+                UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost),
                 UiTextarea.Value(_notes).Key("notes").Label("Notes").Rows(3)
-                    .Placeholder("Anything else?")
+                    .Hint("Anything else?")
                     .OnChange(v => { _notes = v; }),
                 UiSelect.Value(_country).Key("country")
                     .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
@@ -215,7 +214,7 @@ public sealed partial class UiKitDataInputDemo : Component
                 Form.Model(_signup)[
                     Div.Class("grid gap-3 sm:grid-cols-2")[
                         UiInput.Bind(() => _signup.Email).Label("Email").Type(InputType.Email)
-                            .Placeholder("you@example.com"),
+                            .Hint("For example, you@example.com."),
                         // T is the model's, so this is a number field with nothing said here.
                         UiInput.Bind(() => _signup.Seats).Label("Seats")
                     ],

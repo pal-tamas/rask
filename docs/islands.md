@@ -530,6 +530,20 @@ lowest version with nothing unsupported beneath it. A Node whose version is not 
 nightly, a release candidate — is allowed through rather than refused. Override the bar with
 `-p:RaskExternalMinimumNode=…` if you have a reason to.
 
+`rask new` does all of this. Naming a runtime scaffolds the pair, the dependencies, the tsconfig
+mapping that makes `@rask/<Name>.props` resolve, and the package reference:
+
+```bash
+rask new Shop --islands react                  # one
+rask new Shop --islands react angular blazor   # several, on a server, --wasm or wasm host
+```
+
+It refuses `--islands react preact` by name, because npm cannot install both plugins (below), and
+gives each runtime its own folder so two that share an extension never overlap. `blazor` needs no npm
+at all: the Razor SDK compiles the `.razor` and Rask renders it into the first response.
+
+By hand, if you are adding islands to a project you already have:
+
 ```bash
 npm init -y
 npm install -D vite @vitejs/plugin-react react react-dom          # React

@@ -262,7 +262,7 @@ public abstract partial class SharedSmokeTests
         // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
         // across the whole example→guide migration.
         var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Core\")").First;
-        var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing\"]");
+        var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing/\"]");
         await core.ClickAsync(); // collapse
         await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
         await core.ClickAsync(); // re-expand
@@ -339,7 +339,7 @@ public abstract partial class SharedSmokeTests
     {
         await SideAsync("All guides", "Guides");
         // A guide card links to /guides/{slug}; open the Routing guide.
-        await Page.Locator($"main a[href$='{Docs}/guides/routing']").First.ClickAsync();
+        await Page.Locator($"main a[href$='{Docs}/guides/routing/']").First.ClickAsync();
         await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("Routing",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         // The markdown's relative .md cross-links are rewritten to SPA-routed /guides/* anchors.
@@ -1109,15 +1109,15 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
             .ToContainTextAsync("required",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        // The kit field draws both states itself now, so they are asserted by the words a reader sees rather
+        // than by classes the demo used to pick.
         var asyncForm = Page.Locator("form:has(#v3-username)");
         await asyncForm.Locator("#v3-username").FillAsync("admin");
         await asyncForm.Locator("#v3-username").BlurAsync();
-        await Expect(asyncForm.Locator(".validating-indicator"))
-            .ToContainTextAsync("Checking",
-                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
-        await Expect(asyncForm.Locator(".text-danger"))
-            .ToContainTextAsync("taken",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        await Expect(asyncForm.GetByRole(AriaRole.Status).Filter(new LocatorFilterOptions { HasText = "Checking" }))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        await Expect(asyncForm.GetByText("is already taken"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
     protected async Task WalkStylingDataAndAppPagesAsync(ShowcaseJourneyOptions opts)

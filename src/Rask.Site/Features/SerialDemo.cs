@@ -21,13 +21,9 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Label.Class("text-sm text-ui-muted mb-0").For("serial-baud")["Baud"],
-                    Input
-                        .Value(_baudRate.ToString())
+                    UiInput.Value(_baudRate.ToString()).Label("Baud")
                         .Id("serial-baud")
                         .Type(InputType.Number)
-                        .Class(Tw.Input)
-                        .Style("width: 7rem")
                         .Disabled(_port is not null)
                         .OnInput(v => int.TryParse(v, out _baudRate)),
                     UiButton.Tone(UiTone.Primary)
@@ -39,11 +35,9 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .Disabled(_port is null)
                         .OnClick(Disconnect)["Disconnect"]
                 ],
-                Div.Class($"{Tw.InputGroup} mb-2")[
-                    Input
-                        .Value(_outgoing)
+                Div.Class("flex items-stretch gap-2 mb-2")[
+                    UiInput.Value(_outgoing).AccessibleLabel("Line to send")
                         .Id("serial-outgoing")
-                        .Class(Tw.Input)
                         .Placeholder("Line to send")
                         .Disabled(_port is null)
                         .OnInput(v => _outgoing = v),

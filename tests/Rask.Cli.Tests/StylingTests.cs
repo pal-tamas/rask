@@ -177,7 +177,7 @@ public sealed class StylingTests
     {
         var result = ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), "1.2.3");
 
-        Assert.Equal(["Rask.Server", "Rask.Ui"], result.Packages);
+        Assert.Equal(["Rask.Server", "Rask.Ui", "Rask.DevTools"], result.Packages);
         Assert.DoesNotContain("Rask.Tailwind", Generate()["App.csproj"], StringComparison.Ordinal);
     }
 

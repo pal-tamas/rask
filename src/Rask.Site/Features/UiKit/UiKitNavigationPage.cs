@@ -12,9 +12,9 @@ public sealed partial class UiKitNavigationPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "UI kit — Navigation — Rask",
-            "daisyUI's Navigation components as typed Rask components: megamenu, tabs, menu, steps, "
-            + "breadcrumbs, pagination, dock and link — built on native popovers and real URLs.",
+            "daisyUI tabs, menus and megamenu in C# — Rask",
+            "daisyUI navigation components in C#: a megamenu on native popovers, tabs that are real links, "
+            + "menu, steps and breadcrumbs, with no state held in C#.",
             Routes.UiKitNavigationPage());
 
     /// <inheritdoc />

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace Rask.Data;
 
@@ -101,6 +102,10 @@ public static class RaskDataServiceCollectionExtensions
         services.TryAddSingleton(sp => new AmbientContextBinding(
             typeof(TContext),
             () => sp.GetRequiredService<IDbContextFactory<TContext>>().CreateDbContext()));
+
+        // A HasNonOverlappingRange the provider would silently ignore fails the boot rather than the first
+        // double booking. TryAddEnumerable, so a second call for the same context checks once.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, RangeExclusionCheck<TContext>>());
 
         return services;
     }

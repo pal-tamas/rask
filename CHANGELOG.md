@@ -9,6 +9,128 @@ them until tagged releases begin.
 
 ### Added
 
+- **A shared rask.sh link unfurls as a card.** Every page names a 1200×630 social card — the site's bolt,
+  its own type and palette, the one-line pitch and a real markup chain — as `og:image` with its size, type
+  and alt text, and as a `summary_large_image` Twitter card; guides and the front door carry it as the
+  structured data's `image` too. Until now a link posted to Slack, X, LinkedIn or Discord unfurled as a
+  line of text. The card is a designed page (`assets/og-card.html`) rendered by a browser, not a generated
+  placeholder, and `PageMetaTests` reads the committed PNG's header so a re-render at the wrong size fails.
+
+- **PostgreSQL is back, as the opt-in `Rask.Postgres`.** SQLite stays the default and the recommendation;
+  this reverses only the part of the earlier removal that left a production app with no supported door out of
+  one box. `UseRaskPostgres(cs, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
+  `LockTimeout` (10s, validated below the statement timeout so lock contention is never reported as a slow
+  query) and `IdleInTransactionSessionTimeout` (1m) to every session, and turns on Npgsql's retrying
+  strategy through `o.Retry`. Compared with the package that shipped in v0.20.0, `RaskPostgresOptions` is now
+  `PostgresOptions` with the retry knobs nested under `Retry` (as `SqliteOptions` nests its own), and the
+  timeouts travel as connection-string startup parameters instead of a `SET` sent on every open. That is one
+  round trip less on every query EF runs; the values are the session's defaults, so the pool's reset restores
+  rather than removes them; and a connection opened without EF gets them too. Timeouts round up to whole
+  milliseconds, because PostgreSQL reads 0 as "no limit", and one beyond a 32-bit millisecond count is refused
+  at startup rather than on every connection open. A new `Rask.Providers.E2E.Tests` suite, run by
+  `scripts/run-providers-local.sh` against a real PostgreSQL 17 in Docker, proves the jobs claim never hands
+  a job to two of twenty racing instances, the settings survive the pool, bulk insert lands 10,000 rows in a
+  keyword-named table under the retrying strategy, and fifty concurrent writers on one cold cache key all
+  succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
+  (`docs/data.md#postgresql`).
+
+- **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
+  ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
+  `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network
+  and a Node install, produced a different tree every morning, and left every front-end dependency the
+  framework ships **invisible to this repository**: one committed `package.json` in the whole tree, no
+  npm entry in `dependabot.yml`, and nothing to review when a creator changed its output.
+
+  The fifteen templates now live under `src/Rask.Templates/`, embedded into `Rask.Cli`. Editing a file
+  there changes what the next scaffold writes, byte for byte — there is no second copy. `rask new Shop
+  --template react` takes **0.08s, offline, with no Node installed**. Each tree is also a real, runnable
+  app, which is what lets them stand in for the sample apps #1009 asked for.
+
+  Battery conditionals are subtractive: the tree IS the full default app, and regions are delimited by
+  comments in each file's own language, so every template file stays valid where it sits. A condition is
+  a conjunction — `Browser/BrowserStartup.cs` is absent without `--wasm` AND absent without `--cqrs`, and
+  both wasm-on/cqrs-off and wasm-off/cqrs-on are reachable, so no single flag describes it.
+
+  The cost is stated rather than hidden: a tree is a snapshot of what its creator wrote on the day it was
+  imported, and `scripts/refresh-templates.sh` re-runs the real creators and shows the diff. Upstream
+  drift arrives as a reviewed commit instead of changing silently under every user.
+
+- **`rask new --islands <runtime>…`** scaffolds a front-end component as an ordinary Rask component.
+  Islands were fully built — seven base classes, the client runtimes, the MSBuild layer — and the CLI
+  could not scaffold one; adding an island meant reading `docs/islands.md` and writing the npm side by
+  hand. Eight runtimes (react, preact, vue, svelte, solid, lit, angular, blazor), several at a time, on
+  the three C# host shapes. `rask new Shop --islands react angular blazor`.
+
+  It refuses what the build would refuse later, by name and with npm's actual reason: react + preact
+  cannot share a project (their Vite plugins pin incompatible Babel majors), and `--islands` on a SPA or
+  meta template, whose whole client already is a front end. Every runtime gets its own directory, because
+  two runtimes sharing an extension in overlapping trees is exactly what `ExternalBuildPlan` rejects.
+
+- **One answer to linting and formatting, in every template and every island project.** An ESLint flat
+  config, a `.prettierrc`, a `.prettierignore`, and `lint`/`format`/`format:check` scripts. It used to be
+  whatever each creator shipped that week: create-vite now writes an oxlint config, the Angular CLI
+  writes only a `.prettierrc`, and three of the meta creators write nothing at all. All thirteen
+  templates and six island combinations were installed for real and linted; all are clean.
+
+- **A gate that builds every template.** `scripts/run-template-e2e.sh` scaffolds each of the fifteen
+  through the same dispatch `rask new` uses and builds what it wrote with `-warnaserror`. Eleven of
+  them had nothing making that claim: only `server`, `wasm` and `react` were ever
+  scaffolded-and-built, plus `angular` for its Tailwind output, and **no meta template was built by
+  anything** — that lane's only gate publishes a hand-written stub csproj against stand-in files.
+
+  Two tiers, because the costs differ by two orders of magnitude: the default runs the C# half of all
+  fifteen and joins `run-all-gates.sh`; `--front-end` adds each client's real `npm ci`, lint,
+  format check and production build, which is four to six minutes per template. Opt-in via
+  `RASK_TEMPLATE_E2E=1`, and SKIPPED rather than silently passing without it.
+
+- **Dependabot can see the front end.** `.github/dependabot.yml` gains an npm ecosystem entry over the
+  thirteen template clients and `src/Rask.Site`, grouped into one PR per wave. Every client ships a
+  `package-lock.json`: with only a range declared, Dependabot acts solely when a release falls outside
+  it, so every minor and patch update would stay invisible.
+
+- **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
+  nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
+  the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`
+  meta-package.
+
+  Debug-only is enforced by the build, because a package's dependency list cannot depend on the
+  consumer's configuration. `Rask.DevTools.targets` (shipped in `build/` and `buildTransitive/`) defaults
+  `RaskDevTools` to Debug, carries it into the runtime as the trimmable `Rask.DevTools.IsEnabled` feature
+  switch — so a trimmed Release publish folds every framework branch behind it away — removes the package
+  from a publish that has it off, and then **fails that publish** if any `Rask.DevTools` file or
+  `deps.json` entry is still in the output. The hosts find the devtools by name, so an app without the
+  package, or a Release build, finds nothing and pays nothing.
+
+- **rask.sh is built to be found — by search engines and by AI assistants.** Every guide carries search
+  copy of its own (`GuideEntry.SearchTitle` and `Description`, both `required`, so a guide added without
+  them does not compile): "IBattery — Guides — Rask" became "Battery Status API in C# and .NET (IBattery)
+  — Rask", and fifty-two "Typed browser API: IX." descriptions became what each page teaches. Every page
+  carries one schema.org JSON-LD graph — the website, its author, a `TechArticle` or `WebPage`, a
+  `BreadcrumbList`, and on the front door a `SoftwareApplication` — and a guide is an Open Graph `article`
+  with its section, an `article:modified_time` taken from git, a visible "Updated" date and a
+  `rel="alternate" type="text/markdown"` link. The publish writes [`/llms.txt`](https://rask.sh/llms.txt),
+  [`/llms-full.txt`](https://rask.sh/llms-full.txt) and a Markdown twin beside every guide
+  (`/docs/guides/cqrs.md`), with the docs' relative links rewritten to resolve on the site. The front
+  door's description was 250 characters, so every result for it was cut mid-sentence; every indexable page
+  is now held to a 60-character title and a 110–160-character description by `PageMetaTests`. The NuGet
+  packages name rask.sh as their project website and carry searchable base tags, and the committed
+  `rask-seo` skill keeps all of it true as the site grows.
+
+- **A prerendered sitemap dates its pages.** The prerender pass writes each URL's `<lastmod>` from the
+  page's own `<meta property="article:modified_time">` — a W3C datetime (`2026-09-10`, or a timestamp),
+  parsed exactly — and nothing for a page that declares none or declares something that is not one.
+  Never the publish time: that marks every URL changed on every deploy, and a crawler that notices stops
+  trusting the field for the whole site. See `docs/prerendering.md`.
+
+- **A bound kit field shows that its async validator is still checking.** `UiInput`, `UiTextarea` and
+  `UiSelect` render a small spinner and "Checking…" under the control while a validation is in flight. It
+  uses Core's `ValidatingIndicator`, sticky tail included, so a quick check is still on screen long enough
+  to read. A field whose validator goes to the network used to be silent for the whole round trip, and a
+  reader who tabbed away took the silence for a pass. The words are announced (`role="status"`); the
+  spinner is `aria-hidden`. `ShowValidating(false)` opts out, mirroring `ShowValidation`. The site's async
+  demos drop their hand-placed indicator and message, and the forms journey asserts the checking state by
+  the words on screen.
+
 - **Bearer tokens, opt-in and cookie-first.** `AuthOptions.Bearer` adds a JWT scheme **beside** the
   cookie — never instead of it — for the callers a cookie cannot serve: a native client, a CLI, a
   service-to-service call. A caller asks with `X-Rask-Auth-Mode: bearer` on login and gets the token in
@@ -109,6 +231,49 @@ them until tagged releases begin.
   applies the global query filters, so a soft-deleted row is not found. Batch `ExecuteUpdateAsync` and
   `ExecuteDeleteAsync` are unchanged, and still bypass the interceptors.
 
+- **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
+  in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
+  They were bare, and GitHub Pages answers `/docs/guides/cqrs` with a 301 to `/docs/guides/cqrs/`, so every
+  internal link a crawler followed cost a redirect and pointed at the non-canonical URL (#1057). The active
+  sidebar link still lights up, since `NavLink` compares paths without the slash; the Todos add form now
+  recognises `/docs/todos/new/`, the path a reload always arrived with.
+
+- **`QuiescentRender.RunAsync` and `RaskPrerender.RenderDocumentAsync` take a `CancellationToken`.** It is
+  the last parameter and defaulted, as the API style guide asks of every awaitable, so existing calls
+  compile unchanged. Cancelling abandons the render: a wait in progress stops at once and
+  `OperationCanceledException` is thrown, rather than placeholder markup returned as though it were a
+  result. A render nobody is waiting for any more — a page re-rendered in the background when the host
+  stops — no longer holds shutdown for the rest of its budget.
+
+  Behind it, the Server GET's page render moved out of the request handler into one internal function
+  that returns every decision a response is built from: whether the page redirected, its status, whether
+  it needs a live session, and whether its markup read the signed-in user. Responses are unchanged — the
+  existing endpoint suites pass as they were — and the two copies of the live-document composition in the
+  handler are now one. This is groundwork for caching public pages on the Server.
+
+- **`Tw.cs` is gone: every control on rask.sh is a `Rask.Ui` component.** The site's class-string
+  vocabulary ends here. The last 180 uses of `Tw.Input`, `Tw.Label` and `Tw.Select` move onto kit
+  fields, along with the checkbox, spinner, input-group, blockquote and figure-caption constants, and the
+  file is deleted.
+
+  - **Fields.** A `Label[…]` beside its `Input`/`Textarea`/`Select` becomes one `UiInput`/`UiTextarea`/
+    `UiSelect` with `.Label(…)`, which floats by default. Every id a browser test selects on is kept. Where
+    a demo renders its own `ValidationMessage` or a `ValidationSummary` (the thing it is teaching), the
+    field gets `.ShowValidation(false)`, so an error is never said twice.
+  - **Unlabelled controls.** Table-row inputs, toolbar rows and search boxes are named with
+    `AccessibleLabel`. A standalone field gets a visible label instead of the bare placeholder it had.
+  - **Selects.** Selects take a typed `Options` list instead of `Option` children, the enum demos
+    included. `RegistrationModel.Plan` and the async-binding demo's model become nullable, so an unpicked
+    select shows its placeholder rather than the first option while the model holds nothing.
+    `BindingNullableDemo` keeps a real "— none —" option, because clearing to null is what it shows.
+  - **Elements pages.** These pages' subject is the raw tag, so their inputs, selects, textareas and
+    labels stay raw, styled with daisyUI's own `input`/`select`/`textarea`/`label` classes.
+
+  **Kit gaps the migration found, filled:** `UiInput.Name` and `UiTextarea.Name` (the post name, as
+  `UiSelect` already had); `UiTextarea.OnInput` (as `UiInput` already had); and `Id` on `UiCheckbox` and
+  `UiFileInput`, the two controls that draw their own markup and had none, which left a browser test
+  nothing to click.
+
 - **A labelled `UiInput`, `UiTextarea` or native `UiSelect` floats its label by default.** It uses
   daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
   way. It is still the field's real `<label>`, linked by `for`/`id` as well as by holding the control.
@@ -116,9 +281,11 @@ them until tagged releases begin.
   control with no text to float over keeps the legend, and so does a `UiSelect` that draws its own list.
   A field with no `Label` renders exactly as before.
 
-  When the label floats, the placeholder falls back to the label text. daisyUI raises the caption from a
-  *shown* placeholder, and an empty one never counts as shown, so the caption would sit risen over an
-  empty box.
+  While the label floats it is also the placeholder, and a `Placeholder` the call site set is ignored.
+  daisyUI raises the caption from a *shown* placeholder, and a different placeholder would sit in the box in
+  the label's place until someone focused the field. Guidance about the value goes in `Hint`, under the
+  field. `Placeholder` still applies to an unlabelled field and to `Floating(false)`. The site's floating
+  fields moved their placeholder guidance into `Hint`, and dropped bare prompts like "Type…".
 
   Holding the control inside the label takes it out of daisyUI's sibling selector for `.validator-hint`,
   the failure that once kept an `Error` message invisible behind a wrapping legend. A kit stylesheet rule
@@ -228,6 +395,109 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **The builder allocation pins no longer fail a busy machine's gate.** `BuilderEntryAllocationPinTests`
+  runs in a non-parallel collection. It reads the measuring thread's allocations, which looked immune to
+  other tests but is not: the render path borrows from one `StringBuilder` pool shared by every thread, and
+  while another class rendered in parallel the probe found it drained and allocated its own. Its head probe,
+  the heaviest pool user, failed four gates in three days at 1818–1904 B against its 1800 B pin — always
+  under load, always green alone and across its assembly (#1056). The ceiling is unchanged.
+
+- **Bulk insert's fast path runs the connection interceptors, and retries a failed batch.**
+  `BulkInsertAsync(o => o.SkipChangeTracking = true)` opened the `DbConnection` itself, and EF only runs its
+  connection interceptors on an open it performs — so every row it wrote ran with `UseRaskSqlite`'s pragmas
+  unapplied (`foreign_keys`, `busy_timeout` at SQLite's defaults), along with anything else an app registered on
+  connection open. It now opens through EF, which also counts opens and so still leaves a caller's open
+  connection open. Each batch that owns its transaction now runs inside the execution strategy, so a retrying
+  strategy replays the failed batch alone instead of surfacing the first transient error.
+
+- **Three templates installed an older Tailwind than the C# host downloads.** solidstart `^4.0.7`,
+  nextjs `^4` and tanstack-start `^4.1.18` against a pinned 4.3 — floors their own creators wrote, which
+  Rask's patch never touched, so two scaffolded apps compiled the same classes with different compilers.
+  Invisible until the manifests were committed; the pin test now reads all thirteen.
+
+- **A scaffolded Angular app built and served nothing.** `ng new` lower-cases the directory into its
+  project name, so the Angular tree names `company-raskserver-client` in four files. Substituting only
+  the exact name token left the host's `RaskSpaDistDir` pointing at a directory Angular never writes.
+  There is a slug token now.
+
+- **The Analog template advertised a Node its own build refuses.** `node >=20.19.1`, carried in verbatim
+  from create-analog, while Rask's build floor is 22.12 (RASKSPA005).
+
+- **Rask's own service worker had two lint errors**, shipped in seven templates: a `let data = {}`
+  immediately reassigned, and an unused catch binding.
+
+- **`rask new --help` advertised a command that fails.** The examples still showed `--auth --data`; both
+  were retired, so the documented example exited non-zero.
+
+- **A `HasNonOverlappingRange` rule the provider would ignore now fails the boot.** The rule is model
+  metadata that a provider has to turn into DDL, and only `UseRaskSqlite` did. On a plain `UseSqlite` — or
+  any other provider — an app built, migrated and passed every test that didn't collide two ranges on
+  purpose, then accepted the double booking the rule existed to stop. `AddRaskData<TContext>` now registers
+  a startup check that reads the model and the context's migrations generator, needs no connection, and
+  names the entity, the provider and the call that enforces it.
+
+- **`BulkInsertAsync(o => o.SkipChangeTracking = true)` spells SQL the provider's way.** The writer
+  hard-coded `"…"` identifiers and `@p0` parameters, which is right on SQLite, PostgreSQL and SQL Server and
+  a string literal to MySQL. Table, column and parameter names now come from EF Core's
+  `ISqlGenerationHelper`. Rows still execute synchronously on SQLite, where the async call does the same
+  work on the same thread; a client-server provider now awaits each round trip instead of blocking a thread
+  for it.
+
+- **A failed first-admin claim is no longer mistaken for losing the race.** The claim relies on a
+  constant primary key, so a `DbUpdateException` meant "somebody else claimed it" — but a dropped connection
+  or a deadlock victim raises the same exception, and on a client-server database those are routine. The
+  first registrant then became an ordinary user of an instance nobody administered. The store now reads the
+  claim back: another account's row means the race was lost; its own row means the write committed and only
+  the acknowledgement failed (a dropped connection, or a retrying strategy re-running the insert), so it won;
+  no row rethrows.
+
+- **Mounting a second application no longer takes the operator console off the host.**
+  `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
+  `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
+  reporting it. The guard now looks for the console's own mount.
+
+- **An island's callbacks no longer go dead when the page around it re-renders from cache.** An island
+  (`ReactComponent`, `VueComponent`, …) is serialized as an element, so it never told its enclosing
+  component that the subtree held a component, and a page of plain elements plus an island qualified for
+  the clean-subtree frame cache. A replay re-registers only the page's own handler slots, while an island's
+  callbacks sit on the island's, so the second render of a clean page still wrote `"$h":"h0"` into the
+  props while the handler map held nothing for it: the click reached the server and ran nothing, for the
+  rest of the session. The same replay also skipped the runtime `<script>` the island contributes to
+  `<head>`. A page holding an island now stays on the walk path, and `LiveRenderContext.RegisterHandlerFor`
+  keeps any subtree whose handler lands on another component's slots off the cache as well.
+  `HandlerIdentityTests` pins both, with a control proving the rig caches the same page without the island.
+
+- **Relative links in the guides no longer 404.** The guide renderer sent every `../x.md` link to
+  `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51
+  `../browser-capabilities.md` links on the browser-API pages and the tutorial's `../cli.md`, `../jobs.md`
+  and the rest. It kept only the file name, so `../tests/Rask.Benchmarks.Sqlite/Baselines/README.md` opened
+  the repository's README; and a link to anything that was not Markdown — `../tests/Rask.Cqrs.Tests`,
+  `../scripts/…` — stayed relative and 404ed on the site. Links now resolve against the folder of the doc
+  they are written in (`DocLinks`, shared by the pages and their Markdown twins): one that lands on a guide
+  routes to it, anything else opens that exact file on GitHub. `DocsLinkTests` had skipped every `../` link
+  on the renderer's own assumption, so it could not see this; it now checks every link that stays inside
+  `docs/`.
+
+- **`NoTwoPagesShareATitleOrADescription` checks the site rather than one page.** Its "claims to be this
+  page" filter compared the canonical, which always ends in a slash, with the bare route path, which never
+  does — so it skipped every page except `/` and asserted uniqueness over a set of one.
+
+- **`llms.txt` describes each package once, and describes it correctly.** Its index carried the dashboard,
+  UI kit, jobs, mail and cache entries two or three times each, and the copies disagreed (#1052). Two copies
+  of the jobs and mail entries still said "one processor per app", which the processor leases had made
+  false. The three UI kit versions each knew something the others did not: one listed `UiDataGrid`, one
+  described `UiMultiSelect`, and one covered the `rask new` wiring, the shipped daisyUI plugin bundle and
+  the `Rask.Auth` pages. The cache entry had its Redis paragraph glued in front of its own opening
+  sentence. An agent reading the index got contradictory accounts of one package and no way to tell which
+  was current. Each entry is now one line that keeps every fact still true.
+
+- **Three gate script tests no longer fail on a match.** `pre-push-ref-classes`, `e2e-await-slots` and
+  `front-doors` checked output with `printf … | grep -q …` under `set -o pipefail`. `grep -q` exits on the
+  first match; if `printf` was still writing it died of SIGPIPE, and `pipefail` reported the pipeline as
+  failed. A found match came back as a miss, and only under load, so a commit's gate could reject a change
+  that passed when rerun (#1053). They pass the text as a here-string now, which leaves no second process
+  to kill.
 
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
   right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,

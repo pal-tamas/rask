@@ -23,11 +23,11 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Input.Bind(() => captured.Sku).Class(Tw.Input),
+                    UiInput.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Sku)
                 ],
                 Td.Style("width: 6rem;")[
-                    Input.Bind(() => captured.Quantity).Class(Tw.Input),
+                    UiInput.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
@@ -45,19 +45,18 @@ public sealed partial class NestedFluentValidationDemo : Component
         [
             Form.Model(_model).OnValidSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
                 Div[
-                    Label.For("nf-fv-name").Class($"{Tw.Label} text-sm mb-1")["Customer"],
-                    Input.Bind(() => _model.CustomerName).Id("nf-fv-name").Class(Tw.Input),
+                    UiInput.Bind(() => _model.CustomerName).Label("Customer").Id("nf-fv-name").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Fieldset.Class("border rounded p-3")[
                     Legend.Class("text-base font-semibold")["Address"],
                     Div.Class("flex flex-col gap-2")[
                         Div[
-                            Input.Bind(() => _model.Address.Street).Class(Tw.Input),
+                            UiInput.Bind(() => _model.Address.Street).Label("Street").ShowValidation(false),
                             ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                         ],
                         Div[
-                            Input.Bind(() => _model.Address.City).Class(Tw.Input),
+                            UiInput.Bind(() => _model.Address.City).Label("City").ShowValidation(false),
                             ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                         ]
                     ]

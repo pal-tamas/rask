@@ -53,7 +53,7 @@ public sealed class ScaffoldContextShapeTests
 
     /// <summary>
     ///     The non-generic <c>AddRaskData()</c> registers the interceptors and nothing else, so it cannot
-    ///     bind the ambient database — <c>Db.Configure</c> has no context to point at.
+    ///     bind the model surface — <c>Db.Configure</c> has no context to point at.
     /// </summary>
     /// <remarks>
     ///     Mapping the models is only half of what a scaffolded app needs. Even with the context mapped,

@@ -159,13 +159,16 @@ public sealed class SiteExampleTests
             // The front door links to the showcase and names it for what it is — calling /docs "the
             // live demo" left the docs themselves unnamed. An in-app route now (one app, two areas),
             // where it used to be a relative link from one published app to another.
-            await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", SharedSmokeTests.Docs);
+            //
+            // With the trailing slash: that is the URL GitHub Pages serves /docs at, and a link to the bare
+            // form is a 301 for every crawler that follows it (#1057).
+            await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", SharedSmokeTests.Docs + "/");
             await Expect(page.Locator("#cta-docs")).ToHaveTextAsync("Docs");
 
             // The nav "Docs" entry points at the on-site showcase (/docs/), and the old external
             // GitHub-docs link is gone — no nav link targets the repo's markdown folder anymore.
             await Expect(page.Locator("nav a", new PageLocatorOptions { HasTextString = "Docs" }).First)
-                .ToHaveAttributeAsync("href", SharedSmokeTests.Docs);
+                .ToHaveAttributeAsync("href", SharedSmokeTests.Docs + "/");
             await Expect(page.Locator("a[href*='tree/main/docs']")).ToHaveCountAsync(0);
         }
         finally
@@ -372,7 +375,9 @@ public sealed class SiteExampleTests
                 .First.ClickAsync();
 
             await Expect(page.Locator("h1")).ToContainTextAsync("Guides");
-            Assert.EndsWith("/docs", page.Url, StringComparison.Ordinal);
+            // /docs/, the URL GitHub Pages serves the docs at: the link carries the trailing slash so a
+            // crawler following it is not redirected (#1057), and the in-place navigation keeps it.
+            Assert.EndsWith("/docs/", page.Url, StringComparison.Ordinal);
             Assert.Equal(tabsBefore, context.Pages.Count);
             Assert.Equal("alive", await page.EvaluateAsync<string?>("() => window.__spaWitness"));
         }
@@ -438,5 +443,46 @@ public sealed class SiteExampleTests
         {
             await context.CloseAsync();
         }
+    }
+
+    [Fact]
+    public async Task ThePublishHandsCrawlersAndAssistantsTheFilesTheWebIsToldAbout()
+    {
+        // All of this is written by the PUBLISH, which is the one thing no unit test runs: llms.txt and the
+        // Markdown twins by Program.cs during the prerender run, the head and sitemap.xml by the prerender
+        // pass. Unit tests generate the same text and render the same head; only the published bundle proves
+        // the files exist at the URLs the index, the <link rel="alternate"> and the sitemap point at.
+        using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
+
+        var index = await http.GetStringAsync("/llms.txt");
+        Assert.StartsWith("# Rask\n", index, StringComparison.Ordinal);
+        Assert.Contains("(https://rask.sh/docs/guides/cqrs.md): ", index, StringComparison.Ordinal);
+
+        // The twin the index names is the doc itself, with its demo markers gone.
+        var twin = await http.GetStringAsync("/docs/guides/cqrs.md");
+        Assert.StartsWith("# CQRS", twin, StringComparison.Ordinal);
+        Assert.DoesNotContain("<!-- demo:", twin, StringComparison.Ordinal);
+
+        var full = await http.GetStringAsync("/llms-full.txt");
+        Assert.Contains("\nSource: https://rask.sh/docs/guides/getting-started/\n", full, StringComparison.Ordinal);
+
+        // The prerendered guide carries its graph and advertises its twin.
+        var guide = await http.GetStringAsync("/docs/guides/cqrs/index.html");
+        // Written as ld&#x2B;json — the encoder escapes '+' in an attribute, and a parser decodes it.
+        Assert.Matches("type=\"application/ld(\\+|&#x2B;)json\"", guide);
+        Assert.Contains("\"@type\":\"TechArticle\"", guide, StringComparison.Ordinal);
+        Assert.Contains("\"@type\":\"BreadcrumbList\"", guide, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://rask.sh/docs/guides/cqrs.md\"", guide, StringComparison.Ordinal);
+
+        // And the sitemap dates it — read back off the page's article:modified_time, which the build took
+        // from git. No <lastmod> here would mean the history target, the page or the pass lost it.
+        var sitemap = await http.GetStringAsync("/sitemap.xml");
+        Assert.Contains("<loc>https://rask.sh/docs/guides/cqrs/</loc><lastmod>", sitemap, StringComparison.Ordinal);
+
+        // The social card every page's og:image names is actually in the bundle, as a PNG.
+        using var card = await http.GetAsync("/img/og-card.png");
+        Assert.True(card.IsSuccessStatusCode, $"/img/og-card.png answered {(int)card.StatusCode}");
+        Assert.Equal("image/png", card.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("property=\"og:image\" content=\"https://rask.sh/img/og-card.png\"", guide, StringComparison.Ordinal);
     }
 }

@@ -16,8 +16,9 @@ public sealed partial class GuidesIndexPage : Component
 {
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Guides — Rask",
-            "Every Rask guide in one place: components and the chain, routing, forms and validation, data, auth, background work, browser APIs, deployment — the whole framework, page by page.",
+            "Docs: guides for building .NET web apps in C# — Rask",
+            "Install the CLI and read every guide: components, routing, forms, auth, data, background jobs, "
+            + "browser APIs, WebAssembly and deployment in C# and .NET.",
             Routes.GuidesIndexPage());
 
     protected override Component? Render() =>

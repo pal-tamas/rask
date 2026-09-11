@@ -876,10 +876,46 @@ Three things worth knowing:
   drops the original — taking its triggers with it. Rask re-emits them at the end of every migration that
   touches the table, so the constraint cannot silently disappear.
 
-Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. Both are inert
+Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. On any other
+provider — including a plain `UseSqlite` — the rule would be silently ignored, so `AddRaskData<TContext>`
+**refuses to boot** instead, naming the entity and the call that enforces it. Both are inert
 until an entity declares a rule, and the rule composes with
 [`o => o.StrictTables = true`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
+
+## PostgreSQL
+
+SQLite is the default and, for most single-developer products, the right answer for a long time. When one box
+is no longer enough — a managed database, several app instances — `Rask.Postgres` is the provider package:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskPostgres(builder.Configuration.GetConnectionString("App")!)
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+`UseRaskPostgres` is a drop-in for `UseNpgsql` that gives every session production timeouts —
+`StatementTimeout` (30s), `LockTimeout` (10s, and it must stay below the statement timeout so lock contention
+is not reported as a slow query), `IdleInTransactionSessionTimeout` (1m) — and turns on Npgsql's
+transient-failure retrying (`o.Retry`). The timeouts travel as startup parameters in the connection string, so
+they are the session's defaults: they survive the pool resetting a returned connection, add no round trip per
+query, and reach code that opens the `DbConnection` itself. Behind PgBouncer in transaction mode, add `options`
+to its `ignore_startup_parameters`, or set the timeouts to `TimeSpan.Zero` and configure them on the role.
+
+Everything in this guide works unchanged: the interceptors, the ambient `Db`, bulk insert (which spells its
+SQL through the provider), and the jobs, mail, outbox and cache batteries, whose leased claim is proven
+against a real server. Three things change:
+
+- **The bulk-insert fast path pays one round trip per row.** `SkipChangeTracking` rebinds one prepared
+  single-row `INSERT` per row — the winning shape on a local file. Against a server each row is a network
+  round trip, so its cost grows with the latency to the database: 10,000 rows took about a second against a
+  PostgreSQL container on the same machine, and a remote server multiplies that by its round-trip time.
+  Measure it against the batched default before choosing it for a remote database.
+- **Retrying refuses a transaction you open yourself** outside the execution strategy. Wrap a hand-written
+  `BeginTransaction` in `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set
+  `o.Retry.Enabled = false`.
+- **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
+  there is no file — back up with your provider's snapshots or `pg_dump`.
 
 ## Notes
 

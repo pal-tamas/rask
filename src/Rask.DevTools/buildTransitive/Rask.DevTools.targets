@@ -1,0 +1,117 @@
+<Project>
+
+  <!--
+    Rask DevTools: present in a Debug build, absent from everything else.
+
+    A package's dependency list cannot depend on the consumer's configuration — restore is
+    configuration-agnostic, and an IDE restores once — so Rask.DevTools is referenced unconditionally
+    and THIS file is what makes it Debug-only:
+
+      1. RaskDevTools defaults to true in Debug and false otherwise. Set it in the csproj to override.
+      2. The Rask.DevTools.IsEnabled feature switch carries that value into the runtime, with Trim="true"
+         so a trimmed publish substitutes the literal and folds every framework branch behind it away.
+      3. A Debug trimmed publish roots the assembly, because nothing in the app references it by type.
+      4. A publish with the devtools off removes the package from the output, then CHECKS the output
+         directory and fails the build if any of it is still there. The check reads what was actually
+         published rather than the item lists that were supposed to produce it, because the lists are
+         exactly what a future SDK can reshuffle without telling anyone.
+
+    Imported from build/ (a direct reference), buildTransitive/ (through the `Rask` meta-package), and
+    in-repo from Directory.Build.targets. Everything below either costs one property check or names a
+    package the project may not have, so a project without the devtools is unaffected.
+  -->
+
+  <PropertyGroup>
+    <RaskDevTools Condition=" '$(RaskDevTools)' == '' AND '$(Configuration)' == 'Debug' ">true</RaskDevTools>
+    <RaskDevTools Condition=" '$(RaskDevTools)' != 'true' ">false</RaskDevTools>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Rask.DevTools.IsEnabled" Value="$(RaskDevTools)" Trim="true"/>
+  </ItemGroup>
+
+  <!--
+    Rooted only when the assembly is actually among those being linked. An unconditional
+    TrimmerRootAssembly fails ILLink in any project that does not reference the package — which, through
+    Directory.Build.targets, is nearly every project in this repository.
+  -->
+  <Target Name="_RaskDevToolsRootForTrimmer"
+          AfterTargets="PrepareForILLink"
+          Condition=" '$(RaskDevTools)' == 'true' ">
+    <ItemGroup>
+      <_RaskDevToolsToLink Include="@(ManagedAssemblyToLink)"
+                           Condition=" '%(ManagedAssemblyToLink.Filename)' == 'Rask.DevTools' "/>
+      <TrimmerRootAssembly Include="Rask.DevTools" Condition=" '@(_RaskDevToolsToLink)' != '' "/>
+    </ItemGroup>
+  </Target>
+
+  <!-- The package is excluded from publish, so the publish deps.json is generated without it. -->
+  <Target Name="_RaskDevToolsExcludePackageFromPublish"
+          AfterTargets="_ComputePackageReferencePublish"
+          Condition=" '$(RaskDevTools)' != 'true' ">
+    <ItemGroup>
+      <_ExcludeFromPublishPackageReference Include="Rask.DevTools"/>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    And kept out of the publish deps.json. Excluding the PACKAGE is not enough on its own: the publish
+    manifest is built from the reference and copy-local items as well as the assets file, so a
+    ProjectReference — and a package whose runtime asset is still in those items — is written into it
+    anyway, naming an assembly the publish no longer contains. With the items gone the library has no
+    assets left, and TrimDepsJsonLibrariesWithoutAssets drops the entry.
+  -->
+  <Target Name="_RaskDevToolsStripPublishDependencyFile"
+          BeforeTargets="GeneratePublishDependencyFile"
+          Condition=" '$(RaskDevTools)' != 'true' ">
+    <PropertyGroup>
+      <TrimDepsJsonLibrariesWithoutAssets>true</TrimDepsJsonLibrariesWithoutAssets>
+    </PropertyGroup>
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)" Condition=" '%(ReferencePath.Filename)' == 'Rask.DevTools' "/>
+      <ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition=" '%(ReferenceDependencyPaths.Filename)' == 'Rask.DevTools' "/>
+      <UserRuntimeAssembly Remove="@(UserRuntimeAssembly)" Condition=" '%(UserRuntimeAssembly.Filename)' == 'Rask.DevTools' "/>
+      <RuntimeCopyLocalItems Remove="@(RuntimeCopyLocalItems)" Condition=" '%(RuntimeCopyLocalItems.Filename)' == 'Rask.DevTools' "/>
+      <ResolvedCompileFileDefinitions Remove="@(ResolvedCompileFileDefinitions)" Condition=" '%(ResolvedCompileFileDefinitions.Filename)' == 'Rask.DevTools' "/>
+    </ItemGroup>
+  </Target>
+
+  <!-- And its files are removed, which also covers a ProjectReference, where no package is involved. -->
+  <Target Name="_RaskDevToolsStripPublish"
+          AfterTargets="ComputeResolvedFilesToPublishList"
+          Condition=" '$(RaskDevTools)' != 'true' ">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition=" '%(ResolvedFileToPublish.Filename)' == 'Rask.DevTools' "/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_RaskDevToolsAssertAbsentFromPublish"
+          AfterTargets="Publish"
+          Condition=" '$(RaskDevTools)' != 'true' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)') ">
+    <!--
+      Matched EXACTLY, never by prefix. `Rask.DevTools.*` also matches an app that happens to be called
+      Rask.DevTools.Something — its own dll, pdb and deps.json — and the first cut of this check failed
+      its own fixture exactly that way. The optional segment is the browser bundle's fingerprint
+      (Rask.DevTools.<hash>.wasm), and the compressed siblings a static-web-asset publish writes beside it.
+    -->
+    <ItemGroup>
+      <_RaskDevToolsPublishedFile Include="$(PublishDir)**\*"/>
+      <_RaskDevToolsPublishedLeak Include="@(_RaskDevToolsPublishedFile)"
+                                  Condition=" $([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)%(Extension)', '^Rask\.DevTools(\.[a-z0-9]{8,})?\.(dll|pdb|xml|wasm)(\.br|\.gz)?$')) "/>
+    </ItemGroup>
+
+    <!-- A library key ("Rask.DevTools/1.2.3") or its runtime asset ("Rask.DevTools.dll"). -->
+    <PropertyGroup>
+      <_RaskDevToolsDepsFile>$(PublishDir)$(AssemblyName).deps.json</_RaskDevToolsDepsFile>
+      <_RaskDevToolsDepsText Condition=" Exists('$(_RaskDevToolsDepsFile)') ">$([System.IO.File]::ReadAllText('$(_RaskDevToolsDepsFile)'))</_RaskDevToolsDepsText>
+      <_RaskDevToolsDepsLeak Condition=" $(_RaskDevToolsDepsText.Contains('&quot;Rask.DevTools/')) OR $(_RaskDevToolsDepsText.Contains('&quot;Rask.DevTools.dll&quot;')) ">true</_RaskDevToolsDepsLeak>
+    </PropertyGroup>
+
+    <Error Condition=" '@(_RaskDevToolsPublishedLeak)' != '' "
+           Text="Rask.DevTools: this publish has RaskDevTools=false but its output folder still contains @(_RaskDevToolsPublishedLeak). A publish without the devtools must carry none of them. The usual cause is an EARLIER publish into the same folder — a Debug publish, or one with RaskDevTools=true — because publish never empties $(PublishDir): delete that folder and publish again. If the folder was empty, the SDK changed how publish items are resolved and _RaskDevToolsStripPublish in Rask.DevTools.targets no longer matches them."/>
+    <Error Condition=" '$(_RaskDevToolsDepsLeak)' == 'true' "
+           Text="Rask.DevTools: this publish has RaskDevTools=false but $(_RaskDevToolsDepsFile) still lists Rask.DevTools. A framework-dependent app refuses to start when its deps.json names an assembly that is not on disk."/>
+  </Target>
+
+</Project>

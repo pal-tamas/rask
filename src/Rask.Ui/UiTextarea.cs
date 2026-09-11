@@ -13,9 +13,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiTextarea<T> : UiFormField<T>
 {
-    /// <summary>
-    ///     Shown in the empty field. Defaults to the label when the label floats — see <see cref="Floating" />.
-    /// </summary>
+    /// <inheritdoc cref="UiInput{T}.Placeholder" />
     public string? Placeholder { get; set; }
 
     /// <inheritdoc cref="UiInput{T}.Floating" />
@@ -24,9 +22,15 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
     /// <inheritdoc />
     private protected override bool FloatsLabel => Floating != false;
 
-    private string PlaceholderText => Placeholder ?? (Label is not null && FloatsLabel ? Label : string.Empty);
+    private string PlaceholderText => Label is not null && FloatsLabel ? Label : Placeholder ?? string.Empty;
 
     public int? Rows { get; set; }
+
+    /// <inheritdoc cref="UiInput{T}.OnInput" />
+    public Callback<string>? OnInput { get; set; }
+
+    /// <inheritdoc cref="UiInput{T}.Name" />
+    public string? Name { get; set; }
 
     /// <summary>
     ///     daisyUI defines only <see cref="UiVariant.Ghost" /> for a text control — the borderless form
@@ -42,6 +46,8 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
             return Textarea
                 .Bind(bind)
                 .Id(FieldId)
+                .Name(Name)
+                .OnInput(OnInput)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
                 .Placeholder(PlaceholderText)
@@ -54,6 +60,8 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
         return Textarea
             .Value(Value)
             .Id(FieldId)
+            .Name(Name)
+            .OnInput(OnInput)
             .OnChange(OnChange)
             .Placeholder(PlaceholderText)
             .Rows(Rows ?? 3)

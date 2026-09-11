@@ -59,14 +59,24 @@ public static class QuiescentRender
     ///     nothing is ever considered blocked.
     /// </param>
     /// <param name="maxWaves">Wave cap. Defaults to <see cref="DefaultMaxWaves" />.</param>
+    /// <param name="cancellationToken">
+    ///     Abandons the render. A wait in progress stops at once and <see cref="OperationCanceledException" />
+    ///     is thrown rather than a result returned: markup that stopped because its caller went away is
+    ///     neither settled nor timed out, and reporting it as either would invite someone to serve it.
+    ///     A render running in the background — a page re-rendered to refresh a stored copy — passes the
+    ///     host's shutdown token here, so stopping the host does not wait out the rest of the budget.
+    /// </param>
     /// <returns>The final markup, whether it settled, and how many extra waves it took.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken" /> was cancelled.</exception>
     public static async Task<QuiescentRenderResult> RunAsync(
         Func<bool, string> renderWave,
         TimeSpan budget,
         Func<bool>? isBlocked = null,
-        int maxWaves = DefaultMaxWaves)
+        int maxWaves = DefaultMaxWaves,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(renderWave);
+        cancellationToken.ThrowIfCancellationRequested();
 
         using var quiescence = QuiescenceScope.Begin();
         var html = renderWave(false);
@@ -90,7 +100,7 @@ public static class QuiescentRender
 
             try
             {
-                await Task.WhenAll(batch).WaitAsync(remaining).ConfigureAwait(false);
+                await Task.WhenAll(batch).WaitAsync(remaining, cancellationToken).ConfigureAwait(false);
             }
             catch (TimeoutException)
             {

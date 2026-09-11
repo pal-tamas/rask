@@ -23,18 +23,15 @@ public sealed partial class CustomAttributeDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("flex flex-col gap-3")[
             Div[
-                Label.For("v12-username").Class($"{Tw.Label} text-sm mb-1")["Username"],
-                Input.Bind(() => _model.Username).Id("v12-username").Class(Tw.Input),
+                UiInput.Bind(() => _model.Username).Label("Username").Id("v12-username").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Username)
             ],
             Div[
-                Label.For("v12-password").Class($"{Tw.Label} text-sm mb-1")["Password"],
-                Input.Bind(() => _model.Password).Id("v12-password").Type(InputType.Password).Class(Tw.Input),
+                UiInput.Bind(() => _model.Password).Label("Password").Id("v12-password").Type(InputType.Password).ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Password)
             ],
             Div[
-                Label.For("v12-confirm").Class($"{Tw.Label} text-sm mb-1")["Confirm password"],
-                Input.Bind(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class(Tw.Input),
+                UiInput.Bind(() => _model.ConfirmPassword).Label("Confirm password").Id("v12-confirm").Type(InputType.Password).ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[

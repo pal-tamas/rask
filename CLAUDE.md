@@ -12,6 +12,7 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 - **add-html-tag** · **add-diagnostic** · **add-codefix** — scaffolding (component+test / RASK0xx+docs+test / IDE quick-fix+test).
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
+- **rask-seo** — search + AI-assistant discoverability of rask.sh and the packages (page/guide copy, JSON-LD, sitemap, llms.txt); on EVERY site/docs/package-metadata change.
 - **land-on-main** — Conventional-Commit, gated merge of `origin/main`, `git push origin HEAD:main`. **Never open a PR** for own work.
 - **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 

@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The TEMPLATE gate: every template `rask new` offers is scaffolded for real and built for real.
+
+    It exists because that was not true of eleven of the fifteen. Only server, wasm and react were ever
+    scaffolded-and-built (ProjectGeneratorBuildE2ETests), plus angular for its Tailwind output — and no
+    meta template was built by anything at all: the meta lane's only gate publishes a hand-written stub
+    csproj against stand-in files, so nothing proved a real Nuxt or SvelteKit app compiles.
+
+    Separate from Rask.Cli.E2E.Tests, which keeps the CLI-BEHAVIOUR gates (watch, deploy, devhost, the
+    tutorial chapters) and the finer-grained artifact assertions. The split is by subject: that project
+    asks "does the CLI do the right thing", this one asks "does what it wrote compile and run".
+
+    ENV-GUARDED in two tiers, because the costs differ by two orders of magnitude:
+      RASK_TEMPLATE_E2E=1           the C# half of every template — minutes
+      RASK_TEMPLATE_FRONTEND_E2E=1  plus each client's real npm install and production build, which is
+                                    4.5-6 minutes PER template on a cold cache
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Spectre.Console.Testing"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="Xunit.SkippableFact"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Cli"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Cli\Rask.Cli.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Source-linked for the same reason Rask.Cli.E2E.Tests links them: the pack-to-a-local-feed
+         plumbing is shared infrastructure owned by Rask.Cli.Tests, not tests of its own. -->
+    <Compile Include="..\Rask.Cli.Tests\CliBuildE2E.cs" Link="CliBuildE2E.cs"/>
+    <Compile Include="..\Rask.Cli.Tests\RepoPins.cs" Link="RepoPins.cs"/>
+    <Compile Include="..\Rask.Cli.Tests\TestDoubles.cs" Link="TestDoubles.cs"/>
+    <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <Using Include="Rask.TestFiles"/>
+    <!-- The linked files declare namespace Rask.Cli.Tests; the tests here are Rask.Templates.E2E.Tests. -->
+    <Using Include="Rask.Cli.Tests"/>
+  </ItemGroup>
+
+</Project>

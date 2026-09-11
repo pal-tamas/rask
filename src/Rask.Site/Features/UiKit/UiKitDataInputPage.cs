@@ -12,10 +12,9 @@ public sealed partial class UiKitDataInputPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "UI kit — Data input — Rask",
-            "daisyUI's Data input components as typed Rask components: input, textarea, select, file "
-            + "input, checkbox, toggle, radio, range, rating, fieldset, validator, label, floating "
-            + "label, one-time code, filter, calendar and mask.",
+            "daisyUI form inputs as typed C# components — Rask",
+            "daisyUI data input components in C#, each with a required label: input, textarea, select, "
+            + "checkbox, toggle, radio, range, rating, one-time code and calendar.",
             Routes.UiKitDataInputPage());
 
     /// <inheritdoc />

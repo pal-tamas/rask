@@ -71,4 +71,22 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitFeedbackPage(), "Feedback", UiIconName.Warning, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataInputPage(), "Data input", UiIconName.Pencil, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitLayoutPage(), "Layout & mockups", UiIconName.Desktop, "UI kit"));
+// The docs' plain-text face for AI assistants: /llms.txt, /llms-full.txt and a .md twin beside every guide.
+// Only the prerender publish sets this variable, and it is the one run with a publish directory to write
+// into — a browser boot never takes this branch.
+if (Environment.GetEnvironmentVariable(WasmPrerender.OutputVariable) is { Length: > 0 } publishRoot)
+{
+    // The publish's path base first, seeded the way the prerender pass seeds it — and only when nothing set
+    // one explicitly, which is the pass's rule too. The pass applies it inside RunAsync, AFTER this line, so
+    // without this a /p:RaskPathBase=/x publish wrote llms.txt against the origin root while the pages it
+    // prerendered moments later advertised their Markdown twins under /x.
+    if (Rask.Core.Live.LiveOptions.PathBase.Length == 0
+        && Environment.GetEnvironmentVariable(WasmPrerender.PathBaseVariable) is { Length: > 0 } pathBase)
+    {
+        Rask.Core.Live.LiveOptions.PathBase = Rask.Core.Live.RaskPath.Normalize(pathBase);
+    }
+
+    Rask.Site.Features.LlmsText.WriteAll(publishRoot);
+}
+
 await host.RunAsync<App>();

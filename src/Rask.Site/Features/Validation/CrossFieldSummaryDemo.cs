@@ -29,12 +29,10 @@ public sealed partial class CrossFieldSummaryDemo : Component
                     : new[] { "Return date must be after departure." })[
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Label.For("v5-depart").Class($"{Tw.Label} text-sm mb-1")["Departure"],
-                Input.Bind(() => _model.Depart).Id("v5-depart").Class(Tw.Input)
+                UiInput.Bind(() => _model.Depart).Label("Departure").Id("v5-depart")
             ],
             Div[
-                Label.For("v5-return").Class($"{Tw.Label} text-sm mb-1")["Return"],
-                Input.Bind(() => _model.Return).Id("v5-return").Class(Tw.Input)
+                UiInput.Bind(() => _model.Return).Label("Return").Id("v5-return")
             ],
             Div[
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.PaperAirplane), "Book"]

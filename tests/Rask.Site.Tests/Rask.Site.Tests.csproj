@@ -98,6 +98,10 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!-- The guides' git dates, embedded exactly as the site embeds them: GuideHistory is one of the linked
+       sources, and without this every guide is undated in the one assembly that asserts they are not. -->
+  <Import Project="..\..\src\Rask.Site\GuideHistory.targets"/>
+
   <Target Name="RequireEmbeddedGuides" BeforeTargets="CoreCompile">
     <ItemGroup>
       <_RaskGuideDoc Include="@(EmbeddedResource)" Condition="$([System.String]::new('%(LogicalName)').StartsWith('raskdoc/'))"/>

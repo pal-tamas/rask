@@ -108,7 +108,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     UiIcon.Name(_drawerOpen ? UiIconName.Close : UiIconName.Menu).Class("size-5 shrink-0")
                 ],
                 NavLink
-                    .Href(Features.Routes.GuidesIndexPage())
+                    .Href(PageMeta.LinkTo(Features.Routes.GuidesIndexPage()))
                     .ActiveClass("")
                     .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
                     RaskLogo.Size(24).GradientId("brandBolt"),
@@ -176,11 +176,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
         Div.Class("side-nav-search")[
-            Input
-                .Value(_filter)
+            UiInput.Value(_filter).AccessibleLabel("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
-                .Placeholder("Filter guides & examples…")
-                .Class($"side-nav-filter {Tw.Input}")
+                .Placeholder("Filter guides & examples…").Class("side-nav-filter")
         ],
         Div.Class("side-nav-scroll")[
             Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]
@@ -291,7 +289,8 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
                         return Li.Key(i.Path)[
                             NavLink
-                                .Href(i.Path)
+                                // The slashed URL the host serves: a bare href is a 301 for every crawler (#1057).
+                                .Href(PageMeta.LinkTo(i.Path))
                                 .Match(match)
                                 .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
                                 // Both names, on purpose. menu-active is what daisyUI styles; active is

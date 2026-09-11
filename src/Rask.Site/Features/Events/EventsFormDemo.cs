@@ -12,11 +12,11 @@ public sealed partial class EventsFormDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_fields).OnSubmit(OnSubmit).Class("mb-2")[
-            Div.Class(Tw.InputGroup)[
-                Input.Value<string>(null)
+            Div.Class("flex items-stretch gap-2")[
+                UiInput.Value<string>(null)
+                    .AccessibleLabel("Your name")
                     .Type(InputType.Text)
                     .Name("name")
-                    .Class(Tw.Input)
                     .Placeholder("Your name"),
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.PaperAirplane), "Send"]
             ]

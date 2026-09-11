@@ -48,7 +48,7 @@ public sealed class ProjectGeneratorTests
         // Just the framework -- and the framework is all a styled app needs. Tailwind is built INTO
         // Rask.Server (RaskTailwindBuildPack), so a scaffolded csproj names no styling package at all:
         // naming one would import the same targets a second time and run the compiler twice.
-        Assert.Equal(["Rask.Server", "Rask.Ui"], result.Packages);
+        Assert.Equal(["Rask.Server", "Rask.Ui", "Rask.DevTools"], result.Packages);
         // No opt-in artifacts leak in.
         Assert.DoesNotContain("Features/Auth/CredentialStore.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
@@ -306,7 +306,7 @@ public sealed class ProjectGeneratorTests
         // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that honours a ConnectionStrings:App
         // override so `rask deploy` can redirect it to a mounted volume.
         var program = on["Program.cs"];
-        // The GENERIC overload: it is what names the context to the ambient database. The non-generic one
+        // The GENERIC overload: it is what names the context to the model surface. The non-generic one
         // registers only the interceptors, and Db.Configure then has nothing to bind.
         Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
 
@@ -487,7 +487,7 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(WithHygiene(WasmAlwaysPresent).Order(), files.Keys.Order());
 
-        Assert.Equal(["Rask.Wasm", "Rask.Ui"], result.Packages);
+        Assert.Equal(["Rask.Wasm", "Rask.Ui", "Rask.DevTools"], result.Packages);
         Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
         // A standalone SPA never carries the auth/pwa/docker opt-ins by default.
         Assert.DoesNotContain("Features/Auth/Auth.cs", files.Keys);
@@ -546,7 +546,7 @@ public sealed class ProjectGeneratorTests
             Root, "App", pwa: false, docker: false, Version, new ServerBatteries());
         var files = Index(result);
 
-        Assert.Equal(["Rask.Wasm", "Rask.Ui"], result.Packages);
+        Assert.Equal(["Rask.Wasm", "Rask.Ui", "Rask.DevTools"], result.Packages);
         Assert.Contains("@import \"tailwindcss\";", files["Styles/app.css"], StringComparison.Ordinal);
 
         // The csproj names Rask.Wasm and nothing else for styling: the Tailwind build ships inside it.
@@ -588,7 +588,7 @@ public sealed class ProjectGeneratorTests
 
         // Plain is what you get by not choosing, here as everywhere else — so the base package set is
         // Rask.Wasm alone. Bootstrap and Tailwind are covered by their own case below.
-        Assert.Equal(["Rask.Wasm", "Rask.Ui"], result.Packages);
+        Assert.Equal(["Rask.Wasm", "Rask.Ui", "Rask.DevTools"], result.Packages);
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
 

@@ -312,6 +312,20 @@ internal sealed class FakeFileSystem : IFileSystem
         _directories.Add(Normalize(Path.GetDirectoryName(path)!));
     }
 
+    /// <summary>
+    /// Binary writes are recorded separately and kept out of <see cref="Files"/>' text view, so a test
+    /// that compares scaffolded text never has to decode a PNG to find that out.
+    /// </summary>
+    public IReadOnlyDictionary<string, byte[]> BinaryFiles => _binary;
+
+    private readonly Dictionary<string, byte[]> _binary = new(StringComparer.Ordinal);
+
+    public void WriteAllBytes(string path, byte[] bytes)
+    {
+        _binary[Normalize(path)] = bytes;
+        _directories.Add(Normalize(Path.GetDirectoryName(path)!));
+    }
+
     public bool DirectoryExists(string path)
     {
         var dir = Normalize(path);

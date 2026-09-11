@@ -197,7 +197,9 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_field_with_no_value_yet_opens_on_its_type_alone()
     {
-        var html = UiInput.Of<string>().Label("Search").Placeholder("Ghost").ToHtml();
+        // Named with AccessibleLabel, not Label: a floating label would BE the placeholder, and this asserts the
+        // call site's placeholder reaches a field with no value yet.
+        var html = UiInput.Of<string>().AccessibleLabel("Search").Placeholder("Ghost").ToHtml();
 
         Assert.Contains("placeholder=\"Ghost\"", html);
         Assert.DoesNotContain("value=", html);

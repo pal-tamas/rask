@@ -62,6 +62,9 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
 
     public string? Class { get; set; }
 
+    /// <inheritdoc cref="Element.Id" />
+    public string? Id { get; set; }
+
     /// <inheritdoc />
     /// <remarks>The name of the chosen file. Reported, never drawn — see the type's own remarks.</remarks>
     public string? Value { get; set; }
@@ -91,6 +94,7 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
         // instead of by Input<T>, and the box is left for the platform to fill.
         return Input
             .Of<string>()
+            .Id(Id)
             .OnFiles(async files =>
             {
                 if (OnFiles?.Invoke(files) is { } handler)

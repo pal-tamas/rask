@@ -6,9 +6,8 @@ public sealed partial class BindingTypedDemo : Component
 
     protected override Component? Render() =>
     [
-        Input.Bind(() => _model.Name)
-            .Class($"{Tw.Input} mb-2")
-            .Placeholder("Your name"),
+        UiInput.Bind(() => _model.Name).AccessibleLabel("Your name")
+            .Placeholder("Your name").Class("mb-2"),
         P.Class("text-sm mb-0")[
             "Hello, ",
             Strong[string.IsNullOrEmpty(_model.Name) ? "stranger" : _model.Name],

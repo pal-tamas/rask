@@ -54,7 +54,10 @@ internal static class CliBuildE2E
         "Rask.Logging",                     // --logs — AddRaskLogging, and the dashboard's History mode
         "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_rask pages
         "Rask.Ui",                          // the component kit Rask.Dashboard is drawn with, and depends on
+        "Rask.DevTools",                    // every template — the in-page devtools of a Debug build
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
+        "Rask.External",                    // --islands: the island base classes and the build layer
+        "Rask.Blazor",                      // --islands blazor: a Razor component as a Rask component
     ];
 
     // Packed once and shared across every case (packing the projects is the expensive part of these gates).

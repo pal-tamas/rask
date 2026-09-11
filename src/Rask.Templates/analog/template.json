@@ -1,0 +1,27 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "Features/Shared/AppDbContext.cs": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/app/pages/auth-form.ts": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/app/pages/login.page.ts": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/app/pages/register.page.ts": [
+      "cqrs",
+      "data"
+    ]
+  },
+  "template": "analog"
+}

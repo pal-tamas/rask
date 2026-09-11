@@ -3,6 +3,7 @@ using System.Data;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -69,6 +70,11 @@ internal sealed class BulkInsertPlan
                 "rows would be silently dropped.");
         }
 
+        // The provider's own spelling of identifiers and parameters. A hand-written "…" works on SQLite,
+        // PostgreSQL and SQL Server but is a string literal to MySQL, whose identifiers are backtick-quoted;
+        // asking the provider is the only spelling right on all of them.
+        var sql = context.GetService<ISqlGenerationHelper>();
+
         var columns = new List<BulkInsertColumn>();
         foreach (var property in entityType.GetProperties())
         {
@@ -116,9 +122,11 @@ internal sealed class BulkInsertPlan
                 && ((Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType) == typeof(Guid)
                     || mapping.Converter?.ProviderClrType == typeof(Guid));
 
+            var parameter = $"p{columns.Count}";
             columns.Add(new BulkInsertColumn(
                 columnName,
-                $"@p{columns.Count}",
+                sql.GenerateParameterName(parameter),
+                sql.GenerateParameterNamePlaceholder(parameter),
                 BuildGetter<TEntity>(property),
                 mapping.Converter,
                 (mapping as RelationalTypeMapping)?.DbType,
@@ -133,15 +141,13 @@ internal sealed class BulkInsertPlan
             throw Unsupported($"{typeof(TEntity).Name} maps no columns.");
         }
 
-        var table = entityType.GetSchema() is { } schema
-            ? $"{Quote(schema)}.{Quote(entityType.GetTableName()!)}"
-            : Quote(entityType.GetTableName()!);
+        var table = sql.DelimitIdentifier(entityType.GetTableName()!, entityType.GetSchema());
 
         var text =
             $"INSERT INTO {table} (" +
-            string.Join(", ", columns.Select(static c => Quote(c.ColumnName))) +
+            string.Join(", ", columns.Select(c => sql.DelimitIdentifier(c.ColumnName))) +
             ") VALUES (" +
-            string.Join(", ", columns.Select(static c => c.ParameterName)) +
+            string.Join(", ", columns.Select(static c => c.ParameterPlaceholder)) +
             ");";
 
         return new BulkInsertPlan(text, columns, BuildTimestamps<TEntity>(entityType));
@@ -203,18 +209,24 @@ internal sealed class BulkInsertPlan
     private static object? GetDefault(Type type) =>
         type.IsValueType && Nullable.GetUnderlyingType(type) is null ? Activator.CreateInstance(type) : null;
 
-    private static string Quote(string identifier) =>
-        $"\"{identifier.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
-
     internal static InvalidOperationException Unsupported(string reason) =>
         new($"BulkInsertAsync cannot skip change tracking here: {reason} Drop SkipChangeTracking to insert " +
             "through the change tracker instead.");
 }
 
 /// <summary>One mapped column of a <see cref="BulkInsertPlan"/>.</summary>
+/// <param name="ColumnName">The mapped column, undelimited.</param>
+/// <param name="ParameterName">The name the <c>DbParameter</c> is bound under.</param>
+/// <param name="ParameterPlaceholder">How the statement text refers to that parameter.</param>
+/// <param name="Read">Reads the property off an entity.</param>
+/// <param name="Converter">The value converter the provider stores through, when there is one.</param>
+/// <param name="DbType">The parameter's <see cref="System.Data.DbType"/>, when the mapping names one.</param>
+/// <param name="GeneratedName">The <c>Entity.Property</c> name of a value-generated column, for the error.</param>
+/// <param name="ClrDefault">The CLR default a value-generated column must not still hold.</param>
 internal sealed record BulkInsertColumn(
     string ColumnName,
     string ParameterName,
+    string ParameterPlaceholder,
     Func<object, object?> Read,
     ValueConverter? Converter,
     DbType? DbType,

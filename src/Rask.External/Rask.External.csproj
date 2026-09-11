@@ -20,8 +20,8 @@
 
     <PackageId>Rask.External</PackageId>
     <Title>Rask — Islands</Title>
-    <Description>Lets a .tsx, .jsx or Lit component be an ordinary Rask component. Derive a component from ReactComponent or LitComponent, drop the front-end file beside it, and its props are declared in C# — the generator emits the TypeScript interface the file imports, so renaming a C# property stops the front end compiling. The live diff treats the island's subtree as opaque, because those nodes belong to its own renderer.</Description>
-    <PackageTags>web component framework wasm net10 react lit islands typescript interop</PackageTags>
+    <Description>Lets a React, Preact, Solid, Vue, Svelte, Angular or Lit component be an ordinary Rask component in a C# app. Derive a component from ReactComponent, PreactComponent, SolidComponent, VueComponent, SvelteComponent, AngularComponent or LitComponent, drop the front-end file beside it, and its props are declared in C# — the generator emits the TypeScript interface the file imports, so renaming a C# property stops the front end compiling. Callbacks re-enter C#, and the live diff treats the island's subtree as opaque, because those nodes belong to its own renderer.</Description>
+    <PackageTags>web component framework wasm net10 islands react preact solid vue svelte angular lit typescript interop csharp dotnet</PackageTags>
 
     <!-- Razor SDK for its static-web-asset pipeline only (no .razor files), same as Rask.Bootstrap:
          it is what puts wwwroot/rask-external.js on a URL both hosts resolve identically, in-repo and
