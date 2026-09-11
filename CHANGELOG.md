@@ -24,6 +24,11 @@ them until tagged releases begin.
   S3 is signed in-process with SigV4 and Azure with Shared Key, and a temporary URL becomes the provider's
   own signed URL, so the download never passes through the app. The signers are pinned to AWS's published
   examples and proven against real MinIO and Azurite by `scripts/run-storage-providers-local.sh`.
+  - **`rask new` scaffolds it** — the package, `AddRaskStorage<AppDbContext>()`, the table in `AppDbContext`
+    and `app.MapRaskStorage()` in the right place for each host — and `--no-storage` leaves it out.
+  - **The operator console gains a read-only Storage tab** at `/_rask/storage`: files, bytes and public
+    files, usage per provider, a searchable newest-first list, and a plain warning whenever files sit on disk,
+    which nothing backs up.
   - **Public and private files live under different key folders** (`public/`, `private/`), so a CDN or a
     public bucket can be granted read on `public/` alone — a private file's key shows in its signed URL, and
     one policy covering both would make a five-minute link permanent.
