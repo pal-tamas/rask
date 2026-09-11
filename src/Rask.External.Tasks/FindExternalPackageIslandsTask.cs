@@ -52,8 +52,7 @@ public sealed class FindExternalPackageIslandsTask : Task
 
     /// <summary>
     ///     The package islands: the item is the snapshot path, with <c>IslandName</c>, <c>Runtime</c>,
-    ///     <c>PackageModule</c>, <c>DeclaringFile</c>, <c>ModuleLine</c> and <c>Extractable</c> — whether the
-    ///     extractor reads this runtime's packages yet.
+    ///     <c>PackageModule</c>, <c>DeclaringFile</c> and <c>ModuleLine</c>.
     /// </summary>
     [Output]
     public ITaskItem[] PackageIslands { get; private set; } = [];
@@ -77,11 +76,11 @@ public sealed class FindExternalPackageIslandsTask : Task
         foreach (var island in ExternalPackageScan.PackageIslands(sources, runtimes))
         {
             var (_, export) = ExternalPackageSpecifier.Split(island.Module);
-            if (!ExternalPackageSpecifier.IsValidExport(export))
+            if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
             {
                 Error(island,
                     $"Rask.External: '{island.Name}' names the export '{export}', which is not an identifier — write "
-                    + "the export's exact name after the '#'.");
+                    + "the export's exact name after the '#' (a Lit island may name the tag its module registers).");
                 continue;
             }
 
@@ -102,7 +101,6 @@ public sealed class FindExternalPackageIslandsTask : Task
             item.SetMetadata("PackageModule", island.Module);
             item.SetMetadata("DeclaringFile", island.DeclaringFile);
             item.SetMetadata("ModuleLine", island.Line.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            item.SetMetadata("Extractable", ExternalRuntime.Find(island.Runtime)?.PropsExtracted == true ? "true" : "false");
             items.Add(item);
         }
 

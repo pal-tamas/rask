@@ -67,6 +67,8 @@ interface SnapshotMember {
 
 interface SnapshotProp {
     name: string;
+    /** The key the prop travels under, when it is not `name`: an Angular input's alias, an `@event` to subscribe to. */
+    wire?: string;
     required: boolean;
     doc?: string;
     default?: string;
@@ -102,6 +104,9 @@ const FrameworkPackages: Record<string, string[]> = {
     // svelte/elements.d.ts belongs to the svelte package, so its attributes are inherited — unless a component
     // redeclares one in its own file, which is how ownership is decided: by declaration, not by where a type came from.
     svelte: ["svelte", "csstype"],
+    // A Lit element's base classes: ReactiveElement's and LitElement's members are the framework's, not the element's.
+    lit: ["lit", "lit-element", "lit-html", "@lit/reactive-element"],
+    angular: ["@angular/core", "@angular/common", "rxjs"],
 };
 
 /** Type names that are rendered content, not data — a child, a slot, an element. */
@@ -160,11 +165,9 @@ function extractRuntime(ts: typeof TS, projectDirectory: string, runtime: string
     // that imports every island's export. The probe sits IN the project directory, so module resolution walks up
     // to the project's own node_modules exactly as the bundler will — hoisted monorepos and pnpm included.
     const probePath = path.join(projectDirectory, "__rask_props_probe__.ts");
-    const probeText = islands
-        .map((island, i) => island.export === "default"
-            ? `import __island${i} from ${JSON.stringify(island.module)};\nexport { __island${i} };\n`
-            : `import { ${island.export.split(".")[0]} as __island${i} } from ${JSON.stringify(island.module)};\nexport { __island${i} };\n`)
-        .join("");
+    const probeText = islands.map((island, i) => probeLines(island, i)).join("")
+        // A Lit element's tag is known only to the global tag map, so a Lit program reads the whole map back.
+        + (runtime === "lit" ? "export type __rask_tag_map = HTMLElementTagNameMap;\n" : "");
 
     const options: TS.CompilerOptions = {
         strict: true,
@@ -197,10 +200,15 @@ function extractRuntime(ts: typeof TS, projectDirectory: string, runtime: string
     const checker = program.getTypeChecker();
     const probe = program.getSourceFile(probePath)!;
 
-    const imports = probe.statements.filter(ts.isImportDeclaration);
+    const tagMap = probe.statements.find((s): s is TS.TypeAliasDeclaration =>
+        ts.isTypeAliasDeclaration(s) && s.name.text === "__rask_tag_map");
     return islands.map((island, i) => {
         try {
-            const snapshot = extractIsland(ts, program, checker, runtime, island, imports[i]);
+            const snapshot = runtime === "lit"
+                ? extractLit(ts, program, checker, island, probeNode(ts, probe, i), tagMap, probe)
+                : runtime === "angular"
+                    ? extractAngular(ts, program, checker, island, importOf(ts, probe, i))
+                    : extractIsland(ts, program, checker, runtime, island, importOf(ts, probe, i));
             fs.mkdirSync(path.dirname(island.out), {recursive: true});
             fs.writeFileSync(island.out, snapshot);
             return {name: island.name, ok: true};
@@ -321,6 +329,21 @@ function extractIsland(
         legacyEvents(ts, checker, componentType, propsType, skipped);
     }
 
+    const content = contentOf(ts, checker, runtime, componentType, propsType, skipped);
+    return snapshotText(runtime, island, packageInfo(island.module, target), null, content, props, skipped, walker);
+}
+
+/** The snapshot document in its fixed key order, props and skips sorted so it never depends on the order of the walk. */
+function snapshotText(
+    runtime: string,
+    island: IslandRequest,
+    pkg: {name: string; version: string | null},
+    tag: string | null,
+    content: string,
+    props: SnapshotProp[],
+    skipped: Skip[],
+    walker: TypeWalker,
+): string {
     props.sort((a, b) => compare(a.name, b.name));
     skipped.sort((a, b) => compare(a.name, b.name));
 
@@ -329,9 +352,9 @@ function extractIsland(
         runtime,
         module: island.module,
         export: island.export,
-        package: packageInfo(island.module, target),
-        tag: null,
-        content: contentOf(ts, checker, runtime, componentType, propsType, skipped),
+        package: pkg,
+        tag,
+        content,
         props,
         skipped,
     };
@@ -713,6 +736,21 @@ class TypeWalker {
         return result;
     }
 
+    /**
+     * What an Angular output emits: described when it is a value the C# side can take, `unknown` when it is an object —
+     * a change record whose `source` is the live component cannot cross, and walking it would describe the component.
+     */
+    payload(type: TS.Type): SnapshotType {
+        const {ts, checker} = this;
+        const symbol = type.getSymbol();
+        const date = symbol?.getName() === "Date" && this.isLibFile(symbol);
+        if (type.flags & ts.TypeFlags.Object && !date && !checker.isArrayType(type)) {
+            return {kind: "unknown"};
+        }
+
+        return this.argument(type, 0);
+    }
+
     /** A callback argument: an event stays an event (it never crosses), anything else is described if it can be. */
     private argument(type: TS.Type, depth: number): SnapshotType {
         const name = type.aliasSymbol?.getName() ?? type.getSymbol()?.getName();
@@ -840,7 +878,516 @@ class TypeWalker {
     }
 }
 
-// ----- events and content -------------------------------------------------------------------------------------
+// ----- probe --------------------------------------------------------------------------------------------------
+
+/**
+ * The probe lines that bring one island's export into the program. A Lit element named by its TAG (`#sl-switch`) is
+ * imported for its side effect — the module that registers a tag often exports nothing — and read back through the
+ * global tag map; every other export is bound to a name.
+ */
+function probeLines(island: IslandRequest, i: number): string {
+    const module = JSON.stringify(island.module);
+    if (island.runtime === "lit" && isTag(island.export)) {
+        return `import ${module};\nexport type __island${i} = HTMLElementTagNameMap[${JSON.stringify(island.export)}];\n`;
+    }
+
+    return island.export === "default"
+        ? `import __island${i} from ${module};\nexport { __island${i} };\n`
+        : `import { ${island.export.split(".")[0]} as __island${i} } from ${module};\nexport { __island${i} };\n`;
+}
+
+/** A custom element name: lowercase, starting with a letter, with a hyphen in it. */
+function isTag(name: string): boolean {
+    return /^[a-z][a-z0-9._]*-[a-z0-9._-]*$/.test(name);
+}
+
+/** The probe's import that binds `__island{i}`. */
+function importOf(ts: typeof TS, probe: TS.SourceFile, i: number): TS.ImportDeclaration | undefined {
+    const name = `__island${i}`;
+    return probe.statements.find((s): s is TS.ImportDeclaration =>
+        ts.isImportDeclaration(s) && importedName(ts, s)?.text === name);
+}
+
+/** The probe node standing for `__island{i}`: its import, or — for a Lit tag — its alias over the tag map. */
+function probeNode(ts: typeof TS, probe: TS.SourceFile, i: number): TS.ImportDeclaration | TS.TypeAliasDeclaration | undefined {
+    const name = `__island${i}`;
+    return importOf(ts, probe, i)
+        ?? probe.statements.find((s): s is TS.TypeAliasDeclaration => ts.isTypeAliasDeclaration(s) && s.name.text === name);
+}
+
+/** The symbol an import binds, through its alias. */
+function importedSymbol(ts: typeof TS, checker: TS.TypeChecker, declaration: TS.ImportDeclaration | undefined): TS.Symbol | undefined {
+    const binding = importedName(ts, declaration);
+    const resolved = binding && checker.getSymbolAtLocation(binding);
+    return resolved && resolved.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(resolved) : resolved;
+}
+
+/** The error for an export the program could not find: a missing package, or a package without that export. */
+function notFound(ts: typeof TS, program: TS.Program, island: IslandRequest, what: string): IslandError {
+    return moduleResolves(ts, program, island.module)
+        ? new IslandError("export-not-found", `'${island.module}' has no ${what}.`)
+        : new IslandError("module-not-found",
+            `'${island.module}' could not be resolved from the project — install it (npm install ${packageOf(island.module)}).`);
+}
+
+// ----- Lit ----------------------------------------------------------------------------------------------------
+
+/**
+ * A Lit element. It is a class, so its props are its public, writable instance fields — never its methods, a getter
+ * alone, or a private, protected, static or readonly member — and all of them are optional. Its tag is the one the
+ * global tag map gives it, as registered by the island's own module. Its events appear nowhere in its declarations; the
+ * package's custom-elements manifest lists them where it ships one.
+ */
+function extractLit(
+    ts: typeof TS,
+    program: TS.Program,
+    checker: TS.TypeChecker,
+    island: IslandRequest,
+    node: TS.ImportDeclaration | TS.TypeAliasDeclaration | undefined,
+    tagMap: TS.TypeAliasDeclaration | undefined,
+    probe: TS.SourceFile,
+): string {
+    const byTag = isTag(island.export);
+    const walker = new TypeWalker(ts, checker, "lit");
+
+    let instance: TS.Type | undefined;
+    let element: TS.Symbol | undefined;
+    if (node && ts.isTypeAliasDeclaration(node)) {
+        instance = checker.getTypeFromTypeNode(node.type);
+        element = instance.getSymbol();
+    } else {
+        element = importedSymbol(ts, checker, node);
+        instance = element && element.flags & ts.SymbolFlags.Class ? checker.getDeclaredTypeOfSymbol(element) : undefined;
+    }
+
+    const label = `${island.module}#${island.export}`;
+    if (byTag && (!element?.declarations?.length || walker.isInherited(element))) {
+        // The tag map answered with lib.dom's own HTMLElement: nothing in the program registers the tag.
+        if (!moduleResolves(ts, program, island.module)) {
+            throw notFound(ts, program, island, "");
+        }
+
+        throw new IslandError("lit-tag-unknown",
+            `'${island.module}' registers no element named '${island.export}' — import the module that defines it.`);
+    }
+
+    if (!element?.declarations?.length) {
+        throw notFound(ts, program, island, island.export === "default" ? "default export" : `export named '${island.export}'`);
+    }
+
+    if (!instance) {
+        throw new IslandError("not-a-component", `'${label}' is not a custom element class.`);
+    }
+
+    // Every Lit island shares one program, and so one global tag map. Only a registration the island's OWN module makes
+    // counts — otherwise a class module that registers nothing would borrow the tag another island's module registers,
+    // and render only when that island's chunk happened to load first.
+    const files = moduleFiles(ts, checker, probe, island.module);
+    if (byTag && !registers(checker, tagMap, island.export, files)) {
+        throw new IslandError("lit-tag-unknown",
+            `'${island.module}' does not register '${island.export}' — name the module that defines the element.`);
+    }
+
+    const tag = byTag ? island.export : tagOf(checker, tagMap, element, files);
+    if (!tag) {
+        throw new IslandError("lit-tag-unknown",
+            `Rask cannot tell which tag '${element.getName()}' registers — name it after the '#': "${island.module}#my-element".`);
+    }
+
+    const events = manifestEvents(island.module, element, tag);
+    const props: SnapshotProp[] = [];
+    const skipped: Skip[] = [];
+
+    for (const property of checker.getPropertiesOfType(instance)) {
+        const name = property.getName();
+        if (walker.isInherited(property) || !isPublicField(ts, property) || /^(?:[_#]|__@)/.test(name)) {
+            continue;
+        }
+
+        try {
+            const type = walker.serialize(checker.getTypeOfSymbol(property), 0, true);
+            const doc = docOf(ts, checker, property);
+            props.push({name, required: false, ...(doc ? {doc} : {}), type});
+        } catch (error) {
+            if (error instanceof Skipped) {
+                skipped.push(error.detail ? {name, reason: error.reason, detail: error.detail} : {name, reason: error.reason});
+                continue;
+            }
+
+            throw error;
+        }
+    }
+
+    for (const event of events) {
+        props.push({
+            name: `on-${event.name}`,
+            wire: `@${event.name}`,
+            required: false,
+            type: {kind: "callback", args: [{name: "event", type: {kind: "event", name: event.type}}]},
+        });
+    }
+
+    return snapshotText("lit", island, packageInfo(island.module, element), tag, "none", props, skipped, walker);
+}
+
+/**
+ * A public, writable instance field: a property, or an accessor that has a setter. Never a method, a getter alone, or
+ * a member marked private, protected, static or readonly.
+ */
+function isPublicField(ts: typeof TS, symbol: TS.Symbol): boolean {
+    const declarations = symbol.declarations ?? [];
+    if (declarations.length === 0 || symbol.flags & ts.SymbolFlags.Method) {
+        return false;
+    }
+
+    const hasSetter = declarations.some((d) => ts.isSetAccessorDeclaration(d));
+    const hidden = ts.ModifierFlags.Private | ts.ModifierFlags.Protected | ts.ModifierFlags.Static | ts.ModifierFlags.Readonly;
+    return declarations.every((d) =>
+        !ts.isMethodDeclaration(d)
+        && !ts.isMethodSignature(d)
+        && !(ts.isGetAccessorDeclaration(d) && !hasSetter)
+        && (ts.getCombinedModifierFlags(d) & hidden) === 0);
+}
+
+/** The one tag an island's own module registers for a class in HTMLElementTagNameMap, or undefined for none or several. */
+function tagOf(
+    checker: TS.TypeChecker,
+    tagMap: TS.TypeAliasDeclaration | undefined,
+    element: TS.Symbol,
+    files: Set<TS.SourceFile>,
+): string | undefined {
+    if (!tagMap) {
+        return undefined;
+    }
+
+    const tags = checker.getPropertiesOfType(checker.getTypeFromTypeNode(tagMap.type))
+        .filter((entry) => declaredIn(entry, files) && checker.getTypeOfSymbol(entry).getSymbol() === element);
+
+    return tags.length === 1 ? tags[0].getName() : undefined;
+}
+
+/** Whether the island's own module registers `tag` in HTMLElementTagNameMap. */
+function registers(
+    checker: TS.TypeChecker,
+    tagMap: TS.TypeAliasDeclaration | undefined,
+    tag: string,
+    files: Set<TS.SourceFile>,
+): boolean {
+    const entry = tagMap && checker.getPropertyOfType(checker.getTypeFromTypeNode(tagMap.type), tag);
+    return !!entry && declaredIn(entry, files);
+}
+
+function declaredIn(symbol: TS.Symbol, files: Set<TS.SourceFile>): boolean {
+    return (symbol.declarations ?? []).some((d) => files.has(d.getSourceFile()));
+}
+
+/**
+ * The declaration files an island's module contributes: the file its specifier resolves to, and the files that file
+ * imports or re-exports directly — one step, which is how a package entry commonly pulls in the module that registers
+ * its element.
+ */
+function moduleFiles(ts: typeof TS, checker: TS.TypeChecker, probe: TS.SourceFile, module: string): Set<TS.SourceFile> {
+    const files = new Set<TS.SourceFile>();
+    const fileOf = (specifier: TS.Expression | undefined) =>
+        specifier ? checker.getSymbolAtLocation(specifier)?.declarations?.[0]?.getSourceFile() : undefined;
+
+    const declaration = probe.statements.find((s): s is TS.ImportDeclaration =>
+        ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && s.moduleSpecifier.text === module);
+    const root = fileOf(declaration?.moduleSpecifier);
+    if (!root) {
+        return files;
+    }
+
+    files.add(root);
+    for (const statement of root.statements) {
+        const referenced = ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)
+            ? fileOf(statement.moduleSpecifier)
+            : undefined;
+        if (referenced) {
+            files.add(referenced);
+        }
+    }
+
+    return files;
+}
+
+/**
+ * The events a package's custom-elements manifest lists for one element, following the superclass chain as far as this
+ * manifest records it. Empty when the package ships no manifest or it does not list the element.
+ *
+ * Only events: the manifest never takes a prop away. A field Lit declares with `attribute: false` — the recommended
+ * shape for arrays and objects — has no attribute in it, and a field inherited from a class in another package is not
+ * in it at all; both are still properties the element reacts to.
+ */
+function manifestEvents(module: string, element: TS.Symbol, tag: string): {name: string; type: string}[] {
+    const root = packageRoot(module, element);
+    if (!root) {
+        return [];
+    }
+
+    let manifest: {modules?: {declarations?: ManifestDeclaration[]}[]};
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+        if (typeof pkg.customElements !== "string") {
+            return [];
+        }
+
+        manifest = JSON.parse(fs.readFileSync(path.join(root, pkg.customElements), "utf8"));
+    } catch {
+        return [];
+    }
+
+    const declarations = (manifest.modules ?? []).flatMap((m) => m.declarations ?? []);
+    const events: {name: string; type: string}[] = [];
+    let declaration = declarations.find((d) => d.tagName === tag);
+    for (let depth = 0; declaration && depth < 16; depth++) {
+        for (const event of declaration.events ?? []) {
+            // Any name addEventListener takes, `valueChanged` included; a `$` would collide with the wire's reserved keys.
+            if (typeof event.name === "string" && /^[^\s$]+$/.test(event.name) && !events.some((e) => e.name === event.name)) {
+                events.push({name: event.name, type: eventTypeName(event.type?.text)});
+            }
+        }
+
+        const parent: string | undefined = declaration.superclass?.name;
+        const current = declaration;
+        declaration = parent ? declarations.find((d) => d.name === parent && d !== current) : undefined;
+    }
+
+    events.sort((a, b) => compare(a.name, b.name));
+    return events;
+}
+
+interface ManifestDeclaration {
+    name?: string;
+    tagName?: string;
+    superclass?: {name?: string};
+    events?: {name?: string; type?: {text?: string}}[];
+}
+
+/** An event's class from the manifest's type text — `CustomEvent<{…}>` is a `CustomEvent` — or `CustomEvent`. */
+function eventTypeName(text: unknown): string {
+    const head = typeof text === "string" ? text.split("<")[0].trim() : "";
+    return /^[A-Za-z_$][\w$]*$/.test(head) ? head : "CustomEvent";
+}
+
+/** The directory of the package a module belongs to, found from where its declarations were read. */
+function packageRoot(module: string, symbol: TS.Symbol): string | undefined {
+    const name = packageOf(module);
+    const file = symbol.declarations?.[0]?.getSourceFile().fileName.replace(/\\/g, "/");
+    const at = file ? file.lastIndexOf(`/node_modules/${name}/`) : -1;
+    return file && at >= 0 ? `${file.substring(0, at)}/node_modules/${name}` : undefined;
+}
+
+// ----- Angular ------------------------------------------------------------------------------------------------
+
+/**
+ * An Angular component. Its inputs and outputs are declared only in the type arguments of `static ɵcmp`, which the
+ * checker resolves to `unknown`, so they are read from the syntax. An input travels under its public alias, which is
+ * the name Angular sets it by; an output travels as `@alias`, the adapter's cue to subscribe rather than set.
+ */
+function extractAngular(
+    ts: typeof TS,
+    program: TS.Program,
+    checker: TS.TypeChecker,
+    island: IslandRequest,
+    declaration: TS.ImportDeclaration | undefined,
+): string {
+    const target = importedSymbol(ts, checker, declaration);
+    if (!target?.declarations?.length) {
+        throw notFound(ts, program, island, island.export === "default" ? "default export" : `export named '${island.export}'`);
+    }
+
+    const label = `${island.module}#${island.export}`;
+    const statics = checker.getTypeOfSymbol(target);
+    const definition = checker.getPropertyOfType(statics, "ɵcmp");
+    if (!definition) {
+        throw new IslandError("not-a-component", checker.getPropertyOfType(statics, "ɵdir")
+            ? `'${label}' is an Angular directive, not a component.`
+            : `'${label}' is not an Angular component: it carries no compiled component definition.`);
+    }
+
+    const args = definitionArguments(ts, definition);
+    if (!args) {
+        throw new IslandError("not-a-component", `'${label}' carries a component definition Rask cannot read.`);
+    }
+
+    if (args[7] !== true) {
+        throw new IslandError("not-standalone", `'${label}' is not a standalone component; Rask mounts standalone components.`);
+    }
+
+    const instance = checker.getDeclaredTypeOfSymbol(target);
+    const walker = new TypeWalker(ts, checker, "angular");
+    const props: SnapshotProp[] = [];
+    const skipped: Skip[] = [];
+
+    const {inputs, outputs} = inheritedMaps(ts, checker, target);
+    for (const name of Object.keys(inputs).sort(compare)) {
+        const input = inputs[name];
+        const alias = typeof input === "string" ? input : isRecord(input) && typeof input.alias === "string" ? input.alias : name;
+        const member = checker.getPropertyOfType(instance, name);
+        if (!member) {
+            continue;
+        }
+
+        try {
+            const type = walker.serialize(inputType(ts, checker, statics, name, checker.getTypeOfSymbol(member)), 0, true);
+            const doc = docOf(ts, checker, member);
+            props.push({
+                name,
+                ...(alias !== name ? {wire: alias} : {}),
+                required: isRecord(input) && input.required === true,
+                ...(doc ? {doc} : {}),
+                type,
+            });
+        } catch (error) {
+            if (error instanceof Skipped) {
+                skipped.push(error.detail ? {name, reason: error.reason, detail: error.detail} : {name, reason: error.reason});
+                continue;
+            }
+
+            throw error;
+        }
+    }
+
+    for (const name of Object.keys(outputs).sort(compare)) {
+        const alias = typeof outputs[name] === "string" && (outputs[name] as string).length > 0 ? outputs[name] as string : name;
+        const member = checker.getPropertyOfType(instance, name);
+        const payload = member ? emitterPayload(ts, checker, checker.getTypeOfSymbol(member)) : undefined;
+        const silent = !payload || (payload.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) !== 0;
+        props.push({
+            name: `on${alias[0].toUpperCase()}${alias.slice(1)}`,
+            wire: `@${alias}`,
+            required: false,
+            type: {kind: "callback", args: silent ? [] : [{name: "value", type: walker.payload(payload!)}]},
+        });
+    }
+
+    const content = Array.isArray(args[6]) && args[6].length > 0 ? "node" : "none";
+    return snapshotText("angular", island, packageInfo(island.module, target), null, content, props, skipped, walker);
+}
+
+/**
+ * The input and output maps of a component and of every class it extends, merged so the subclass wins. A compiled
+ * definition lists only what its own class declares; Angular folds a base class's `ɵdir` or `ɵcmp` in at runtime
+ * (`ɵɵInheritDefinitionFeature`), so an input a component inherits is settable even though its own `ɵcmp` omits it.
+ */
+function inheritedMaps(
+    ts: typeof TS,
+    checker: TS.TypeChecker,
+    target: TS.Symbol,
+): {inputs: Record<string, unknown>; outputs: Record<string, unknown>} {
+    const chain: TS.Symbol[] = [];
+    for (let symbol: TS.Symbol | undefined = target; symbol && chain.length < 16 && !chain.includes(symbol);) {
+        chain.push(symbol);
+        const type = checker.getDeclaredTypeOfSymbol(symbol);
+        symbol = type.isClassOrInterface() ? checker.getBaseTypes(type)[0]?.getSymbol() : undefined;
+    }
+
+    // Prototype-less, like the maps they are merged from, so a "__proto__" input stays an input.
+    const inputs: Record<string, unknown> = Object.create(null);
+    const outputs: Record<string, unknown> = Object.create(null);
+    for (const symbol of chain.reverse()) {
+        // `exports` holds a class's OWN statics; a property lookup on its type would find the base's definition again.
+        const own = symbol.exports?.get(ts.escapeLeadingUnderscores("ɵcmp"))
+            ?? symbol.exports?.get(ts.escapeLeadingUnderscores("ɵdir"));
+        const args = own && definitionArguments(ts, own);
+        if (args && isRecord(args[3])) {
+            Object.assign(inputs, args[3]);
+        }
+
+        if (args && isRecord(args[4])) {
+            Object.assign(outputs, args[4]);
+        }
+    }
+
+    return {inputs, outputs};
+}
+
+/**
+ * The type an input accepts: a signal's value, a transformed input's pre-transform type, or what the component's
+ * `ngAcceptInputType_x` widens a decorator input to.
+ */
+function inputType(ts: typeof TS, checker: TS.TypeChecker, statics: TS.Type, name: string, own: TS.Type): TS.Type {
+    const kind = own.aliasSymbol?.getName() ?? own.getSymbol()?.getName();
+    const args = typeArgumentsOf(ts, checker, own);
+    if ((kind === "InputSignal" || kind === "ModelSignal") && args.length > 0) {
+        return args[0];
+    }
+
+    if (kind === "InputSignalWithTransform" && args.length > 1) {
+        return args[1].flags & ts.TypeFlags.Unknown ? args[0] : args[1];
+    }
+
+    const accept = checker.getPropertyOfType(statics, `ngAcceptInputType_${name}`);
+    const accepted = accept && checker.getTypeOfSymbol(accept);
+    return accepted && !(accepted.flags & ts.TypeFlags.Unknown) ? accepted : own;
+}
+
+/** What an output emits: the type argument of its EventEmitter, OutputEmitterRef, OutputRef or ModelSignal. */
+function emitterPayload(ts: typeof TS, checker: TS.TypeChecker, type: TS.Type): TS.Type | undefined {
+    const kind = type.aliasSymbol?.getName() ?? type.getSymbol()?.getName();
+    return kind && ["EventEmitter", "OutputEmitterRef", "OutputRef", "ModelSignal"].includes(kind)
+        ? typeArgumentsOf(ts, checker, type)[0]
+        : undefined;
+}
+
+function typeArgumentsOf(ts: typeof TS, checker: TS.TypeChecker, type: TS.Type): readonly TS.Type[] {
+    if (type.aliasTypeArguments?.length) {
+        return type.aliasTypeArguments;
+    }
+
+    const reference = (type.flags & ts.TypeFlags.Object) !== 0
+        && ((type as TS.ObjectType).objectFlags & ts.ObjectFlags.Reference) !== 0;
+    return reference ? checker.getTypeArguments(type as TS.TypeReference) : [];
+}
+
+/**
+ * The type arguments of `static ɵcmp: i0.ɵɵComponentDeclaration<…>` as plain values: strings and booleans, `null` for
+ * `never`, arrays for tuples, and prototype-less objects for type literals — so a `"__proto__"` key reads as a key.
+ */
+function definitionArguments(ts: typeof TS, definition: TS.Symbol): unknown[] | undefined {
+    const declaration = definition.declarations?.[0];
+    const type = declaration && (ts.isPropertyDeclaration(declaration) || ts.isPropertySignature(declaration))
+        ? declaration.type
+        : undefined;
+    return type && ts.isTypeReferenceNode(type) && type.typeArguments
+        ? type.typeArguments.map((argument) => literalOf(ts, argument))
+        : undefined;
+}
+
+function literalOf(ts: typeof TS, node: TS.TypeNode): unknown {
+    if (ts.isLiteralTypeNode(node)) {
+        const literal = node.literal;
+        if (ts.isStringLiteral(literal)) {
+            return literal.text;
+        }
+
+        return literal.kind === ts.SyntaxKind.TrueKeyword ? true : literal.kind === ts.SyntaxKind.FalseKeyword ? false : null;
+    }
+
+    if (ts.isTupleTypeNode(node)) {
+        return node.elements.map((element) => literalOf(ts, ts.isNamedTupleMember(element) ? element.type : element));
+    }
+
+    if (ts.isTypeLiteralNode(node)) {
+        const out: Record<string, unknown> = Object.create(null);
+        for (const member of node.members) {
+            if (ts.isPropertySignature(member) && member.type && (ts.isIdentifier(member.name) || ts.isStringLiteral(member.name))) {
+                out[member.name.text] = literalOf(ts, member.type);
+            }
+        }
+
+        return out;
+    }
+
+    return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// ----- events and content-------------------------------------------------------------------------------------
 
 /**
  * Vue declares emits two ways. `defineComponent` and vue-tsc fold them into `$props` as on* handlers, which the prop

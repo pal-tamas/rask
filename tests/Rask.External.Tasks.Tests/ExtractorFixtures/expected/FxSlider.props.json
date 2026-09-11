@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "runtime": "angular",
+  "module": "fixture-angular",
+  "export": "FxSlider",
+  "package": {
+    "name": "fixture-angular",
+    "version": "3.0.0"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "label",
+      "wire": "for",
+      "required": true,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "min",
+      "required": false,
+      "type": {
+        "kind": "number"
+      }
+    },
+    {
+      "name": "onDragEnd",
+      "wire": "@dragEnd",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "value",
+            "type": {
+              "kind": "number"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onValueChange",
+      "wire": "@valueChange",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "value",
+            "type": {
+              "kind": "number"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "step",
+      "required": false,
+      "type": {
+        "kind": "union",
+        "of": [
+          {
+            "kind": "number"
+          },
+          {
+            "kind": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "value",
+      "required": false,
+      "type": {
+        "kind": "number"
+      }
+    }
+  ],
+  "skipped": []
+}

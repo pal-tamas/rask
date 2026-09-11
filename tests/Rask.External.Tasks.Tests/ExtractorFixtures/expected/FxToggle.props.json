@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "runtime": "angular",
+  "module": "fixture-angular",
+  "export": "FxToggle",
+  "package": {
+    "name": "fixture-angular",
+    "version": "3.0.0"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "ariaLabel",
+      "wire": "aria-label",
+      "required": false,
+      "type": {
+        "kind": "string",
+        "nullable": true
+      }
+    },
+    {
+      "name": "checked",
+      "required": false,
+      "doc": "Whether the toggle is on.",
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "disabled",
+      "required": false,
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "onChange",
+      "wire": "@change",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "value",
+            "type": {
+              "kind": "unknown"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onToggleChange",
+      "wire": "@toggleChange",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": []
+      }
+    }
+  ],
+  "skipped": []
+}
