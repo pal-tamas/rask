@@ -439,8 +439,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     ///         because the page is about to be handed a live session that will finish the load.
     ///     </para>
     /// </remarks>
-    internal async Task<string> RenderInitialRootAsync(TimeSpan budget)
+    internal async Task<string> RenderInitialRootAsync(TimeSpan budget, CancellationToken cancellationToken = default)
     {
+        LastRenderBlockedOnJs = false;
         if (budget <= TimeSpan.Zero)
         {
             return RenderInitialRoot();
@@ -460,7 +461,17 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             // Stopping there costs nothing that waiting would have bought: the same page is already
             // marked interactive by the interop itself, so it keeps its session and finishes over
             // the socket precisely as it did before any of this existed.
-            isBlocked: () => JsInvokes.HasPending).ConfigureAwait(false);
+            isBlocked: () =>
+            {
+                if (!JsInvokes.HasPending)
+                {
+                    return false;
+                }
+
+                LastRenderBlockedOnJs = true;
+                return true;
+            },
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var html = result.Html;
 
@@ -483,6 +494,18 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     ///     for ever, because nothing would be left running to replace it.
     /// </summary>
     internal bool LastRenderTimedOut { get; private set; }
+
+    /// <summary>
+    ///     Whether the initial render stopped waiting because the work it had started was blocked on
+    ///     JavaScript.
+    /// </summary>
+    /// <remarks>
+    ///     Not a timeout — nothing ran out — but the markup is the same kind of thing: a placeholder that
+    ///     only a connected browser can ever replace. A live page is fine with that, because its session
+    ///     finishes the load. A copy of the page kept to be served later is not, since nothing attached
+    ///     to it would.
+    /// </remarks>
+    internal bool LastRenderBlockedOnJs { get; private set; }
 
     // A single render into the frame sink, WITHOUT promoting anything. Intermediate waves must not
     // touch either baseline: only the HTML actually served is what the browser will hold, so
