@@ -33,6 +33,14 @@ namespace Rask.Ui;
 /// test caught it; nothing that reads markup could have.
 /// </para>
 /// <para>
+/// THE ONE WRAPPING IS THE FLOATING LABEL, and it is the default for a text input, a textarea and a native
+/// select. daisyUI draws a floating caption as the first child of a <c>&lt;label class="floating-label"&gt;</c>
+/// that holds the control, so there is no way to draw one without the wrap. The label keeps its
+/// <c>for</c> as well, and the kit's stylesheet reveals a <c>validator-hint</c> through the label, which is
+/// the one rule daisyUI's sibling selector can no longer reach. <c>Floating(false)</c> on those controls
+/// brings the legend back.
+/// </para>
+/// <para>
 /// So the id matters, and <see cref="Id" /> is optional — when it is not given one is DERIVED: from the
 /// bound member's name, or failing that from the label text. Deterministic on purpose, so the markup is
 /// reproducible across renders and in the golden files, rather than a fresh GUID per instance.
@@ -141,6 +149,17 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     protected abstract Component Control();
 
     /// <summary>
+    ///     Whether <see cref="Label" /> is drawn as daisyUI's floating label — inside the field until it has
+    ///     content, then risen above it — rather than as a legend over the field.
+    /// </summary>
+    /// <remarks>
+    ///     Kit-internal. The controls daisyUI styles a floating label for — a text input, a textarea, a native
+    ///     select — turn it on unless the call site says <c>Floating(false)</c>; a checkbox, a range or a
+    ///     rating keeps the legend, because a caption inside a box that holds no text means nothing.
+    /// </remarks>
+    private protected virtual bool FloatsLabel => false;
+
+    /// <summary>
     ///     <c>aria-*</c> for the control, with the accessible name and the invalid state resolved.
     /// </summary>
     /// <remarks>
@@ -223,22 +242,31 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     {
         var control = Control();
         var validation = ValidationFor();
+        var floats = Label is not null && FloatsLabel;
+
+        // RaskMarkup.Label, qualified: this type has a Label PROPERTY, which shadows the <label> chain entry
+        // of the same name — the "Color Color" problem. UiCheckbox avoids it by calling its own property
+        // Text; a form field's label should be called Label, so the entry is reached through the base that
+        // declares it instead.
+        //
+        // A floating caption is the FIRST child and the control follows it: daisyUI positions the caption
+        // over the control and raises it once the control stops showing its placeholder.
+        var field = floats
+            ? RaskMarkup.Label.For(FieldId).Class("floating-label")[Span[Label], control]
+            : control;
 
         // Nothing to wrap it in. Keeps a bare control's markup exactly as it was, which is what a control
         // in a table cell or a toolbar wants — and means adding this base changed no rendered output for
-        // any call site that had no label, no hint and nothing to validate.
-        if (Label is null && Hint is null && validation is null && Error is null)
+        // any call site that had no label, no hint and nothing to validate. A floating label is already
+        // its own wrapper, so it needs the fieldset only for what goes under it.
+        if (Hint is null && validation is null && Error is null && (Label is null || floats))
         {
-            return control;
+            return field;
         }
 
         return Div.Class("fieldset")[
-            // RaskMarkup.Label, qualified: this type has a Label PROPERTY, which shadows the <label> chain
-            // entry of the same name — the "Color Color" problem. UiCheckbox avoids it by calling its own
-            // property Text; a form field's label should be called Label, so the entry is reached through
-            // the base that declares it instead.
-            Label is null ? null : RaskMarkup.Label.For(FieldId).Class("fieldset-legend")[Label],
-            control,
+            Label is null || floats ? null : RaskMarkup.Label.For(FieldId).Class("fieldset-legend")[Label],
+            field,
             // A SIBLING of the control, which is what daisyUI's `.validator ~ .validator-hint` requires.
             validation,
             // daisyUI's own class, so the reveal-on-invalid behaviour is the library's rather than a second

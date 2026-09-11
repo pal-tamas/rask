@@ -1,31 +1,27 @@
 using System.ComponentModel.DataAnnotations;
-using Rask.Site;
 
 namespace Rask.Site.Features;
 
 public sealed partial class FloatingLabelsDemo : Component
 {
+    private static readonly (string? Value, string Text)[] Plans = [("free", "Free"), ("pro", "Pro"), ("team", "Team")];
+
     private readonly AccountModel _model = new();
     private string? _submission;
 
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Created account for {m.FullName} <{m.Email}>").Class("flex flex-col gap-2")[
-            // One line per field — the Floating* components wrap Input/Select/Textarea + Label +
-            // ValidationMessage in Bootstrap's .form-floating markup. The label is read from each
-            // property's [Display(Name)], the input type is inferred from the property's CLR type,
-            // and validation flows from the [Required]/[Range]/etc. attributes through
-            // the built-in DataAnnotations pass. Every property is nullable — Rask clears to null.
-            FloatingInput.Bind(() => _model.FullName),
-            FloatingInput.Bind(() => _model.Email),
-            FloatingInput.Bind(() => _model.Age),
-            FloatingSelect.Bind(() => _model.Plan)[
-                Option.Value("")["— choose —"],
-                Option.Value("free")["Free"],
-                Option.Value("pro")["Pro"],
-                Option.Value("team")["Team"]
-            ],
-            FloatingTextarea.Bind(() => _model.Bio),
+            // One line per field. A labelled kit text field floats its label by default: the caption sits in
+            // the field until there is content, then rises out of the way. The label is the field's real
+            // <label>, linked to the control, and each bound field shows its own validation message, fed by
+            // the [Required]/[Range]/etc. attributes through the built-in DataAnnotations pass. Every property
+            // is nullable — Rask clears to null.
+            UiInput.Bind(() => _model.FullName).Label("Full name").Id("ff-FullName"),
+            UiInput.Bind(() => _model.Email).Label("Email address").Type(InputType.Email).Id("ff-Email"),
+            UiInput.Bind(() => _model.Age).Label("Age").Id("ff-Age"),
+            UiSelect.Bind(() => _model.Plan).Options(Plans).Label("Plan").Placeholder("— choose —").Id("ff-Plan"),
+            UiTextarea.Bind(() => _model.Bio).Label("Short bio").Id("ff-Bio"),
             Div.Class("mt-1")[
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.UserPlus), "Create account"]
             ]
@@ -38,25 +34,20 @@ public sealed partial class FloatingLabelsDemo : Component
 
 public sealed class AccountModel
 {
-    [Display(Name = "Full name")]
     [Required(ErrorMessage = "Full name is required.")]
     [StringLength(60, MinimumLength = 2, ErrorMessage = "Full name must be 2–60 characters.")]
     public string? FullName { get; set; }
 
-    [Display(Name = "Email address")]
     [Required(ErrorMessage = "Email is required.")]
     [EmailAddress(ErrorMessage = "Enter a valid email address.")]
     public string? Email { get; set; }
 
-    [Display(Name = "Age")]
     [Range(18, 120, ErrorMessage = "Age must be between 18 and 120.")]
     public int? Age { get; set; }
 
-    [Display(Name = "Plan")]
     [Required(ErrorMessage = "Pick a plan.")]
     public string? Plan { get; set; }
 
-    [Display(Name = "Short bio")]
     [StringLength(200, ErrorMessage = "Bio must be 200 characters or fewer.")]
     public string? Bio { get; set; }
 }

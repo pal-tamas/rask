@@ -117,14 +117,15 @@ public sealed partial class UiKitDataInputDemo : Component
 
         Section(
             "Labels",
-            "A caption inside the field's own frame, and one that rises out of the way when there is "
-            + "content. Both are decoration: the control keeps its own accessible name.",
+            "A labelled text field floats its label by default: the caption sits in the field until there "
+            + "is content, then rises out of the way, and it is the field's real label. Floating(false) puts "
+            + "it above the field instead. A caption inside the frame, for a unit or a currency, is only "
+            + "decoration, so that field is named separately.",
             Div.Data(Testid("ui-labels")).Class("grid gap-3 sm:grid-cols-2")[
+                UiInput.Of<string>().Key("float").Label("Company"),
+                UiInput.Of<string>().Key("legend").Label("Company number").Floating(false),
                 UiLabel.Key("price").Text("€").Trailing("per month")[
-                    UiInput.Of<string>().Label("Price").Placeholder("29")
-                ],
-                UiFloatingLabel.Key("float").Text("Company")[
-                    UiInput.Of<string>().Label("Company").Placeholder("Company")
+                    UiInput.Of<string>().AccessibleLabel("Price per month").Placeholder("29")
                 ]
             ]),
 

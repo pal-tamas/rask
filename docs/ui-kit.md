@@ -302,7 +302,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiFloatingLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiNotice` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
@@ -379,6 +379,20 @@ Form.Model(_order)[
     UiMultiSelect.Bind(() => _order.Tags).Options(tags).Label("Tags")
 ]
 ```
+
+**A labelled text field floats its label.** `UiInput`, `UiTextarea` and a native `UiSelect` draw `Label`
+as daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
+way. It is still the field's real `<label>`, linked to the control. `Floating(false)` puts it back above
+the field as a legend. Controls with no text to float over keep the legend: checkboxes, ranges, ratings,
+and a `UiSelect` that draws its own list.
+
+```csharp
+UiInput.Bind(() => _account.Email).Label("Email")                   // floats
+UiInput.Bind(() => _account.Seats).Label("Seats").Floating(false)   // legend above the field
+```
+
+A floating caption rises from a *shown* placeholder, so the placeholder falls back to the label text when
+you give none.
 
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two

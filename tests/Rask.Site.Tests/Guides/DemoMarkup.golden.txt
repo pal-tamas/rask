@@ -2412,25 +2412,30 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-2
-div .mb-3 .relative
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-label
-div .mb-3 .relative
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-label
-div .mb-3 .relative
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-label
-div .mb-3 .relative
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
+div .fieldset
+label .floating-label
+span
+input .input .validator
+div .fieldset
+label .floating-label
+span
+input .input .validator
+div .fieldset
+label .floating-label
+span
+select .select .validator
 option
 option
 option
 option
-label
-div .mb-3 .relative
-textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-label
+div .fieldset
+label .floating-label
+span
+textarea .textarea .validator
 div .mt-1
 button .btn .btn-primary
 svg .shrink-0 .size-5

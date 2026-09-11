@@ -13,8 +13,18 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiTextarea<T> : UiFormField<T>
 {
-
+    /// <summary>
+    ///     Shown in the empty field. Defaults to the label when the label floats — see <see cref="Floating" />.
+    /// </summary>
     public string? Placeholder { get; set; }
+
+    /// <inheritdoc cref="UiInput{T}.Floating" />
+    public bool? Floating { get; set; }
+
+    /// <inheritdoc />
+    private protected override bool FloatsLabel => Floating != false;
+
+    private string PlaceholderText => Placeholder ?? (Label is not null && FloatsLabel ? Label : string.Empty);
 
     public int? Rows { get; set; }
 
@@ -34,7 +44,7 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
                 .Id(FieldId)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
-                .Placeholder(Placeholder ?? string.Empty)
+                .Placeholder(PlaceholderText)
                 .Rows(Rows ?? 3)
                 .Aria(ControlAria())
                 .Disabled(Disabled == true)
@@ -45,7 +55,7 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
             .Value(Value)
             .Id(FieldId)
             .OnChange(OnChange)
-            .Placeholder(Placeholder ?? string.Empty)
+            .Placeholder(PlaceholderText)
             .Rows(Rows ?? 3)
             .Aria(ControlAria())
             .Disabled(Disabled == true)

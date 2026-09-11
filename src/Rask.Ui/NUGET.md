@@ -86,7 +86,7 @@ and a reset arriving from a library restyles pages that never asked for it.
 | Data display | `UiAccordion` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiTextRotate` `UiTimeline` |
 | Navigation | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMenu` `UiNavbar` `UiPagination` `UiSteps` `UiTabs` |
 | Feedback | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| Data input | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiFloatingLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| Data input | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | Layout | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | Mockup | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | Chrome | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiTopLink` `UiMain` `UiHeader` `UiMetricRow` `UiDetailList` `UiCode` `UiSearch` |

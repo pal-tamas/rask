@@ -1037,13 +1037,13 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("pre code.language-csharp span").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Floating labels: the reusable Floating* wrappers (input/select/textarea). An empty submit
-        // surfaces .field-error under a field (always shown -- there is no is-invalid
-        // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
-        // unit-tested.)
+        // Floating labels: kit fields, which float a label by default (input/select/textarea). An empty
+        // submit shows the field's own message under it — asserted by its TEXT, which is the contract, not
+        // by a class a restyle may rename; a valid submit reaches the success banner. (The floating
+        // structure and the ids are unit-tested.)
         var floatingForm = Page.Locator("form:has(#ff-FullName)");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
-        await Expect(floatingForm.Locator(".field-error").First)
+        await Expect(floatingForm.GetByText("Full name is required."))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await floatingForm.Locator("#ff-FullName").FillAsync("Ada Lovelace");
         await floatingForm.Locator("#ff-Email").FillAsync("ada@example.com");

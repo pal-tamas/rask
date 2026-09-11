@@ -40,6 +40,27 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A labelled `UiInput`, `UiTextarea` or native `UiSelect` floats its label by default.** It uses
+  daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
+  way. It is still the field's real `<label>`, linked by `for`/`id` as well as by holding the control.
+  `Floating(false)` puts the label back above the field as a legend. A checkbox, range, rating or other
+  control with no text to float over keeps the legend, and so does a `UiSelect` that draws its own list.
+  A field with no `Label` renders exactly as before.
+
+  When the label floats, the placeholder falls back to the label text. daisyUI raises the caption from a
+  *shown* placeholder, and an empty one never counts as shown, so the caption would sit risen over an
+  empty box.
+
+  Holding the control inside the label takes it out of daisyUI's sibling selector for `.validator-hint`,
+  the failure that once kept an `Error` message invisible behind a wrapping legend. A kit stylesheet rule
+  reveals the hint through the label instead.
+
+  **`UiFloatingLabel` is deleted.** It wrapped a field that already carried its own label, so the kit
+  showcase drew two captions around one input. The site's Bootstrap-era `FloatingInput`, `FloatingSelect`
+  and `FloatingTextarea` helpers are gone too: the floating-labels demo is five kit fields, and
+  `Tw.FormFloating` goes with them. So do four constants nothing used: `Tw.Progress`, `Tw.ProgressBar`,
+  `Tw.NavLink` and `Tw.NavTabs`.
+
 - **`UiButton`, `UiBadge` and `UiAlert` are their elements too, and what they show is their children.**
   They move onto `UiElement`, so `UiButton` is the `<button>` (or the `<a>`, given `Href`), `UiBadge` the
   `<span>` and `UiAlert` the `<div>`. The props they mirrored from `Element` are retired: `Id`, `Class`,

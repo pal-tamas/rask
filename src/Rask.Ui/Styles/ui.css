@@ -683,3 +683,24 @@
     height: 1em;
   }
 }
+
+/*
+  AN ERROR HINT UNDER A FLOATING LABEL HAS TO BE REVEALED THROUGH THE LABEL.
+
+  daisyUI reveals `.validator-hint` with a GENERAL SIBLING selector from the control:
+  `:is(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"]), …) ~ .validator-hint`.
+  A floating label cannot keep the control a sibling of its hint — daisyUI draws the caption as the first
+  child of a <label> that HOLDS the control — so every kit text field that floats its label (the default)
+  put its hint out of that selector's reach. The hint would render with the right text and stay
+  `visibility: hidden`, the exact failure a browser test caught once already for a wrapping legend.
+
+  So the same two conditions are asked of the label's CONTENTS instead. Visibility and the error colour are
+  mirrored; daisyUI's `display: revert-layer` companion is not, because the kit never writes a hint with the
+  `hidden` utility it exists to undo.
+*/
+@layer rask-ui-corrections {
+  .floating-label:has(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"])) ~ .validator-hint {
+    visibility: visible;
+    color: var(--color-error);
+  }
+}

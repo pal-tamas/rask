@@ -82,24 +82,9 @@ public static class Tw
     public const string Spinner =
         "inline-block size-5 animate-spin rounded-full border-2 border-current border-r-transparent";
 
-    /// <summary>A progress track.</summary>
-    public const string Progress = "h-2 w-full overflow-hidden rounded-full bg-ui-line";
-
-    /// <summary>The filled part of a progress track.</summary>
-    public const string ProgressBar = "h-full bg-ui-brand transition-all";
-
-    /// <summary>A tab-shaped navigation link.</summary>
-    public const string NavLink = "rounded-md px-3 py-1.5 text-sm no-underline hover:bg-ui-well";
-
-    /// <summary>A row of tabs.</summary>
-    public const string NavTabs = "flex flex-wrap items-center gap-1 border-b border-ui-line";
-
     /// <summary>A pulled quote.</summary>
     public const string Blockquote = "border-l-4 border-ui-line pl-4 italic text-ui-muted";
 
     /// <summary>A caption under a figure.</summary>
     public const string FigureCaption = "mt-2 text-sm text-ui-muted";
-
-    /// <summary>A field whose label floats over the control.</summary>
-    public const string FormFloating = "relative";
 }

@@ -12,8 +12,10 @@ namespace Rask.Ui.Tests.Components;
 ///     control renders, clicking the text does nothing, and a screen reader announces an unnamed field.
 ///     </para>
 ///     <para>
-///     So these assert the ASSOCIATION, not the appearance. The label wraps its control, which is what
-///     makes the link exist without an id to mint, keep unique down a list, or thread through a template.
+///     So these assert the ASSOCIATION, not the appearance. A legend points at its control by
+///     <c>for</c>/<c>id</c> and stays its sibling, which is what daisyUI's sibling-selector validator
+///     message needs; a floating label — the default for a text field — also holds its control, and
+///     <c>UiFloatingFieldTests</c> covers that shape.
 ///     </para>
 /// </remarks>
 public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
@@ -26,10 +28,12 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_label_points_at_its_control_and_the_id_is_derived_when_absent()
     {
-        // for/id rather than wrapping, and the reason is daisyUI: it reveals a validator message with a
-        // GENERAL SIBLING selector, so a control moved inside its label stops being a sibling of its own
-        // message — which rendered, carried the right text, and stayed hidden for the life of the page.
-        var html = UiInput.Value("").Label("Username").ToHtml();
+        // A LEGEND links by for/id rather than wrapping, and the reason is daisyUI: it reveals a validator
+        // message with a GENERAL SIBLING selector, so a control moved inside its label stops being a sibling
+        // of its own message — which rendered, carried the right text, and stayed hidden for the life of the
+        // page. Floating(false) asks for the legend; a floating label wraps on purpose and the kit's
+        // stylesheet reveals its message instead.
+        var html = UiInput.Value("").Label("Username").Floating(false).ToHtml();
 
         Assert.Contains("for=\"f-username\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"f-username\"", html, StringComparison.Ordinal);
@@ -158,11 +162,13 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // declared its own Label and kept it would pass every other test in this file while rendering the
         // old markup.
         // Options FIRST: it is a required prop, so the chain stays "pending" — and the optional steps
-        // are not offered — until every required one is taken.
+        // are not offered — until every required one is taken. Floating(false) because the sibling shape is
+        // the legend's; the floating one is UiFloatingFieldTests'.
         var html = UiSelect
             .Value("hu")
             .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
             .Label("Country")
+            .Floating(false)
             .Hint("Where you are billed")
             .ToHtml();
 

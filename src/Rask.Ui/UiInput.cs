@@ -27,7 +27,26 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiInput<T> : UiFormField<T>
 {
+    /// <summary>
+    ///     Shown in the empty field. Defaults to the label when the label floats — see <see cref="Floating" />.
+    /// </summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>
+    ///     Whether a <c>Label</c> floats: sits in the field until there is content, then rises above it. On
+    ///     unless this is <see langword="false" />, which draws the label above the field instead.
+    /// </summary>
+    /// <remarks>
+    ///     daisyUI raises the caption once the control stops showing its placeholder, so a floating field
+    ///     needs one. An empty placeholder never counts as shown, which would leave the caption risen over an
+    ///     empty box, so <see cref="Placeholder" /> falls back to the label text.
+    /// </remarks>
+    public bool? Floating { get; set; }
+
+    /// <inheritdoc />
+    private protected override bool FloatsLabel => Floating != false;
+
+    private string PlaceholderText => Placeholder ?? (Label is not null && FloatsLabel ? Label : string.Empty);
 
     public InputType? Type { get; set; }
 
@@ -104,7 +123,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             .Autofocus(Autofocus == true)
             .List(List)
             .Type(Type)
-                .Placeholder(Placeholder ?? string.Empty)
+                .Placeholder(PlaceholderText)
                 .Aria(ControlAria())
                 .Disabled(Disabled == true)
                 .Class(BoxClass());
@@ -123,7 +142,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             .Autofocus(Autofocus == true)
             .List(List)
             .Type(Type)
-            .Placeholder(Placeholder ?? string.Empty)
+            .Placeholder(PlaceholderText)
             .Aria(ControlAria())
             .Disabled(Disabled == true)
             .Class(BoxClass());
