@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Diagnostics.DevTools;
+using Rask.Server.DevTools;
 
 namespace Rask.DevTools.Tests;
 
@@ -24,6 +25,16 @@ public sealed class DevToolsBootstrapTests
 
         Assert.True(RaskDevToolsLoader.Attach(services));
         Assert.Contains(services, d => d.ServiceType == typeof(DevToolsRegistration));
+    }
+
+    [Fact]
+    public void Attaching_on_the_server_face_registers_the_endpoints_UseRask_maps()
+    {
+        var services = new ServiceCollection();
+
+        RaskDevToolsLoader.Attach(services);
+
+        Assert.Contains(services, d => d.ServiceType == typeof(IRaskServerDevTools));
     }
 
     [Fact]

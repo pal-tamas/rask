@@ -32,7 +32,7 @@ public sealed class DebuggerBreakOnFaultTests
         // The debugger already stops on the throw line; a break here is the second, redundant stop.
         var dispatch = typeof(Component)
             .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
-            .Single(m => m.Name == "TryInvokeHandlerAsync" && m.GetParameters().Length == 4);
+            .Single(m => m.Name == "TryInvokeHandlerCoreAsync");
 
         Assert.Null(dispatch.GetCustomAttribute<DebuggerDisableUserUnhandledExceptionsAttribute>());
         Assert.DoesNotContain(

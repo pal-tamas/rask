@@ -32,20 +32,68 @@
   </ItemGroup>
 
   <!--
-    The server face also carries the editor-launched dev session (Server/): an app VS Code's F5 started under
-    its debugger is served on https://<name>.test when `rask dev` has already set that name up, and says where
-    the browser should go. It binds Kestrel, so it needs ASP.NET — on this face only; the browser face has no
-    Kestrel to bind. The dev-host layout is source-linked from the one place `rask dev` also compiles it from,
-    so the name and the certificate this finds are exactly the ones `rask dev` made.
+    The Server face. Rask.Server is PrivateAssets="all" too: only its AddRask runs the Server half of the
+    bootstrap, so any app in which that code runs already references the host. Declaring it would pull the
+    Server host into a net10.0 app that referenced the devtools without one.
+
+    It also carries the editor-launched dev session (Server/): an app VS Code's F5 started under its debugger is
+    served on https://<name>.test when `rask dev` has already set that name up, and says where the browser should
+    go. The dev-host layout is source-linked from the one place `rask dev` also compiles it from, so the name and
+    the certificate this finds are exactly the ones `rask dev` made. Only the layout files: EditorDevSession and
+    IslandDevPointer arrive with Rask.Server, whose internals this assembly sees, and a second copy of either
+    would conflict with that one (CS0436).
   -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
-    <Compile Include="..\Rask.Hosting.Shared\Dev\*.cs" Link="Shared\Dev\%(Filename)%(Extension)"/>
+    <ProjectReference Include="..\Rask.Server\Rask.Server.csproj" PrivateAssets="all"/>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-host.js"
+                      LogicalName="Rask.DevTools.Resources.rask-devtools-host.js"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevHostName.cs" Link="Shared\Dev\DevHostName.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevHostFiles.cs" Link="Shared\Dev\DevHostFiles.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevHostPaths.cs" Link="Shared\Dev\DevHostPaths.cs"/>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
-    <Compile Remove="Server\**"/>
+  <!-- The browser face has no Server host to map endpoints on, and no Kestrel to bind. -->
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net10.0' ">
+    <Compile Remove="DevToolsBootstrap.Server.cs;Endpoints\**;Server\**"/>
   </ItemGroup>
+
+  <!--
+    Every file the host bundle can reach, so an edit to any of them re-bundles (a target's Inputs does not
+    expand wildcards itself). Under Resources/ like the hosts' own runtimes, and for the same reason: the
+    scoped-TypeScript glob in Rask.Core.targets excludes that folder. Anywhere else the host script would be
+    compiled as a component's scoped asset and handed to the generators.
+  -->
+  <ItemGroup>
+    <_RaskDevToolsHostTs Include="Resources\**\*.ts" Exclude="Resources\**\*.d.ts"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Minified in Release only, so a Debug build stays readable in the browser's debugger. -->
+    <_RaskEsbuildMinify Condition=" '$(Configuration)' == 'Release' ">--minify</_RaskEsbuildMinify>
+  </PropertyGroup>
+
+  <!--
+    The host script, bundled the way Rask.Server bundles rask.js: an iife delivered by a plain <script src>,
+    es2019 like the runtime it sits beside, embedded for the endpoint to serve.
+  -->
+  <Target Name="_RaskDevToolsBundleHostJs" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
+          Condition=" '$(TargetFramework)' == 'net10.0' "
+          Inputs="@(_RaskDevToolsHostTs)"
+          Outputs="$(IntermediateOutputPath)rask-devtools-host.js">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-devtools-host.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-devtools-host.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
 
   <ItemGroup>
     <!--

@@ -1,4 +1,88 @@
 #nullable enable
+Rask.Dashboard.Pages.StoragePage
+Rask.Dashboard.Pages.StoragePage.Search.get -> string?
+Rask.Dashboard.Pages.StoragePage.Search.set -> void
+Rask.Dashboard.Pages.StoragePage.StoragePage(Rask.Dashboard.Panels.IStoragePanelReader! storage, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, Rask.Core.Routing.Navigator! navigator) -> void
+Rask.Dashboard.Pages.__RaskNav_StoragePage
+Rask.Dashboard.Pages.__RaskNav_StoragePage.extension(Rask.Dashboard.Pages.StoragePage!)
+Rask.Dashboard.Panels.IStoragePanelReader
+Rask.Dashboard.Panels.IStoragePanelReader.IsAvailable.get -> bool
+Rask.Dashboard.Panels.IStoragePanelReader.PageAsync(string? search, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.StoredFileRow!>! Rows, int Total)>!
+Rask.Dashboard.Panels.IStoragePanelReader.StatsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.StorageStats>!
+Rask.Dashboard.Panels.ProviderUsage
+Rask.Dashboard.Panels.ProviderUsage.<Clone>$() -> Rask.Dashboard.Panels.ProviderUsage!
+Rask.Dashboard.Panels.ProviderUsage.Bytes.get -> long
+Rask.Dashboard.Panels.ProviderUsage.Bytes.init -> void
+Rask.Dashboard.Panels.ProviderUsage.Deconstruct(out Rask.Storage.StorageProvider Provider, out int Files, out long Bytes) -> void
+Rask.Dashboard.Panels.ProviderUsage.Equals(Rask.Dashboard.Panels.ProviderUsage? other) -> bool
+Rask.Dashboard.Panels.ProviderUsage.Files.get -> int
+Rask.Dashboard.Panels.ProviderUsage.Files.init -> void
+Rask.Dashboard.Panels.ProviderUsage.Provider.get -> Rask.Storage.StorageProvider
+Rask.Dashboard.Panels.ProviderUsage.Provider.init -> void
+Rask.Dashboard.Panels.ProviderUsage.ProviderUsage(Rask.Storage.StorageProvider Provider, int Files, long Bytes) -> void
+Rask.Dashboard.Panels.StorageStats
+Rask.Dashboard.Panels.StorageStats.ActiveProvider.get -> Rask.Storage.StorageProvider
+Rask.Dashboard.Panels.StorageStats.ActiveProvider.init -> void
+Rask.Dashboard.Panels.StorageStats.ByProvider.get -> System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.ProviderUsage!>!
+Rask.Dashboard.Panels.StorageStats.ByProvider.init -> void
+Rask.Dashboard.Panels.StorageStats.Bytes.get -> long
+Rask.Dashboard.Panels.StorageStats.Bytes.init -> void
+Rask.Dashboard.Panels.StorageStats.Deconstruct(out int Files, out long Bytes, out int Public, out System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.ProviderUsage!>! ByProvider, out Rask.Storage.StorageProvider ActiveProvider, out System.TimeSpan SweepInterval, out System.TimeSpan OrphanGracePeriod) -> void
+Rask.Dashboard.Panels.StorageStats.Equals(Rask.Dashboard.Panels.StorageStats other) -> bool
+Rask.Dashboard.Panels.StorageStats.Files.get -> int
+Rask.Dashboard.Panels.StorageStats.Files.init -> void
+Rask.Dashboard.Panels.StorageStats.OrphanGracePeriod.get -> System.TimeSpan
+Rask.Dashboard.Panels.StorageStats.OrphanGracePeriod.init -> void
+Rask.Dashboard.Panels.StorageStats.Public.get -> int
+Rask.Dashboard.Panels.StorageStats.Public.init -> void
+Rask.Dashboard.Panels.StorageStats.StorageStats() -> void
+Rask.Dashboard.Panels.StorageStats.StorageStats(int Files, long Bytes, int Public, System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.ProviderUsage!>! ByProvider, Rask.Storage.StorageProvider ActiveProvider, System.TimeSpan SweepInterval, System.TimeSpan OrphanGracePeriod) -> void
+Rask.Dashboard.Panels.StorageStats.SweepInterval.get -> System.TimeSpan
+Rask.Dashboard.Panels.StorageStats.SweepInterval.init -> void
+Rask.Dashboard.Panels.StoredFileRow
+Rask.Dashboard.Panels.StoredFileRow.<Clone>$() -> Rask.Dashboard.Panels.StoredFileRow!
+Rask.Dashboard.Panels.StoredFileRow.ContentType.get -> string!
+Rask.Dashboard.Panels.StoredFileRow.ContentType.init -> void
+Rask.Dashboard.Panels.StoredFileRow.CreatedAt.get -> System.DateTime
+Rask.Dashboard.Panels.StoredFileRow.CreatedAt.init -> void
+Rask.Dashboard.Panels.StoredFileRow.Deconstruct(out System.Guid Id, out string! Name, out string! ContentType, out long Size, out Rask.Storage.StorageProvider Provider, out bool Public, out System.DateTime CreatedAt) -> void
+Rask.Dashboard.Panels.StoredFileRow.Equals(Rask.Dashboard.Panels.StoredFileRow? other) -> bool
+Rask.Dashboard.Panels.StoredFileRow.Id.get -> System.Guid
+Rask.Dashboard.Panels.StoredFileRow.Id.init -> void
+Rask.Dashboard.Panels.StoredFileRow.Name.get -> string!
+Rask.Dashboard.Panels.StoredFileRow.Name.init -> void
+Rask.Dashboard.Panels.StoredFileRow.Provider.get -> Rask.Storage.StorageProvider
+Rask.Dashboard.Panels.StoredFileRow.Provider.init -> void
+Rask.Dashboard.Panels.StoredFileRow.Public.get -> bool
+Rask.Dashboard.Panels.StoredFileRow.Public.init -> void
+Rask.Dashboard.Panels.StoredFileRow.Size.get -> long
+Rask.Dashboard.Panels.StoredFileRow.Size.init -> void
+Rask.Dashboard.Panels.StoredFileRow.StoredFileRow(System.Guid Id, string! Name, string! ContentType, long Size, Rask.Storage.StorageProvider Provider, bool Public, System.DateTime CreatedAt) -> void
+override Rask.Dashboard.Panels.ProviderUsage.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.ProviderUsage.GetHashCode() -> int
+override Rask.Dashboard.Panels.ProviderUsage.ToString() -> string!
+override Rask.Dashboard.Panels.StorageStats.GetHashCode() -> int
+override Rask.Dashboard.Panels.StoredFileRow.Equals(object? obj) -> bool
+override Rask.Dashboard.Panels.StoredFileRow.GetHashCode() -> int
+override Rask.Dashboard.Panels.StoredFileRow.ToString() -> string!
+static Rask.Dashboard.Pages.Routes.StoragePage(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_StoragePage.Go(string? Search = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_StoragePage.Url(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Pages.__RaskNav_StoragePage.extension(Rask.Dashboard.Pages.StoragePage!).Go(string? Search = null, bool replace = false) -> void
+static Rask.Dashboard.Pages.__RaskNav_StoragePage.extension(Rask.Dashboard.Pages.StoragePage!).Url(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Panels.ProviderUsage.operator !=(Rask.Dashboard.Panels.ProviderUsage? left, Rask.Dashboard.Panels.ProviderUsage? right) -> bool
+static Rask.Dashboard.Panels.ProviderUsage.operator ==(Rask.Dashboard.Panels.ProviderUsage? left, Rask.Dashboard.Panels.ProviderUsage? right) -> bool
+static Rask.Dashboard.Panels.StorageStats.Empty.get -> Rask.Dashboard.Panels.StorageStats
+static Rask.Dashboard.Panels.StorageStats.operator !=(Rask.Dashboard.Panels.StorageStats left, Rask.Dashboard.Panels.StorageStats right) -> bool
+static Rask.Dashboard.Panels.StorageStats.operator ==(Rask.Dashboard.Panels.StorageStats left, Rask.Dashboard.Panels.StorageStats right) -> bool
+static Rask.Dashboard.Panels.StoredFileRow.operator !=(Rask.Dashboard.Panels.StoredFileRow? left, Rask.Dashboard.Panels.StoredFileRow? right) -> bool
+static Rask.Dashboard.Panels.StoredFileRow.operator ==(Rask.Dashboard.Panels.StoredFileRow? left, Rask.Dashboard.Panels.StoredFileRow? right) -> bool
+static RaskBuilderSettersRask_Dashboard.Search(this Rask.Dashboard.Pages.StoragePage! __b, string? value) -> Rask.Dashboard.Pages.StoragePage!
+static RaskBuilderSettersRask_Dashboard.__RaskResetEager_Rask_Dashboard_Pages_StoragePage(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskResetPending_Rask_Dashboard_Pages_StoragePage(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskEntriesRask_Dashboard.StoragePage.get -> Rask.Dashboard.Pages.StoragePage!
+~override Rask.Dashboard.Panels.StorageStats.Equals(object obj) -> bool
+~override Rask.Dashboard.Panels.StorageStats.ToString() -> string
 Rask.Dashboard.DashboardSecurityState
 Rask.Dashboard.DashboardSecurityState.DashboardSecurityState() -> void
 Rask.Dashboard.DashboardSecurityState.FallbackIsOpen.get -> bool

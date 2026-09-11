@@ -98,6 +98,7 @@ internal static partial class ProjectGenerator
         # .eml files you can open, and the scheduled point-in-time backups land here.
         mail-pickup/
         snapshots/
+        storage/
 
         # Publish output
         publish/

@@ -129,7 +129,9 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
 
         protected override string? ManifestUrl => "/_content/Acme.Ui/_rask/external/manifest.json";
 
-        protected override string WriteProps() => "{}";
+        protected override void WriteProps(Utf8JsonWriter writer)
+        {
+        }
     }
 
     [Fact]
@@ -312,27 +314,8 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
         Assert.EndsWith("></rask-external>", html, StringComparison.Ordinal);
     }
 
-    private static string Render(Component component)
-    {
-        var sb = new StringBuilder();
-        HtmlSerializer.Serialize(component, sb);
-        return sb.ToString();
-    }
+    private static string Render(Component component) => IslandHtml.Render(component);
 
     /// <summary>The props attribute's decoded JSON.</summary>
-    private static string ReadProps(string html)
-    {
-        const string marker = " props=\"";
-        var start = html.IndexOf(marker, StringComparison.Ordinal);
-        Assert.True(start >= 0, $"no props attribute in: {html}");
-
-        start += marker.Length;
-        var end = html.IndexOf('"', start);
-        Assert.True(end > start, $"unterminated props attribute in: {html}");
-
-        // The serializer HTML-encodes the attribute value, so the quotes inside the JSON arrive as
-        // &quot;. Decoding here rather than asserting on the encoded form keeps the tests about the
-        // props rather than about HTML escaping.
-        return System.Net.WebUtility.HtmlDecode(html[start..end]);
-    }
+    private static string ReadProps(string html) => IslandHtml.ReadProps(html);
 }

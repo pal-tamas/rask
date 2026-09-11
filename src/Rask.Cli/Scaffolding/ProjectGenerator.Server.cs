@@ -94,6 +94,11 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.Cache");
         }
 
+        if (batteries.Storage)
+        {
+            packages.Add("Rask.Storage");
+        }
+
         if (batteries.AnySqliteOps)
         {
             packages.Add("Rask.SQLite.Snapshots");
@@ -196,6 +201,12 @@ internal static partial class ProjectGenerator
         {
             usings.Append("using Rask.Cache;\n");
             schema.Append("\n        modelBuilder.AddRaskCache();");
+        }
+
+        if (batteries.Storage)
+        {
+            usings.Append("using Rask.Storage;\n");
+            schema.Append("\n        modelBuilder.AddRaskStorage();");
         }
 
         // Accounts, unconditionally: the auth battery is ON by default, so every app with a database

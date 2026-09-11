@@ -100,6 +100,10 @@ It has to be a **constant string** ([RASK059](diagnostics.md#rask059)). The bund
 time to generate the entry module, long before any of this code runs, so anything computed would
 leave the browser resolving a name the bundle never built.
 
+A `Module` that names a package rather than a file makes a **package island**, whose props can come from the
+package's own TypeScript instead of being declared here — see
+[Using a package component directly](#using-a-package-component-directly).
+
 ### It costs the inheritance slot, and that is the trade
 
 A component already extending `BsBlock` or your own base cannot also be a `ReactComponent` — C# gives
@@ -190,6 +194,111 @@ export default function Spark({ caption }: SparkProps) {   // ✗ renders once, 
   return <div>{caption}</div>
 }
 ```
+
+## Using a package component directly
+
+A component you did not write needs no wrapper. Point the class at the package, and its props come from the
+package's own TypeScript — the way a [Blazor island](blazor-components.md) reads `MudButton`'s `[Parameter]`s:
+
+```csharp
+// Features/Shop/MuiButton.cs — no MuiButton.tsx beside it
+public sealed partial class MuiButton : ReactComponent
+{
+    protected override string Module => "@mui/material/Button";
+}
+```
+
+```csharp
+MuiButton
+    .Variant(MuiButtonVariant.Contained)
+    .Size(MuiButtonSize.Small)
+    .Disabled(saving)
+    .OnClick(() => Save())
+```
+
+A `Module` that names a package rather than a file — anything not starting with `./`, `../`, `/` or `#` — makes
+this a **package island**. A named export is written after a `#`: `"@mui/material#Button"` imports `Button`
+from `@mui/material`, and a specifier without one imports the default export.
+
+### The snapshot is committed
+
+The props are read from `MuiButton.props.json`, beside the class. It is committed like a lockfile: a fresh
+clone, the IDE and a build with no Node installed all see every chain step, and a package upgrade shows up in
+review as a diff of what the component accepts.
+
+```json
+{
+  "schema": 1,
+  "runtime": "react",
+  "module": "@mui/material/Button",
+  "export": "default",
+  "package": { "name": "@mui/material", "version": "7.3.1" },
+  "props": [
+    { "name": "variant", "doc": "The variant to use.", "default": "'text'",
+      "type": { "kind": "enum", "base": "string", "values": ["contained", "outlined", "text"] } },
+    { "name": "disabled", "type": { "kind": "boolean" } },
+    { "name": "onClick",
+      "type": { "kind": "callback", "args": [ { "name": "event", "type": { "kind": "event", "name": "MouseEvent" } } ] } }
+  ],
+  "skipped": [ { "name": "children", "reason": "node" } ]
+}
+```
+
+The snapshot names the runtime and module it describes. When the class beside it names another — a different
+base class, a different export — nothing is generated ([RASK079](diagnostics.md#rask079)).
+
+### How the TypeScript maps
+
+| TypeScript | C# step | Sent as |
+|---|---|---|
+| `string` | `string?` | the string |
+| `number` | `double?` — `.Elevation(2)` still binds | the number |
+| `boolean` | `bool?` | `true`/`false` |
+| `'text' \| 'outlined' \| 'contained'` | a generated `MuiButtonVariant` enum | **the literal**, never a number |
+| `string \| number` | a generated struct that takes either | the string or the number |
+| `T[]`, `Record<string, T>` | `IReadOnlyList<T>?`, `IReadOnlyDictionary<string, T>?` | an array, an object |
+| an object type | a generated `sealed record` | an object, unset members left out |
+| `Date` | `DateTimeOffset?` | tagged, so the browser gets a `Date` |
+| a callback | `Callback?`, or `Callback<T>?` when it passes a value | a handler reference |
+
+A required prop in the package is a required step. Everything else is optional, and **an unset prop is left out
+of the JSON** rather than sent as `null`, so the package's own default applies — `Variant` unset means `'text'`,
+exactly as it would in a `.tsx`.
+
+A name no C# identifier can spell keeps the package's spelling on the wire: `aria-label` is the step
+`AriaLabel` and is sent as `"aria-label"`. A prop named after one of Rask's own members is renamed rather than
+allowed to hide it — `key` becomes `KeyProp`, because a generated `Key` would silently replace the island's
+reconciliation identity.
+
+### Callbacks never send an event
+
+A package's first callback argument is usually a DOM or synthetic event, and an event cannot cross to C#: it
+holds DOM nodes and `window`. So only values cross. `onChange(event, value: number)` is `Callback<double>`, and
+the browser forwards the number; `onClick(event)` is an argless `Callback`. A value of the wrong kind — a
+string where the package declared a number — is not delivered at all, rather than handed to C# as a default.
+
+### Declaring a prop yourself
+
+A property you declare on the island wins over the snapshot, keeps the type you gave it, and is still sent under
+the package's name. It is also the way through for a prop Rask cannot generate
+([RASK080](diagnostics.md#rask080)):
+
+```csharp
+public sealed partial class MuiButton : ReactComponent
+{
+    protected override string Module => "@mui/material/Button";
+
+    /// <summary>Any variant the app's theme defines, not only the three the typings list.</summary>
+    public string? Variant { get; set; }
+}
+```
+
+The generated `MuiButtonVariant` is not emitted then, and `.Variant("gradient")` passes a string the typings did
+not list. A `[JsonPropertyName]` on it pins a wire name of your own.
+
+An island that names a package and declares its props by hand with no snapshot — the shape the
+[`Module` override](#declaring-one) above shows for a vendor component — still works, and follows the
+package-island rules: unset props are omitted, and its callbacks forward their first argument only.
 
 ## C# owns the props
 

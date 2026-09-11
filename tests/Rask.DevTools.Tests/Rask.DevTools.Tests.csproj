@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+
+    <!-- No scoped component assets: the .ts files here are Node fixtures (see Host/), which the scoped-TS glob must
+         not claim. A property, because the csproj body evaluates before Rask.Core.targets adds the items. -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +16,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
@@ -29,11 +34,34 @@
     <!-- Rask.Core is PrivateAssets="all" from Rask.DevTools (it ships transitively from a host package),
          so an in-repo consumer must reference it directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <!-- Same reason: the devtools' Server face references the host PrivateAssets="all". -->
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <!-- NodeFixture, which runs the host-script fixtures below. -->
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The Server tests' host, shared rather than copied: the endpoint tests need the same AddRask/UseRask
+         wiring a real app gets. -->
+    <Compile Include="..\Rask.Server.Tests\Infrastructure\RaskTestHost.cs" Link="Infrastructure\RaskTestHost.cs"/>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
+
+  <!-- The host script's Node fixtures: each drives a Resources/ module against a stub DOM. -->
+  <ItemGroup>
+    <_RaskNodeFixture Include="Host\*Fixture.ts"/>
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.DevTools\Resources\**\*.ts"
+                                Exclude="..\..\src\Rask.DevTools\Resources\**\*.d.ts"/>
+  </ItemGroup>
+
+  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
 
 </Project>

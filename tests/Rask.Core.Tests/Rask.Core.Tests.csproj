@@ -15,6 +15,14 @@
       imports Rask.Core.targets, so there is no item to remove yet.
     -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+
+    <!--
+      The devtools probe seams, observable in every configuration. RaskDevTools defaults to Debug-only, but the unit
+      gate (scripts/run-unit-local.sh) runs this assembly in Release — so without this the switch is off there,
+      RaskDevToolsHook.Active is always null, and DevToolsProbeSeamTests could never see a seam fire. No probe is
+      attached outside those tests, so every other test runs exactly as before.
+    -->
+    <RaskDevTools>true</RaskDevTools>
   </PropertyGroup>
 
   <ItemGroup>
@@ -70,28 +78,7 @@
     <_RaskNodeFixture Include="Live\*Fixture.ts;Browser\*Fixture.ts"/>
   </ItemGroup>
 
-  <!-- DependsOnTargets: see PackagingContractTests.Every_generated_task_call_site_waits_for_the_reference_that_produces_it.
-       Inert at AfterTargets="Build", stated so the invariant holds without an exemption (#878). -->
-  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
-          Inputs="@(_RaskNodeFixture);@(_RaskNodeFixtureDependency)"
-          Outputs="@(_RaskNodeFixture->'$(OutDir)node-fixtures/%(Filename).mjs')">
-    <ResolveTypeScriptToolTask Tool="esbuild"
-                               Version="$(RaskEsbuildVersion)"
-                               CacheRoot="$(RaskTypeScriptCacheRoot)"
-                               Registry="$(RaskTypeScriptRegistry)"
-                               Offline="$(RaskTypeScriptOffline)">
-      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
-    </ResolveTypeScriptToolTask>
-
-    <MakeDir Directories="$(OutDir)node-fixtures"/>
-
-    <!--
-      Never minified, whatever the configuration. A fixture's failure output is read by a person
-      diagnosing a morph bug, and node's stack trace has to name something.
-    -->
-    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskNodeFixture.FullPath)&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --outfile=&quot;$(OutDir)node-fixtures/%(_RaskNodeFixture.Filename).mjs&quot;"
-          WorkingDirectory="$(MSBuildProjectDirectory)"/>
-  </Target>
+  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
 
   <!--
     The framework modules the fixtures import. Listed so an edit to the morph re-bundles them —

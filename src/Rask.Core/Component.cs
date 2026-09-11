@@ -1298,6 +1298,24 @@ public abstract partial class Component : RaskMarkup
         // mask blanks a prop the new chain has just set. Only the reset half runs on the way out —
         // firing lifecycle while an exception unwinds could throw again and swallow the original fault,
         // and it would be notifying a render that never happened.
+        // The devtools want to know WHY this render ran. The flags that say so are still intact here — they are
+        // cleared at the end of this method — and the reason is only worked out when a probe is listening.
+        //
+        // The flags come first and the empty cache last. A component reaching this line failed the cache check above,
+        // so if no flag explains it the cache was simply empty — which is also true of a re-render whose clean subtree
+        // was captured as frames, and of a component that renders null. Testing the empty cache first reported those
+        // as fresh renders no matter what had actually dirtied them.
+        var devTools = RaskDevToolsHook.Active;
+        var devToolsStart = devTools is null
+            ? 0
+            : devTools.ComponentRendering(this,
+                Live.PropsDirty ? RenderCause.Props
+                : Live.StateDirty ? RenderCause.State
+                : BypassRenderCache ? RenderCause.Forced
+                : _readsAmbientState ? RenderCause.AmbientState
+                : Children is not null && this is not Element ? RenderCause.Children
+                : RenderCause.Uncached);
+
         try
         {
             Live.CachedRenderResult = Render();
@@ -1312,6 +1330,8 @@ public abstract partial class Component : RaskMarkup
 
             throw;
         }
+
+        devTools?.ComponentRendered(this, devToolsStart);
 
         // The Head override is part of THIS component's render, not of the walk that serializes it.
         // Evaluating it here rather than at the serializer's collection point — which runs in the
@@ -1903,6 +1923,7 @@ public abstract partial class Component : RaskMarkup
         }
 
         Live.StateDirty = true;
+        RaskDevToolsHook.Active?.StateRequested(this);
         var handle = RenderHandle;
         if (handle is null)
         {
@@ -2160,12 +2181,50 @@ public abstract partial class Component : RaskMarkup
     internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
         => TryInvokeHandlerAsync(id, payload, null);
 
+    // The dispatch entry. Forwarding rather than async on purpose: with no devtools probe attached, the path every
+    // event takes gains a static read and a branch — no state-machine field, no timestamp — over calling the core
+    // directly. Anything the devtools need lives in ObserveHandlerAsync, which only an attached probe reaches.
+    internal ValueTask<bool> TryInvokeHandlerAsync(
+        string id, JsonElement payload, IServiceProvider? services, CancellationToken dispatchToken = default)
+        => RaskDevToolsHook.Active is { } devTools
+            ? ObserveHandlerAsync(devTools, id, payload, services, dispatchToken)
+            : TryInvokeHandlerCoreAsync(id, payload, services, dispatchToken);
+
+    // The devtools' view of one dispatch: which component owned the handler, how long it ran, and whether it threw.
+    //
+    // A fault an ErrorBoundary catches is answered with `true` by the core rather than thrown, so it reaches
+    // HandlerEnded without one; the boundary trip itself is what reports it.
+    private async ValueTask<bool> ObserveHandlerAsync(
+        IRaskDevToolsProbe devTools, string id, JsonElement payload, IServiceProvider? services,
+        CancellationToken dispatchToken)
+    {
+        // Resolved before the invoke: a render the handler triggers rebuilds the handler map.
+        if (Live.Handlers is null || !Live.Handlers.TryGetValue(id, out var entry))
+        {
+            return await TryInvokeHandlerCoreAsync(id, payload, services, dispatchToken).ConfigureAwait(false);
+        }
+
+        var (owner, _) = entry;
+        var start = devTools.HandlerStarting(owner, id, payload);
+        try
+        {
+            var handled = await TryInvokeHandlerCoreAsync(id, payload, services, dispatchToken).ConfigureAwait(false);
+            devTools.HandlerEnded(owner, id, start, fault: null);
+            return handled;
+        }
+        catch (Exception ex)
+        {
+            devTools.HandlerEnded(owner, id, start, ex);
+            throw;
+        }
+    }
+
     // No explicit debugger break in the catch below, on purpose. A handler's exception leaves the user's code
     // for Rask's, which a debugger with Just My Code already reports as user-unhandled: it stops on the throw
     // line itself. An explicit Debugger.BreakForUserUnhandledException here made it stop a SECOND time at the
     // same line — verified under VS Code's F5 — so the call only added a Continue press.
-    internal async ValueTask<bool> TryInvokeHandlerAsync(
-        string id, JsonElement payload, IServiceProvider? services, CancellationToken dispatchToken = default)
+    private async ValueTask<bool> TryInvokeHandlerCoreAsync(
+        string id, JsonElement payload, IServiceProvider? services, CancellationToken dispatchToken)
     {
         if (Live.Handlers is null || !Live.Handlers.TryGetValue(id, out var entry))
         {
@@ -2596,6 +2655,9 @@ public abstract partial class Component : RaskMarkup
         // Post-render alive set: union of _children across the whole tree, reachable from root.
         // Components that re-rendered have fresh _children; components that skipped kept theirs.
         CollectAlive(this, Live.AliveNow);
+
+        // Mounts and unmounts are the difference between these two sets; the devtools work that out themselves.
+        RaskDevToolsHook.Active?.TreeCommitted(this, Live.AliveNow, Live.AlivePrev);
 
         foreach (var child in Live.AliveNow)
         {

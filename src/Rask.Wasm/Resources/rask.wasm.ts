@@ -387,6 +387,9 @@ export function applyRender(payload: Uint8Array): void {
         bootFailed("The first frame from the app could not be read.", String(e));
         return;
     }
+    // The byte count, not the view: `payload` is a transient MemoryView over the .NET write buffer.
+    const devtools = window.__raskDevtoolsHook;
+    if (devtools) devtools.recv(reply, payload.byteLength);
     handle(reply);
 }
 
@@ -629,7 +632,10 @@ function applyDiffReply(reply: RaskFrameReply): unknown {
     // survive. When the new page adds a not-yet-cached scoped stylesheet, defer the body
     // ops until it loads so the swapped body never paints unstyled (FOUC).
     const applyBody = () => {
+        const devtools = window.__raskDevtoolsHook;
+        const startedAt = devtools ? performance.now() : 0;
         applyDiff((reply.ops ?? []) as DiffOp[], Array.isArray(reply.names) ? reply.names : undefined);
+        if (devtools) devtools.commit(reply, startedAt);
         applyHistory(reply.history);
         applyNavScroll(reply.history);
         // A diff can insert Head-declared external <script>/<link> and scoped-JS tags
@@ -671,7 +677,10 @@ function applyFullReply(reply: RaskFrameReply): unknown {
     // freshly-morphed DOM rather than the pre-morph one.
     const applyDom = () => {
         if (freshHtml) {
+            const devtools = window.__raskDevtoolsHook;
+            const startedAt = devtools ? performance.now() : 0;
             morph(document.documentElement, freshHtml);
+            if (devtools) devtools.commit(reply, startedAt);
             root = document.querySelector("[data-rask-root]") || document.body;
             // Pick up any newly-inserted Head-declared external assets so
             // their load events feed into the Rask.* invoke gate.
@@ -724,6 +733,8 @@ async function send(payload: unknown): Promise<void> {
         // JSExport generator doesn't support Task<byte[]> return types. JS just awaits
         // completion; the morph happens via the applyRender callback path.
         const requestBytes = _sendEncoder.encode(JSON.stringify(payload));
+        const devtools = window.__raskDevtoolsHook;
+        if (devtools) devtools.send(payload, requestBytes.length);
         await dotnetExports!.Rask!.Wasm!.JSInterop!.Dispatch!(requestBytes);
     } catch (e) {
         console.error("Rask: dispatch failed", e);
