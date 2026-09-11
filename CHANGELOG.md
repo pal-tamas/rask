@@ -295,6 +295,23 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every shipped package reads its .NET versions from one place** — the groundwork for building each package
+  for .NET 10 and .NET 11 side by side. `Directory.Build.props` now states `RaskNetTargets` /
+  `RaskBrowserTargets`, and all 39 packable projects take `<TargetFrameworks>` from them instead of spelling
+  `net10.0` out. Nothing a consumer installs changes: the packed file listing and nuspecs are identical.
+  - **Faces are chosen by platform, not by version string.** The 21 `'$(TargetFramework)' == 'net10.0'`
+    conditions that pick a package's server or browser half now ask `GetTargetPlatformIdentifier`, so a second
+    .NET version lands on the right half — one of them (`!= 'net10.0'` in Rask.DevTools) would have sent it
+    to the browser branch, and `RASK_BROWSER` would have compiled Rask.Wasm's browser build with no exports.
+  - **Rask.Core is bundled by `src/RaskCoreBundle.targets`** for Rask.Server and Rask.Wasm, through
+    `BuildOutputInPackage`, so NuGet names each `lib/` folder. The literal `lib/net10.0/` paths would have
+    shipped a second version's folder without `Rask.Core.dll` while pack stayed green.
+  - **Two new build errors keep it that way.** `RaskVerifyTargetFrameworks` fails a shipped project that writes
+    its frameworks literally (the `rask` tool is exempt: it rolls forward instead), and the public-API gate
+    maps each version onto its face's baseline (`RaskPublicApiTfm`) and refuses a `PublicAPI/<tfm>` folder no
+    build reads. `PackageDependencyTests` now follows the imports the bundling moved into, and fails if it
+    stops seeing Rask.Server and Rask.Wasm bundle Core rather than passing on nothing.
+
 - **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
   own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
   `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer`,

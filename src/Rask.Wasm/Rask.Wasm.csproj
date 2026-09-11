@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Wasm</RootNamespace>
@@ -13,7 +13,7 @@
   </PropertyGroup>
 
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
+  <PropertyGroup Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">
     <IsTrimmable>true</IsTrimmable>
     <!-- Runs the trim + AOT Roslyn analysers over the runtime's browser code so the
          warnings-as-errors build continuously guarantees a full-AOT (RunAOTCompilation=true)
@@ -131,7 +131,7 @@
       multi-targets: without this, both inner builds run the same esbuild command against the same
       output path at the same time. One inner build owns them.
     -->
-    <_RaskBundleBrowserAssets Condition=" '$(TargetFramework)' == 'net10.0-browser' ">true</_RaskBundleBrowserAssets>
+    <_RaskBundleBrowserAssets Condition=" '$(TargetFramework)' == '$(RaskPrimaryBrowserTarget)' ">true</_RaskBundleBrowserAssets>
   </PropertyGroup>
 
   <!--
@@ -216,42 +216,13 @@
     <Touch Files="$(IntermediateOutputPath)rask-bundles\rask-sw.stamp" AlwaysCreate="true"/>
   </Target>
 
-  <!--
-    Bundle Rask.Core.dll into each lib/{TFM}/ folder alongside Rask.Wasm.dll. NuGet's TFM
-    folder convention writes net10.0-browser1.0 (with the explicit platform version) for
-    the browser TFM, matching where it places Rask.Wasm.dll itself. PrivateAssets="all" on
-    the Core ProjectReference keeps the Rask.Core "package" out of the nuspec dependency
-    list — we pack its DLL explicitly here. The source generator goes at
-    analyzers/dotnet/cs/ (the generator project sets IncludeBuildOutput=false so it does
-    not flow with the consumer's build output).
-  -->
   <!-- Analyzer + generator + IDE code-fix payload packed into analyzers/dotnet/cs/ (shared with Rask.Server). -->
   <Import Project="..\RaskAnalyzerPack.targets"/>
   <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Wasm.targets. -->
   <Import Project="..\RaskCoreBuildPack.targets"/>
   <Import Project="..\RaskTailwindBuildPack.targets"/>
 
-  <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_RaskAddCoreToLib</TargetsForTfmSpecificContentInPackage>
-  </PropertyGroup>
-
-  <Target Name="_RaskAddCoreToLib">
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll"
-                              PackagePath="lib/net10.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll"
-                              PackagePath="lib/net10.0-browser1.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
-      <!-- Ship Rask.Core's XML docs next to its bundled DLL so Core's public API surfaces
-           IntelliSense for consumers too. -->
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml"
-                              PackagePath="lib/net10.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml"
-                              PackagePath="lib/net10.0-browser1.0/"
-                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
-    </ItemGroup>
-  </Target>
+  <!-- Rask.Core.dll and its XML docs into each lib/ folder, next to Rask.Wasm.dll (shared with Rask.Server). -->
+  <Import Project="..\RaskCoreBundle.targets"/>
 
 </Project>
