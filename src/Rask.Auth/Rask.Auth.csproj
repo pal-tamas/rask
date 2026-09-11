@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -109,7 +109,15 @@
                       UndefineProperties="TargetFramework"/>
   </ItemGroup>
 
-  <PropertyGroup>
+  <!--
+    Conditioned on an INNER build, for the reason Rask.Ui records at length. This project's frameworks
+    are a list (Directory.Build.props), so it is also evaluated once with NO TargetFramework — the outer
+    pass that dispatches to the inner ones, and the pass `dotnet pack` starts from. Unconditioned, the
+    path there reads obj//auth.generated.css and pack fails NU5019 on a file no build ever writes, while
+    `dotnet build` stays green because the outer pass compiles nothing. Leaving the input unset in that
+    pass means Tailwind has nothing to compile, so it skips.
+  -->
+  <PropertyGroup Condition=" '$(TargetFramework)' != '' ">
     <RaskTailwindInput>Styles/auth.css</RaskTailwindInput>
     <RaskTailwindOutput>obj/$(TargetFramework)/auth.generated.css</RaskTailwindOutput>
     <RaskTailwindMinify>true</RaskTailwindMinify>
@@ -122,7 +130,8 @@
     pages then render unstyled and a SECOND build embeds it, which is why every incremental tree
     looks fine.
 
-    Single-target, so unlike Rask.Ui there is no outer build to pack from separately.
+    Embedded only, never packed as a loose file, so unlike Rask.Ui there is nothing for the outer build
+    to pack separately.
   -->
   <Target Name="EmbedRaskAuthStylesheet"
           AfterTargets="_RaskTailwindBuild"

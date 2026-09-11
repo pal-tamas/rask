@@ -1,0 +1,4 @@
+{
+  // C# Dev Kit: the C# debugger F5 launches this app under.
+  "recommendations": ["ms-dotnettools.csdevkit"]
+}

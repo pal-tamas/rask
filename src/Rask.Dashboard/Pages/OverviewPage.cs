@@ -41,8 +41,11 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
 
         if (_queues.Count == 0)
         {
-            return DashboardEmpty.Heading("No batteries registered")
-                .Detail("Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.");
+            return UiCard[
+                UiEmpty
+                    .Heading("No batteries registered")
+                    .Detail("Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.")
+            ];
         }
 
         return [
@@ -65,14 +68,11 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         }
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
-        return Div.Role("alert")
-            .Class(
-                "mb-4 flex items-start gap-3 rounded-xl border border-ui-danger/30 bg-ui-danger/5 px-4 py-3 "
-                + "text-sm text-ui-danger sm:mb-6")[
-            UiIcon.Name(UiIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
-            Span.Class("min-w-0 break-words")[
+        return UiAlert.Tone(UiTone.Error)[
+            UiIcon.Name(UiIconName.Warning),
+            Span[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
-                Span[string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}"))],
+                string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}")),
                 ". These have run out of attempts and will not be retried."
             ]
         ];
@@ -98,44 +98,33 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     /// This was two tiles per queue, so a deployment running three of them opened on six tiles that were
     /// mostly the word "outstanding" repeated — and, at four to a row, a second row holding two. A queue is
     /// one thing, so it gets one card, and the grid divides evenly by the number of queues rather than by
-    /// twice it.
+    /// twice it. The whole card is one link, which is why its corner holds a status rather than a button.
     /// </remarks>
     private Component QueueCard(IQueuePanel panel, QueueCounts counts)
     {
         var failing = counts.Failed > 0;
 
-        return NavLink
+        return UiCard
             .Key(panel.Slug)
             .Href(Routes.QueuePage(panel.Slug))
-            .Class($"{UiStyles.Card} block no-underline transition-colors hover:bg-ui-well")[
-            Div.Class("flex items-center gap-2")[
-                UiIcon.Name(panel.Icon).Class("size-5 shrink-0 text-ui-muted"),
-                Span.Class("truncate font-medium text-ui-ink")[panel.Title],
-                Div.Class("ml-auto shrink-0")[
-                    UiStatusDot
-                        .Label(failing ? $"{counts.Failed} failed" : "healthy")
-                        .Tone(failing ? UiTone.Error : UiTone.Success)
-                ]
-            ],
-            Div.Class("mt-4 flex items-baseline gap-6")[
-                Figure("Outstanding", counts.Outstanding, tone: null),
-                Figure("Failed", counts.Failed, tone: failing ? "danger" : null)
-            ],
-            Div.Class("mt-2 truncate text-xs text-ui-muted")[
-                counts.Delayed > 0
-                    ? $"{counts.Delayed} waiting on a retry · dead after {panel.MaxAttempts} attempts"
-                    : $"nothing waiting · dead after {panel.MaxAttempts} attempts"
+            .Icon(panel.Icon)
+            .Heading(panel.Title)
+            .Action(UiStatusDot
+                .Label(failing ? $"{counts.Failed} failed" : "healthy")
+                .Tone(failing ? UiTone.Error : UiTone.Success))[
+            UiMetricRow.Columns(2)[
+                UiMetric
+                    .Key("outstanding")
+                    .Label("Outstanding")
+                    .Value(counts.Outstanding.ToString())
+                    .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting"),
+                UiMetric
+                    .Key("failed")
+                    .Label("Failed")
+                    .Value(counts.Failed.ToString())
+                    .Tone(failing ? UiTone.Error : null)
+                    .Caption($"dead after {panel.MaxAttempts} attempts")
             ]
         ];
     }
-
-    // Named Figure, not Stat or Metric: both of those are chain entries on this markup host.
-    private Component Figure(string label, int value, string? tone) =>
-        Div[
-            Div.Class("text-xs font-medium text-ui-muted")[label],
-            Div.Class("mt-0.5 text-2xl font-semibold tabular-nums tracking-tight "
-                      + (tone == "danger" ? "text-ui-danger" : "text-ui-ink"))[
-                value.ToString()
-            ]
-        ];
 }

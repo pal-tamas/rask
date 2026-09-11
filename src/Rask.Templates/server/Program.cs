@@ -130,12 +130,17 @@ builder.Services.AddRaskCqrsServer();
 // DbSet property, no configuration class, no registration — then `rask db add <Name>` /
 // `rask db update` to create and apply the migration.
 // rask:end
+// rask:if data
 //
+// rask:end
+// rask:if wasm
 // rask:ifnot data
+//
 // Remote dispatch is open to anonymous callers in this app: Rask:Cqrs:Server:RequireAuthenticatedUser
 // is false in appsettings.json, because an app with no database has no accounts to require. See the
 // note beside that key before you ship.
 builder.Services.AddRaskCqrsServer();
+// rask:end
 // rask:end
 // rask:if data
 // The generic overload is what names the context to the ambient database, so `Product.Add(…)`

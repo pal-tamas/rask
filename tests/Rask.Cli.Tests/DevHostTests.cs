@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Rask.Cli.Dev;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Tests;
 

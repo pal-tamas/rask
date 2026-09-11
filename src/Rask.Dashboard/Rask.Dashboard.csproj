@@ -3,7 +3,7 @@
   <PropertyGroup>
     <!-- Server-only: every panel reads the application's DbContext, and a WASM app has no database.
          Single-targeted (no net10.0-browser) so that constraint is enforced by the compiler. -->
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -13,7 +13,6 @@
     <Description>A built-in operator dashboard for the Rask One Person Framework batteries. Mounts at /_rask and shows the outbox, background jobs, queued mail, cache and stored files from the application's own database — queue depth, dead letters, the errors behind them, stored email previews, the recurring-job schedule, SQLite pragmas and backup status. A live log tail is built in, and becomes a searchable history when Rask.Logging is installed. Panels appear only for the batteries the app actually registered. Protected by an authorization policy that fails closed outside Development.</Description>
     <PackageTags>web component framework net10 dashboard ops admin observability jobs outbox mail cache sqlite</PackageTags>
   </PropertyGroup>
-
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
        overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
@@ -33,8 +32,9 @@
          exists on no feed and make Rask.Dashboard unrestorable. Guarded by PackageDependencyTests. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
 
-    <!-- The component kit the console is drawn with. A real package dependency, not PrivateAssets: the
-         types are Rask.Ui's and an app restoring Rask.Dashboard has to be able to resolve them. -->
+    <!-- The component kit the console is drawn with — every page, and the only stylesheet: the console writes no
+         classes of its own, so it compiles no sheet of its own. A real package dependency, not PrivateAssets:
+         the types are Rask.Ui's and an app restoring Rask.Dashboard has to be able to resolve them. -->
     <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj"/>
 
     <!-- The panels read these packages' entity types directly. Referencing all four is what lets a
@@ -51,13 +51,6 @@
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
-
-    <!-- Build-order edge only: it puts Rask.Tailwind.Tasks.dll in Rask.Tailwind's build/ folder before
-         the import below loads it with <UsingTask>. Nothing is referenced and nothing flows. -->
-    <ProjectReference Include="..\Rask.Tailwind\Rask.Tailwind.csproj"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all"
-                      SkipGetTargetFrameworkProperties="true"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -86,42 +79,5 @@
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
-
-  <!--
-    THE DASHBOARD'S OWN STYLESHEET, compiled here rather than by the consuming app.
-
-    Tailwind scans the project it runs in for class names. The dashboard ships as a compiled assembly, so
-    an app's Tailwind build cannot see these classes and would emit none of them — leaving the console
-    rendered as unstyled HTML with nothing reporting it, which is the failure this repo already hit once
-    on the front-end templates. Compiling here binds the stylesheet to the markup that needs it.
-
-    The output goes to obj/ (never scanned, never committed) and is embedded, so DashboardLayout can
-    inline it into the document. No static web assets, no Razor SDK, no endpoint to map, nothing for a
-    host to serve — which is what lets Rask.Bootstrap leave this package's dependency graph entirely.
-  -->
-  <PropertyGroup>
-    <RaskTailwindInput>Styles/dashboard.css</RaskTailwindInput>
-    <RaskTailwindOutput>obj/dashboard.generated.css</RaskTailwindOutput>
-    <RaskTailwindMinify>true</RaskTailwindMinify>
-  </PropertyGroup>
-
-  <!--
-    Added from a TARGET rather than a static ItemGroup. A static item's Condition is evaluated when the
-    project is EVALUATED, which is before any target runs — so on the first build in a fresh clone the
-    generated stylesheet does not exist yet, the item is silently absent, and the package ships with no
-    stylesheet at all. Nothing fails the build; the console just renders unstyled, and a SECOND build
-    embeds it, which is why every incremental tree looked fine. _RaskTailwindBuild runs at BeforeBuild,
-    so gathering the item between it and PrepareResourceNames sees the file on every build, first included.
-  -->
-  <Target Name="EmbedRaskDashboardStylesheet"
-          AfterTargets="_RaskTailwindBuild"
-          BeforeTargets="PrepareResourceNames">
-    <Error Condition="!Exists('$(RaskTailwindOutput)')"
-           Text="Rask.Dashboard: $(RaskTailwindOutput) was not produced. The console's stylesheet is compiled by _RaskTailwindBuild from $(RaskTailwindInput) and embedded here; shipping without it renders the console unstyled."/>
-    <ItemGroup>
-      <EmbeddedResource Include="$(RaskTailwindOutput)"
-                        LogicalName="Rask.Dashboard.dashboard.css"/>
-    </ItemGroup>
-  </Target>
 
 </Project>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Spa.Hosting</RootNamespace>
@@ -46,6 +46,14 @@
       hosts must not depend on each other. Same arrangement as src/Rask.Generators.Shared.
     -->
     <Compile Include="..\Rask.Hosting.Shared\*.cs" Link="Shared\%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- An app VS Code's F5 launched starts the bundler's dev server itself (SpaDevServer). Named file by file:
+         the rest of Rask.Hosting.Shared\Dev is the .test dev host, which this lane never serves on. -->
+    <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevScript.cs" Link="Shared\Dev\DevScript.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevServerProcess.cs" Link="Shared\Dev\DevServerProcess.cs"/>
   </ItemGroup>
 
   <ItemGroup>

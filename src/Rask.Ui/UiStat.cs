@@ -17,15 +17,22 @@ public sealed partial class UiStat : Component
     public string? Caption { get; set; }
 
     /// <summary>
-    ///     <c>danger</c> for a number an operator must act on, <c>warn</c> for one that is merely unproven.
-    ///     Anything else reads as neutral.
+    ///     <see cref="UiTone.Error" /> for a number an operator must act on, <see cref="UiTone.Warning" /> for
+    ///     one that is merely unproven. Every other tone reads as neutral.
     /// </summary>
     /// <remarks>
+    ///     <para>
     ///     Two levels rather than one boolean, and the distinction is the point: a tile that goes red every
     ///     time a check races replication is a tile operators learn to ignore, so "we could not prove this"
     ///     has to look different from "this is broken".
+    ///     </para>
+    ///     <para>
+    ///     A <see cref="UiTone" />, like every other tone in the kit. It was a string matched against
+    ///     <c>"danger"</c> and <c>"warn"</c> — the names nothing else here uses — so the natural
+    ///     <c>"error"</c> compiled and rendered a neutral tile without a word.
+    ///     </para>
     /// </remarks>
-    public string? Tone { get; set; }
+    public UiTone? Tone { get; set; }
 
     public RouteUrl? Href { get; set; }
 
@@ -34,8 +41,8 @@ public sealed partial class UiStat : Component
     {
         var tone = Tone switch
         {
-            "danger" => "text-error",
-            "warn" => "text-warning",
+            UiTone.Error => "text-error",
+            UiTone.Warning => "text-warning",
             _ => null,
         };
 

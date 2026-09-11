@@ -1197,6 +1197,14 @@ public abstract partial class Component : RaskMarkup
     private static ErrorBoundary? ResolveHandlerBoundary(Component owner) =>
         owner as ErrorBoundary ?? owner.Boundary;
 
+    // A faulted async lifecycle hook reaches its boundary through the task, not through a catch around the user's
+    // code, so a debugger never reports it — unlike a handler's exception (see TryInvokeHandlerAsync), which it
+    // stops on by itself. The attribute says this method is not the user handling the exception, and the
+    // BreakForUserUnhandledException call asks the debugger to stop with it in hand; its stack still names the
+    // throw line. Verified under VS Code's F5: this is the only stop such a fault produces. Standard .NET API,
+    // doing nothing without a debugger attached.
+    [System.Diagnostics.DebuggerDisableUserUnhandledExceptions]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ReportLifecycleFault(Component comp, AggregateException? ex)
     {
         var actual = ex?.InnerException ?? ex;
@@ -1210,6 +1218,7 @@ public abstract partial class Component : RaskMarkup
         var boundary = comp.Boundary;
         if (boundary is not null)
         {
+            System.Diagnostics.Debugger.BreakForUserUnhandledException(actual);
             boundary.Trip(actual, ErrorSource.Lifecycle);
             return;
         }
@@ -2236,6 +2245,10 @@ public abstract partial class Component : RaskMarkup
         }
     }
 
+    // No explicit debugger break in the catch below, on purpose. A handler's exception leaves the user's code
+    // for Rask's, which a debugger with Just My Code already reports as user-unhandled: it stops on the throw
+    // line itself. An explicit Debugger.BreakForUserUnhandledException here made it stop a SECOND time at the
+    // same line — verified under VS Code's F5 — so the call only added a Continue press.
     private async ValueTask<bool> TryInvokeHandlerCoreAsync(
         string id, JsonElement payload, IServiceProvider? services, CancellationToken dispatchToken)
     {

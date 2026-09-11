@@ -91,6 +91,19 @@
     <RaskNeutralLanguage Condition=" '$(RaskNeutralLanguage)' == '' ">en</RaskNeutralLanguage>
   </PropertyGroup>
 
+  <!--
+    A dev-session build says so in the assembly, so the running app can tell an editor-launched dev session
+    (VS Code's F5 builds with RaskDevSession=true, then runs the app under the debugger) from a plain build.
+    Baked ONLY when the property is set — a leftover from an earlier build must never make an ordinary run
+    behave like a dev session, the same rule Rask.WasmDevManifest follows. Rask.Spa.Hosting and
+    Rask.Meta.Hosting bake the same key, because their apps do not import this file.
+  -->
+  <Target Name="_RaskDevSessionMetadata" BeforeTargets="GetAssemblyAttributes" Condition=" '$(RaskDevSession)' == 'true' ">
+    <ItemGroup>
+      <AssemblyMetadata Include="Rask.DevSession" Value="true"/>
+    </ItemGroup>
+  </Target>
+
   <ItemGroup Condition=" '$(RaskTranslationsAutoInclude)' != 'false' ">
     <AdditionalFiles Include="Resources\**\*.json"
                      Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**"/>

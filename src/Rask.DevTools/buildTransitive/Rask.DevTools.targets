@@ -74,6 +74,21 @@
       <RuntimeCopyLocalItems Remove="@(RuntimeCopyLocalItems)" Condition=" '%(RuntimeCopyLocalItems.Filename)' == 'Rask.DevTools' "/>
       <ResolvedCompileFileDefinitions Remove="@(ResolvedCompileFileDefinitions)" Condition=" '%(ResolvedCompileFileDefinitions.Filename)' == 'Rask.DevTools' "/>
     </ItemGroup>
+
+    <!--
+      And Rask.Ui, when the app has it only because Rask.DevTools does. The package declares no dependency on it — the
+      panel uses the app's own copy — but a ProjectReference hands its consumer every assembly beside Rask.DevTools.dll,
+      so an in-repo app would publish a kit it never referenced. Named, never generalised: Rask.Core reaches in-repo apps
+      the same way and must stay. An app that references Rask.Ui itself has it in ReferencePath, and keeps it.
+    -->
+    <ItemGroup>
+      <_RaskDevToolsOwnUi Include="@(ReferencePath)" Condition=" '%(ReferencePath.Filename)' == 'Rask.Ui' "/>
+    </ItemGroup>
+    <ItemGroup Condition=" '@(_RaskDevToolsOwnUi)' == '' ">
+      <ReferenceDependencyPaths Remove="@(ReferenceDependencyPaths)" Condition=" '%(ReferenceDependencyPaths.Filename)' == 'Rask.Ui' "/>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition=" '%(ReferenceCopyLocalPaths.Filename)' == 'Rask.Ui' "/>
+      <RuntimeCopyLocalItems Remove="@(RuntimeCopyLocalItems)" Condition=" '%(RuntimeCopyLocalItems.Filename)' == 'Rask.Ui' "/>
+    </ItemGroup>
   </Target>
 
   <!-- And its files are removed, which also covers a ProjectReference, where no package is involved. -->
@@ -83,6 +98,16 @@
     <ItemGroup>
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
                              Condition=" '%(ResolvedFileToPublish.Filename)' == 'Rask.DevTools' "/>
+    </ItemGroup>
+
+    <!-- Rask.Ui's files too, on the terms _RaskDevToolsStripPublishDependencyFile explains: only when the app did not
+         reference the kit itself. -->
+    <ItemGroup>
+      <_RaskDevToolsOwnUi Include="@(ReferencePath)" Condition=" '%(ReferencePath.Filename)' == 'Rask.Ui' "/>
+    </ItemGroup>
+    <ItemGroup Condition=" '@(_RaskDevToolsOwnUi)' == '' ">
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition=" '%(ResolvedFileToPublish.Filename)' == 'Rask.Ui' "/>
     </ItemGroup>
   </Target>
 
@@ -107,6 +132,27 @@
       <_RaskDevToolsDepsText Condition=" Exists('$(_RaskDevToolsDepsFile)') ">$([System.IO.File]::ReadAllText('$(_RaskDevToolsDepsFile)'))</_RaskDevToolsDepsText>
       <_RaskDevToolsDepsLeak Condition=" $(_RaskDevToolsDepsText.Contains('&quot;Rask.DevTools/')) OR $(_RaskDevToolsDepsText.Contains('&quot;Rask.DevTools.dll&quot;')) ">true</_RaskDevToolsDepsLeak>
     </PropertyGroup>
+
+    <!--
+      Rask.Ui, unless the app references it itself: the devtools must never be the reason a Release publish carries the
+      kit. Checked against what was published, like everything above.
+    -->
+    <ItemGroup>
+      <_RaskDevToolsOwnUiAtPublish Include="@(ReferencePath)" Condition=" '%(ReferencePath.Filename)' == 'Rask.Ui' "/>
+    </ItemGroup>
+    <PropertyGroup>
+      <_RaskDevToolsUiIsOwn Condition=" '@(_RaskDevToolsOwnUiAtPublish)' != '' ">true</_RaskDevToolsUiIsOwn>
+    </PropertyGroup>
+    <ItemGroup Condition=" '$(_RaskDevToolsUiIsOwn)' != 'true' ">
+      <_RaskDevToolsPublishedUiLeak Include="@(_RaskDevToolsPublishedFile)"
+                                    Condition=" $([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)%(Extension)', '^Rask\.Ui\.(dll|pdb|xml)$')) "/>
+    </ItemGroup>
+    <PropertyGroup Condition=" '$(_RaskDevToolsUiIsOwn)' != 'true' ">
+      <_RaskDevToolsUiDepsLeak Condition=" $(_RaskDevToolsDepsText.Contains('&quot;Rask.Ui/')) ">true</_RaskDevToolsUiDepsLeak>
+    </PropertyGroup>
+
+    <Error Condition=" '@(_RaskDevToolsPublishedUiLeak)' != '' OR '$(_RaskDevToolsUiDepsLeak)' == 'true' "
+           Text="Rask.DevTools: this publish has RaskDevTools=false and the app does not reference Rask.Ui, yet the output carries it (@(_RaskDevToolsPublishedUiLeak) $(_RaskDevToolsDepsFile)). It can only have arrived through Rask.DevTools, and a publish without the devtools must carry nothing they brought. If the folder held an earlier publish, delete it and publish again; otherwise _RaskDevToolsStripPublish no longer matches the SDK's publish items."/>
 
     <Error Condition=" '@(_RaskDevToolsPublishedLeak)' != '' "
            Text="Rask.DevTools: this publish has RaskDevTools=false but its output folder still contains @(_RaskDevToolsPublishedLeak). A publish without the devtools must carry none of them. The usual cause is an EARLIER publish into the same folder — a Debug publish, or one with RaskDevTools=true — because publish never empties $(PublishDir): delete that folder and publish again. If the folder was empty, the SDK changed how publish items are resolved and _RaskDevToolsStripPublish in Rask.DevTools.targets no longer matches them."/>

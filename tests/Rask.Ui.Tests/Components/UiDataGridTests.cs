@@ -658,6 +658,87 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("cursor-pointer", Grid(), StringComparison.Ordinal);
     }
 
+    // ---- breakpoints, mono cells, row tone, page links, toolbar ---------------------------------
+
+    [Fact]
+    public void A_column_shown_from_md_hides_between_sm_and_md_and_nowhere_else()
+    {
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
+            c.Field(p => p.Name).Title("Product"),
+            c.Field(p => p.Category).Title("Category").ShowFrom(UiBreakpoint.Md),
+        ]].ToHtml();
+
+        // Its header cell and its four body cells — and only those.
+        Assert.Equal(5, Occurrences(html, "sm:max-md:hidden"));
+
+        // Never a bare `hidden`: below sm the stacked layout still lists this column as a labelled line.
+        Assert.DoesNotContain("\"hidden", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(" hidden ", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Showing_a_column_from_sm_changes_nothing_because_the_table_starts_there()
+    {
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
+            c.Field(p => p.Name).Title("Product").ShowFrom(UiBreakpoint.Sm),
+        ]].ToHtml();
+
+        Assert.DoesNotContain("sm:max-", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_mono_column_sets_its_cells_in_mono_but_not_its_title()
+    {
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id)[c => [
+            c.Field(p => p.Name).Title("Product").Mono(true),
+            c.Field(p => p.Price).Title("Price"),
+        ]].ToHtml();
+
+        Assert.Equal(Catalog.Length, Occurrences(html, "font-mono"));
+    }
+
+    [Fact]
+    public void A_row_tone_tints_only_the_rows_it_names()
+    {
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).RowTone(p => p.Price > 10m ? UiTone.Error : null)[c => [
+            c.Field(p => p.Name).Title("Product"),
+        ]].ToHtml();
+
+        Assert.Equal(1, Occurrences(html, "bg-error/10"));
+    }
+
+    [Fact]
+    public void Page_links_carry_the_grids_own_page_counted_from_zero()
+    {
+        var html = UiDataGrid.Data(Catalog.Take(2)).RowKey(p => p.Id).PageSize(2).Page(0).TotalCount(6)
+            .PageHref(page => $"/grid?page={page}")[c => [
+                c.Field(p => p.Name).Title("Product"),
+            ]].ToHtml();
+
+        // Three pages; the first is current and so not a link, the other two go to pages 1 and 2.
+        Assert.Contains("href=\"/grid?page=1\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/grid?page=2\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"/grid?page=0\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("join-item btn\" disabled", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Every_body_cell_carries_the_marker_that_lets_a_long_token_break() =>
+        // Four rows, two columns. A type name or a request id with nowhere to break would otherwise set the
+        // table's minimum width and push it out of a phone. A marker, not the wrap-anywhere utility: the property
+        // inherits, and the rule keyed to the marker is what keeps a badge's label whole inside the same cell.
+        Assert.Equal(Catalog.Length * 2, Occurrences(Grid(), "ui-grid-cell"));
+
+    [Fact]
+    public void A_toolbar_is_one_row_that_stacks_on_a_phone()
+    {
+        var html = UiDataGrid.Data(Catalog).RowKey(p => p.Id).Toolbar(Span["filters"])[c => [
+            c.Field(p => p.Name).Title("Product"),
+        ]].ToHtml();
+
+        Assert.True(Position(html, "max-sm:flex-col") < Position(html, "filters"));
+    }
+
     // ---- helpers --------------------------------------------------------------------------------
 
     private static int Position(string haystack, string needle)

@@ -78,9 +78,10 @@ public sealed class CliApplicationTests
 
         Assert.Equal(0, exit);
         // --non-interactive because the test console reports stdin as redirected: without a terminal,
-        // watch's rude-edit prompt would have nobody to answer it and would block forever.
+        // watch's rude-edit prompt would have nobody to answer it and would block forever. The dev-session
+        // property is a `dotnet run` option, so it sits after `run` and before the separator.
         Assert.Equal(
-            ["watch", "--project", csproj, "--non-interactive", "run", "--", "--help"],
+            ["watch", "--project", csproj, "--non-interactive", "run", "--property:RaskDevSession=true", "--", "--help"],
             runner.LastRun!.Arguments);
         Assert.DoesNotContain("Usage: rask dev", console.OutText, StringComparison.Ordinal);
     }

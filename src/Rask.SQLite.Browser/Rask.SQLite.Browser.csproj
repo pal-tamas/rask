@@ -7,7 +7,7 @@
       browser-conditional at compile time — the browser-only part is the NATIVE SQLite build, and that is
       linked into the consuming app (RuntimeIdentifier=browser-wasm), not into this library.
     -->
-    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -20,7 +20,7 @@
   </PropertyGroup>
 
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
+  <PropertyGroup Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">
     <!-- Run the trim + AOT analysers on every build, as Rask.Core and Rask.Wasm do, so a browser app
          that publishes trimmed keeps working. Microsoft.Data.Sqlite is reflection-free and trim-clean;
          EF Core is NOT, which is why this package deliberately does not reference it. -->

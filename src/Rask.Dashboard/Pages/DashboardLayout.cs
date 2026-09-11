@@ -13,10 +13,11 @@ namespace Rask.Dashboard.Pages;
 /// protected by construction rather than by remembering to annotate it.
 /// </para>
 /// <para>
-/// The layout inlines the dashboard's whole stylesheet via <see cref="HeadAssets" />. Head-asset
-/// contributions are collected from every component in the tree and deduplicated by rendered HTML, so the
-/// console is styled correctly inside a host that links no stylesheet of its own, without being emitted
-/// twice.
+/// The layout inlines the kit's stylesheet via <see cref="HeadAssets" />, and that is the only stylesheet the
+/// console has: every page is drawn with <c>Rask.Ui</c> components, so every class on it is one the kit's
+/// compiled sheet already carries. Head-asset contributions are collected from every component in the tree
+/// and deduplicated by rendered HTML, so the console is styled correctly inside a host that links no
+/// stylesheet of its own, without being emitted twice.
 /// </para>
 /// <para>
 /// The console is served as its own application under <c>/_rask</c> rather than as pages inside the host
@@ -39,40 +40,9 @@ public sealed partial class DashboardLayout(
     Navigator navigator,
     DashboardSecurityState security) : Component
 {
-    /// <summary>
-    /// The dashboard's stylesheet, compiled from <c>Styles/dashboard.css</c> by Tailwind at this
-    /// package's build and embedded in the assembly.
-    /// </summary>
-    /// <remarks>
-    /// Inlined rather than served. The alternative is a static web asset, which needs the Razor SDK and a
-    /// <c>_content/</c> path a host has to map — for a stylesheet this size, a <c>&lt;style&gt;</c> is
-    /// smaller than the machinery. It is also why this package ships no assets at all and can be bundled
-    /// as a plain assembly.
-    /// <para>
-    /// Read once into a static: the same bytes on every render, on every request, for the process's life.
-    /// </para>
-    /// </remarks>
-    private static readonly string Css = ReadCss();
-
     // Enumerated once and kept: IsAvailable asks whether the battery is registered AND mapped in the EF
     // model, and the chrome asks that question for the tab bar, the crumb and the switcher on every render.
     private IReadOnlyList<IQueuePanel>? _available;
-
-    private static string ReadCss()
-    {
-        var assembly = typeof(DashboardLayout).Assembly;
-        using var stream = assembly.GetManifestResourceStream("Rask.Dashboard.dashboard.css");
-
-        // Empty rather than throwing: an unstyled console still shows an operator what is happening, and
-        // failing to start a whole application because its dashboard has no CSS would be the worse trade.
-        if (stream is null)
-        {
-            return string.Empty;
-        }
-
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
-    }
 
     /// <inheritdoc />
     protected override Component? HeadAssets =>
@@ -81,17 +51,13 @@ public sealed partial class DashboardLayout(
         // An operator surface has no business in a search index, even behind a policy.
         Meta.Name("robots").Content("noindex, nofollow"),
         // Raw, because CSS is not HTML: encoding it would break every selector containing > or &.
-        // The KIT's sheet first, then the console's own. Two sheets rather than one because Tailwind
-        // scans the project it runs in, so the classes Rask.Ui's components write are compiled there and
-        // the classes these pages write are compiled here — neither build can see the other's markup.
-        // Order is the contract: the console's @theme redefines the --color-ui-* tokens the kit declares,
-        // and an override only wins while it is the copy the cascade reads last.
-        // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody
-        // else's host at /_rask: that host references Rask.Dashboard, not Rask.Ui, so it never gets
-        // the build target that writes the sheet into wwwroot, and a <link> would point at a file
-        // nothing produced. An app that references the kit directly links the cached copy instead.
+        // ONE sheet, the kit's. The console used to compile a second one for the utilities its pages wrote,
+        // because Tailwind scans the project it runs in and neither build could see the other's markup; the
+        // pages write no classes now, and the frame's reset travels in the kit's sheet keyed to UiShell.
+        // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody else's host at
+        // /_rask: that host references Rask.Dashboard, not Rask.Ui, so it never gets the build target that
+        // writes the sheet into wwwroot, and a <link> would point at a file nothing produced.
         Style[Raw.Value(UiStylesheet.Css)],
-        Style[Raw.Value(Css)],
     ];
 
     /// <summary>Only the batteries the app actually registered, so the chrome is an honest inventory.</summary>
@@ -117,10 +83,9 @@ public sealed partial class DashboardLayout(
     /// <inheritdoc />
     protected override Component? Render() =>
         // The shell carries the kit's theme scope, so it is also where daisyUI reads data-theme. Named
-        // rather than left to default: the default is "follow prefers-color-scheme", which would repaint
-        // this subtree dark while dashboard.css's palette — a set of ratios measured on a white ground —
-        // stayed light. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place
-        // the two agree.
+        // rather than left to default: the default is "follow prefers-color-scheme", which would repaint this
+        // subtree dark. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place the
+        // two agree.
         UiShell.Theme(DashboardTheme.Name)[
             UiTopBar.Trailing(UiTopLink.Label("Docs").Href("https://rask.sh/docs/"))[
                 // The wordmark and the destination are the console's, not the kit's — the kit is shared
@@ -224,14 +189,11 @@ public sealed partial class DashboardLayout(
     // only while it applies: an app that defined the policy has real access control and gets no banner.
     private Component? UnsecuredWarning() =>
         security.IsUnsecured
-            ? Div.Role("alert")
-                .Class(
-                    "mb-4 flex items-start gap-3 rounded-xl border border-ui-warn/40 bg-ui-warn/10 px-4 py-3 "
-                    + "text-sm text-ui-ink sm:mb-6")[
-                UiIcon.Name(UiIconName.ShieldWarning).Class("mt-0.5 size-5 shrink-0 text-ui-warn-ink"),
-                Span.Class("min-w-0 break-words")[
+            ? UiAlert.Tone(UiTone.Warning)[
+                UiIcon.Name(UiIconName.ShieldWarning),
+                Span[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
-                    Code.Class("rounded bg-ui-warn/15 px-1 py-0.5 font-mono text-xs")[RaskDashboardPolicies.Access],
+                    Code[RaskDashboardPolicies.Access],
                     " authorization policy; without one the dashboard denies everyone outside Development."
                 ]
             ]

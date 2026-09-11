@@ -76,6 +76,10 @@ public static class RaskSpaServiceCollectionExtensions
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 
+        // An app VS Code's F5 launched runs the bundler's dev server itself — `rask dev` would have. Nothing is
+        // registered unless the build was a dev session.
+        SpaDevServer.Register(services, System.Reflection.Assembly.GetEntryAssembly());
+
         return services;
     }
 }

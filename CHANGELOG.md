@@ -9,6 +9,52 @@ them until tagged releases begin.
 
 ### Added
 
+- **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json` and
+  `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a dev session and
+  runs it under the C# debugger, so breakpoints hit from startup. Edits need a restart there (Ctrl+Shift+F5):
+  the runtime refuses to apply a hot-reload update to a process a debugger is attached to, and C# Dev Kit's
+  debug hot reload reports itself unavailable for this launch, so `rask dev` stays the live-edit loop. The
+  editor launches the app — and the app does what `rask dev` would have done beside it. It starts its own
+  front-end dev server (the islands' Vite, a React/Vue/Angular client's bundler, or a meta framework's own
+  dev server), and ends one a debugger's hard stop left holding its port; it serves on `https://<name>.test`
+  when an earlier `rask dev` already set that name up on this machine, and on localhost otherwise, never
+  prompting; and it prints `Rask dev: open <url>`, which `launch.json` opens. None of it runs under
+  `rask dev`, outside Development, or for a build that was not a dev session. The scaffold's `.gitignore` commits those three files and keeps the rest of
+  `.vscode/` personal. A handler or async lifecycle hook that throws now **stops the debugger** once, on the line
+  that threw, rather than being swallowed by its error boundary (Just My Code and "User-Unhandled Exceptions"
+  on): a handler's exception is reported user-unhandled as it leaves your code, and for a lifecycle hook, whose
+  exception arrives through a faulted task no debugger sees, Rask calls `Debugger.BreakForUserUnhandledException`; and the dev error panel turns every stack frame and compiler
+  error that names an absolute path into a `vscode://file` link to that line. One MSBuild switch,
+  `RaskDevSession=true`, now drives both `rask dev` and the F5 build: each package expands it for itself (a
+  WASM host serves its client's build output, SPA and meta lanes skip their production front-end build,
+  islands come from Vite), replacing the four properties `rask dev` passed by hand; an explicit value still
+  wins. Browser-side debugging — C# running in WASM, and scoped `.ts` — is not covered yet (#1073).
+
+- **The devtools panel lists the inspected page's wire traffic.** Every frame the page and the app exchange is
+  listed newest first, under totals for each direction: events and navigations the page sent, and render frames and
+  acks it received. Each row shows the frame's size, how many edit ops a render diff carried, and the time since the
+  frame before it. The panel follows the page live and refreshes at most every 200 ms however busy the page is; it
+  keeps the last 1,000 frames per session, and lists the newest 200. It checks the session's token and owner again on
+  every render, so a panel that navigates itself to another session's id finds nothing. Its pages also render only
+  under the panel's own shell: an app session that navigates itself onto `/_rask-devtools` over its socket, past the
+  page handler's admission, gets a notice instead of a tab.
+
+- **The Rask pill opens a live panel in Debug Development builds, and only the developer who owns the page can open it.** Each
+  interactive page's devtools tag now names its panel, `/_rask-devtools/?inspect={session}&t={token}`. The panel is
+  a Rask application mounted beside the app with its own document and route table, drawn with Rask.Ui and following
+  the OS light or dark setting, so the corner pill now appears. The host admits a panel request only when all of these hold:
+  - it is running in Development;
+  - the request comes from this machine, unless `RASK_DEVTOOLS_ALLOW_REMOTE=1`;
+  - it carries that session's token, an HMAC of the session id under a per-process key, compared in constant time;
+  - it comes from the page's origin, with the identity that owns the inspected session.
+
+  A wrong token and an unknown session both answer 404, so neither can be probed for. The check runs after the app's
+  own authorization and before a session is reserved, so a refused request costs nothing. A panel session is never
+  rebuilt from a resume record, so a reconnect goes back through the same check. The panel's pages are internal; only
+  the generator's `Routes` and entry classes join `Rask.DevTools`' public surface. The panel uses the app's own
+  Rask.Ui rather than bringing one, so a Release publish carries nothing of either: every `rask new` app and the `Rask`
+  package reference Rask.Ui, and an app without it gets no devtools and one startup warning saying to add it.
+
 - **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
   and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
   `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own
@@ -60,7 +106,7 @@ them until tagged releases begin.
   nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
   it. The script carries the corner pill and the drawer it opens — docked to the bottom or the right, remembered,
   toggled by Ctrl+Shift+D (Cmd+Shift+D on a Mac) without the keystroke reaching the app, and drawn in a shadow root
-  the app's stylesheets cannot reach — and shows them once the panel page they frame exists, in the next slice.
+  the app's stylesheets cannot reach — and shows them only when the page names a panel for them to frame.
 
   The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
   load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
@@ -180,6 +226,32 @@ them until tagged releases begin.
   claim, cache, session-settings and bulk-insert scenarios against SQL Server 2022 — started on amd64 hosts
   only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
   summary that SQL Server was not proven rather than counting it as a pass.
+
+- **The log store can live in the application's database.** `AddRaskLogging<TContext>()` with
+  `modelBuilder.AddRaskLogging()` keeps the log as a `RaskLog` table in a PostgreSQL or SQL Server app's own database,
+  created by its migrations. The SQLite file store (`AddRaskLogging()`) stays, and stays the choice on
+  SQLite.
+  - **Same behaviour as the file store.** `ILogs`, `LogQuery`, the dashboard and the metrics are unchanged. One
+    contract suite runs against both stores, covering filters, paging, retention and scopes.
+  - **Survives a rollback.** Every flush runs on a context and a connection of its own, so a line logged inside a
+    transaction that rolls back is kept.
+  - **Portable queries.** Text search ignores case even on PostgreSQL, and the scope filter matches the JSON-encoded
+    `"key":"value"` pair exactly.
+  - **Safe retention.** Deletes read each page's ids first, so two instances of the app sweeping retention at once
+    remove each row once.
+  - **No self-logging.** An async-local marks the store's own flow, so the SQL EF Core logs while it writes is not
+    captured back into it, while the application's SQL still is.
+  - **Driver categories.** `Npgsql` and `Microsoft.Data.SqlClient` join `Microsoft.Data.Sqlite` as always excluded.
+  - **NUL characters.** A NUL in a message, exception or category is stored as U+FFFD by both stores. PostgreSQL
+    rejects NUL in text, and one such line would otherwise fail its whole batch.
+  - **Quieter failures.** A store that keeps failing, such as a log table whose migration has not run yet, reports
+    its first failure, then at most once a minute, and logs when it recovers. It no longer logs an error every
+    flush. The dropped entries are still counted on `rask.logs.dropped`.
+  - **Boot check.** A model that never mapped the table fails the boot naming `modelBuilder.AddRaskLogging();`, through
+    the same check every battery has.
+  - **Real-server tests.** The provider gate runs the store against PostgreSQL and SQL Server: case-insensitive
+    search, exact scope matching, paged retention, two hosts purging at once, and a line appended during a
+    transaction surviving its rollback.
 
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
@@ -306,8 +378,56 @@ them until tagged releases begin.
   real severity must have a descriptor in `src/`. Retired ids carry an em dash instead, which is how
   RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
   is it documented — and nothing asked whether a documented rule existed.
+- **`Rask.Ui` grows the steps an operator screen needs, so a page drawn with the kit writes no class strings.**
+  `UiDataGrid` columns take `ShowFrom(UiBreakpoint.Md)` — a secondary column waits until the table has room for
+  it, while the phone's stacked lines still list it — and `Mono(true)` for ids, keys and paths. A row takes
+  `RowTone(r => …)`; `Toolbar` lays its controls out as one row that stacks on a phone; and
+  `PageHref(page => …)` makes the pager's pages links, so a page that lives in `?page=` can be shared and
+  answers the back button. `UiPagination.Href` does the same on its own, and the page you are on is not a
+  link but says `aria-current`. `UiCard` takes `Href` (the whole card is one link) and `Icon`; `UiMetricRow.Columns(2)`; `UiBadge.Mono(true)` wraps a long token instead of widening its
+  row; `UiCode.Label("Payload")` captions a block; and **`UiEmpty`** is the empty state —
+  `UiEmpty.Heading("Nothing stored matches").Detail("Retention drops entries by age and by count.")`.
+  `UiMain` spaces the sections it holds, `UiHeader` no longer carries a margin of its own, and a `UiModal` body
+  spaces its sections too. A grid cell now lets one long unbroken token — a type name, a request id — break
+  instead of widening the table past a phone. The kit's sheet
+  also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
+  the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
+
 
 ### Changed
+
+- **Every shipped package reads its .NET versions from one place** — the groundwork for building each package
+  for .NET 10 and .NET 11 side by side. `Directory.Build.props` now states `RaskNetTargets` /
+  `RaskBrowserTargets`, and all 39 packable projects take `<TargetFrameworks>` from them instead of spelling
+  `net10.0` out. What a consumer installs is unchanged — a fresh-tree pack lists the same files and nuspecs as
+  before — with one exception that was a leak: `Rask.Auth` no longer ships its compiled stylesheet's build
+  intermediate (`obj/net10.0/auth.generated.css`) as a NuGet content file, which put a stray `obj/` item into
+  every consuming project. The pages never used it; the stylesheet is embedded in `Rask.Auth.dll` as before.
+  - **Faces are chosen by platform, not by version string.** The 21 `'$(TargetFramework)' == 'net10.0'`
+    conditions that pick a package's server or browser half now ask `GetTargetPlatformIdentifier`, so a second
+    .NET version lands on the right half — one of them (`!= 'net10.0'` in Rask.DevTools) would have sent it
+    to the browser branch, and `RASK_BROWSER` would have compiled Rask.Wasm's browser build with no exports.
+  - **Rask.Core is bundled by `src/RaskCoreBundle.targets`** for Rask.Server and Rask.Wasm, through
+    `BuildOutputInPackage`, so NuGet names each `lib/` folder. The literal `lib/net10.0/` paths would have
+    shipped a second version's folder without `Rask.Core.dll` while pack stayed green.
+  - **Two new build errors keep it that way.** `RaskVerifyTargetFrameworks` fails a shipped project that writes
+    its frameworks literally (the `rask` tool is exempt: it rolls forward instead), and the public-API gate
+    maps each version onto its face's baseline (`RaskPublicApiTfm`) and refuses a `PublicAPI/<tfm>` folder no
+    build reads. `PackageDependencyTests` now follows the imports the bundling moved into, and fails if it
+    stops seeing Rask.Server and Rask.Wasm bundle Core rather than passing on nothing.
+- **The build targets shipped to apps follow the app's .NET version instead of assuming .NET 10.** The browser
+  companion generated for `RaskBrowserRung` now targets the server half's framework as `-browser` (`net11.0` →
+  `net11.0-browser`), and the prerender companion the browser app's desktop twin (`net11.0-browser` →
+  `net11.0`); both were literal `net10.0` names.
+  - **`Rask.Wasm.Hosting` asks MSBuild for the WASM client's framework** (`GetTargetFrameworks`) rather than
+    reading a literal `<TargetFramework>` element off its csproj and assuming `net10.0-browser` otherwise. A
+    client whose framework comes from a `Directory.Build.props` or a property now gets the right bundle path
+    baked in, where on any other .NET version the host would have served its whole app as 404s from a green
+    build.
+  - **A WASM client that targets several frameworks is now a build error on the host** ("must build for
+    exactly one framework"), where the probe used to guess `net10.0-browser`. A bundle is published for one
+    framework; give the client a single `<TargetFramework>`. One framework written as a one-entry
+    `<TargetFrameworks>` list still counts as one and is served.
 
 - **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
   own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
@@ -542,6 +662,26 @@ them until tagged releases begin.
   islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
   ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
   gate are unchanged.
+- **The `/_rask` console is drawn with `Rask.Ui` and nothing else.** Every table is a `UiDataGrid`: a dead letter
+  carries the error tone, a secondary column waits until the table has room for it, a phone lists every column
+  as its own labelled line, and the Logs history pages are links you can share. The banners are `UiAlert`s, the
+  empty states `UiEmpty`, and each queue card on the overview is one link. `Rask.Dashboard` no longer compiles or
+  embeds a stylesheet of its own — the document inlines only the kit's, whose `.rask-ops` reset is the console's
+  page base — and `DashboardIsKitOnlyTests` fails on any class string written in the package. The System page's
+  snapshots moved to a card of their own.
+- **A long `UiPagination` draws a window of pages instead of every one.** A join is one unbreakable row, so
+  a pager over forty pages was wider than a phone and dragged the whole document sideways. Past seven pages
+  it now draws the first, the last, and the current page with its neighbours, with a gap marker between —
+  never more than seven items. The console's screenshot pass caught it on the Logs history.
+- **Breaking: `UiNotice` and `UiStyles.Button`, `UiStyles.Danger` and `UiStyles.Quiet` are removed.** Nothing
+  in the framework drew with them once the operator console moved onto kit components, and each duplicated one
+  that already exists. Use `UiAlert.Tone(…)` for a notice, and `UiButton` for an action — `.Tone(UiTone.Error).Variant(UiVariant.Outline)`
+  for one that destroys or re-runs work, `.Variant(UiVariant.Ghost)` for a quiet dismiss — rather than a class
+  string on a raw `<button>`.
+- **Breaking: `UiStat.Tone` is a `UiTone?`.** It was a string matched against `"danger"` and `"warn"` — names
+  nothing else in the kit uses — so the natural `"error"` compiled and rendered a neutral tile without a word.
+  Write `.Tone(UiTone.Error)` or `.Tone(UiTone.Warning)`.
+
 
 ### Fixed
 
@@ -552,6 +692,23 @@ them until tagged releases begin.
   page stopped updating until something else changed. The flags are now cleared before `Render()` runs, and
   restored if it throws. This is what made `HttpPageTests` time out under a busy gate (#1067). WebAssembly
   is single-threaded and never hit it.
+
+- **Filtering the log by a scope key that looks like a JSON path now finds its entries.**
+  - **The cause.** The SQLite file store filtered scopes with `json_extract(Scopes, '$.' || key)`, which reads the
+    key as a JSON path.
+    - A dotted or bracketed key such as `user.id` or `items[0]` was taken as a nested path and silently matched
+      nothing.
+    - A key starting with a double quote made the search throw.
+  - **The fix.** Both log stores now match the JSON-encoded `"key":"value"` pair, which is exact whatever the key
+    holds.
+
+- **`rask new --cqrs` without `--wasm` scaffolds an app that compiles again.** The server template wrote the
+  database-free `AddRaskCqrsServer()` call outside its WebAssembly region.
+  The `Rask.Cqrs.Server` package and its `using` are written only with `--wasm`, so a `--cqrs` app with no
+  database failed with CS1061. The call now sits inside that region. So does its
+  `Rask:Cqrs:Server:RequireAuthenticatedUser` setting in `appsettings.json`, which described endpoints a
+  server-only app does not have. The CLI build gate's two cases for it pass, and a unit test pins the absence
+  of both without `--wasm` (#1071).
 
 - **A `RaskApp` with its Web Push keys in configuration starts.** The keys were enough to switch the battery on
   but were never copied into its options, so an app configured the documented way stopped at startup on a

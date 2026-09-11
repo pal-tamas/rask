@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Rask.Cli.Dev;
+namespace Rask.Hosting.Shared;
 
 /// <summary>
 ///     Turns a project name into the hostname <c>rask dev</c> serves it on — <c>AppName</c> becomes
