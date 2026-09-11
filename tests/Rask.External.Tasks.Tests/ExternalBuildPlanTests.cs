@@ -113,6 +113,31 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void A_dotted_export_binds_the_export_and_reads_the_member_off_it()
+    {
+        // bits-ui exports namespaces of parts: `Switch.Root` is the component, a member of the `Switch` export.
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "SwitchRoot", Source = "/app/SwitchRoot.props.json", Runtime = "svelte", Package = "bits-ui#Switch.Root" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import { Switch as __raskExport } from 'bits-ui'", entry, StringComparison.Ordinal);
+        Assert.Contains("const Component = __raskExport.Root", entry, StringComparison.Ordinal);
+        Assert.Contains("export default svelteComponent(Component)", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_member_of_the_default_export_is_imported_by_the_name_default()
+    {
+        // `default` is an ordinary export name in an import clause, so the default export's members need no special case.
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "PartsItem", Source = "/app/PartsItem.props.json", Runtime = "react", Package = "parts#default.Item" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import { default as __raskExport } from 'parts'", entry, StringComparison.Ordinal);
+        Assert.Contains("const Component = __raskExport.Item", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_export_that_is_not_an_identifier_never_reaches_the_entry()
     {
         // The export is written into JavaScript unquoted, so anything but an identifier could end the import

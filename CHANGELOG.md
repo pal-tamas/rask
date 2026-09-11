@@ -106,6 +106,20 @@ them until tagged releases begin.
   be read, drift on a locked build, an island the scan missed, and a snapshot from another version than
   `package-lock.json` pins. See [The build keeps it current](docs/islands.md#the-build-keeps-it-current).
 
+- **Vue and Svelte package islands get their props from the package too, and a component can be a member of an
+  export.** Vue components are read from their instance `$props` (`defineComponent`, vue-tsc's `<script setup>`
+  output) or their call signature (generic and functional components); emits declared only as `$emit` overloads
+  become handler props named as Vue matches them (`onUpdate:modelValue`), and a default slot makes the island take
+  content. Svelte 5 components are read from `Component<Props>`, with a snippet prop skipped and a `children` snippet
+  taken as content; Svelte 4 typings give their props from `$$prop_def` and list their `on:` events as `legacy-event`
+  skips. `Module => "bits-ui#Switch.Root"` names the `Root` member of the `Switch` export, for libraries that export
+  namespaces of parts. Extraction got more exact for every runtime on the way: `string | boolean` is a union rather
+  than an enum of "false" and "true", a template-literal member opens an enum, literals beside other kinds form one
+  enum while a boolean beside other literals stays one of its values (MUI's `'auto' | true | false`), more than 64
+  literals cross as a plain string, rest-tuple callback parameters become labelled arguments, and a destructured
+  parameter is `argN`. A Svelte 4 component typed by svelte-package — a class and a function at once — has its
+  `$$events` and `$$slots` read as events and content rather than listed as props.
+
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
   `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
@@ -583,6 +597,16 @@ them until tagged releases begin.
   sibling selector at all. Both are in place, and they are complementary rather than alternatives — the
   `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
   makes the kit's own messages independent of it.
+
+- **rask.sh and the README lead with the batteries, not a benchmark against Blazor.** The byte-for-byte
+  "Rask vs Blazor" table that sat directly under the landing page's hero is gone, and so is the README's
+  paragraph of head-to-head numbers. The two battery sections — what is in the box, and the whole
+  DB-backed back end — now come straight after the hero, and the README gains a `## Batteries included`
+  list linking each pillar's guide. The front doors (landing page, README, NUGET.md, llms.txt) also say
+  what Rask is to the frameworks it hosts: a superset, not a rival — React, Vue, Svelte, Angular and Lit
+  islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
+  ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
+  gate are unchanged.
 
 ### Fixed
 
