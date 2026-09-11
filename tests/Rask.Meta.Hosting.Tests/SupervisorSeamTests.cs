@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,10 @@ public class SupervisorSeamTests
     private static WebApplication BuildHost(Action<MetaHostingOptions> configure)
     {
         var builder = WebApplication.CreateSlimBuilder();
+
+        // A port of the OS's choosing. Kestrel's default is localhost:5000, which anything else on the machine may
+        // hold — a dev server, or macOS's AirPlay Receiver — and the seam under test never needs a fixed one.
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddRaskMeta(configure);
         return builder.Build();
