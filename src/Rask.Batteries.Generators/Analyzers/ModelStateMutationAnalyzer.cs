@@ -8,7 +8,7 @@ using Rask.Generators.Shared;
 namespace Rask.Data.Generators.Analyzers;
 
 /// <summary>
-///     RASK080 — an entity or a value object whose state can be changed from outside the type.
+///     RASK084 — an entity or a value object whose state can be changed from outside the type.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -34,8 +34,8 @@ namespace Rask.Data.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor Rask080 = new(
-        "RASK080",
+    private static readonly DiagnosticDescriptor Rask084 = new(
+        "RASK084",
         "Model state can be changed from outside the type",
         "'{0}.{1}' {2}, so code outside '{0}' can change its state — {3}, and change it through the methods of "
         + "'{0}' (or its constructor)",
@@ -47,12 +47,12 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
                      + "field lets any caller skip the methods that keep it valid. The generated form model "
                      + "writes through private setters, so nothing in the framework needs the public one. A "
                      + "positional record parameter's compiler-generated init accessor is exempt.",
-        helpLinkUri: DiagnosticHelp.Link("RASK080"));
+        helpLinkUri: DiagnosticHelp.Link("RASK084"));
 
     private static readonly ImmutableDictionary<string, string?> NoFix =
         ImmutableDictionary<string, string?>.Empty.Add(ModelTypes.NoFixProperty, "true");
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask080);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask084);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -113,7 +113,7 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
             if (!setter.IsInitOnly)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    Rask080, parameter.GetLocation(), NoFix, type.Name, property.Name,
+                    Rask084, parameter.GetLocation(), NoFix, type.Name, property.Name,
                     "has a public setter (a positional parameter of a record struct that is not readonly)",
                     "declare it as a 'readonly record struct'"));
             }
@@ -130,7 +130,7 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
 
         var keyword = setter.IsInitOnly ? "init" : "set";
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask080,
+            Rask084,
             accessor.GetLocation(),
             CanNarrow(type, property, setter, accessor) ? null : NoFix,
             type.Name,
@@ -151,7 +151,7 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
         }
 
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask080,
+            Rask084,
             declarator.GetLocation(),
             field.IsRequired ? NoFix : null,
             type.Name,

@@ -3,7 +3,7 @@ using Rask.Data.Generators.Analyzers;
 
 namespace Rask.Data.Generators.Tests;
 
-/// <summary>RASK080: an entity's or a value object's state can be changed from outside the type.</summary>
+/// <summary>RASK084: an entity's or a value object's state can be changed from outside the type.</summary>
 public class ModelStateMutationAnalyzerTests
 {
     private static Task<IReadOnlyList<Diagnostic>> Run(string body) =>
@@ -25,7 +25,7 @@ public class ModelStateMutationAnalyzerTests
             }
             """));
 
-        Assert.Equal("RASK080", diagnostic.Id);
+        Assert.Equal("RASK084", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Equal("set;", diagnostic.Flagged());
         Assert.Contains("'Product.Name' has a public setter", diagnostic.GetMessage(), StringComparison.Ordinal);

@@ -6,7 +6,7 @@ using Rask.Generators.CodeFixes;
 
 namespace Rask.Generators.Tests;
 
-/// <summary>The RASK080 and RASK081 quick-fixes, applied and compared.</summary>
+/// <summary>The RASK084 and RASK085 quick-fixes, applied and compared.</summary>
 public class ModelStateCodeFixTests
 {
     private static string Entity(string members) => $$"""
@@ -23,35 +23,35 @@ public class ModelStateCodeFixTests
 
     private static Task<string> Fix080(string source) =>
         CodeFixHarness.ApplyAnalyzerFixAsync(
-            new ModelStateMutationAnalyzer(), new ModelStateMutationCodeFixProvider(), "RASK080", source, "Rask.Data", "Rask.Cqrs");
+            new ModelStateMutationAnalyzer(), new ModelStateMutationCodeFixProvider(), "RASK084", source, "Rask.Data", "Rask.Cqrs");
 
     private static Task<bool> Offered080(string source) =>
         CodeFixHarness.IsAnalyzerFixOfferedAsync(
-            new ModelStateMutationAnalyzer(), new ModelStateMutationCodeFixProvider(), "RASK080", source, "Rask.Data", "Rask.Cqrs");
+            new ModelStateMutationAnalyzer(), new ModelStateMutationCodeFixProvider(), "RASK084", source, "Rask.Data", "Rask.Cqrs");
 
     // EF Core too, so a `b.HasMany(o => o.Lines)` in a test source binds — an unbound one is never rewritten,
     // and the test that it is left alone would pass for the wrong reason.
     private static Task<string> Fix081(string source) =>
         CodeFixHarness.ApplyAnalyzerFixAsync(
-            new EntityCollectionExposureAnalyzer(), new EntityCollectionExposureCodeFixProvider(), "RASK081", source,
+            new EntityCollectionExposureAnalyzer(), new EntityCollectionExposureCodeFixProvider(), "RASK085", source,
             "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
 
     private static Task<bool> Offered081(string source) =>
         CodeFixHarness.IsAnalyzerFixOfferedAsync(
-            new EntityCollectionExposureAnalyzer(), new EntityCollectionExposureCodeFixProvider(), "RASK081", source,
+            new EntityCollectionExposureAnalyzer(), new EntityCollectionExposureCodeFixProvider(), "RASK085", source,
             "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
 
-    // ---- RASK080 ----
+    // ---- RASK084 ----
 
     [Fact]
-    public async Task Rask080_MakesASetterPrivate()
+    public async Task Rask084_MakesASetterPrivate()
     {
         var fixed_ = await Fix080(Entity("public string Name { get; set; } = \"\";"));
         Assert.Contains("public string Name { get; private set; } = \"\";", fixed_, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Rask080_MakesAnInitPrivate()
+    public async Task Rask084_MakesAnInitPrivate()
     {
         var fixed_ = await Fix080("""
             using Rask.Data;
@@ -65,7 +65,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask080_KeepsAMultiLineAccessorListInShape()
+    public async Task Rask084_KeepsAMultiLineAccessorListInShape()
     {
         var fixed_ = await Fix080(Entity("""
             public string Name
@@ -78,7 +78,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask080_MakesAPublicFieldPrivate()
+    public async Task Rask084_MakesAPublicFieldPrivate()
     {
         var fixed_ = await Fix080(Entity("public int Stock;"));
         Assert.Contains("private int Stock;", fixed_, StringComparison.Ordinal);
@@ -87,7 +87,7 @@ public class ModelStateCodeFixTests
 
     // `{ private set => … }` is CS0276: an accessor modifier needs a second accessor to differ from.
     [Fact]
-    public async Task Rask080_IsWithheldForASetOnlyProperty() =>
+    public async Task Rask084_IsWithheldForASetOnlyProperty() =>
         Assert.False(await Offered080(Entity("""
             private string _hash = "";
                 public string Hash => _hash;
@@ -95,22 +95,22 @@ public class ModelStateCodeFixTests
             """)));
 
     [Fact]
-    public async Task Rask080_IsOfferedForAGetSetProperty() =>
+    public async Task Rask084_IsOfferedForAGetSetProperty() =>
         Assert.True(await Offered080(Entity("public string Name { get; set; } = \"\";")));
 
     [Fact]
-    public async Task Rask080_IsWithheldForARequiredProperty() =>
+    public async Task Rask084_IsWithheldForARequiredProperty() =>
         Assert.False(await Offered080(Entity("public required string Name { get; set; }")));
 
     [Fact]
-    public async Task Rask080_IsWithheldForAPositionalRecordStructParameter() =>
+    public async Task Rask084_IsWithheldForAPositionalRecordStructParameter() =>
         Assert.False(await Offered080("""
             using Rask.Data;
             namespace Shop;
             public record struct Weight(decimal Grams) : IValueObject;
             """));
 
-    // ---- RASK081 ----
+    // ---- RASK085 ----
 
     [Theory]
     [InlineData("public List<OrderLine> Lines { get; private set; } = new();")]
@@ -118,7 +118,7 @@ public class ModelStateCodeFixTests
     [InlineData("public List<OrderLine> Lines { get; private set; } = new List<OrderLine>();")]
     [InlineData("public List<OrderLine> Lines { get; private set; }")]
     [InlineData("public ICollection<OrderLine> Lines { get; } = [];")]
-    public async Task Rask081_RewritesTheAutoPropertyToAReadOnlyViewOverAField(string member)
+    public async Task Rask085_RewritesTheAutoPropertyToAReadOnlyViewOverAField(string member)
     {
         var fixed_ = await Fix081(Entity(member + "\n    public void Add(OrderLine line) => Lines.Add(line);"));
 
@@ -129,7 +129,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask081_KeepsAHashSet()
+    public async Task Rask085_KeepsAHashSet()
     {
         var fixed_ = await Fix081(Entity("public HashSet<OrderLine> Lines { get; } = [];"));
 
@@ -138,7 +138,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask081_PutsTheFieldBeforeTheDocCommentAndLeavesTheCommentOnTheProperty()
+    public async Task Rask085_PutsTheFieldBeforeTheDocCommentAndLeavesTheCommentOnTheProperty()
     {
         var fixed_ = await Fix081(Entity("""
             public string Code { get; private set; } = "";
@@ -158,7 +158,7 @@ public class ModelStateCodeFixTests
     // would silently become "_lines". The source is compiled before AND after, so every reference left alone
     // demonstrably bound to the property — a miss cannot pass as a decision.
     [Fact]
-    public async Task Rask081_RewritesOnlyReferencesThroughThisInstance()
+    public async Task Rask085_RewritesOnlyReferencesThroughThisInstance()
     {
         const string source = """
             using System;
@@ -220,7 +220,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask081_QualifiesTheCollectionTypesWhenTheirNamespaceIsNotImported()
+    public async Task Rask085_QualifiesTheCollectionTypesWhenTheirNamespaceIsNotImported()
     {
         var fixed_ = await Fix081("""
             using System;
@@ -244,6 +244,6 @@ public class ModelStateCodeFixTests
     [InlineData("public required List<OrderLine> Lines { get; set; }")]
     [InlineData("public List<OrderLine> Lines { get; private set; } = [];\n    public void Reset() => Lines = [];")]
     [InlineData("public List<OrderLine> Lines { get; private set; } = [];\n    private int _lines;")]
-    public async Task Rask081_IsWithheldWhereTheRewriteCouldNotKeepTheMeaning(string members) =>
+    public async Task Rask085_IsWithheldWhereTheRewriteCouldNotKeepTheMeaning(string members) =>
         Assert.False(await Offered081(Entity(members)));
 }

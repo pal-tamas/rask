@@ -7,7 +7,7 @@ using Rask.Generators.Shared;
 namespace Rask.Data.Generators.Analyzers;
 
 /// <summary>
-///     RASK081 — an entity hands out a mutable collection of other entities.
+///     RASK085 — an entity hands out a mutable collection of other entities.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -29,8 +29,8 @@ namespace Rask.Data.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor Rask081 = new(
-        "RASK081",
+    private static readonly DiagnosticDescriptor Rask085 = new(
+        "RASK085",
         "Entity exposes a mutable collection of entities",
         "'{0}.{1}' exposes a mutable '{2}' of '{3}', so code outside '{0}' can add and remove them — keep the "
         + "collection in a private field, expose it as 'IReadOnlyCollection<{3}>', and change it through the "
@@ -42,9 +42,9 @@ public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
                      + "exposes. Keep the collection in a private readonly field and expose it as "
                      + "IReadOnlyCollection<T>, IReadOnlyList<T> or IEnumerable<T>; EF Core maps the navigation "
                      + "through the backing field by convention.",
-        helpLinkUri: DiagnosticHelp.Link("RASK081"));
+        helpLinkUri: DiagnosticHelp.Link("RASK085"));
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask081);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask085);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -92,7 +92,7 @@ public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
                 : property.Locations[0];
 
             context.ReportDiagnostic(Diagnostic.Create(
-                Rask081,
+                Rask085,
                 location,
                 type.Name,
                 property.Name,

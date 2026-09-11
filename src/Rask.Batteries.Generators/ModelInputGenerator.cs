@@ -52,8 +52,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
     private static readonly SymbolDisplayFormat TypeFormat = GeneratedModelShape.TypeFormat;
 
-    internal static readonly DiagnosticDescriptor Rask077 = new(
-        "RASK077",
+    internal static readonly DiagnosticDescriptor Rask081 = new(
+        "RASK081",
         "Entity has no parameterless constructor, so CreateAsync is not generated",
         "'{0}' has no parameterless constructor, so neither '{0}.CreateAsync({0}Model)' nor "
         + "'{0}.CreateAsync(id, {0}Model)' is generated; add one — it may be private, like the one EF Core "
@@ -65,10 +65,10 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                      + "and they need a constructor that takes nothing to start from. Everything that works on a row "
                      + "that already exists — the model itself, ToModel, UpdateAsync and DeleteAsync — is still "
                      + "generated.",
-        helpLinkUri: DiagnosticHelp.Link("RASK077"));
+        helpLinkUri: DiagnosticHelp.Link("RASK081"));
 
-    internal static readonly DiagnosticDescriptor Rask078 = new(
-        "RASK078",
+    internal static readonly DiagnosticDescriptor Rask082 = new(
+        "RASK082",
         "A type already has the generated model's name",
         "'{1}' already exists beside the entity '{0}', so Rask cannot generate its form model or the "
         + "CreateAsync, UpdateAsync and DeleteAsync that take it; rename the existing type, declare it "
@@ -79,10 +79,10 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         description: "Every Rask.Data.Model gets a generated {Entity}Model in its own namespace. A hand-written, "
                      + "non-partial type of that name would collide with it as CS0101, a message that names "
                      + "neither the generator nor the way out — so the generator stands down and says why instead.",
-        helpLinkUri: DiagnosticHelp.Link("RASK078"));
+        helpLinkUri: DiagnosticHelp.Link("RASK082"));
 
-    internal static readonly DiagnosticDescriptor Rask079 = new(
-        "RASK079",
+    internal static readonly DiagnosticDescriptor Rask083 = new(
+        "RASK083",
         "Nested entity gets no generated model",
         "'{0}' is declared inside '{1}', so no '{0}Model' is generated for it; declare the entity at "
         + "namespace level to get one, or mark it [SkipModel] to say that is intended",
@@ -92,7 +92,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         description: "The generated model and its writes are emitted beside the entity, as siblings in its "
                      + "namespace. An entity nested in another type has no such place, so it is mapped as usual "
                      + "but gets no form model.",
-        helpLinkUri: DiagnosticHelp.Link("RASK079"));
+        helpLinkUri: DiagnosticHelp.Link("RASK083"));
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -408,17 +408,17 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             {
                 case Refusal.Nested:
                     context.ReportDiagnostic(Diagnostic.Create(
-                        Rask079, entity.Location?.ToLocation(), entity.Name, entity.RefusalDetail));
+                        Rask083, entity.Location?.ToLocation(), entity.Name, entity.RefusalDetail));
                     continue;
                 case Refusal.Clash:
                     context.ReportDiagnostic(Diagnostic.Create(
-                        Rask078, entity.Location?.ToLocation(), entity.Name, entity.RefusalDetail));
+                        Rask082, entity.Location?.ToLocation(), entity.Name, entity.RefusalDetail));
                     continue;
             }
 
             if (!entity.Constructible)
             {
-                context.ReportDiagnostic(Diagnostic.Create(Rask077, entity.Location?.ToLocation(), entity.Name));
+                context.ReportDiagnostic(Diagnostic.Create(Rask081, entity.Location?.ToLocation(), entity.Name));
             }
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";

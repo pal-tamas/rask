@@ -26,7 +26,7 @@ public sealed class Locker : Model<LockerCode>
     public string Site { get; private set; } = "";
 }
 
-// Value objects the way RASK080 wants them — no public setters. The generated writes reach them through
+// Value objects the way RASK084 wants them — no public setters. The generated writes reach them through
 // [UnsafeAccessor], which compiles whatever the member names are; only running it shows the names are right.
 public sealed class Parcel : Model<ParcelId>
 {

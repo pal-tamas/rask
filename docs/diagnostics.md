@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK081, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK085, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -16,8 +16,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
-| **RASK080** | makes the accessor `private set` / `private init`, or the field `private` |
-| **RASK081** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
+| **RASK084** | makes the accessor `private set` / `private init`, or the field `private` |
+| **RASK085** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -110,11 +110,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK074](#rask074) | Warning | More than one account type |
 | [RASK075](#rask075) | Warning | Option template on a native select |
 | [RASK076](#rask076) | Warning | Grid column with no field token |
-| [RASK077](#rask077) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
-| [RASK078](#rask078) | Error | A type already has the generated model's name |
-| [RASK079](#rask079) | Warning | Nested entity gets no generated model |
-| [RASK080](#rask080) | Warning | Model state can be changed from outside the type |
-| [RASK081](#rask081) | Warning | Entity exposes a mutable collection of entities |
+| [RASK081](#rask081) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
+| [RASK082](#rask082) | Error | A type already has the generated model's name |
+| [RASK083](#rask083) | Warning | Nested entity gets no generated model |
+| [RASK084](#rask084) | Warning | Model state can be changed from outside the type |
+| [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1781,7 +1781,7 @@ tested on the shape it has to catch rather than only on compiling.
 
 ---
 
-## RASK077
+## RASK081
 
 **Entity has no parameterless constructor, so `CreateAsync(model)` is not generated** · Warning
 
@@ -1794,7 +1794,7 @@ nothing to start from.
 ```csharp
 public sealed class Product : Model<Guid>
 {
-    public Product(string name) => Name = name;   // ⚠ RASK077 — the only constructor takes a name
+    public Product(string name) => Name = name;   // ⚠ RASK081 — the only constructor takes a name
 
     public string Name { get; private set; }
 }
@@ -1815,7 +1815,7 @@ instead; mark it `[SkipModel]` if it should have no form model at all.
 
 ---
 
-## RASK078
+## RASK082
 
 **A type already has the generated model's name** · Error
 
@@ -1828,7 +1828,7 @@ out. So the generator stands down for that entity and says why: no `ProductModel
 ```csharp
 public sealed class Product : Model<Guid> { /* … */ }
 
-public sealed class ProductModel                  // ✗ RASK078 — the generated model's name
+public sealed class ProductModel                  // ✗ RASK082 — the generated model's name
 {
     public string Name { get; set; } = "";
 }
@@ -1853,7 +1853,7 @@ to add members, interfaces such as `IValidatableObject`, or computed display val
 
 ---
 
-## RASK079
+## RASK083
 
 **Nested entity gets no generated model** · Warning
 
@@ -1864,7 +1864,7 @@ namespace. An entity declared inside another type has no such place to put them,
 ```csharp
 public static class Catalog
 {
-    public sealed class Product : Model<Guid> { }  // ⚠ RASK079 — nested in Catalog
+    public sealed class Product : Model<Guid> { }  // ⚠ RASK083 — nested in Catalog
 }
 ```
 
@@ -1879,7 +1879,7 @@ public sealed class Product : Model<Guid> { }      // ✓ gets ProductModel and 
 
 ---
 
-## RASK080
+## RASK084
 
 **Model state can be changed from outside the type** · Warning
 
@@ -1898,13 +1898,13 @@ Reported, at the accessor or the field:
 ```csharp
 public sealed class Product : Model<Guid>
 {
-    public string Name { get; set; } = "";            // ⚠ RASK080 — 'Product.Name' has a public setter
-    public int Stock;                                  // ⚠ RASK080 — a public field that is not readonly
+    public string Name { get; set; } = "";            // ⚠ RASK084 — 'Product.Name' has a public setter
+    public int Stock;                                  // ⚠ RASK084 — a public field that is not readonly
 }
 
 public sealed record Address : IValueObject
 {
-    public string City { get; init; } = "";           // ⚠ RASK080 — a public init accessor
+    public string City { get; init; } = "";           // ⚠ RASK084 — a public init accessor
 }
 ```
 
@@ -1936,7 +1936,7 @@ overrides, so the base declaration is where it is reported.
 ```csharp
 public sealed record Money(decimal Amount, string Currency) : IValueObject;          // ✓ not reported
 public readonly record struct Weight(decimal Grams) : IValueObject;                  // ✓ not reported
-public record struct Height(decimal Centimetres) : IValueObject;                     // ⚠ RASK080 — a real set
+public record struct Height(decimal Centimetres) : IValueObject;                     // ⚠ RASK084 — a real set
 ```
 
 A positional parameter of a record struct that is not `readonly` gets a real `set`, so it is reported at
@@ -1947,7 +1947,7 @@ to decide.
 
 ---
 
-## RASK081
+## RASK085
 
 **Entity exposes a mutable collection of entities** · Warning
 
@@ -1960,7 +1960,7 @@ and is not reported; neither are `ReadOnlyCollection<T>` and the immutable colle
 ```csharp
 public sealed class Order : Model<Guid>
 {
-    public List<OrderLine> Lines { get; private set; } = new();   // ⚠ RASK081
+    public List<OrderLine> Lines { get; private set; } = new();   // ⚠ RASK085
 }
 ```
 

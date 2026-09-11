@@ -185,9 +185,9 @@ them until tagged releases begin.
   current row when it does not; a model that is not `IVersioned` gets `DeleteAsync(id)` alone.
   `[SkipModel]` keeps a property off the model, and a value-object property becomes a nested
   `{ValueObject}Model`. The build warns about an entity with no parameterless constructor
-  ([RASK077](docs/diagnostics.md#rask077): it gets no `CreateAsync`) and about a nested entity
-  ([RASK079](docs/diagnostics.md#rask079): no model), and refuses a hand-written, non-`partial`
-  `ProductModel` beside a `Product` ([RASK078](docs/diagnostics.md#rask078)) — a `partial` one merges into
+  ([RASK081](docs/diagnostics.md#rask081): it gets no `CreateAsync`) and about a nested entity
+  ([RASK083](docs/diagnostics.md#rask083): no model), and refuses a hand-written, non-`partial`
+  `ProductModel` beside a `Product` ([RASK082](docs/diagnostics.md#rask082)) — a `partial` one merges into
   the generated class, which is how a model gains members of its own.
 
   The other generators recognise a model although it is generated and they cannot see it: a CQRS message,
@@ -204,10 +204,10 @@ them until tagged releases begin.
   declares itself (`public static Task<Product> CreateAsync(ProductModel model, …)`) overrides the generated
   one at every call site; the generated one stays reachable as `ProductModelExtensions.CreateAsync` to wrap.
 
-- **Two build warnings keep an entity's state inside the entity.** [RASK080](docs/diagnostics.md#rask080)
+- **Two build warnings keep an entity's state inside the entity.** [RASK084](docs/diagnostics.md#rask084)
   reports a public `set` or `init` (a value object's positional record parameters excepted) or a public
   non-readonly field on a `Model`, the app's abstract bases between `Model` and its entities, and every
-  `IValueObject`; [RASK081](docs/diagnostics.md#rask081) reports an entity exposing a mutable collection of
+  `IValueObject`; [RASK085](docs/diagnostics.md#rask085) reports an entity exposing a mutable collection of
   other entities instead of `IReadOnlyCollection<T>` over a private field. Both ship a lightbulb fix.
 
 - **`Product.AsQueryable()` hands a model query to a component that composes its own LINQ.** It is a

@@ -19,7 +19,7 @@ EF Core, and work richer than that — a domain operation, a transaction — is 
   through the change tracker, so the interceptors stamp, version, soft-delete and publish as for any save.
   `[SkipModel]` keeps a property off the form; a write declared on the entity overrides the generated one.
 - **State stays inside the entity** — build warnings with lightbulb fixes flag a public setter or field on a
-  model or value object (RASK080) and an entity exposing a mutable collection of entities (RASK081).
+  model or value object (RASK084) and an entity exposing a mutable collection of entities (RASK085).
 - **Domain operations and transactions are plain EF Core** — inject `IDbContextFactory<TContext>` on a live
   page, or the context in a handler, call the method, and `SaveChangesAsync`.
 - **Value objects** (`IValueObject`) map as EF **complex types**, not owned entities; **strongly-typed

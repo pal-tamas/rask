@@ -281,7 +281,7 @@ public class ModelInputGeneratorTests
     [Fact]
     public void Value_objects_with_non_public_constructors_and_setters_are_rebuilt_through_accessors()
     {
-        // What RASK080 steers a value object towards: no public setters. A private constructor naming every
+        // What RASK084 steers a value object towards: no public setters. A private constructor naming every
         // property is called through an accessor; a private parameterless one is followed by each property's
         // private setter; a struct is written by reference, or the accessor would write into a copy.
         var run = Run("""
@@ -522,7 +522,7 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
-    public void An_entity_without_a_parameterless_constructor_gets_no_CreateAsync_and_RASK077()
+    public void An_entity_without_a_parameterless_constructor_gets_no_CreateAsync_and_RASK081()
     {
         var run = Run("""
             using System;
@@ -536,7 +536,7 @@ public class ModelInputGeneratorTests
             """);
 
         var diagnostic = Assert.Single(run.Diagnostics);
-        Assert.Equal("RASK077", diagnostic.Id);
+        Assert.Equal("RASK081", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Empty(run.GeneratedCompileErrors());
 
@@ -547,7 +547,7 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
-    public void A_hand_written_model_of_the_same_name_is_RASK078_and_nothing_is_generated()
+    public void A_hand_written_model_of_the_same_name_is_RASK082_and_nothing_is_generated()
     {
         var run = Run("""
             using System;
@@ -563,7 +563,7 @@ public class ModelInputGeneratorTests
             """);
 
         var diagnostic = Assert.Single(run.Diagnostics);
-        Assert.Equal("RASK078", diagnostic.Id);
+        Assert.Equal("RASK082", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.False(run.HasGeneratedSource("ProductModel"));
         Assert.Empty(run.GeneratedCompileErrors());
@@ -593,7 +593,7 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
-    public void A_nested_entity_is_RASK079_and_gets_no_model()
+    public void A_nested_entity_is_RASK083_and_gets_no_model()
     {
         var run = Run("""
             using System;
@@ -609,7 +609,7 @@ public class ModelInputGeneratorTests
             """);
 
         var diagnostic = Assert.Single(run.Diagnostics);
-        Assert.Equal("RASK079", diagnostic.Id);
+        Assert.Equal("RASK083", diagnostic.Id);
         Assert.False(run.HasGeneratedSource("ProductModel"));
         Assert.Empty(run.GeneratedCompileErrors());
     }

@@ -231,12 +231,12 @@ the same way the reads are, so `Product` stays closed to everyone but its own me
 Two build warnings hold an entity to that shape, because a generated model is only a safe way to edit an
 entity whose own members cannot be written from outside it:
 
-- **No public setters** ([RASK080](diagnostics.md#rask080)). A property of a `Model` — or of an abstract
+- **No public setters** ([RASK084](diagnostics.md#rask084)). A property of a `Model` — or of an abstract
   base the app puts between `Model` and its entities, or of an `IValueObject` — may not have a public `set`
   or `init`, and a public field must be `readonly`. State changes through the type's own methods and
   constructor; the lightbulb makes the accessor `private`. A positional record's parameters are exempt, so
   `record Money(decimal Amount, string Currency) : IValueObject` stays the idiomatic value object.
-- **No mutable collections of entities** ([RASK081](diagnostics.md#rask081)). A navigation to many
+- **No mutable collections of entities** ([RASK085](diagnostics.md#rask085)). A navigation to many
   entities is exposed read-only, over a private field EF Core maps, and changed through a method. The
   lightbulb rewrites it:
 
@@ -385,12 +385,12 @@ public sealed class Order : Model<Guid>
 at the first save:
 
 - A model with **no parameterless constructor** is a warning, and it gets no `CreateAsync(model)` — there
-  is nothing to construct the entity through ([RASK077](diagnostics.md#rask077)). A private one is enough.
+  is nothing to construct the entity through ([RASK081](diagnostics.md#rask081)). A private one is enough.
 - A **hand-written `ProductModel`** beside a `Product` entity is an error: the generated class would
-  collide with yours ([RASK078](diagnostics.md#rask078)). Rename yours — or declare it `partial`, which
+  collide with yours ([RASK082](diagnostics.md#rask082)). Rename yours — or declare it `partial`, which
   merges it into the generated one and is the way to add members, `IValidatableObject` or display helpers.
 - A **nested entity** — a model declared inside another class — is a warning, and it gets no model
-  ([RASK079](diagnostics.md#rask079)).
+  ([RASK083](diagnostics.md#rask083)).
 
 `[SkipModel]` on the **class** generates no model at all, which silences the last two when that is the
 intent. And an entity deriving from the non-generic `Model` (a composite key) has no id to address a row
@@ -612,7 +612,7 @@ EF Core and the generated model need:
 // holds only scalars — a positional record is fine
 public sealed record Money(decimal Amount, string Currency) : IValueObject;
 
-// contains a value object — needs a parameterless ctor, and its setters stay private (RASK080)
+// contains a value object — needs a parameterless ctor, and its setters stay private (RASK084)
 public sealed class Packaging : IValueObject
 {
     private Packaging() { }

@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Rask.Generators.CodeFixes;
 
-// Quick-fix for RASK080 (an entity's or value object's state can be changed from outside it): narrow the
+// Quick-fix for RASK084 (an entity's or value object's state can be changed from outside it): narrow the
 // member to private — `set` becomes `private set`, `init` becomes `private init`, and a public mutable
 // field becomes a private one. The message says exactly this, so the edit is mechanical.
 //
@@ -25,11 +25,11 @@ public sealed class ModelStateMutationCodeFixProvider : RaskCodeFixProvider<CSha
     // Mirrors ModelTypes.NoFixProperty in Rask.Batteries.Generators, which this assembly cannot reference.
     private const string NoFixProperty = "RaskNoFix";
 
-    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK080"];
+    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK084"];
 
     protected override string Title => "Make it private";
 
-    protected override string EquivalenceKey => "RASK080_MakePrivate";
+    protected override string EquivalenceKey => "RASK084_MakePrivate";
 
     protected override Task<bool> CanFixAsync(CodeFixContext context, CSharpSyntaxNode node) =>
         Task.FromResult(

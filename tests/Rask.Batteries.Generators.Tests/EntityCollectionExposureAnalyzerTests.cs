@@ -3,7 +3,7 @@ using Rask.Data.Generators.Analyzers;
 
 namespace Rask.Data.Generators.Tests;
 
-/// <summary>RASK081: an entity exposes a mutable collection of other entities.</summary>
+/// <summary>RASK085: an entity exposes a mutable collection of other entities.</summary>
 public class EntityCollectionExposureAnalyzerTests
 {
     private static Task<IReadOnlyList<Diagnostic>> Run(string members) =>
@@ -33,7 +33,7 @@ public class EntityCollectionExposureAnalyzerTests
     {
         var diagnostic = Assert.Single(await Run(member));
 
-        Assert.Equal("RASK081", diagnostic.Id);
+        Assert.Equal("RASK085", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Equal(type, diagnostic.Flagged());
         Assert.Contains($"'Order.Lines' exposes a mutable '{type}' of 'OrderLine'", diagnostic.GetMessage(), StringComparison.Ordinal);

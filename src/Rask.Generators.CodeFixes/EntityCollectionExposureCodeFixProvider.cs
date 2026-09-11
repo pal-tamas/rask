@@ -13,7 +13,7 @@ using Microsoft.CodeAnalysis.Simplification;
 
 namespace Rask.Generators.CodeFixes;
 
-// Quick-fix for RASK081 (an entity exposes a mutable collection of entities). Rewrites
+// Quick-fix for RASK085 (an entity exposes a mutable collection of entities). Rewrites
 //
 //     public List<OrderLine> Lines { get; private set; } = new();
 //
@@ -40,13 +40,13 @@ namespace Rask.Generators.CodeFixes;
 public sealed class EntityCollectionExposureCodeFixProvider : RaskCodeFixProvider<PropertyDeclarationSyntax>
 {
     // Finds the rewritten property again once ReplaceNodes has produced a new tree.
-    private static readonly SyntaxAnnotation Marker = new("RASK081_Property");
+    private static readonly SyntaxAnnotation Marker = new("RASK085_Property");
 
-    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK081"];
+    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK085"];
 
     protected override string Title => "Expose as IReadOnlyCollection<T> over a private field";
 
-    protected override string EquivalenceKey => "RASK081_ReadOnlyCollection";
+    protected override string EquivalenceKey => "RASK085_ReadOnlyCollection";
 
     protected override async Task<bool> CanFixAsync(CodeFixContext context, PropertyDeclarationSyntax node)
     {

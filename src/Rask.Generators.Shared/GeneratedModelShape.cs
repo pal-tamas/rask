@@ -574,7 +574,7 @@ internal static class GeneratedModelShape
             }
 
             // How it is rebuilt from the model, best first. The public shapes are plain C#. The non-public ones — a
-            // private constructor, or `{ get; private set; }`, which is what RASK080 steers a value object
+            // private constructor, or `{ get; private set; }`, which is what RASK084 steers a value object
             // towards — go through [UnsafeAccessor], so they need a type generated code can name, and a
             // non-generic one: an accessor into a generic type has to be declared generic itself. Anything else
             // is copied across as the value itself, and a form cannot bind into it.

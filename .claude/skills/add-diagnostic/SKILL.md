@@ -10,9 +10,9 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 already taken on a branch base that was ahead of the checkout it was picked against. Run the grep, and
 run it again before you merge.
 
-At the last edit the highest allocated here was RASK081 (RASK077–079 are the generated form model's and
-RASK080/081 the model-state analyzers', all in `Rask.Batteries.Generators`), so the next free is
-**RASK082**; RASK063/065 are
+At the last edit the highest allocated here was RASK085 (RASK081–083 are the generated form model's and
+RASK084/085 the model-state analyzers', all in `Rask.Batteries.Generators`), so the next free is
+**RASK086**; RASK063/065 are
 RESERVED for Rask.Blazor and unimplemented, and RASK030/032/034/042/047/048/049/050 are retired and
 never recycled. **FOUR** assemblies allocate in this space, and RS1019 only checks one compilation:
 

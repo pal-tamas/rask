@@ -45,7 +45,7 @@ public sealed class Product : Model<Guid>, ITimestamped, IVersioned
 nothing else — no `DbSet` property, no configuration class, no registration. `[Required, MaxLength(200)]`
 does two jobs at once: EF Core reads it as the column (`NOT NULL`, 200 characters), and the form reads it
 as validation. The `private set`s aren't a style choice: the build rejects a public `set` or `init` on an
-entity (RASK080), because an entity's state changes through its own methods and the generated writes, never
+entity (RASK084), because an entity's state changes through its own methods and the generated writes, never
 by assignment from outside.
 
 The two markers are opt-in, and opting in costs nothing in the class:
