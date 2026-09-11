@@ -1,0 +1,104 @@
+#nullable enable
+Rask.Storage.AzureStorageOptions
+Rask.Storage.AzureStorageOptions.AzureStorageOptions() -> void
+Rask.Storage.AzureStorageOptions.ConnectionString.get -> string?
+Rask.Storage.AzureStorageOptions.ConnectionString.set -> void
+Rask.Storage.AzureStorageOptions.Container.get -> string!
+Rask.Storage.AzureStorageOptions.Container.set -> void
+Rask.Storage.S3StorageOptions
+Rask.Storage.S3StorageOptions.AccessKeyId.get -> string?
+Rask.Storage.S3StorageOptions.AccessKeyId.set -> void
+Rask.Storage.S3StorageOptions.Bucket.get -> string!
+Rask.Storage.S3StorageOptions.Bucket.set -> void
+Rask.Storage.S3StorageOptions.Region.get -> string!
+Rask.Storage.S3StorageOptions.Region.set -> void
+Rask.Storage.S3StorageOptions.S3StorageOptions() -> void
+Rask.Storage.S3StorageOptions.SecretAccessKey.get -> string?
+Rask.Storage.S3StorageOptions.SecretAccessKey.set -> void
+Rask.Storage.S3StorageOptions.ServiceUrl.get -> System.Uri?
+Rask.Storage.S3StorageOptions.ServiceUrl.set -> void
+Rask.Storage.S3StorageOptions.SessionToken.get -> string?
+Rask.Storage.S3StorageOptions.SessionToken.set -> void
+Rask.Storage.S3StorageOptions.UsePathStyle.get -> bool
+Rask.Storage.S3StorageOptions.UsePathStyle.set -> void
+Rask.Storage.StorageOptions.Azure.get -> Rask.Storage.AzureStorageOptions!
+Rask.Storage.StorageOptions.S3.get -> Rask.Storage.S3StorageOptions!
+Rask.Storage.StorageProvider.Azure = 2 -> Rask.Storage.StorageProvider
+Rask.Storage.StorageProvider.S3 = 1 -> Rask.Storage.StorageProvider
+Rask.Storage.DiskStorageOptions
+Rask.Storage.DiskStorageOptions.DiskStorageOptions() -> void
+Rask.Storage.DiskStorageOptions.Root.get -> string?
+Rask.Storage.DiskStorageOptions.Root.set -> void
+Rask.Storage.FileRejectedException
+Rask.Storage.FileRejectedException.ContentType.get -> string?
+Rask.Storage.FileRejectedException.Limit.get -> long?
+Rask.Storage.FileRejectedException.Reason.get -> Rask.Storage.FileRejection
+Rask.Storage.FileRejectedException.Size.get -> long?
+Rask.Storage.FileRejection
+Rask.Storage.FileRejection.TooLarge = 0 -> Rask.Storage.FileRejection
+Rask.Storage.FileRejection.TypeNotAllowed = 1 -> Rask.Storage.FileRejection
+Rask.Storage.IFiles
+Rask.Storage.IFiles.DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Storage.IFiles.Download(System.Guid id) -> Microsoft.AspNetCore.Http.IResult!
+Rask.Storage.IFiles.FindAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile?>!
+Rask.Storage.IFiles.OpenReadAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IO.Stream?>!
+Rask.Storage.IFiles.SaveAsync(Rask.Core.Forms.RaskFile! file, System.Action<Rask.Storage.SaveOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
+Rask.Storage.IFiles.SaveAsync(System.IO.Stream! content, string! name, System.Action<Rask.Storage.SaveOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
+Rask.Storage.IFiles.TemporaryUrlAsync(System.Guid id, System.TimeSpan lifetime, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+Rask.Storage.IFiles.Url(System.Guid id) -> string!
+Rask.Storage.RaskStorageEndpointExtensions
+Rask.Storage.RaskStorageServiceCollectionExtensions
+Rask.Storage.SaveOptions
+Rask.Storage.SaveOptions.Public.get -> bool
+Rask.Storage.SaveOptions.Public.set -> void
+Rask.Storage.SaveOptions.SaveOptions() -> void
+Rask.Storage.StorageModelBuilderExtensions
+Rask.Storage.StorageOptions
+Rask.Storage.StorageOptions.AllowedTypes.get -> System.Collections.Generic.IList<string!>!
+Rask.Storage.StorageOptions.Disk.get -> Rask.Storage.DiskStorageOptions!
+Rask.Storage.StorageOptions.MaxFileSize.get -> long
+Rask.Storage.StorageOptions.MaxFileSize.set -> void
+Rask.Storage.StorageOptions.OrphanGracePeriod.get -> System.TimeSpan
+Rask.Storage.StorageOptions.OrphanGracePeriod.set -> void
+Rask.Storage.StorageOptions.Prefix.get -> string!
+Rask.Storage.StorageOptions.Prefix.set -> void
+Rask.Storage.StorageOptions.Provider.get -> Rask.Storage.StorageProvider
+Rask.Storage.StorageOptions.Provider.set -> void
+Rask.Storage.StorageOptions.PublicBaseUrl.get -> string?
+Rask.Storage.StorageOptions.PublicBaseUrl.set -> void
+Rask.Storage.StorageOptions.StorageOptions() -> void
+Rask.Storage.StorageOptions.SweepInterval.get -> System.TimeSpan
+Rask.Storage.StorageOptions.SweepInterval.set -> void
+Rask.Storage.StorageProvider
+Rask.Storage.StorageProvider.Disk = 0 -> Rask.Storage.StorageProvider
+Rask.Storage.StoredFile
+Rask.Storage.StoredFile.<Clone>$() -> Rask.Storage.StoredFile!
+Rask.Storage.StoredFile.ContentType.get -> string!
+Rask.Storage.StoredFile.ContentType.init -> void
+Rask.Storage.StoredFile.CreatedAt.get -> System.DateTime
+Rask.Storage.StoredFile.CreatedAt.init -> void
+Rask.Storage.StoredFile.Equals(Rask.Storage.StoredFile? other) -> bool
+Rask.Storage.StoredFile.Id.get -> System.Guid
+Rask.Storage.StoredFile.Id.init -> void
+Rask.Storage.StoredFile.Key.get -> string!
+Rask.Storage.StoredFile.Key.init -> void
+Rask.Storage.StoredFile.Name.get -> string!
+Rask.Storage.StoredFile.Name.init -> void
+Rask.Storage.StoredFile.Provider.get -> Rask.Storage.StorageProvider
+Rask.Storage.StoredFile.Provider.init -> void
+Rask.Storage.StoredFile.Public.get -> bool
+Rask.Storage.StoredFile.Public.init -> void
+Rask.Storage.StoredFile.Sha256.get -> string!
+Rask.Storage.StoredFile.Sha256.init -> void
+Rask.Storage.StoredFile.Size.get -> long
+Rask.Storage.StoredFile.Size.init -> void
+Rask.Storage.StoredFile.StoredFile() -> void
+const Rask.Storage.StorageOptions.DefaultMaxFileSize = 52428800 -> long
+override Rask.Storage.StoredFile.Equals(object? obj) -> bool
+override Rask.Storage.StoredFile.GetHashCode() -> int
+override Rask.Storage.StoredFile.ToString() -> string!
+static Rask.Storage.RaskStorageEndpointExtensions.MapRaskStorage(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+static Rask.Storage.RaskStorageServiceCollectionExtensions.AddRaskStorage<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Storage.StorageOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Storage.StorageModelBuilderExtensions.AddRaskStorage(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Storage.StoredFile.operator !=(Rask.Storage.StoredFile? left, Rask.Storage.StoredFile? right) -> bool
+static Rask.Storage.StoredFile.operator ==(Rask.Storage.StoredFile? left, Rask.Storage.StoredFile? right) -> bool

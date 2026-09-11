@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -103,14 +104,15 @@ public static partial class RaskEndpointExtensions
     /// <param name="services">The service collection to add Rask services to.</param>
     /// <param name="configure">
     ///     Optional per-app live-runtime options shared by the Server and WASM runtimes (diff mode,
-    ///     path base, session cap, scoped-asset preload). When omitted, framework defaults apply
+    ///     path base, session cap, scoped-asset preload). Applied after the <c>Rask:Live</c> configuration
+    ///     section, so code wins. When both are absent, framework defaults apply
     ///     (<see cref="Rask.Core.Live.LiveDiffMode.Auto" />, no path base, uncapped).
     /// </param>
     /// <param name="configureServer">
     ///     Optional server-host-only limits (<see cref="RaskServerOptions" />): the WebSocket
-    ///     frame-size / frame-rate / pending-handler caps and the session grace periods. When omitted,
-    ///     the framework's prior hardcoded defaults apply. Bind from configuration with
-    ///     <c>AddRask(configureServer: o =&gt; config.GetSection("Rask").Bind(o))</c>.
+    ///     frame-size / frame-rate / pending-handler caps and the session grace periods. Applied after the
+    ///     <c>Rask:Server</c> configuration section (<c>Rask__Server__SessionGracePeriod=00:00:20</c> in the
+    ///     environment works), so code wins. An out-of-range value fails the host's start, naming the key.
     /// </param>
     /// <param name="configureCulture">
     ///     The languages this app ships, and how a visitor's is chosen. Leaving it unset — the default —
@@ -130,66 +132,32 @@ public static partial class RaskEndpointExtensions
         Action<RaskServerOptions>? configureServer = null,
         Action<RaskCultureOptions>? configureCulture = null)
     {
-        // Per-app live runtime options. The framework default for DiffMode is LiveDiffMode.Auto, so a
-        // fresh `AddRask()` ships the diff codec out of the box. Override:
-        //     services.AddRask(o => o.DiffMode = LiveDiffMode.DisabledFull);
+        // Per-app live runtime options, bound from Rask:Live and then the callback — code wins over
+        // appsettings, appsettings over the defaults (see RaskOptionsRegistration). The framework default for
+        // DiffMode is LiveDiffMode.Auto, so a fresh `AddRask()` ships the diff codec out of the box.
         //
-        // DiffMode is a per-host value carried on the LiveSessionStore (and handed to each LiveSession),
-        // NOT a process-global static — so two hosts in one process, and parallel tests, each render in
-        // their own mode instead of racing shared state. PathBase / MinifyScopedAssets stay on the
-        // static LiveOptions because they back the process-wide content-addressed asset registries.
-        var maxSessions = 0;
-        var diffMode = LiveDiffMode.Auto;
-        if (configure is not null)
-        {
-            var liveOptions = new RaskLiveOptions();
-            configure(liveOptions);
-            diffMode = liveOptions.DiffMode;
-            // PathBase normalization happens on assignment to RaskLiveOptions,
-            // and a second normalize on the static accessor is a cheap no-op.
-            // UseRask<TApp>(pathBase: ...) can still override this if the user
-            // prefers to set the prefix at endpoint-registration time.
-            LiveOptions.PathBase = liveOptions.PathBase;
-            // Only honour an explicit true/false here; null (the default) is left for UseRask to resolve
-            // from the host environment (minify outside Development). Writing null would clobber a value a
-            // test set directly, so guard it.
-            if (liveOptions.MinifyScopedAssets is { } minify)
-            {
-                LiveOptions.MinifyScopedAssets = minify;
-            }
+        // Nothing is READ here. A host registers IConfiguration through a factory, so the options are built on
+        // first use, and every value that used to be copied out at this point is read from the built options
+        // where it is needed: the session cap and diff mode by the LiveSessionStore factory below, PathBase and
+        // MinifyScopedAssets by UseRask (they back the process-wide content-addressed asset registries, so they
+        // stay statics). DiffMode is a per-host value carried on the LiveSessionStore (and handed to each
+        // LiveSession), NOT a process-global static — so two hosts in one process, and parallel tests, each
+        // render in their own mode instead of racing shared state.
+        services.AddRaskOptions<RaskLiveOptions>("Rask:Live", static (section, o) => section.Bind(o), configure,
+            validate: null);
 
-            // Session cap is a per-store instance value (not a static) so concurrent
-            // hosts/tests don't clobber each other through global state.
-            maxSessions = liveOptions.MaxSessions;
-        }
-
-        // Seed the server-only WS / grace-period safety limits from RaskServerOptions into a per-host
-        // RaskServerLimits singleton. An absent callback registers the framework defaults (which match
-        // RaskServerOptions' defaults). The singleton — not a process-global static — is the hot-path
-        // source of truth: the WS endpoint resolves it once per connection so concurrent hosts each
-        // carry their own limits. Validate only when configured (defaults are in range).
-        var serverOptions = new RaskServerOptions();
-        if (configureServer is not null)
-        {
-            configureServer(serverOptions);
-            serverOptions.Validate();
-        }
-
-        services.AddSingleton(RaskServerLimits.From(serverOptions));
+        // The server-only WS / grace-period safety limits, bound from Rask:Server and then the callback, and
+        // projected into a per-host RaskServerLimits singleton. The singleton — not a process-global static —
+        // is the hot-path source of truth: the WS endpoint resolves it once per connection so concurrent hosts
+        // each carry their own limits. An out-of-range value fails the host's start, naming the key.
+        services.AddRaskOptions<RaskServerOptions>("Rask:Server", static (section, o) => section.Bind(o), configureServer,
+            static o => o.Validate());
+        services.TryAddSingleton(static sp => RaskServerLimits.From(sp.GetRequiredService<RaskServerOptions>()));
 
         // The in-page devtools, when this is a Debug build that carries Rask.DevTools. Found by name, so the
         // app writes nothing; inert without the package, folded away entirely in a trimmed Release publish.
         // Whether they switch ON is still the environment's call (Development only), made where they run.
         RaskDevToolsLoader.TryAttach(services);
-
-        // Seals the record a client carries from one session to the next. Live only when the host has Data
-        // Protection (WebApplication.CreateBuilder does; a hand-rolled host might not) AND resume is on —
-        // absent either, a reconnect to an unknown session falls back to the reload it did before rather
-        // than failing the host at startup. Note this is what makes a persisted key ring load-bearing: with
-        // the default per-container ring, a record sealed before a redeploy cannot be opened after it —
-        // which is what RaskDataProtectionSetup below is for.
-        var resumeEnabled = serverOptions.SessionResume;
-        var resumeLifetime = serverOptions.ResumeTokenLifetime;
 
         // Ask for Data Protection rather than assuming it. WebApplication.CreateBuilder does NOT register
         // it — it arrives only because something else pulled it in (antiforgery, cookie auth, session),
@@ -234,11 +202,18 @@ public static partial class RaskEndpointExtensions
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 
-        services.TryAddSingleton(sp =>
+        // Seals the record a client carries from one session to the next. Live only when the host has Data
+        // Protection (WebApplication.CreateBuilder does; a hand-rolled host might not) AND resume is on —
+        // absent either, a reconnect to an unknown session falls back to the reload it did before rather
+        // than failing the host at startup. Note this is what makes a persisted key ring load-bearing: with
+        // the default per-container ring, a record sealed before a redeploy cannot be opened after it —
+        // which is what RaskDataProtectionSetup above is for.
+        services.TryAddSingleton(static sp =>
         {
-            var provider = resumeEnabled ? sp.GetService<IDataProtectionProvider>() : null;
+            var limits = sp.GetRequiredService<RaskServerLimits>();
+            var provider = limits.SessionResume ? sp.GetService<IDataProtectionProvider>() : null;
             return new SessionResumeSupport(
-                provider is null ? null : new SessionHandoffProtector(provider, resumeLifetime));
+                provider is null ? null : new SessionHandoffProtector(provider, limits.ResumeTokenLifetime));
         });
 
         // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
@@ -246,17 +221,23 @@ public static partial class RaskEndpointExtensions
         // Per-host shutdown state. Pure state with no dependencies, so the store can read it without a
         // construction cycle; RaskDrainService drives it.
         services.AddSingleton<RaskDrainCoordinator>();
-        services.AddSingleton(sp => new LiveSessionStore(
-            sp.GetRequiredService<IServiceScopeFactory>(),
-            sp.GetService<IHostApplicationLifetime>(),
-            sp.GetService<RaskMetrics>())
+        services.AddSingleton(static sp =>
         {
-            MaxSessions = maxSessions,
-            DiffMode = diffMode,
-            // Assigned rather than passed: LiveSessionStore's constructor is public and
-            // RaskDrainCoordinator is internal, and every directly-constructed test store keeps working
-            // (it simply never drains).
-            Drain = sp.GetRequiredService<RaskDrainCoordinator>(),
+            // Session cap and diff mode are per-store instance values (not statics) so concurrent hosts and
+            // tests don't clobber each other through global state.
+            var live = sp.GetRequiredService<RaskLiveOptions>();
+            return new LiveSessionStore(
+                sp.GetRequiredService<IServiceScopeFactory>(),
+                sp.GetService<IHostApplicationLifetime>(),
+                sp.GetService<RaskMetrics>())
+            {
+                MaxSessions = live.MaxSessions,
+                DiffMode = live.DiffMode,
+                // Assigned rather than passed: LiveSessionStore's constructor is public and
+                // RaskDrainCoordinator is internal, and every directly-constructed test store keeps working
+                // (it simply never drains).
+                Drain = sp.GetRequiredService<RaskDrainCoordinator>(),
+            };
         });
         // Graceful shutdown for the live sessions: announce, settle in-flight handlers, close each socket
         // with a real handshake, dispose awaited. Registered unconditionally — a drain is not an opt-in.
@@ -278,7 +259,14 @@ public static partial class RaskEndpointExtensions
         // Scoped: a DI scope on the server IS a live session, and so a visitor. Registered even when
         // the app configured nothing, because IRaskCulture is a host contract; without a configured
         // culture this is inert. Negotiating one from the request arrives in a later change.
-        services.AddRaskCulture(configureCulture, ServiceLifetime.Scoped);
+        //
+        // The options bind from Rask:Culture and then configureCulture, registered HERE rather than inside
+        // Core's AddRaskCulture: Core is shared with the browser, which has no configuration to bind. Core's
+        // own TryAddSingleton of the options is then a no-op, and so is its IsEnabled switch — which is read
+        // off the built options by UseRask instead, since nothing is built yet.
+        services.AddRaskOptions<RaskCultureOptions>("Rask:Culture", static (section, o) => section.Bind(o), configureCulture,
+            validate: null);
+        services.AddRaskCulture(configure: null, ServiceLifetime.Scoped);
         // Typed browser/device API wrappers — the transport-agnostic Core set, Scoped (one per WebSocket
         // session). Registered via the shared helper (RaskBrowserApis) so the interface → impl list lives in
         // one place instead of being duplicated across the Server and WASM hosts. TryAdd inside the helper
@@ -296,7 +284,9 @@ public static partial class RaskEndpointExtensions
         services.AddSingleton<IRaskRuntimeScript, ServerRuntimeScript>();
         services.AddSingleton<SessionUploadStore>();
         services.AddSingleton<SessionDownloadStore>();
-        services.TryAddSingleton<RaskUploadOptions>();
+        // Rask:Uploads. A host that registered its own RaskUploadOptions instance before AddRask still wins.
+        services.AddRaskOptions<RaskUploadOptions>("Rask:Uploads", static (section, o) => section.Bind(o), configure: null,
+            validate: null);
         services.AddScoped<RaskSessionContext>();
         services.AddScoped<IBrowserFileBackend, ServerFileBackend>();
         services.AddScoped<IDownloadSink, ServerDownloadSink>();
@@ -464,7 +454,22 @@ public static partial class RaskEndpointExtensions
         // the same prefix. A non-empty value also scopes every Map call below
         // under the prefix so two Rask servers can live side-by-side on one
         // origin behind a reverse proxy.
-        var pathBaseNormalized = RaskPath.Normalize(pathBase);
+        //
+        // The built options carry the process-wide statics, applied here because this is the first point the
+        // options exist — AddRask only registered them. An explicit pathBase argument wins; without one, the
+        // configured Rask:Live:PathBase does (an omitted argument used to reset a configured prefix to the root).
+        var liveOptions = endpoints.ServiceProvider.GetService<RaskLiveOptions>();
+        if (liveOptions?.MinifyScopedAssets is { } minify)
+        {
+            LiveOptions.MinifyScopedAssets = minify;
+        }
+
+        if (endpoints.ServiceProvider.GetService<RaskCultureOptions>() is { SupportedCultures.Count: > 0 })
+        {
+            RaskCulture.IsEnabled = true;
+        }
+
+        var pathBaseNormalized = RaskPath.Normalize(pathBase.Length > 0 ? pathBase : liveOptions?.PathBase ?? "");
         LiveOptions.PathBase = pathBaseNormalized;
 
         // How a session's tree is built, captured once here because two call sites need it: the GET that

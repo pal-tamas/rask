@@ -29,6 +29,7 @@ public sealed class ServerBatteryScaffoldTests
         { "jobs", "Rask.Jobs", "AddRaskJobs<AppDbContext>()", "modelBuilder.AddRaskJobs();" },
         { "mail", "Rask.Mail", "AddRaskMail<AppDbContext>(", "modelBuilder.AddRaskMail();" },
         { "cache", "Rask.Cache", "AddRaskCache<AppDbContext>()", "modelBuilder.AddRaskCache();" },
+        { "storage", "Rask.Storage", "AddRaskStorage<AppDbContext>()", "modelBuilder.AddRaskStorage();" },
         { "outbox", "Rask.Outbox", "AddRaskOutbox<AppDbContext>()", "modelBuilder.AddRaskOutbox();" },
     };
 
@@ -169,6 +170,33 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Fact]
+    public void Storage_maps_its_file_routes_after_UseRask()
+    {
+        var program = Generate("storage")["Program.cs"];
+
+        // After, not before: MapRaskStorage reads the path base UseRask sets, so mapped earlier its routes would
+        // ignore a pathBase the app configures later.
+        Assert.True(
+            program.IndexOf("app.UseRask<App>();", StringComparison.Ordinal) <
+            program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal),
+            "MapRaskStorage must follow UseRask.");
+        Assert.True(
+            program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal) <
+            program.IndexOf("app.Run();", StringComparison.Ordinal),
+            "MapRaskStorage must come before app.Run().");
+        Assert.Contains("using Rask.Storage;", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_app_without_storage_maps_no_file_routes()
+    {
+        var files = Generate("data");
+
+        Assert.DoesNotContain("MapRaskStorage", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Storage", files["App.csproj"], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_pillar_registration_follows_the_DbContext_factory_it_resolves()
     {
         var program = Generate("jobs", "mail", "cache")["Program.cs"];
@@ -227,7 +255,7 @@ public sealed class ServerBatteryScaffoldTests
     public void Every_pillar_composes_into_one_app()
     {
         var files = Generate(
-            "data", "cqrs", "jobs", "mail", "cache", "outbox", "push", "pwa", "snapshots", "logs", "ops",
+            "data", "cqrs", "jobs", "mail", "cache", "storage", "outbox", "push", "pwa", "snapshots", "logs", "ops",
             "docker");
         var program = files["Program.cs"];
 
@@ -235,6 +263,7 @@ public sealed class ServerBatteryScaffoldTests
         {
             "AddRaskCqrs()", "AddRaskData(", "AddRaskOutbox<AppDbContext>()", "AddDbContextFactory<AppDbContext>",
             "AddRaskJobs<AppDbContext>()", "AddRaskMail<AppDbContext>(", "AddRaskCache<AppDbContext>()",
+            "AddRaskStorage<AppDbContext>()", "app.MapRaskStorage();",
             "AddRaskSqliteSnapshots(", "AddRaskSqliteLitestream(", "AddRaskWebPush(", "AddRaskPwa(",
             "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()", "AddRaskAuth<AppDbContext>()",
         })
@@ -266,13 +295,62 @@ public sealed class ServerBatteryScaffoldTests
     [Fact]
     public void The_log_store_reads_its_own_connection_string()
     {
-        // ConnectionStrings:Logs, not :App — a store that shared the application's connection string would
+        // Rask:ConnectionStrings:Logs, not :App — a store that shared the application's connection string would
         // put a high-frequency writer back on the very file this design exists to keep it off. `rask deploy`
         // sets this to a path on the mounted volume.
-        var program = Generate("logs")["Program.cs"];
+        var files = Generate("logs");
 
-        Assert.Contains("""GetConnectionString("Logs")""", program, StringComparison.Ordinal);
-        Assert.Contains("?? \"Data Source=logs.db\"", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskLogging();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("\"Logs\": \"Data Source=logs.db\"", files["appsettings.json"], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Every value the scaffold chooses is a setting, so it lands in appsettings.json under Rask — where an
+    /// environment variable can override it — and the file stays loadable with every battery's region kept.
+    /// </summary>
+    [Fact]
+    public void Every_battery_setting_lands_in_appsettings_and_the_file_still_loads()
+    {
+        var files = Generate("cqrs", "data", "mail", "snapshots", "logs", "push", "pwa", "wasm");
+        var settings = files["appsettings.json"];
+
+        var options = new System.Text.Json.JsonDocumentOptions
+        {
+            CommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        };
+        using var document = System.Text.Json.JsonDocument.Parse(settings, options);
+        var rask = document.RootElement.GetProperty("Rask");
+
+        Assert.Equal("Data Source=app.db", rask.GetProperty("ConnectionStrings").GetProperty("App").GetString());
+        Assert.Equal("Data Source=logs.db", rask.GetProperty("ConnectionStrings").GetProperty("Logs").GetString());
+        Assert.True(rask.GetProperty("Sqlite").GetProperty("StrictTables").GetBoolean());
+        Assert.Equal("no-reply@example.com", rask.GetProperty("Mail").GetProperty("From").GetString());
+        Assert.Equal("06:00:00", rask.GetProperty("Snapshots").GetProperty("Interval").GetString());
+        Assert.Equal(7, rask.GetProperty("Snapshots").GetProperty("Retain").GetInt32());
+        Assert.Equal("mailto:admin@example.com", rask.GetProperty("WebPush").GetProperty("Subject").GetString());
+        Assert.True(rask.GetProperty("Server").GetProperty("RenderModes").GetProperty("Wasm").GetBoolean());
+
+        // …and none of the old spellings survive in the code that used to read them.
+        var program = files["Program.cs"];
+        Assert.DoesNotContain("GetConnectionString(", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Litestream:ReplicaUrl\"", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"WebPush:PublicKey\"", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("Mail:PickupDirectory", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sqlite:SnapshotDirectory", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("o.From =", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_battery_that_is_off_leaves_no_section_behind()
+    {
+        var settings = Generate()["appsettings.json"];
+
+        Assert.DoesNotContain("\"Mail\"", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Snapshots\"", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"WebPush\"", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Litestream\"", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask:", settings, StringComparison.Ordinal);
     }
 
     /// <summary>

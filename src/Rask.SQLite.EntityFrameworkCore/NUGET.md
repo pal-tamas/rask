@@ -25,14 +25,22 @@ dotnet add package Rask.SQLite.EntityFrameworkCore
 ## Use
 
 ```csharp
-builder.Services.AddDbContextFactory<AppDb>(o =>
-    o.UseRaskSqlite($"Data Source={dbPath}"));
+builder.Services.AddDbContextFactory<AppDb>((sp, o) => o.UseRaskSqlite(sp));
 ```
 
-Override any pragma via the optional configure delegate:
+The connection string is `Rask:ConnectionStrings:App` in configuration — which is why `UseRaskSqlite` takes
+the service provider — and a missing one is an error naming the key to set:
+
+```jsonc
+// appsettings.json
+{ "Rask": { "ConnectionStrings": { "App": "Data Source=app.db" } } }
+```
+
+Override any pragma in the `Rask:Sqlite` section, or via the optional configure delegate, which runs after
+the section and wins:
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", p =>
+o.UseRaskSqlite(sp, p =>
 {
     p.BusyTimeout = TimeSpan.FromSeconds(10);
     p.CacheSize = -20_000;   // negative ⇒ KiB, so 20 MB
@@ -42,27 +50,28 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
 ## STRICT tables
 
 SQLite is dynamically typed: the text `"lots"` stores happily in an `INTEGER` column and surfaces as a
-cast error much later. Pass `o => o.StrictTables = true` and tables are created as
-[STRICT tables](https://sqlite.org/stricttables.html), so the store rejects the write instead:
+cast error much later. Set `Rask:Sqlite:StrictTables` to `true` (or pass `o => o.StrictTables = true`) and
+tables are created as [STRICT tables](https://sqlite.org/stricttables.html), so the store rejects the write
+instead:
 
-```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", o => o.StrictTables = true);
+```jsonc
+{ "Rask": { "Sqlite": { "StrictTables": true } } }
 ```
 
 Every column must then declare one of `INT`, `INTEGER`, `REAL`, `TEXT`, `BLOB` or `ANY` — EF Core's
 defaults all qualify, so a normal model needs no changes, and an explicit `HasColumnType(...)` outside
 that set is reported against the table and column it came from. Strictness is decided when a table is
-created, so this needs no migration and affects tables created from then on; `rask new --data`
-scaffolds it on, where it is free.
+created, so this needs no migration and affects tables created from then on; `rask new` scaffolds it on,
+where it is free.
 
 ## Busy-retry for `SaveChanges`
 
-Pass `configureRetry` (even empty) to register a fair-interval execution strategy so
-`SaveChanges`/queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED` at a constant 1 ms interval, awaiting
-(not blocking) between attempts:
+Set `Retry.Enabled` — `Rask:Sqlite:Retry:Enabled` in configuration, or in code — to register a fair-interval
+execution strategy so `SaveChanges`/queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED` at a constant 1 ms
+interval, awaiting (not blocking) between attempts:
 
 ```csharp
-o.UseRaskSqlite($"Data Source={dbPath}", o => o.Retry.Enabled = true);
+o.UseRaskSqlite(sp, o => o.Retry.Enabled = true);
 ```
 
 The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
@@ -77,7 +86,7 @@ table. Both are inert until an entity declares a rule. `Rask.Data`'s `AddRaskDat
 boot a context that declares a rule its provider would ignore; `UseRaskSqlite` is what satisfies it, and a
 plain `UseSqlite` does not.
 
-Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite(cs)` + inject
+Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite()` + inject
 `ISqlite`.
 
 Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/sqlite.md>

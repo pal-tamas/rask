@@ -20,8 +20,8 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
 
         var builder = new DbContextOptionsBuilder<ProbeDbContext>();
         var options = retryEnabled
-            ? builder.UseRaskSqlite(ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); }).Options
-            : builder.UseRaskSqlite(ConnectionString).Options;
+            ? builder.UseRaskSqliteAt(ConnectionString, o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); }).Options
+            : builder.UseRaskSqliteAt(ConnectionString).Options;
 
         // Hold the write lock from an unrelated connection, as a concurrent writer would.
         await using var holder = new SqliteConnection(ConnectionString);
@@ -60,7 +60,7 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
 
     private async Task CreateDatabaseAsync()
     {
-        var options = new DbContextOptionsBuilder<ProbeDbContext>().UseRaskSqlite(ConnectionString).Options;
+        var options = new DbContextOptionsBuilder<ProbeDbContext>().UseRaskSqliteAt(ConnectionString).Options;
         await using var context = new ProbeDbContext(options);
         await context.Database.EnsureCreatedAsync();
     }

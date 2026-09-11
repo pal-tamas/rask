@@ -1,22 +1,27 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Rask.SQLite;
 
 namespace Rask.Logging.Tests;
 
 /// <summary>
-/// Registration-time validation. A bad option value has to fail at <c>AddRaskLogging</c>, where the stack
-/// trace points at the line that set it — not hours later when the first flush tears the host down.
+/// The options come from <c>Rask:Logging</c> and then the callback, and a bad value fails when they are built — at host
+/// start in a real app, where the message names the key — not hours later when the first flush tears the host down.
 /// </summary>
 public sealed class RaskLoggingOptionsTests
 {
     [Theory]
     [MemberData(nameof(InvalidOptions))]
-    public void RejectsInvalidOptionsAtRegistration(Action<RaskLoggingOptions> configure)
+    public void RejectsInvalidOptionsWhenTheyAreBuilt(Action<RaskLoggingOptions> configure)
     {
         var services = new ServiceCollection();
+        services.AddRaskLogging(configure);
+        using var provider = services.BuildServiceProvider();
 
-        Assert.ThrowsAny<Exception>(() => services.AddRaskLogging("Data Source=unused.db", configure));
+        var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskLoggingOptions>());
+        Assert.Contains("Rask:Logging", error.Message, StringComparison.Ordinal);
     }
 
     public static TheoryData<Action<RaskLoggingOptions>> InvalidOptions() => new()
@@ -32,11 +37,38 @@ public sealed class RaskLoggingOptionsTests
     };
 
     [Fact]
-    public void RejectsAnEmptyConnectionString()
+    public void NamesTheConnectionStringItCouldNotFind()
     {
         var services = new ServiceCollection();
+        services.AddRaskLogging();
+        using var provider = services.BuildServiceProvider();
 
-        Assert.Throws<ArgumentException>(() => services.AddRaskLogging(string.Empty));
+        var error = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<ILogs>());
+        Assert.Contains("Rask:ConnectionStrings:Logs", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheRaskLoggingSectionSetsTheOptions()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Rask:Logging:MaxRows"] = "50",
+                ["Rask:Logging:MinimumLevel"] = "Warning",
+                ["Rask:Logging:ExcludedCategories:0"] = "App.Noise",
+            })
+            .Build());
+        services.AddRaskLogging(o => o.ExcludedCategories.Add("App.Chatter"));
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<RaskLoggingOptions>();
+
+        Assert.Equal(50, options.MaxRows);
+        Assert.Equal(LogLevel.Warning, options.MinimumLevel);
+        // A list from configuration and one from code add up rather than one replacing the other.
+        Assert.True(options.IsExcluded("App.Noise.Poller"));
+        Assert.True(options.IsExcluded("App.Chatter.Poller"));
     }
 
     [Fact]
@@ -58,8 +90,8 @@ public sealed class RaskLoggingOptionsTests
     public void RegisteringTwiceCapturesEachEntryOnce()
     {
         var services = new ServiceCollection();
-        services.AddRaskLogging("Data Source=unused.db");
-        services.AddRaskLogging("Data Source=unused.db");
+        services.AddRaskLogging();
+        services.AddRaskLogging();
 
         Assert.Single(services, d => d.ServiceType == typeof(ILoggerProvider));
         Assert.Single(services, d => d.ServiceType == typeof(ILogs));

@@ -64,6 +64,20 @@ public sealed class SearchIsAShareableLinkTests
         Assert.Contains("q=session", route.Path + Query(route), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_storage_search_reaches_the_url()
+    {
+        await using var harness = new DashboardHarness(Batteries.Storage);
+        var route = harness.Services.GetRequiredService<RouteState>();
+
+        var page = RaskTest.Render(
+            ActivatorUtilities.CreateInstance<StoragePage>(harness.Services), harness.Services);
+
+        await SearchAsync(page, "invoice");
+
+        Assert.Contains("q=invoice", route.Path + Query(route), StringComparison.Ordinal);
+    }
+
     // History loads on PollingPanel's asynchronous mount, so the first render is a placeholder with no
     // search box on it yet.
     private static async Task<RenderedComponent> HistoryAsync(DashboardHarness harness)
@@ -87,7 +101,7 @@ public sealed class SearchIsAShareableLinkTests
         public DashboardHarness Dashboard() =>
             _dashboard ??= new DashboardHarness(
                 Batteries.None,
-                extra: services => services.AddRaskLogging($"Data Source={_dbPath}"));
+                extra: services => services.AddRaskLoggingAt($"Data Source={_dbPath}"));
 
         public async ValueTask DisposeAsync()
         {

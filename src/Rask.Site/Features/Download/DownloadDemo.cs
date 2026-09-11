@@ -5,7 +5,7 @@ using Rask.Core.Routing;
 namespace Rask.Site.Features;
 
 // Navigator.Download stages bytes on the active session — served from /_rask/download/{sid}/{token}
-// on the server, handed to JS as a base64 payload on WASM. It must be called from an event handler,
+// on the server, pulled by JS from the .NET side by token on WASM. It must be called from an event handler,
 // so the state and the handler live together in this self-contained component.
 public sealed partial class DownloadDemo(Navigator nav) : Component
 {

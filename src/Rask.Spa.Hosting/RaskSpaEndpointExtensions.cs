@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -73,7 +74,10 @@ public static class RaskSpaEndpointExtensions
     /// <param name="endpoints">The app's endpoint route builder; must also be an <see cref="IApplicationBuilder" />.</param>
     /// <param name="distPath">Where the built app lives. Omit to resolve it the usual way.</param>
     /// <param name="pathBase">Prefix to serve the app under. Empty serves it at the root.</param>
-    /// <param name="configure">Adjusts <see cref="SpaHostingOptions" />.</param>
+    /// <param name="configure">
+    ///     Adjusts <see cref="SpaHostingOptions" />, after the <c>Rask:Spa</c> configuration section, so code
+    ///     wins. The two delegates can only be set here.
+    /// </param>
     /// <returns><paramref name="endpoints" />, for chaining.</returns>
     public static IEndpointRouteBuilder UseRaskSpa(
         this IEndpointRouteBuilder endpoints,
@@ -83,8 +87,10 @@ public static class RaskSpaEndpointExtensions
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
-        var options = new SpaHostingOptions();
-        configure?.Invoke(options);
+        // Rask:Spa first, then configure. Bound here rather than registered: these options are read while this
+        // call maps the app, and each mount keeps its own, so they never live in DI.
+        var options = RaskOptionsRegistration.BindNow<SpaHostingOptions>(
+            endpoints.ServiceProvider, "Rask:Spa", static (section, o) => section.Bind(o), configure);
 
         var prefix = SpaPath.Normalize(pathBase);
         var environment = endpoints.ServiceProvider.GetService<IHostEnvironment>();

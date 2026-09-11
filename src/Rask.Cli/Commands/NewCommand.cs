@@ -23,7 +23,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     internal static readonly string[] FeatureFlags =
     [
         "wasm", "pwa", "cqrs", "data", "docker",
-        "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops",
+        "jobs", "mail", "cache", "storage", "outbox", "push", "snapshots", "logs", "ops",
     ];
 
     /// <summary>
@@ -94,6 +94,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("no-jobs", description: "Leave out durable background jobs.")
             .Flag("no-mail", description: "Leave out transactional email.")
             .Flag("no-cache", description: "Leave out the database-backed ICache + IDistributedCache.")
+            .Flag("no-storage", description: "Leave out file storage for uploads (IFiles) and its StoredFile table.")
             .Flag("no-outbox", description: "Leave out the transactional outbox for durable domain events.")
             .Flag("no-snapshots", description: "Leave out scheduled point-in-time SQLite backups.")
             .Flag("no-logs", description: "Leave out the durable log store (it keeps a database of its own).")
@@ -390,6 +391,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Jobs = on.Contains("jobs"),
             Mail = on.Contains("mail"),
             Cache = on.Contains("cache"),
+            Storage = on.Contains("storage"),
             Outbox = on.Contains("outbox"),
             Push = on.Contains("push"),
             Snapshots = on.Contains("snapshots"),
@@ -422,6 +424,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Jobs = On("jobs"),
             Mail = On("mail"),
             Cache = On("cache"),
+            Storage = On("storage"),
             Outbox = On("outbox"),
             Push = On("push"),
             Snapshots = On("snapshots"),
@@ -540,6 +543,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             ["jobs"] = "durable background jobs on the app's own database",
             ["mail"] = "transactional email, queued and sent off the request thread",
             ["cache"] = "a database-backed ICache and IDistributedCache",
+            ["storage"] = "file storage for uploads, on disk or in a bucket, with a row per file",
             ["outbox"] = "a transactional outbox for durable domain events",
             ["push"] = "server-sent Web Push, with the subscribe endpoints",
             ["snapshots"] = "scheduled point-in-time backups of the SQLite file",
@@ -614,6 +618,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "jobs" => batteries.Jobs,
         "mail" => batteries.Mail,
         "cache" => batteries.Cache,
+        "storage" => batteries.Storage,
         "outbox" => batteries.Outbox,
         "push" => batteries.Push,
         "snapshots" => batteries.Snapshots,

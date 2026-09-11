@@ -15,7 +15,7 @@ namespace Rask.Cli.Tests;
 public sealed class ServerBatteriesTests
 {
     public static TheoryData<string> DbPillarFlags =>
-        ["jobs", "mail", "cache", "outbox", "snapshots"];
+        ["jobs", "mail", "cache", "storage", "outbox", "snapshots"];
 
     [Theory]
     [MemberData(nameof(DbPillarFlags))]
@@ -52,6 +52,7 @@ public sealed class ServerBatteriesTests
         Assert.True(all.Jobs);
         Assert.True(all.Mail);
         Assert.True(all.Cache);
+        Assert.True(all.Storage);
         Assert.True(all.Outbox);
         Assert.True(all.Push);
         Assert.True(all.Snapshots);
@@ -124,7 +125,7 @@ public sealed class ServerBatteriesTests
 
 
     public static TheoryData<string> EveryDbBattery =>
-        ["jobs", "mail", "cache", "outbox", "snapshots", "ops"];
+        ["jobs", "mail", "cache", "storage", "outbox", "snapshots", "ops"];
 
     [Theory]
     [MemberData(nameof(EveryDbBattery))]
@@ -181,6 +182,7 @@ public sealed class ServerBatteriesTests
         Assert.True(batteries.Data);
         Assert.True(batteries.Mail);
         Assert.True(batteries.Cache);
+        Assert.True(batteries.Storage);
         Assert.True(batteries.Outbox);
         Assert.True(batteries.Ops);
     }

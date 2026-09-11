@@ -31,18 +31,28 @@ public sealed record OrderPlaced(Guid Id) : IOutboxEvent;   // raised on your En
 // Program.cs
 builder.Services.AddRaskCqrs();
 builder.Services.AddRaskData();   // AddRaskOutbox below takes delivery of the domain events
-builder.Services.AddRaskOutbox<AppDbContext>(o =>
-{
-    o.PollInterval = TimeSpan.FromSeconds(5);
-    o.BatchSize = 100;
-    o.MaxAttempts = 10;
-    o.RetentionPeriod = TimeSpan.FromDays(7);   // TimeSpan.Zero keeps published messages forever
-});
+builder.Services.AddRaskOutbox<AppDbContext>();
 
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseSqlite("Data Source=app.db")
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
+
+```jsonc
+// appsettings.json — every key has a default; set only what you change
+{
+  "Rask": {
+    "Outbox": {
+      "PollInterval": "00:00:05",
+      "BatchSize": 100,
+      "MaxAttempts": 10,
+      "RetentionPeriod": "7.00:00:00"   // "00:00:00" keeps published messages forever
+    }
+  }
+}
+```
+
+A callback — `AddRaskOutbox<AppDbContext>(o => …)` — runs after the section and wins.
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)

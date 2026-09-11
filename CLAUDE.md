@@ -65,7 +65,8 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
   **package island** (`Module => "@mui/material/Button"`, no front-end file), whose props are generated from the
   committed `{Island}.props.json` beside it by BOTH the island and factory generators through one shared
   `PackageIslandProps` resolver (one generator never sees the other's output); unset props are omitted and
-  callbacks carry `$a` so no event object is ever serialized;
+  callbacks carry `$a` so no event object is ever serialized. The BUILD writes that snapshot before the compile
+  (Rask-pinned `typescript` 6.x JS API under node; locked — RASKISLAND008, never rewrites — under CI);
   callbacks re-enter C# over the existing handler channel AND escalate the page to interactive. Its subtree is a
   **diff boundary** (`Component.OpaqueSubtree` + `data-rask-opaque`). `rask dev` serves islands from Vite on 5174
   for HMR — see `docs/islands.md`.

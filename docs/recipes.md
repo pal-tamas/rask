@@ -13,6 +13,7 @@ open alongside.
 | run work off the request thread | [↓](#run-work-off-the-request-thread) |
 | send a transactional email | [↓](#send-a-transactional-email) |
 | cache an expensive query | [↓](#cache-an-expensive-query) |
+| keep a file a user uploads | [↓](#keep-an-uploaded-file) |
 | publish a domain event durably | [↓](#publish-a-domain-event-through-the-outbox) |
 | harden SQLite for production | [↓](#turn-on-production-sqlite) |
 | deploy, and redeploy | [↓](#deploy-and-redeploy) |
@@ -114,6 +115,26 @@ await cache.RemoveAsync("products");                                 // when the
 
 → Reference: [cache](cache.md) · Learn it: [Tutorial Ch 6](tutorial/06-cache.md)
 
+## Keep an uploaded file
+
+Save the `RaskFile` from the picker's handler with `IFiles`, keep the returned id on your entity, and link
+to it. A `RaskApp` already has storage on; a hand-wired host adds the registration, the table and the routes.
+
+```csharp
+builder.Services.AddRaskStorage<ProductsDbContext>();
+modelBuilder.AddRaskStorage();                                       // then: rask db add AddStorage && rask db update
+app.MapRaskStorage();                                                // after app.UseRask<App>()
+
+var saved = await files.SaveAsync(file, o => o.Public = true, CancellationToken);
+product.SetPhoto(saved.Id);
+Img.Src(files.Url(saved.Id)).Alt(product.Name)                       // no I/O — safe inside Render
+```
+
+Files on the default disk provider aren't covered by `rask db backup` or Litestream; use S3 or Azure for
+uploads you can't afford to lose.
+
+→ Reference: [file storage](file-storage.md) · The picker: [HTTP & files](http-and-files.md#uploading-files)
+
 ## Publish a domain event through the outbox
 
 Events are written to an `OutboxMessage` row **in the same transaction** as your data, then delivered
@@ -137,8 +158,8 @@ modelBuilder.AddRaskOutbox();                                        // then: ra
 `busy_timeout` on every open). Add Litestream for continuous off-box backup.
 
 ```csharp
-.UseRaskSqlite("Data Source=app.db")                                // was .UseSqlite("Data Source=app.db")
-builder.Services.AddRaskSqliteLitestream(o => { /* S3/replica … */ });
+.UseRaskSqlite(sp)                         // was .UseSqlite("Data Source=app.db"); reads Rask:ConnectionStrings:App
+builder.Services.AddRaskSqliteLitestream();   // reads Rask:Litestream — set ReplicaUrl to turn it on
 ```
 
 → Reference: [production SQLite](sqlite.md) · Learn it: [Tutorial Ch 8](tutorial/08-production-sqlite.md)

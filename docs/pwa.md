@@ -292,13 +292,22 @@ from a `Rask.Server` app or the ASP.NET host behind a WASM PWA alike). Add it an
 ```csharp
 using Rask.WebPush;
 
-// Generate ONE VAPID key pair, then load it from configuration/secrets — never regenerate per run
-// (that invalidates every existing subscription) and never ship the private key.
-builder.Services.AddRaskWebPush(o =>
+// Reads Rask:WebPush — the VAPID key pair and the contact Subject. Generate ONE key pair and keep it in
+// user secrets or the environment: never regenerate per run (that invalidates every existing
+// subscription) and never ship the private key.
+builder.Services.AddRaskWebPush();
+```
+
+```jsonc
+// appsettings.json — the keys go in user secrets (Rask:WebPush:VapidKeys:PublicKey / :PrivateKey)
+// or the environment (Rask__WebPush__VapidKeys__PrivateKey), never in this committed file
 {
-    o.VapidKeys = new VapidKeys(config["WebPush:PublicKey"]!, config["WebPush:PrivateKey"]!);
-    o.Subject   = "mailto:admin@example.com";   // a contact the push service can reach
-});
+  "Rask": {
+    "WebPush": {
+      "Subject": "mailto:admin@example.com"   // a contact the push service can reach
+    }
+  }
+}
 ```
 
 Hand the **same** `VapidKeys.PublicKey` to the client's `IWebPush.SubscribeAsync`. Store the
