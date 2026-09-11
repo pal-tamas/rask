@@ -24,7 +24,9 @@
       `rask dev` passes false, because the bundler's dev server owns the build during a dev session and
       paying for a production bundle on every save would make watch unusable. The repo's own unit gate
       passes it too, so a machine with no node can still build a solution that contains a front end.
-      Same shape as RaskWasmDevBundle on the WASM host.
+
+      For a Rask WebAssembly client the same switch skips the client's publish, and the host serves the
+      client's build output instead — which is the only way hot reload can reach the browser.
     -->
     <RaskSpaBuild Condition="'$(RaskSpaBuild)' == ''">true</RaskSpaBuild>
 

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -227,9 +228,9 @@ public static partial class RaskEndpointExtensions
         // closes at 20s, so whichever one stops last is killed mid-write, decided by the order of the
         // AddRaskX calls above. See RaskShutdownDefaults; override by configuring HostOptions after AddRask.
         //
-        // Rask.Wasm.Hosting and Rask.Spa.Hosting register the same pair from the same source-linked types,
-        // because their hosts face the same two failures. A wasm-hosted app with the dashboard on calls
-        // both and gets one setup per assembly — they compute identical values, so it is idempotent.
+        // Rask.Spa.Hosting registers the same pair from the same source-linked types, because its host
+        // faces the same two failures. An app serving a SPA with the dashboard on calls both and gets one
+        // setup per assembly — they compute identical values, so it is idempotent.
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 
@@ -368,16 +369,8 @@ public static partial class RaskEndpointExtensions
 
     /// <summary>
     ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions}, Action{RaskCultureOptions})" />
-    ///     under a name only this package defines — for an app that references <b>both</b> hosts.
-    ///     <para>
-    ///         <c>Rask.Wasm.Hosting</c> declares an <c>AddRask(this IServiceCollection)</c> as well, and
-    ///         with both namespaces imported a bare <c>AddRask()</c> is <em>not</em> reported as
-    ///         ambiguous: that overload takes no optional parameters and this one takes two, so C#'s
-    ///         "fewer defaulted arguments" tie-break silently selects the other package's. The app
-    ///         compiles, starts with no live runtime registered, and fails on the first request with a
-    ///         missing-service error naming an internal type. Spelling the host out avoids relying on a
-    ///         tie-break to express intent.
-    ///     </para>
+    ///     under a name that says which host it registers — for an app whose own UI is served by another
+    ///     host, such as a single-page app with the operator dashboard mounted beside it.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Per-app live runtime options; see the <c>AddRask</c> it forwards to.</param>
@@ -390,12 +383,11 @@ public static partial class RaskEndpointExtensions
 
     /// <summary>
     ///     <see cref="UseRask{TApp}(WebApplication, string, string)" /> under a name only this package
-    ///     defines — for an app that references both hosts.
+    ///     defines — for an app whose own UI is served by another host.
     ///     <para>
-    ///         The two <c>UseRask&lt;TApp&gt;</c> overloads differ only in what their second string
-    ///         means: a route <em>pattern</em> here, a bundle <em>path</em> in <c>Rask.Wasm.Hosting</c>.
-    ///         A wasm-hosted app that mounts the operator dashboard calls both, and at the call site
-    ///         nothing distinguishes them.
+    ///         A single-page app that mounts the operator dashboard serves the app with
+    ///         <c>UseRaskSpa</c> and the dashboard's server-rendered chain with this, under its own
+    ///         prefix; the name says at the call site which of the two a line is.
     ///     </para>
     /// </summary>
     /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
@@ -814,11 +806,10 @@ public static partial class RaskEndpointExtensions
         // methods). Marked `.AllowAnonymous()` so a host with a fallback authorization
         // policy still serves assets — content-addressed URLs carry no PII, and an unknown
         // hash returns 404 instead of leaking the registered set.
-        // Mapped at most once per app. A wasm-hosted app that also mounts the server-rendered dashboard
-        // runs both hosts, and Rask.Wasm.Hosting wants this same route; two endpoints with an identical
-        // template and precedence are accepted at startup and then throw AmbiguousMatchException on the
-        // first request for a scoped stylesheet — an app that boots clean and serves an unstyled 500.
-        // Skipping when it is already mapped costs nothing when only one host is present.
+        // Mapped at most once per app. Two chains in one app (UseRask under two prefixes) would each map
+        // this route, and two endpoints with an identical template and precedence are accepted at startup
+        // and then throw AmbiguousMatchException on the first request for a scoped stylesheet — an app
+        // that boots clean and serves an unstyled 500. Skipping when it is already mapped costs nothing.
         if (!IsEndpointMapped(endpoints, pathBase + "/_rask/a/{hash}.css"))
         {
             endpoints.MapMethods(pathBase + "/_rask/a/{hash}.css", _assetMethods,
@@ -1998,13 +1989,12 @@ public static partial class RaskEndpointExtensions
         var bytes = ScopedAssetRegistry.GetByHash(hash, kind);
         if (bytes is null)
         {
-            // A plain server app has no baked bundle, so this resolves to null and the miss is a 404
-            // exactly as before. It is non-null only in a wasm-hosted app that ALSO mounts a
-            // server-rendered chain (the operator dashboard): there this endpoint may be the one that
-            // won the shared /_rask/a/{hash} route, and the SPA's own assets live in the published
-            // bundle rather than in this process's registry. Answering them here is what makes the two
-            // hosts' handlers interchangeable, and therefore the order of their UseRask calls irrelevant.
-            return ServeBakedBundleFileAsync(ctx, hash, kind);
+            // A plain server app has nothing under _rask/a in its web root, so the miss is a 404. The
+            // file is there when this process shares a host with a WebAssembly app — the operator
+            // dashboard beside a bundle UseRaskSpa serves — because routing gives this endpoint the
+            // bundle's /_rask/a/{hash} requests before static files run, and the bundle's hashes were
+            // registered in the browser's runtime, never in this one.
+            return ServeWebRootAssetAsync(ctx, hash, kind);
         }
 
         // Set headers before invoking Results.Bytes so they are present on the response.
@@ -2040,14 +2030,20 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>
-    ///     Serves the baked <c>/_rask/a/{hash}.{ext}</c> file from a published WASM bundle when this
-    ///     process's registry doesn't carry the hash. Mirrors <c>Rask.Wasm.Hosting</c>'s copy — both
-    ///     resolve through <see cref="ScopedAssetBundle" />, which is the whole point: the two handlers
-    ///     answer identically, so only one of them needs to own the route.
+    ///     Serves a baked <c>_rask/a/{hash}.{ext}</c> file from the app's web root when this process's
+    ///     registry doesn't carry the hash, with the same headers a registry hit gets.
     /// </summary>
-    private static async Task ServeBakedBundleFileAsync(HttpContext ctx, string hash, AssetKind kind)
+    /// <remarks>
+    ///     Read through <see cref="IWebHostEnvironment.WebRootFileProvider" /> rather than a directory, so
+    ///     it finds the file wherever the web root is composed from — a published <c>wwwroot</c>, or a
+    ///     bundle <c>UseRaskSpa</c> serves from elsewhere. The hash was validated as fixed-length hex
+    ///     before it got here, so the path cannot leave <c>_rask/a/</c>.
+    /// </remarks>
+    private static async Task ServeWebRootAssetAsync(HttpContext ctx, string hash, AssetKind kind)
     {
-        if (ScopedAssetBundle.FindBakedFile(hash, kind) is not { } path)
+        var files = ctx.RequestServices.GetService<IWebHostEnvironment>()?.WebRootFileProvider;
+        var relative = "_rask/a/" + hash + ScopedAssetBundle.Extension(kind);
+        if (files?.GetFileInfo(relative) is not { Exists: true } file)
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
@@ -2059,21 +2055,28 @@ public static partial class RaskEndpointExtensions
         ctx.Response.Headers.ETag = "\"" + hash + "\"";
         ctx.Response.ContentType = ScopedAssetBundle.ContentType(kind);
 
+        // The publish bakes .br/.gz siblings next to each asset; one that matches the negotiated
+        // encoding goes out verbatim, with no request-time CPU.
         var encoding = ScopedAssetCompression.Negotiate(ctx.Request.Headers.AcceptEncoding.ToString());
-        if (ScopedAssetBundle.FindPrecompressedSibling(path, encoding) is { } sibling)
+        var suffix = encoding switch
+        {
+            "br" => ".br",
+            "gzip" => ".gz",
+            _ => null,
+        };
+
+        if (suffix is not null && files.GetFileInfo(relative + suffix) is { Exists: true } sibling)
         {
             ctx.Response.Headers.ContentEncoding = encoding;
             await ctx.Response.SendFileAsync(sibling).ConfigureAwait(false);
             return;
         }
 
-        await ctx.Response.SendFileAsync(path).ConfigureAwait(false);
+        await ctx.Response.SendFileAsync(file).ConfigureAwait(false);
     }
 
     /// <summary>
-    ///     Whether a route template is already on this <see cref="IEndpointRouteBuilder" />. See the
-    ///     twin in <c>Rask.Wasm.Hosting</c> — duplicated rather than shared because the check needs
-    ///     <c>RoutePattern</c> and Core takes no ASP.NET routing dependency.
+    ///     Whether a route template is already on this <see cref="IEndpointRouteBuilder" />.
     /// </summary>
     private static bool IsEndpointMapped(IEndpointRouteBuilder endpoints, string rawTemplate)
     {

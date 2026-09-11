@@ -14,7 +14,6 @@ using Rask.Auth;
 using Rask.Core;
 using Rask.Data;
 using Rask.Server;
-using Rask.Wasm.Hosting;
 
 namespace Rask;
 
@@ -153,11 +152,6 @@ public sealed class RaskApp
                     }
                 });
 
-        if (_options.Wasm)
-        {
-            _builder.Services.AddRaskWasmHost();
-        }
-
         // The batteries, LAST — after every Configure block and after anything Program.cs registered
         // itself. Both halves matter: the off-switches are only known now, and every AddRaskX is
         // idempotent, so an app that called one directly has already won.
@@ -273,15 +267,6 @@ public sealed class RaskApp
             {
                 map(group);
             }
-        }
-
-        if (_options.Wasm)
-        {
-            // Serves the browser bundle this project publishes into wwwroot, ahead of an explicit
-            // UseRouting — the bundle's own assets have to be reachable before the catch-all claims
-            // everything below it.
-            app.UseRaskWasmAssets();
-            app.UseRouting();
         }
 
         app.UseRask<TApp>(pathBase: pathBase);

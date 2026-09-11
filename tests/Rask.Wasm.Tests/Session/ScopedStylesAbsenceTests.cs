@@ -11,8 +11,8 @@ namespace Rask.Wasm.Tests.Session;
 /// <summary>
 ///     Verifies WASM no longer ships scoped CSS/JS inline via the live payload —
 ///     per-component assets reach the browser as <c>&lt;link href="/_rask/a/{hash}.css"&gt;</c>
-///     tags emitted into the rendered HTML and served by <c>Rask.Wasm.Hosting</c>'s
-///     content-addressed endpoint. Historically WASM shipped a <c>cssText</c> payload field
+///     tags emitted into the rendered HTML and served as the files the publish baked. Historically
+///     WASM shipped a <c>cssText</c> payload field
 ///     that bypassed <c>&lt;base href&gt;</c> under sub-path hosting and re-shipped on every
 ///     hash bump; the new model gives the browser stable immutable URLs to cache.
 /// </summary>

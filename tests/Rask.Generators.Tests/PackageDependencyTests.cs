@@ -9,7 +9,7 @@ namespace Rask.Generators.Tests;
 // Both are the same class of bug — the package a consumer needs isn't on the feed — and neither shows up
 // in an in-repo build, which resolves everything through ProjectReferences.
 //
-// The regression: Rask.Wasm.Hosting referenced Rask.Core (IsPackable=false) without PrivateAssets="all",
+// The regression: Rask.Wasm.Hosting (since folded into Rask.Spa.Hosting) referenced Rask.Core (IsPackable=false) without PrivateAssets="all",
 // so its nuspec listed `<dependency id="Rask.Core" version="1.0.0" />` — an id that exists on no feed, at
 // a version MinVer never stamped. Every restore of the published package died with NU1101, which made a
 // wasm-hosted app (which references Rask.Wasm.Hosting) unrestorable from NuGet. Nothing caught it: the

@@ -1,0 +1,27 @@
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
+
+namespace Rask.Spa.Hosting;
+
+/// <summary>
+///     One subtree of another file provider, and nothing else.
+/// </summary>
+/// <remarks>
+///     What <see cref="RaskSpaEndpointExtensions.UseRaskSpa" /> adds to the web root of a host that also
+///     runs <c>Rask.Server</c>. Only <c>_rask/a/</c> has to be reachable there; handing over the whole
+///     bundle would let a plain <c>UseStaticFiles()</c> serve it again at the site root, outside the
+///     prefix the app was mounted under.
+/// </remarks>
+internal sealed class SubtreeFileProvider(IFileProvider inner, string subtree) : IFileProvider
+{
+    public IFileInfo GetFileInfo(string subpath) =>
+        Contains(subpath) ? inner.GetFileInfo(subpath) : new NotFoundFileInfo(subpath);
+
+    public IDirectoryContents GetDirectoryContents(string subpath) =>
+        Contains(subpath) ? inner.GetDirectoryContents(subpath) : NotFoundDirectoryContents.Singleton;
+
+    public IChangeToken Watch(string filter) => NullChangeToken.Singleton;
+
+    private bool Contains(string subpath) =>
+        subpath.TrimStart('/', '\\').StartsWith(subtree, StringComparison.OrdinalIgnoreCase);
+}

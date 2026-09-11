@@ -340,11 +340,11 @@ public sealed class DevCommandTests
     public void A_wasm_hosted_watch_session_asks_for_the_dev_bundle()
     {
         // --property:, not -p:, which is ambiguous with --project on `dotnet run`.
-        Assert.Contains("--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmHosted));
+        Assert.Contains("--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmHosted));
 
-        // …and only there: a plain Server host has no WASM bundle to switch.
-        Assert.DoesNotContain("--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.Server));
-        Assert.DoesNotContain("--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmStandalone));
+        // …and only there: a plain Server host has no client build to skip.
+        Assert.DoesNotContain("--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.Server));
+        Assert.DoesNotContain("--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmStandalone));
     }
 
     [Fact]
@@ -353,9 +353,9 @@ public sealed class DevCommandTests
         // --no-hot-reload means "restart instead of applying", and --once is a plain run: in both, the
         // published bundle is the honest thing to serve.
         Assert.DoesNotContain(
-            "--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmHosted, noHotReload: true));
+            "--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmHosted, noHotReload: true));
         Assert.DoesNotContain(
-            "--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmHosted, once: true));
+            "--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmHosted, once: true));
     }
 
     // ---- helpers ----

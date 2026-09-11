@@ -260,7 +260,33 @@ them until tagged releases begin.
   ```
 
   WebAssembly is a single-page app, never a render mode: a booting browser runtime always paints its own
-  document. Hosting a WASM app from a server, and `rask new server --wasm`, are reworked in follow-up changes.
+  document. `rask new server --wasm` is reworked in a follow-up change.
+
+- **BREAKING: a server hosts a Rask WebAssembly app through `UseRaskSpa()`.** `Rask.Wasm.Hosting` is gone and
+  `Rask.Spa.Hosting` serves both kinds of single-page app. It recognises a WebAssembly bundle from its files and
+  applies what that publish guarantees:
+  - `/_rask/a/` is cached for ever;
+  - a `/_framework/` file is cached for ever only when the SDK fingerprinted its name;
+  - a missing file under either is a 404, never the index document;
+  - an `assets` folder the app keeps in `wwwroot` revalidates, since Vite's hashed-directory default does not
+    describe it.
+
+  A referenced WebAssembly project is published by the host's build and copied into its publish output, which
+  `Rask.Wasm.Hosting` never did. `AddRaskSpaHost()` compresses `application/wasm`. Under `rask dev` the host
+  serves the client's build output, so hot reload reaches the browser; `rask dev` passes `RaskSpaBuild=false`
+  for this, where it used to pass `RaskWasmDevBundle=true`. An app mounting the operator dashboard beside the
+  bundle still gets the bundle's scoped styles: `Rask.Server` answers a hash its own process never registered
+  from the web root, where `UseRaskSpa()` places them.
+
+  ```csharp
+  // before
+  builder.Services.AddRaskWasmHost();
+  app.UseRaskWasmHost<App>();
+
+  // after
+  builder.Services.AddRaskSpaHost();
+  app.UseRaskSpa();
+  ```
 
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
@@ -451,6 +477,15 @@ them until tagged releases begin.
     fetches a bundle when idle or hands a page over on navigation.
   - `WasmHostBuilder.PrepareAsync<TApp>()` and `WasmHostBuilder.PaintAsync(url)`. Call `RunAsync<TApp>()`,
     which always renders.
+  - `RaskAppOptions.Wasm`. `RaskApp` always renders its pages on the server; serve a WebAssembly app with
+    `UseRaskSpa()`.
+- **`Rask.Wasm.Hosting`**, folded into `Rask.Spa.Hosting` (see *Changed*): `UseRask`, `UseRask<TApp>`,
+  `UseRaskWasmHost`, `UseRaskWasmHost<TApp>`, `UseRaskWasmAssets`, `AddRask` and `AddRaskWasmHost`, the
+  `Rask.WasmAppBundleDir` / `Rask.WasmDevManifest` build metadata and the `RaskWasmDevBundle` property. The
+  published package is unlisted and deprecated at the next release, naming `Rask.Spa.Hosting` as its
+  replacement.
+- `ScopedAssetBundle.BakedDirectory`, `FindBakedFile` and `FindPrecompressedSibling`. Nothing sets a
+  process-wide bundle directory any more; `Rask.Server` reads a baked scoped asset from the web root.
 
   ```csharp
   // before — a page opting out of its session

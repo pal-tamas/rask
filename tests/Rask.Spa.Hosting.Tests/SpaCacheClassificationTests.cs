@@ -57,6 +57,38 @@ public class SpaCacheClassificationTests
         Assert.True(SpaCacheClassification.IsImmutable("/static/anything.js", "anything.js", options));
         Assert.False(SpaCacheClassification.IsImmutable("/assets/anything.js", "anything.js", options));
     }
+
+    [Theory]
+    // The SDK's fingerprint, and a scoped asset named by its content hash.
+    [InlineData("/_framework/dotnet.native.7a8b9c2d3e.wasm", "dotnet.native.7a8b9c2d3e.wasm", true)]
+    [InlineData("/_rask/a/0123456789ab.css", "0123456789ab.css", true)]
+    // The SDK's default, unfingerprinted names — including ones the bundler heuristic would freeze.
+    [InlineData("/_framework/dotnet.js", "dotnet.js", false)]
+    [InlineData("/_framework/System.IO.Pipelines.wasm", "System.IO.Pipelines.wasm", false)]
+    [InlineData("/_framework/Rask.Components-12345678.wasm", "Rask.Components-12345678.wasm", false)]
+    // Hand-written files in wwwroot, whatever they are called.
+    [InlineData("/assets/logo.svg", "logo.svg", false)]
+    [InlineData("/icon-512x512.png", "icon-512x512.png", false)]
+    [InlineData("/index.html", "index.html", false)]
+    public void A_wasm_bundle_trusts_only_what_its_publish_hashed(string path, string file, bool immutable) =>
+        Assert.Equal(immutable, SpaCacheClassification.IsImmutable(path, file, new SpaHostingOptions(), wasm: true));
+
+    [Fact]
+    public void A_prefix_added_for_a_wasm_bundle_still_applies()
+    {
+        var options = new SpaHostingOptions();
+        options.ImmutablePathPrefixes.Add("/hashed/");
+
+        Assert.True(SpaCacheClassification.IsImmutable("/hashed/app.css", "app.css", options, wasm: true));
+    }
+
+    [Theory]
+    [InlineData("/_framework/missing.wasm", true)]
+    [InlineData("/_rask/a/missing.css", true)]
+    [InlineData("/assets/missing.png", false)]
+    [InlineData("/orders/42", false)]
+    public void A_wasm_bundle_never_falls_back_under_its_runtime_paths(string path, bool asset) =>
+        Assert.Equal(asset, SpaCacheClassification.IsAssetPath(path, new SpaHostingOptions(), wasm: true));
 }
 
 public class SpaPathTests

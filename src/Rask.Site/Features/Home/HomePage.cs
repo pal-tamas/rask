@@ -316,8 +316,8 @@ public sealed partial class HomePage : Component
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
                     LaneCard(UiIconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
-                    LaneCard(UiIconName.Storage, "Rask.Wasm.Hosting", "Static host", "deployment", "AddRaskWasmHosting()",
-                        "Serves a published WASM bundle from an ASP.NET host, with the right content types and pre-compressed variants.")
+                    LaneCard(UiIconName.Storage, "Rask.Spa.Hosting", "Single-page host", "spa", "AddRaskSpaHost() · UseRaskSpa()",
+                        "Serves a WebAssembly app or a TypeScript bundle from an ASP.NET host, cached by what its build guarantees, with pre-compressed variants.")
                 ]
             ]
         ];

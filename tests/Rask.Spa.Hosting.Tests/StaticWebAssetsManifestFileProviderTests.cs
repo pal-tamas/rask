@@ -1,7 +1,6 @@
 using System.Text.Json;
-using Rask.Wasm.Hosting;
 
-namespace Rask.Wasm.Hosting.Tests;
+namespace Rask.Spa.Hosting.Tests;
 
 /// <summary>
 ///     The dev-bundle file provider. It exists because a WASM client's <b>build</b> output cannot be

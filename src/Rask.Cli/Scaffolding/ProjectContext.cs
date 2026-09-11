@@ -72,8 +72,7 @@ internal sealed partial class ProjectContext(
 
     // A reference to the WASM host itself, as a package (Include="Rask.Wasm") or as a project
     // (Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj") — the repo's own samples use the latter.
-    // Anchored on the closing quote so it does NOT match Rask.Wasm.Hosting, which is the giveaway of a
-    // SERVER project, not a browser one.
+    // Anchored on the closing quote so it does NOT match a longer package id such as Rask.Wasm.Tasks.
     [GeneratedRegex(@"Include=""(?:[^""]*[\\/])?Rask\.Wasm(?:\.csproj)?""", RegexOptions.IgnoreCase)]
     private static partial Regex WasmHostReferenceRegex();
 
@@ -88,9 +87,9 @@ internal sealed partial class ProjectContext(
     /// <para>
     /// Each signal is matched precisely rather than as a substring, because a false positive here is not
     /// cosmetic: it hands a server project the browser next-steps and adds <c>Rask.SQLite.Browser</c> to
-    /// it, which doesn't resolve there. The one that bites is <c>Rask.Wasm.Hosting</c> — referenced by the
-    /// <b>Server</b> half of a client-plus-host solution, which is precisely the project a background
-    /// job belongs in. Keeping the closing quote on the package check is what separates the two.
+    /// it, which doesn't resolve there — and the <b>Server</b> half of a client-plus-host solution is
+    /// precisely the project a background job belongs in. Keeping the closing quote on the package check
+    /// is what stops a longer <c>Rask.Wasm.*</c> id matching.
     /// </para>
     /// </remarks>
     internal static bool DetectBrowser(string csprojText)

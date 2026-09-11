@@ -67,7 +67,13 @@ public class ShutdownDrainTests
         // The regression that matters most behind the UI: a click that is mid-SaveChangesAsync used to
         // be cancelled and dropped, because the socket's token was ApplicationStopping itself.
         DrainGateApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var host = RaskTestHost.Create<DrainGateApp>();
+
+        // A budget far longer than the test, stated here because the drain waiting is what is asserted.
+        // Under the host's 200 ms test default the Task.Delay below plus a busy machine's scheduling
+        // outlasted the budget: the drain gave up, the stop returned with the handler still pending, and
+        // the gate went red on a diff that never touched shutdown.
+        using var host = RaskTestHost.Create<DrainGateApp>(
+            configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromSeconds(30));
         var html = await host.Http.GetStringAsync("/start");
         var sessionId = MarkupAssert.SessionId(html);
         var handlerId = MarkupAssert.FirstHandlerId(html);

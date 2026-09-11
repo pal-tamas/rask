@@ -36,7 +36,7 @@
   <ItemGroup>
     <!--
       Microsoft.AspNetCore.App carries Microsoft.AspNetCore.Components{,.Web,.Server} as part of
-      the shared framework. Same pattern as Rask.Server / Rask.Wasm.Hosting use to pick up the
+      the shared framework. Same pattern as Rask.Server / Rask.Spa.Hosting use to pick up the
       WebSocket / static-file stack. The Blazor side of the comparison renders via HtmlRenderer
       and Renderer subclasses out of these assemblies.
     -->

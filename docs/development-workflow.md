@@ -57,7 +57,7 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
    Narrow further to one project (`dotnet test tests/Rask.Core.Tests --no-build`) or one class
    (`--filter FullyQualifiedName~ATests`) while iterating. The build runs in parallel by default —
    don't add `-m:1` (the former WASM copy-race workaround is fixed at the source in
-   `Rask.Wasm.Hosting.targets`).
+   `Rask.Spa.Hosting.targets`, which skips a referenced client's nested publish under `RaskWasm=false`).
 
    `Directory.Build.rsp` turns **MSBuild node reuse off** for every build started from the repository
    root. That is deliberate and load-bearing: the scoped-asset bake is not safe across reused workers

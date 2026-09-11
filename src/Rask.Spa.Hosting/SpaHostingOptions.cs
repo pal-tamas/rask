@@ -25,8 +25,17 @@ public sealed class SpaHostingOptions
     ///         These prefixes also never fall back to the index document — a request for a missing file
     ///         under one of them is a 404, not a page of HTML.
     ///     </para>
+    ///     <para>
+    ///         A Rask WebAssembly bundle ignores the default: its hashed files live under
+    ///         <c>/_framework/</c> and <c>/_rask/a/</c>, which are handled without configuration, and an
+    ///         <c>assets</c> folder in its <c>wwwroot</c> is hand-written. A prefix added here still
+    ///         applies to it.
+    ///     </para>
     /// </remarks>
-    public IList<string> ImmutablePathPrefixes { get; } = new List<string> { "/assets/" };
+    public IList<string> ImmutablePathPrefixes { get; } = new List<string> { DefaultImmutablePathPrefix };
+
+    /// <summary>Vite's default <c>build.assetsDir</c>, as a request prefix.</summary>
+    internal const string DefaultImmutablePathPrefix = "/assets/";
 
     /// <summary>
     ///     Whether to serve a <c>.br</c>/<c>.gz</c> sibling when one sits next to the requested file.

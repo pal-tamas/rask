@@ -13,8 +13,7 @@ namespace Rask.Spa.Hosting.Tests;
 ///     The SPA host applies the same host defaults <c>Rask.Server</c>'s <c>AddRask</c> does.
 /// </summary>
 /// <remarks>
-///     The sibling of <c>Rask.Wasm.Hosting.Tests.HostDefaultsTests</c>, and here for the same reason: the
-///     defaults landed in <c>Rask.Server.AddRask</c> while the hand-written blocks came out of every
+///     The defaults landed in <c>Rask.Server.AddRask</c> while the hand-written blocks came out of every
 ///     template, and this host calls <c>AddRaskSpaHost</c>, which did compression and nothing else. A SPA
 ///     host serves a bundle rather than rendering components, but it is still the process holding the auth
 ///     cookie and still the one the deploy SIGKILLs.

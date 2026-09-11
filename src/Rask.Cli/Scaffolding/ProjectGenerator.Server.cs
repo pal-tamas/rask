@@ -114,7 +114,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Wasm)
         {
-            packages.Add("Rask.Wasm.Hosting");
+            packages.Add("Rask.Spa.Hosting");
 
             if (batteries.Cqrs)
             {

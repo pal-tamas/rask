@@ -9,17 +9,18 @@
       3. `npm ci` — its own target with its own up-to-date check, because it is the expensive one.
       4. `npm run build` — incremental against the client's sources.
       5. Bake the dist path as assembly metadata so `app.UseRaskSpa()` resolves with no arguments.
-      6. On publish, copy the bundle next to the app. This is the step the WASM host does NOT have, and
-         its absence is a real gap there: a baked absolute path belongs to the machine that built it,
-         and inside a `rask deploy` container it names a directory that does not exist.
+      6. On publish, copy the bundle next to the app: a baked absolute path belongs to the machine that
+         built it, and inside a `rask deploy` container it names a directory that does not exist.
+
+    A Rask WebAssembly client referenced as a project takes the same path with `dotnet publish` in place
+    of the bundler; that half is at the end of this file.
 
     Everything below no-ops when no client is resolved, because this file is imported into EVERY
-    project of every consumer — same as Rask.Wasm.Hosting.targets.
+    project of every consumer.
 
     TWO MSBuild rules shape all of this, and both were learned by breaking them here:
 
-      * Item-list references are illegal in a property Condition (MSB4099) — the same rule the WASM
-        hosting targets record.
+      * Item-list references are illegal in a property Condition (MSB4099).
       * Properties are evaluated in an EARLIER PASS than items, so a property that reads @(SomeItem)
         at evaluation time reads nothing at all. Silently: it produces an empty string, not an error.
 
@@ -332,6 +333,116 @@
     </ItemGroup>
     <Message Importance="high"
              Text="Rask.Spa.Hosting: publishing @(_RaskSpaDistFile->Count()) file(s) from $(_RaskSpaDist) into $(RaskSpaPublishDir)/"/>
+  </Target>
+
+  <!--
+    A Rask WebAssembly client in its own project, served by this host:
+
+        <ProjectReference Include="..\Shop.Client\Shop.Client.csproj"
+                          ReferenceOutputAssembly="false"
+                          SkipGetTargetFrameworkProperties="true"/>
+
+    The two metadata flags are what MSBuild needs to reference a browser-wasm project from a net10.0 host
+    without linking its output. The client is recognised by the <RaskWasm>true</RaskWasm> in its own
+    project file, read with XmlPeek. The probe runs in every project, one XmlPeek per ProjectReference,
+    because a target's Condition is evaluated before its DependsOnTargets run and so cannot wait for it;
+    everything after it no-ops when it finds nothing.
+
+    Then the bundler lane's steps, with a .NET publish in place of `npm run build`:
+      1. `dotnet publish` the client before this project builds.
+      2. Bake its publish/wwwroot as Rask.SpaDistDir, so `app.UseRaskSpa()` resolves with no arguments.
+      3. On publish, copy the bundle into this app's RaskSpaPublishDir, where UseRaskSpa looks first.
+
+    RaskSpaBuild=false, which `rask dev` passes, skips the publish and bakes the client's build-output
+    manifest instead. That is a precondition for WebAssembly hot reload, not an optimisation: a published
+    bundle is trimmed, and trimming folds MetadataUpdater.IsSupported to false. Skipping costs nothing
+    extra — ReferenceOutputAssembly="false" leaves BuildReference on, so this project's ordinary build
+    already builds the client and writes that manifest. RaskWasm=false skips the publish as well, for a
+    build that never serves the bundle.
+  -->
+  <Target Name="_RaskSpaProbeWasmClient" Outputs="%(ProjectReference.Identity)">
+    <XmlPeek XmlInputPath="%(ProjectReference.FullPath)"
+             Query="/Project/PropertyGroup/RaskWasm/text()"
+             Condition="'%(ProjectReference.FullPath)' != ''">
+      <Output TaskParameter="Result" PropertyName="_RaskSpaWasmProbe"/>
+    </XmlPeek>
+    <!-- The TFM too, so the bundle and manifest paths do not hardcode net10.0-browser. -->
+    <XmlPeek XmlInputPath="%(ProjectReference.FullPath)"
+             Query="/Project/PropertyGroup/TargetFramework/text()"
+             Condition="'%(ProjectReference.FullPath)' != '' AND '$(_RaskSpaWasmProbe)' == 'true'">
+      <Output TaskParameter="Result" PropertyName="_RaskSpaWasmTfmProbe"/>
+    </XmlPeek>
+    <ItemGroup>
+      <_RaskSpaWasmClient Include="%(ProjectReference.FullPath)" Condition="'$(_RaskSpaWasmProbe)' == 'true'">
+        <Tfm Condition="'$(_RaskSpaWasmTfmProbe)' != ''">$(_RaskSpaWasmTfmProbe)</Tfm>
+        <Tfm Condition="'$(_RaskSpaWasmTfmProbe)' == ''">net10.0-browser</Tfm>
+      </_RaskSpaWasmClient>
+    </ItemGroup>
+    <PropertyGroup>
+      <_RaskSpaWasmProbe></_RaskSpaWasmProbe>
+      <_RaskSpaWasmTfmProbe></_RaskSpaWasmTfmProbe>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_RaskSpaComputeWasmClient" DependsOnTargets="_RaskSpaProbeWasmClient">
+    <Error Condition="'@(_RaskSpaWasmClient->Count())' &gt; '1'"
+           Code="RASKSPA006"
+           Text="Rask.Spa.Hosting: a host serves one WebAssembly client, and this project references @(_RaskSpaWasmClient->Count()): @(_RaskSpaWasmClient). Serve each from its own host."/>
+    <Error Condition="'@(_RaskSpaWasmClient->Count())' == '1' AND '$(_RaskSpaDir)' != ''"
+           Code="RASKSPA007"
+           Text="Rask.Spa.Hosting: this project has two clients, the WebAssembly project @(_RaskSpaWasmClient) and the front end in $(_RaskSpaDir). UseRaskSpa serves one app per host: remove one, or serve it from its own host."/>
+    <PropertyGroup Condition="'@(_RaskSpaWasmClient->Count())' == '1'">
+      <_RaskSpaWasmProject>%(_RaskSpaWasmClient.FullPath)</_RaskSpaWasmProject>
+      <_RaskSpaWasmBin>$([System.IO.Path]::GetDirectoryName('%(_RaskSpaWasmClient.FullPath)'))/bin/$(Configuration)/%(_RaskSpaWasmClient.Tfm)</_RaskSpaWasmBin>
+      <_RaskSpaWasmDist>$(_RaskSpaWasmBin)/publish/wwwroot</_RaskSpaWasmDist>
+      <_RaskSpaWasmDevManifest>$(_RaskSpaWasmBin)/$([System.IO.Path]::GetFileNameWithoutExtension('%(_RaskSpaWasmClient.FullPath)')).staticwebassets.runtime.json</_RaskSpaWasmDevManifest>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_RaskSpaPublishWasmClient" BeforeTargets="BeforeBuild" DependsOnTargets="_RaskSpaComputeWasmClient">
+    <PropertyGroup>
+      <_RaskSpaDoWasmPublish Condition="'$(_RaskSpaWasmProject)' != '' AND '$(RaskWasm)' != 'false' AND '$(RaskSpaBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'">true</_RaskSpaDoWasmPublish>
+    </PropertyGroup>
+    <Message Importance="high"
+             Condition="'$(_RaskSpaWasmProject)' != '' AND '$(RaskSpaBuild)' == 'false'"
+             Text="Rask.Spa.Hosting: serving the build output of $(_RaskSpaWasmProject) (RaskSpaBuild=false, no publish)"/>
+    <Message Importance="high"
+             Condition="'$(_RaskSpaDoWasmPublish)' == 'true'"
+             Text="Rask.Spa.Hosting: publishing $(_RaskSpaWasmProject) ($(Configuration))"/>
+    <!--
+      -nodeReuse:false: a reused node outlives the nested publish, keeps this build's inherited stdout
+      open, and a `dotnet test` parent then hangs after its build waiting on it. -v:minimal rather than
+      quiet, because the scoped-asset bake reports what it wrote at High importance and a quiet publish
+      hid a bundle that shipped without /_rask/a/.
+    -->
+    <Exec Condition="'$(_RaskSpaDoWasmPublish)' == 'true'"
+          Command="dotnet publish &quot;$(_RaskSpaWasmProject)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"/>
+  </Target>
+
+  <Target Name="_RaskSpaSetWasmClientMetadata" BeforeTargets="GetAssemblyAttributes" DependsOnTargets="_RaskSpaComputeWasmClient">
+    <ItemGroup Condition="'$(_RaskSpaWasmProject)' != ''">
+      <AssemblyMetadata Include="Rask.SpaDistDir" Value="$(_RaskSpaWasmDist)"/>
+      <AssemblyMetadata Include="Rask.SpaWasmClient" Value="$(_RaskSpaWasmProject)"/>
+      <!-- Only when the publish was skipped, so a manifest left over from an earlier session is never
+           served by a build that published. -->
+      <AssemblyMetadata Include="Rask.SpaDevManifest" Value="$(_RaskSpaWasmDevManifest)"
+                        Condition="'$(RaskSpaBuild)' == 'false'"/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_RaskSpaCollectWasmClientPublishAssets"
+          AfterTargets="ComputeFilesToPublish"
+          DependsOnTargets="_RaskSpaComputeWasmClient">
+    <ItemGroup Condition="'$(_RaskSpaWasmDist)' != '' AND Exists('$(_RaskSpaWasmDist)')">
+      <_RaskSpaWasmFile Include="$(_RaskSpaWasmDist)/**/*"/>
+      <ResolvedFileToPublish Include="@(_RaskSpaWasmFile)">
+        <RelativePath>$(RaskSpaPublishDir)/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+    <Message Importance="high"
+             Condition="'@(_RaskSpaWasmFile)' != ''"
+             Text="Rask.Spa.Hosting: publishing @(_RaskSpaWasmFile->Count()) file(s) from $(_RaskSpaWasmDist) into $(RaskSpaPublishDir)/"/>
   </Target>
 
 </Project>

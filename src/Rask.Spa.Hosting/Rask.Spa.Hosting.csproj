@@ -19,8 +19,8 @@
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
 
     <PackageId>Rask.Spa.Hosting</PackageId>
-    <Title>Rask — TypeScript Single-Page App Host</Title>
-    <Description>ASP.NET host for a built TypeScript single-page app — React, Vue, Angular, whichever bundler. `app.UseRaskSpa()` serves the bundler's dist/ with correct MIME types, bundler-aware cache headers, precompressed siblings and a SPA fallback that still 404s a missing asset. Pairs with Rask.Cqrs.Server, which gives the client a typed JSON wire and generates its TypeScript from your C# message records; a client that is not TypeScript is refused at build time rather than served half a guarantee. Depends on nothing else in Rask.</Description>
+    <Title>Rask — Single-Page App Host</Title>
+    <Description>ASP.NET Core host for a built single-page app: a TypeScript front end from any bundler (React, Vue, Angular) or a Rask WebAssembly app written in C#. `app.UseRaskSpa()` serves the build output with correct MIME types, cache headers that follow what the build guarantees, precompressed siblings and a SPA fallback that still 404s a missing asset; a referenced WebAssembly client is published by the build and served with hot reload under `rask dev`. Pairs with Rask.Cqrs.Server, which gives the client a typed JSON wire and generates its TypeScript from your C# message records; a front end that is not TypeScript is refused at build time rather than served half a guarantee. Depends on nothing else in Rask.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,16 +28,18 @@
   </ItemGroup>
 
   <!--
-    Deliberately no reference to Rask.Core or Rask.Wasm. A TypeScript SPA has no Component, no
-    scoped assets and no live session, so there is nothing to depend on — and staying free of them is
-    what lets this package serve a plain ASP.NET app too, exactly as Rask.Cqrs.Server does. The one
-    consequence is that RaskPath.Normalize is out of reach, so SpaPath carries its own copy.
+    Deliberately no reference to Rask.Core or Rask.Wasm. Serving a build output needs neither: a
+    WebAssembly bundle's scoped assets are files the publish already baked, so this host has no
+    Component to load and no registry to fill — and staying free of them is what lets this package
+    serve a plain ASP.NET app too, exactly as Rask.Cqrs.Server does. The one consequence is that
+    RaskPath.Normalize is out of reach, so SpaPath carries its own copy.
   -->
 
   <ItemGroup>
     <!--
-      Serving details shared with Rask.Wasm.Hosting, source-linked rather than referenced: the two
-      hosts must not depend on each other. Same arrangement as src/Rask.Generators.Shared.
+      Serving details shared with Rask.Meta.Hosting and the host defaults shared with Rask.Server,
+      source-linked rather than referenced: the hosts must not depend on each other. Same arrangement
+      as src/Rask.Generators.Shared.
     -->
     <Compile Include="..\Rask.Hosting.Shared\*.cs" Link="Shared\%(Filename)%(Extension)"/>
   </ItemGroup>

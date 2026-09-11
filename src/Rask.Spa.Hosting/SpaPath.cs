@@ -7,7 +7,7 @@ namespace Rask.Spa.Hosting;
 ///     A copy of <c>Rask.Core.Live.RaskPath</c>, and a deliberate one: this package takes no
 ///     dependency on <c>Rask.Core</c>, which is what lets it serve a plain ASP.NET app. Ten lines of
 ///     duplication is the price of that, and the two must agree — a host running both this and
-///     <c>Rask.Wasm.Hosting</c> under the same prefix would otherwise mount them one level apart.
+///     <c>Rask.Server</c> under the same prefix would otherwise mount them one level apart.
 /// </remarks>
 internal static class SpaPath
 {

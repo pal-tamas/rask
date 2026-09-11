@@ -80,7 +80,7 @@ by then the SDK has already compressed the boot shell and written a manifest des
 
 - **`.br` / `.gz` siblings are regenerated** from the new page. Left stale, they still hold the SHELL —
   and any host that prefers a precompressed sibling (nginx `brotli_static`, Netlify, Cloudflare Pages,
-  S3 behind a CDN, Rask's own `Rask.Wasm.Hosting`) serves the spinner to every visitor and every
+  S3 behind a CDN, Rask's own `UseRaskSpa`) serves the spinner to every visitor and every
   crawler while a perfectly good prerendered page sits on disk beside it. A file with no sibling gains
   none: which assets are worth compressing is the SDK's decision.
 - **The endpoint manifest's `Content-Length`, `ETag`, `Last-Modified` and `integrity` are corrected.**

@@ -456,11 +456,20 @@ internal sealed record DevTarget(
 
         if (text.Contains("Microsoft.NET.Sdk.Web", StringComparison.Ordinal))
         {
-            // Checked before the wasm-hosted shape, because a SPA host also has a sibling named .Client —
-            // one holding a package.json rather than a csproj, which is exactly what the Rask.Spa.Hosting
-            // targets look for. Keyed on the package reference rather than on that directory: the client
-            // may have been moved with RaskSpaClientDir, and the package is what actually decides how the
-            // app is served.
+            // A WebAssembly client FIRST. Rask.Spa.Hosting serves one as well as a bundler's output, so the
+            // package check below would read a WASM host as a TypeScript SPA: it would start an npm dev
+            // server beside it and never ask for the client's build output, which is what hot reload
+            // needs. Two shapes: a referenced Rask WASM project, and the one-project build whose browser
+            // half lives in Client/.
+            if (ReferencesWasmProject(fileSystem, csproj, text) || HasOneProjectClient(fileSystem, csproj, text))
+            {
+                return DevTemplateKind.WasmHosted;
+            }
+
+            // Checked before the .Client name fallback, because a SPA host also has a sibling named
+            // client — one holding a package.json rather than a csproj. Keyed on the package reference
+            // rather than on that directory: the client may have been moved with RaskSpaClientDir, and the
+            // package is what actually decides how the app is served.
             if (text.Contains("Rask.Spa.Hosting", StringComparison.Ordinal))
             {
                 return DevTemplateKind.SpaHosted;
@@ -475,13 +484,10 @@ internal sealed record DevTarget(
                 return DevTemplateKind.MetaHosted;
             }
 
-            // A Server host that references a sibling .Client project is the wasm-hosted shape. The
-            // name check is what `rask new` produces, and it costs no I/O — but it is only a naming
-            // convention, so fall back to actually reading the referenced projects. Without that, a
-            // host whose client is not called *.Client — which nothing stops a user doing, and which
-            // this repo's own WASM host did — is misread as a plain Server and never gets the WASM
-            // dev bundle.
-            return text.Contains(".Client", StringComparison.Ordinal) || ReferencesWasmProject(fileSystem, csproj, text)
+            // A host naming a sibling .Client project, whose csproj the probe above could not read — a
+            // reference to a project not on disk yet, say. The referenced projects were already read, so
+            // this is only the naming convention's last word.
+            return text.Contains(".Client", StringComparison.Ordinal)
                 ? DevTemplateKind.WasmHosted
                 : DevTemplateKind.Server;
         }
@@ -490,9 +496,22 @@ internal sealed record DevTarget(
     }
 
     /// <summary>
+    ///     The one-project build: a <c>Client/Program.cs</c> beside the project file is the browser half's
+    ///     entry point — the convention the build keys on — and <c>&lt;RaskClient&gt;false&lt;/RaskClient&gt;</c>
+    ///     turns it off in both places.
+    /// </summary>
+    private static bool HasOneProjectClient(IFileSystem fileSystem, string csprojPath, string text)
+    {
+        var directory = Path.GetDirectoryName(Path.GetFullPath(csprojPath));
+        return directory is not null
+               && fileSystem.FileExists(Path.Combine(directory, "Client", "Program.cs"))
+               && !text.Contains("<RaskClient>false</RaskClient>", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     ///     Does any <c>ProjectReference</c> point at a WASM client? Reads each referenced csproj and looks
     ///     for the WebAssembly SDK or Rask's own <c>&lt;RaskWasm&gt;</c> marker — the same marker
-    ///     <c>Rask.Wasm.Hosting.targets</c> probes for at build time, so the CLI and the build agree on
+    ///     <c>Rask.Spa.Hosting.targets</c> probes for at build time, so the CLI and the build agree on
     ///     what a wasm-hosted solution is.
     /// </summary>
     private static bool ReferencesWasmProject(IFileSystem fileSystem, string csprojPath, string text)

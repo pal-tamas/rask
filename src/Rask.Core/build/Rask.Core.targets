@@ -379,8 +379,8 @@
     RaskEntries.g.cs, and the build fails with CS0101 "already contains a definition for
     RaskBuilderSetters&lt;Assembly&gt;" pointing at generated code the author never wrote.
 
-    That composition is real: a wasm-hosted app whose .Server host mounts the operator dashboard
-    references Rask.Wasm.Hosting (which brings Rask.Wasm) and Rask.Server together.
+    That composition is legal — any project referencing Rask.Server and Rask.Wasm together — and it
+    fails with nothing pointing at the second reference.
 
     Deduplicating by file name rather than by path is the point — the paths are what differ. The
     copies are byte-identical (one build, packed into several packages), so keeping the first is

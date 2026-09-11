@@ -304,6 +304,53 @@ What it does beyond `UseStaticFiles` + a fallback:
   server, not a 503 — the bundler is serving the app, so a server error would send you hunting a bug
   that is not there. Outside development it is a 503, because then it is a real deployment fault.
 
+### A Rask WebAssembly app
+
+WebAssembly is a single-page app too, so the same call serves one. `UseRaskSpa` recognises a Rask
+WebAssembly bundle from its files — `rask.wasm.js` beside the .NET runtime's `_framework/dotnet*.js` —
+and applies what that publish guarantees instead of a bundler's rules:
+
+| Path | Cached for ever | A missing file |
+|---|---|---|
+| `/_rask/a/*` — scoped CSS and JavaScript, named by content hash | always | 404 |
+| `/_framework/*` — the runtime and your assemblies | only when the SDK fingerprinted the name | 404 |
+| anything else in `wwwroot`, including an `assets` folder | never — it revalidates | the index document |
+
+The default `/assets/` prefix does not apply to a WebAssembly bundle: it names Vite's hashed directory,
+and an `assets` folder in a Rask app's `wwwroot` holds files you wrote. A prefix you add still applies.
+Runtime files are served with `application/wasm` and `application/octet-stream`, and
+`AddRaskSpaHost()` compresses both.
+
+Reference the client project and the host's build does the rest:
+
+```xml
+<ProjectReference Include="..\Shop.Client\Shop.Client.csproj"
+                  ReferenceOutputAssembly="false"
+                  SkipGetTargetFrameworkProperties="true"/>
+```
+
+```csharp
+builder.Services.AddRaskSpaHost();
+
+var app = builder.Build();
+app.MapRaskCqrs();   // your API first
+app.UseRaskSpa();
+```
+
+`dotnet build` publishes the client — any referenced project declaring `<RaskWasm>true</RaskWasm>` — and
+`dotnet publish` copies its bundle into the host's `wwwroot`, where `UseRaskSpa` finds it with no
+arguments. A host serves one client: two WebAssembly clients are refused as `RASKSPA006`, and a
+WebAssembly client beside a front-end `client` folder as `RASKSPA007`.
+
+**`rask dev` serves the client's build output, not its publish.** A published bundle is trimmed, and
+trimming turns hot reload off in the browser, so the session passes `RaskSpaBuild=false`: the client's
+publish is skipped, and the host serves what its ordinary build wrote, with hot reload.
+
+**The operator dashboard can sit beside it.** Mount it above the app —
+`app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}")` — and both halves share `/_rask/a/{hash}`
+safely: the dashboard's endpoint answers a hash its own process never registered from the web root,
+where `UseRaskSpa` places the bundle's scoped assets.
+
 ### Options
 
 ```csharp
@@ -321,7 +368,7 @@ app.UseRaskSpa(configure: options =>
 | `RaskSpaClientDir` | a `Client` folder in the host project | Where the front end lives. |
 | `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
 | `RaskSpaGeneratedDir` | `src/rask` | Where the generated contracts land, inside the client. |
-| `RaskSpaBuild` | `true` | `false` skips node entirely. |
+| `RaskSpaBuild` | `true` | `false` skips node entirely — and, for a WebAssembly client, its publish: the host serves the client's build output instead. |
 | `RaskSpaMinimumNode` | `22.12.0` | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskEmitTypeScript` | on when a client is resolved | Whether the contracts are generated at all. `false` also lifts the TypeScript requirement — see [above](#typescript-only). |

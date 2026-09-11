@@ -4879,12 +4879,8 @@ static Rask.Core.Routing.RouteUrl.implicit operator string!(Rask.Core.Routing.Ro
 static Rask.Core.Routing.RouteUrl.operator !=(Rask.Core.Routing.RouteUrl left, Rask.Core.Routing.RouteUrl right) -> bool
 static Rask.Core.Routing.RouteUrl.operator ==(Rask.Core.Routing.RouteUrl left, Rask.Core.Routing.RouteUrl right) -> bool
 static Rask.Core.Routing.RouteValueFormatter.Format(object? value) -> string!
-static Rask.Core.ScopedAssets.ScopedAssetBundle.BakedDirectory.get -> string?
-static Rask.Core.ScopedAssets.ScopedAssetBundle.BakedDirectory.set -> void
 static Rask.Core.ScopedAssets.ScopedAssetBundle.ContentType(Rask.Core.ScopedAssets.AssetKind kind) -> string!
 static Rask.Core.ScopedAssets.ScopedAssetBundle.Extension(Rask.Core.ScopedAssets.AssetKind kind) -> string!
-static Rask.Core.ScopedAssets.ScopedAssetBundle.FindBakedFile(string? hash, Rask.Core.ScopedAssets.AssetKind kind) -> string?
-static Rask.Core.ScopedAssets.ScopedAssetBundle.FindPrecompressedSibling(string! bakedPath, string? encoding) -> string?
 static Rask.Core.ScopedAssets.ScopedAssetBundle.IsContentHash(string? value) -> bool
 static Rask.Core.ScopedAssets.ScopedAssetCompression.GetEncoded(string! hash, Rask.Core.ScopedAssets.AssetKind kind, string! encoding) -> (byte[]! Bytes, string! Etag)?
 static Rask.Core.ScopedAssets.ScopedAssetCompression.Negotiate(string? acceptEncoding) -> string?

@@ -5,11 +5,11 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.FileProviders.Physical;
 using Microsoft.Extensions.Primitives;
 
-namespace Rask.Wasm.Hosting;
+namespace Rask.Spa.Hosting;
 
 /// <summary>
-///     Serves a WASM client's <b>build</b> output by reading its
-///     <c>*.staticwebassets.runtime.json</c> manifest, for the dev-time host only.
+///     Serves a Rask WebAssembly client's <b>build</b> output by reading its
+///     <c>*.staticwebassets.runtime.json</c> manifest, for a development session only.
 /// </summary>
 /// <remarks>
 ///     <para>

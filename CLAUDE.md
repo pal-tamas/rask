@@ -43,7 +43,7 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
   every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
 - `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
 - `src/Rask.Server` — ASP.NET host (`AddRask()`/`UseRask<TApp>()`, WS dispatcher). `src/Rask.Wasm` — browser host.
-- `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
+- `src/Rask.Spa.Hosting` — `UseRaskSpa()`: serves a built SPA, a TypeScript bundle OR a Rask WASM app (WASM is a SPA, never a render mode). `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
 - `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from

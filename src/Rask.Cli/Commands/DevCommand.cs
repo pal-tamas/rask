@@ -427,13 +427,14 @@ internal sealed class DevCommand(
             // A wasm-hosted host serves its client's PUBLISHED bundle by default, which is (a) republished
             // by a nested emscripten relink on every save and (b) trimmed — and trimming folds
             // MetadataUpdater.IsSupported to false, so an applied delta could never reach the browser
-            // session. This switches it to the client's build output for the watch session. Not passed
-            // under --no-hot-reload (nothing to apply) or --once (that mode is deliberately a plain run).
+            // session. RaskSpaBuild=false skips that publish, and UseRaskSpa serves the client's build
+            // output instead — the same switch the bundler lane below uses. Not passed under
+            // --no-hot-reload (nothing to apply) or --once (that mode is deliberately a plain run).
             //
             // `--property:`, not `-p:`: on `dotnet run` the short form is ambiguous with --project.
             if (kind == DevTemplateKind.WasmHosted && !noHotReload)
             {
-                args.Add("--property:RaskWasmDevBundle=true");
+                args.Add("--property:RaskSpaBuild=false");
             }
 
             // The bundler's own dev server owns the client during a dev session — it is started beside
