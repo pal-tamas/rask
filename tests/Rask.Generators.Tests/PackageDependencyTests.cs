@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Xml.Linq;
-
 namespace Rask.Generators.Tests;
 
 // Guards the two packaging invariants that hold across the whole repo:
@@ -256,8 +255,8 @@ public class PackageDependencyTests
     }
 
     private static Dictionary<string, string> SourceProjects() =>
-        Directory
-            .GetFiles(Path.Combine(RepoRoot(), "src"), "*.csproj", SearchOption.AllDirectories)
+        RepoFiles.EnumerateSourceFiles(Path.Combine(RepoRoot(), "src"))
+            .Where(f => f.EndsWith(".csproj", StringComparison.Ordinal))
             .Where(IsSource)
             .ToDictionary(p => Path.GetFileNameWithoutExtension(p), p => p, StringComparer.OrdinalIgnoreCase);
 

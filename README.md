@@ -102,9 +102,11 @@ Nuxt, Next.js, SvelteKit, TanStack Start, SolidStart or Analog owning the *whole
 routing, its own rendering, its own Node server — with Rask as the backend behind it. The two ship as
 **one container on one port**: Rask fronts every request, supervises Node as a child process and
 forwards to it over loopback, so ASP.NET auth, rate limiting, logging and health stay in front of the
-framework and the session has one owner. `rask new` runs the framework's *own* creator — `nuxi`,
-`create-next-app`, `sv`, `@tanstack/cli` — so what you get is whatever that creator ships today, plus
-a node-server build and a dev proxy. Add `Rask.Meta.Hosting`, and Node, because the framework needs it.
+framework and the session has one owner. The client was imported from the framework's *own* creator —
+`nuxi`, `create-next-app`, `sv`, `@tanstack/cli` — and is committed, so `rask new` writes it with no
+network and no Node, plus a node-server build and a dev proxy.
+`scripts/refresh-templates.sh` is how a newer upstream gets in. Add `Rask.Meta.Hosting`, and Node at
+runtime, because the framework needs it.
 
 ```bash
 rask new Shop --template nuxt

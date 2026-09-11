@@ -21,6 +21,13 @@ internal interface IFileSystem
     void WriteAllText(string path, string content);
 
     /// <summary>
+    /// Write <paramref name="bytes"/> verbatim. For the template files that are not text — a PNG and two
+    /// .ico favicons the front-end creators ship — where <see cref="WriteAllText"/> would re-encode the
+    /// content as UTF-8 and corrupt it.
+    /// </summary>
+    void WriteAllBytes(string path, byte[] bytes);
+
+    /// <summary>
     /// Delete <paramref name="path"/> if it's there, swallowing an I/O or permission failure. For temp
     /// files whose removal is hygiene rather than correctness — failing to tidy up must never fail the
     /// operation that already succeeded.
@@ -75,6 +82,8 @@ internal sealed class SystemFileSystem : IFileSystem
     public void CreateDirectory(string path) => Directory.CreateDirectory(path);
 
     public void WriteAllText(string path, string content) => File.WriteAllText(path, content);
+
+    public void WriteAllBytes(string path, byte[] bytes) => File.WriteAllBytes(path, bytes);
 
     public void TryDelete(string path)
     {

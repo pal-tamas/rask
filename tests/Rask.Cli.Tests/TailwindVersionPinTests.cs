@@ -56,19 +56,57 @@ public sealed class TailwindVersionPinTests
             + "host. Raise the range floor with the pin.");
     }
 
-    /// <summary>Reads the range the SPA generator writes, via the package.json patch that carries it.</summary>
+    /// <summary>
+    ///     The range the templates actually ship, read from the committed manifests.
+    /// </summary>
+    /// <remarks>
+    ///     It used to be read back out of the package.json PATCH the generator produced, because the
+    ///     manifest itself belonged to create-vite and existed only after a scaffold had run. The
+    ///     manifests are committed now, so this reads the bytes a scaffolded app receives — and reads
+    ///     EVERY template rather than React alone, which is what makes a range that drifts in one
+    ///     framework's manifest a failure here instead of a surprise for whoever picks that template.
+    /// </remarks>
     private static string SpaTailwindRange
     {
         get
         {
-            var result = ProjectGenerator.GenerateSpa(
-                "/proj/App", "App", SpaFramework.React, new ServerBatteries(), "9.9.9");
+            var found = TemplateManifests("tailwindcss");
 
-            var patch = result.Patches.Single(p => p.Path.EndsWith("package.json", StringComparison.Ordinal));
-            var json = patch.Transform("""{ "dependencies": {}, "devDependencies": {}, "scripts": {} }""");
+            Assert.True(
+                found.Count > 0,
+                "No committed template manifest declares tailwindcss. Either the templates stopped "
+                + "shipping Tailwind or this pin is looking in the wrong place.");
 
-            return Regex.Match(json, @"""tailwindcss""\s*:\s*""([^""]+)""").Groups[1].Value;
+            var distinct = found.Values.Distinct(StringComparer.Ordinal).ToArray();
+            Assert.True(
+                distinct.Length == 1,
+                "The templates do not agree on a Tailwind range, so two scaffolded apps would compile "
+                + "the same classes with different compilers:\n  "
+                + string.Join("\n  ", found.Select(f => $"{f.Key}: {f.Value}")));
+
+            return distinct[0];
         }
+    }
+
+    /// <summary>Every committed client manifest's range for <paramref name="package"/>, by template.</summary>
+    internal static Dictionary<string, string> TemplateManifests(string package)
+    {
+        var root = Path.Combine(RepoRoot(), "src", "Rask.Templates");
+        var found = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var manifest in Directory.EnumerateFiles(root, "package.json", SearchOption.AllDirectories))
+        {
+            var match = Regex.Match(
+                File.ReadAllText(manifest), $@"""{Regex.Escape(package)}""\s*:\s*""([^""]+)""");
+
+            if (match.Success)
+            {
+                found[Path.GetRelativePath(root, manifest).Replace(Path.DirectorySeparatorChar, '/')] =
+                    match.Groups[1].Value;
+            }
+        }
+
+        return found;
     }
 
     private static string RepoRoot()

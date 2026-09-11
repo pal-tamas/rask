@@ -84,8 +84,13 @@
 
       The cost of gating here is that "I added Chart.tsx and nothing happened" gets no diagnostic in a
       project that has no package.json. That is the trade taken deliberately: the bundle could not
-      have run there anyway, the CLI's island scaffolding writes the package.json, and
+      have run there anyway, `rask new` writes the package.json when asked for an island runtime, and
       docs/islands.md says so up front.
+
+      That second clause was false for the whole of this file's life until #1009: there WAS no island
+      scaffolding, so the only way to get a package.json was to read the docs and write one. It is true
+      now, which is the only reason the sentence stays. (The flag is not spelled out here because an
+      XML comment may not contain two consecutive hyphens.)
     -->
     <_RaskExternalBundlable Condition="Exists('$(MSBuildProjectDirectory)/package.json')">true</_RaskExternalBundlable>
 

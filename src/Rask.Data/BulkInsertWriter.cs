@@ -30,44 +30,44 @@ internal static class BulkInsertWriter
     {
         var plan = BulkInsertPlan.For<TEntity>(context);
         var now = ResolveTimeProvider(context).GetUtcNow().UtcDateTime;
+        var synchronous = ExecutesSynchronously(context.Database.ProviderName);
+        var strategy = context.Database.CreateExecutionStrategy();
 
-        var connection = context.Database.GetDbConnection();
-        var opened = false;
-        if (connection.State != ConnectionState.Open)
+        var written = 0;
+        foreach (var batch in entities.Chunk(options.BatchSize))
         {
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            opened = true;
+            written += context.Database.CurrentTransaction is null
+                // No ambient transaction, so each batch commits on its own — which also makes it the unit a
+                // retrying strategy replays: a failed batch rolled back whole, and nothing committed before it
+                // is repeated. The change-tracker path gets the same from EF around each SaveChanges.
+                ? await strategy.ExecuteAsync(
+                        batch,
+                        (ctx, rows, token) => WriteBatchAsync(ctx, plan, rows, now, synchronous, token),
+                        verifySucceeded: null,
+                        cancellationToken)
+                    .ConfigureAwait(false)
+                : await WriteBatchAsync(context, plan, batch, now, synchronous, cancellationToken).ConfigureAwait(false);
         }
 
-        try
-        {
-            var written = 0;
-            foreach (var batch in entities.Chunk(options.BatchSize))
-            {
-                written += await WriteBatchAsync(context, connection, plan, batch, now, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            return written;
-        }
-        finally
-        {
-            if (opened)
-            {
-                await connection.CloseAsync().ConfigureAwait(false);
-            }
-        }
+        return written;
     }
 
     private static async Task<int> WriteBatchAsync<TEntity>(
         DbContext context,
-        DbConnection connection,
         BulkInsertPlan plan,
         TEntity[] batch,
         DateTime now,
+        bool synchronous,
         CancellationToken cancellationToken)
         where TEntity : class
     {
+        // Opened THROUGH EF, never DbConnection.OpenAsync. EF's connection interceptors fire only on an open EF
+        // performs — UseRaskSqlite's pragmas, and anything the app registered — so a raw open ran every row with
+        // foreign_keys and busy_timeout at SQLite's defaults. EF also counts opens: a connection the caller (or
+        // SingleTransaction) already opened stays open when this closes its own.
+        await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        var connection = context.Database.GetDbConnection();
+
         // An ambient transaction — the caller's, or the one BulkInsertAsync opened for SingleTransaction —
         // owns the commit; otherwise each batch is its own unit, matching the change-tracker path.
         var ambient = context.Database.CurrentTransaction?.GetDbTransaction();
@@ -95,7 +95,14 @@ internal static class BulkInsertWriter
                 parameters[c] = parameter;
             }
 
-            command.Prepare();
+            if (synchronous)
+            {
+                command.Prepare();
+            }
+            else
+            {
+                await command.PrepareAsync(cancellationToken).ConfigureAwait(false);
+            }
 
             var written = 0;
             foreach (var entity in batch)
@@ -110,9 +117,9 @@ internal static class BulkInsertWriter
                     parameters[c].Value = plan.Columns[c].ValueFor(entity) ?? DBNull.Value;
                 }
 
-                // SQLite is a local file with no true async I/O — ExecuteNonQueryAsync runs the same
-                // synchronous work on the calling thread — so the sync call is the honest one per row.
-                written += command.ExecuteNonQuery();
+                written += synchronous
+                    ? command.ExecuteNonQuery()
+                    : await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             if (owned is not null)
@@ -128,8 +135,21 @@ internal static class BulkInsertWriter
             {
                 await owned.DisposeAsync().ConfigureAwait(false);
             }
+
+            await context.Database.CloseConnectionAsync().ConfigureAwait(false);
         }
     }
+
+    /// <summary>Whether each row runs through the synchronous <c>ExecuteNonQuery</c>.</summary>
+    /// <remarks>
+    /// SQLite is a local file with no true async I/O — <c>ExecuteNonQueryAsync</c> runs the same synchronous
+    /// work on the calling thread — so the sync call is the honest one per row, and the cheaper. A
+    /// client-server provider does a network round trip per row, where blocking would park a thread for every
+    /// one of them.
+    /// </remarks>
+    /// <param name="providerName">The context's <c>Database.ProviderName</c>.</param>
+    internal static bool ExecutesSynchronously(string? providerName) =>
+        string.Equals(providerName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal);
 
     // AuditingInterceptor takes its TimeProvider from DI; the writer must read the same clock or a test that
     // freezes time would see two different "now"s depending on which path ran.

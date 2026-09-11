@@ -91,6 +91,20 @@ expect "a site page reaches the site tests through a Compile glob" \
 expect "a site page does not reach the CLI tests" \
   "src/Rask.Site/Features/TodosPage.cs" absent "tests/Rask.Cli.Tests"
 
+# The scaffolder's template payload holds no project of its own — fifteen trees, every one of them
+# with a Company.RaskServer.csproj that is never built here. It maps to the CLI, which embeds it.
+#
+# A PROJECT FILE, not the directory: everything downstream hands these straight to MSBuild, and a
+# directory comes back as MSB3202 ("project file was not found") — a build failure inside the gate
+# rather than a wrong answer, which is how this was caught.
+expect "a template file rebuilds the CLI that embeds it" \
+  "src/Rask.Templates/react/client/package.json" scoped "src/Rask.Cli/Rask.Cli.csproj"
+
+# ...and does not answer FULL, which is what "belongs to no project" would otherwise mean. Editing a
+# template is meant to be the cheap, ordinary way to change what `rask new` writes.
+expect "a template file does not force the whole solution" \
+  "src/Rask.Templates/react/client/package.json" absent "src/Rask.Core/Rask.Core.csproj"
+
 # Rask.Core is underneath everything, so its fan-out is nearly the whole tree. Asserted so that a
 # future narrowing of the graph cannot quietly make the most load-bearing project in the repo cheap.
 expect "Rask.Core reaches Rask.Server.Tests" \

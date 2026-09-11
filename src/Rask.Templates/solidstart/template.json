@@ -1,0 +1,27 @@
+{
+  "files": {
+    ".dockerignore": [
+      "docker"
+    ],
+    "Dockerfile": [
+      "docker"
+    ],
+    "Features/Shared/AppDbContext.cs": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/components/AuthForm.tsx": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/routes/login.tsx": [
+      "cqrs",
+      "data"
+    ],
+    "client/src/routes/register.tsx": [
+      "cqrs",
+      "data"
+    ]
+  },
+  "template": "solidstart"
+}

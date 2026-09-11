@@ -69,6 +69,12 @@ def find_projects(root: Path) -> list[Path]:
             parts = path.relative_to(root).parts
             if "bin" in parts or "obj" in parts or ".claude" in parts:
                 continue
+            # src/Rask.Templates/ is the scaffolder's PAYLOAD, not projects of ours: fifteen trees,
+            # every one of them holding a Company.RaskServer.csproj. Treating them as projects makes
+            # the map ambiguous (the same name fifteen times) and would attribute an edit to a
+            # template to a project that is never built here.
+            if "Rask.Templates" in parts:
+                continue
             found.append(path)
     return found
 
@@ -156,6 +162,16 @@ def main() -> None:
     for rel in changed:
         if not rel.startswith(PROJECT_ROOTS):
             full(f"{rel} is outside src/, tests/, site/ and benchmarks/")
+
+        # The template trees hold no project of their own: they are embedded into the CLI, which is
+        # what has to rebuild (and be retested) when one of them changes. Without this they map to
+        # nothing and every template edit answers FULL, which is safe and needlessly expensive —
+        # editing a template is meant to be the cheap, ordinary way to change what `rask new` writes.
+        if rel.startswith("src/Rask.Templates/"):
+            # The csproj, not the directory: everything downstream passes these straight to MSBuild,
+            # which answers MSB3202 ("project file was not found") for a directory.
+            affected.add("src/Rask.Cli/Rask.Cli.csproj")
+            continue
 
         owner = owning_project(rel, project_dirs)
         if owner is None:
