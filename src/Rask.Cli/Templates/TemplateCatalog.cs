@@ -70,7 +70,7 @@ internal static class TemplateCatalog
     ///     accepted and then disregarded.
     /// </remarks>
     private static readonly string[] DatabaseFlags =
-        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs"];
+        ["cqrs", "data", "jobs", "mail", "cache", "storage", "outbox", "snapshots", "logs"];
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [

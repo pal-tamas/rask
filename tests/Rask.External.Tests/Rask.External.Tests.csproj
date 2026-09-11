@@ -86,8 +86,8 @@
   </ItemGroup>
 
   <!--
-    The Node fixture, bundled exactly as Rask.Core.Tests bundles its own (#871). The fixture IMPORTS
-    the client runtime rather than reading it off disk, so esbuild resolves the real module and a
+    The Node fixtures, bundled by the target every fixture-running test project shares (#871). A fixture
+    IMPORTS the client runtime rather than reading it off disk, so esbuild resolves the real module and a
     fixture that no longer compiles fails the BUILD instead of failing a test with node's message.
   -->
   <ItemGroup>
@@ -96,23 +96,7 @@
     <_RaskNodeFixture Include="*Fixture.ts" Exclude="PreactAdapterFixture.ts"/>
   </ItemGroup>
 
-  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
-          Inputs="@(_RaskNodeFixture);@(_RaskNodeFixtureDependency)"
-          Outputs="@(_RaskNodeFixture->'$(OutDir)node-fixtures/%(Filename).mjs')">
-    <ResolveTypeScriptToolTask Tool="esbuild"
-                               Version="$(RaskEsbuildVersion)"
-                               CacheRoot="$(RaskTypeScriptCacheRoot)"
-                               Registry="$(RaskTypeScriptRegistry)"
-                               Offline="$(RaskTypeScriptOffline)">
-      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
-    </ResolveTypeScriptToolTask>
-
-    <MakeDir Directories="$(OutDir)node-fixtures"/>
-
-    <!-- Never minified: a failure here is read by a person, and node's stack has to name something. -->
-    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskNodeFixture.FullPath)&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --outfile=&quot;$(OutDir)node-fixtures/%(_RaskNodeFixture.Filename).mjs&quot;"
-          WorkingDirectory="$(MSBuildProjectDirectory)"/>
-  </Target>
+  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
 
   <!-- The module the fixture imports. Listed so editing the runtime re-bundles: Inputs takes no glob. -->
   <ItemGroup>

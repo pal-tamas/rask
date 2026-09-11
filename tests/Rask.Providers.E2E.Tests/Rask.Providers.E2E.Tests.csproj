@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Real database servers, started by scripts/run-providers-local.sh. The .E2E.Tests suffix keeps this suite
+       out of both git hooks' unit gate: it needs Docker, and a hook that needs Docker ends up skipped. Every fact
+       reports SKIPPED rather than failing when its server's connection string is not set. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Xunit.SkippableFact"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Cqrs"/>
+    <Using Include="Rask.Data"/>
+    <Using Include="Rask.Jobs"/>
+    <Using Include="Rask.Postgres"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Postgres\Rask.Postgres.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.SqlServer\Rask.SqlServer.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Cache\Rask.Cache.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

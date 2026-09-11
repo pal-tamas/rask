@@ -1,4 +1,6 @@
+using System.Buffers;
 using System.Text;
+using System.Text.Json;
 using Rask.Core;
 using Rask.Core.Live;
 
@@ -136,12 +138,27 @@ public abstract partial class ExternalComponent : Component
     /// </remarks>
     protected sealed override Component? Render() => null;
 
-    /// <summary>The props, as the JSON the client runtime hands to the adapter. Generated.</summary>
-    protected abstract string WriteProps();
+    /// <summary>
+    ///     Writes the props as members of the JSON object the client runtime hands to the adapter. Generated.
+    /// </summary>
+    /// <remarks>
+    ///     Members only: the object's braces, the writer and its buffer belong to this class. The generated
+    ///     writer used to own all three and hand back a string, which left nothing else able to add to the
+    ///     same object without re-parsing it — and an island's children travel in that object too.
+    /// </remarks>
+    /// <param name="writer">The writer, positioned inside the props object.</param>
+    protected abstract void WriteProps(Utf8JsonWriter writer);
 
     /// <inheritdoc />
     protected sealed override void WriteAttributes(StringBuilder sb)
     {
+        // An island is serialized down the element branch, so on its own it never tells the enclosing
+        // component that its subtree holds a component. Left that way, a page of plain elements plus an
+        // island is frame-cached, and its replay skips everything below: the runtime script this call
+        // registers falls out of <head>, and the callbacks the props writer registers on the island's
+        // own slots resolve to nothing for the rest of the session.
+        LiveRenderContext.CurrentSync?.MarkSubtreeUncacheable();
+
         RegisterRuntimeScript();
 
         AppendAttr(sb, ExternalDefaults.NameAttribute, ComponentName);
@@ -164,6 +181,20 @@ public abstract partial class ExternalComponent : Component
         // AppendAttr, not sb.Append: it registers the Attribute frame as well as writing the markup.
         // Without the frame the value renders once and never diffs again, so a prop change would stop
         // reaching the adapter after the first paint.
-        AppendAttr(sb, ExternalDefaults.PropsAttribute, WriteProps());
+        AppendAttr(sb, ExternalDefaults.PropsAttribute, SerializeProps());
+    }
+
+    /// <summary>The props object, as the JSON text the <c>props</c> attribute carries.</summary>
+    private string SerializeProps()
+    {
+        var buffer = new ArrayBufferWriter<byte>(256);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            WriteProps(writer);
+            writer.WriteEndObject();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 }

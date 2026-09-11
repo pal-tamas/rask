@@ -31,38 +31,29 @@ internal static class BulkInsertWriter
         var plan = BulkInsertPlan.For<TEntity>(context);
         var now = ResolveTimeProvider(context).GetUtcNow().UtcDateTime;
         var synchronous = ExecutesSynchronously(context.Database.ProviderName);
+        var strategy = context.Database.CreateExecutionStrategy();
 
-        var connection = context.Database.GetDbConnection();
-        var opened = false;
-        if (connection.State != ConnectionState.Open)
+        var written = 0;
+        foreach (var batch in entities.Chunk(options.BatchSize))
         {
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            opened = true;
+            written += context.Database.CurrentTransaction is null
+                // No ambient transaction, so each batch commits on its own — which also makes it the unit a
+                // retrying strategy replays: a failed batch rolled back whole, and nothing committed before it
+                // is repeated. The change-tracker path gets the same from EF around each SaveChanges.
+                ? await strategy.ExecuteAsync(
+                        batch,
+                        (ctx, rows, token) => WriteBatchAsync(ctx, plan, rows, now, synchronous, token),
+                        verifySucceeded: null,
+                        cancellationToken)
+                    .ConfigureAwait(false)
+                : await WriteBatchAsync(context, plan, batch, now, synchronous, cancellationToken).ConfigureAwait(false);
         }
 
-        try
-        {
-            var written = 0;
-            foreach (var batch in entities.Chunk(options.BatchSize))
-            {
-                written += await WriteBatchAsync(context, connection, plan, batch, now, synchronous, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            return written;
-        }
-        finally
-        {
-            if (opened)
-            {
-                await connection.CloseAsync().ConfigureAwait(false);
-            }
-        }
+        return written;
     }
 
     private static async Task<int> WriteBatchAsync<TEntity>(
         DbContext context,
-        DbConnection connection,
         BulkInsertPlan plan,
         TEntity[] batch,
         DateTime now,
@@ -70,6 +61,13 @@ internal static class BulkInsertWriter
         CancellationToken cancellationToken)
         where TEntity : class
     {
+        // Opened THROUGH EF, never DbConnection.OpenAsync. EF's connection interceptors fire only on an open EF
+        // performs — UseRaskSqlite's pragmas, and anything the app registered — so a raw open ran every row with
+        // foreign_keys and busy_timeout at SQLite's defaults. EF also counts opens: a connection the caller (or
+        // SingleTransaction) already opened stays open when this closes its own.
+        await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        var connection = context.Database.GetDbConnection();
+
         // An ambient transaction — the caller's, or the one BulkInsertAsync opened for SingleTransaction —
         // owns the commit; otherwise each batch is its own unit, matching the change-tracker path.
         var ambient = context.Database.CurrentTransaction?.GetDbTransaction();
@@ -137,6 +135,8 @@ internal static class BulkInsertWriter
             {
                 await owned.DisposeAsync().ConfigureAwait(false);
             }
+
+            await context.Database.CloseConnectionAsync().ConfigureAwait(false);
         }
     }
 

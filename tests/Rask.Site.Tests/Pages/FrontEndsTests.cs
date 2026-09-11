@@ -40,7 +40,7 @@ public sealed partial class FrontEndsTests : global::Rask.Core.RaskMarkup
         var section = FrontEndsSection();
 
         Assert.Contains(title, section, StringComparison.Ordinal);
-        Assert.Contains($"href=\"/docs/guides/{guide}\"", section, StringComparison.Ordinal);
+        Assert.Contains($"href=\"/docs/guides/{guide}/\"", section, StringComparison.Ordinal);
     }
 
     [Fact]

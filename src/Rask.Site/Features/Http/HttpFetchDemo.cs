@@ -3,11 +3,11 @@ using System.Text.Json.Serialization;
 
 namespace Rask.Site.Features;
 
-// HttpClient is registered as a service in Program.cs and injected through the primary
-// constructor. OnMountAsync runs once on first render; the framework's async lifecycle handler
+// HttpClient and TimeProvider are registered as services (AddExampleServices) and injected through the
+// primary constructor. OnMountAsync runs once on first render; the framework's async lifecycle handler
 // triggers a re-render when the awaited task completes. Component.CancellationToken cancels on
 // unmount — navigate away mid-fetch and the in-flight request aborts.
-public sealed partial class HttpFetchDemo(HttpClient http) : Component
+public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : Component
 {
     private const int MaxTransientRetries = 3;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);
@@ -24,8 +24,10 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
     {
         for (var attempt = 0; ; attempt++)
         {
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
-            deadline.CancelAfter(AttemptTimeout);
+            // Every wait in this loop reads the injected clock rather than the wall clock: the system clock
+            // in the app, and in a test a clock the test advances itself instead of waiting the delays out.
+            using var timeout = new CancellationTokenSource(AttemptTimeout, time);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, timeout.Token);
 
             try
             {
@@ -41,7 +43,7 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
             // transient transport failure.
             catch (OperationCanceledException) when (attempt < MaxTransientRetries)
             {
-                try { await Task.Delay(RetryDelay, CancellationToken); }
+                try { await Task.Delay(RetryDelay, time, CancellationToken); }
                 catch (OperationCanceledException) { return; }
             }
             // Still not settling after every retry. Says so, rather than reporting the framework's
@@ -58,7 +60,7 @@ public sealed partial class HttpFetchDemo(HttpClient http) : Component
             // a few times and the page self-heals instead of hanging on the spinner forever.
             catch (HttpRequestException ex) when (ex.StatusCode is null && attempt < MaxTransientRetries)
             {
-                try { await Task.Delay(RetryDelay, CancellationToken); }
+                try { await Task.Delay(RetryDelay, time, CancellationToken); }
                 catch (OperationCanceledException) { return; }
             }
             // A real HTTP-status failure, or a transport failure that never recovers, surfaces the error banner.

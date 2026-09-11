@@ -28,7 +28,7 @@ RaskBuilderSettersRask_External
 abstract Rask.External.ExternalComponent.ComponentName.get -> string!
 abstract Rask.External.ExternalComponent.Module.get -> string!
 abstract Rask.External.ExternalComponent.Runtime.get -> string!
-abstract Rask.External.ExternalComponent.WriteProps() -> string!
+abstract Rask.External.ExternalComponent.WriteProps(System.Text.Json.Utf8JsonWriter! writer) -> void
 const Rask.External.ExternalDefaults.DefaultManifestUrl = "/_rask/external/manifest.json" -> string!
 const Rask.External.ExternalDefaults.HostTag = "rask-external" -> string!
 const Rask.External.ExternalDefaults.HydrateAttribute = "hydrate" -> string!

@@ -130,12 +130,17 @@ function hostSend(payload) {
 }
 
 /**
- * Replaces every {"$h": id} in the props with a real function.
+ * Replaces every {"$h": id} in the props with a real function, and every {"$d": iso} with a Date.
  *
  * `cache` is keyed by handler id and survives across updates, so the SAME function object is handed
  * back for the same id. That is not a micro-optimisation: React compares props by identity, so a
  * fresh closure per update invalidates every useCallback and memo keyed on the callback and re-fires
  * every useEffect that lists it — a performance bug that reads as the framework misbehaving.
+ *
+ * `$a` lists the argument positions that cross back to C#. A package component's first argument is
+ * usually a DOM or synthetic event, which holds `view: window` — a cycle — so forwarding everything
+ * would throw inside the host's JSON.stringify and the call would be lost. A handler without `$a`
+ * forwards every argument, as it always has.
  */
 function revive(value, cache) {
     if (value === null || typeof value !== "object") return value;
@@ -145,17 +150,25 @@ function revive(value, cache) {
         return value;
     }
 
+    const keys = Object.keys(value);
     const id = value.$h;
-    if (typeof id === "string" && Object.keys(value).length === 1) {
+    if (typeof id === "string" && keys.every((key) => key === "$h" || key === "$a")) {
         let fn = cache.get(id);
         if (!fn) {
-            fn = (...args) => hostSend({id, type: "external", args});
+            const pick = Array.isArray(value.$a) ? value.$a : null;
+            fn = pick
+                ? (...args) => hostSend({id, type: "external", args: pick.map((i) => (i < args.length ? args[i] : null))})
+                : (...args) => hostSend({id, type: "external", args});
             cache.set(id, fn);
         }
         return fn;
     }
 
-    for (const key of Object.keys(value)) value[key] = revive(value[key], cache);
+    // Tagged by the C# that declared a date, so exactly those values become Dates — never a string that
+    // merely looks like a timestamp, which a reviver guessing from the text would convert silently.
+    if (keys.length === 1 && typeof value.$d === "string") return new Date(value.$d);
+
+    for (const key of keys) value[key] = revive(value[key], cache);
     return value;
 }
 

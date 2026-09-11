@@ -29,6 +29,150 @@ them until tagged releases begin.
   `Body(Component)` makes the compiler load `Rask.Core` at the call site — which is exactly what a
   Core-free package cannot do.
 
+- **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
+  and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
+  `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own
+  database; the app keeps the `Guid` on its entity and gets a link back three ways — `files.Url(id)` for a
+  file saved as public (built from the id alone, so it costs nothing inside a render),
+  `files.TemporaryUrlAsync(id, lifetime)` for one that expires, and `files.Download(id)` for an endpoint
+  that has already checked the caller may see it. Files go to `/data/files` on the deploy volume by
+  default, `storage/` under the content root otherwise, and `app.MapRaskStorage()` serves the links.
+  It is **on** in the `Rask` package like every other battery — the table is mapped on `RaskAppDbContext`
+  and `RaskApp` maps the routes, so an app writes nothing — and `app.Configure(c => c.Storage.Off())` or
+  `c.Storage.Configure(o => …)` is the one place it differs. `Storage__Provider=S3` or `Azure` moves them into a bucket — AWS S3, Cloudflare R2, Backblaze B2, MinIO,
+  DigitalOcean Spaces, Google Cloud Storage's S3 interop, or Azure Blob — with **no cloud SDK behind it**:
+  S3 is signed in-process with SigV4 and Azure with Shared Key, and a temporary URL becomes the provider's
+  own signed URL, so the download never passes through the app. The signers are pinned to AWS's published
+  examples and proven against real MinIO and Azurite by `scripts/run-storage-providers-local.sh`.
+  - **`rask new` scaffolds it** — the package, `AddRaskStorage<AppDbContext>()`, the table in `AppDbContext`
+    and `app.MapRaskStorage()` in the right place for each host — and `--no-storage` leaves it out.
+  - **The operator console gains a read-only Storage tab** at `/_rask/storage`: files, bytes and public
+    files, usage per provider, a searchable newest-first list, and a plain warning whenever files sit on disk,
+    which nothing backs up.
+  - **Public and private files live under different key folders** (`public/`, `private/`), so a CDN or a
+    public bucket can be granted read on `public/` alone — a private file's key shows in its signed URL, and
+    one policy covering both would make a five-minute link permanent.
+  - **The content type is sniffed from the bytes, never taken from the browser.** Only raster images, audio
+    and video are ever served `inline`; everything else downloads as an attachment, and HTML, SVG and XML
+    go out as `application/octet-stream`. Every response carries `nosniff`, a `sandbox` Content Security
+    Policy and `no-referrer`; ranges, `If-None-Match` and `HEAD` are ASP.NET's own handling, with the
+    file's SHA-256 as its entity tag.
+  - **Uploads are capped** at 50 MB by default, before a byte is read when the size is declared and while
+    copying when it is not; `AllowedTypes` narrows what is accepted, by what the bytes are. A refused file is
+    a `FileRejectedException` whose message names the setting to change and never repeats the file name.
+  - **A temporary URL on disk is a Data Protection token** under a purpose of its own, carrying only the
+    file id. Expired, tampered, unknown and deleted all answer one identical `404`, so a response never says
+    whether a file exists — and deleting the file revokes every link to it.
+  - **Bytes are written before the row, and a sweep removes what a failed save leaves behind.** It fails
+    closed (a database error deletes nothing), re-checks each candidate just before deleting it, only ever
+    touches keys in its own layout under `Storage__Prefix`, and refuses outright when it would remove more
+    than a tenth of what it looked at — the signature of an app pointed at the wrong database. It deletes
+    nothing against an empty table, and on S3 or Azure nothing at all until `Storage__Prefix` is set: a bucket
+    is easily shared, and a key's shape cannot tell this app's orphans from another environment's files.
+  - Configuration comes from `Storage__*` keys read inside `AddRaskStorage`, so an app `rask new` wrote
+    honours them; code set in the delegate wins. A bad value fails the boot, and a storage directory inside
+    `wwwroot` is refused because the static-file middleware would serve uploads with none of these checks.
+
+- **A Debug build running in Development loads Rask DevTools' host script into every live page.** `AddRask`
+  attaches the devtools when the build carries `Rask.DevTools`; `UseRask` then maps `/_rask-devtools/host.js` —
+  anonymous, so an app with a fallback authorization policy still loads its own tools — and each interactive
+  page gets a deferred, `data-rask-managed` `<script>` for it at the end of its `<head>`. Outside Development
+  nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
+  it. The script carries the corner pill and the drawer it opens — docked to the bottom or the right, remembered,
+  toggled by Ctrl+Shift+D (Cmd+Shift+D on a Mac) without the keystroke reaching the app, and drawn in a shadow root
+  the app's stylesheets cannot reach — and shows them once the panel page they frame exists, in the next slice.
+
+  The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
+  load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
+  bundles both runtimes with the pinned esbuild, with and without the hooks, and fails past 250 minified bytes
+  (184 and 185 today). The three per-response `<body>` stamps now share one insertion helper.
+
+- **Use an npm component as an island with no wrapper — its props come from its own TypeScript.** A class whose
+  `Module` names a package (`protected override string Module => "@mui/material/Button";`, or
+  `"@mui/material#Button"` for a named export) is a *package island*, and a committed `MuiButton.props.json`
+  beside it describes the package's props. From it the island generator declares the properties and a
+  reflection-free writer and the factory generator the chain steps —
+  `MuiButton.Variant(MuiButtonVariant.Contained).Disabled(saving).OnClick(Save)` — both reading one resolver, so
+  a step can never exist without its property. String-literal unions become generated enums sent as the
+  original literal; `number` is `double`; objects become generated records; `string | number` a generated
+  struct that takes either; dates cross tagged and arrive as a `Date`. An unset prop is left out rather than
+  sent as `null`, so the package's own default applies. A callback never forwards an event object —
+  `onChange(event, value)` is `Callback<double>` and only the number crosses (`$a`), which also stops a
+  package's synthetic event throwing inside the host's `JSON.stringify` and losing the call. A property
+  declared by hand wins and keeps its own type. RASK077–080 report a missing, unreadable or mismatched snapshot
+  and any prop that could not be generated. See
+  [Using a package component directly](docs/islands.md#using-a-package-component-directly).
+
+- **`dotnet build` writes and refreshes a package island's `props.json` from the installed package.** Before the
+  compile the build finds the classes whose `Module` names a package, installs, and reads each component's props
+  with the TypeScript compiler Rask pins (`RaskExternalTypeScriptVersion`, 6.0.3, fetched once into
+  `~/.rask/typescript` and never the project's own copy) — React, Preact and Solid packages for now; a Vue,
+  Svelte, Lit or Angular package island compiles from a snapshot committed by hand, and a Solid package island
+  beside React or Preact islands is refused by name, since Solid's plugin cannot be confined to it. A changed
+  snapshot is rewritten and announced with its version move, so it arrives in review; a build that cannot read
+  the package compiles from the committed file. `RaskExternalPropsLocked` (on under `ContinuousIntegrationBuild`)
+  turns drift into an error instead of a rewrite. The entry imports the package by its bare specifier (a `#Export`
+  as a named import), and a React or Preact app of package islands is no longer asked to install the runtime's
+  Vite plugin. RASKISLAND005–010 name a bad declaration, a missing snapshot, a package or export that could not
+  be read, drift on a locked build, an island the scan missed, and a snapshot from another version than
+  `package-lock.json` pins. See [The build keeps it current](docs/islands.md#the-build-keeps-it-current).
+
+- **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
+  attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
+  `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
+  bypass, ambient state, children, or an empty cache), the serializer's walk and its replay of a captured
+  subtree, `StateHasChanged`, handler dispatch, the tree commit, and per session the walk, the diff-or-full
+  decision and every frame sent or received. A build without the devtools folds that read to null. Both
+  browser runtimes gained matching `send`, `recv` and `commit` hooks, and a frame-span walker locates a
+  component's DOM nodes with the differ's own slot rules — cross-checked against the differ's op paths.
+
+  Handler dispatch is now a non-async forwarder that enters an instrumented path only when a probe is
+  attached, so the dispatch every event takes gains no async state-machine field.
+
+  Measured: all 45 `LiveRenderRoundTrip`, `HtmlSerializerLiveRoot`, `RenderRoundTrip`, `FrameDiffer`,
+  `LivePayloadUtf8`, `WsDispatch` and `WasmDispatch` cases allocate exactly what they did before. That reaches
+  the component-level seams; no benchmark reaches handler dispatch or a session's render-to-send loop (see
+  #1062), so those seams rest on how they are built and on the Server, WASM and Core suites.
+
+- **A shared rask.sh link unfurls as a card.** Every page names a 1200×630 social card — the site's bolt,
+  its own type and palette, the one-line pitch and a real markup chain — as `og:image` with its size, type
+  and alt text, and as a `summary_large_image` Twitter card; guides and the front door carry it as the
+  structured data's `image` too. Until now a link posted to Slack, X, LinkedIn or Discord unfurled as a
+  line of text. The card is a designed page (`assets/og-card.html`) rendered by a browser, not a generated
+  placeholder, and `PageMetaTests` reads the committed PNG's header so a re-render at the wrong size fails.
+
+- **PostgreSQL is back, as the opt-in `Rask.Postgres`.** SQLite stays the default and the recommendation;
+  this reverses only the part of the earlier removal that left a production app with no supported door out of
+  one box. `UseRaskPostgres(cs, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
+  `LockTimeout` (10s, validated below the statement timeout so lock contention is never reported as a slow
+  query) and `IdleInTransactionSessionTimeout` (1m) to every session, and turns on Npgsql's retrying
+  strategy through `o.Retry`. Compared with the package that shipped in v0.20.0, `RaskPostgresOptions` is now
+  `PostgresOptions` with the retry knobs nested under `Retry` (as `SqliteOptions` nests its own), and the
+  timeouts travel as connection-string startup parameters instead of a `SET` sent on every open. That is one
+  round trip less on every query EF runs; the values are the session's defaults, so the pool's reset restores
+  rather than removes them; and a connection opened without EF gets them too. Timeouts round up to whole
+  milliseconds, because PostgreSQL reads 0 as "no limit", and one beyond a 32-bit millisecond count is refused
+  at startup rather than on every connection open. A new `Rask.Providers.E2E.Tests` suite, run by
+  `scripts/run-providers-local.sh` against a real PostgreSQL 17 in Docker, proves the jobs claim never hands
+  a job to two of twenty racing instances, the settings survive the pool, bulk insert lands 10,000 rows in a
+  keyword-named table under the retrying strategy, and fifty concurrent writers on one cold cache key all
+  succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
+  (`docs/data.md#postgresql`).
+
+- **SQL Server is back too, as the opt-in `Rask.SqlServer`.** `UseRaskSqlServer(cs, o => …)` is a drop-in for
+  `UseSqlServer` that sends `SET XACT_ABORT ON` and `SET LOCK_TIMEOUT` (10s, validated below the command
+  timeout) as one batch on every connection EF opens — SQL Server takes no session settings in the connection
+  string, and SqlClient resets them on every pooled open — sets a client `CommandTimeout` (30s, rounded up to
+  whole seconds because 0 means "wait forever"), and turns on SQL Server's retrying strategy through `o.Retry`.
+  `Rask.Cache` keys its table at 512 characters, which SQL Server's 900-byte index key limit only admits with
+  a warning; `UseRaskSqlServer` caps that one key at 450 in the model through its own convention, so the table
+  is created cleanly, no other entity is resized, and SQLite apps get no migration. A key longer than 450
+  characters still cannot be stored on SQL Server — see the cache entry under Fixed for the error it now gets.
+  Calling `UseRaskSqlServer` twice on one configuration keeps one interceptor and the last call's settings. The provider suite gains the same
+  claim, cache, session-settings and bulk-insert scenarios against SQL Server 2022 — started on amd64 hosts
+  only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
+  summary that SQL Server was not proven rather than counting it as a pass.
+
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
   `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network
@@ -156,6 +300,27 @@ them until tagged releases begin.
   is it documented — and nothing asked whether a documented rule existed.
 
 ### Changed
+
+- **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
+  and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
+  `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
+  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
+  not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+
+- **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
+  writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
+  adds beside the props shares one writer. Only a hand-written `ExternalComponent` subclass has to change —
+  `protected override void WriteProps(Utf8JsonWriter writer)` — and there is no reason to write one.
+- **A `Module` that names a package makes the island a package island**, including one that declares its props
+  by hand: an unset prop is left out of the props rather than written as `null`, so the package's default
+  applies, and each callback forwards only its first argument to C#.
+
+- **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
+  in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
+  They were bare, and GitHub Pages answers `/docs/guides/cqrs` with a 301 to `/docs/guides/cqrs/`, so every
+  internal link a crawler followed cost a redirect and pointed at the non-canonical URL (#1057). The active
+  sidebar link still lights up, since `NavLink` compares paths without the slash; the Todos add form now
+  recognises `/docs/todos/new/`, the path a reload always arrived with.
 
 - **`QuiescentRender.RunAsync` and `RaskPrerender.RenderDocumentAsync` take a `CancellationToken`.** It is
   the last parameter and defaulted, as the API style guide asks of every awaitable, so existing calls
@@ -315,6 +480,33 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
+  compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island
+  the app declares but globs for their front-end files from its own directory and finds none, so every
+  rask.sh deploy warned, twice per island, that five islands shipping fine would never mount. The companion
+  now turns the island build and prop types off (`RaskExternalBuild`, `RaskExternalPropTypes`); the app's
+  own build still checks and bundles them (#1068).
+
+- **A cache key too long for the database says so.** `ICache` over the database-backed cache keys its table at
+  512 characters (450 on SQL Server). PostgreSQL and SQL Server refuse a longer key, and the insert-then-update
+  upsert surfaced that as a `DbUpdateException` about a value too long for some column. It now throws an
+  `ArgumentException` naming the key's length and the table's limit, with the provider error as its inner
+  exception. SQLite does not enforce the length, so nothing changes there.
+
+- **The builder allocation pins no longer fail a busy machine's gate.** `BuilderEntryAllocationPinTests`
+  runs in a non-parallel collection. It reads the measuring thread's allocations, which looked immune to
+  other tests but is not: the render path borrows from one `StringBuilder` pool shared by every thread, and
+  while another class rendered in parallel the probe found it drained and allocated its own. Its head probe,
+  the heaviest pool user, failed four gates in three days at 1818–1904 B against its 1800 B pin — always
+  under load, always green alone and across its assembly (#1056). The ceiling is unchanged.
+
+- **Bulk insert's fast path runs the connection interceptors, and retries a failed batch.**
+  `BulkInsertAsync(o => o.SkipChangeTracking = true)` opened the `DbConnection` itself, and EF only runs its
+  connection interceptors on an open it performs — so every row it wrote ran with `UseRaskSqlite`'s pragmas
+  unapplied (`foreign_keys`, `busy_timeout` at SQLite's defaults), along with anything else an app registered on
+  connection open. It now opens through EF, which also counts opens and so still leaves a caller's open
+  connection open. Each batch that owns its transaction now runs inside the execution strategy, so a retrying
+  strategy replays the failed batch alone instead of surfacing the first transient error.
 
 - **A scaffolded SPA or meta app could not start.** All thirteen front-end templates produced a project
   that built clean and then aborted on launch, and the browser journeys added with the template trees are
@@ -366,6 +558,7 @@ them until tagged releases begin.
 
 - **`rask new --help` advertised a command that fails.** The examples still showed `--auth --data`; both
   were retired, so the documented example exited non-zero.
+
 - **A `HasNonOverlappingRange` rule the provider would ignore now fails the boot.** The rule is model
   metadata that a provider has to turn into DDL, and only `UseRaskSqlite` did. On a plain `UseSqlite` — or
   any other provider — an app built, migrated and passed every test that didn't collide two ranges on
@@ -392,6 +585,17 @@ them until tagged releases begin.
   `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
   `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
   reporting it. The guard now looks for the console's own mount.
+
+- **An island's callbacks no longer go dead when the page around it re-renders from cache.** An island
+  (`ReactComponent`, `VueComponent`, …) is serialized as an element, so it never told its enclosing
+  component that the subtree held a component, and a page of plain elements plus an island qualified for
+  the clean-subtree frame cache. A replay re-registers only the page's own handler slots, while an island's
+  callbacks sit on the island's, so the second render of a clean page still wrote `"$h":"h0"` into the
+  props while the handler map held nothing for it: the click reached the server and ran nothing, for the
+  rest of the session. The same replay also skipped the runtime `<script>` the island contributes to
+  `<head>`. A page holding an island now stays on the walk path, and `LiveRenderContext.RegisterHandlerFor`
+  keeps any subtree whose handler lands on another component's slots off the cache as well.
+  `HandlerIdentityTests` pins both, with a control proving the rig caches the same page without the island.
 
 - **Relative links in the guides no longer 404.** The guide renderer sent every `../x.md` link to
   `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51

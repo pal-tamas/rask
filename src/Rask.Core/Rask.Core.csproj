@@ -76,6 +76,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The devtools probe seam is read at a dozen render-path sites across Core; one project-wide
+         import keeps each of them a one-line `RaskDevToolsHook.Active` check. -->
+    <Using Include="Rask.Core.Diagnostics.DevTools"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

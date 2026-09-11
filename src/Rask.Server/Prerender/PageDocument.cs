@@ -13,20 +13,31 @@ internal static class PageDocument
 {
     /// <summary>
     ///     A live document: <paramref name="html" /> carrying its session id, the browser bundle's boot
-    ///     module when the rung is on, and the development attributes when <paramref name="dev" />.
+    ///     module when the rung is on, the development attributes when <paramref name="dev" />, and the
+    ///     devtools host script when there is one.
     /// </summary>
     /// <remarks>
-    ///     <c>data-rask-dev</c> is the client-side gate for every dev-only frame, so it is decided by the
-    ///     caller from the same predicate that decides whether to subscribe at all. Where to ask about
-    ///     build status when the socket drops (#603) is read from the environment, because the only thing
-    ///     that can answer is <c>rask dev</c>, the process that launched this one.
+    ///     <para>
+    ///         <c>data-rask-dev</c> is the client-side gate for every dev-only frame, so it is decided by the
+    ///         caller from the same predicate that decides whether to subscribe at all. Where to ask about
+    ///         build status when the socket drops (#603) is read from the environment, because the only thing
+    ///         that can answer is <c>rask dev</c>, the process that launched this one.
+    ///     </para>
+    ///     <para>
+    ///         <paramref name="devToolsHostUrl" /> is a separate gate from <paramref name="dev" />: that one also
+    ///         needs <c>dotnet watch</c>, and the devtools switch on for a plain <c>dotnet run</c> of a Debug build
+    ///         in Development.
+    ///     </para>
     /// </remarks>
-    internal static string Live(string html, string sessionId, RaskServerLimits limits, bool dev) =>
-        LivePayload.InjectIslandsDevAttr(
-            LivePayload.InjectWasmBundleAttr(
-                LivePayload.InjectRootAttr(
-                    html, sessionId, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
-                RaskEndpointExtensions.WasmBootModuleUrl(limits)),
-            dev,
-            dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null);
+    internal static string Live(
+        string html, string sessionId, RaskServerLimits limits, bool dev, string? devToolsHostUrl) =>
+        LivePayload.InjectDevToolsScript(
+            LivePayload.InjectIslandsDevAttr(
+                LivePayload.InjectWasmBundleAttr(
+                    LivePayload.InjectRootAttr(
+                        html, sessionId, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
+                    RaskEndpointExtensions.WasmBootModuleUrl(limits)),
+                dev,
+                dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null),
+            devToolsHostUrl);
 }
