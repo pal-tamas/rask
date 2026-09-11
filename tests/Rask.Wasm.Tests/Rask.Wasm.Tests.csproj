@@ -82,29 +82,8 @@
     <_RaskNodeFixture Include="JSInterop\*Fixture.ts"/>
   </ItemGroup>
 
-  <!-- DependsOnTargets: inert at AfterTargets="Build", stated so the generated-task ordering
-       invariant holds without an exemption (#878). -->
-  <Target Name="_RaskBundleNodeFixtures" AfterTargets="Build" DependsOnTargets="ResolveProjectReferences"
-          Inputs="@(_RaskNodeFixture)"
-          Outputs="@(_RaskNodeFixture->'$(OutDir)node-fixtures/%(Filename).mjs')">
-    <ResolveTypeScriptToolTask Tool="esbuild"
-                               Version="$(RaskEsbuildVersion)"
-                               CacheRoot="$(RaskTypeScriptCacheRoot)"
-                               Registry="$(RaskTypeScriptRegistry)"
-                               Offline="$(RaskTypeScriptOffline)">
-      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
-    </ResolveTypeScriptToolTask>
-
-    <MakeDir Directories="$(OutDir)node-fixtures"/>
-
-    <!--
-      Never minified, whatever the configuration. A fixture's failure output is read by a person
-      diagnosing a boot failure, and node's stack trace has to name something.
-
-      es2022 for the top-level await both fixtures use to import the bundle under test.
-    -->
-    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;%(_RaskNodeFixture.FullPath)&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --outfile=&quot;$(OutDir)node-fixtures/%(_RaskNodeFixture.Filename).mjs&quot;"
-          WorkingDirectory="$(MSBuildProjectDirectory)"/>
-  </Target>
+  <!-- Bundled by the target every fixture-running test project shares; node20 covers the top-level await both
+       fixtures use to import the bundle under test. -->
+  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
 
 </Project>
