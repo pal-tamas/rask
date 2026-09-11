@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using Rask.Core.Authentication;
+using Rask.Wire;
 
 namespace Rask.Auth.Client;
 

@@ -92,16 +92,18 @@ public sealed class MetaContainerBootE2ETests
             // Node rendered this and Kestrel forwarded it, inside one container, on one port.
             Assert.Contains("<h1", html, StringComparison.OrdinalIgnoreCase);
 
-            // And the host still owns its own routes rather than forwarding them — the failure that
-            // reads as a front-end bug because an API call comes back as a page.
-            var api = await http.GetAsync($"{baseUrl}/_rask/does-not-exist");
+            // And the host still owns the routes it MAPS rather than forwarding them — the failure that
+            // reads as a front-end bug because an API call comes back as a page. The probe is /healthz,
+            // which the template maps on the host; an unmapped path is supposed to reach the front end,
+            // because the lane ends its pipeline with a catch-all fallback by design.
+            var api = await http.GetAsync($"{baseUrl}/healthz");
             var body = await api.Content.ReadAsStringAsync();
 
             Assert.False(
                 body.Contains("<!DOCTYPE html", StringComparison.OrdinalIgnoreCase)
                 || body.Contains("<html", StringComparison.OrdinalIgnoreCase),
-                $"--template {key}: the container answered a /_rask request with a rendered page, so "
-                + $"Kestrel forwarded what it should have handled.\n{Tail(body)}\n\n{await LogsAsync(container)}");
+                $"--template {key}: the container answered /healthz — a host endpoint — with a rendered "
+                + $"page, so Kestrel forwarded what it should have handled.\n{Tail(body)}\n\n{await LogsAsync(container)}");
         }
         finally
         {

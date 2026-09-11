@@ -536,6 +536,11 @@ ends the pipeline with a fallback to `index.html` and an endpoint added after it
 instead of JSON. The `rask dev` proxy forwards `/api/auth` alongside `/_rask`, so a sign-in works the
 same in development, where the browser is talking to the bundler rather than to Kestrel.
 
+This lane takes **`Rask.Auth.Api`** rather than `Rask.Auth` — the same battery, the same
+`AddRaskAuth`/`MapRaskAuth`, the same `Rask.Auth` namespace, minus the built-in sign-in *pages* and
+`IAuth`, both of which need a renderer this host does not have. See
+[two packages, one battery](authentication.md#two-packages-one-battery).
+
 **The screens are scaffolded too.** `/login` and `/register` are in the template, drawn with the same
 daisyUI card the C# lane's sign-in uses, so the flow works on the first run rather than being the first
 thing you have to write. One component behind a `mode`, and the path is read in the entry file — the

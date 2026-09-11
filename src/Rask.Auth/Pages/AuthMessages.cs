@@ -1,4 +1,5 @@
 using Rask.Core.Authentication;
+using Rask.Wire;
 
 namespace Rask.Auth.Pages;
 

@@ -26,7 +26,10 @@
     <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.Litestream" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Auth" Version="{{RaskVersion}}"/>
+    <!-- Accounts as JSON only. Rask.Auth is the same battery plus the built-in sign-in PAGES,
+         which are Rask components — and this host renders none, so it carries no Rask.Core for
+         them to render with. -->
+    <PackageReference Include="Rask.Auth.Api" Version="{{RaskVersion}}"/>
     <!-- rask:if outbox -->
     <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
     <!-- rask:end -->

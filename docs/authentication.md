@@ -19,6 +19,30 @@ signed-in, and `IUserProvider` to read who that is — identical on the Server h
 inside an island. A TypeScript front end and a meta framework's Node process reach the same flows
 through `/api/auth`.
 
+## Two packages, one battery
+
+| Package | Use it when | What it adds |
+| --- | --- | --- |
+| `Rask.Auth.Api` | The host renders **no** Rask components — a SPA template, a meta template, or a plain ASP.NET app | Identity, the `/api/auth` endpoints, the cookie, bearer tokens, the account lifecycle |
+| `Rask.Auth` | The app **is** a Rask app — the `server` and `wasm` templates | All of the above, plus the built-in `/login`, `/register` and recovery **pages**, and `IAuth` for components |
+
+Reference one or the other, never both: `Rask.Auth` already contains `Rask.Auth.Api`. Both put their
+types in the `Rask.Auth` namespace and both call the battery `AddRaskAuth` / `MapRaskAuth`, so moving an
+app from one lane to the other changes a `PackageReference` and nothing else.
+
+The split exists because `Rask.Core` — the renderer — is not a package. It travels *inside* the host
+packages that render components (`Rask.Server`, `Rask.Wasm`), so `Rask.Spa.Hosting` and
+`Rask.Meta.Hosting` ship no copy of it. Until #1069 the accounts battery reached for Core on every lane,
+which meant a scaffolded SPA or meta app could not start at all: the assembly was simply absent and the
+process aborted before `Main`, after a build that succeeded. `Rask.Auth.Api` is the battery with that
+dependency removed; it speaks the wire contract in `Rask.Wire` — the `/api/auth` paths, the request and
+response shapes, `AuthResult` — which the browser-side `Rask.Auth.Client` also takes, so both halves
+agree without either one carrying the renderer.
+
+What you give up on `Rask.Auth.Api` is exactly what needs a renderer: there are no built-in sign-in
+pages (the front end owns that UI) and no `IAuth` (there are no components to inject it into). The
+endpoints, the options, the roles and the emails are the same code.
+
 ```csharp
 public sealed partial class SignIn(IAuth auth) : Component
 {

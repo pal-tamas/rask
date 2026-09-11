@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Core.Authentication;
+using Rask.Wire;
 
 namespace Rask.Auth.Tests;
 

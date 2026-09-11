@@ -6,7 +6,7 @@ namespace Rask.Mail.Tests;
 public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
 {
     private static Email SampleEmail() =>
-        Email.To("ada@example.com", "Ada").Subject("Welcome").Body("<p>hi</p>");
+        Email.To("ada@example.com", "Ada").Subject("Welcome").Html("<p>hi</p>");
 
     [Fact]
     public async Task Send_delivers_the_email_and_marks_it_processed()
@@ -66,7 +66,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         {
             for (var i = 0; i < 5; i++)
             {
-                await harness.Queue.SendAsync(Email.To($"user{i}@example.com").Subject($"#{i}").Body("<p>hi</p>"));
+                await harness.Queue.SendAsync(Email.To($"user{i}@example.com").Subject($"#{i}").Html("<p>hi</p>"));
             }
 
             await harness.WaitUntilAsync(async () => harness.Sender.Sent.Count == 5);

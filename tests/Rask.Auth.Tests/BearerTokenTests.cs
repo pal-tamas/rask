@@ -140,7 +140,7 @@ public sealed class BearerTokenTests
         // A decision, not an omission: refresh needs a revocation story, revocation needs storage, and
         // that is a much larger feature. This test exists so adding one is a deliberate act rather than
         // something that quietly appears.
-        var names = typeof(Rask.Core.Authentication.BearerSession)
+        var names = typeof(Rask.Wire.BearerSession)
             .GetProperties()
             .Select(p => p.Name)
             .ToArray();

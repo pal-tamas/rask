@@ -71,6 +71,13 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
         foreach (var argument in new[]
         {
             "run", "--no-build", "--project", projectFile,
+
+            // WITHOUT this the scaffolded Properties/launchSettings.json wins and ASPNETCORE_URLS
+            // below is ignored, so every host binds the profile's port instead of its reserved one.
+            // On this machine that is port 5000, which macOS Control Center already holds — so the
+            // host aborts with "address already in use" and the journey reads as "it never answered".
+            "--no-launch-profile",
+
             // The front end is already built; a `dotnet run` that rebuilt it would add minutes and
             // could pick a different bundle than the one this test just proved.
             "-p:RaskSpaBuild=false", "-p:RaskMetaBuild=false", "-p:RaskExternalBuild=false",
@@ -94,7 +101,20 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        await host.WaitUntilAnsweringAsync(readyTimeout);
+        try
+        {
+            await host.WaitUntilAnsweringAsync(readyTimeout);
+        }
+        catch
+        {
+            // The caller never receives the host when this throws, so nothing else will ever dispose
+            // it — and a host that failed its readiness check is often still running and still holding
+            // a port. One leak like that took out two unrelated tests in a later suite, which read as a
+            // regression in THEM rather than as a leak from here.
+            await host.DisposeAsync();
+            throw;
+        }
+
         return host;
     }
 

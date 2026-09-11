@@ -64,6 +64,17 @@
     <InternalsVisibleTo Include="Rask.Site.Tests"/>
   </ItemGroup>
 
+  <!--
+    The auth WIRE contract — the /api/auth paths and DTOs, and the AuthResult/AuthError pair IAuth
+    answers with. In Rask.Wire rather than here because the accounts battery has to work on a host
+    that carries no Rask.Core at all (#1069): Core is IsPackable=false and travels inside the host
+    packages that render components, so anything that needs it is confined to those hosts. Rask.Wire
+    is zero-dependency and trimming-clean, which is why it can sit under both halves.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"

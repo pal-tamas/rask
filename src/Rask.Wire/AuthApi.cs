@@ -1,15 +1,21 @@
-namespace Rask.Core.Authentication;
+namespace Rask.Wire;
 
 /// <summary>
 /// The wire contract for the <c>/api/auth</c> endpoints: the paths, the header, and the shapes.
 /// </summary>
 /// <remarks>
 /// <para>
-/// It lives in Core because <b>both halves have to agree on it and neither can reference the other</b>.
-/// The server half carries ASP.NET Core Identity and Entity Framework, which must never reach a
-/// trimmed WebAssembly publish; the browser half carries an <c>HttpClient</c> and nothing else. Core is
-/// the one assembly they share, so the contract is written once rather than duplicated and left to
-/// drift.
+/// It lives in Rask.Wire because <b>both halves have to agree on it and neither can reference the
+/// other</b>. The server half carries ASP.NET Core Identity and Entity Framework, which must never
+/// reach a trimmed WebAssembly publish; the browser half carries an <c>HttpClient</c> and nothing else.
+/// Rask.Wire is the one package both can take — zero dependencies, trimming-clean, and already the home
+/// of the carriers Rask.Cqrs and Rask.Api share for exactly this reason — so the contract is written
+/// once rather than duplicated and left to drift.
+/// </para>
+/// <para>
+/// It was in Rask.Core until the accounts battery had to work on a host that has no Rask component
+/// runtime at all (#1069). Core was never the right home on the merits: it uses none of this, and
+/// putting the contract there made every consumer of the contract a consumer of the renderer.
 /// </para>
 /// <para>
 /// A TypeScript front end speaks the same four routes. This type is what keeps the C# clients and that
@@ -128,6 +134,7 @@ public sealed record BearerSession(
     CurrentUser User);
 
 /// <summary>Why a request was refused.</summary>
-/// <param name="Error">The <see cref="AuthError" /> name.</param>
+/// <param name="Error">The <c>AuthError</c> name — the enum lives in Rask.Core, which this
+/// contract deliberately does not reference, so it travels as its name.</param>
 /// <param name="Message">A human-readable detail, when there is one.</param>
 public sealed record AuthFailure(string Error, string? Message);

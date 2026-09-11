@@ -428,6 +428,11 @@ enforce it.
 Client-side code talks to the [accounts endpoints](authentication.md) directly, exactly as it would in
 any other front end:
 
+This lane takes **`Rask.Auth.Api`** rather than `Rask.Auth` — the same battery, the same
+`AddRaskAuth`/`MapRaskAuth`, the same `Rask.Auth` namespace, minus the built-in sign-in *pages* and
+`IAuth`, both of which need a renderer this host does not have. See
+[two packages, one battery](authentication.md#two-packages-one-battery).
+
 ```
 POST /api/auth/register   POST /api/auth/login   POST /api/auth/logout   GET /api/auth/me
 POST /api/auth/forgot-password   POST /api/auth/reset-password   POST /api/auth/confirm-email

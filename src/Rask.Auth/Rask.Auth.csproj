@@ -51,6 +51,14 @@
        Deliberately NOT Rask.Server — no battery references it, which is what keeps the meta-package
        free of reference cycles. -->
   <ItemGroup>
+    <!-- The /api/auth wire contract (paths, headers, DTOs). In Rask.Wire rather than Core so the
+         server half and the browser half can both take it without either taking the renderer. -->
+    <!-- The host-neutral half of this battery: Identity, the /api/auth endpoints, the cookie and
+         the options. This package is that plus the two things a renderer makes possible — an IAuth on
+         the host's sign-in relay, and the built-in sign-in pages. See RaskAuthHostServices. -->
+    <ProjectReference Include="..\Rask.Auth.Api\Rask.Auth.Api.csproj"/>
+
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
 
     <!-- The confirmation and reset links go out through the app's own mail queue. A REAL package

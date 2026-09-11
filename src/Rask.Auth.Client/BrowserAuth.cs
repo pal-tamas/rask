@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization.Metadata;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
+using Rask.Wire;
 
 namespace Rask.Auth.Client;
 

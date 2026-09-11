@@ -9,6 +9,26 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Auth.Api` — the accounts battery for a host that renders nothing.** Identity, the
+  `/api/auth` endpoints, the cookie, bearer tokens and the account lifecycle, with no `Rask.Core`.
+  `Rask.Auth` is now this package plus the two things that need a renderer: the built-in `/login`,
+  `/register` and recovery pages, and `IAuth` for components. Same `Rask.Auth` namespace, same
+  `AddRaskAuth`/`MapRaskAuth`, so moving between lanes changes a `PackageReference` and nothing else —
+  reference one or the other, never both.
+
+  It exists because `Rask.Core` is not a package: it travels inside the host packages that render
+  components, so `Rask.Spa.Hosting` and `Rask.Meta.Hosting` ship no copy. The accounts battery reached
+  for it on every lane anyway, which is why a scaffolded SPA or meta app could not start (#1069) —
+  and why the thirteen front-end templates now reference `Rask.Auth.Api`.
+
+  The wire contract moved with it. `AuthApi`, the request and response records, and the
+  `AuthResult`/`AuthError` pair are now in **`Rask.Wire`** rather than `Rask.Core`: both halves have to
+  agree on them and neither can reference the other, and Rask.Wire is the zero-dependency,
+  trimming-clean package both can take. Core used none of it. `Rask.Mail`'s raw-HTML body setter is
+  `Email.Html(string)` rather than a second `Body` overload, because overload resolution against
+  `Body(Component)` makes the compiler load `Rask.Core` at the call site — which is exactly what a
+  Core-free package cannot do.
+
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
   `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
+using Rask.Wire;
 
 namespace Rask.Auth.Tests;
 

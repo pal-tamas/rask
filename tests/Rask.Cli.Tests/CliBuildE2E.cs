@@ -40,6 +40,7 @@ internal static class CliBuildE2E
         "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
         "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
         "Rask.Auth",                        // --data: the scaffolded context maps the account tables
+        "Rask.Auth.Api",                    // the same, on the lanes with no renderer — and under Rask.Auth
         "Rask.Meta.Hosting",                // the meta templates: the node supervisor, and the same emit
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)

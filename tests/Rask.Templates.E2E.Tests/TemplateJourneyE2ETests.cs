@@ -42,9 +42,11 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         TemplateBuildE2ETests.Enabled
         && Environment.GetEnvironmentVariable("RASK_TEMPLATE_FRONTEND_E2E") == "1";
 
-    public static TheoryData<string> SpaTemplates() => [.. SpaFramework.All.Select(f => f.Key)];
+    public static TheoryData<string> SpaTemplates() =>
+        [.. TemplateSelection.Apply(SpaFramework.All.Select(f => f.Key))];
 
-    public static TheoryData<string> MetaTemplates() => [.. MetaTemplate.All.Select(f => f.Key)];
+    public static TheoryData<string> MetaTemplates() =>
+        [.. TemplateSelection.Apply(MetaTemplate.All.Select(f => f.Key))];
 
     [SkippableTheory]
     [MemberData(nameof(SpaTemplates))]
@@ -101,18 +103,27 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
             $"--template {key} answered {(int)page.StatusCode} at /.\n{app.Log}");
         Assert.Contains("<h1", html, StringComparison.OrdinalIgnoreCase);
 
-        // The characteristic failure of the lane: Kestrel forwards a request it should have answered,
-        // so an API call comes back as a rendered page. HTML here means the forwarder is shadowing the
-        // host's own endpoints — and it reads as a front-end bug, which is why it is asserted by shape
-        // rather than by status.
-        var api = await http.GetAsync($"{app.BaseUrl}/_rask/does-not-exist");
+        // The characteristic failure of the lane: Kestrel forwards a request it should have ANSWERED,
+        // so an API call comes back as a rendered page. It reads as a front-end bug, which is why it is
+        // asserted by shape rather than by status.
+        //
+        // The probe is a route the template actually maps. An UNmapped path is not a defect here: the
+        // lane ends its pipeline with MapFallback("{*path}") on purpose, exactly as the SPA lane falls
+        // back to index.html, so "anything the host did not claim belongs to the front end" is the
+        // contract rather than a leak. What must never happen is a mapped endpoint being shadowed.
+        var api = await http.GetAsync($"{app.BaseUrl}/healthz");
         var apiBody = await api.Content.ReadAsStringAsync();
 
         Assert.False(
             apiBody.Contains("<!DOCTYPE html", StringComparison.OrdinalIgnoreCase)
             || apiBody.Contains("<html", StringComparison.OrdinalIgnoreCase),
-            $"--template {key}: a /_rask request was answered with a rendered page, so Kestrel is "
-            + $"forwarding what it should handle.\nbody:\n{Trim(apiBody)}\n\nhost log:\n{app.Log}");
+            $"--template {key}: /healthz — an endpoint this app maps on the HOST — was answered with a "
+            + $"rendered page, so Kestrel forwarded what it should have handled.\nbody:\n{Trim(apiBody)}"
+            + $"\n\nhost log:\n{app.Log}");
+
+        Assert.True(
+            api.IsSuccessStatusCode,
+            $"--template {key}: /healthz answered {(int)api.StatusCode}.\n{app.Log}");
     }
 
     /// <summary>
