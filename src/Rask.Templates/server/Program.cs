@@ -134,13 +134,18 @@ builder.Services.AddRaskCqrsServer();
 // DbSet property, no configuration class, no registration — then `rask db add <Name>` /
 // `rask db update` to create and apply the migration.
 // rask:end
+// rask:if data
 //
+// rask:end
+// rask:if wasm
 // rask:ifnot data
+//
 // RequireAuthenticatedUser is OFF because this app has no database, so it has no
 // accounts to require — left on, every message would answer 401 and nothing would
 // work. Add --data (or a scheme of your own) and DELETE this argument: the default is
 // on for a reason, and a message reachable by anyone is a decision worth making.
 builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
+// rask:end
 // rask:end
 // rask:if data
 // The generic overload is what names the context to the ambient database, so `Product.Add(…)`

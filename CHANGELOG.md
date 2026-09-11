@@ -446,6 +446,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask new --cqrs` without `--wasm` scaffolds an app that compiles again.** The server template wrote the
+  database-free `AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false)` outside its WebAssembly region.
+  The `Rask.Cqrs.Server` package and its `using` are written only with `--wasm`, so a `--cqrs` app with no
+  database failed with CS1061. The call now sits inside that region. The CLI build gate's two cases for
+  it pass, and a unit test pins the call's absence without `--wasm` (#1071).
+
 - **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
   compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island
   the app declares but globs for their front-end files from its own directory and finds none, so every
