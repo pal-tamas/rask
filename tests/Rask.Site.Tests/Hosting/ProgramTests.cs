@@ -41,6 +41,27 @@ public sealed class ProgramTests
     }
 
     [Fact]
+    public void AddExampleServices_RegistersTheSystemClock_KeepingOneAlreadyRegistered()
+    {
+        // HttpFetchDemo injects the TimeProvider its retry delays and attempt deadline run on (#1067), so
+        // the site must register one — and must not replace a clock registered before it, which is how a
+        // host or a test supplies its own.
+        var site = new ServiceCollection()
+            .AddExampleServices(_ => new Uri("http://localhost/"))
+            .BuildServiceProvider();
+        Assert.Same(TimeProvider.System, site.GetService<TimeProvider>());
+
+        var own = new OwnClock();
+        var hosted = new ServiceCollection()
+            .AddSingleton<TimeProvider>(own)
+            .AddExampleServices(_ => new Uri("http://localhost/"))
+            .BuildServiceProvider();
+        Assert.Same(own, hosted.GetService<TimeProvider>());
+    }
+
+    private sealed class OwnClock : TimeProvider;
+
+    [Fact]
     public void AddExampleServices_ReturnsSameServiceCollection_ForChaining()
     {
         var sc = new ServiceCollection();

@@ -5,6 +5,14 @@ using Rask.Site.Tests.Infrastructure;
 
 namespace Rask.Site.Tests.Pages;
 
+/// <remarks>
+///     The retry tests run the demo on a <see cref="ManualClock" /> and move it forward on every poll, instead of
+///     sleeping through the loop's real 150 ms delays and 5 s deadlines (#1067). That takes the timers off the
+///     thread pool, and makes a fetch that never settles testable at all: four deadlines would otherwise be 20 s
+///     of wall clock. What it cannot remove is the framework's own hop. <c>LifecycleSyncContext</c> resumes
+///     every await in a lifecycle hook through <c>Task.Run</c>, so each retry still takes one thread-pool turn,
+///     and the wait's budget bounds how long those turns may take.
+/// </remarks>
 public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
@@ -17,7 +25,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // Drive HttpFetchDemo directly through LiveHost — its standalone /http page was folded into
         // docs/http-and-files.md. Re-rendering the SAME host preserves the demo instance so the
         // awaited fetch's continuation result is observed.
-        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
         await WaitFor.True(
             () => page.Render().Contains("the body text", StringComparison.Ordinal),
             TimeSpan.FromSeconds(5),
@@ -38,7 +46,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         var (http, _) = FakeHttp.Throwing(
             new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
 
-        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
         // Loading shows initially; after the fetch faults the error banner should appear on next render.
         await Task.Delay(120);
         var html = page.Render();
@@ -66,21 +74,21 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
                 })
         };
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") };
+        var clock = new ManualClock();
 
         // The fetch + retry self-heal lives in HttpFetchDemo (the page just embeds its source).
         // Drive the demo directly through LiveHost so we assert on its rendered RESULT, not the
-        // page's source-code pane (which contains the alert's own class names as literal
-        // text). Re-rendering the SAME host preserves the demo instance, so the retried fetch's
-        // continuation result is observed.
-        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
+        // page's source-code pane (which contains the alert's own class names as literal text).
+        var page = RaskTest.Render(() => HttpFetchDemo, Services(http, clock));
         await WaitFor.True(
-            () => page.Render().Contains("the body text", StringComparison.Ordinal),
+            () => AdvanceAndRender(page, clock).Contains("the body text", StringComparison.Ordinal),
             TimeSpan.FromSeconds(5),
             "the retried fetch never rendered its body");
         var html = page.Render();
 
         Assert.DoesNotContain("alert-error", html, StringComparison.Ordinal);
         Assert.Contains("the body text", html);
+        Assert.Equal(2, attempts);
     }
 
     [Fact]
@@ -90,22 +98,47 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // HttpRequestException) must surface the error banner once retries are exhausted —
         // never leave the page spinning forever.
         var (http, handler) = FakeHttp.Throwing(new HttpRequestException("TypeError: Load failed"));
+        var clock = new ManualClock();
 
-        // Drive HttpFetchDemo directly (it owns the retry loop); the page only embeds its source.
-        // Re-rendering the SAME host preserves the demo instance so the retry loop's terminal
-        // error (set on a continuation) is observed; the loop makes MaxTransientRetries + 1
-        // attempts then stops.
-        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, Services(http, clock));
+
+        // The control. The first attempt fails inside the render, and the loop then parks on a retry delay
+        // only this clock can end: however long the test waits here, nothing moves until it moves the clock.
+        Assert.Equal(1, handler.RequestCount);
+        Assert.Contains("Loading", page.Render(), StringComparison.Ordinal);
+        Assert.Equal(1, handler.RequestCount);
+
         await WaitFor.True(
-            () => page.Render().Contains("alert-error", StringComparison.Ordinal),
+            () => AdvanceAndRender(page, clock).Contains("alert-error", StringComparison.Ordinal),
             TimeSpan.FromSeconds(6),
             "the exhausted retry loop never surfaced its error banner");
         var html = page.Render();
 
         Assert.Contains("alert-error", html, StringComparison.Ordinal);
-        // The spinner is gone — the demo no longer hangs on the loading state. Asserting on the
-        // demo's rendered result (not the page) keeps the spinner-border check meaningful.
-        Assert.DoesNotContain("spinner-border", html);
+        Assert.DoesNotContain("Loading", html, StringComparison.Ordinal);
+        // MaxTransientRetries + 1 attempts, then it stops.
+        Assert.Equal(4, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task OnMountAsync_FetchThatNeverSettles_TimesOutAfterRetries()
+    {
+        // The failure the per-attempt deadline exists for: no exception, no response, an await that would
+        // never return. Each attempt must give up on its own deadline and retry, and the last must say what
+        // it was waiting for rather than "A task was canceled."
+        var handler = new NeverSettles();
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") };
+        var clock = new ManualClock();
+
+        var page = RaskTest.Render(() => HttpFetchDemo, Services(http, clock));
+        await WaitFor.True(
+            () => AdvanceAndRender(page, clock).Contains("alert-error", StringComparison.Ordinal),
+            TimeSpan.FromSeconds(6),
+            "four attempts that never settled never surfaced their timeout");
+        var html = page.Render();
+
+        Assert.Contains("The request did not complete within 5s.", html, StringComparison.Ordinal);
+        Assert.Equal(4, handler.Attempts);
     }
 
     [Fact]
@@ -115,10 +148,36 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // never throws out of the lifecycle — the page/guide stays alive around it.
         var (http, _) = FakeHttp.WithStatus(HttpStatusCode.NotFound);
 
-        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
         await Task.Delay(120);
         var html = page.Render();
 
         Assert.Contains("alert-error", html, StringComparison.Ordinal);
+    }
+
+    private static IServiceProvider Services(HttpClient http, TimeProvider time) =>
+        LiveHost.Services((typeof(HttpClient), (object)http), (typeof(TimeProvider), (object)time));
+
+    // One poll of a wait: move the clock a second, past any retry delay the loop has set and a fifth of the way
+    // through an attempt's deadline, then look at what rendered. The loop sets its next timer on a thread-pool
+    // turn, so one large advance up front would fire nothing it had not set yet.
+    private static string AdvanceAndRender(RenderedComponent page, ManualClock clock)
+    {
+        clock.Advance(TimeSpan.FromSeconds(1));
+        return page.Render();
+    }
+}
+
+// A fetch that neither responds nor fails: it settles only when its token is cancelled.
+file sealed class NeverSettles : HttpMessageHandler
+{
+    public int Attempts;
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        Interlocked.Increment(ref Attempts);
+        var never = new TaskCompletionSource<HttpResponseMessage>();
+        ct.Register(() => never.TrySetCanceled(ct));
+        return never.Task;
     }
 }
