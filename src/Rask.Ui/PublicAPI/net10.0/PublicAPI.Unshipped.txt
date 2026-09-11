@@ -1573,10 +1573,6 @@ Rask.Ui.UiNavbar.End.set -> void
 Rask.Ui.UiNavbar.Start.get -> Rask.Core.Component?
 Rask.Ui.UiNavbar.Start.set -> void
 Rask.Ui.UiNavbar.UiNavbar() -> void
-Rask.Ui.UiNotice
-Rask.Ui.UiNotice.Tone.get -> string?
-Rask.Ui.UiNotice.Tone.set -> void
-Rask.Ui.UiNotice.UiNotice() -> void
 Rask.Ui.UiOpenOn
 Rask.Ui.UiOpenOn.Click = 0 -> Rask.Ui.UiOpenOn
 Rask.Ui.UiOpenOn.Hover = 1 -> Rask.Ui.UiOpenOn
@@ -2054,14 +2050,11 @@ Rask.Ui.UiVariant.Solid = 0 -> Rask.Ui.UiVariant
 RaskBuilderSettersRask_Ui
 RaskEntriesRask_Ui
 abstract Rask.Ui.UiFormField<T>.Control() -> Rask.Core.Component!
-const Rask.Ui.UiStyles.Button = "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-base-300 bg-base-100 px-3 text-xs font-medium text-base-content transition-colors hover:bg-base-200 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0 sm:py-1.5" -> string!
 const Rask.Ui.UiStyles.Caption = "mt-1 text-xs opacity-60" -> string!
 const Rask.Ui.UiStyles.Card = "rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5" -> string!
-const Rask.Ui.UiStyles.Danger = "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-base-300 bg-base-100 px-3 text-xs font-medium text-error transition-colors hover:border-ui-danger/40 hover:bg-error/5 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0 sm:py-1.5" -> string!
 const Rask.Ui.UiStyles.Heading = "text-base font-semibold tracking-tight text-base-content sm:text-lg" -> string!
 const Rask.Ui.UiStyles.Label = "text-xs font-medium tracking-wide opacity-60" -> string!
 const Rask.Ui.UiStyles.Mono = "font-mono text-xs" -> string!
-const Rask.Ui.UiStyles.Quiet = "inline-flex min-h-11 items-center rounded-lg px-2 text-xs opacity-60 hover:bg-base-200 hover:text-base-content sm:min-h-0 sm:py-1" -> string!
 const Rask.Ui.UiStyles.Value = "mt-2 text-2xl font-semibold tabular-nums tracking-tight text-base-content sm:text-3xl" -> string!
 const Rask.Ui.UiStylesheet.Path = "/css/rask-ui.css" -> string!
 const Rask.Ui.UiStylesheet.ThemeScopeAttribute = "data-rask-ui" -> string!
@@ -2656,7 +2649,6 @@ static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiDivider! __b, Rask.Ui.UiTon
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiFileInput! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiLink! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiLink!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiMetric! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiMetric!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiNotice! __b, string? value) -> Rask.Ui.UiNotice!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiOtp! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiOtp!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiProgress! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiProgress!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiRadio! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiRadio!
@@ -2812,7 +2804,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiModal(Rask.Core.Comp
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiMultiSelect_1<T>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiNavTab(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiNavbar(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiNotice(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiOtp(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiPagination(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiProgress(Rask.Core.Component! __c0) -> void
@@ -2907,7 +2898,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiModal(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiMultiSelect_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiNavTab(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiNavbar(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiNotice(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiOtp(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiPagination(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiProgress(Rask.Core.Component! __c0, ulong __p) -> void
@@ -3007,7 +2997,6 @@ static RaskEntriesRask_Ui.UiMultiSelect.get -> Rask.Ui.RaskSeed_UiMultiSelect
 static RaskEntriesRask_Ui.UiNav.get -> Rask.Ui.UiNav!
 static RaskEntriesRask_Ui.UiNavTab.get -> Rask.Ui.RaskSeed_UiNavTab
 static RaskEntriesRask_Ui.UiNavbar.get -> Rask.Ui.UiNavbar!
-static RaskEntriesRask_Ui.UiNotice.get -> Rask.Ui.UiNotice!
 static RaskEntriesRask_Ui.UiOtp.get -> Rask.Ui.RaskSeed_UiOtp
 static RaskEntriesRask_Ui.UiPagination.get -> Rask.Ui.RaskSeed_UiPagination
 static RaskEntriesRask_Ui.UiProgress.get -> Rask.Ui.RaskSeed_UiProgress

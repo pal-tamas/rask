@@ -307,6 +307,11 @@ them until tagged releases begin.
   a pager over forty pages was wider than a phone and dragged the whole document sideways. Past seven pages
   it now draws the first, the last, and the current page with its neighbours, with a gap marker between —
   never more than seven items. The console's screenshot pass caught it on the Logs history.
+- **Breaking: `UiNotice` and `UiStyles.Button`, `UiStyles.Danger` and `UiStyles.Quiet` are removed.** Nothing
+  in the framework drew with them once the operator console moved onto kit components, and each duplicated one
+  that already exists. Use `UiAlert.Tone(…)` for a notice, and `UiButton` for an action — `.Tone(UiTone.Error).Variant(UiVariant.Outline)`
+  for one that destroys or re-runs work, `.Variant(UiVariant.Ghost)` for a quiet dismiss — rather than a class
+  string on a raw `<button>`.
 - **Breaking: `UiStat.Tone` is a `UiTone?`.** It was a string matched against `"danger"` and `"warn"` — names
   nothing else in the kit uses — so the natural `"error"` compiled and rendered a neutral tile without a word.
   Write `.Tone(UiTone.Error)` or `.Tone(UiTone.Warning)`.
