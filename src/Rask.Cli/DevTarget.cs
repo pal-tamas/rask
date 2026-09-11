@@ -324,28 +324,16 @@ internal sealed record DevTarget(
     {
         try
         {
-            var manifest = fileSystem.ReadAllText(Path.Combine(clientDirectory, "package.json"));
-            using var document = JsonDocument.Parse(manifest);
-            if (document.RootElement.TryGetProperty("scripts", out var scripts))
-            {
-                if (scripts.TryGetProperty("dev", out _))
-                {
-                    return "dev";
-                }
-
-                if (scripts.TryGetProperty("start", out _))
-                {
-                    return "start";
-                }
-            }
+            // The same answer an app gives when an editor launched it and it starts this server itself.
+            return Rask.Hosting.Shared.DevScript.FromManifest(
+                fileSystem.ReadAllText(Path.Combine(clientDirectory, "package.json")));
         }
-        catch (Exception ex) when (ex is IOException or JsonException)
+        catch (IOException)
         {
-            // Unreadable or malformed: fall through to the common default rather than refusing to run
-            // the host over a file that is only needed for the other half.
+            // Unreadable: the common default rather than refusing to run the host over a file that is only
+            // needed for the other half. A malformed manifest gets the same answer from DevScript itself.
+            return Rask.Hosting.Shared.DevScript.Default;
         }
-
-        return "dev";
     }
 
     /// <summary>

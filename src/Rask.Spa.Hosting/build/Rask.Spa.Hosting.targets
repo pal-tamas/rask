@@ -306,6 +306,9 @@
       <AssemblyMetadata Include="Rask.SpaClientDir" Value="$(_RaskSpaDir)"/>
       <AssemblyMetadata Include="Rask.SpaDevServerUrl" Value="$(RaskSpaDevServerUrl)"
                         Condition="'$(RaskSpaDevServerUrl)' != ''"/>
+      <!-- A dev-session build (VS Code's F5 task), so the app starts the bundler's dev server itself when no
+           `rask dev` is doing it. Only when set; same key and rule as Rask.Core.targets. -->
+      <AssemblyMetadata Include="Rask.DevSession" Value="true" Condition="'$(RaskDevSession)' == 'true'"/>
     </ItemGroup>
   </Target>
 
@@ -354,7 +357,7 @@
       2. Bake its publish/wwwroot as Rask.SpaDistDir, so `app.UseRaskSpa()` resolves with no arguments.
       3. On publish, copy the bundle into this app's RaskSpaPublishDir, where UseRaskSpa looks first.
 
-    RaskSpaBuild=false, which `rask dev` passes, skips the publish and bakes the client's build-output
+    RaskSpaBuild=false, which a dev session sets, skips the publish and bakes the client's build-output
     manifest instead. That is a precondition for WebAssembly hot reload, not an optimisation: a published
     bundle is trimmed, and trimming folds MetadataUpdater.IsSupported to false. Skipping costs nothing
     extra — ReferenceOutputAssembly="false" leaves BuildReference on, so this project's ordinary build

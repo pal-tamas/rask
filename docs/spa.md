@@ -256,6 +256,10 @@ answers `/_rask` itself, on one port.
 The generated contracts are written on **every** build, including under `rask dev` — a dev server
 compiling the previous build's contracts is exactly the failure this pipeline exists to prevent.
 
+**Under VS Code's F5** the host starts the client's dev server itself — the same script on the same port —
+because no `rask dev` runs beside an app the debugger launched, and VS Code opens the dev server's address
+once it answers. See [debugging in VS Code](cli.md#debugging-in-vs-code).
+
 ## Building and publishing
 
 `dotnet build` runs the client's own toolchain: `npm ci` (or `npm install` when there is no
@@ -346,7 +350,7 @@ reports no framework is `RASKSPA008`, and one that builds for several is `RASKSP
 published for one.
 
 **`rask dev` serves the client's build output, not its publish.** A published bundle is trimmed, and
-trimming turns hot reload off in the browser, so the session passes `RaskSpaBuild=false`: the client's
+trimming turns hot reload off in the browser, so a dev session turns `RaskSpaBuild` off: the client's
 publish is skipped, and the host serves what its ordinary build wrote, with hot reload.
 
 **The operator dashboard can sit beside it.** Mount it above the app —

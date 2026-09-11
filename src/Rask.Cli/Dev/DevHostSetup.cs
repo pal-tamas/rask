@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
 

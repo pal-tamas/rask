@@ -14,17 +14,23 @@ public sealed class DevCommandTests
 
     // ---- argv ----
 
+    /// <summary>
+    ///     What every watch session carries after <c>run</c>: the dev-session property each Rask package
+    ///     expands for itself (see <see cref="Every_watch_session_is_a_dev_session" />).
+    /// </summary>
+    private const string Session = "--property:RaskDevSession=true";
+
     [Fact]
     public void Default_uses_dotnet_watch_run()
     {
-        Assert.Equal(["watch", "run"], Args());
+        Assert.Equal(["watch", "run", Session], Args());
     }
 
     [Fact]
     public void Project_is_passed_to_watch()
     {
         Assert.Equal(
-            ["watch", "--project", "src/App/App.csproj", "run"],
+            ["watch", "--project", "src/App/App.csproj", "run", Session],
             Args(project: "src/App/App.csproj"));
     }
 
@@ -34,7 +40,7 @@ public sealed class DevCommandTests
         // Previously this degraded to a plain `dotnet run`, which stopped watching entirely AND cleared
         // DOTNET_WATCH — turning off more framework behaviour than the flag's name claims. `--once` is
         // the honest name for that. The flag is a watch option, so it must precede `run`.
-        Assert.Equal(["watch", "--no-hot-reload", "run"], Args(noHotReload: true));
+        Assert.Equal(["watch", "--no-hot-reload", "run", Session], Args(noHotReload: true));
     }
 
     [Fact]
@@ -47,36 +53,37 @@ public sealed class DevCommandTests
     [Fact]
     public void Launch_profile_is_a_watch_option_and_precedes_run()
     {
-        Assert.Equal(["watch", "-lp", "Foo", "run"], Args(launchProfile: "Foo"));
+        Assert.Equal(["watch", "-lp", "Foo", "run", Session], Args(launchProfile: "Foo"));
     }
 
     [Fact]
     public void Non_interactive_is_added_when_there_is_no_terminal_to_prompt_on()
     {
         // Without it, watch's rude-edit prompt has nobody to answer it and blocks forever.
-        Assert.Equal(["watch", "--non-interactive", "run"], Args(nonInteractive: true));
+        Assert.Equal(["watch", "--non-interactive", "run", Session], Args(nonInteractive: true));
     }
 
     [Fact]
     public void Passthrough_is_appended_after_separator()
     {
         Assert.Equal(
-            ["watch", "run", "--", "--urls", "http://localhost:1234"],
+            ["watch", "run", Session, "--", "--urls", "http://localhost:1234"],
             Args(passthrough: ["--urls", "http://localhost:1234"]));
     }
 
     [Fact]
     public void Passthrough_help_is_forwarded_to_the_app_not_swallowed()
     {
-        Assert.Equal(["watch", "run", "--", "--help"], Args(passthrough: ["--help"]));
+        Assert.Equal(["watch", "run", Session, "--", "--help"], Args(passthrough: ["--help"]));
     }
 
     [Fact]
     public void Watch_options_precede_run_and_passthrough_follows_the_separator()
     {
-        // Position is the failure mode here, so assert the whole ordered list.
+        // Position is the failure mode here, so assert the whole ordered list. The dev-session property is
+        // a `dotnet run` option, so it follows `run` and precedes the separator.
         Assert.Equal(
-            ["watch", "--project", "App.csproj", "--non-interactive", "--no-hot-reload", "-lp", "Dev", "run", "--", "--flag"],
+            ["watch", "--project", "App.csproj", "--non-interactive", "--no-hot-reload", "-lp", "Dev", "run", Session, "--", "--flag"],
             Args("App.csproj", noHotReload: true, launchProfile: "Dev", nonInteractive: true, passthrough: ["--flag"]));
     }
 
@@ -331,31 +338,53 @@ public sealed class DevCommandTests
     }
 
     /// <summary>
-    ///     A wasm-hosted watch session must serve the client's <b>build</b> output. The published bundle
-    ///     is republished by a nested emscripten relink on every save, and it is trimmed — and trimming
-    ///     folds <c>MetadataUpdater.IsSupported</c> to false, so an applied delta could never reach the
-    ///     browser session even if one arrived.
+    ///     A watch session is a dev session, and says so with ONE property that each referenced package
+    ///     expands for itself: the WASM host serves its client's <b>build</b> output (a published bundle is
+    ///     trimmed, and trimming folds <c>MetadataUpdater.IsSupported</c> to false), the SPA and meta lanes
+    ///     skip their production front-end build, and islands come from a Vite dev server. The scaffolded
+    ///     VS Code build task passes the same property, which is what keeps F5 and <c>rask dev</c> in step.
     /// </summary>
     [Fact]
-    public void A_wasm_hosted_watch_session_asks_for_the_dev_bundle()
+    public void Every_watch_session_is_a_dev_session()
     {
-        // --property:, not -p:, which is ambiguous with --project on `dotnet run`.
-        Assert.Contains("--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmHosted));
+        foreach (var kind in Enum.GetValues<DevTemplateKind>())
+        {
+            var args = Args(kind: kind);
 
-        // …and only there: a plain Server host has no client build to skip.
-        Assert.DoesNotContain("--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.Server));
-        Assert.DoesNotContain("--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmStandalone));
+            // --property:, not -p:, which is ambiguous with --project on `dotnet run`.
+            Assert.Contains($"--property:{DevCommand.DevSessionProperty}=true", args);
+
+            // The per-lane switches are the packages' own business now. Naming one here as well is exactly
+            // how the command line and the scaffolded build task would start to disagree.
+            Assert.DoesNotContain(args, a =>
+                a.StartsWith("--property:RaskSpaBuild", StringComparison.Ordinal)
+                || a.StartsWith("--property:RaskMetaBuild", StringComparison.Ordinal)
+                || a.StartsWith("--property:RaskExternalDevServer", StringComparison.Ordinal));
+        }
     }
 
     [Fact]
-    public void The_dev_bundle_is_not_requested_when_there_is_nothing_to_apply()
+    public void A_plain_run_is_not_a_dev_session()
     {
-        // --no-hot-reload means "restart instead of applying", and --once is a plain run: in both, the
-        // published bundle is the honest thing to serve.
+        // --once is a plain `dotnet run` against a real build — a published WASM bundle, a built front end.
         Assert.DoesNotContain(
-            "--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmHosted, noHotReload: true));
-        Assert.DoesNotContain(
-            "--property:RaskSpaBuild=false", Args(kind: DevTemplateKind.WasmHosted, once: true));
+            Args(kind: DevTemplateKind.WasmHosted, once: true),
+            a => a.Contains(DevCommand.DevSessionProperty, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Without_hot_reload_a_wasm_hosted_app_keeps_its_published_bundle()
+    {
+        // Nothing to apply, so the published bundle is the honest thing to serve. Explicit, because an
+        // explicit value is what beats the dev session's default in Rask.Spa.Hosting.props.
+        var args = Args(kind: DevTemplateKind.WasmHosted, noHotReload: true);
+
+        Assert.Contains($"--property:{DevCommand.DevSessionProperty}=true", args);
+        Assert.Contains("--property:RaskSpaBuild=true", args);
+
+        // …and only then: with hot reload on, the dev session's build output is exactly what is wanted.
+        Assert.DoesNotContain("--property:RaskSpaBuild=true", Args(kind: DevTemplateKind.WasmHosted));
+        Assert.DoesNotContain("--property:RaskSpaBuild=true", Args(kind: DevTemplateKind.Server, noHotReload: true));
     }
 
     // ---- helpers ----

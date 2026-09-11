@@ -49,6 +49,13 @@
     The Server face. Rask.Server is PrivateAssets="all" too: only its AddRask runs the Server half of the
     bootstrap, so any app in which that code runs already references the host. Declaring it would pull the
     Server host into a net10.0 app that referenced the devtools without one.
+
+    It also carries the editor-launched dev session (Server/): an app VS Code's F5 started under its debugger is
+    served on https://<name>.test when `rask dev` has already set that name up, and says where the browser should
+    go. The dev-host layout is source-linked from the one place `rask dev` also compiles it from, so the name and
+    the certificate this finds are exactly the ones `rask dev` made. Only the layout files: EditorDevSession and
+    IslandDevPointer arrive with Rask.Server, whose internals this assembly sees, and a second copy of either
+    would conflict with that one (CS0436).
   -->
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
@@ -57,15 +64,18 @@
     <Compile Remove="DevToolsBootstrap.Browser.cs"/>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-host.js"
                       LogicalName="Rask.DevTools.Resources.rask-devtools-host.js"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevHostName.cs" Link="Shared\Dev\DevHostName.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevHostFiles.cs" Link="Shared\Dev\DevHostFiles.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevHostPaths.cs" Link="Shared\Dev\DevHostPaths.cs"/>
   </ItemGroup>
 
   <!--
-    The browser face has no Server host to map endpoints on. It reads the page's origin from Rask.Wasm, which is
-    PrivateAssets="all" for Rask.Server's reason: only a WASM host runs this half of the bootstrap, so every app in which
-    it runs already references Rask.Wasm.
+    The browser face has no Server host to map endpoints on, and no Kestrel to bind. It reads the page's origin from
+    Rask.Wasm, which is PrivateAssets="all" for Rask.Server's reason: only a WASM host runs this half of the bootstrap, so
+    every app in which it runs already references Rask.Wasm.
   -->
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
-    <Compile Remove="DevToolsBootstrap.Server.cs;Endpoints\**"/>
+    <Compile Remove="DevToolsBootstrap.Server.cs;Endpoints\**;Server\**"/>
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj" PrivateAssets="all"/>
   </ItemGroup>
 

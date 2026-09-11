@@ -10,6 +10,21 @@
 /** The props the server rendered, with every callback already a real function. */
 export type ExternalProps = Record<string, unknown>
 
+/** A child C# gave an island: text, or another island of the same runtime with its own props and children. */
+export type ExternalNode = string | ExternalElement
+
+/** A child island, with its framework component already loaded. */
+export interface ExternalElement {
+  /** The island's name, as its chunk is resolved. */
+  name: string
+  /** Its `.Key(...)`, or null — match children by it where the framework can. */
+  key: string | null
+  /** The framework component its chunk exports: a React component, a Vue definition, a Lit tag. */
+  component: unknown
+  props: ExternalProps
+  children: readonly ExternalNode[] | null
+}
+
 /**
  * One runtime's binding, over whatever handle that runtime uses to represent a mounted component.
  *
@@ -21,21 +36,25 @@ export interface ExternalAdapter<THandle = unknown> {
    * Takes ownership of `element` and renders into it.
    *
    * Everything below `element` belongs to this runtime from here on — Rask's live diff treats the
-   * subtree as opaque and will never patch inside it. An island is a LEAF on Rask's side: it is
-   * handed props and nothing else, because content Rask rendered could not survive being relocated
-   * by another framework — the diff addresses DOM nodes by position from the document, and every
-   * path it holds into those nodes would be wrong the moment they moved.
+   * subtree as opaque and will never patch inside it. On Rask's side an island holds no Rask DOM: the
+   * `children` it is handed are its OWN runtime's — text, and islands whose components are already
+   * loaded — for this runtime to render, because content Rask rendered could not survive being
+   * relocated by another framework: the diff addresses DOM nodes by position from the document, and
+   * every path it holds into those nodes would be wrong the moment they moved.
+   *
+   * `children` is absent when C# gave the island none, so an adapter written before islands could take
+   * children keeps working and simply renders none.
    */
-  mount(element: Element, props: ExternalProps): THandle
+  mount(element: Element, props: ExternalProps, children?: readonly ExternalNode[]): THandle
 
   /**
-   * Applies new props to an already-mounted island.
+   * Applies new props, and the children with them, to an already-mounted island.
    *
    * Called when C# re-rendered and the props changed — never for a DOM change, because there are no
-   * DOM changes to see: Rask emits a single attribute op for the whole island and nothing else.
-   * Return a new handle to replace the old one, or nothing to keep it.
+   * DOM changes to see: Rask emits a single attribute op for the whole island, children included, and
+   * nothing else. Return a new handle to replace the old one, or nothing to keep it.
    */
-  update?(handle: THandle, props: ExternalProps): THandle | void
+  update?(handle: THandle, props: ExternalProps, children?: readonly ExternalNode[]): THandle | void
 
   /** Releases the component. The element is being removed either way, so this must not throw. */
   unmount?(handle: THandle): void | Promise<void>

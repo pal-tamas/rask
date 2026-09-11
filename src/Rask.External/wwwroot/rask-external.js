@@ -185,6 +185,104 @@ function readProps(element, cache) {
 }
 
 /**
+ * An island's `$c`, split out of its revived props into the tree its adapter renders: text stays a string, a child
+ * island becomes `{name, key, manifest, component, props, children}`. Revived before splitting, so a child's callbacks
+ * share the host's handler cache — their ids are unique across the page, exactly like the host's own.
+ *
+ * `children` is null when C# sent no `$c`, which is every island that was never given any.
+ */
+function splitChildren(props) {
+    const raw = props.$c;
+    if (!Array.isArray(raw)) return {props, children: null};
+
+    delete props.$c;
+    const children = [];
+    for (const value of raw) {
+        const node = toNode(value);
+        if (node !== null) children.push(node);
+    }
+
+    return {props, children};
+}
+
+function toNode(value) {
+    if (typeof value === "string") return value;
+    if (!value || typeof value !== "object" || typeof value.n !== "string") return null;
+
+    const {props, children} = splitChildren(value.p && typeof value.p === "object" ? value.p : {});
+    return {
+        name: value.n,
+        key: typeof value.k === "string" ? value.k : null,
+        manifest: typeof value.m === "string" ? value.m : null,
+        component: null,
+        props,
+        children,
+    };
+}
+
+// A child island's framework component, by manifest and name: the promise while its chunk loads, the component once it
+// has. Shared across every island on the page, so ten cards in a list fetch the card's chunk once.
+const componentsLoading = new Map();
+const componentsLoaded = new Map();
+
+function componentKey(node) {
+    return `${node.manifest ?? ""}|${node.name}`;
+}
+
+function loadComponent(node) {
+    const key = componentKey(node);
+    let pending = componentsLoading.get(key);
+    if (!pending) {
+        pending = resolver()(node.name, null, node.manifest).then((module) => {
+            // Every built entry exports its framework component beside the adapter. One built before islands could take
+            // children exports only the adapter, and that has to be said rather than rendered as nothing.
+            if (!module || !("component" in module)) {
+                throw new Error(
+                    `'${node.name}' is used as a child, but its chunk exports no component — it was built before ` +
+                    "islands could take children. Rebuild the app.");
+            }
+
+            componentsLoaded.set(key, module.component);
+            return module.component;
+        });
+        componentsLoading.set(key, pending);
+        // A failed load is not kept: the next render tries again rather than failing for the rest of the session.
+        pending.catch(() => componentsLoading.delete(key));
+    }
+
+    return pending;
+}
+
+/** Fills in every child island's component from what has already loaded; true when nothing is left to fetch. */
+function fillLoaded(nodes) {
+    let complete = true;
+    for (const node of nodes ?? []) {
+        if (typeof node === "string") continue;
+        node.component ??= componentsLoaded.get(componentKey(node)) ?? null;
+        if (node.component === null) complete = false;
+        if (!fillLoaded(node.children)) complete = false;
+    }
+
+    return complete;
+}
+
+/** Loads every child island's component, in parallel. */
+async function loadTree(nodes) {
+    if (fillLoaded(nodes)) return;
+
+    await Promise.all((nodes ?? []).map(async (node) => {
+        if (typeof node === "string") return;
+        node.component ??= await loadComponent(node);
+        await loadTree(node.children);
+    }));
+}
+
+/** What an adapter is handed: the children when there are some, and nothing at all otherwise. */
+function childrenArgument(children) {
+    return children && children.length > 0 ? children : undefined;
+}
+
+/**
  * Runs `mount` when the element's hydration policy says so.
  *
  * Returns a teardown that cancels a mount still waiting, so an island removed before it was ever
@@ -237,7 +335,7 @@ async function hydrate(element) {
     const cache = new Map();
     // Claimed before the await so a second sweep — a morph, another MutationObserver batch — cannot
     // start a concurrent mount of the same element while the chunk is still loading.
-    const entry = {adapter: null, handle: null, fns: cache, name};
+    const entry = {adapter: null, handle: null, fns: cache, name, seq: 0};
     mounted.set(element, entry);
 
     let cancel = () => {};
@@ -252,6 +350,17 @@ async function hydrate(element) {
                     "each island with its runtime's adapter; a hand-written entry has to do the same.");
             }
 
+            // The child islands' chunks load before the mount, and the props are read again if C#
+            // re-rendered while they did: mounting with what was read first would render the island one
+            // state behind, with no update left to correct it. An island without children loads nothing.
+            let tree;
+            for (;;) {
+                const raw = element.getAttribute("props");
+                tree = splitChildren(readProps(element, cache));
+                await loadTree(tree.children);
+                if (element.getAttribute("props") === raw) break;
+            }
+
             // Removed while the chunk was in flight. Mounting now would attach a component to a
             // detached element and leak it: nothing would ever unmount it.
             if (!element.isConnected) {
@@ -260,7 +369,7 @@ async function hydrate(element) {
             }
 
             entry.adapter = adapter;
-            entry.handle = adapter.mount(element, readProps(element, cache));
+            entry.handle = adapter.mount(element, tree.props, childrenArgument(tree.children));
         } catch (error) {
             mounted.delete(element);
             console.error(`Rask islands: '${name}' failed to mount.`, error);
@@ -275,7 +384,22 @@ function update(element) {
     const entry = mounted.get(element);
     if (!entry || !entry.adapter || typeof entry.adapter.update !== "function") return;
 
-    entry.handle = entry.adapter.update(entry.handle, readProps(element, entry.fns)) ?? entry.handle;
+    const seq = ++entry.seq;
+    const {props, children} = splitChildren(readProps(element, entry.fns));
+    const apply = () => {
+        // A newer update started while this one's children loaded, or the island went away: drop this one, or the
+        // older props would land last and stay.
+        if (seq !== entry.seq || mounted.get(element) !== entry) return;
+        entry.handle = entry.adapter.update(entry.handle, props, childrenArgument(children)) ?? entry.handle;
+    };
+
+    // Synchronous whenever every child's chunk has already loaded — the ordinary re-render — so an update that needs
+    // no fetch lands in the same turn it always did.
+    if (fillLoaded(children)) {
+        apply();
+    } else {
+        loadTree(children).then(apply, (error) => console.error(`Rask islands: '${entry.name}' could not load a child.`, error));
+    }
 }
 
 function unmount(element) {

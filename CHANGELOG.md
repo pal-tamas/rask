@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json` and
+  `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a dev session and
+  runs it under the C# debugger, so breakpoints hit from startup. Edits need a restart there (Ctrl+Shift+F5):
+  the runtime refuses to apply a hot-reload update to a process a debugger is attached to, and C# Dev Kit's
+  debug hot reload reports itself unavailable for this launch, so `rask dev` stays the live-edit loop. The
+  editor launches the app — and the app does what `rask dev` would have done beside it. It starts its own
+  front-end dev server (the islands' Vite, a React/Vue/Angular client's bundler, or a meta framework's own
+  dev server), and ends one a debugger's hard stop left holding its port; it serves on `https://<name>.test`
+  when an earlier `rask dev` already set that name up on this machine, and on localhost otherwise, never
+  prompting; and it prints `Rask dev: open <url>`, which `launch.json` opens. None of it runs under
+  `rask dev`, outside Development, or for a build that was not a dev session. The scaffold's `.gitignore` commits those three files and keeps the rest of
+  `.vscode/` personal. A handler or async lifecycle hook that throws now **stops the debugger** once, on the line
+  that threw, rather than being swallowed by its error boundary (Just My Code and "User-Unhandled Exceptions"
+  on): a handler's exception is reported user-unhandled as it leaves your code, and for a lifecycle hook, whose
+  exception arrives through a faulted task no debugger sees, Rask calls `Debugger.BreakForUserUnhandledException`; and the dev error panel turns every stack frame and compiler
+  error that names an absolute path into a `vscode://file` link to that line. One MSBuild switch,
+  `RaskDevSession=true`, now drives both `rask dev` and the F5 build: each package expands it for itself (a
+  WASM host serves its client's build output, SPA and meta lanes skip their production front-end build,
+  islands come from Vite), replacing the four properties `rask dev` passed by hand; an explicit value still
+  wins. Browser-side debugging — C# running in WASM, and scoped `.ts` — is not covered yet (#1073).
+
 - **The devtools panel lists the inspected page's wire traffic.** Every frame the page and the app exchange is
   listed newest first, under totals for each direction: events and navigations the page sent, and render frames and
   acks it received. Each row shows the frame's size, how many edit ops a render diff carried, and the time since the
@@ -373,6 +394,21 @@ them until tagged releases begin.
   the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
 
 
+- **An island takes children of its own runtime.** A React island accepts React islands, text, numbers
+  and dates — `MuiCard["Revenue ", _total, MuiButton.OnClick(Save)["Save"]]` — a Vue island Vue islands,
+  and so on across all seven runtimes, and a list of islands or of text binds directly
+  (`MuiList[_names]`). Children travel inside the host's `props` as `$c`, and its framework renders
+  them, so the whole tree reconciles there and the host element stays empty on the server. Every
+  hand-written island accepts children; a package island does when its snapshot says its component
+  takes content. Each built entry now also exports its framework component, which is what a parent
+  loads to render it. **Breaking:** RASK062 no longer reports every indexer on a JS island. It reports
+  a child the island cannot render — Rask markup, another runtime's island, or anything for a component
+  that takes no content — at the brackets, naming what the island accepts, including
+  `var x = MuiCard[Span["x"]]`, which the compiler alone lets through; and it now reports assigning
+  `Children` on any island. A Blazor island still takes no children. The adapters take the children as an
+  optional third argument to `mount` and `update`, so an adapter you vendored and edited keeps working and
+  renders no children until you add them.
+
 ### Changed
 
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
@@ -438,9 +474,9 @@ them until tagged releases begin.
     describe it.
 
   A referenced WebAssembly project is published by the host's build and copied into its publish output, which
-  `Rask.Wasm.Hosting` never did. `AddRaskSpaHost()` compresses `application/wasm`. Under `rask dev` the host
-  serves the client's build output, so hot reload reaches the browser; `rask dev` passes `RaskSpaBuild=false`
-  for this, where it used to pass `RaskWasmDevBundle=true`. An app mounting the operator dashboard beside the
+  `Rask.Wasm.Hosting` never did. `AddRaskSpaHost()` compresses `application/wasm`. Under a dev session (`RaskDevSession=true`, passed by `rask dev` and the
+  scaffolded VS Code build task) the host serves the client's build output, so hot reload reaches the browser;
+  the session turns `RaskSpaBuild` off for this, where `rask dev` used to pass `RaskWasmDevBundle=true`. An app mounting the operator dashboard beside the
   bundle still gets the bundle's scoped styles: `Rask.Server` answers a hash its own process never registered
   from the web root, where `UseRaskSpa()` places them.
 

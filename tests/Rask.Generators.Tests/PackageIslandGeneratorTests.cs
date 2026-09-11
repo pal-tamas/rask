@@ -417,6 +417,70 @@ public class PackageIslandGeneratorTests
     }
 
     [Fact]
+    public void An_island_whose_component_takes_content_takes_children_of_its_own_runtime()
+    {
+        // Every spelling the chain teaches for a React island's children: literals, a nested island, a conditional one, a
+        // projection of islands (which binds by covariance, since a conversion never lifts through IEnumerable<>), and a
+        // list of text.
+        const string host =
+            """
+            using System.Linq;
+
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                private readonly string[] _names = ["Ada", "Grace"];
+                private bool _saving;
+
+                protected override Rask.Core.Component? Render() =>
+                    Div[
+                        MuiButton["Save ", 3, " items"],
+                        MuiButton[MuiButton.Disabled(true)["nested"]],
+                        MuiButton[_saving ? MuiButton["busy"] : null],
+                        MuiButton[_names.Select(n => MuiButton[n])],
+                        MuiButton[_names]];
+            }
+            """;
+
+        var run = Run(IslandSource, Snapshot, host);
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void An_island_whose_component_takes_no_content_gets_no_children_indexer()
+    {
+        var snapshot = Snapshot.Replace("\"content\": \"node\"", "\"content\": \"none\"", StringComparison.Ordinal);
+
+        var generated = Run(IslandSource, snapshot).GeneratedSource("MuiButton.External");
+
+        // Only ExternalComponent's refusing indexers remain, which RASK062 reports at the call.
+        Assert.DoesNotContain("this[", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rask_markup_as_an_islands_child_does_not_compile()
+    {
+        // The compile error by construction: the refusing indexer's ref struct cannot become a Component. RASK062's own
+        // report at the brackets is pinned in IslandChildrenAnalyzerTests; this pins that the TYPES alone refuse it.
+        const string host =
+            """
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                protected override Rask.Core.Component? Render() => Div[MuiButton[Span["x"]]];
+            }
+            """;
+
+        var run = Run(IslandSource, Snapshot, host);
+
+        Assert.Contains(run.GeneratedCompileErrors(), e => e.Id is "CS1503" or "CS0029");
+    }
+
+    [Fact]
     public void A_prop_with_no_csharp_type_is_RASK080_and_the_rest_are_still_generated()
     {
         var snapshot = PropSnapshot("mixed", """{ "kind": "union", "of": [ { "kind": "boolean" }, { "kind": "string" } ] }""");

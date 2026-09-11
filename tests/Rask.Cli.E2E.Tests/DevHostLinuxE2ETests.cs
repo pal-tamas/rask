@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Rask.Cli.Dev;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.E2E.Tests;
 

@@ -101,24 +101,14 @@ public class DevIslandsTests
     {
         var args = DevCommand.BuildDotnetArguments(
             "/app/App.csproj", once: false, noHotReload: false, launchProfile: null,
-            nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server, islands: true);
-
-        // NOT RaskExternalBuild=false. That switch turns the feature off outright — no entry modules,
-        // no manifest, no prop types — and an app run that way has islands that never mount. This one
-        // skips exactly the bundling step and leaves the manifest being written, pointing at the dev
-        // server.
-        Assert.Contains("--property:RaskExternalDevServer=true", args);
-        Assert.DoesNotContain("--property:RaskExternalBuild=false", args);
-    }
-
-    [Fact]
-    public void A_project_without_islands_builds_normally()
-    {
-        var args = DevCommand.BuildDotnetArguments(
-            "/app/App.csproj", once: false, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server);
 
-        Assert.DoesNotContain("--property:RaskExternalDevServer=true", args);
+        // Rask.External.props turns RaskExternalDevServer on for the dev session this names. NOT
+        // RaskExternalBuild=false: that switch turns the feature off outright — no entry modules, no
+        // manifest, no prop types — and an app run that way has islands that never mount. The dev session
+        // skips exactly the bundling step and leaves the manifest being written, pointing at the dev server.
+        Assert.Contains($"--property:{DevCommand.DevSessionProperty}=true", args);
+        Assert.DoesNotContain("--property:RaskExternalBuild=false", args);
     }
 
     [Fact]
@@ -128,9 +118,9 @@ public class DevIslandsTests
         // real bundle or there is nothing to look at.
         var args = DevCommand.BuildDotnetArguments(
             "/app/App.csproj", once: true, noHotReload: false, launchProfile: null,
-            nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server, islands: true);
+            nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server);
 
-        Assert.DoesNotContain("--property:RaskExternalDevServer=true", args);
+        Assert.DoesNotContain($"--property:{DevCommand.DevSessionProperty}=true", args);
     }
 
     [Fact]

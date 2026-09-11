@@ -121,6 +121,34 @@ public sealed class PreactAdapterTests
             "the island still had children after unmount, so preact never emptied it");
     }
 
+    [SkippableFact]
+    public void A_child_island_renders_inside_its_parent_and_keeps_its_own_state_across_a_parent_update()
+    {
+        // Children are rendered by Preact inside the parent's own tree, so a parent re-render reconciles them like any
+        // other child: the same component at the same key keeps its instance. A child re-created per update would show
+        // its click count back at 0 and its mount effect running twice.
+        var doc = Run();
+
+        Assert.Equal("Revenue new:0", doc.GetProperty("slotWithChild").GetString());
+        Assert.Equal("new:1", doc.GetProperty("badgeAfterClick").GetString());
+        Assert.Equal("newer:1", doc.GetProperty("badgeAfterParentUpdate").GetString());
+        Assert.Equal(1, doc.GetProperty("badgeEffectsAfterParentUpdate").GetInt32());
+
+        // The parent's own state is untouched by its children changing, and the child's chunk was fetched once.
+        Assert.Equal("1", doc.GetProperty("countAfterChildUpdate").GetString());
+        Assert.Equal(1, doc.GetProperty("childRequests").GetInt32());
+    }
+
+    [SkippableFact]
+    public void A_child_island_csharp_removes_unmounts_with_its_cleanup_and_the_parent_stays()
+    {
+        var doc = Run();
+
+        Assert.True(doc.GetProperty("badgeGone").GetBoolean(), "the removed child is still in the DOM");
+        Assert.Equal(1, doc.GetProperty("badgeCleanupsAfterRemoval").GetInt32());
+        Assert.Equal("Margin", doc.GetProperty("headingWithoutChild").GetString());
+    }
+
     /// <summary>Runs the fixture, or skips with the reason it could not.</summary>
     private static JsonElement Run()
     {

@@ -122,18 +122,9 @@ public sealed class DevMetaHostedTests
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.MetaHosted);
 
         // This is the expensive half of #983: `npm run build` here is a full PRODUCTION build of Nuxt,
-        // Next or SvelteKit, on every save, whose output the session never reads.
-        Assert.Contains("--property:RaskMetaBuild=false", args);
-    }
-
-    [Fact]
-    public void Only_a_meta_host_skips_that_build()
-    {
-        var args = DevCommand.BuildDotnetArguments(
-            "/app/App.csproj", once: false, noHotReload: false, launchProfile: null,
-            nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server);
-
-        Assert.DoesNotContain("--property:RaskMetaBuild=false", args);
+        // Next or SvelteKit, on every save, whose output the session never reads. Rask.Meta.Hosting.props
+        // turns RaskMetaBuild off for the dev session this names.
+        Assert.Contains($"--property:{DevCommand.DevSessionProperty}=true", args);
     }
 
     [Fact]
@@ -145,7 +136,7 @@ public sealed class DevMetaHostedTests
             "/app/Shop/Shop.csproj", once: true, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.MetaHosted);
 
-        Assert.DoesNotContain("--property:RaskMetaBuild=false", args);
+        Assert.DoesNotContain($"--property:{DevCommand.DevSessionProperty}=true", args);
     }
 
     [Fact]

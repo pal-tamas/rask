@@ -242,6 +242,12 @@ public static partial class RaskEndpointExtensions
         // Graceful shutdown for the live sessions: announce, settle in-flight handlers, close each socket
         // with a real handshake, dispose awaited. Registered unconditionally — a drain is not an opt-in.
         services.AddHostedService<RaskDrainService>();
+
+        // An app VS Code's F5 launched starts its islands' Vite dev server itself: `rask dev` would have, and
+        // under a debugger there is no `rask dev`. Registered only for a dev-session build; whether it acts is
+        // decided at startup (Development, and not under dotnet watch).
+        Dev.IslandDevServer.Register(services, System.Reflection.Assembly.GetEntryAssembly());
+
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
@@ -622,7 +628,9 @@ public static partial class RaskEndpointExtensions
             // The devtools host script and the panel it frames, when AddRask attached the devtools and they switched on
             // (Development).
             var devTools = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.PageTag(httpContext, session.Id);
-            var content = Prerender.PageDocument.Live(render.Html, session.Id, dev, devTools);
+            var content = Prerender.PageDocument.Live(
+                render.Html, session.Id, dev,
+                dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
 
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             // A page that crashed is not a 200, a page may set its own status, and the not-found page
