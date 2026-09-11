@@ -192,7 +192,8 @@ internal sealed class ExternalRuntime
             "vueComponent",
             "vue from '@vitejs/plugin-vue'",
             "vue",
-            packagesNeedPlugin: true);
+            packagesNeedPlugin: true,
+            propsExtracted: true);
 
     /// <summary>A single-file component, compiled by a Vite plugin rather than its own compiler.</summary>
     public static ExternalRuntime Svelte { get; } =
@@ -203,7 +204,8 @@ internal sealed class ExternalRuntime
             "{ svelte } from '@sveltejs/vite-plugin-svelte'",
             "svelte",
             adapterModule: "svelte.svelte",
-            packagesNeedPlugin: true);
+            packagesNeedPlugin: true,
+            propsExtracted: true);
 
     /// <summary>
     ///     Angular, compiled ahead of time by the Analog plugin.

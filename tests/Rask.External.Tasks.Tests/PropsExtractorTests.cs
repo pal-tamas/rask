@@ -38,9 +38,23 @@ public sealed class PropsExtractorTests : IDisposable
             typescript,
             Island("FixtureButton", "fixture-button"),
             Island("Badge", "fixture-button#Badge"),
-            Island("Switch", "fixture-button#Switch"));
+            Island("Switch", "fixture-button#Switch"),
+            Island("Toggle", "fixture-vue", "vue"),
+            Island("PrimeButton", "fixture-vue#PrimeButton", "vue"),
+            Island("Picker", "fixture-vue#Picker", "vue"),
+            Island("Chip", "fixture-vue#Chip", "vue"),
+            Island("SwitchRoot", "fixture-svelte#Switch.Root", "svelte"),
+            Island("Toaster", "fixture-svelte", "svelte"),
+            Island("LegacySelect", "fixture-svelte#LegacySelect", "svelte"),
+            Island("Card", "fixture-vue#Card", "vue"),
+            Island("Tabs", "fixture-vue#Tabs", "vue"),
+            Island("Dropdown", "fixture-svelte#Dropdown", "svelte"));
 
-        foreach (var name in new[] { "Badge", "FixtureButton", "Switch" })
+        foreach (var name in new[]
+                 {
+                     "Badge", "Card", "Chip", "Dropdown", "FixtureButton", "LegacySelect", "Picker", "PrimeButton",
+                     "Switch", "SwitchRoot", "Tabs", "Toaster", "Toggle",
+                 })
         {
             var actual = File.ReadAllText(Path.Combine(output, name + ".props.json"));
             var expected = Path.Combine(Fixtures, "expected", name + ".props.json");
@@ -149,11 +163,11 @@ public sealed class PropsExtractorTests : IDisposable
         return resolve.ToolPath;
     }
 
-    private static TaskItem Island(string name, string module)
+    private static TaskItem Island(string name, string module, string runtime = "react")
     {
         var item = new TaskItem(name + ".props.json");
         item.SetMetadata("IslandName", name);
-        item.SetMetadata("Runtime", "react");
+        item.SetMetadata("Runtime", runtime);
         item.SetMetadata("PackageModule", module);
         return item;
     }

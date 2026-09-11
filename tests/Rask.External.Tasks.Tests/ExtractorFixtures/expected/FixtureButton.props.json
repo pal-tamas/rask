@@ -11,6 +11,20 @@
   "content": "node",
   "props": [
     {
+      "name": "density",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          false,
+          "md",
+          "sm",
+          true
+        ]
+      }
+    },
+    {
       "name": "disabled",
       "required": false,
       "type": {
@@ -101,6 +115,20 @@
       }
     },
     {
+      "name": "scrollButtons",
+      "required": false,
+      "doc": "MUI's shape: a boolean or a literal — one enum of three values the package accepts.",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "auto",
+          false,
+          true
+        ]
+      }
+    },
+    {
       "name": "secondary",
       "required": false,
       "type": {
@@ -175,6 +203,22 @@
           "contained",
           "outlined",
           "text"
+        ]
+      }
+    },
+    {
+      "name": "wrap",
+      "required": false,
+      "doc": "A boolean or any string: a union, not an enum of \"false\" and \"true\".",
+      "type": {
+        "kind": "union",
+        "of": [
+          {
+            "kind": "boolean"
+          },
+          {
+            "kind": "string"
+          }
         ]
       }
     }

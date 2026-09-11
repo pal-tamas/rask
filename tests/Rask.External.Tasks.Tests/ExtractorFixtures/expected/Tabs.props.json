@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "runtime": "vue",
+  "module": "fixture-vue",
+  "export": "Tabs",
+  "package": {
+    "name": "fixture-vue",
+    "version": "2.0.1"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "active",
+      "required": false,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onClose",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": []
+      }
+    },
+    {
+      "name": "onOpen",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "args",
+            "type": {
+              "kind": "unknown"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onUpdate:active",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "args",
+            "type": {
+              "kind": "unknown"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "skipped": []
+}
