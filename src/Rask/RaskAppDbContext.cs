@@ -5,6 +5,7 @@ using Rask.Data;
 using Rask.Jobs;
 using Rask.Mail;
 using Rask.Outbox;
+using Rask.Storage;
 
 namespace Rask;
 
@@ -53,5 +54,6 @@ public class RaskAppDbContext : RaskDbContext
         modelBuilder.AddRaskJobs();
         modelBuilder.AddRaskMail();
         modelBuilder.AddRaskOutbox();
+        modelBuilder.AddRaskStorage();
     }
 }

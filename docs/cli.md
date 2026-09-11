@@ -106,8 +106,8 @@ rask new Shop --template nextjs      # …or sveltekit, solidstart, tanstack-sta
 ```
 
 **Batteries are included.** `rask new MyApp` gives you everything the template carries as standard — a
-SQLite database, CQRS, background jobs, transactional email, a cache, a transactional outbox, scheduled
-backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
+SQLite database, CQRS, background jobs, transactional email, a cache, a transactional outbox, file
+storage for uploads, scheduled backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
 and the localization machinery. Not a sample page to delete: the wiring, ready for your first feature.
 
 **Three things are left to you**, because they are the ones that change what the app *is* rather than
@@ -241,6 +241,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-jobs` | Leave out durable background jobs (`AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
 | `--no-cache` | Leave out the database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. |
+| `--no-storage` | Leave out [file storage](file-storage.md) for uploads — a `StoredFile` row per file on the database, the bytes on disk (or in S3 or Azure, by configuration), and the routes that serve public and temporary links. |
 | `--no-outbox` | Leave out the transactional outbox for durable domain-event delivery. With it on, the outbox claims delivery and the in-process publisher stands down, so events aren't delivered twice. |
 | `--no-push` | Leave out server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. The PWA stays. |
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
@@ -282,7 +283,7 @@ default list: the default set *is* the column.
 | Battery | `server` | `wasm` | front-end |
 | --- | :-: | :-: | :-: |
 | database, CQRS | ✅ | — | ✅¹ |
-| jobs, mail, cache, outbox, snapshots, logs, ops | ✅ | — | ✅ |
+| jobs, mail, cache, storage, outbox, snapshots, logs, ops | ✅ | — | ✅ |
 | PWA | ✅ | ✅ | ✅ |
 | Web Push | ✅ | — | ✅ |
 | Docker | ✅ | ✅ | ✅ |
@@ -350,7 +351,7 @@ Turning one off takes its dependents with it, so you never end up with a registr
 `DbContext` that isn't there:
 
 ```bash
-rask new Shop --no-data     # …and no jobs, mail, cache, outbox, snapshots or dashboard
+rask new Shop --no-data     # …and no jobs, mail, cache, storage, outbox, snapshots or dashboard
 rask new Shop --no-cqrs     # …and no database either — every feature dispatches through the mediator
 rask new Shop --no-pwa      # …and no Web Push, which subscribes through the service worker
 rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own

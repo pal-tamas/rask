@@ -24,6 +24,7 @@ using Rask.Server;
 using Rask.SQLite;
 using Rask.SQLite.Litestream;
 using Rask.SQLite.Snapshots;
+using Rask.Storage;
 using Rask.WebPush;
 
 namespace Rask;
@@ -289,6 +290,14 @@ internal static class RaskBatteryWiring
         if (options.Cache.Enabled)
         {
             services.AddRaskCache<TContext>(o => options.Cache.Apply(o));
+        }
+
+        if (options.Storage.Enabled)
+        {
+            // Uploaded files, kept by id: the bytes on disk (/data/files on the deploy volume) or in a bucket, and a
+            // StoredFile row on this context. The Storage__* keys are read inside AddRaskStorage itself rather than
+            // here, so an app wired by hand in Program.cs honours exactly the same configuration as this one.
+            services.AddRaskStorage<TContext>(o => options.Storage.Apply(o));
         }
 
         if (options.Ops.Enabled)

@@ -108,6 +108,7 @@ public static class RaskDashboardServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IQueuePanel, OutboxQueuePanel<TContext>>());
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IQueuePanel, MailQueuePanel<TContext>>());
         services.AddScoped<ICachePanelReader, CachePanel<TContext>>();
+        services.AddScoped<IStoragePanelReader, StoragePanel<TContext>>();
         services.AddScoped<ISystemPanelReader, SystemPanel<TContext>>();
 
         AddDefaultPolicy(services);
@@ -120,8 +121,8 @@ public static class RaskDashboardServiceCollectionExtensions
     // and by configuration without the extension method needing either at registration time.
     private static void AddDefaultPolicy(IServiceCollection services)
     {
-        // AddAuthorizationCore, not AddAuthorization: the latter lives in the ASP.NET shared framework, and
-        // this package deliberately takes no FrameworkReference. The core registration is what supplies the
+        // AddAuthorizationCore, not AddAuthorization: the latter lives in the ASP.NET shared framework, which this
+        // package names no reference to of its own. The core registration is what supplies the
         // IAuthorizationPolicyProvider and IAuthorizationService that RouteAuthorizationGuard resolves; the
         // host's own AddRask() calls the full AddAuthorization() anyway.
         services.AddAuthorizationCore();

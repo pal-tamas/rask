@@ -2,7 +2,7 @@
 
 Every DB-backed pillar keeps its state in a table in your application's own database. That is what makes
 `Rask.Dashboard` possible: one package reference and one line mounts an operator dashboard at `/_rask` over
-the outbox, background jobs, queued mail and cache — no exporter, no second datastore, no agent.
+the outbox, background jobs, queued mail, cache and stored files — no exporter, no second datastore, no agent.
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -57,6 +57,7 @@ of its own for `UseRaskServer<TApp>` to name.
 | **Overview** | Is anything wrong? One tile per queue, plus a banner the moment any dead letter exists. |
 | **Queues** — outbox / jobs / mail | Due, delayed, **failed**, processed, as a row of counts that is also the filter. Open a row for its last error and stored payload. |
 | **Cache** | Keys, sizes, expiry, and how many are expired but not yet swept. |
+| **Storage** | At `/_rask/storage`, read-only: how many files and bytes [`Rask.Storage`](file-storage.md) holds, how many are public, usage per provider, and a searchable list of recent files — plus a notice when files are on disk, which no backup covers. |
 | **Logs** | A live tail of the `ILogger` pipeline — the failures that leave no row anywhere — plus a searchable **History** over the stored log when [`Rask.Logging`](logging.md) is installed. |
 | **System** | SQLite pragmas read live, database size, and the recurring-job schedule with when each last fired. |
 
@@ -85,11 +86,12 @@ MaxAttempts`, the inverse of their own drain query. It is not a status column; t
 
 ## Security
 
-The dashboard shows job payloads, stored email bodies and log lines. Treat `/_rask` as a view of your
-database, because that is what it is.
+The dashboard shows job payloads, stored email bodies, log lines and the names of uploaded files. Treat
+`/_rask` as a view of your database, because that is what it is.
 
 `/_rask` is the framework's own reserved prefix — scoped assets are served from `/_rask/a/{hash}.{ext}`,
-and the live runtime owns `/_rask/auth/redeem`, `/_rask/upload/{id}` and `/_rask/download/{id}/{token}`.
+the live runtime owns `/_rask/auth/redeem`, `/_rask/upload/{id}` and `/_rask/download/{id}/{token}`, and
+[`Rask.Storage`](file-storage.md) owns `/_rask/files/public/{id}` and `/_rask/files/{token}`.
 Those are literal routes and the dashboard's pages resolve through a catch-all, so they coexist by
 ordinary routing precedence and none of them shadows an application route of yours.
 
@@ -283,5 +285,5 @@ stylesheet, its reset and its theme reach nothing of yours.
 
 - [Observability](observability.md) — logging categories, the `Rask.Server` meter, tracing, health checks.
 - [The UI kit](ui-kit.md) — the daisyUI components the console is drawn with, and the theme scope.
-- [Jobs](jobs.md) · [Outbox](outbox.md) · [Mail](mail.md) · [Cache](cache.md) — the pillars it reads.
+- [Jobs](jobs.md) · [Outbox](outbox.md) · [Mail](mail.md) · [Cache](cache.md) · [File storage](file-storage.md) — the pillars it reads.
 - [SQLite](sqlite.md) — pragmas, continuous backup, and snapshots.

@@ -133,6 +133,7 @@ A few things to know:
 | `Rask:Postgres` | `PostgresOptions` | `Rask.Postgres` | The session timeouts and `Retry`. Read by `UseRaskPostgres(sp)`. See [PostgreSQL](data.md#postgresql). |
 | `Rask:SqlServer` | `SqlServerOptions` | `Rask.SqlServer` | `CommandTimeout`, `LockTimeout`, `AbortOnError` and `Retry`. Read by `UseRaskSqlServer(sp)`. See [SQL Server](data.md#sql-server). |
 | `Rask:MySql` | `MySqlOptions` | `Rask.MySql` | `CommandTimeout`, `StatementTimeout`, `LockTimeout` and `Retry`. Read by `UseRaskMySql(sp)`. See [MySQL](data.md#mysql). |
+| `Storage` (not yet under `Rask`) | `StorageOptions` | `Rask.Storage` | The one exception for now: file storage still reads its own top-level section — `Storage__Provider`, `Storage__S3__Bucket` and the rest. See [file storage](file-storage.md). |
 | `Rask:Litestream` | `LitestreamOptions` | `Rask.SQLite.Litestream` | `ReplicaUrl`, `ConfigPath`, `ExecutablePath`, `Verification`. `DatabasePath` defaults to the file behind `Rask:ConnectionStrings:App`. See [continuous backup](sqlite.md#continuous-backup-with-litestream). |
 | `Rask:Snapshots` | `SqliteSnapshotOptions` | `Rask.SQLite.Snapshots` | `DestinationDirectory`, `Interval`, `Retain`. `DatabasePath` defaults the same way. See [snapshots](sqlite.md#scheduled-snapshots). |
 | `Rask:Cache` | `CacheOptions` | `Rask.Cache` | See [cache](cache.md). |

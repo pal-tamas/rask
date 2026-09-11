@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 // rask:if cache
 using Rask.Cache;
 // rask:end
+// rask:if storage
+using Rask.Storage;
+// rask:end
 // rask:end
 using Rask.Cqrs;
 using Rask.Cqrs.Server;
@@ -133,6 +136,16 @@ builder.Services.AddRaskMail<AppDbContext>();
 builder.Services.AddRaskCache<AppDbContext>();
 
 // rask:end
+// rask:if storage
+// The files your users upload, kept by id: save a RaskFile with IFiles.SaveAsync, keep the returned
+// Id on your entity, and hand the file back with files.Url(id), files.TemporaryUrlAsync(id, lifetime)
+// or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
+// which NO backup covers — until you point them at a bucket: rask deploy --env Storage__Provider=S3
+// --env Storage__S3__Bucket=... (and the keys beside it), or Storage__Provider=Azure. The routes that
+// serve the links are mapped further down, by app.MapRaskStorage().
+builder.Services.AddRaskStorage<AppDbContext>();
+
+// rask:end
 // rask:if snapshots
 // Scheduled point-in-time backups, a second line of defence alongside the continuous replication
 // above. Taken through SQLite's Online Backup API rather than a file copy — with WAL on, copying
@@ -202,6 +215,12 @@ app.MapHealthChecks("/healthz");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapRaskAuth();
+
+// rask:end
+// rask:if storage
+// The routes behind files.Url(id) and files.TemporaryUrlAsync(id, lifetime). Before UseRaskMeta for
+// the same reason MapRaskAuth is: it forwards everything it has not answered to the node process.
+app.MapRaskStorage();
 
 // rask:end
 // Serves the framework's built client assets from Kestrel (one hop less per asset, and the

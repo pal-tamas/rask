@@ -29,6 +29,7 @@ public sealed class ServerBatteryScaffoldTests
         { "jobs", "Rask.Jobs", "AddRaskJobs<AppDbContext>()", "modelBuilder.AddRaskJobs();" },
         { "mail", "Rask.Mail", "AddRaskMail<AppDbContext>(", "modelBuilder.AddRaskMail();" },
         { "cache", "Rask.Cache", "AddRaskCache<AppDbContext>()", "modelBuilder.AddRaskCache();" },
+        { "storage", "Rask.Storage", "AddRaskStorage<AppDbContext>()", "modelBuilder.AddRaskStorage();" },
         { "outbox", "Rask.Outbox", "AddRaskOutbox<AppDbContext>()", "modelBuilder.AddRaskOutbox();" },
     };
 
@@ -169,6 +170,33 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Fact]
+    public void Storage_maps_its_file_routes_after_UseRask()
+    {
+        var program = Generate("storage")["Program.cs"];
+
+        // After, not before: MapRaskStorage reads the path base UseRask sets, so mapped earlier its routes would
+        // ignore a pathBase the app configures later.
+        Assert.True(
+            program.IndexOf("app.UseRask<App>();", StringComparison.Ordinal) <
+            program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal),
+            "MapRaskStorage must follow UseRask.");
+        Assert.True(
+            program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal) <
+            program.IndexOf("app.Run();", StringComparison.Ordinal),
+            "MapRaskStorage must come before app.Run().");
+        Assert.Contains("using Rask.Storage;", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_app_without_storage_maps_no_file_routes()
+    {
+        var files = Generate("data");
+
+        Assert.DoesNotContain("MapRaskStorage", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Storage", files["App.csproj"], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_pillar_registration_follows_the_DbContext_factory_it_resolves()
     {
         var program = Generate("jobs", "mail", "cache")["Program.cs"];
@@ -227,7 +255,7 @@ public sealed class ServerBatteryScaffoldTests
     public void Every_pillar_composes_into_one_app()
     {
         var files = Generate(
-            "data", "cqrs", "jobs", "mail", "cache", "outbox", "push", "pwa", "snapshots", "logs", "ops",
+            "data", "cqrs", "jobs", "mail", "cache", "storage", "outbox", "push", "pwa", "snapshots", "logs", "ops",
             "docker");
         var program = files["Program.cs"];
 
@@ -235,6 +263,7 @@ public sealed class ServerBatteryScaffoldTests
         {
             "AddRaskCqrs()", "AddRaskData(", "AddRaskOutbox<AppDbContext>()", "AddDbContextFactory<AppDbContext>",
             "AddRaskJobs<AppDbContext>()", "AddRaskMail<AppDbContext>(", "AddRaskCache<AppDbContext>()",
+            "AddRaskStorage<AppDbContext>()", "app.MapRaskStorage();",
             "AddRaskSqliteSnapshots(", "AddRaskSqliteLitestream(", "AddRaskWebPush(", "AddRaskPwa(",
             "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()", "AddRaskAuth<AppDbContext>()",
         })
