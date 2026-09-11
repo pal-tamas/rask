@@ -156,6 +156,19 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
+    public void TheCompanionDoesNotBuildTheAppsIslands()
+    {
+        // The companion compiles the app's C#, so it sees every island declared there, but Rask.External
+        // globs for their front-end files from the companion's own directory inside obj/ and finds none.
+        // Left on, the prop-types step warned RASKISLAND004 for every island on every prerendered publish,
+        // about chunks the app's own build had just bundled (#1068).
+        var project = Generate();
+
+        Assert.Contains("<RaskExternalPropTypes>false</RaskExternalPropTypes>", project, StringComparison.Ordinal);
+        Assert.Contains("<RaskExternalBuild>false</RaskExternalBuild>", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void EachResourceIsEmittedExactlyOnce()
     {
         // Two emission lines partition the set on whether the item names itself. A condition wrong the

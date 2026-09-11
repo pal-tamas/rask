@@ -96,6 +96,16 @@
       <!-- The app's own analyzers would re-report what the real build already reported. -->
       <_RaskPrerenderLine Include="    &lt;RunAnalyzers&gt;false&lt;/RunAnalyzers&gt;"/>
       <!--
+        Nor does the companion build islands. It compiles the app's C#, so it sees every island the app
+        declares, but Rask.External globs for their front-end files from the companion's OWN directory,
+        inside obj\, where none lives. Left on, the prop-types step compared the two and warned
+        RASKISLAND004 for every island on every prerendered publish, about chunks the app's own build had
+        just bundled (#1068). A warning that is always there and always wrong is how the real one gets
+        skipped. The app's build owns its islands; the companion only renders them.
+      -->
+      <_RaskPrerenderLine Include="    &lt;RaskExternalPropTypes&gt;false&lt;/RaskExternalPropTypes&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;RaskExternalBuild&gt;false&lt;/RaskExternalBuild&gt;"/>
+      <!--
         Nor is the companion a shippable library, so the repo-wide public-API gate must not cover it.
         It is GENERATED into the app's obj\, which is under src\ where that gate applies, and it can
         never carry a PublicAPI baseline of its own — nothing tracks a file the build writes afresh.

@@ -223,6 +223,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
+  and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
+  `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
+  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
+  not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+
 - **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
   writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
   adds beside the props shares one writer. Only a hand-written `ExternalComponent` subclass has to change —
@@ -230,6 +236,7 @@ them until tagged releases begin.
 - **A `Module` that names a package makes the island a package island**, including one that declares its props
   by hand: an unset prop is left out of the props rather than written as `null`, so the package's default
   applies, and each callback forwards only its first argument to C#.
+
 - **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
   in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
   They were bare, and GitHub Pages answers `/docs/guides/cqrs` with a 301 to `/docs/guides/cqrs/`, so every
@@ -394,6 +401,13 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
+  compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island
+  the app declares but globs for their front-end files from its own directory and finds none, so every
+  rask.sh deploy warned, twice per island, that five islands shipping fine would never mount. The companion
+  now turns the island build and prop types off (`RaskExternalBuild`, `RaskExternalPropTypes`); the app's
+  own build still checks and bundles them (#1068).
 
 - **A cache key too long for the database says so.** `ICache` over the database-backed cache keys its table at
   512 characters (450 on SQL Server). PostgreSQL and SQL Server refuse a longer key, and the insert-then-update
