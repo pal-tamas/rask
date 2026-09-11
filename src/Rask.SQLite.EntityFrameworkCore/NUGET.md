@@ -73,7 +73,9 @@ The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
 `UseRaskSqlite` also enforces `Rask.Data`'s `HasNonOverlappingRange(...)`: migrations emit an index plus a
 `BEFORE INSERT`/`BEFORE UPDATE` trigger pair, re-emitted after the table rebuilds SQLite needs for most
 `ALTER`s (which would otherwise drop them). A violating save throws `RangeOverlapException` naming the
-table. Both are inert until an entity declares a rule.
+table. Both are inert until an entity declares a rule. `Rask.Data`'s `AddRaskData<TContext>()` refuses to
+boot a context that declares a rule its provider would ignore; `UseRaskSqlite` is what satisfies it, and a
+plain `UseSqlite` does not.
 
 Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite(cs)` + inject
 `ISqlite`.

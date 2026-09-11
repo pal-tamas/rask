@@ -23,7 +23,7 @@ namespace Rask.SQLite;
 public sealed class RaskSqliteStrictRangeExclusionSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
     IRelationalAnnotationProvider migrationsAnnotations)
-    : RaskSqliteStrictMigrationsSqlGenerator(dependencies, migrationsAnnotations)
+    : RaskSqliteStrictMigrationsSqlGenerator(dependencies, migrationsAnnotations), IRangeExclusionEnforcer
 {
     /// <inheritdoc />
     public override IReadOnlyList<MigrationCommand> Generate(
