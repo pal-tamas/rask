@@ -192,6 +192,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Three gate script tests no longer fail on a match.** `pre-push-ref-classes`, `e2e-await-slots` and
+  `front-doors` checked output with `printf … | grep -q …` under `set -o pipefail`. `grep -q` exits on the
+  first match; if `printf` was still writing it died of SIGPIPE, and `pipefail` reported the pipeline as
+  failed. A found match came back as a miss, and only under load, so a commit's gate could reject a change
+  that passed when rerun (#1053). They pass the text as a here-string now, which leaves no second process
+  to kill.
+
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
   right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,
   `.validator:user-invalid ~ .validator-hint`. That selector asks the *browser* whether the value is
