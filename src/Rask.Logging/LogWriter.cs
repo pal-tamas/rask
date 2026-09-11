@@ -19,7 +19,14 @@ internal sealed class LogWriter(
     TimeProvider timeProvider,
     ILogger<LogWriter> logger) : BackgroundService
 {
+    /// <summary>How often a store that keeps failing is reported again after its first failure.</summary>
+    internal static readonly TimeSpan FailureReminderInterval = TimeSpan.FromMinutes(1);
+
     private DateTimeOffset _lastPurge;
+
+    // Only the ExecuteAsync loop touches these, one cycle at a time.
+    private int _failedCycles;
+    private DateTimeOffset _lastFailureReport;
 
     /// <inheritdoc/>
     public override async Task StopAsync(CancellationToken cancellationToken)
@@ -72,7 +79,16 @@ internal sealed class LogWriter(
     {
         try
         {
-            await FlushAsync(cancellationToken).ConfigureAwait(false);
+            if (await FlushAsync(cancellationToken).ConfigureAwait(false) && _failedCycles > 0)
+            {
+                // Only a write proves the store works again. A retention sweep or a count can succeed against a
+                // store that refuses inserts — a full disk still takes deletes — and taking one for a recovery
+                // would announce it falsely and restart the run, so the next failure read as a first one.
+                logger.LogInformation(
+                    "The log store is writable again after {FailedFlushes} failed flushes.", _failedCycles);
+                _failedCycles = 0;
+            }
+
             await PurgeAsync(cancellationToken).ConfigureAwait(false);
             await SampleStoredAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -84,14 +100,51 @@ internal sealed class LogWriter(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            // Safe to log: this category is always excluded from capture, so the failure reaches the
-            // application's other sinks without feeding itself back into the store that just failed.
-            logger.LogError(ex, "A log store flush failed; retrying on the next interval.");
+            ReportFailure(ex);
         }
     }
 
-    private async Task FlushAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Reports a failed cycle: the first of a run, then at most once per <see cref="FailureReminderInterval"/>.
+    /// </summary>
+    /// <remarks>
+    /// A store that stays broken — a log table whose migration has not run yet, an unwritable disk — fails every
+    /// flush, and an error with a stack trace every second buries the console it is meant to warn. The drops are
+    /// still counted on every cycle; only the report is throttled. Safe to log at all because this category is
+    /// always excluded from capture, so the failure reaches the other sinks without feeding the store that failed.
+    /// </remarks>
+    private void ReportFailure(Exception ex)
     {
+        _failedCycles++;
+        var now = timeProvider.GetUtcNow();
+
+        if (_failedCycles == 1)
+        {
+            logger.LogError(
+                ex,
+                "A log store flush failed; retrying every {FlushInterval}, and reporting again at most once a minute while it keeps failing.",
+                options.FlushInterval);
+        }
+        else if (now - _lastFailureReport >= FailureReminderInterval)
+        {
+            logger.LogError(
+                ex,
+                "The log store is still failing: {FailedFlushes} flushes in a row, their entries counted on rask.logs.dropped.",
+                _failedCycles);
+        }
+        else
+        {
+            return;
+        }
+
+        _lastFailureReport = now;
+    }
+
+    /// <summary>Drains the buffer into the store. Returns whether anything was written.</summary>
+    private async Task<bool> FlushAsync(CancellationToken cancellationToken)
+    {
+        var wrote = false;
+
         // One list, refilled: the flush runs every second for the life of the process, and a fresh
         // BatchSize-capacity list per cycle would be pure garbage.
         var batch = new List<LogRecord>(options.BatchSize);
@@ -106,7 +159,7 @@ internal sealed class LogWriter(
 
             if (batch.Count == 0)
             {
-                return;
+                return wrote;
             }
 
             try
@@ -124,7 +177,10 @@ internal sealed class LogWriter(
             }
 
             metrics.Written(batch.Count);
+            wrote = true;
         }
+
+        return wrote;
     }
 
     private async Task PurgeAsync(CancellationToken cancellationToken)

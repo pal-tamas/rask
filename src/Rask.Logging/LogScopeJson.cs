@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -36,6 +37,31 @@ internal static class LogScopeJson
         }
 
         return JsonSerializer.Serialize(map, LogScopeJsonContext.Default.DictionaryStringString);
+    }
+
+    /// <summary>
+    ///     The text a stored scope object contains when it holds <paramref name="key"/> — <c>"key":</c> — or holds it
+    ///     with <paramref name="value"/> — <c>"key":"value"</c>. Both stores filter on it.
+    /// </summary>
+    /// <remarks>
+    ///     A substring search on this is exact, not approximate. The key and value are encoded with the encoder
+    ///     <see cref="Encode" /> uses, so a quote, a space or an accent is spelled identically on both sides; and that
+    ///     encoder escapes a quote <em>inside</em> a string (as backslash-u-0022), so an unescaped quote only ever
+    ///     delimits.
+    ///     A key therefore cannot match text that merely mentions it, and a value cannot match as a prefix of a longer
+    ///     one, because the fragment carries the closing quote.
+    /// </remarks>
+    internal static string Fragment(string key, string? value)
+    {
+        var fragment = new StringBuilder()
+            .Append('"').Append(JsonEncodedText.Encode(key).Value).Append("\":");
+
+        if (value is not null)
+        {
+            fragment.Append('"').Append(JsonEncodedText.Encode(value).Value).Append('"');
+        }
+
+        return fragment.ToString();
     }
 
     internal static IReadOnlyList<LogScopeValue>? Decode(string? json)
