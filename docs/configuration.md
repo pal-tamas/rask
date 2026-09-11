@@ -106,7 +106,10 @@ A few things to know:
   the validation switch decide which services exist. It is read from the host builder's configuration as
   it stands at the `AddRaskCqrs` call, so appsettings, user secrets and environment variables are all there;
   a bare container reads none.
-- **A database connection string is required, not guessed.** `UseRaskSqlite(sp)`, `UseRaskPostgres(sp)`,
+- **`Rask:Database:Provider` is read while services are registered too**, by `RaskApp`, because the database decides
+  which batteries exist — where the log is kept, whether snapshots run. Like `Rask:Cqrs`, it is read from the host
+  builder's configuration as it stands.
+- **A database connection string is required, not guessed.** `UseRaskDatabase(sp)`, `UseRaskSqlite(sp)`, `UseRaskPostgres(sp)`,
   `UseRaskSqlServer(sp)`, `AddRaskSqlite()` and `AddRaskLogging()` throw when their
   connection string is missing, naming the key
   to set (`Rask:ConnectionStrings:App` / `Rask__ConnectionStrings__App`). A database quietly opened in the
@@ -128,6 +131,7 @@ A few things to know:
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `UseRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [TypeScript front ends](spa.md). |
 | `Rask:Meta` | `MetaHostingOptions` | `Rask.Meta.Hosting` | `Framework` by the build's names (`nuxt`, `nextjs`, `tanstack-start`, `solidstart`, `sveltekit`, `analog`). Precedence: build metadata, then this section, then the callback, then a `rask dev` session's dev server. See [meta frameworks](meta.md). |
 | `Rask:Data` | `RaskDataOptions` | `Rask.Data` | See [Rask.Data](data.md). |
+| `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
 | `Rask:ConnectionStrings:App` | — | `Rask.SQLite`, `Rask.SQLite.EntityFrameworkCore`, `Rask.Postgres`, `Rask.SqlServer` | The application database. Also the default `DatabasePath` for Litestream and snapshots. |
 | `Rask:Sqlite` | `SqliteOptions` | `Rask.SQLite` | The pragmas, `StrictTables`, and `Retry`. Read by `AddRaskSqlite()` and by `UseRaskSqlite(sp)`. See [SQLite](sqlite.md). |
 | `Rask:Postgres` | `PostgresOptions` | `Rask.Postgres` | The session timeouts and `Retry`. Read by `UseRaskPostgres(sp)`. See [PostgreSQL](data.md#postgresql). |
@@ -190,6 +194,11 @@ both connection strings at its volume.
 
 `RaskAppOptions.ConnectionString`, set in code, beats every configuration source for
 `Rask:ConnectionStrings:App` — the same way a callback does.
+
+The `app.db` and `snapshots` defaults are SQLite's alone. With `Rask:Database:Provider` set to `postgres` or
+`sqlserver` neither is added: a missing `Rask:ConnectionStrings:App` fails naming the key rather than handing a file
+path to a server driver, and any `Rask:Snapshots` value is one the app set — which, with no SQLite file to copy,
+refuses the start. See [choosing the database](data.md#choosing-the-database).
 
 > **Migrating from the old keys.** Before every options type read its own section, a handful of settings
 > lived at top-level keys. **Those keys are no longer read, and nothing warns you** — an app that still sets

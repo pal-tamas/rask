@@ -3,6 +3,7 @@ using Rask.Auth;
 using Rask.Cache;
 using Rask.Data;
 using Rask.Jobs;
+using Rask.Logging;
 using Rask.Mail;
 using Rask.Outbox;
 using Rask.Storage;
@@ -26,6 +27,9 @@ namespace Rask;
 /// deliberate and matches what <c>Auth</c> already promised: a battery switched off leaves its tables in
 /// the model, so switching it back on is not a destructive migration, and the model does not vary between
 /// two apps in one process — which is what an EF model cache keyed on the context type would get wrong.
+/// The one table that follows the database instead is the log's: mapped on PostgreSQL or SQL Server, where RaskApp
+/// keeps the log in this database, and left out on SQLite, where the log keeps a file of its own. EF builds a model
+/// per provider anyway, so that varies nothing two apps on the same provider could disagree on.
 /// </para>
 /// <para>
 /// An app that outgrows this writes its own context; registering an
@@ -55,5 +59,14 @@ public class RaskAppDbContext : RaskDbContext
         modelBuilder.AddRaskMail();
         modelBuilder.AddRaskOutbox();
         modelBuilder.AddRaskStorage();
+
+        // The log table only where the log lives in this database. On SQLite the log keeps a file of its own
+        // (logs.db), so a SQLite app's migrations gain no table it never writes; on PostgreSQL or SQL Server RaskApp's
+        // log store writes here. Migrations are provider-specific already, so a model that differs by provider costs
+        // nothing a model per battery switch would.
+        if (!Database.IsSqlite())
+        {
+            modelBuilder.AddRaskLogging();
+        }
     }
 }

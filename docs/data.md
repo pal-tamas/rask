@@ -615,6 +615,62 @@ until an entity declares a rule, and the rule composes with
 [`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
 
+## Choosing the database
+
+An app picks its database in configuration, not in code. `Rask:Database:Provider` names it — `sqlite` (the
+default), `postgres` or `sqlserver` — and `Rask:ConnectionStrings:App` says where it is:
+
+```jsonc
+{
+  "Rask": {
+    "Database": { "Provider": "postgres" },
+    "ConnectionStrings": { "App": "Host=db;Database=shop;Username=shop;Password=…" }
+  }
+}
+```
+
+`RaskApp` reads it for you. An app with a context of its own registers it with `UseRaskDatabase(sp)`, which opens
+whichever provider the setting names:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskDatabase(sp)
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+Each provider still tunes itself from its own section — `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer` — so
+`UseRaskDatabase` takes no options. Call `UseRaskPostgres(sp, o => …)` directly when a callback has to set something
+configuration cannot.
+
+What changes with the database, in a `RaskApp`:
+
+| | SQLite | PostgreSQL or SQL Server |
+| --- | --- | --- |
+| No `Rask:ConnectionStrings:App` | falls back to `app.db` | fails, naming the key |
+| The durable log | `logs.db`, a file of its own | the `RaskLog` table in the app database |
+| Snapshots | on by default | left out; configuring them refuses the start |
+| Litestream | on when `Rask:Litestream:ReplicaUrl` is set | setting it refuses the start |
+
+An app whose own context opens a different database than the setting names — a `Program.cs` still calling
+`UseRaskSqlite(sp)` after the setting moved to `postgres` — fails at start, naming the call to use. Migrations are
+provider-specific, so moving an existing app means generating its migrations against the new provider.
+
+Moving an existing app is more than the setting:
+
+- **A `RaskApp` whose `appsettings.json` has a `Rask:Snapshots` section** refuses to start on a server database — that
+  is a backup the app asked for and cannot have. Delete the section, or turn the battery off with
+  `app.Configure(c => c.Snapshots.Off())`. Delete `Rask:Litestream` too if it names a replica.
+- **A context of your own** follows the setting through `UseRaskDatabase(sp)`, and on a server database it also maps
+  the log table — `modelBuilder.AddRaskLogging()` — because that is where `RaskApp` keeps the log. A context that
+  does not is told the line at start.
+- **An app scaffolded by `rask new`** wires each battery by hand in `Program.cs`, references the packages one by
+  one rather than `Rask`, and does not read the setting yet. Switch it there: reference `Rask.Postgres` or
+  `Rask.SqlServer`, and `UseRaskSqlite(sp)` becomes `UseRaskPostgres(sp)` or `UseRaskSqlServer(sp)`.
+  `AddRaskLogging()` becomes `AddRaskLogging<AppDbContext>()`, with the model line above. The snapshot and
+  Litestream lines go.
+- **`rask deploy` does not know about providers yet.** It points `Rask:ConnectionStrings:App` at a SQLite file on its
+  volume, so deploy a server-database app another way for now.
+
 ## PostgreSQL
 
 SQLite is the default and, for most single-developer products, the right answer for a long time. When one box
