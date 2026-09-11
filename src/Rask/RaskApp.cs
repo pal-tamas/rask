@@ -173,8 +173,8 @@ public sealed class RaskApp
 
         var app = _builder.Build();
 
-        // Hand the ambient database its factory, so `Product.Where(…)`, `Db.Begin()` and `Db.Current`
-        // work with nothing injected and nothing configured. Conditional on a binding existing, which is
+        // Hand the model surface its factory, so `Product.Where(…)` and the generated
+        // `Product.CreateAsync(model)` work with nothing injected and nothing configured. Conditional on a binding existing, which is
         // the Data battery having been wired — an app with `c.Data.Off()` has no database to point at.
         if (app.Services.GetService<AmbientContextBinding>() is not null)
         {

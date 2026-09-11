@@ -111,14 +111,14 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             .Where(static registration => registration is not null)
             .Collect();
 
-        var assembly = context.CompilationProvider.Select(
-            static (compilation, _) => compilation.AssemblyName ?? "RaskGeneratedClients");
-
+        // The whole compilation rather than its name: a Rask.Data entity's generated model is invisible to
+        // this generator, and only the compilation can say what it looks like (GeneratedModelShape). Nothing
+        // is lost to caching — the controllers above are symbols, which already differ per compilation.
         context.RegisterSourceOutput(
-            controllers.Combine(minimal).Combine(assembly).Combine(baked),
+            controllers.Combine(minimal).Combine(context.CompilationProvider).Combine(baked),
             static (spc, input) =>
             {
-                var (((types, registrations), assemblyName), isBaked) = input;
+                var (((types, registrations), compilation), isBaked) = input;
 
                 // The browser companion compiles the client that was baked out of the server assembly.
                 // If this generator also emitted one there, every client type would be declared twice
@@ -128,7 +128,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     return;
                 }
 
-                Emit(spc, types, registrations, assemblyName);
+                Emit(spc, types, registrations, compilation);
             });
     }
 
@@ -136,8 +136,9 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         SourceProductionContext spc,
         ImmutableArray<INamedTypeSymbol> controllers,
         ImmutableArray<MinimalApiRegistration?> registrations,
-        string assemblyName)
+        Compilation compilation)
     {
+        var assemblyName = compilation.AssemblyName ?? "RaskGeneratedClients";
         var endpoints = new List<ApiEndpoint>();
 
         if (!controllers.IsDefaultOrEmpty)
@@ -149,7 +150,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                foreach (var endpoint in Describe(spc, controller))
+                foreach (var endpoint in Describe(spc, controller, compilation))
                 {
                     endpoints.Add(endpoint);
                 }
@@ -160,7 +161,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         {
             foreach (var registration in registrations)
             {
-                var endpoint = Describe(spc, registration!, assemblyName);
+                var endpoint = Describe(spc, registration!, assemblyName, compilation);
 
                 if (endpoint is not null)
                 {
@@ -211,7 +212,10 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static IEnumerable<ApiEndpoint> Describe(SourceProductionContext spc, INamedTypeSymbol controller)
+    private static IEnumerable<ApiEndpoint> Describe(
+        SourceProductionContext spc,
+        INamedTypeSymbol controller,
+        Compilation compilation)
     {
         var prefix = RouteTemplate.OfController(controller);
         var clientName = ClientNameOf(controller);
@@ -231,7 +235,8 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
             foreach (var (verb, template) in RouteTemplate.OfAction(member))
             {
-                var endpoint = Build(spc, controller, member, prefix, template, verb, clientName, clientNamespace);
+                var endpoint = Build(
+                    spc, controller, member, prefix, template, verb, clientName, clientNamespace, compilation);
 
                 if (endpoint is not null)
                 {
@@ -245,7 +250,8 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     private static ApiEndpoint? Describe(
         SourceProductionContext spc,
         MinimalApiRegistration registration,
-        string assemblyName)
+        string assemblyName,
+        Compilation compilation)
     {
         var where = registration.Pattern.Length == 0
             ? registration.Verb + " (route not a constant)"
@@ -291,7 +297,8 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             assemblyName,
             registration.Name ?? MinimalApi.MethodName(registration.Verb, route),
             where,
-            registration.Site);
+            registration.Site,
+            compilation);
     }
 
     private static ApiEndpoint? Build(
@@ -302,13 +309,14 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         string template,
         string verb,
         string clientName,
-        string clientNamespace)
+        string clientNamespace,
+        Compilation compilation)
     {
         var declaredBy = controller.Name + "." + action.Name;
         var route = RouteTemplate.Combine(prefix, template, controller, action);
 
         return Compose(
-            spc, action, route, verb, clientName, clientNamespace, action.Name, declaredBy, At(action));
+            spc, action, route, verb, clientName, clientNamespace, action.Name, declaredBy, At(action), compilation);
     }
 
     /// <summary>
@@ -328,7 +336,8 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         string clientNamespace,
         string methodName,
         string declaredBy,
-        Location site)
+        Location site,
+        Compilation compilation)
     {
 
         if (route.Contains("{*"))
@@ -350,7 +359,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
         var tokens = RouteTemplate.Tokens(route);
 
-        if (!TryResult(spc, action, declaredBy, out var resultType, out var resultFqn))
+        if (!TryResult(spc, action, declaredBy, compilation, out var resultType, out var resultFqn))
         {
             return null;
         }
@@ -365,7 +374,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var shape = WireShape.Classify(parameter.Type, allowFile: false);
+            var shape = WireShape.Classify(parameter.Type, allowFile: false, compilation: compilation);
 
             if (shape.Kind == WireKind.Unsupported)
             {
@@ -412,7 +421,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 WireNameOf(parameter),
                 shape,
                 binding.Value,
-                parameter.Type.ToDisplayString(Fqn),
+                GeneratedModelShape.DisplayName(parameter.Type, Fqn, compilation),
                 parameter.HasExplicitDefaultValue,
                 DefaultLiteral(parameter)));
         }
@@ -439,6 +448,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         SourceProductionContext spc,
         IMethodSymbol action,
         string declaredBy,
+        Compilation compilation,
         out WireType? shape,
         out string? fqn)
     {
@@ -479,7 +489,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             returned = declared;
         }
 
-        var classified = WireShape.Classify(returned, allowFile: false);
+        var classified = WireShape.Classify(returned, allowFile: false, compilation: compilation);
 
         if (classified.Kind == WireKind.Unsupported)
         {
@@ -490,7 +500,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         }
 
         shape = classified;
-        fqn = returned.ToDisplayString(Fqn);
+        fqn = GeneratedModelShape.DisplayName(returned, Fqn, compilation);
         return true;
     }
 

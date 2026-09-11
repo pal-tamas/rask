@@ -73,8 +73,23 @@ internal static class SymbolRegistration
     /// Paired with its remedy for the same reason as
     /// <see cref="DescribeUnregisterableWithRemedy" /> — see there.
     /// </remarks>
-    public static (string Problem, string Remedy)? DescribeUnnameableWithRemedy(ITypeSymbol symbol)
+    /// <param name="symbol">The type generated code would name.</param>
+    /// <param name="compilation">
+    /// The compilation <paramref name="symbol" /> comes from. Given it, a Rask.Data entity's generated
+    /// <c>{Entity}Model</c> counts as nameable: it is an unresolved error type to every generator but the one
+    /// that emits it, and an error type has no accessibility to read — so without this, a handler answering
+    /// with one is skipped as RASK029 and its request throws at runtime. The model takes its entity's
+    /// accessibility, which is public or internal.
+    /// </param>
+    public static (string Problem, string Remedy)? DescribeUnnameableWithRemedy(ITypeSymbol symbol, Compilation? compilation = null)
     {
+        if (compilation is not null &&
+            ((symbol.TypeKind == TypeKind.Error && GeneratedModelShape.EntityFor(symbol, compilation) is not null) ||
+             GeneratedModelShape.NullableUnresolvedModel(symbol, compilation) is not null))
+        {
+            return null;
+        }
+
         switch (symbol)
         {
             case ITypeParameterSymbol:
@@ -82,7 +97,7 @@ internal static class SymbolRegistration
                     "use a closed type — generated code cannot name a type parameter it has no value for");
 
             case IArrayTypeSymbol array:
-                return DescribeUnnameableWithRemedy(array.ElementType);
+                return DescribeUnnameableWithRemedy(array.ElementType, compilation);
 
             case INamedTypeSymbol named:
                 // A file-local type is invisible outside its own file, so the generated registry can't
@@ -108,7 +123,7 @@ internal static class SymbolRegistration
 
                     foreach (var argument in type.TypeArguments)
                     {
-                        if (DescribeUnnameableWithRemedy(argument) is { } reason)
+                        if (DescribeUnnameableWithRemedy(argument, compilation) is { } reason)
                         {
                             return ReferenceEquals(type, named)
                                 ? reason

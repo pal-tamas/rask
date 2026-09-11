@@ -285,7 +285,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         var ns = symbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
-        var properties = GetPageProperties(symbol);
+        var properties = GetPageProperties(symbol, ctx.SemanticModel.Compilation);
 
         if (hasNotFound)
         {
@@ -391,7 +391,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static List<RoutePropInfo> GetPageProperties(INamedTypeSymbol symbol)
+    private static List<RoutePropInfo> GetPageProperties(INamedTypeSymbol symbol, Compilation compilation)
     {
         var result = new List<RoutePropInfo>();
         foreach (var member in symbol.GetMembers())
@@ -452,14 +452,20 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
             var underlyingTypeName = GetUnderlyingTypeName(prop.Type);
 
-            var typeFqn = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                          | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+            // Through GeneratedModelShape: a Rask.Data entity's generated model is an unresolved error type to
+            // this generator, and its bare display name would not bind from the generated routes file.
+            var typeFqn = Shared.GeneratedModelShape.DisplayName(
+                prop.Type,
+                SymbolDisplayFormat.FullyQualifiedFormat
+                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes),
+                compilation);
 
             var isParsable = IsBindableType(prop.Type);
 
             var underlyingSymbol = GetUnderlying(prop.Type);
-            var underlyingTypeFqn = underlyingSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var underlyingTypeFqn = Shared.GeneratedModelShape.DisplayName(
+                underlyingSymbol, SymbolDisplayFormat.FullyQualifiedFormat, compilation);
 
             // Register every parsable type that is NOT a compiler primitive with TypedParserRegistry so
             // a full-AOT (no MakeGenericMethod) build can bind it. SpecialType.None deliberately covers

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Rask.Data;
@@ -41,6 +42,17 @@ public static class ModelBuilderExtensions
     /// the property is refused here, by name, rather than failing later as an update that matched no row.
     /// </para>
     /// <para>
+    /// <b>Every <see cref="Model{TId}" /> owns its identity.</b> Its <c>Id</c> is marked never generated, so the
+    /// key a factory set is the key that is inserted — unless the key is an integer, which the store's identity
+    /// column produces. EF Core would otherwise mark a <see cref="Guid" /> key generated on add, and read a key
+    /// that is already set as a row that already exists: a child added to a loaded aggregate
+    /// (<c>order.AddLine(…)</c>) would be saved as an UPDATE that matches nothing. A key the application
+    /// already configured — <c>ValueGeneratedOnAdd()</c>, a database default, a value generator — is left as it
+    /// was, and on the generated model an entity's own static <c>Configure</c> runs after this and can say
+    /// otherwise. An entity added with its key still at the default is refused at save by
+    /// <see cref="AuditingInterceptor" /> rather than inserted with an empty key.
+    /// </para>
+    /// <para>
     /// Call after the entity type configurations are applied — they establish the entity types this walks.
     /// </para>
     /// </remarks>
@@ -54,6 +66,8 @@ public static class ModelBuilderExtensions
 
         foreach (var clrType in clrTypes)
         {
+            ApplyKeyConvention(modelBuilder, clrType);
+
             var timestamped = typeof(ITimestamped).IsAssignableFrom(clrType);
             var versioned = typeof(IVersioned).IsAssignableFrom(clrType);
             var softDeletable = typeof(ISoftDeletable).IsAssignableFrom(clrType);
@@ -99,6 +113,60 @@ public static class ModelBuilderExtensions
         }
 
         return modelBuilder;
+    }
+
+    // A Model<TId> key is the entity's to set, except an integer one, which the store's identity produces —
+    // and except where the application already said how its key is generated. An app with a context of its
+    // own calls this AFTER its own configuration, so overwriting an explicit ValueGeneratedOnAdd or a database
+    // default here would send an empty key straight past the default that was meant to fill it.
+    private static void ApplyKeyConvention(ModelBuilder modelBuilder, Type clrType)
+    {
+        if (IdTypeOf(clrType) is not { } idType || IsInteger(idType))
+        {
+            return;
+        }
+
+        var key = modelBuilder.Entity(clrType).Property(nameof(Model<int>.Id));
+        var property = (IConventionProperty)key.Metadata;
+
+        // Asked by WHO configured each aspect, never by its value: EF Core's own conventions fill values in that
+        // the application never set, and reading one of those as the app's decision leaves every key generated.
+        if (SaidByApp(property.GetValueGeneratedConfigurationSource()) ||
+            SaidByApp(property.GetValueGeneratorFactoryConfigurationSource()) ||
+            SaidByApp(property.GetDefaultValueSqlConfigurationSource()) ||
+            SaidByApp(property.GetDefaultValueConfigurationSource()))
+        {
+            return;
+        }
+
+        key.ValueGeneratedNever();
+    }
+
+    private static bool SaidByApp(ConfigurationSource? source) =>
+        source is ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation;
+
+    /// <summary>The <c>TId</c> of the <see cref="Model{TId}" /> that <paramref name="clrType" /> derives from, or null.</summary>
+    internal static Type? IdTypeOf(Type clrType)
+    {
+        for (var type = clrType.BaseType; type is not null; type = type.BaseType)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Model<>))
+            {
+                return type.GetGenericArguments()[0];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether <paramref name="type" /> is an integer key type the store's identity produces.</summary>
+    internal static bool IsInteger(Type type)
+    {
+        var underlying = Nullable.GetUnderlyingType(type) ?? type;
+        return underlying == typeof(int) || underlying == typeof(long)
+            || underlying == typeof(short) || underlying == typeof(byte)
+            || underlying == typeof(uint) || underlying == typeof(ulong)
+            || underlying == typeof(ushort) || underlying == typeof(sbyte);
     }
 
     // `e => e.DeletedAt == null`, or `e => EF.Property<DateTime?>(e, "DeletedAt") == null` when the class

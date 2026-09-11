@@ -192,7 +192,7 @@ internal sealed class WireCodecEmitter
             members.Add((member, Ensure(member.Type)));
         }
 
-        if (type.Symbol?.IsReferenceType == true)
+        if (type.IsReferenceType)
         {
             write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
         }
@@ -206,7 +206,7 @@ internal sealed class WireCodecEmitter
 
         write.AppendLine("        writer.WriteEndObject();");
 
-        if (type.Symbol?.IsReferenceType == true)
+        if (type.IsReferenceType)
         {
             read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
         }

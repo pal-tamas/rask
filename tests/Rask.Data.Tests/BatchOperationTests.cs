@@ -17,7 +17,7 @@ public sealed class BatchOperationTests : IDisposable
     public async Task ExecuteUpdate_writes_every_matching_row_in_one_statement()
     {
         await using var database = await StartDatabaseAsync();
-        await SeedAsync("a", "b", "c");
+        await SeedAsync(database, "a", "b", "c");
 
         var updated = await Order.Where(o => o.Reference != "b")
             .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OrderStatus.Shipped));
@@ -32,7 +32,7 @@ public sealed class BatchOperationTests : IDisposable
     {
         // The reason to reach for this rather than load-and-save: the arithmetic happens in the database.
         await using var database = await StartDatabaseAsync();
-        await SeedAsync("a", "b");
+        await SeedAsync(database, "a", "b");
 
         await Order.All.ExecuteUpdateAsync(s => s.SetProperty(o => o.Reference, o => o.Reference + "-x"));
 
@@ -46,7 +46,7 @@ public sealed class BatchOperationTests : IDisposable
         // Documented, not accidental: nothing was loaded, so no interceptor ran. This test exists so the
         // day that changes, it changes here first rather than in somebody's audit trail.
         await using var database = await StartDatabaseAsync();
-        await SeedAsync("a");
+        await SeedAsync(database, "a");
 
         var before = (await Order.FirstOrDefaultAsync(o => o.Reference == "a"))!.UpdatedAt;
 
@@ -62,7 +62,7 @@ public sealed class BatchOperationTests : IDisposable
     public async Task A_batch_soft_delete_is_an_update_of_DeletedAt()
     {
         await using var database = await StartDatabaseAsync();
-        await SeedAsync("a", "b", "c");
+        await SeedAsync(database, "a", "b", "c");
 
         var stamped = await Order.Where(o => o.Reference != "c")
             .ExecuteUpdateAsync(s => s.SetProperty(o => o.DeletedAt, Now));
@@ -80,7 +80,7 @@ public sealed class BatchOperationTests : IDisposable
         // The trap worth a test: Remove() on an ISoftDeletable stamps DeletedAt, but ExecuteDelete is a
         // DELETE statement and the interceptors never see it. The rows are gone, not hidden.
         await using var database = await StartDatabaseAsync();
-        await SeedAsync("a", "b");
+        await SeedAsync(database, "a", "b");
 
         var deleted = await Order.Where(o => o.Reference == "a").ExecuteDeleteAsync();
 
@@ -91,10 +91,9 @@ public sealed class BatchOperationTests : IDisposable
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"));
 
-    private static async Task SeedAsync(params string[] references)
+    private static async Task SeedAsync(TestDatabase database, params string[] references)
     {
-        await using var uow = Db.Begin();
-        Order.AddRange(references.Select(Order.Place));
-        await uow.SaveChangesAsync();
+        database.Context.AddRange(references.Select(Order.Place));
+        await database.Context.SaveChangesAsync();
     }
 }
