@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rask social card (1200×630)</title>
+<!--
+  The source of src/Rask.Site/wwwroot/img/og-card.png: the preview a link to rask.sh unfurls with on
+  Slack, X, LinkedIn, Discord and in search. Render it at exactly 1200×630 with headless Chromium (the
+  command is in .claude/skills/rask-seo/SKILL.md) and commit the PNG beside the change that moved it;
+  PageMetaTests pins the published image's dimensions.
+
+  The site's own faces, from its own wwwroot, so the card cannot drift from the site's type: Space Grotesk
+  for display, Inter for the body, JetBrains Mono for the code. Text is sized to survive the card being
+  shown at a quarter of its width in a feed.
+-->
+<style>
+  @font-face { font-family: "Space Grotesk"; src: url("../src/Rask.Site/wwwroot/fonts/space-grotesk-latin.woff2") format("woff2"); font-weight: 300 700; }
+  @font-face { font-family: "Inter"; src: url("../src/Rask.Site/wwwroot/fonts/inter-latin.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "JetBrains Mono"; src: url("../src/Rask.Site/wwwroot/fonts/jetbrains-mono-latin.woff2") format("woff2"); font-weight: 100 800; }
+
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+
+  body {
+    position: relative;
+    color: #f5f3ff;
+    font-family: "Inter", system-ui, sans-serif;
+    background-color: #0d0a17;
+    background-image:
+      radial-gradient(900px 540px at 92% -12%, rgba(124, 58, 237, 0.55), transparent 62%),
+      radial-gradient(720px 460px at -8% 112%, rgba(81, 43, 212, 0.42), transparent 62%);
+  }
+
+  /* A faint grid that fades out downwards, so the top of the card has texture and the text stays clean. */
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 80%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 80%);
+  }
+
+  .card { position: absolute; inset: 70px 84px 62px 84px; display: flex; flex-direction: column; }
+
+  .brand { display: flex; align-items: center; gap: 20px; }
+  .brand svg { width: 58px; height: 78px; flex: none; }
+  .brand .name { font-family: "Space Grotesk"; font-weight: 700; font-size: 54px; letter-spacing: -1.5px; }
+  .pill {
+    margin-left: 10px;
+    font: 600 21px/1 "Inter";
+    color: #ddd6fe;
+    border: 1px solid rgba(221, 214, 254, 0.35);
+    border-radius: 999px;
+    padding: 10px 16px;
+  }
+
+  h1 {
+    margin: 44px 0 0;
+    font-family: "Space Grotesk";
+    font-weight: 700;
+    font-size: 86px;
+    line-height: 1.02;
+    letter-spacing: -3px;
+  }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(90deg, #c4b5fd, #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  p { margin: 26px 0 0; max-width: 940px; font-size: 31px; line-height: 1.36; color: #cfc8e8; }
+
+  .foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; }
+  code {
+    font-family: "JetBrains Mono";
+    font-size: 26px;
+    color: #e9e3ff;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 12px;
+    padding: 12px 18px;
+  }
+  code .t { color: #c4b5fd; }
+  code .s { color: #86efac; }
+  .url { font-family: "Space Grotesk"; font-weight: 600; font-size: 34px; letter-spacing: -0.5px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <!-- The site's bolt (wwwroot/img/rask-mark.svg), its gradient lifted for a dark ground. -->
+      <svg viewBox="22 6 80 108" aria-hidden="true">
+        <defs>
+          <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#A78BFA"/>
+            <stop offset="100%" stop-color="#7C3AED"/>
+          </linearGradient>
+        </defs>
+        <path d="M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z" fill="url(#bolt)"/>
+      </svg>
+      <span class="name">Rask</span>
+      <span class="pill">C# · .NET 10</span>
+    </div>
+
+    <h1>The .NET <em>One Person</em><br>Framework</h1>
+
+    <p>Build, run and ship a whole C# web app — UI, data, auth, jobs and deploy — from one codebase on one server.</p>
+
+    <div class="foot">
+      <code><span class="t">Div</span>.Class(<span class="s">"panel"</span>)[<span class="t">Span</span>[<span class="s">"hi"</span>]]</code>
+      <span class="url">rask.sh</span>
+    </div>
+  </div>
+</body>
+</html>

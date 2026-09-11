@@ -45,13 +45,13 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Markdown_RewritesInternalGuideLink_ToSpaRoute() =>
-        Assert.Contains($"href=\"{Features.Routes.GuidePage("routing")}\" data-rask-nav", Markdown.Source("[Routing](routing.md)").ToHtml());
+        Assert.Contains($"href=\"{Features.Routes.GuidePage("routing")}/\" data-rask-nav", Markdown.Source("[Routing](routing.md)").ToHtml());
 
     [Fact]
     public void Markdown_RewritesFragmentAndSubdirLinks()
     {
-        Assert.Contains($"href=\"{Features.Routes.GuidePage("forms")}#binding\" data-rask-nav", Markdown.Source("[x](forms.md#binding)").ToHtml());
-        Assert.Contains($"href=\"{Features.Routes.GuidePage("live-rendering")}\" data-rask-nav",
+        Assert.Contains($"href=\"{Features.Routes.GuidePage("forms")}/#binding\" data-rask-nav", Markdown.Source("[x](forms.md#binding)").ToHtml());
+        Assert.Contains($"href=\"{Features.Routes.GuidePage("live-rendering")}/\" data-rask-nav",
             Markdown.Source("[x](architecture/live-rendering.md)").ToHtml());
     }
 
@@ -60,7 +60,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
         // docs/apis/*.md link the capability matrix as "../browser-capabilities.md". Reading every "../" as
         // the repo root sent all 51 of those to a GitHub URL with no file behind it — a dead link on every
         // browser-API page, and the one internal link a crawler would follow between them sent off-site.
-        Assert.Contains($"href=\"{Features.Routes.GuidePage("browser-capabilities")}\" data-rask-nav",
+        Assert.Contains($"href=\"{Features.Routes.GuidePage("browser-capabilities")}/\" data-rask-nav",
             Markdown.Source("[matrix](../browser-capabilities.md)").SourcePath("apis/geolocation.md").ToHtml());
 
     [Fact]
@@ -173,6 +173,6 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
         }
 
         Assert.Contains("Getting started", html);
-        Assert.Contains($"href=\"{Features.Routes.GuidePage("routing")}\"", html);
+        Assert.Contains($"href=\"{Features.Routes.GuidePage("routing")}/\"", html);
     }
 }

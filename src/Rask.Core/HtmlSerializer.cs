@@ -518,8 +518,12 @@ internal static class HtmlSerializer
                 // ineligible component returns false here and falls through to the walk below, which
                 // re-renders it and may re-cache. A replayed component is itself a nested user component
                 // for its parent, so flag that.
+                var replayFrameStart = frames?.Count ?? -1;
                 if (frames is not null && component.TryReplayCleanSubtree(sb, frames, liveCtx))
                 {
+                    // A replay appends the cached subtree at the writer's end, so the count before and after
+                    // brackets exactly what this component contributed to the frame stream.
+                    RaskDevToolsHook.Active?.ComponentReplayed(component, replayFrameStart, frames.Count);
                     _sawNestedComponent = true;
                     break;
                 }
@@ -558,6 +562,10 @@ internal static class HtmlSerializer
                         KeyForwardScope.Arm(fwdKey);
                     }
 
+                    // Read once: the devtools see the whole component, render AND subtree walk, as one span.
+                    var devTools = RaskDevToolsHook.Active;
+                    var devToolsStart = devTools is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
+
                     try
                     {
                         var rendered = component.RenderForLive();
@@ -575,6 +583,14 @@ internal static class HtmlSerializer
                         }
 
                         Serialize(rendered, sb);
+
+                        devTools?.ComponentWalked(component, devToolsStart, frameStart, frames?.Count ?? -1);
+                    }
+                    catch (Exception ex) when (devTools is not null && devTools.ObserveThrow(component, ex))
+                    {
+                        // Unreachable: ObserveThrow always answers false, so the filter only looks. The
+                        // exception keeps travelling to the boundary that owns it, with its stack intact.
+                        throw;
                     }
                     finally
                     {

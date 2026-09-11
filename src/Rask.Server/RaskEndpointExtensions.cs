@@ -1222,6 +1222,13 @@ public static partial class RaskEndpointExtensions
                 {
                     continue;
                 }
+
+                // Only once there is a session to attribute it to: the hello that creates one arrives first.
+                if (session is not null && RaskDevToolsHook.Active is { } devTools)
+                {
+                    devTools.FrameReceived(session, payload.Length, root);
+                }
+
                 // Match the frame "type" against the UTF-8 literals directly (ValueEquals) instead of
                 // materializing a string per frame — this runs on every inbound frame (keystroke,
                 // 60 Hz scroll, click), and the string was allocated only to == four constants.
