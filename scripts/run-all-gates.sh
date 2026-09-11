@@ -37,6 +37,7 @@ gates=(
   "meta publish|scripts/run-meta-publish-e2e.sh|RASK_META_PUBLISH_E2E=1"
   "deploy|scripts/run-deploy-e2e-local.sh|RASK_DEPLOY_E2E=1"
   "installer|scripts/run-install-e2e-local.sh|RASK_INSTALL_E2E=1"
+  "providers|scripts/run-providers-local.sh|"
 )
 
 if [ "${1:-}" = "--list" ]; then

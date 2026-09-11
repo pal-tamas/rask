@@ -43,6 +43,9 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.62.0" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
+    <!-- Rask.Postgres. Npgsql versions on its own line (10.0.x tracks EF Core 10 but not its patch numbers), so it
+         is deliberately outside the Microsoft platform-stack family the pin tests hold to one version. -->
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--
       Spectre.Console renders the `rask` CLI's terminal surface. Keep the two entries on the same
       version: Spectre.Console.Testing ships the input/console doubles the CLI's prompt tests drive,

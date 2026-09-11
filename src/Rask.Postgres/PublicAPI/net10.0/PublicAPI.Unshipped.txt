@@ -1,0 +1,21 @@
+#nullable enable
+Rask.Postgres.PostgresOptions
+Rask.Postgres.PostgresOptions.IdleInTransactionSessionTimeout.get -> System.TimeSpan
+Rask.Postgres.PostgresOptions.IdleInTransactionSessionTimeout.set -> void
+Rask.Postgres.PostgresOptions.LockTimeout.get -> System.TimeSpan
+Rask.Postgres.PostgresOptions.LockTimeout.set -> void
+Rask.Postgres.PostgresOptions.PostgresOptions() -> void
+Rask.Postgres.PostgresOptions.Retry.get -> Rask.Postgres.PostgresRetryOptions!
+Rask.Postgres.PostgresOptions.StatementTimeout.get -> System.TimeSpan
+Rask.Postgres.PostgresOptions.StatementTimeout.set -> void
+Rask.Postgres.PostgresRetryOptions
+Rask.Postgres.PostgresRetryOptions.Enabled.get -> bool
+Rask.Postgres.PostgresRetryOptions.Enabled.set -> void
+Rask.Postgres.PostgresRetryOptions.MaxCount.get -> int
+Rask.Postgres.PostgresRetryOptions.MaxCount.set -> void
+Rask.Postgres.PostgresRetryOptions.MaxDelay.get -> System.TimeSpan
+Rask.Postgres.PostgresRetryOptions.MaxDelay.set -> void
+Rask.Postgres.PostgresRetryOptions.PostgresRetryOptions() -> void
+Rask.Postgres.RaskPostgresDbContextOptionsExtensions
+static Rask.Postgres.RaskPostgresDbContextOptionsExtensions.UseRaskPostgres(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, string! connectionString, System.Action<Rask.Postgres.PostgresOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
+static Rask.Postgres.RaskPostgresDbContextOptionsExtensions.UseRaskPostgres<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, string! connectionString, System.Action<Rask.Postgres.PostgresOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!

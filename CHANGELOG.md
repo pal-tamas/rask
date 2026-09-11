@@ -9,6 +9,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **PostgreSQL is back, as the opt-in `Rask.Postgres`.** SQLite stays the default and the recommendation;
+  this reverses only the part of the earlier removal that left a production app with no supported door out of
+  one box. `UseRaskPostgres(cs, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
+  `LockTimeout` (10s, validated below the statement timeout so lock contention is never reported as a slow
+  query) and `IdleInTransactionSessionTimeout` (1m) to every session, and turns on Npgsql's retrying
+  strategy through `o.Retry`. Compared with the package that shipped in v0.20.0, `RaskPostgresOptions` is now
+  `PostgresOptions` with the retry knobs nested under `Retry` (as `SqliteOptions` nests its own), and the
+  timeouts travel as connection-string startup parameters instead of a `SET` sent on every open. That is one
+  round trip less on every query EF runs; the values are the session's defaults, so the pool's reset restores
+  rather than removes them; and a connection opened without EF gets them too. Timeouts round up to whole
+  milliseconds, because PostgreSQL reads 0 as "no limit", and one beyond a 32-bit millisecond count is refused
+  at startup rather than on every connection open. A new `Rask.Providers.E2E.Tests` suite, run by
+  `scripts/run-providers-local.sh` against a real PostgreSQL 17 in Docker, proves the jobs claim never hands
+  a job to two of twenty racing instances, the settings survive the pool, bulk insert lands 10,000 rows in a
+  keyword-named table under the retrying strategy, and fifty concurrent writers on one cold cache key all
+  succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
+  (`docs/data.md#postgresql`).
+
 - **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
   nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
   the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`
@@ -240,6 +258,14 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **Bulk insert's fast path runs the connection interceptors, and retries a failed batch.**
+  `BulkInsertAsync(o => o.SkipChangeTracking = true)` opened the `DbConnection` itself, and EF only runs its
+  connection interceptors on an open it performs — so every row it wrote ran with `UseRaskSqlite`'s pragmas
+  unapplied (`foreign_keys`, `busy_timeout` at SQLite's defaults), along with anything else an app registered on
+  connection open. It now opens through EF, which also counts opens and so still leaves a caller's open
+  connection open. Each batch that owns its transaction now runs inside the execution strategy, so a retrying
+  strategy replays the failed batch alone instead of surfacing the first transient error.
 
 - **A `HasNonOverlappingRange` rule the provider would ignore now fails the boot.** The rule is model
   metadata that a provider has to turn into DDL, and only `UseRaskSqlite` did. On a plain `UseSqlite` — or
