@@ -296,6 +296,38 @@ them until tagged releases begin.
 ### Fixed
 
 
+- **A scaffolded SPA or meta app could not start.** All thirteen front-end templates produced a project
+  that built clean and then aborted on launch, and the browser journeys added with the template trees are
+  what found it — nothing in the repository had ever *run* one of these apps, only built it. Three
+  independent faults, each fatal on its own, and all three predate the template trees. A fourth, deeper
+  one is filed rather than fixed here: `Rask.Auth` needs host services (`IAuthSignIn`, one of the
+  `RaskHostContracts`) that only `Rask.Server` and `Rask.Wasm` register, so accounts on the front-end
+  lanes need a design decision, not a patch. The three below are what stood between these apps and a
+  process that stays up:
+
+  - `Rask.Auth` was referenced on lanes that carry no Rask component runtime. It compiles against
+    `Rask.Core` with `PrivateAssets="all"` and ships `[Route]` pages, so `Rask.Auth.dll`'s module
+    initializer runs `__RaskRoutesRegistry.Init()` at startup — and `Rask.Core.dll` is bundled only
+    inside `Rask.Server` and `Rask.Wasm`. The host aborted with
+    `FileNotFoundException: Could not load file or assembly 'Rask.Core'` before reaching `Main`.
+  - `app.UseAuthorization()` was called with no `AddAuthorization()`. `AddRaskAuth` registers Identity
+    and Rask's `IAuth`, not the authorization services, so the host threw *"Unable to find the required
+    services"*. On the server template the call was supplied incidentally by the dashboard's policy
+    registration; the front-end lanes had nothing.
+  - No template declared a user entity. `AddRaskAuth<TContext>()` resolves the app's account type
+    through `AuthUser.Binding`, which the generator sets only when the app declares an `IdentityUser`
+    subclass — so on these lanes it registered **nothing at all, silently**, and `MapRaskAuth()` then
+    threw `No service for type 'Rask.Auth.AuthOptions'`. Every front-end template now carries the same
+    `Features/Shared/User.cs` the server template has, owned by the same batteries as its `AppDbContext`.
+
+- **The operator dashboard was scaffolded onto lanes that can never serve it.** `Rask.Dashboard` is built
+  from Rask components carrying `[Route]`, so it is reachable only through `UseRask<TApp>()` — which only
+  the server template calls. The thirteen front-end templates registered `AddRaskDashboard<AppDbContext>()`
+  and a `RaskDashboardPolicies.Access` policy that no request could ever reach, and paid for it with a
+  `Rask.Dashboard` → `Rask.Ui` reference that dragged the component runtime into an app with no renderer.
+  `--ops` is now listed on the server template alone rather than accepted and disregarded, which is what
+  `TemplateFlagParityTests` exists to catch. A dead `Rask.Ui` reference went with it on all thirteen.
+
 - **Three templates installed an older Tailwind than the C# host downloads.** solidstart `^4.0.7`,
   nextjs `^4` and tanstack-start `^4.1.18` against a pinned 4.3 — floors their own creators wrote, which
   Rask's patch never touched, so two scaffolded apps compiled the same classes with different compilers.

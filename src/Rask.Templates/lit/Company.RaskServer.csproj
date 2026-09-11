@@ -22,7 +22,6 @@
       the API still works, and the site serves a page saying there is nothing built yet.
     -->
     <PackageReference Include="Rask.Spa.Hosting" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
     <!-- rask:if data -->
     <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
@@ -49,9 +48,6 @@
     <!-- rask:end -->
     <!-- rask:if push pwa -->
     <PackageReference Include="Rask.WebPush" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if data ops -->
-    <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
   </ItemGroup>
 

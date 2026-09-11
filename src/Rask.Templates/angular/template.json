@@ -13,6 +13,9 @@
     "Features/Shared/AppDbContext.cs": [
       "data"
     ],
+    "Features/Shared/User.cs": [
+      "data"
+    ],
     "client/public/icon.svg": [
       "pwa"
     ],

@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Microsoft.Playwright"/>
     <PackageReference Include="Spectre.Console.Testing"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="Xunit.SkippableFact"/>
@@ -52,6 +53,12 @@
     <Compile Include="..\Rask.Cli.Tests\RepoPins.cs" Link="RepoPins.cs"/>
     <Compile Include="..\Rask.Cli.Tests\TestDoubles.cs" Link="TestDoubles.cs"/>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <!-- The loopback-port reservation and the browser fixture, source-linked rather than
+         copied: both carry hard-won detail (an OS-assigned port can still be taken between
+         reserving and binding it) that a second copy would lose the first time it drifted. -->
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\LoopbackPort.cs" Link="LoopbackPort.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="PlaywrightFixture.cs"/>
+    <Using Include="Rask.Site.E2E.Tests.Infrastructure"/>
     <Using Include="Rask.TestFiles"/>
     <!-- The linked files declare namespace Rask.Cli.Tests; the tests here are Rask.Templates.E2E.Tests. -->
     <Using Include="Rask.Cli.Tests"/>

@@ -62,8 +62,15 @@ internal static class TemplateCatalog
     /// database <em>in</em> — the server template, and the front-end templates' ASP.NET host.
     /// A pure browser-WASM SPA has no server to run them on.
     /// </summary>
+    /// <remarks>
+    ///     <c>ops</c> is deliberately NOT here. The operator dashboard is built from Rask components
+    ///     carrying <c>[Route]</c>, so it is reachable only through a Rask router — <c>UseRask&lt;TApp&gt;()</c>
+    ///     — which only the server template calls. On the front-end lanes it would register services no
+    ///     request can ever reach, so the flag is listed on the server template alone rather than
+    ///     accepted and then disregarded.
+    /// </remarks>
     private static readonly string[] DatabaseFlags =
-        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "ops"];
+        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs"];
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
@@ -72,7 +79,7 @@ internal static class TemplateCatalog
         // templates either already ARE the browser half or carry a hand-written one.
         new("server", "Rask Server app",
             new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags, "push", "wasm"],
+                [.. WebFlags, .. DatabaseFlags, "ops", "push", "wasm"],
                 StringComparer.Ordinal),
             // The server runtime carries ICU regardless, so scaffolding the registration costs nothing.
             ShipsLocalization: true),

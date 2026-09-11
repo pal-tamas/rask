@@ -28,7 +28,6 @@
       -p:RaskMetaBuild=false skips node entirely — the app still compiles and its API still works.
     -->
     <PackageReference Include="Rask.Meta.Hosting" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
     <!-- rask:if cqrs data -->
     <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
@@ -52,9 +51,6 @@
     <!-- rask:end -->
     <!-- rask:if logs -->
     <PackageReference Include="Rask.Logging" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if cqrs data ops -->
-    <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
   </ItemGroup>
 

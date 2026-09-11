@@ -9,7 +9,9 @@ public sealed class PlaywrightFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var exitCode = Program.Main(["install", "chromium"]);
+        // Fully qualified: this file is source-linked into Rask.Templates.E2E.Tests too, where a
+        // bare `Program` binds to that assembly's own generated entry point instead.
+        var exitCode = Microsoft.Playwright.Program.Main(["install", "chromium"]);
         if (exitCode != 0)
         {
             throw new InvalidOperationException($"playwright install chromium exited with code {exitCode}");
