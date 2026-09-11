@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "runtime": "vue",
+  "module": "fixture-vue",
+  "export": "PrimeButton",
+  "package": {
+    "name": "fixture-vue",
+    "version": "2.0.1"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "badge",
+      "required": false,
+      "type": {
+        "kind": "union",
+        "of": [
+          {
+            "kind": "boolean"
+          },
+          {
+            "kind": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "label",
+      "required": false,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onClick",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "MouseEvent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onUpdate:pressed",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "pressed",
+            "type": {
+              "kind": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "severity",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "info",
+          "warn"
+        ],
+        "open": true
+      }
+    }
+  ],
+  "skipped": []
+}

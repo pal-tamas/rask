@@ -1,0 +1,5 @@
+{
+  "name": "svelte",
+  "version": "5.0.0",
+  "types": "index.d.ts"
+}
