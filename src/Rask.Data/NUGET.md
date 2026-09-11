@@ -2,26 +2,34 @@
 
 A data layer for **Entity Framework Core** apps with one goal: **you declare models, and that is all**.
 No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
-`IDbContextFactory` injected into everything that reads a row. Underneath it is ordinary EF Core, and
-`Db.Current` is the real `DbContext` whenever you want it.
+`IDbContextFactory` injected into everything that reads a row or saves a form. Underneath it is ordinary
+EF Core, and work richer than that — a domain operation, a transaction — is EF Core exactly as you know it.
 
-- **`Model<TId>`** — a base entity with `Id`, audit stamps (`CreatedAt`/`UpdatedAt`), and a
-  domain-events buffer. A source generator finds every one of them and builds the model, so nothing is
-  scanned or reflected and a trimmed publish cannot quietly drop a table.
-- **The model type is its own `DbSet`** — `Product.Where(...)`, `Product.FindAsync(id)`,
-  `Product.Add/Update/Remove(...)`, `Product.CountAsync()`. C# 14 static extension members, so an entity
-  that compiles today has them. Reads are no-tracking by default and open no context until they run.
-- **`Db.Begin()`** — one short-lived ambient `DbContext` per unit of work, committed by a single
-  `SaveChangesAsync`. Nesting joins rather than nests, so `await entity.SaveAsync()` inside a caller's
-  transaction takes part in it instead of committing half of it.
+- **`Model<TId>`** — a base entity with `Id` and a domain-events buffer. A source generator finds every one
+  of them and builds the model, so nothing is scanned or reflected and a trimmed publish cannot quietly drop
+  a table.
+- **Reads off the type** — `Product.Where(...)`, `Product.FindAsync(id)`, `Product.CountAsync()`,
+  `Product.AsQueryable()`. C# 14 static extension members, so an entity that compiles today has them.
+  **Every read is untracked and opens and disposes its own context**, which is what makes them safe on a
+  page that lives as long as a browser's socket. `AsQueryable()` is a standard `IQueryable<T>` that opens a
+  context per execution — hand it to a data grid and it sorts and pages in the database.
+- **A generated `ProductModel`** — a settable, form-shaped copy of each entity (`Version` and its
+  DataAnnotations included, the key left out), with `Product.CreateAsync(model)`,
+  `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)` and `product.ToModel()`. Each write goes
+  through the change tracker, so the interceptors stamp, version, soft-delete and publish as for any save.
+  `[SkipModel]` keeps a property off the form; a write declared on the entity overrides the generated one.
+- **State stays inside the entity** — build warnings with lightbulb fixes flag a public setter or field on a
+  model or value object (RASK080) and an entity exposing a mutable collection of entities (RASK081).
+- **Domain operations and transactions are plain EF Core** — inject `IDbContextFactory<TContext>` on a live
+  page, or the context in a handler, call the method, and `SaveChangesAsync`.
 - **Value objects** (`IValueObject`) map as EF **complex types**, not owned entities; **strongly-typed
   ids** get a generated value converter with nothing declared; mapping rules live in a plain
   `public static void Configure(EntityTypeBuilder<T>)` on the model.
 - **`TestDatabase.StartAsync`** — a real database for a test in one line, so behaviour on a model is
   tested against the database it ships on rather than a mocked `DbContext`.
-- **Opt-in markers** — implement `ISoftDeletable` (adds `DeletedAt`) or `IVersioned` (adds a `Version`
-  concurrency token) on your entity to turn on the behavior.
-- **Three `ISaveChangesInterceptor`s** — auditing timestamps, **transparent soft delete** (a `Remove`
+- **Opt-in markers** — implement `ITimestamped` (adds `CreatedAt`/`UpdatedAt`), `ISoftDeletable` (adds
+  `DeletedAt`) or `IVersioned` (a `Version` concurrency token) on your entity to turn on the behavior.
+- **Three `ISaveChangesInterceptor`s** — auditing timestamps, **transparent soft delete** (a delete
   becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
 - **`BulkInsertAsync`** — the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
@@ -32,24 +40,33 @@ No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no reg
 ```csharp
 public sealed class Product : Model<Guid>, ISoftDeletable, IVersioned
 {
-    public string Name { get; private set; } = "";
-    public DateTime? DeletedAt { get; private set; }
-    public int Version { get; private set; }
+    private Product() { }
 
-    public static Product Create(string name) => new() { Id = Guid.NewGuid(), Name = name };
+    [Required, MaxLength(200)]
+    public string Name { get; private set; } = "";
+    public int Version { get; private set; }
 }
 
-// read — no context in scope, nothing left open
-var active = await Product.Where(p => p.DeletedAt == null).OrderBy(p => p.Name).ToListAsync();
+// read — no context in scope, nothing left open, nothing tracked
+var products = await Product.OrderBy(p => p.Name).ToListAsync();
 
-// write — one transaction over everything it touches
-await using var uow = Db.Begin();
-Product.Add(Product.Create("Anvil"));
-Product.Remove(discontinued);
-await uow.SaveChangesAsync();
+// write — the generated model, as a form hands it back
+var anvil = await Product.CreateAsync(new ProductModel { Name = "Anvil" });
+
+var edit = anvil.ToModel();
+edit.Name = "Anvil, large";
+var saved = await Product.UpdateAsync(anvil.Id, edit); // a stale Version throws DbUpdateConcurrencyException
+
+await Product.DeleteAsync(saved.Id, saved.Version); // a soft delete, through the interceptor
+
+// a domain operation — plain EF Core, one transaction
+await using var db = await contexts.CreateDbContextAsync(ct);
+var order = await db.Set<Order>().FirstAsync(o => o.Id == orderId, ct);
+order.Cancel(DateTime.UtcNow);
+await db.SaveChangesAsync(ct);
 ```
 
-In a Rask app that is the whole of it — the host builds the model and points the ambient database at it.
+In a Rask app that is the whole of it — the host builds the model and points the model surface at it.
 Elsewhere, name the context once and hand it over after the container is built:
 
 ```csharp
@@ -67,9 +84,10 @@ A class that does **not** derive from `Model` stays an ordinary EF Core entity: 
 and configurations and use them exactly as before. Registering an `IDbContextFactory<YourContext>` is
 the whole of opting out at the app level.
 
-`db.Remove(product)` now soft-deletes; deleted rows drop out of queries (use `IgnoreQueryFilters()` to
-restore); a save against a stale `Version` throws `DbUpdateConcurrencyException`; and any
-`INotification` raised on the entity is published after the change commits.
+A delete — `Product.DeleteAsync(id)` or `db.Remove(product)` — soft-deletes an `ISoftDeletable`; deleted
+rows drop out of queries (use `IgnoreQueryFilters()` to restore); a save against a stale `Version` throws
+`DbUpdateConcurrencyException`; and any `INotification` raised on the entity is published after the change
+commits.
 
 To load many rows at once — seeding, an import, a migration — `await db.BulkInsertAsync(products)` (or
 `db.Products.BulkInsertAsync(...)`) saves them in batches, clearing the change tracker between each so memory

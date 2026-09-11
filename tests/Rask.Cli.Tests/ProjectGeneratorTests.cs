@@ -310,8 +310,8 @@ public sealed class ProjectGeneratorTests
         // registers only the interceptors, and Db.Configure then has nothing to bind.
         Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
 
-        // …and the one call that points the ambient database at it, after the container is built. Without
-        // this the app boots and serves, and throws on the first Product.Add(…).
+        // …and the one call that points the model surface at it, after the container is built. Without
+        // this the app boots and serves, and throws on the first Product.Where(…).
         Assert.Contains("Db.Configure(app.Services);", program, StringComparison.Ordinal);
         Assert.True(
             program.IndexOf("var app = builder.Build();", StringComparison.Ordinal)

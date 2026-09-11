@@ -4,10 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data.Tests;
 
-// The DbSet-on-the-entity surface, end to end against a real SQLite file: no DbContext is injected or
-// named anywhere below the fixture, which is the whole point of it.
+// The read surface on the entity, end to end against a real SQLite file and bound the way an application
+// binds it — AddRaskData<TContext>() and one Db.Configure(services). No DbContext is named below the
+// fixture except to seed rows, which is the whole point of it.
 //
-// In the data-db collection because Db's ambient state is process-wide — two classes configuring it at
+// In the data-db collection because Db's configuration is process-wide — two classes configuring it at
 // once would point one another's queries at the wrong file.
 [Collection(DataDbCollection.Name)]
 public sealed class ModelSetTests : IDisposable
@@ -44,59 +45,9 @@ public sealed class ModelSetTests : IDisposable
     }
 
     [Fact]
-    public async Task Add_inside_a_unit_of_work_writes_on_save()
-    {
-        await using (var uow = Db.Begin())
-        {
-            Widget.Add(Widget.Create("anvil"));
-            Assert.Equal(1, await uow.SaveChangesAsync());
-        }
-
-        Assert.Equal(1, await Widget.CountAsync());
-        Assert.NotNull(await Widget.FirstOrDefaultAsync(w => w.Name == "anvil"));
-    }
-
-    [Fact]
-    public async Task Add_without_a_unit_of_work_says_so_rather_than_doing_nothing()
-    {
-        // The failure mode this replaces is the silent one: EF's Add writes nothing until a save, so a
-        // tracker verb with no unit of work behind it would look like it worked.
-        var error = Assert.Throws<InvalidOperationException>(() => Widget.Add(Widget.Create("orphan")));
-
-        Assert.Contains("Db.Begin()", error.Message, StringComparison.Ordinal);
-        Assert.Equal(0, await Widget.CountAsync());
-    }
-
-    [Fact]
-    public async Task A_unit_of_work_disposed_without_saving_writes_nothing()
-    {
-        await using (var uow = Db.Begin())
-        {
-            Widget.Add(Widget.Create("discarded"));
-            _ = uow;
-        }
-
-        Assert.Equal(0, await Widget.CountAsync());
-    }
-
-    [Fact]
-    public async Task One_unit_of_work_commits_several_entities_together()
-    {
-        await using (var uow = Db.Begin())
-        {
-            Widget.AddRange(Widget.Create("a"), Widget.Create("b"), Widget.Create("c"));
-            Assert.Equal(3, await uow.SaveChangesAsync());
-        }
-
-        Assert.Equal(3, await Widget.CountAsync());
-    }
-
-    [Fact]
-    public async Task Queries_need_no_unit_of_work_and_leave_nothing_open()
+    public async Task Queries_compose_with_no_context_in_scope()
     {
         await SeedAsync("alpha", "beta", "gamma");
-
-        Assert.False(Db.HasCurrent);
 
         var all = await Widget.All.ToListAsync();
         var ordered = await Widget.OrderBy(w => w.Name).ToListAsync();
@@ -109,7 +60,6 @@ public sealed class ModelSetTests : IDisposable
         Assert.Equal(["gamma", "alpha"], filtered.Select(w => w.Name));
         Assert.Equal(["beta"], page.Select(w => w.Name));
         Assert.Equal(["alpha", "beta", "gamma"], names);
-        Assert.False(Db.HasCurrent);
     }
 
     [Fact]
@@ -129,60 +79,33 @@ public sealed class ModelSetTests : IDisposable
     }
 
     [Fact]
-    public async Task Queries_are_no_tracking_by_default_and_AsTracking_opts_in()
+    public async Task A_query_held_between_runs_sees_the_rows_written_since()
     {
-        await SeedAsync("before");
+        // Every terminal opens its own context, so a half-built query kept in a field is not pinned to
+        // what the database held when it was built.
+        var live = Widget.Where(w => w.Name != "hidden");
+        Assert.Equal(0, await live.CountAsync());
 
-        // Untracked: the mutation is invisible to the save.
-        await using (var uow = Db.Begin())
-        {
-            var widget = await Widget.FirstOrDefaultAsync(w => w.Name == "before");
-            widget!.Rename("ignored");
-            Assert.Equal(0, await uow.SaveChangesAsync());
-        }
+        await SeedAsync("alpha", "hidden");
 
-        Assert.Equal("before", (await Widget.FirstOrDefaultAsync(w => w.Name == "before"))!.Name);
-
-        // Tracked: the same code writes.
-        await using (var uow = Db.Begin())
-        {
-            var widget = await Widget.AsTracking().Where(w => w.Name == "before").FirstOrDefaultAsync();
-            widget!.Rename("after");
-            Assert.Equal(1, await uow.SaveChangesAsync());
-        }
-
-        Assert.Equal(1, await Widget.CountAsync(w => w.Name == "after"));
+        Assert.Equal(1, await live.CountAsync());
+        Assert.Equal(["alpha"], (await live.OrderBy(w => w.Name).ToListAsync()).Select(w => w.Name));
     }
 
     [Fact]
-    public async Task Update_writes_back_an_entity_that_was_read_untracked()
+    public void ThenBy_before_any_ordering_says_what_to_call_first()
     {
-        // The intended round trip under the no-tracking default: read, change, hand it back.
-        await SeedAsync("before");
+        var error = Assert.Throws<InvalidOperationException>(() => Widget.All.ThenBy(w => w.Name));
 
-        var widget = await Widget.FirstOrDefaultAsync(w => w.Name == "before");
-        widget!.Rename("after");
-
-        await using (var uow = Db.Begin())
-        {
-            Widget.Update(widget);
-            Assert.Equal(1, await uow.SaveChangesAsync());
-        }
-
-        Assert.Equal(1, await Widget.CountAsync(w => w.Name == "after"));
+        Assert.Contains("OrderBy", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Remove_soft_deletes_through_the_interceptor()
+    public async Task A_generated_delete_soft_deletes_through_the_registered_interceptor()
     {
-        await SeedAsync("doomed");
+        var doomed = (await SeedAsync("doomed"))[0];
 
-        await using (var uow = Db.Begin())
-        {
-            var widget = await Widget.AsTracking().FirstOrDefaultAsync(w => w.Name == "doomed");
-            Widget.Remove(widget!);
-            await uow.SaveChangesAsync();
-        }
+        await GeneratedModelWrites.DeleteAsync<Widget>(doomed.Id, version: null);
 
         // Gone from ordinary queries — the global filter ApplyRaskConventions added.
         Assert.Equal(0, await Widget.CountAsync());
@@ -194,72 +117,23 @@ public sealed class ModelSetTests : IDisposable
     }
 
     [Fact]
-    public async Task FindAsync_returns_the_row_by_key()
+    public async Task A_generated_create_publishes_its_domain_events_after_commit()
     {
-        Guid id;
-        await using (var uow = Db.Begin())
-        {
-            var widget = Widget.Create("findable");
-            Widget.Add(widget);
-            await uow.SaveChangesAsync();
-            id = widget.Id;
-        }
+        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("evented"));
 
-        var found = await Widget.FindAsync(id);
-
-        Assert.NotNull(found);
-        Assert.Equal("findable", found.Name);
-        Assert.Null(await Widget.FindAsync(Guid.NewGuid()));
+        Assert.Contains(_recorder.Events, e => e is WidgetCreated created && created.Id == widget.Id);
+        Assert.Empty(widget.DomainEvents);
     }
 
     [Fact]
-    public async Task A_nested_Begin_joins_the_outer_unit_of_work_and_does_not_commit_it()
+    public async Task A_generated_update_publishes_the_events_its_change_raised()
     {
-        await using (var outer = Db.Begin())
-        {
-            await using (var inner = Db.Begin())
-            {
-                Assert.False(inner.IsRoot);
-                Assert.Same(outer.Context, inner.Context);
+        var widget = (await SeedAsync("before"))[0];
 
-                Widget.Add(Widget.Create("nested"));
+        await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: null, w => w.Rename("after"));
 
-                // The inner handle must not commit its caller's transaction.
-                Assert.Equal(0, await inner.SaveChangesAsync());
-            }
-
-            // Disposing the inner handle left the outer context alive and its changes pending.
-            Assert.Equal(0, await Widget.CountAsync());
-            Assert.Equal(1, await outer.SaveChangesAsync());
-        }
-
-        Assert.Equal(1, await Widget.CountAsync());
-    }
-
-    [Fact]
-    public async Task A_query_inside_a_unit_of_work_joins_it_rather_than_opening_a_second_context()
-    {
-        await using var uow = Db.Begin();
-
-        Widget.Add(Widget.Create("pending"));
-        await uow.SaveChangesAsync();
-
-        // Reading through the same unit of work sees the write; a second context would too, but only
-        // after the commit — what this pins is that the read did not open one.
-        Assert.Same(uow.Context, Db.Current);
-        Assert.Equal(1, await Widget.CountAsync());
-    }
-
-    [Fact]
-    public async Task Domain_events_still_publish_through_the_interceptor()
-    {
-        await using (var uow = Db.Begin())
-        {
-            Widget.Add(Widget.Create("evented"));
-            await uow.SaveChangesAsync();
-        }
-
-        Assert.Contains(_recorder.Events, e => e is WidgetCreated);
+        Assert.Contains(_recorder.Events, e => e is WidgetRenamed renamed && renamed.Id == widget.Id);
+        Assert.Equal(1, await Widget.CountAsync(w => w.Name == "after"));
     }
 
     [Fact]
@@ -278,28 +152,29 @@ public sealed class ModelSetTests : IDisposable
     }
 
     [Fact]
-    public async Task Db_Set_reaches_the_ambient_context_directly()
+    public async Task A_read_before_Configure_says_how_to_configure()
     {
-        await using var uow = Db.Begin();
+        Db.Reset();
 
-        Db.Set<Widget>().Add(Widget.Create("via-db-set"));
-        await uow.SaveChangesAsync();
+        Assert.False(Db.IsConfigured);
 
-        Assert.Equal(1, await Db.Set<Widget>().CountAsync());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.CountAsync());
+        Assert.Contains("Db.Configure", error.Message, StringComparison.Ordinal);
+
+        // A queryable composed before startup (a page field, say) fails the same way when it runs, not
+        // when it is built.
+        var query = Widget.AsQueryable().Where(w => w.Name != "");
+        Assert.Throws<InvalidOperationException>(() => query.Count());
     }
 
-    [Fact]
-    public void Current_without_a_unit_of_work_explains_how_to_open_one()
+    private async Task<Widget[]> SeedAsync(params string[] names)
     {
-        var error = Assert.Throws<InvalidOperationException>(() => Db.Current);
+        var widgets = names.Select(Widget.Create).ToArray();
 
-        Assert.Contains("Db.Begin()", error.Message, StringComparison.Ordinal);
-    }
+        await using var db = _provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContext();
+        db.Widgets.AddRange(widgets);
+        await db.SaveChangesAsync();
 
-    private static async Task SeedAsync(params string[] names)
-    {
-        await using var uow = Db.Begin();
-        Widget.AddRange(names.Select(Widget.Create));
-        await uow.SaveChangesAsync();
+        return widgets;
     }
 }

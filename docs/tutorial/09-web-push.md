@@ -7,8 +7,9 @@ Shop can email. Email is right for a receipt and wrong for "your driver is two m
 delivers to a device whose browser isn't even open — and you can send it from your own server, on your own
 keys, with no notification service in the middle.
 
-`--push` wires this up. It implies `--pwa`, because a browser will only accept a push subscription through
-a **service worker**, which is what the PWA registration installs.
+Every `rask new` app has this wired (`--no-push` leaves it out). It rides on the installable PWA, because a
+browser will only accept a push subscription through a **service worker**, which is what the PWA registration
+installs — so `--no-pwa` takes push with it.
 
 ## 1. What the scaffold gave you
 
@@ -28,8 +29,8 @@ builder.Services.AddSingleton<PushSubscriptionStore>();
 ```
 
 …plus `Features/Push/PushSubscriptions.cs`: an in-memory store of subscribed browsers and three endpoints —
-`/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` — mapped **before** `UseRask<App>()`, since its
-catch-all serves the SPA for anything unmatched.
+`/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` — mapped by `app.MapPushSubscriptions()` **before**
+`UseRask<App>()`, since its catch-all serves the app for anything unmatched.
 
 Note what is and isn't gated. Sending needs keys, so `AddRaskWebPush` is behind the config check — a fresh
 scaffold has to start before you've generated any. The store and its endpoints are always registered, so
@@ -63,7 +64,7 @@ From a page, ask for permission and subscribe. `IWebPush` (in `Rask.Core.Browser
 public sealed partial class EnablePushButton(IWebPush push, HttpClient http) : Component
 {
     protected override Component? Render() =>
-        BsButton.OnClick(SubscribeAsync)["Notify me about my orders"];
+        UiButton.OnClick(SubscribeAsync)["Notify me about my orders"];
 
     private async Task SubscribeAsync()
     {
@@ -81,7 +82,10 @@ not in `OnMountAsync`. Asking on page load is also how you get permanently denie
 
 ## 4. Send from the outbox handler
 
-Chapter 7's handler already reacts to an order committing. Push is one more thing hanging off it:
+Chapter 7's handler already reacts to an order being placed. Shipping has the same shape: give `Order` a
+`Ship()` method that raises an `OrderShipped` event — an `IOutboxEvent`, like `OrderPlaced` — and save it
+through `IDbContextFactory<AppDbContext>` the way chapter 7's `PlaceOrder` saves `Place`. Push is then one
+more handler hanging off that event:
 
 ```csharp
 public sealed class OrderShippedHandler(IWebPush sender, PushSubscriptionStore store)

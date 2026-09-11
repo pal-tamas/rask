@@ -502,13 +502,14 @@ internal static partial class ProjectGenerator
 
         if (batteries.Data)
         {
-            // Points the ambient database at the context registered above, once, after the container
-            // exists. Without it every Product.Add(…) / Product.Where(…) throws "The ambient database has
+            // Points the model surface at the context registered above, once, after the container exists.
+            // Without it every Product.Where(…) / Product.CreateAsync(model) throws "The model database has
             // not been configured" — the app boots, serves, and fails only on the first line of data code.
             // Nothing in Rask.Server can do this for you: it does not reference Rask.Data at all.
             sb.Append("""
-                // Point the ambient database at the context registered above. This is what lets a model be
-                // used from anywhere — Product.Where(…), Product.FindAsync(id) — with no DbContext injected.
+                // Point the model surface at the context registered above. This is what lets a model be read
+                // and saved from anywhere — Product.Where(…), Product.CreateAsync(model) — with no DbContext
+                // injected.
                 Db.Configure(app.Services);
 
                 """.TrimStart('\n'));
@@ -704,8 +705,9 @@ internal static partial class ProjectGenerator
             steps.Append("  {\n");
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");
-            steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it. Query it off the type\n");
-            steps.Append("itself: Product.Where(...), Product.FindAsync(id), Product.Add(p).\n");
+            steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it. Read it off the type\n");
+            steps.Append("itself — Product.Where(...), Product.FindAsync(id) — and save a form with the\n");
+            steps.Append("generated Product.CreateAsync(model) / Product.UpdateAsync(id, model).\n");
         }
 
         if (batteries.Push)

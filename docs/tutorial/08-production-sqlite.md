@@ -18,26 +18,28 @@ You already have this. `rask new` writes `UseRaskSqlite` rather than `UseSqlite`
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db")
+    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
 
 It is a drop-in for `UseSqlite` that also installs the pragma interceptor — one word, and every background
-processor (jobs, mail, outbox) and every page shares a connection that won't spuriously fail under load.
-Retrofitting an existing app is the same one-word change — the package is already there, since `Rask`
-brings it.
+processor (jobs, mail, outbox), every page, and every `Product.Where(…)` or `Product.CreateAsync(…)` shares a
+connection that won't spuriously fail under load. `StrictTables` makes SQLite enforce each column's declared
+type rather than quietly storing the text `"lots"` in an `INTEGER` column — see
+[STRICT tables](../sqlite.md#strict-tables--making-the-store-enforce-your-types). Retrofitting an existing app
+is the same one-word change — the package is already there, since `Rask` brings it.
 
 See [production SQLite](../sqlite.md) for the full pragma table, the load-test numbers, and the
 non-blocking write-retry story.
 
 ## 2. Snapshots — the cheap half
 
-`--snapshots` wires scheduled point-in-time backups:
+Every `rask new` app takes scheduled point-in-time backups (`--no-snapshots` leaves them out):
 
 ```csharp
 builder.Services.AddRaskSqliteSnapshots(o =>
 {
-    o.DatabasePath = builder.Configuration["Sqlite:Path"] ?? "app.db";
+    o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
     o.DestinationDirectory = builder.Configuration["Sqlite:SnapshotDirectory"] ?? "snapshots";
     o.Interval = TimeSpan.FromHours(6);
     o.Retain = 7;
@@ -52,9 +54,9 @@ live database. No external binary, no credentials.
 ## 3. Litestream — the off-box half
 
 Snapshots on the same disk protect you from a bad migration, not from losing the disk. That's what
-continuous backup is for, and `--data` already wired it in Chapter 1 — `Rask.SQLite.Litestream` runs
-[Litestream](https://litestream.io) as a managed background service that **streams every change off the
-box** to object storage (S3, GCS, Azure Blob, or a file target):
+continuous backup is for, and the database block `rask new` wrote in Chapter 1 already wired it —
+`Rask.SQLite.Litestream` runs [Litestream](https://litestream.io) as a managed background service that
+**streams every change off the box** to object storage (S3, GCS, Azure Blob, or a file target):
 
 ```csharp
 var replicaUrl = builder.Configuration["Litestream:ReplicaUrl"];
@@ -62,12 +64,14 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 {
     builder.Services.AddRaskSqliteLitestream(o =>
     {
-        o.DatabasePath = builder.Configuration["Sqlite:Path"] ?? "app.db";
+        o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
         o.ReplicaUrl = replicaUrl;
     });
 }
 
 var app = builder.Build();
+
+// (Db.Configure and the first middleware sit here — nothing that touches the database.)
 
 if (!string.IsNullOrWhiteSpace(replicaUrl))
 {
@@ -78,14 +82,15 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 
 Two details the scaffold gets right and are easy to get wrong by hand:
 
-- **The restore runs first**, before the schema is created or any pillar's processor starts. Restore is
-  skipped once the file exists, so putting it later means a fresh machine quietly starts with an empty
-  database instead of your data.
+- **The restore runs first**, before any query or pillar processor opens the database. Restore is skipped
+  once the file exists, so putting it later means a fresh machine quietly starts with an empty database
+  instead of your data.
 - **Both halves are gated on the same config.** Litestream stays off until you set a replica URL, so
   `dotnet run` works on a laptop with no `litestream` binary and no cloud credentials. (The restore call
   throws when Litestream was never registered — useful for a real wiring mistake, fatal for a fresh
   scaffold, hence the guard.) The csproj also sets `RaskLitestreamDownload=false`: the binary belongs in
-  the Docker image, which `--docker` copies it into, rather than being fetched during everyone's build.
+  the Docker image, which the scaffolded `Dockerfile` copies it into, rather than being fetched during
+  everyone's build.
 
 Set the replica when you deploy:
 

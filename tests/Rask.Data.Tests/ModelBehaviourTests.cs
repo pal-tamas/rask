@@ -45,18 +45,24 @@ public sealed class Order : Model<Guid>, ITimestamped, ISoftDeletable
 
     /// <summary>
     ///     Behaviour that needs the database: an order with a dispatched shipment cannot be cancelled,
-    ///     and only the database knows. Saves itself, so the caller has nothing to remember.
+    ///     and only the database knows.
     /// </summary>
-    public async Task<bool> TryCancelAsync(DateTime when, CancellationToken cancellationToken = default)
+    /// <remarks>
+    ///     A domain operation is ordinary EF Core. It is handed the context its caller saves, so a caller
+    ///     cancelling two orders commits both in one <c>SaveChangesAsync</c> or neither.
+    /// </remarks>
+    public async Task<bool> TryCancelAsync(DbContext db, DateTime when, CancellationToken cancellationToken = default)
     {
-        if (await Shipment.AnyAsync(s => s.OrderId == Id && s.Dispatched, cancellationToken).ConfigureAwait(false))
+        ArgumentNullException.ThrowIfNull(db);
+
+        if (await db.Set<Shipment>()
+                .AnyAsync(s => s.OrderId == Id && s.Dispatched, cancellationToken)
+                .ConfigureAwait(false))
         {
             return false;
         }
 
         Cancel(when);
-        // `this.` is required: SaveAsync is an extension member, so it needs a receiver even here.
-        await this.SaveAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 }
@@ -136,15 +142,15 @@ public sealed class ModelBehaviourTests : IDisposable
     // ---- Behaviour that reads the database: one line of fixture --------------------------------
 
     [Fact]
-    public async Task Cancelling_saves_itself_with_no_unit_of_work_around_it()
+    public async Task A_domain_operation_decides_against_the_database_and_its_caller_saves()
     {
         await using var database = await StartDatabaseAsync();
 
         var order = Order.Place("B-1");
-        await SeedAsync(order, Shipment.For(order.Id, dispatched: false));
+        await SeedAsync(database, order, Shipment.For(order.Id, dispatched: false));
 
-        // No Db.Begin() here: TryCancelAsync saves through SaveAsync, which is its own unit of work.
-        Assert.True(await order.TryCancelAsync(Now));
+        Assert.True(await order.TryCancelAsync(database.Context, Now));
+        await database.Context.SaveChangesAsync();
 
         var reloaded = await Order.FindAsync(order.Id);
         Assert.Equal(OrderStatus.Cancelled, reloaded!.Status);
@@ -157,9 +163,10 @@ public sealed class ModelBehaviourTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         var order = Order.Place("B-2");
-        await SeedAsync(order, Shipment.For(order.Id, dispatched: true));
+        await SeedAsync(database, order, Shipment.For(order.Id, dispatched: true));
 
-        Assert.False(await order.TryCancelAsync(Now));
+        Assert.False(await order.TryCancelAsync(database.Context, Now));
+        Assert.Equal(0, await database.Context.SaveChangesAsync());
 
         var reloaded = await Order.FindAsync(order.Id);
         Assert.Equal(OrderStatus.Open, reloaded!.Status);
@@ -167,49 +174,21 @@ public sealed class ModelBehaviourTests : IDisposable
     }
 
     [Fact]
-    public async Task A_model_that_saves_itself_joins_its_callers_transaction_rather_than_committing_it()
+    public async Task Two_domain_operations_commit_together_in_their_callers_save()
     {
-        // The rule that makes a self-saving method safe to call from anywhere: inside a unit of work it
-        // tracks and waits. A caller who wrapped two orders in one transaction gets one transaction, and
-        // abandoning it abandons both — rather than the first having quietly committed itself.
-        await using var database = await StartDatabaseAsync();
-
-        var first = Order.Place("C-1");
-        var second = Order.Place("C-2");
-        await SeedAsync(first);
-        await SeedAsync(second);
-
-        await using (var uow = Db.Begin())
-        {
-            Assert.True(await first.TryCancelAsync(Now));
-            Assert.True(await second.TryCancelAsync(Now));
-
-            // Nothing is written yet, even though both models "saved themselves".
-            Assert.Equal(2, await Order.CountAsync(o => o.Status == OrderStatus.Open));
-
-            // Disposed without a SaveChangesAsync: the whole unit of work is discarded.
-        }
-
-        Assert.Equal(2, await Order.CountAsync(o => o.Status == OrderStatus.Open));
-        Assert.Equal(0, await Order.CountAsync(o => o.Status == OrderStatus.Cancelled));
-    }
-
-    [Fact]
-    public async Task The_callers_commit_writes_everything_the_models_saved()
-    {
+        // No Rask-owned unit of work: one context, two operations, one SaveChangesAsync. Until it runs,
+        // the model's own reads — each on a context of its own — see nothing.
         await using var database = await StartDatabaseAsync();
 
         var first = Order.Place("D-1");
         var second = Order.Place("D-2");
-        await SeedAsync(first);
-        await SeedAsync(second);
+        await SeedAsync(database, first, second);
 
-        await using (var uow = Db.Begin())
-        {
-            await first.TryCancelAsync(Now);
-            await second.TryCancelAsync(Now);
-            await uow.SaveChangesAsync();
-        }
+        Assert.True(await first.TryCancelAsync(database.Context, Now));
+        Assert.True(await second.TryCancelAsync(database.Context, Now));
+        Assert.Equal(0, await Order.CountAsync(o => o.Status == OrderStatus.Cancelled));
+
+        await database.Context.SaveChangesAsync();
 
         Assert.Equal(2, await Order.CountAsync(o => o.Status == OrderStatus.Cancelled));
     }
@@ -221,7 +200,7 @@ public sealed class ModelBehaviourTests : IDisposable
         await using var database = await StartDatabaseAsync(clock);
 
         var order = Order.Place("B-3");
-        await SeedAsync(order);
+        await SeedAsync(database, order);
 
         var reloaded = await Order.FindAsync(order.Id);
 
@@ -234,14 +213,10 @@ public sealed class ModelBehaviourTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         var order = Order.Place("B-4");
-        await SeedAsync(order);
+        await SeedAsync(database, order);
 
-        await using (var uow = Db.Begin())
-        {
-            var tracked = await Order.AsTracking().FirstOrDefaultAsync(o => o.Id == order.Id);
-            Order.Remove(tracked!);
-            await uow.SaveChangesAsync();
-        }
+        database.Context.Remove(order);
+        await database.Context.SaveChangesAsync();
 
         // The interceptors are wired by the fixture, so the conventions behave as they do in production.
         Assert.Equal(0, await Order.CountAsync());
@@ -251,11 +226,9 @@ public sealed class ModelBehaviourTests : IDisposable
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>
         TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
 
-    private static async Task SeedAsync(Order order, params Shipment[] shipments)
+    private static async Task SeedAsync(TestDatabase database, params Model[] entities)
     {
-        await using var uow = Db.Begin();
-        Order.Add(order);
-        Shipment.AddRange(shipments);
-        await uow.SaveChangesAsync();
+        database.Context.AddRange(entities);
+        await database.Context.SaveChangesAsync();
     }
 }

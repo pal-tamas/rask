@@ -4,11 +4,12 @@
 
 `Rask.Data` is a layer over **Entity Framework Core** with one goal: **you declare models, and that is
 all**. No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and
-no `IDbContextFactory` injected into every page that reads a row.
+no `IDbContextFactory` injected into every page that reads a row or saves a form.
 
-Underneath it is ordinary EF Core, and nothing is hidden from you: `Db.Current` is the real
-`DbContext`, and an app that outgrows this writes its own context and Rask steps aside
-([below](#using-ef-core-the-usual-way)).
+Underneath it is ordinary EF Core, and nothing is hidden from you. Work richer than a read or a form's
+worth of write — a domain operation, a transaction across two aggregates — is EF Core exactly as you know
+it ([below](#domain-operations-and-transactions-plain-ef-core)), and an app that outgrows the conventions
+writes its own context and Rask steps aside ([below](#using-ef-core-the-usual-way)).
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -19,24 +20,34 @@ Underneath it is ordinary EF Core, and nothing is hidden from you: `Db.Current` 
 ## The whole of it
 
 ```csharp
-public sealed class Product : Model<Guid>
+public sealed class Product : Model<Guid>, ITimestamped, IVersioned
 {
-    private Product() { }                                 // EF materialization
+    private Product() { }                                  // EF materialization
 
-    public string Name  { get; private set; } = "";
+    [Required, MaxLength(200)]
+    public string Name   { get; private set; } = "";
     public decimal Price { get; private set; }
-    public bool Active  { get; private set; }
-
-    public static Product Create(string name, decimal price) =>
-        new() { Id = Guid.CreateVersion7(), Name = name, Price = price, Active = true };
-
-    public void Reprice(decimal price) => Price = price;
+    public int Version   { get; private set; }             // IVersioned's token — see below
 }
 ```
 
-That compiles into a mapped table. A source generator finds every `Model` at build time and hands the
-model to `RaskAppDbContext`; the host points the ambient database at it. There is nothing else to write
-and nothing to register.
+That compiles into a mapped table, and into everything a screen needs to use it:
+
+```csharp
+var cheap = await Product.Where(p => p.Price < 10).OrderBy(p => p.Name).ToListAsync();
+
+var anvil = await Product.CreateAsync(new ProductModel { Name = "Anvil", Price = 9.99m });
+
+var edit = anvil.ToModel();          // a mutable copy, for a form
+edit.Price = 12.50m;
+await Product.UpdateAsync(anvil.Id, edit);   // writes Price; throws if someone saved since
+
+await Product.DeleteAsync(anvil.Id);
+```
+
+A source generator finds every `Model` at build time, hands it to `RaskAppDbContext`, and writes a
+`ProductModel` beside it with the writes that take one; the host points the model surface at the
+database. There is nothing else to write and nothing to register.
 
 **Generated, never reflected.** No assembly is scanned and no method is found by name, so a trimmed
 publish cannot quietly drop an entity and leave you a missing table with a green build.
@@ -48,7 +59,7 @@ enough, and the column is added as an EF *shadow property*:
 | Interface | Column | Effect |
 |-----------|--------|--------|
 | `ITimestamped` | `CreatedAt`, `UpdatedAt` | Stamped on insert and on every update. |
-| `ISoftDeletable` | `DeletedAt` | `Remove` becomes a `DeletedAt` stamp; a global query filter hides it. |
+| `ISoftDeletable` | `DeletedAt` | A delete becomes a `DeletedAt` stamp; a global query filter hides it. |
 | `IVersioned` | `Version` | The optimistic-concurrency token; bumped on every update. |
 
 ```csharp
@@ -77,13 +88,14 @@ the CLR setter. What is not declared is still reachable when something genuinely
 `EF.Property<DateTime>(product, "CreatedAt")`.
 
 **`IVersioned` is the exception and must declare `public int Version { get; private set; }`.**
-Optimistic concurrency exists to round-trip the token through an edit form, and a value the application
-cannot read is one it cannot send back. A model that marks itself versioned without the property is
-refused while the model is built, by name, rather than failing later as an update that matched no row.
+Optimistic concurrency exists to round-trip the token through an edit form — `ProductModel` carries it
+there and back — and a value the application cannot read is one it cannot send back. A model that marks
+itself versioned without the property is refused while the model is built, by name, rather than failing
+later as an update that matched no row.
 
-## Reading: the model type is its own `DbSet`
+## Reading: the model type is its own query
 
-Every `Model` gains `DbSet`'s surface as static members, so a query needs no context in scope:
+Every `Model` gains the read half of `DbSet` as static members, so a query needs no context in scope:
 
 ```csharp
 await Product.All.ToListAsync();
@@ -100,16 +112,32 @@ await foreach (var p in Product.AsAsyncEnumerable()) { }
 ```
 
 These are C# 14 static extension members over `Model`, which is why nothing has to be declared or
-derived from a second base. A member declared on the model itself always wins, so your own `Create` or
-`Find` is untouched.
+derived from a second base. A member declared on the model itself always wins, so your own `Find` is
+untouched.
 
-Composing does **not** hold a context open. The terminal call opens one, runs, and disposes it before
-it returns — so this is a complete statement anywhere, including a component's `OnMountAsync`:
+**Every read is untracked, and every read opens and disposes its own context.** Composing holds nothing
+open: the terminal call opens a context, runs, and disposes it before it returns — so this is a complete
+statement anywhere, including a component's `OnMountAsync`:
 
 ```csharp
 protected override async Task OnMountAsync() =>
     _products = await Product.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync(CancellationToken);
 ```
+
+That is the shape a live page needs, not a default to tune. A Rask page lives as long as the browser
+keeps its socket open, and a `DbContext` is neither thread-safe nor meant to accumulate a session's worth
+of entities — so nothing here holds one between calls, and there is no `AsTracking()` to ask for one.
+Most reads are rendered and never written back anyway, and tracking them would cost a graph walk and an
+identity-map entry to buy nothing.
+
+**The consequence to know:** a row that comes back is a plain object nothing is watching, so changing it
+and expecting a save does nothing. A change goes back through [the generated
+writes](#writing-the-generated-model), or through [a context you
+inject](#domain-operations-and-transactions-plain-ef-core) when it is a domain operation.
+
+`FindAsync(id)` is a read like the others: an untracked query by primary key, with the global query
+filters applied, so a soft-deleted row is not found. Its key is typed `object`, as EF Core's is, because
+a key may be composite — an overload takes the values of one.
 
 For a shape this does not wrap — a group-by, a join, an aggregate — `QueryAsync` hands you the live
 `IQueryable` inside a managed context:
@@ -121,100 +149,260 @@ var byMonth = await Product.All.QueryAsync((q, ct) =>
      .ToListAsync(ct));
 ```
 
-### Queries are no-tracking by default
+### Handing a query to a component: `AsQueryable()`
 
-Most reads are rendered and never written back, and outside a unit of work the context is discarded as
-the call returns — so tracking would cost a graph walk to buy nothing.
-
-**The consequence to know:** mutating a row that came back untracked and then saving does *nothing*.
-Write it back explicitly with `Product.Update(entity)`, which is the ordinary way round here, or ask
-for tracking with `.AsTracking()` and mutate in place.
-
-## Writing: a unit of work
-
-`Add`, `Update` and `Remove` are EF Core's own verbs and mean exactly what they mean in EF — they tell
-the change tracker what happened and write nothing until a save. So they need a unit of work, and say
-so plainly when there is none rather than appearing to work:
+A data grid composes its own LINQ — it sorts with `OrderBy`, pages with `Skip`/`Take`, counts with
+`Count()` — so what it wants is a standard `IQueryable<T>`, not a query somebody has to run.
+`Product.AsQueryable()` is that, and it holds no context either: **each time it is executed, a context is
+opened for that one execution and disposed after it.** So it is safe to keep in a field for as long as
+the page lives:
 
 ```csharp
-await using var uow = Db.Begin();
-
-Product.Add(Product.Create("Anvil", 9.99m));
-Product.Remove(discontinued);
-Order.Update(order);
-
-await uow.SaveChangesAsync();          // one transaction across all three
-```
-
-Disposing without saving writes nothing, so a unit of work that throws part-way leaves the database
-untouched. The context is created lazily, so wrapping a method that turns out to touch no data costs
-one `AsyncLocal` write.
-
-**Nesting joins rather than nests.** `Db.Begin()` inside an open unit of work returns a handle onto the
-same context, and disposing it neither saves nor disposes the outer one — so a helper can open a unit
-of work unconditionally and still take part in its caller's transaction.
-
-### A model can save itself
-
-Behaviour on the model can finish the job, so the caller has nothing to remember:
-
-```csharp
-public async Task<bool> TryCancelAsync(DateTime when, CancellationToken ct = default)
+[Route("/products")]
+public sealed partial class ProductsPage : Component
 {
-    if (await Shipment.AnyAsync(s => s.OrderId == Id && s.Dispatched, ct))
-        return false;
+    private readonly IQueryable<Product> _products = Product.Where(p => p.Price > 0).AsQueryable();
 
-    Cancel(when);                  // the decision
-    await this.SaveAsync(ct);      // now make it true
-    return true;
+    protected override Component Render() =>
+        UiDataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
+            c.Field(p => p.Name).Title("Product").Sortable(true),
+            c.Field(p => p.Price).Title("Price").Sortable(true),
+        ]];
 }
 ```
 
-Outside a unit of work `SaveAsync` *is* one — a context is opened, the row is written, the context is
-disposed — so `await order.TryCancelAsync(now)` is a complete operation with no `Db.Begin()` around it.
+The grid's sort becomes `ORDER BY` and its page becomes `LIMIT`/`OFFSET`, in the database — the table
+never reaches memory, however large it is. A synchronous `Count()` and an awaited `ToListAsync()` both
+work against it; each is its own short-lived context. See [the data grid](data-grid.md) for the rest of
+what the grid does with a query.
 
-**It inserts a model that has never been persisted and updates one that has**, and `DeleteAsync` is its
-counterpart, so a single write of any kind is a one-liner:
-
-```csharp
-var order = Order.Place("A-1");
-await order.SaveAsync();        // insert
-order.Cancel(now);
-await order.SaveAsync();        // update
-await order.DeleteAsync();      // soft delete, through the interceptor
-```
-
-That leaves `Db.Begin()` for the one thing it is actually needed for: **putting several models in one
-transaction**.
-
-An `ITimestamped` model answers the insert-or-update question for free: the auditing interceptor stamps
-`CreatedAt` on insert and nothing else ever writes it, so a default value means "never persisted" — no
-extra `SELECT`, and no guessing from whether the key is set, which for a client-assigned `Guid` it
-always is. A model **without** the stamps is asked instead: one `SELECT` by primary key, and only on a
-detached save — a tracked model never reaches that path. A row whose `CreatedAt` was never populated (a
-table predating these conventions) reads as new and fails loudly on the duplicate key rather than
-writing the wrong thing; `Update` is the explicit way to save one of those.
-
-`DeleteAsync` goes through the change tracker, so an `ISoftDeletable` is stamped rather than removed and
-domain events are still announced — the difference from `ExecuteDeleteAsync`, which the interceptors
-never see.
-
-**Inside a unit of work it joins rather than commits.** The change is tracked and written when the
-*caller's* unit of work commits, so wrapping two orders in one transaction still gives one transaction,
-and abandoning it abandons both. A model's own method can never commit half of its caller's work:
+**EF Core's own operators go on first.** `Include`, `IgnoreQueryFilters` and `AsSplitQuery` are EF Core
+extension methods, and EF applies them only to its own query provider — called on the queryable
+`AsQueryable()` returns, they do nothing, silently. Put them on the model query, before the hand-off:
 
 ```csharp
-await using var uow = Db.Begin();
+Product.Include(p => p.Reviews).AsQueryable();        // ✓ travels with the queryable
+Product.IgnoreQueryFilters().AsQueryable();           // ✓ soft-deleted rows too
 
-await first.TryCancelAsync(now);    // tracked, not written
-await second.TryCancelAsync(now);   // tracked, not written
-
-await uow.SaveChangesAsync();       // both, in one transaction
+Product.AsQueryable().Include(p => p.Reviews);        // ✗ compiles, loads no reviews
 ```
 
-`this.` is required inside the model itself: `SaveAsync` is an extension member, so it needs a receiver.
-It writes an existing row — a new model is inserted with `Add`, which says so at the call site rather
-than leaving insert-or-update to be inferred from whether a key happens to be set.
+## Writing: the generated model
+
+A form edits something mutable, and a well-kept entity is not: its setters are private so that it only
+changes through its own rules. So for every model the build generates a companion that *is* mutable —
+`ProductModel` — and the writes that take it. For the `Product` above:
+
+```csharp
+// generated, in Product's namespace (abridged)
+public sealed partial class ProductModel
+{
+    [Required, MaxLength(200)]
+    public string Name { get; set; }
+
+    public decimal Price { get; set; }
+
+    public int Version { get; set; }
+}
+```
+
+| Generated | What it does |
+| --- | --- |
+| `ProductModel` | A settable copy of every mapped property except the key. `Version` is in it; `Id`, `CreatedAt`, `UpdatedAt`, `DeletedAt` and navigations are not. DataAnnotations attributes are copied, so a form bound to it validates by the entity's own rules. |
+| `Product.CreateAsync(model, ct)` | Constructs a `Product` from the model and inserts it. A `Guid` key is assigned (`Guid.CreateVersion7()`); an integer key comes from the database. Returns the entity. |
+| `Product.CreateAsync(id, model, ct)` | The same, with the key you give — an imported id, one a client chose. The only create generated for a key Rask cannot produce, such as a strongly-typed id over an `int`. |
+| `Product.UpdateAsync(id, model, ct)` | Loads the row with `id`, applies the values and saves — only the columns whose values changed are written. Returns the entity. |
+| `Product.DeleteAsync(id, version, ct)` | Loads the row and deletes it. `version` is optional. |
+| `product.ToModel()` | The entity's current values as a `ProductModel`, for an edit form. |
+
+Each write opens a context, makes its one change **through the change tracker**, saves and disposes. So
+the interceptors see it exactly as they see any other save: `CreatedAt`/`UpdatedAt` are stamped,
+`Version` is bumped, an `ISoftDeletable` is stamped rather than removed, and the entity's domain events
+are published after the commit — the difference from [`ExecuteDeleteAsync`](#batch-update-and-delete),
+which the interceptors never see.
+
+**The entity needs no ceremony for this.** A private parameterless constructor and private setters are
+fine, and the class does not have to be `partial`: the writes are generated as static extension members,
+the same way the reads are, so `Product` stays closed to everyone but its own methods. They live in
+`Product`'s namespace, so code that can name `Product` has them.
+
+### Keeping state inside the entity
+
+Two build warnings hold an entity to that shape, because a generated model is only a safe way to edit an
+entity whose own members cannot be written from outside it:
+
+- **No public setters** ([RASK080](diagnostics.md#rask080)). A property of a `Model` — or of an abstract
+  base the app puts between `Model` and its entities, or of an `IValueObject` — may not have a public `set`
+  or `init`, and a public field must be `readonly`. State changes through the type's own methods and
+  constructor; the lightbulb makes the accessor `private`. A positional record's parameters are exempt, so
+  `record Money(decimal Amount, string Currency) : IValueObject` stays the idiomatic value object.
+- **No mutable collections of entities** ([RASK081](diagnostics.md#rask081)). A navigation to many
+  entities is exposed read-only, over a private field EF Core maps, and changed through a method. The
+  lightbulb rewrites it:
+
+```csharp
+public sealed class Order : Model<Guid>
+{
+    private readonly List<OrderLine> _lines = [];
+
+    public IReadOnlyCollection<OrderLine> Lines => _lines;
+
+    public void AddLine(Guid productId, int quantity) => _lines.Add(OrderLine.For(productId, quantity));
+}
+```
+
+### What each write promises
+
+- **`CreateAsync` inserts, and the entity owns its key.** `CreateAsync(model)` assigns a `Guid` key itself
+  — `Guid.CreateVersion7()`, unless the constructor already set one — and leaves an integer key to the
+  database; `CreateAsync(id, model)` uses yours. Either way the returned entity carries it. A key that is
+  not an integer is never generated by EF Core, which is what lets a child entity with an id of its own be
+  added to a loaded aggregate and saved as an insert — so a factory that forgets its id is refused at the
+  save, by name, rather than inserting an empty key. A key you configured yourself in a context of your own
+  (`ValueGeneratedOnAdd()`, a database default) is left as you set it.
+- **`UpdateAsync` takes the id from you, not from the model.** The row it writes is the one its `id`
+  argument names — a route value the page already has, or one a handler has checked the caller may edit —
+  so a model that arrives over a wire cannot pick the row it lands on. No row with that id — never
+  created, or soft-deleted since the form was loaded — is a `KeyNotFoundException`. For an `IVersioned` model it also checks
+  `model.Version` against the row: someone saved in between, and it throws
+  `DbUpdateConcurrencyException` and writes nothing.
+- **`DeleteAsync` takes the version when you have one.** `Product.DeleteAsync(id, version)` is
+  concurrency-checked like an update; `Product.DeleteAsync(id)` deletes whatever the current version is.
+  A model that is not `IVersioned` gets `DeleteAsync(id)` alone. A missing or already-deleted row is a
+  `KeyNotFoundException`.
+
+### Overriding a write
+
+A write the entity declares itself is the one every call site gets: `Product.CreateAsync(model)` binds to
+a static member on `Product` before it considers the generated one. So to change what creating a product
+means, declare it, with the generated signature:
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    public static Task<Product> CreateAsync(ProductModel model, CancellationToken cancellationToken = default)
+    {
+        model.Name = model.Name.Trim();
+        return ProductModelExtensions.CreateAsync(model, cancellationToken);   // the generated write
+    }
+}
+```
+
+The generated write stays reachable on `ProductModelExtensions` for an override that only adds to it; one
+that replaces it simply does not call it. The writes you do not declare stay generated. A rule about the
+entity's own state — raising a domain event, refusing a transition — is a domain method saved through
+[plain EF Core](#domain-operations-and-transactions-plain-ef-core), not an override.
+
+### A create and an edit form
+
+The generated model is what `Form.Model(…)` binds. A create page starts from an empty one:
+
+```csharp
+[Route("/products/new")]
+public sealed partial class NewProductPage(Navigator nav) : Component
+{
+    private readonly ProductModel _product = new();
+
+    protected override Component Render() =>
+        Form.Model(_product).OnValidSubmit(CreateAsync)[submitting => [
+            UiInput.Bind(() => _product.Name).Label("Name"),
+            UiInput.Bind(() => _product.Price).Label("Price"),
+            UiButton.Type(UiButtonType.Submit).Disabled(submitting)["Create"],
+        ]];
+
+    private async Task CreateAsync(ProductModel product)
+    {
+        await Product.CreateAsync(product, CancellationToken);
+        nav.NavigateTo(Routes.ProductsPage());
+    }
+}
+```
+
+An edit page starts from the row, through `ToModel()`:
+
+```csharp
+[Route("/products/{id:guid}/edit")]
+public sealed partial class EditProductPage(Navigator nav) : Component
+{
+    [RouteParam] public Guid Id { get; set; }
+
+    private ProductModel? _product;
+    private string? _conflict;
+
+    protected override async Task OnMountAsync() =>
+        _product = (await Product.FindAsync(Id, CancellationToken))?.ToModel();
+
+    protected override Component? Render() =>
+        _product is null ? P["Loading…"] :
+        Form.Model(_product).OnValidSubmit(SaveAsync)[
+            _conflict is null ? null : UiAlert.Tone(UiTone.Warning)[_conflict],
+            UiInput.Bind(() => _product.Name).Label("Name"),
+            UiInput.Bind(() => _product.Price).Label("Price"),
+            UiButton.Type(UiButtonType.Submit)["Save"],
+        ];
+
+    private async Task SaveAsync(ProductModel product)
+    {
+        try
+        {
+            await Product.UpdateAsync(Id, product, CancellationToken);
+            nav.NavigateTo(Routes.ProductsPage());
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            _conflict = "Someone saved this product while you were editing it.";
+        }
+    }
+}
+```
+
+The `[Required, MaxLength(200)]` on `Name` is the entity's, copied to the model, so both forms refuse an
+empty or overlong name before either write runs — and EF Core reads the same attributes for the column.
+The version needs no input of its own: the form edits the very `ProductModel` that `ToModel()` returned,
+so `Version` comes back with the submit and a lost race lands in the `catch`, with the reader's edits still
+on screen.
+
+### What the model leaves out
+
+**A property the form should not carry** — a status only `Ship()` moves, a total the entity computes —
+is marked `[SkipModel]` (from `Rask.Data`). It is left out of `ProductModel`, so `CreateAsync` leaves it
+at whatever the constructor gives it and `UpdateAsync` never writes it:
+
+```csharp
+public sealed class Order : Model<Guid>
+{
+    public string Reference { get; private set; } = "";
+
+    [SkipModel]
+    public OrderStatus Status { get; private set; }
+}
+```
+
+**A value object becomes a nested generated model.** `Money Total` on `Order` is `MoneyModel Total` on
+`OrderModel`, so a form binds `() => _order.Total.Amount` like any [nested model](forms-advanced.md).
+
+**The build says when it cannot generate.** Each of these is a build diagnostic rather than a surprise
+at the first save:
+
+- A model with **no parameterless constructor** is a warning, and it gets no `CreateAsync(model)` — there
+  is nothing to construct the entity through ([RASK077](diagnostics.md#rask077)). A private one is enough.
+- A **hand-written `ProductModel`** beside a `Product` entity is an error: the generated class would
+  collide with yours ([RASK078](diagnostics.md#rask078)). Rename yours — or declare it `partial`, which
+  merges it into the generated one and is the way to add members, `IValidatableObject` or display helpers.
+- A **nested entity** — a model declared inside another class — is a warning, and it gets no model
+  ([RASK079](diagnostics.md#rask079)).
+
+`[SkipModel]` on the **class** generates no model at all, which silences the last two when that is the
+intent. And an entity deriving from the non-generic `Model` (a composite key) has no id to address a row
+by, so it gets `ProductModel`, `ToModel()` and `CreateAsync` but no `UpdateAsync` or `DeleteAsync` — write
+those through an injected context.
+
+**A model crosses a wire like any other type.** A CQRS command or query, an API endpoint or an island prop
+can carry a `ProductModel` (or return one), and the generators that build those codecs recognise it even
+though it is itself generated. On the wire its properties are **camelCase**, and it carries no id: the handler that calls `UpdateAsync`
+passes one it has authorized, so a posted model cannot pick the row it lands on. Only validation attributes are
+copied from the entity, so a `[JsonPropertyName]` on the entity does not rename the model's property; a
+property you declare yourself on a `partial ProductModel` keeps its own pin.
 
 ### Batch update and delete
 
@@ -243,9 +431,9 @@ await Product.Where(p => p.Discontinued)
         .SetProperty(p => p.Version, p => p.Version + 1));
 ```
 
-**A batch soft delete is an update, not `ExecuteDeleteAsync`.** `Remove` on an `ISoftDeletable` stamps
-`DeletedAt`, but `ExecuteDeleteAsync` is a `DELETE` the interceptors never see — the rows are gone, not
-hidden. Stamp them instead:
+**A batch soft delete is an update, not `ExecuteDeleteAsync`.** `Product.DeleteAsync(id)` on an
+`ISoftDeletable` stamps `DeletedAt`, but `ExecuteDeleteAsync` is a `DELETE` the interceptors never see —
+the rows are gone, not hidden. Stamp them instead:
 
 ```csharp
 await Product.Where(p => p.Discontinued)
@@ -254,6 +442,69 @@ await Product.Where(p => p.Discontinued)
 
 The rule of thumb: reach for these when the work is a statement the database can do on its own, and
 load-then-save when the conventions and the domain events are the point.
+
+## Domain operations and transactions: plain EF Core
+
+The generated writes cover a form's worth of change: one row, the values somebody typed. Behaviour is
+different — `order.Cancel()` decides something, raises an event and changes what it must — and so is work
+that has to land together, such as placing an order and reserving its stock. **That is ordinary EF Core,
+and Rask adds nothing to learn:** load the entity from a context, call the method, save.
+
+Where the context comes from depends on how long the caller lives.
+
+**On a live page, inject the factory and make a context per operation.** A page outlives any DI scope —
+it lives as long as the browser keeps its socket open — so a context injected into it would be shared by
+every handler for the whole session. `IDbContextFactory<RaskAppDbContext>` is registered for you:
+
+```csharp
+[Route("/orders/{id:guid}")]
+public sealed partial class OrderPage(IDbContextFactory<RaskAppDbContext> contexts) : Component
+{
+    [RouteParam] public Guid Id { get; set; }
+
+    private async Task CancelAsync()
+    {
+        await using var db = await contexts.CreateDbContextAsync(CancellationToken);
+
+        var order = await db.Set<Order>().FirstAsync(o => o.Id == Id, CancellationToken);
+        order.Cancel(DateTime.UtcNow);                   // the decision, and the event it raises
+        await db.SaveChangesAsync(CancellationToken);    // stamped, versioned, published
+    }
+}
+```
+
+**In a CQRS handler or an endpoint, inject the context itself.** Those run inside a DI scope that ends
+with the request, which is exactly the lifetime a `DbContext` wants:
+
+```csharp
+public sealed class PlaceOrderHandler(RaskAppDbContext db) : ICommandHandler<PlaceOrder, Guid>
+{
+    public async Task<Guid> HandleAsync(PlaceOrder command, CancellationToken ct)
+    {
+        var stock = await db.Set<StockItem>().FirstAsync(s => s.Sku == command.Sku, ct);
+        stock.Reserve(command.Quantity);
+
+        var order = Order.Place(command.Sku, command.Quantity);
+        db.Add(order);
+
+        await db.SaveChangesAsync(ct);   // both rows in one transaction, or neither
+        return order.Id;
+    }
+}
+```
+
+`RaskAppDbContext` (namespace `Rask`) is the context the host builds: every model you declared, plus
+every battery's tables. It has no `DbSet` properties, so an entity is reached with `db.Set<Order>()`. An
+app that [registered its own context](#using-ef-core-the-usual-way) injects that one the same way, and the
+model surface reads from it too — which includes every app `rask new` scaffolds: it writes
+`Features/Shared/AppDbContext.cs`, so there a page takes `IDbContextFactory<AppDbContext>` and a handler
+takes `AppDbContext`.
+
+Every convention still holds, because this is the same change tracker the generated writes use: the save
+stamps `UpdatedAt`, bumps `Version`, turns a `Remove` of an `ISoftDeletable` into a `DeletedAt` stamp, and
+publishes the domain events after the commit. The one thing to remember is the one from
+[Reading](#reading-the-model-type-is-its-own-query): rows from `Product.Where(…)` are untracked, so load
+the entity you are about to change from the context that is going to save it.
 
 ## Testing a model
 
@@ -271,42 +522,41 @@ public void A_shipped_order_refuses_to_be_cancelled()
 }
 ```
 
-Behaviour that asks the database something gets a real one in a line, rather than a mocked `DbContext`:
+Behaviour that touches the database gets a real one in a line, rather than a mocked `DbContext`. Seed
+through `database.Context`, then exercise the model surface exactly as the app does:
 
 ```csharp
 await using var database = await TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={path}"));
 
-var order = Order.Place("B-2");
-await SeedAsync(order, Shipment.For(order.Id, dispatched: true));
+var anvil = await Product.CreateAsync(new ProductModel { Name = "Anvil", Price = 9.99m });
 
-Assert.False(await order.TryCancelAsync(Now));
+var mine = anvil.ToModel();
+var theirs = anvil.ToModel();
+theirs.Price = 10m;
+await Product.UpdateAsync(theirs);
+
+mine.Price = 11m;
+await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Product.UpdateAsync(mine));
+```
+
+```csharp
+database.Context.AddRange(Order.Place("B-2"), Order.Place("B-3"));
+await database.Context.SaveChangesAsync();
+
+Assert.Equal(2, await Order.CountAsync());
 ```
 
 `TestDatabase.StartAsync` builds the generated model — so no fixture has to list entities — creates the
 schema, wires the auditing and soft-delete interceptors so the conventions behave as they do in
-production, and points the ambient `Db` at it. Disposing clears it, so one test cannot leak its database
-into the next. It takes a `TimeProvider`, so audit stamps are assertable.
+production, and points the model surface at it. Disposing clears it, so one test cannot leak its
+database into the next. It takes a `TimeProvider`, so audit stamps are assertable.
 
 It is provider-agnostic on purpose: the options callback is yours, so `Rask.Data` gains no provider
-dependency and a test runs against the database the app actually uses.
+dependency and a test runs against the database the app actually uses. SQLite over a temporary file is
+the usual choice; `:memory:` lives only as long as its connection, and every read opens its own.
 
 Domain-event *publication* is deliberately not wired — that needs a service provider to resolve handlers
 through, which is more than a database fixture should invent. Assert on `DomainEvents` instead.
-
-## Reaching the `DbContext`
-
-`Db` is the ambient database, reachable from anywhere — including from inside a model:
-
-```csharp
-public sealed class Product : Model<Guid>
-{
-    public async Task<int> OpenOrdersAsync() =>
-        await Db.Set<Order>().CountAsync(o => o.ProductId == Id && !o.Closed);
-}
-```
-
-`Db.Current` is the raw `DbContext`; `Db.SaveChangesAsync()` commits the ambient unit of work;
-`Db.HasCurrent` says whether one is open.
 
 ## Mapping rules the conventions don't cover
 
@@ -355,17 +605,23 @@ default here, and it is why `Money` can be shared by two models without either o
 Nesting works: a value object made of value objects is mapped all the way down. **One EF Core
 constraint applies to the outer one** — a complex type is materialised through its constructor, and EF
 cannot bind a nested complex type to a constructor parameter. So a value object that *contains another
-value object* needs a parameterless constructor and settable properties:
+value object* needs a parameterless constructor and settable properties — private ones, which is all
+EF Core and the generated model need:
 
 ```csharp
 // holds only scalars — a positional record is fine
 public sealed record Money(decimal Amount, string Currency) : IValueObject;
 
-// contains a value object — needs a parameterless ctor
+// contains a value object — needs a parameterless ctor, and its setters stay private (RASK080)
 public sealed class Packaging : IValueObject
 {
-    public Money Cost { get; set; } = new(0m, "EUR");
-    public string Material { get; set; } = "card";
+    private Packaging() { }
+
+    public Packaging(Money cost, string material) => (Cost, Material) = (cost, material);
+
+    public Money Cost { get; private set; } = new(0m, "EUR");
+
+    public string Material { get; private set; } = "card";
 }
 ```
 
@@ -390,6 +646,10 @@ named. An id the generator cannot build a converter for is reported as
 
 Ids that need no converter — `Guid`, `int`, `long`, `string` — are left alone.
 
+A strongly-typed id over a `Guid` is created like a `Guid` key: `CreateAsync(model)` assigns one. Over any
+other value — `record struct OrderId(int Value)` — there is nothing to generate it from, for Rask or for EF
+Core through a converter, so only `Order.CreateAsync(id, model)` is generated: the id is always yours to give.
+
 ## Using EF Core the usual way
 
 None of the above is compulsory, and opting out is not deriving from `Model`. A class that does not
@@ -397,7 +657,7 @@ derive from it is an ordinary EF Core entity: write your own `DbContext`, your o
 `IEntityTypeConfiguration`, your own `DbSet` properties, and use them exactly as you do today.
 
 Registering an `IDbContextFactory<YourContext>` is the whole of opting out at the app level. Rask binds
-the ambient database and every database-backed battery to the context you registered, and
+the model surface and every database-backed battery to the context you registered, and
 `RaskAppDbContext` is never constructed. Call `modelBuilder.ApplyRaskConventions()` from its
 `OnModelCreating` to keep the soft-delete filters and concurrency tokens, or
 `ModelRegistry.Apply(modelBuilder)` to keep the generated model as well.
@@ -405,11 +665,11 @@ the ambient database and every database-backed battery to the context you regist
 ## Wiring, when Rask is not hosting
 
 A Rask app needs none of this — the host does it. Anything else registers the context and points the
-ambient database at it once, after the container is built:
+model surface at it once, after the container is built:
 
 ```csharp
 builder.Services.AddRaskCqrs();                  // domain-event dispatch
-builder.Services.AddRaskData<AppDbContext>();    // interceptors + the ambient binding
+builder.Services.AddRaskData<AppDbContext>();    // interceptors + names the context the models use
 
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseSqlite("Data Source=app.db")
@@ -436,9 +696,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskD
 ```
 
 Over plain `DbContext` this compiles, boots and migrates with every model silently absent, so the first
-`Product.Add(…)` throws saying the entity type was not found. If you cannot change the base type — it is
-already someone else's — call `ModelRegistry.Apply(modelBuilder)` in place of `base.OnModelCreating`, and
-`ModelRegistry.ApplyConventions(configurationBuilder)` from an overridden `ConfigureConventions`.
+`Product.Where(…)` or `Product.CreateAsync(…)` throws saying the type is not part of the model. If you
+cannot change the base type — it is already someone else's — call `ModelRegistry.Apply(modelBuilder)` in
+place of `base.OnModelCreating`, and `ModelRegistry.ApplyConventions(configurationBuilder)` from an
+overridden `ConfigureConventions`.
 
 ## What the interceptors do
 
@@ -462,15 +723,22 @@ already someone else's — call `ModelRegistry.Apply(modelBuilder)` in place of 
 
 ## Optimistic concurrency
 
-`IVersioned` makes `Version` an EF Core concurrency token. When two edits race, the second `SaveChanges`
-throws `DbUpdateConcurrencyException`. In a web form, round-trip the original `Version` (a hidden field)
-and set it as the tracked original value before saving:
+`IVersioned` makes `Version` an EF Core concurrency token, and the generated model carries it through an
+edit: `ToModel()` copies the version the screen read, and `UpdateAsync` checks the row still has it. When
+two edits race, the second throws `DbUpdateConcurrencyException` and writes nothing — [the edit form
+above](#a-create-and-an-edit-form) catches it with the reader's changes still on screen.
+`Product.DeleteAsync(id, version)` takes the same token, for a delete that should lose to an edit it has
+not seen.
+
+In a handler that loads and saves through the context itself, the check is EF Core's own. A freshly loaded
+row's original `Version` is whatever the database holds *now*, which would make every check pass — so pin
+the version the caller read as the tracked original value before saving:
 
 ```csharp
-var product = await db.Products.FirstAsync(x => x.Id == id);
-db.Entry(product).Property(x => x.Version).OriginalValue = form.Version;
-product.Rename(form.Name);
-await db.SaveChangesAsync(); // throws if someone else changed it since `form.Version`
+var product = await db.Set<Product>().FirstAsync(p => p.Id == command.Id, ct);
+db.Entry(product).Property(p => p.Version).OriginalValue = command.Version;
+product.Reprice(command.Price);
+await db.SaveChangesAsync(ct); // throws if someone else changed it since `command.Version`
 ```
 
 ## Bulk insert

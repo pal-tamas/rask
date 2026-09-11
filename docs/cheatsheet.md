@@ -61,7 +61,7 @@ A data-backed app needs these in `Program.cs` (`rask new` writes them for you):
 
 ```csharp
 builder.Services.AddRaskCqrs();                        // the mediator (IDispatcher)
-builder.Services.AddRaskData<ProductsDbContext>();     // interceptors + names the ambient database
+builder.Services.AddRaskData<ProductsDbContext>();     // interceptors + names the context models use
 builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
     .UseSqlite("Data Source=app.db")
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));   // audit/soft-delete/events/outbox
@@ -71,7 +71,7 @@ Db.Configure(app.Services);                            // Product.Where(…) now
 ```
 
 The type argument and `Db.Configure` are a pair: the bare `AddRaskData()` registers only the
-interceptors, and without both, the first `Product.Add(…)` throws `The ambient database has not been
+interceptors, and without both, the first `Product.Where(…)` throws `The model database has not been
 configured`. Your context should derive from `RaskDbContext`, which is what maps the models you declare.
 
 The other pillars are **one registration + one `modelBuilder` line + a migration** you add by hand:
@@ -104,6 +104,11 @@ nav.NavigateTo(Routes.UpdateProduct(Id: id));          // edit page → Update<E
 [Authorize]                                            // redirects anonymous deep-links to /login
 Authorize[ NewProductButton() ]                      // shown only to signed-in users
 Authorize.Roles(["admin"])[ DeleteProductButton(id) ]
+
+// Read a model, save a form — no context injected (Rask.Data):
+var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
+await Product.UpdateAsync(id, model, CancellationToken);   // id from the route; model = product.ToModel(), bound to a Form
+UiDataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
 // Cache an expensive read; invalidate on write:
 var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);

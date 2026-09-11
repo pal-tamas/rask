@@ -57,7 +57,7 @@ public sealed class ScaffoldContextShapeTests
     /// </summary>
     /// <remarks>
     ///     Mapping the models is only half of what a scaffolded app needs. Even with the context mapped,
-    ///     <c>Product.Add(…)</c> goes through <c>Db</c>, and <c>Db</c> is bound by the <em>generic</em>
+    ///     <c>Product.Where(…)</c> goes through <c>Db</c>, and <c>Db</c> is bound by the <em>generic</em>
     ///     overload naming the context plus one <c>Db.Configure(app.Services)</c> after the container is
     ///     built. Neither is free: nothing in <c>Rask.Server</c> can do it, because it does not reference
     ///     <c>Rask.Data</c> at all.
@@ -76,7 +76,7 @@ public sealed class ScaffoldContextShapeTests
     }
 
     [Fact]
-    public void The_generic_overload_binds_it_and_the_ambient_database_opens()
+    public async Task The_generic_overload_binds_it_and_a_read_opens_that_context()
     {
         var services = new ServiceCollection();
         services.AddRaskCqrs();
@@ -87,9 +87,12 @@ public sealed class ScaffoldContextShapeTests
         try
         {
             Db.Configure(provider);
+            Assert.True(Db.IsConfigured);
 
-            using var unitOfWork = Db.Begin();
-            Assert.NotNull(unitOfWork.Context);
+            // Translating a query needs the bound context's model but no table, so an in-memory database
+            // with no schema is enough to prove the read opened RaskShapedContext and found Doodad mapped.
+            var sql = await Doodad.QueryAsync((q, _) => Task.FromResult(q.ToQueryString()));
+            Assert.Contains("Doodad", sql, StringComparison.Ordinal);
         }
         finally
         {

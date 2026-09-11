@@ -408,4 +408,46 @@ public sealed class ApiClientGeneratorTests
 
         Assert.False(run.HasGeneratedSource("__RaskApiClients"));
     }
+
+    [Fact]
+    public void A_generated_Rask_Data_model_as_body_and_response_is_encoded_and_named_in_full()
+    {
+        // ProductModel is generated beside Product by another generator, so to this one it is an unresolved
+        // type: no members to encode (RASK067) and a bare name that does not bind from the client's namespace.
+        // Rask.Data is stubbed by name, which is all the reconstruction matches on.
+        var run = Run("""
+            using Microsoft.AspNetCore.Mvc;
+            namespace Rask.Data
+            {
+                public abstract class Model { }
+                public abstract class Model<TId> : Model { public TId Id { get; protected set; } = default!; }
+            }
+            namespace Shop
+            {
+                public sealed class Product : Rask.Data.Model<System.Guid>
+                {
+                    private Product() { }
+                    public string Name { get; private set; } = "";
+                }
+            }
+            namespace Shop.Api
+            {
+                [ApiController]
+                [Route("api/products")]
+                public sealed class ProductsController : ControllerBase
+                {
+                    [HttpPost]
+                    public ActionResult<ProductModel> Save([FromBody] ProductModel model) => null!;
+                }
+            }
+            """);
+
+        Assert.False(Reported(run, "RASK067"));
+
+        var source = run.GeneratedSource("__RaskApiClients");
+        Assert.Contains("global::Shop.ProductModel model", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.ProductModel", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ProductModel>", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(" ProductModel model", source, StringComparison.Ordinal);
+    }
 }

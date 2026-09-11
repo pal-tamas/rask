@@ -326,7 +326,7 @@ public sealed class ServerBatteryScaffoldTests
     /// <remarks>
     /// No other gate can catch this. Over plain <c>DbContext</c> the file compiles, the app boots and the
     /// migration succeeds — every model just quietly maps to nothing, and the first
-    /// <c>Product.Add(…)</c> throws at runtime saying the entity type was not found. So the base type is
+    /// <c>Product.CreateAsync(model)</c> throws at runtime saying the entity type was not found. So the base type is
     /// asserted here, in text, rather than left to the build E2E.
     /// </remarks>
     [Fact]

@@ -203,7 +203,9 @@ internal sealed class TypeScriptEmitter
             return existing;
         }
 
-        var name = Unique(type.Symbol?.Name ?? "Anonymous");
+        // A generated model has no symbol here (see GeneratedModelShape), so its simple name travels on the
+        // shape. It is named like any nested type — `MoneyModel`, suffixed if another shape took it first.
+        var name = Unique(type.Symbol?.Name ?? type.Name ?? "Anonymous");
 
         // Registered before the body is walked: a type that reaches itself through a list resolves
         // to this name rather than recursing until the stack gives out.

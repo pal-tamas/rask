@@ -13,11 +13,13 @@ namespace Rask.Generators.Tests;
 // in the Document's tree), register the fix, apply the first CodeAction, and return the rewritten text.
 internal static class CodeFixHarness
 {
-    // Applies the fix for an analyzer-produced diagnostic (e.g. RASK023).
+    // Applies the fix for an analyzer-produced diagnostic (e.g. RASK023). `extraAssemblies` names libraries
+    // the source compiles against beyond the component references — Rask.Data for the model-state fixes.
     public static async Task<string> ApplyAnalyzerFixAsync(
-        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source)
+        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source,
+        params string[] extraAssemblies)
     {
-        var document = CreateDocument(source);
+        var document = CreateDocument(source, extraAssemblies);
         var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
         // Entries for a REFERENCED library's component exist only once the generator has injected them —
         // they are no longer inherited — so a chain over one would not bind and the analyzer would see
@@ -33,9 +35,10 @@ internal static class CodeFixHarness
     // version below, and the more used of the two now: RASK014's fix is deliberately withheld for
     // anything but an argument-free construction, which is a claim only this can test.
     public static async Task<bool> IsAnalyzerFixOfferedAsync(
-        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source)
+        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source,
+        params string[] extraAssemblies)
     {
-        var document = CreateDocument(source);
+        var document = CreateDocument(source, extraAssemblies);
         var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
         // Entries for a REFERENCED library's component exist only once the generator has injected them —
         // they are no longer inherited — so a chain over one would not bind and the analyzer would see
@@ -109,8 +112,11 @@ internal static class CodeFixHarness
         return text.ToString();
     }
 
-    private static Document CreateDocument(string source)
+    private static Document CreateDocument(string source, params string[] extraAssemblies)
     {
+        var references = GeneratorDriverFixture.BuildReferences()
+            .AddRange(extraAssemblies.Select(static name =>
+                (MetadataReference)MetadataReference.CreateFromFile(System.Reflection.Assembly.Load(name).Location)));
         var workspace = new AdhocWorkspace();
         var project = workspace.AddProject(ProjectInfo.Create(
             ProjectId.CreateNewId(),
@@ -122,7 +128,7 @@ internal static class CodeFixHarness
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable),
             parseOptions: new CSharpParseOptions(LanguageVersion.Latest),
-            metadataReferences: GeneratorDriverFixture.BuildReferences()));
+            metadataReferences: references));
         return workspace.AddDocument(project.Id, "Test.cs", SourceText.From(source));
     }
 }

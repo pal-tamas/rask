@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK076, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK081, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -16,6 +16,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
+| **RASK080** | makes the accessor `private set` / `private init`, or the field `private` |
+| **RASK081** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -108,6 +110,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK074](#rask074) | Warning | More than one account type |
 | [RASK075](#rask075) | Warning | Option template on a native select |
 | [RASK076](#rask076) | Warning | Grid column with no field token |
+| [RASK077](#rask077) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
+| [RASK078](#rask078) | Error | A type already has the generated model's name |
+| [RASK079](#rask079) | Warning | Nested entity gets no generated model |
+| [RASK080](#rask080) | Warning | Model state can be changed from outside the type |
+| [RASK081](#rask081) | Warning | Entity exposes a mutable collection of entities |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1771,6 +1778,218 @@ and that is the common case.
 This is the successor to the retired **RASK034**, which said the same thing about `BsDataGrid`. Worth
 knowing that RASK034 stopped firing when the grid moved to a chain and nothing noticed, so this one is
 tested on the shape it has to catch rather than only on compiling.
+
+---
+
+## RASK077
+
+**Entity has no parameterless constructor, so `CreateAsync(model)` is not generated** · Warning
+
+Every `Rask.Data.Model` gets a generated form model — `ProductModel` for `Product` — and the writes that
+take it ([data guide](data.md)). `Product.CreateAsync(model)` builds a new entity before inserting it, and
+it starts from a constructor that takes nothing. It may be private: it is reached the way EF Core reaches
+the constructor it materializes rows through. An entity whose only constructors take arguments leaves it
+nothing to start from.
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    public Product(string name) => Name = name;   // ⚠ RASK077 — the only constructor takes a name
+
+    public string Name { get; private set; }
+}
+```
+
+**Fix:** add a parameterless constructor. Keep it private, and the domain's own constructor stays the
+only public way to make one:
+
+```csharp
+private Product() { }                            // ✓ for EF Core and the generated CreateAsync
+public Product(string name) => Name = name;
+```
+
+Everything that works on a row that already exists is still generated — `ProductModel`,
+`product.ToModel()`, `Product.UpdateAsync(id, model)` and `Product.DeleteAsync(id)` — so the rest of the form
+flow keeps working. An entity that is never created from a form can be inserted with plain EF Core
+instead; mark it `[SkipModel]` if it should have no form model at all.
+
+---
+
+## RASK078
+
+**A type already has the generated model's name** · Error
+
+The generated form model is emitted beside its entity, in the same namespace, as `{Entity}Model`. A
+hand-written, non-`partial` type of that name — often a request model written before the generator
+existed — would collide with it as `CS0101`, a message that names neither the generator nor the way
+out. So the generator stands down for that entity and says why: no `ProductModel`, and no
+`CreateAsync`, `UpdateAsync` or `DeleteAsync`.
+
+```csharp
+public sealed class Product : Model<Guid> { /* … */ }
+
+public sealed class ProductModel                  // ✗ RASK078 — the generated model's name
+{
+    public string Name { get; set; } = "";
+}
+```
+
+**Fix:** one of three, depending on what the hand-written type was for.
+
+```csharp
+public sealed class ProductForm { /* … */ }       // ✓ rename it and keep both
+
+public sealed partial class ProductModel          // ✓ extend the generated one instead
+{
+    public string Slug => Name.ToLowerInvariant().Replace(' ', '-');
+}
+
+[SkipModel]                                       // ✓ this entity has no generated form model
+public sealed class Product : Model<Guid> { /* … */ }
+```
+
+A `partial` declaration is not reported: it merges into the generated class, which is the supported way
+to add members, interfaces such as `IValidatableObject`, or computed display values to a model.
+
+---
+
+## RASK079
+
+**Nested entity gets no generated model** · Warning
+
+The generated model and the extension class holding its writes are siblings of the entity in its
+namespace. An entity declared inside another type has no such place to put them, so it is still mapped
+— it gets its table like any other — but no form model is generated for it.
+
+```csharp
+public static class Catalog
+{
+    public sealed class Product : Model<Guid> { }  // ⚠ RASK079 — nested in Catalog
+}
+```
+
+**Fix:** declare the entity at namespace level, or mark it `[SkipModel]` to say that having no form
+model is intended:
+
+```csharp
+namespace Shop.Catalog;
+
+public sealed class Product : Model<Guid> { }      // ✓ gets ProductModel and its writes
+```
+
+---
+
+## RASK080
+
+**Model state can be changed from outside the type** · Warning
+
+An entity — a class deriving from `Rask.Data.Model`, including your own abstract base classes between
+`Model` and the entity — and a value object (`IValueObject`) are changed only by themselves. The
+generated form model writes an entity through its private setters, so nothing in the framework needs a
+public one; a public setter is only a way for any caller to go around the methods that keep the entity
+valid.
+
+Reported, at the accessor or the field:
+
+- a property `set` accessor that is public (`{ get; set; }` on a public property);
+- a public `init` accessor;
+- a public instance field that is neither `readonly` nor `const`.
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    public string Name { get; set; } = "";            // ⚠ RASK080 — 'Product.Name' has a public setter
+    public int Stock;                                  // ⚠ RASK080 — a public field that is not readonly
+}
+
+public sealed record Address : IValueObject
+{
+    public string City { get; init; } = "";           // ⚠ RASK080 — a public init accessor
+}
+```
+
+**Fix:** make the member private, and change the state through the type's own methods or its constructor
+(**quick-fix available**: `set` → `private set`, `init` → `private init`, a public field → `private`):
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    private Product() { }                              // for EF Core and the generated CreateAsync
+
+    public Product(string name) => Name = name;
+
+    public string Name { get; private set; } = "";    // ✓
+    public int Stock { get; private set; }             // ✓
+
+    public void Rename(string name) => Name = name;    // ✓ the entity changes itself
+}
+```
+
+`private`, `protected` and `internal` accessors are all fine — `protected set` is the natural choice on an
+abstract base whose derived entities write the property. Members inherited from `Model<TId>` (its
+`protected set` `Id`) are never reported, and neither is an `override`: it cannot narrow what it
+overrides, so the base declaration is where it is reported.
+
+**Positional records are exempt.** The properties a positional record parameter declares get public
+`init` accessors from the compiler, and that is exactly the immutable value object:
+
+```csharp
+public sealed record Money(decimal Amount, string Currency) : IValueObject;          // ✓ not reported
+public readonly record struct Weight(decimal Grams) : IValueObject;                  // ✓ not reported
+public record struct Height(decimal Centimetres) : IValueObject;                     // ⚠ RASK080 — a real set
+```
+
+A positional parameter of a record struct that is not `readonly` gets a real `set`, so it is reported at
+the parameter; declare it `readonly record struct`. The quick-fix is not offered where `private` would not
+compile — a `required` or `abstract` property, an accessor whose sibling already has a modifier
+(`{ private get; set; }`), or a setter an interface you implement demands — and the warning stands for you
+to decide.
+
+---
+
+## RASK081
+
+**Entity exposes a mutable collection of entities** · Warning
+
+A private setter does not protect a list: `order.Lines.Add(line)` changes the order without calling any
+of its methods. Reported for a publicly readable property of an entity whose type is a mutable collection
+(it implements `ICollection<T>` — `List<T>`, `IList<T>`, `ICollection<T>`, `HashSet<T>`, `ISet<T>`,
+`Collection<T>`) of other **entities**. A collection of strings or of value objects is not a navigation
+and is not reported; neither are `ReadOnlyCollection<T>` and the immutable collections.
+
+```csharp
+public sealed class Order : Model<Guid>
+{
+    public List<OrderLine> Lines { get; private set; } = new();   // ⚠ RASK081
+}
+```
+
+**Fix:** keep the collection in a private readonly field, expose `IReadOnlyCollection<T>`,
+`IReadOnlyList<T>` or `IEnumerable<T>`, and add to it through the entity (**quick-fix available**: it
+writes the field and the read-only property, and points this instance's own references (`Lines`, `this.Lines` in an instance member) at the field — an
+access through a lambda parameter such as `Configure`'s `b.HasMany(o => o.Lines)`, another instance's
+`other.Lines` and `nameof(Lines)` keep naming the property;
+references outside the type are yours to move onto a method):
+
+```csharp
+public sealed class Order : Model<Guid>
+{
+    private readonly List<OrderLine> _lines = [];
+
+    public IReadOnlyCollection<OrderLine> Lines => _lines;         // ✓
+
+    public void Add(OrderLine line) => _lines.Add(line);           // ✓ the order changes itself
+}
+```
+
+EF Core maps this with no configuration: it finds the `_lines` backing field by naming convention and
+reads and writes the navigation through it, so `Include(o => o.Lines)` and lines added through `Add` both
+round-trip. Keep the field named `_` plus the camel-cased property name.
+
+The quick-fix keeps a `HashSet<T>` as a `HashSet<T>` field and uses `List<T>` otherwise. It is not offered
+when the rewrite could not keep the meaning: an initializer with elements or arguments, a property with
+accessor bodies, a `required` property, a property assigned inside the type (the field is `readonly`), a
+type split across several files, or a member that already has the field's name.
 
 ---
 

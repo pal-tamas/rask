@@ -11,8 +11,8 @@ for automatic Let's Encrypt HTTPS, swapping the new container in only after a `/
 ## 1. What you need
 
 - A Linux box you can SSH into (any cheap VPS), and a DNS **A record** for your domain pointing at it.
-- The `Dockerfile` from Chapter 1's `--docker` flag (already in the project). No Dockerfile? Add one with
-  `rask new` writes one by default, or write a standard .NET one — `rask deploy` just builds it.
+- The `Dockerfile` Chapter 1's `rask new` scaffolded (already in the project, unless you passed
+  `--no-docker`). No Dockerfile? Write a standard .NET one — `rask deploy` just builds it.
 
 ## 2. First deploy (bare box → live HTTPS)
 
@@ -75,8 +75,8 @@ rask deploy --env-file .env.production   # AWS_ACCESS_KEY_ID=… / AWS_SECRET_AC
 ## Verify
 
 - `https://shop.example.com` serves the app over HTTPS with a valid certificate.
-- `/products` and `/orders` work; signing in gates the edit pages; placing an order fires the job → email →
-  outbox chain.
+- `/products` and `/orders` work; signing in gates the edit pages; buying a product fires the outbox → job →
+  email chain.
 - A second `rask deploy` swaps in a new build with no downtime **and your data is still there** (the volume
   persists across the container swap); a deliberately broken build fails the `/health` check and leaves the
   running app untouched.
@@ -91,8 +91,8 @@ C# codebase on one server**, with no PaaS, no broker, and no second language. Th
 Where to go next:
 
 - **Harden auth** → swap the demo credential store for a real one — [authentication](../authentication.md).
-- **Go deeper on any pillar** → [jobs](../jobs.md) · [mail](../mail.md) · [cache](../cache.md) ·
-  [outbox](../outbox.md) · [CQRS](../cqrs.md) · [production SQLite](../sqlite.md).
+- **Go deeper on any pillar** → [Rask.Data](../data.md) · [jobs](../jobs.md) · [mail](../mail.md) ·
+  [cache](../cache.md) · [outbox](../outbox.md) · [production SQLite](../sqlite.md).
 - **See the roadmap** → what's shipped and what's next — [roadmap](../roadmap.md).
 
 **Learn more:** [deployment](../deployment.md) · [the `rask` CLI](../cli.md)

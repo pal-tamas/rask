@@ -29,9 +29,9 @@ internal static partial class ProjectGenerator
                 // DbSet property, no configuration class, no registration — then `rask db add <Name>` /
                 // `rask db update` to create and apply the migration.
                 //
-                // The generic overload is what names the context to the ambient database, so `Product.Add(…)`
-                // and `Product.Where(…)` know which one to open. The non-generic AddRaskData() registers only
-                // the interceptors, and Db.Configure below then has nothing to bind.
+                // The generic overload is what names the context to the model surface, so `Product.Where(…)`
+                // and the generated `Product.CreateAsync(model)` know which one to open. The non-generic
+                // AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
                 //
                 // strictTables makes SQLite enforce each column's declared type instead of coercing whatever
                 // it is handed — without it the text "lots" stores happily in an INTEGER column and surfaces

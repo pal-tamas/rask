@@ -15,13 +15,22 @@ public sealed record Money(decimal Amount, string Currency) : IValueObject;
 // NOT a positional record, and the difference is EF Core's, not Rask's: a complex type is materialised
 // through its constructor, and EF cannot bind a *nested* complex type to a constructor parameter — it
 // says so at model build ("Cannot bind 'Cost' in Packaging(Money Cost, string Material)"). So a value
-// object that contains another value object needs a parameterless constructor and settable properties.
-// One holding only scalars, like Money above, has no such constraint.
+// object that contains another value object needs a parameterless constructor and writable properties —
+// both may be private (RASK080), since EF Core and the generated model reach them the way they reach an
+// entity's. One holding only scalars, like Money above, has no such constraint.
 public sealed class Packaging : IValueObject
 {
-    public Money Cost { get; set; } = new(0m, "EUR");
+    private Packaging() { } // EF materialization, and the generated PackagingModel's writes
 
-    public string Material { get; set; } = "card";
+    public Packaging(Money cost, string material)
+    {
+        Cost = cost;
+        Material = material;
+    }
+
+    public Money Cost { get; private set; } = new(0m, "EUR");
+
+    public string Material { get; private set; } = "card";
 }
 
 // An entity, and nothing else: no DbContext, no DbSet property, no IEntityTypeConfiguration class, no
@@ -36,7 +45,7 @@ public sealed class Gadget : Model<GadgetId>
 
     public Money Price { get; private set; } = new(0m, "EUR");
 
-    public Packaging Box { get; private set; } = new();
+    public Packaging Box { get; private set; } = new(new Money(0m, "EUR"), "card");
 
     public static Gadget Create(string name, string code, decimal price) => new()
     {
@@ -44,7 +53,7 @@ public sealed class Gadget : Model<GadgetId>
         Name = name,
         Code = code,
         Price = new Money(price, "EUR"),
-        Box = new Packaging { Cost = new Money(1m, "EUR"), Material = "card" },
+        Box = new Packaging(new Money(1m, "EUR"), "card"),
     };
 
     // The rules that are this entity's own, in a plain static method. No attribute, no interface.
@@ -99,6 +108,13 @@ public sealed class GeneratedModelTests : IDisposable
     private RaskDbContext NewContext() =>
         _provider.GetRequiredService<IDbContextFactory<RaskDbContext>>().CreateDbContext();
 
+    private async Task SeedAsync(params Model[] entities)
+    {
+        await using var db = NewContext();
+        db.AddRange(entities);
+        await db.SaveChangesAsync();
+    }
+
     [Fact]
     public void The_generator_contributed_a_model()
     {
@@ -108,11 +124,7 @@ public sealed class GeneratedModelTests : IDisposable
     [Fact]
     public async Task An_entity_with_no_DbSet_and_no_context_is_still_mapped()
     {
-        await using (var uow = Db.Begin())
-        {
-            Doodad.Add(Doodad.Create("plain"));
-            await uow.SaveChangesAsync();
-        }
+        await SeedAsync(Doodad.Create("plain"));
 
         Assert.Equal(1, await Doodad.CountAsync());
         Assert.Equal("plain", (await Doodad.FirstOrDefaultAsync(d => d.Label == "plain"))!.Label);
@@ -132,16 +144,11 @@ public sealed class GeneratedModelTests : IDisposable
     [Fact]
     public async Task The_unique_index_the_entity_declared_is_enforced_by_the_database()
     {
-        await using (var uow = Db.Begin())
-        {
-            Gadget.Add(Gadget.Create("first", "SAME", 1m));
-            await uow.SaveChangesAsync();
-        }
+        await SeedAsync(Gadget.Create("first", "SAME", 1m));
 
-        await using var second = Db.Begin();
-        Gadget.Add(Gadget.Create("second", "SAME", 2m));
-
-        await Assert.ThrowsAsync<DbUpdateException>(() => second.SaveChangesAsync());
+        // Through the generated create, so its failure reaches the caller as EF's own exception.
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            GeneratedModelWrites.CreateAsync(Gadget.Create("second", "SAME", 2m)));
     }
 
     [Fact]
@@ -177,11 +184,7 @@ public sealed class GeneratedModelTests : IDisposable
     [Fact]
     public async Task A_value_object_round_trips_through_the_database()
     {
-        await using (var uow = Db.Begin())
-        {
-            Gadget.Add(Gadget.Create("priced", "P1", 19.99m));
-            await uow.SaveChangesAsync();
-        }
+        await SeedAsync(Gadget.Create("priced", "P1", 19.99m));
 
         var gadget = await Gadget.FirstOrDefaultAsync(g => g.Code == "P1");
 
@@ -206,14 +209,9 @@ public sealed class GeneratedModelTests : IDisposable
     [Fact]
     public async Task A_strongly_typed_id_round_trips_and_can_be_queried_on()
     {
-        GadgetId id;
-        await using (var uow = Db.Begin())
-        {
-            var gadget = Gadget.Create("typed", "T1", 5m);
-            Gadget.Add(gadget);
-            await uow.SaveChangesAsync();
-            id = gadget.Id;
-        }
+        var gadget = Gadget.Create("typed", "T1", 5m);
+        await SeedAsync(gadget);
+        var id = gadget.Id;
 
         // Both routes: through the key, and through a predicate comparing the id type itself.
         Assert.NotNull(await Gadget.FindAsync(id));

@@ -199,7 +199,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var model = Describe(spc, type, runtime);
+            var model = Describe(spc, type, runtime, compilation);
             if (model is null)
             {
                 continue;
@@ -374,7 +374,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // not exist.
             var argument = handler.Shape.Argument is null
                 ? string.Empty
-                : "value: " + emitter.Ensure(WireShape.Classify(handler.Shape.Argument, allowFile: false));
+                : "value: " + emitter.Ensure(handler.ArgumentWire!);
 
             members.Append("  ").Append(handler.WireName).Append("?: (")
                 .Append(argument).AppendLine(") => void;");
@@ -462,7 +462,11 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         return "tsx";
     }
 
-    private static ComponentModel? Describe(SourceProductionContext spc, INamedTypeSymbol type, string runtime)
+    private static ComponentModel? Describe(
+        SourceProductionContext spc,
+        INamedTypeSymbol type,
+        string runtime,
+        Compilation compilation)
     {
         var location = type.Locations.FirstOrDefault(l => l.IsInSource);
         var fqn = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -520,11 +524,17 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
             if (Callback(property.Type) is { } shape)
             {
-                model.Handlers.Add(new IslandHandler(property.Name, wireName, shape));
+                model.Handlers.Add(new IslandHandler(
+                    property.Name,
+                    wireName,
+                    shape,
+                    shape.Argument is null
+                        ? null
+                        : WireShape.Classify(shape.Argument, allowFile: false, compilation: compilation)));
                 continue;
             }
 
-            var wire = WireShape.Classify(property.Type, allowFile: false);
+            var wire = WireShape.Classify(property.Type, allowFile: false, compilation: compilation);
             if (wire.Kind == WireKind.Unsupported)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
@@ -537,7 +547,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             }
 
             model.Props.Add(new IslandProp(property.Name, wireName, wire,
-                property.Type.NullableAnnotation == NullableAnnotation.Annotated));
+                WireShape.IsNullable(property.Type, compilation)));
         }
 
         return model;
@@ -878,7 +888,9 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
     private sealed record IslandProp(string ClrName, string WireName, WireType Wire, bool IsNullable);
 
-    private sealed record IslandHandler(string ClrName, string WireName, CallbackShape Shape);
+    // ArgumentWire is classified in Describe, where the compilation is in hand: a Rask.Data entity's generated
+    // model can only be described from it (GeneratedModelShape). Null exactly when Shape.Argument is.
+    private sealed record IslandHandler(string ClrName, string WireName, CallbackShape Shape, WireType? ArgumentWire);
 
     /// <summary>A <c>Module</c> override's literal value, or a marker that it could not be read.</summary>
     private sealed record ModuleOverride(string Value, bool Failed);
