@@ -128,6 +128,7 @@ public static class StructuredData
         json.WriteString("license", SiteIdentity.License);
         json.WriteBoolean("isAccessibleForFree", true);
         json.WriteString("downloadUrl", SiteIdentity.Package);
+        json.WriteString("image", PageMeta.SocialImageUrl);
         Reference(json, "author", AuthorId);
         json.WriteStartObject("offers");
         json.WriteString("@type", "Offer");
@@ -164,6 +165,7 @@ public static class StructuredData
             json.WriteString("headline", page.Name);
             json.WriteString("mainEntityOfPage", page.Url);
             json.WriteString("articleSection", article.Section);
+            json.WriteString("image", PageMeta.SocialImageUrl);
             Reference(json, "author", AuthorId);
 
             // Only when git said. A dateModified that is really the build date would tell a crawler every
