@@ -95,6 +95,7 @@
         <Project Path="tests/Rask.Signaling.Tests/Rask.Signaling.Tests.csproj" />
         <Project Path="tests/Rask.Query.Tests/Rask.Query.Tests.csproj" />
         <Project Path="tests/Rask.Meta.Hosting.E2E.Tests/Rask.Meta.Hosting.E2E.Tests.csproj" />
+        <Project Path="tests/Rask.Templates.E2E.Tests/Rask.Templates.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Meta.Hosting.Tests/Rask.Meta.Hosting.Tests.csproj" />
         <Project Path="tests/Rask.Spa.Hosting.Tests/Rask.Spa.Hosting.Tests.csproj" />
         <Project Path="tests/Rask.Spa.Tasks.Tests/Rask.Spa.Tasks.Tests.csproj" />

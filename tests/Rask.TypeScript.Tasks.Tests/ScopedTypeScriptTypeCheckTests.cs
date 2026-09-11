@@ -336,7 +336,13 @@ public class ScopedTypeScriptTypeCheckTests
                 continue;
             }
 
-            foreach (var project in Directory.EnumerateFiles(path, "*.csproj", SearchOption.AllDirectories))
+            // RepoFiles rather than a raw walk: it prunes src/Rask.Templates/, whose fifteen trees are
+            // the scaffolder's payload and not projects of ours. Their TypeScript imports the front-end
+            // dependencies the template declares — '@vitejs/plugin-react', 'nitro/vite' — which resolve
+            // only once a scaffolded app has run npm install, so type-checking them HERE reports six
+            // errors about a template that is perfectly correct.
+            foreach (var project in RepoFiles.EnumerateSourceFiles(path)
+                         .Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)))
             {
                 if (OptsOut(project))
                 {

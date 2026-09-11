@@ -27,6 +27,60 @@ them until tagged releases begin.
   succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
   (`docs/data.md#postgresql`).
 
+- **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
+  ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
+  `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network
+  and a Node install, produced a different tree every morning, and left every front-end dependency the
+  framework ships **invisible to this repository**: one committed `package.json` in the whole tree, no
+  npm entry in `dependabot.yml`, and nothing to review when a creator changed its output.
+
+  The fifteen templates now live under `src/Rask.Templates/`, embedded into `Rask.Cli`. Editing a file
+  there changes what the next scaffold writes, byte for byte — there is no second copy. `rask new Shop
+  --template react` takes **0.08s, offline, with no Node installed**. Each tree is also a real, runnable
+  app, which is what lets them stand in for the sample apps #1009 asked for.
+
+  Battery conditionals are subtractive: the tree IS the full default app, and regions are delimited by
+  comments in each file's own language, so every template file stays valid where it sits. A condition is
+  a conjunction — `Browser/BrowserStartup.cs` is absent without `--wasm` AND absent without `--cqrs`, and
+  both wasm-on/cqrs-off and wasm-off/cqrs-on are reachable, so no single flag describes it.
+
+  The cost is stated rather than hidden: a tree is a snapshot of what its creator wrote on the day it was
+  imported, and `scripts/refresh-templates.sh` re-runs the real creators and shows the diff. Upstream
+  drift arrives as a reviewed commit instead of changing silently under every user.
+
+- **`rask new --islands <runtime>…`** scaffolds a front-end component as an ordinary Rask component.
+  Islands were fully built — seven base classes, the client runtimes, the MSBuild layer — and the CLI
+  could not scaffold one; adding an island meant reading `docs/islands.md` and writing the npm side by
+  hand. Eight runtimes (react, preact, vue, svelte, solid, lit, angular, blazor), several at a time, on
+  the three C# host shapes. `rask new Shop --islands react angular blazor`.
+
+  It refuses what the build would refuse later, by name and with npm's actual reason: react + preact
+  cannot share a project (their Vite plugins pin incompatible Babel majors), and `--islands` on a SPA or
+  meta template, whose whole client already is a front end. Every runtime gets its own directory, because
+  two runtimes sharing an extension in overlapping trees is exactly what `ExternalBuildPlan` rejects.
+
+- **One answer to linting and formatting, in every template and every island project.** An ESLint flat
+  config, a `.prettierrc`, a `.prettierignore`, and `lint`/`format`/`format:check` scripts. It used to be
+  whatever each creator shipped that week: create-vite now writes an oxlint config, the Angular CLI
+  writes only a `.prettierrc`, and three of the meta creators write nothing at all. All thirteen
+  templates and six island combinations were installed for real and linted; all are clean.
+
+- **A gate that builds every template.** `scripts/run-template-e2e.sh` scaffolds each of the fifteen
+  through the same dispatch `rask new` uses and builds what it wrote with `-warnaserror`. Eleven of
+  them had nothing making that claim: only `server`, `wasm` and `react` were ever
+  scaffolded-and-built, plus `angular` for its Tailwind output, and **no meta template was built by
+  anything** — that lane's only gate publishes a hand-written stub csproj against stand-in files.
+
+  Two tiers, because the costs differ by two orders of magnitude: the default runs the C# half of all
+  fifteen and joins `run-all-gates.sh`; `--front-end` adds each client's real `npm ci`, lint,
+  format check and production build, which is four to six minutes per template. Opt-in via
+  `RASK_TEMPLATE_E2E=1`, and SKIPPED rather than silently passing without it.
+
+- **Dependabot can see the front end.** `.github/dependabot.yml` gains an npm ecosystem entry over the
+  thirteen template clients and `src/Rask.Site`, grouped into one PR per wave. Every client ships a
+  `package-lock.json`: with only a range declared, Dependabot acts solely when a release falls outside
+  it, so every minor and patch update would stay invisible.
+
 - **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
   nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
   the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`
@@ -267,6 +321,25 @@ them until tagged releases begin.
   connection open. Each batch that owns its transaction now runs inside the execution strategy, so a retrying
   strategy replays the failed batch alone instead of surfacing the first transient error.
 
+- **Three templates installed an older Tailwind than the C# host downloads.** solidstart `^4.0.7`,
+  nextjs `^4` and tanstack-start `^4.1.18` against a pinned 4.3 — floors their own creators wrote, which
+  Rask's patch never touched, so two scaffolded apps compiled the same classes with different compilers.
+  Invisible until the manifests were committed; the pin test now reads all thirteen.
+
+- **A scaffolded Angular app built and served nothing.** `ng new` lower-cases the directory into its
+  project name, so the Angular tree names `company-raskserver-client` in four files. Substituting only
+  the exact name token left the host's `RaskSpaDistDir` pointing at a directory Angular never writes.
+  There is a slug token now.
+
+- **The Analog template advertised a Node its own build refuses.** `node >=20.19.1`, carried in verbatim
+  from create-analog, while Rask's build floor is 22.12 (RASKSPA005).
+
+- **Rask's own service worker had two lint errors**, shipped in seven templates: a `let data = {}`
+  immediately reassigned, and an unused catch binding.
+
+- **`rask new --help` advertised a command that fails.** The examples still showed `--auth --data`; both
+  were retired, so the documented example exited non-zero.
+
 - **A `HasNonOverlappingRange` rule the provider would ignore now fails the boot.** The rule is model
   metadata that a provider has to turn into DDL, and only `UseRaskSqlite` did. On a plain `UseSqlite` — or
   any other provider — an app built, migrated and passed every test that didn't collide two ranges on
@@ -293,6 +366,17 @@ them until tagged releases begin.
   `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
   `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
   reporting it. The guard now looks for the console's own mount.
+
+- **An island's callbacks no longer go dead when the page around it re-renders from cache.** An island
+  (`ReactComponent`, `VueComponent`, …) is serialized as an element, so it never told its enclosing
+  component that the subtree held a component, and a page of plain elements plus an island qualified for
+  the clean-subtree frame cache. A replay re-registers only the page's own handler slots, while an island's
+  callbacks sit on the island's, so the second render of a clean page still wrote `"$h":"h0"` into the
+  props while the handler map held nothing for it: the click reached the server and ran nothing, for the
+  rest of the session. The same replay also skipped the runtime `<script>` the island contributes to
+  `<head>`. A page holding an island now stays on the walk path, and `LiveRenderContext.RegisterHandlerFor`
+  keeps any subtree whose handler lands on another component's slots off the cache as well.
+  `HandlerIdentityTests` pins both, with a control proving the rig caches the same page without the island.
 
 - **Relative links in the guides no longer 404.** The guide renderer sent every `../x.md` link to
   `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51

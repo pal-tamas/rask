@@ -164,7 +164,9 @@ public static class GuideCatalog
         },
 
         // ---- One Person Framework (the batteries) ----
-        new("cli", "The rask CLI", "Scaffold, run, generate, db, deploy — the front door.",
+        // No "generate": that command was removed, and a card naming a verb the CLI does not have
+        // is the first thing a reader types. The list is the commands `rask --help` prints.
+        new("cli", "The rask CLI", "Scaffold, run, dev, db, deploy — the front door.",
             "One Person Framework")
         {
             SearchTitle = "A .NET CLI to scaffold, run, migrate and deploy apps",
