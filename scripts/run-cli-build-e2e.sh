@@ -42,10 +42,16 @@ trap 'rm -f "$log"' EXIT
 # without it every run through a pipe reads as a pass.
 status=0
 
-echo "==> Build the CLI test project (Release)"
+echo "==> Build the CLI E2E test project (Release)"
 # MinVerSkip is deliberately NOT set: the gate packs the Rask packages and reads the packed version off
 # the nupkg filename, so MinVer must stamp a real version here.
-dotnet build tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release -m:1 2>&1 | tee "$log" || status=$?
+#
+# The project the tests below run, because they run with --no-build. It references Rask.Cli, which embeds the
+# template trees; Rask.Cli.Tests does not reference it. Building that project instead left this one's copy of
+# Rask.Cli as stale as its last build. The gate then scaffolded from old templates against freshly packed packages,
+# and failed on an API the templates had already moved past. It would pass just as readily on templates that no
+# longer exist.
+dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:1 2>&1 | tee "$log" || status=$?
 
 # A package cache of the gate's OWN, and the reason is that this gate MUTATES one.
 #
