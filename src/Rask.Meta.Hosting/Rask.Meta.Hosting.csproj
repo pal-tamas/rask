@@ -26,6 +26,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- An app VS Code's F5 launched runs the framework's own dev server itself (NodeSupervisor's dev mode),
+         the way `rask dev` would beside it. Source-linked from the one definition the CLI compiles too. -->
+    <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevScript.cs" Link="Shared\Dev\DevScript.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevServerProcess.cs" Link="Shared\Dev\DevServerProcess.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!--
       The one external dependency in this package, and a deliberate one. IHttpForwarder is YARP's
       low-level "direct forwarding" surface — no route table, no config model, just

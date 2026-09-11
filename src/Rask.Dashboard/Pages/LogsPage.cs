@@ -103,6 +103,16 @@ public sealed partial class LogsPage(
 
         var query = BuildQuery(Level, Category, Query, Page, options.PageSize);
         _history = await _store!.SearchAsync(query, cancellationToken).ConfigureAwait(false);
+
+        // A page past the end — a bookmarked ?page= that retention has since trimmed — reads the last page there
+        // is, rather than an empty table beside the stored count and a pager that cannot reach it.
+        if (_history.Entries.Count == 0 && _history.TotalCount > 0 && _history.Page > _history.PageCount)
+        {
+            Page = _history.PageCount;
+            _history = await _store
+                .SearchAsync(BuildQuery(Level, Category, Query, Page, options.PageSize), cancellationToken)
+                .ConfigureAwait(false);
+        }
         _storedCategories = await _store.CategoriesAsync(cancellationToken).ConfigureAwait(false);
 
         // Total plus the ids on screen: a new entry changes the total, and paging changes the ids.
@@ -138,16 +148,19 @@ public sealed partial class LogsPage(
     {
         if (!options.CaptureLogs && !HasStore)
         {
-            return DashboardEmpty.Heading("Log capture is off")
-                .Detail("Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
-                + "Rask.Logging to keep them across restarts.");
+            return UiCard[
+                UiEmpty
+                    .Heading("Log capture is off")
+                    .Detail("Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
+                    + "Rask.Logging to keep them across restarts.")
+            ];
         }
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
             UiHeader.Heading("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
             DashboardError.Message(LoadError),
-            Filters(),
-            IsHistory ? HistoryBody() : LiveBody(),
+            IsHistory ? HistoryBody(now) : LiveBody(now),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
@@ -174,10 +187,10 @@ public sealed partial class LogsPage(
             .Label(label)
             .Active(IsHistory == (view is not null));
 
-    // Stacked on a phone, one row from sm up. Three filter controls side by side at 360px leaves each of
-    // them too narrow to read the value it is set to, which is the only thing a filter has to show.
+    // The grid's toolbar lays these out as one row from sm up and one control per line below it, which is
+    // what three filters at 360px need: side by side, each is too narrow to show the value it is set to.
     private Component Filters() =>
-        Div.Class("mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center")[
+        [
             UiTabs[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
@@ -195,9 +208,9 @@ public sealed partial class LogsPage(
             .Label(label)
             .Active(MinimumLevel == level);
 
-    // A native select rather than a menu: a real application has dozens of logger categories, and this
-    // needs no JavaScript, is keyboard-navigable and gets the platform's own picker on a phone. Only the
-    // categories actually present are offered.
+    // A native select rather than a drawn list: a real application has dozens of logger categories, and the
+    // platform's own picker is keyboard-navigable, needs no script and is the right control on a phone. Only
+    // the categories actually present are offered.
     private Component? CategoryFilter()
     {
         var categories = IsHistory ? _storedCategories : buffer.Categories();
@@ -206,19 +219,14 @@ public sealed partial class LogsPage(
             return null;
         }
 
-        // One sequence: the children indexer takes individual components or an enumerable, not both.
-        var options = new List<Component?> { Option.Value("")["All categories"] };
-        options.AddRange(categories.Select(c =>
-            Option.Key(c).Value(c).Selected(string.Equals(c, Category, StringComparison.Ordinal))[c]));
+        IReadOnlyList<(string Value, string Text)> choices = [("", "All categories"), .. categories.Select(c => (c, c))];
 
-        return Select
+        return UiSelect
             .Value(Category ?? "")
-            .Class(
-                "min-h-11 w-full rounded-lg border border-ui-line bg-ui-bg px-2.5 py-1.5 text-sm text-ui-ink "
-                + "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-brand "
-                + "sm:min-h-0 sm:w-auto")
-            .Aria(new Dictionary<string, string?> { ["label"] = "Filter by category" })
-            .OnChange(CategoryChangedAsync)[options];
+            .Options(choices)
+            .Label("Category")
+            .Native(true)
+            .OnChange(CategoryChangedAsync);
     }
 
     private Task CategoryChangedAsync(string value)
@@ -262,66 +270,76 @@ public sealed partial class LogsPage(
             Query: IsHistory ? query ?? Query : null,
             Page: page is > 1 ? page : null);
 
-    private Component LiveBody()
-    {
-        var entries = buffer.Snapshot(MinimumLevel, Category);
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-
-        return entries.Count == 0
-            ? DashboardEmpty.Heading("Nothing captured yet")
+    private Component LiveBody(DateTime now) =>
+        LogGrid(
+            [.. buffer.Snapshot(MinimumLevel, Category).Select(ToRow)],
+            now,
+            UiEmpty
+                .Heading("Nothing captured yet")
                 .Detail("Entries appear here as the application logs them — subject to the app's own "
-                + "Logging:LogLevel configuration, which filters before the dashboard sees them.")
-            : LogTable(entries.Select(ToRow), now);
-    }
+                + "Logging:LogLevel configuration, which filters before the dashboard sees them."),
+            paged: false);
 
-    private Component HistoryBody()
+    private Component HistoryBody(DateTime now) =>
+        LogGrid(
+            [.. _history.Entries.Select(ToRow)],
+            now,
+            IsLoading
+                ? DashboardLoading
+                : UiEmpty
+                    .Heading("Nothing stored matches")
+                    .Detail("Either nothing has been logged into the store yet, or no entry matches this filter. "
+                    + "Retention drops entries by age and by count."),
+            paged: true);
+
+    // One grid for both surfaces, so the two modes cannot drift into rendering an entry differently.
+    //
+    // History's pages are LINKS: paging is navigation, so it stays shareable, back-navigable, and needs no
+    // round trip to the server to decide where it goes. The grid counts pages from zero and the address from
+    // one, and the conversion happens here, once.
+    private Component LogGrid(IReadOnlyList<LogRow> rows, DateTime now, Component empty, bool paged)
     {
-        if (IsLoading)
+        var grid = UiDataGrid.Data(rows)
+            .RowKey(r => r.Key)
+            .Label(paged ? "Stored log entries" : "Recent log entries")
+            .Toolbar(Filters())
+            .Loading(paged && IsLoading)
+            .Empty(empty);
+
+        if (paged)
         {
-            return DashboardLoading;
+            grid = grid
+                // The store's page size, not the option: the store caps it, and a pager counting in the option
+                // would offer pages past the rows the store can hand back.
+                .PageSize(_history.PageSize)
+                .Page(CurrentPage - 1)
+                .TotalCount((int)Math.Min(_history.TotalCount, int.MaxValue))
+                .PageHref(page => Link(Level, Category, page + 1));
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-
-        return _history.Entries.Count == 0
-            ? DashboardEmpty.Heading("Nothing stored matches")
-                .Detail("Either nothing has been logged into the store yet, or no entry matches this filter. "
-                + "Retention drops entries by age and by count.")
-            : [LogTable(_history.Entries.Select(ToRow), now), Pager()];
+        // Every column at every table width. The category used to fold under the message on a narrow screen, so
+        // hiding it between sm and lg would lose a fact the old table kept; on a phone each column becomes its own
+        // labelled line.
+        return grid[c => [
+            c.Field(r => r.Timestamp).Title("When").Cell(r =>
+                Span.Title(r.Timestamp.UtcDateTime.ToString("u"))[DashboardParts.Ago(r.Timestamp.UtcDateTime, now)]),
+            c.Field(r => r.Level).Title("Level").Cell(r => LevelBadge(r.Level)),
+            c.Field(r => r.Category).Title("Category").Mono(true),
+            c.Field(r => r.Message).Title("Message").Cell(MessageCell),
+        ]];
     }
 
-    private Component? Pager()
-    {
-        if (_history.PageCount <= 1)
-        {
-            return null;
-        }
-
-        var page = CurrentPage;
-
-        // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
-        // which is where thumbs are.
-        return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            PagerLink("Previous", page - 1, page <= 1),
-            Span.Class("text-center text-xs text-ui-muted")[
-                Span[$"Page {page} of {_history.PageCount}"],
-                Span.Class("hidden sm:inline")[$" — {_history.TotalCount} entries"]
-            ],
-            PagerLink("Next", page + 1, page >= _history.PageCount)
+    // The stack trace is the reason an error entry is worth surfacing at all, but it would drown the table,
+    // so it renders muted beneath the message rather than in a separate view.
+    private static Component MessageCell(LogRow row) =>
+        Div[
+            Div[row.Message],
+            row.Exception is { } ex ? UiCode.Content(ex) : null,
+            ScopeChips(row.Scopes)
         ];
-    }
 
-    // A link rather than a button: paging is navigation, so it stays shareable, back-navigable, and needs
-    // no round trip to the server to decide where it goes. A disabled end is rendered as plain text, since
-    // a link that goes nowhere should not be focusable.
-    private Component PagerLink(string label, int page, bool disabled) =>
-        disabled
-            ? Span.Class($"{UiStyles.Button} pointer-events-none opacity-40")[label]
-            : NavLink.Href(Link(Level, Category, page)).Class($"{UiStyles.Button} no-underline")[label];
-
-    // One row shape for both surfaces, so the two modes cannot drift into rendering an entry differently.
-    // The live tail has no scopes: it is the in-memory ring buffer, which predates the store and captures
-    // only what it is handed. History reads them from the stored row.
+    // One row shape for both surfaces. The live tail has no scopes: it is the in-memory ring buffer, which
+    // predates the store and captures only what it is handed. History reads them from the stored row.
     private static LogRow ToRow(DashboardLogEntry entry) => new(
         entry.Sequence, entry.Timestamp, entry.Level, entry.Category, entry.Message, entry.Exception, null);
 
@@ -329,59 +347,19 @@ public sealed partial class LogsPage(
         record.Id, record.Timestamp, record.Level, record.Category, record.Message, record.Exception,
         record.Scopes);
 
-    private static Component LogTable(IEnumerable<LogRow> rows, DateTime now) =>
-        UiTable.Scroll(true)[
-            // The message is the column an operator came for, so it is the one that survives a narrow
-            // screen; when, level and category fold in above it rather than scrolling off to the right.
-            Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
-                Tr[
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["When"],
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Level"],
-                    Th.Class("hidden px-3 py-2 font-medium lg:table-cell")["Category"],
-                    Th.Class("px-3 py-2 font-medium")["Message"]
-                ]
-            ],
-            Tbody[rows.Select(r => Tr.Key(r.Key).Class("border-b border-ui-line/60 last:border-0")[
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted sm:table-cell")
-                    .Title(r.Timestamp.UtcDateTime.ToString("u"))[
-                    DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
-                ],
-                Td.Class("hidden px-3 py-2 align-top sm:table-cell")[LevelBadge(r.Level)],
-                Td.Class($"hidden px-3 py-2 align-top lg:table-cell {UiStyles.Mono} text-ui-muted")[r.Category],
-                Td.Class("w-full max-w-0 px-3 py-2 align-top")[
-                    Div.Class("mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden")[
-                        LevelBadge(r.Level),
-                        Span.Class("text-xs text-ui-muted").Title(r.Timestamp.UtcDateTime.ToString("u"))[
-                            DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
-                        ]
-                    ],
-                    Div.Class("break-words text-ui-ink")[r.Message],
-                    // The category is worth keeping on a phone, just not in a column of its own.
-                    Div.Class($"mt-0.5 break-all text-ui-muted lg:hidden {UiStyles.Mono}")[r.Category],
-                    // The stack trace is the reason an error entry is worth surfacing at all, but it would
-                    // drown the table, so it renders muted beneath rather than in a separate view.
-                    r.Exception is { } ex
-                        ? Pre.Class(
-                            $"mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-all {UiStyles.Mono} text-ui-muted")[
-                            ex
-                        ]
-                        : null,
-                    // The ambient state the entry was written under — the request id, the user id. This is
-                    // what turns one line into a thread you can pull: copy a value into the scope filter
-                    // and the page shows everything else that happened on the same request.
-                    ScopeChips(r.Scopes)
-                ]
-            ])]
-        ];
-
+    // The ambient state the entry was written under — the request id, the user id. This is what turns one
+    // line into a thread you can pull. Mono badges wrap, because a scope value is a request id and one
+    // unbreakable 40-character token is enough to push the whole table wider than a phone; a space between
+    // them is the gap, the same as between any two inline things.
     private static Component? ScopeChips(IReadOnlyList<LogScopeValue>? scopes) =>
         scopes is null || scopes.Count == 0
             ? null
-            : Div.Class("mt-1.5 flex flex-wrap gap-1")[
-                // break-all, because a scope value is a request id: one unbreakable 40-character token is
-                // enough to push the whole table wider than a phone.
-                scopes.Select(s => UiBadge.Key(s.Key)
-                    .Class($"max-w-full break-all {UiStyles.Mono}")[$"{s.Key}={s.Value}"])
+            : Div[
+                scopes.SelectMany(s => new Component[]
+                {
+                    UiBadge.Key(s.Key).Mono(true)[$"{s.Key}={s.Value}"],
+                    " ",
+                })
             ];
 
     private static Component LevelBadge(LogLevel level) => UiBadge

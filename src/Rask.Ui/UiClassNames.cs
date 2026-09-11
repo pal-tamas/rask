@@ -438,6 +438,33 @@ internal static class UiClassNames
         _ => "",
     };
 
+    /// <remarks>
+    /// Table mode only. <c>sm:</c> comes first, so below <c>sm</c> — where the grid lists every cell as its own
+    /// labelled line — nothing is hidden; <see cref="UiBreakpoint.Sm" /> is no change, because the table starts
+    /// there. Variants only, never a bare <c>hidden</c>, for the cross-sheet reason UiDataGrid's cells record.
+    /// </remarks>
+    internal static string ColumnShowFrom(UiBreakpoint value) => value switch
+    {
+        UiBreakpoint.Md => "sm:max-md:hidden",
+        UiBreakpoint.Lg => "sm:max-lg:hidden",
+        UiBreakpoint.Xl => "sm:max-xl:hidden",
+        _ => "",
+    };
+
+    /// <remarks>A tint, not a fill: the row's text stays the body ink, so every tone reads at the same contrast.</remarks>
+    internal static string RowTone(UiTone value) => value switch
+    {
+        UiTone.Neutral => "bg-neutral/10",
+        UiTone.Primary => "bg-primary/10",
+        UiTone.Secondary => "bg-secondary/10",
+        UiTone.Accent => "bg-accent/10",
+        UiTone.Info => "bg-info/10",
+        UiTone.Success => "bg-success/10",
+        UiTone.Warning => "bg-warning/10",
+        UiTone.Error => "bg-error/10",
+        _ => "",
+    };
+
     internal static string DividerTone(UiTone value) => value switch
     {
         UiTone.Neutral => "divider-neutral",

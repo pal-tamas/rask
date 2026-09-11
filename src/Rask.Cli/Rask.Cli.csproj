@@ -80,6 +80,14 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!-- The dev-session conventions, source-linked from the one place the hosts that act on them also read:
+       what marks a dev-session build and the line an editor-launched app logs (both carried by the scaffolded
+       .vscode/ files), and the https://<name>.test layout — the hostname, where its certificate lives, the
+       port — which an app launched by F5 has to find exactly where `rask dev` put it. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\*.cs" Link="Shared\Dev\%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cli.Tests" />
     <!-- The template gate scaffolds through the same generator dispatch NewCommand uses, so the arm

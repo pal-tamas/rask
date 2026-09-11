@@ -30,7 +30,11 @@ public sealed class UiClassNamesTests
         {
             // As a class SELECTOR. Merely appearing as a substring would also match, say, `btn-primary`
             // living inside some other rule's selector list, which is not the same as being defined.
-            if (!UiStylesheet.Css.Contains("." + name, StringComparison.Ordinal))
+            //
+            // ESCAPED the way the compiled sheet writes it. A variant or an opacity modifier —
+            // `sm:max-md:hidden`, `bg-error/10` — is `.sm\:max-md\:hidden` in CSS, so looking for the raw
+            // name reports a class the sheet defines perfectly well as missing.
+            if (!UiStylesheet.Css.Contains("." + CssEscape(name), StringComparison.Ordinal))
             {
                 missing.Add($"{table} -> .{name}");
             }
@@ -59,6 +63,13 @@ public sealed class UiClassNamesTests
             Assert.DoesNotContain(' ', name);
         }
     }
+
+    private static string CssEscape(string name) =>
+        name.Replace(":", "\\:", StringComparison.Ordinal)
+            .Replace("/", "\\/", StringComparison.Ordinal)
+            .Replace(".", "\\.", StringComparison.Ordinal)
+            .Replace("[", "\\[", StringComparison.Ordinal)
+            .Replace("]", "\\]", StringComparison.Ordinal);
 
     private static List<(string Table, string Name)> AllNames()
     {

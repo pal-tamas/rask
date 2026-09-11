@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json` and
+  `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a dev session and
+  runs it under the C# debugger, so breakpoints hit from startup. Edits need a restart there (Ctrl+Shift+F5):
+  the runtime refuses to apply a hot-reload update to a process a debugger is attached to, and C# Dev Kit's
+  debug hot reload reports itself unavailable for this launch, so `rask dev` stays the live-edit loop. The
+  editor launches the app — and the app does what `rask dev` would have done beside it. It starts its own
+  front-end dev server (the islands' Vite, a React/Vue/Angular client's bundler, or a meta framework's own
+  dev server), and ends one a debugger's hard stop left holding its port; it serves on `https://<name>.test`
+  when an earlier `rask dev` already set that name up on this machine, and on localhost otherwise, never
+  prompting; and it prints `Rask dev: open <url>`, which `launch.json` opens. None of it runs under
+  `rask dev`, outside Development, or for a build that was not a dev session. The scaffold's `.gitignore` commits those three files and keeps the rest of
+  `.vscode/` personal. A handler or async lifecycle hook that throws now **stops the debugger** once, on the line
+  that threw, rather than being swallowed by its error boundary (Just My Code and "User-Unhandled Exceptions"
+  on): a handler's exception is reported user-unhandled as it leaves your code, and for a lifecycle hook, whose
+  exception arrives through a faulted task no debugger sees, Rask calls `Debugger.BreakForUserUnhandledException`; and the dev error panel turns every stack frame and compiler
+  error that names an absolute path into a `vscode://file` link to that line. One MSBuild switch,
+  `RaskDevSession=true`, now drives both `rask dev` and the F5 build: each package expands it for itself (a
+  WASM host serves its client's build output, SPA and meta lanes skip their production front-end build,
+  islands come from Vite), replacing the four properties `rask dev` passed by hand; an explicit value still
+  wins. Browser-side debugging — C# running in WASM, and scoped `.ts` — is not covered yet (#1073).
+
 - **The devtools panel lists the inspected page's wire traffic.** Every frame the page and the app exchange is
   listed newest first, under totals for each direction: events and navigations the page sent, and render frames and
   acks it received. Each row shows the frame's size, how many edit ops a render diff carried, and the time since the
@@ -357,6 +378,21 @@ them until tagged releases begin.
   real severity must have a descriptor in `src/`. Retired ids carry an em dash instead, which is how
   RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
   is it documented — and nothing asked whether a documented rule existed.
+- **`Rask.Ui` grows the steps an operator screen needs, so a page drawn with the kit writes no class strings.**
+  `UiDataGrid` columns take `ShowFrom(UiBreakpoint.Md)` — a secondary column waits until the table has room for
+  it, while the phone's stacked lines still list it — and `Mono(true)` for ids, keys and paths. A row takes
+  `RowTone(r => …)`; `Toolbar` lays its controls out as one row that stacks on a phone; and
+  `PageHref(page => …)` makes the pager's pages links, so a page that lives in `?page=` can be shared and
+  answers the back button. `UiPagination.Href` does the same on its own, and the page you are on is not a
+  link but says `aria-current`. `UiCard` takes `Href` (the whole card is one link) and `Icon`; `UiMetricRow.Columns(2)`; `UiBadge.Mono(true)` wraps a long token instead of widening its
+  row; `UiCode.Label("Payload")` captions a block; and **`UiEmpty`** is the empty state —
+  `UiEmpty.Heading("Nothing stored matches").Detail("Retention drops entries by age and by count.")`.
+  `UiMain` spaces the sections it holds, `UiHeader` no longer carries a margin of its own, and a `UiModal` body
+  spaces its sections too. A grid cell now lets one long unbroken token — a type name, a request id — break
+  instead of widening the table past a phone. The kit's sheet
+  also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
+  the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
+
 
 - **The Rask pill opens the devtools panel on WASM pages too.** A Debug build of a WASM app served from this machine
   (`localhost` or a loopback address) gets the same pill and drawer as a Server app, and the Wire tab lists the page's
@@ -636,6 +672,26 @@ them until tagged releases begin.
   islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
   ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
   gate are unchanged.
+- **The `/_rask` console is drawn with `Rask.Ui` and nothing else.** Every table is a `UiDataGrid`: a dead letter
+  carries the error tone, a secondary column waits until the table has room for it, a phone lists every column
+  as its own labelled line, and the Logs history pages are links you can share. The banners are `UiAlert`s, the
+  empty states `UiEmpty`, and each queue card on the overview is one link. `Rask.Dashboard` no longer compiles or
+  embeds a stylesheet of its own — the document inlines only the kit's, whose `.rask-ops` reset is the console's
+  page base — and `DashboardIsKitOnlyTests` fails on any class string written in the package. The System page's
+  snapshots moved to a card of their own.
+- **A long `UiPagination` draws a window of pages instead of every one.** A join is one unbreakable row, so
+  a pager over forty pages was wider than a phone and dragged the whole document sideways. Past seven pages
+  it now draws the first, the last, and the current page with its neighbours, with a gap marker between —
+  never more than seven items. The console's screenshot pass caught it on the Logs history.
+- **Breaking: `UiNotice` and `UiStyles.Button`, `UiStyles.Danger` and `UiStyles.Quiet` are removed.** Nothing
+  in the framework drew with them once the operator console moved onto kit components, and each duplicated one
+  that already exists. Use `UiAlert.Tone(…)` for a notice, and `UiButton` for an action — `.Tone(UiTone.Error).Variant(UiVariant.Outline)`
+  for one that destroys or re-runs work, `.Variant(UiVariant.Ghost)` for a quiet dismiss — rather than a class
+  string on a raw `<button>`.
+- **Breaking: `UiStat.Tone` is a `UiTone?`.** It was a string matched against `"danger"` and `"warn"` — names
+  nothing else in the kit uses — so the natural `"error"` compiled and rendered a neutral tile without a word.
+  Write `.Tone(UiTone.Error)` or `.Tone(UiTone.Warning)`.
+
 
 ### Fixed
 

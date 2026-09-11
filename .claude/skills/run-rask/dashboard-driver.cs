@@ -54,6 +54,7 @@ const int MinShotBytes = 1024;
     ("/_rask", "ops-overview"),
     ("/_rask/queues/jobs", "ops-queue"),
     ("/_rask/cache", "ops-cache"),
+    ("/_rask/storage", "ops-storage"),
     ("/_rask/logs?view=history", "ops-logs"),
     ("/_rask/system", "ops-system"),
 ];

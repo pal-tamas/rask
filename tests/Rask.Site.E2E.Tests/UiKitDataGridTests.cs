@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -25,6 +26,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
         foreach (var id in new[]
                  {
                      "ui-grid-basic", "ui-grid-selection", "ui-grid-grouped", "ui-grid-controlled",
+                     "ui-grid-console",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -150,6 +152,57 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
         {
             // The context is per-test, but a viewport left shrunk is the kind of thing that reads as a
             // component bug in whichever test happens to run next.
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Fact]
+    public Task PageLinksMoveTheUrlAndTheBackButtonWalksBack() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var grid = Page.Locator("[data-testid='ui-grid-console']");
+        await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(3);
+        await Expect(grid.Locator("[aria-current='page']")).ToHaveTextAsync("1");
+
+        await grid.Locator("a.join-item").Filter(new LocatorFilterOptions { HasText = "2" }).ClickAsync();
+
+        // A link, not a handler: the page is in the address now, and the grid read it back from there.
+        await Expect(Page).ToHaveURLAsync(new Regex(@"ui/data-grid/\?page=2$"));
+        await Expect(grid.GetByText("Rask.Data", new LocatorGetByTextOptions { Exact = true })).ToBeVisibleAsync();
+        await Expect(grid.Locator("[aria-current='page']")).ToHaveTextAsync("2");
+
+        await Page.GoBackAsync();
+
+        await Expect(Page).ToHaveURLAsync(new Regex(@"ui/data-grid/$"));
+        await Expect(grid.Locator("[aria-current='page']")).ToHaveTextAsync("1");
+    });
+
+    [Fact]
+    public Task ASecondaryColumnWaitsForRoomAndAToneTintsItsRow() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var grid = Page.Locator("[data-testid='ui-grid-console']");
+        var channel = grid.Locator("th").Filter(new LocatorFilterOptions { HasText = "Channel" });
+        await Expect(channel).ToBeVisibleAsync();
+
+        // Rask.Core has more than 9000 downloads, so its row carries the success tone.
+        var tint = await grid.Locator("tbody tr").First.EvaluateAsync<string>(
+            "el => getComputedStyle(el).backgroundColor");
+        Assert.NotEqual("rgba(0, 0, 0, 0)", tint);
+
+        try
+        {
+            // Between sm and md: still a table, but the Channel column has not got its room yet.
+            await Page.SetViewportSizeAsync(700, 900);
+
+            await Expect(channel).ToBeHiddenAsync();
+            await Expect(grid.Locator("th").Filter(new LocatorFilterOptions { HasText = "Package" }))
+                .ToBeVisibleAsync();
+        }
+        finally
+        {
             await Page.SetViewportSizeAsync(1280, 720);
         }
     });

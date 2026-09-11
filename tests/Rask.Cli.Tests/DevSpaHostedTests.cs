@@ -84,17 +84,9 @@ public sealed class DevSpaHostedTests
 
         // The bundler's dev server owns the client during a dev session. Building a full production
         // bundle on every save as well would make watch unusable, and nothing would read the result.
-        Assert.Contains("--property:RaskSpaBuild=false", args);
-    }
-
-    [Fact]
-    public void Only_a_SPA_host_skips_the_bundle()
-    {
-        var args = DevCommand.BuildDotnetArguments(
-            "/app/App.csproj", once: false, noHotReload: false, launchProfile: null,
-            nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server);
-
-        Assert.DoesNotContain("--property:RaskSpaBuild=false", args);
+        // Rask.Spa.Hosting.props turns RaskSpaBuild off for the dev session this names — and only a
+        // project that references that package ever reads it.
+        Assert.Contains($"--property:{DevCommand.DevSessionProperty}=true", args);
     }
 
     [Fact]
@@ -106,6 +98,6 @@ public sealed class DevSpaHostedTests
             "/app/Shop/Shop.csproj", once: true, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.SpaHosted);
 
-        Assert.DoesNotContain("--property:RaskSpaBuild=false", args);
+        Assert.DoesNotContain($"--property:{DevCommand.DevSessionProperty}=true", args);
     }
 }

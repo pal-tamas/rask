@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Cli.Dev;
+namespace Rask.Hosting.Shared;
 
 /// <summary>
 ///     Renders the two files <c>rask dev</c> asks the machine for: the <c>/etc/hosts</c> block that

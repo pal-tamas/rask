@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
 
@@ -58,7 +59,7 @@ internal sealed class LinuxDevHostPlatform(IProcessRunner process, IConsole cons
     public override string HostsPath => "/etc/hosts";
 
     /// <summary>443 directly, once the sysctl below allows it.</summary>
-    public override int HttpsPort => 443;
+    public override int HttpsPort => DevHostPaths.DirectHttpsPort;
 
     public override string TrustChange =>
         $"trust '{DevCertificates.AuthorityName}' as a local certificate authority (system CA anchors)";

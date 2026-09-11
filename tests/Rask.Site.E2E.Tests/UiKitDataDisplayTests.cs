@@ -24,7 +24,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         foreach (var id in new[]
                  {
                      "ui-accordion", "ui-collapse", "ui-aura", "ui-text-rotate", "ui-hover-3d",
-                     "ui-hover-gallery", "ui-display-rest",
+                     "ui-hover-gallery", "ui-console-pieces", "ui-display-rest",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -103,6 +103,44 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(aura).ToBeVisibleAsync();
         Assert.Null(await aura.GetAttributeAsync("role"));
         Assert.Null(await aura.GetAttributeAsync("aria-label"));
+    });
+
+    [Fact]
+    public Task ALinkedCardIsOneLinkHoldingItsFigures() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-console-pieces']");
+        var card = scope.Locator("a").Filter(new LocatorFilterOptions { HasText = "Jobs" });
+
+        // One link, and the figures are inside it rather than beside it.
+        await Expect(card).ToHaveCountAsync(1);
+        await Expect(card).ToContainTextAsync("Outstanding");
+        Assert.EndsWith("/ui/data-grid/", await card.GetAttributeAsync("href") ?? "", StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task OnAPhoneAMonoBadgeWrapsInsideItsCardInsteadOfWideningIt() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        try
+        {
+            await Page.SetViewportSizeAsync(390, 844);
+
+            var badge = Page.Locator("[data-testid='ui-console-pieces'] .badge.font-mono");
+            await Expect(badge).ToBeVisibleAsync();
+
+            // A badge is a fixed-height pill that never breaks; a 40-character request id in one used to
+            // push its row wider than the screen. The mono form gives up the height and breaks anywhere.
+            var inside = await badge.EvaluateAsync<bool>(
+                "el => el.getBoundingClientRect().right <= el.parentElement.getBoundingClientRect().right + 0.5");
+            Assert.True(inside, "the mono badge overflowed its card at 390px");
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
     });
 
     private async Task OpenAsync()
