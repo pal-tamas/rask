@@ -159,13 +159,16 @@ public sealed class SiteExampleTests
             // The front door links to the showcase and names it for what it is — calling /docs "the
             // live demo" left the docs themselves unnamed. An in-app route now (one app, two areas),
             // where it used to be a relative link from one published app to another.
-            await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", SharedSmokeTests.Docs);
+            //
+            // With the trailing slash: that is the URL GitHub Pages serves /docs at, and a link to the bare
+            // form is a 301 for every crawler that follows it (#1057).
+            await Expect(page.Locator("#cta-docs")).ToHaveAttributeAsync("href", SharedSmokeTests.Docs + "/");
             await Expect(page.Locator("#cta-docs")).ToHaveTextAsync("Docs");
 
             // The nav "Docs" entry points at the on-site showcase (/docs/), and the old external
             // GitHub-docs link is gone — no nav link targets the repo's markdown folder anymore.
             await Expect(page.Locator("nav a", new PageLocatorOptions { HasTextString = "Docs" }).First)
-                .ToHaveAttributeAsync("href", SharedSmokeTests.Docs);
+                .ToHaveAttributeAsync("href", SharedSmokeTests.Docs + "/");
             await Expect(page.Locator("a[href*='tree/main/docs']")).ToHaveCountAsync(0);
         }
         finally
@@ -372,7 +375,9 @@ public sealed class SiteExampleTests
                 .First.ClickAsync();
 
             await Expect(page.Locator("h1")).ToContainTextAsync("Guides");
-            Assert.EndsWith("/docs", page.Url, StringComparison.Ordinal);
+            // /docs/, the URL GitHub Pages serves the docs at: the link carries the trailing slash so a
+            // crawler following it is not redirected (#1057), and the in-place navigation keeps it.
+            Assert.EndsWith("/docs/", page.Url, StringComparison.Ordinal);
             Assert.Equal(tabsBefore, context.Pages.Count);
             Assert.Equal("alive", await page.EvaluateAsync<string?>("() => window.__spaWitness"));
         }
