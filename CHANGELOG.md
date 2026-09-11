@@ -162,6 +162,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
+  and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
+  `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
+  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
+  not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+
 - **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
   in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
   They were bare, and GitHub Pages answers `/docs/guides/cqrs` with a 301 to `/docs/guides/cqrs/`, so every
@@ -326,6 +332,13 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
+  compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island
+  the app declares but globs for their front-end files from its own directory and finds none, so every
+  rask.sh deploy warned, twice per island, that five islands shipping fine would never mount. The companion
+  now turns the island build and prop types off (`RaskExternalBuild`, `RaskExternalPropTypes`); the app's
+  own build still checks and bundles them (#1068).
 
 - **The builder allocation pins no longer fail a busy machine's gate.** `BuilderEntryAllocationPinTests`
   runs in a non-parallel collection. It reads the measuring thread's allocations, which looked immune to
