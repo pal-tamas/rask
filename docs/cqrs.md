@@ -142,27 +142,39 @@ builder.Services.AddRaskCqrsServer();
 app.MapRaskCqrs();
 ```
 
-**`rask new --wasm` scaffolds all of it.** The [one-project build](render-modes.md) compiles one set of
-sources into both halves, so the message records are shared by construction — there is no Shared project
-to put them in any more. What is left is keeping the two transports apart, which the csproj says in one
-line each:
+**`rask new --wasm` scaffolds all of it, in one project.** The browser app lives in `Client/`, and three
+places say which half a file belongs to:
+
+| Folder | Compiled into |
+|---|---|
+| `Client/**` | the browser app only — its `Program.cs`, pages, components, `wwwroot/index.html` |
+| `Shared/**` | both — **message records go here** |
+| everything else | the server only — **handlers go here** |
+
+So a message record is shared by construction, and its handler — with the connection string, table name or
+pricing rule it touches — never reaches a download anybody can read. The build generates the browser app's
+project into `obj/` from `Client/` and `Shared/`; `Client/Program.cs` is what switches that on, and
+`<RaskClient>false</RaskClient>` switches it off.
+
+What is left is keeping the two transports apart, which the csproj says in one line:
 
 ```xml
-<!-- The bundle gets this one; the server must not. It is the half that CALLS the endpoints the
+<!-- The browser app gets this one; the server must not. It is the half that CALLS the endpoints the
      server answers, and a plain PackageReference would ship it into the process answering them. -->
-<RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..."/>
-
-<!-- The bundle has no Program.cs of its own — that file is the server's, and the companion excludes
-     it — so this names the type whose Configure(IServiceCollection) runs before the app does. -->
-<RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
+<RaskClientPackageReference Include="Rask.Cqrs.Client" Version="..."/>
 ```
 
-That startup type lives under `Browser/`, which is the only place it can: a browser-only reference is
-absent from the server by design, so a file using it has to be somewhere the server does not compile.
-`Browser/` is the mirror of `Server/` — see [render modes](render-modes.md#one-project).
+and the browser app registers it in its own entry point:
 
-Keep your handlers under `Server/`, which the browser half does not compile. That is what keeps a
-connection string, a table name or a pricing rule out of a download anybody can read.
+```csharp
+// Client/Program.cs
+var host = WasmHostBuilder.CreateDefault();
+host.Services.AddRaskCqrsClient();
+await host.RunAsync<App>();
+```
+
+`RaskClientUsing` and `RaskClientProjectReference` do the same for a project-wide using and a project
+reference the browser app needs and the server must not have.
 
 > **Without a database, the scaffold sets `RequireAuthenticatedUser = false` and says why.** The default
 > is on, and that is right for an app with accounts — but an app with no database has none to require,

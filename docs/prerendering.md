@@ -398,14 +398,15 @@ Two things worth repeating as shapes, both found here:
 
 ## Limits
 
-- WASM only. A Server app already renders every request, and `RenderModes` covers serving a page
-  that needs nothing live as a cacheable document — see [Render modes](render-modes.md).
+- WASM only. A Server app already renders every request, and every one of its pages is live, so none of
+  them is a cacheable document — see [Live pages](render-modes.md).
 - Parameterised and catch-all routes are never covered; there is no hook yet for supplying the
   values to enumerate them.
 - The per-page budget is 30 seconds.
 
 ## See also
 
-- [Render modes](render-modes.md) — the Server-side equivalents, and moving a page into WebAssembly
+- [Live pages](render-modes.md) — how a Server page renders, waits for its data and sets its status
+- [Single-page apps](spa.md#a-rask-webassembly-app) — serving a WebAssembly app from an ASP.NET host
 - [Mobile & PWA](pwa.md) — the rest of the standalone-WASM deployment story
 - [Deployment](deployment.md) — publishing the bundle

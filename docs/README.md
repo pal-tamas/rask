@@ -31,7 +31,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag entries, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
-| [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK054), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
+| [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
 | [Browser APIs](browser-apis.md) | The map of all 50 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
 | [Capability matrix](browser-capabilities.md) | Where each of the 50 APIs works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm`. |
@@ -39,7 +39,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Prerendering](prerendering.md) | Render a standalone WASM app's pages to real HTML at publish (`<RaskPrerender>true</RaskPrerender>`), so a crawler gets the page instead of the boot spinner: what is written, which routes are skipped and why, and why a route that throws is deliberately left out. |
 | [Forms & validation](forms.md) | Two-way binding, `Form<T>`/`EditContext`, inline / DataAnnotations / FluentValidation / async validators, radio & checkbox groups. |
 | [Validation](validation.md) | Built in and on: `[Required]` and `AbstractValidator<T>` run in a form and on every dispatched request, with nothing declared. The off switch, validators that need services, and what a rejected request looks like on the wire. |
-| [Render modes](render-modes.md) | How a Server page reaches the browser: waiting for async data before the first byte, serving a page that needs nothing live as a cacheable document, setting a status or redirecting on load, and moving an eligible page into WebAssembly — published from the same project. |
+| [Live pages](render-modes.md) | How a Server page reaches the browser: every page live with a session of its own, waiting for async data before the first byte, cache headers, and setting a status or redirecting on load. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnPropsChanged` / `OnRendered` / `OnUnmount`, async-hook rules, cancellation, common gotchas. |
 | [Authentication](authentication.md) | Production auth: the cookie session on Server & WASM, `Authorize`, route guards, Identity / Keycloak / Auth0 / Cognito / Duende. |
 | [Accessibility](accessibility.md) | Setting ARIA attributes, `Role`/`TabIndex`, and focus on any element; the `Img` alt-text analyzer (RASK023). |

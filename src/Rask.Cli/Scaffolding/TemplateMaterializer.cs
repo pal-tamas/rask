@@ -98,7 +98,7 @@ internal static class TemplateMaterializer
                 continue;
             }
 
-            if (owners.TryGetValue(asset.Path, out var required) && !required.All(on.Contains))
+            if (owners.TryGetValue(asset.Path, out var required) && !Satisfied(required, on))
             {
                 continue;
             }
@@ -209,6 +209,30 @@ internal static class TemplateMaterializer
         }
 
         return slash < 0 ? real : string.Concat(path.AsSpan(0, slash + 1), real);
+    }
+
+    /// <summary>
+    ///     Whether every condition a file names holds: <c>flag</c> needs the flag on, <c>!flag</c> needs
+    ///     it off.
+    /// </summary>
+    /// <remarks>
+    ///     The negation exists for files a battery REPLACES rather than adds. Under <c>--wasm</c> the pages
+    ///     move into <c>Client/</c>, so the server's own copies of them must not be written at all — and a
+    ///     region marker cannot say that about a whole file without leaving an empty one behind.
+    /// </remarks>
+    internal static bool Satisfied(IEnumerable<string> conditions, IReadOnlySet<string> on)
+    {
+        foreach (var condition in conditions)
+        {
+            var negated = condition.StartsWith('!');
+            var flag = negated ? condition[1..] : condition;
+            if (on.Contains(flag) == negated)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

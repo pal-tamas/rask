@@ -374,7 +374,7 @@ page still renders and the live session still attaches — so navigating away fr
 An app that declares its **own** catch-all `[Route("/{**rest}")]` is deliberately serving those
 paths, so it stays `200`. And a page that matches a real route but finds no data — `/products/9999` —
 is not a routing fact at all: say so with `IPageResponse.SetStatus(404)`, described in
-[Render modes](render-modes.md).
+[Live pages](render-modes.md#status-codes).
 
 **Redirecting on load.** `Navigator.NavigateTo` works during a page's initial render, and the Server
 host turns it into a real `302` before rendering a body:

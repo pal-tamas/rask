@@ -67,9 +67,9 @@ internal static class TemplateCatalog
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
-        // --wasm is listed on this template alone. It is the one-project build: the app is authored once
-        // as a server app, and publish emits a browser bundle beside it from the same sources. The other
-        // templates either already ARE the browser half or carry a hand-written one.
+        // --wasm is listed on this template alone. It writes the browser app into Client/ of this same
+        // project, and the server serves it with UseRaskSpa instead of rendering pages of its own. The
+        // other templates either already ARE a browser app or carry a front end of their own.
         new("server", "Rask Server app",
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags, "push", "wasm"],

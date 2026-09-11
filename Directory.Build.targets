@@ -67,8 +67,8 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.DevTools\buildTransitive\Rask.DevTools.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.DevTools\buildTransitive\Rask.DevTools.targets') "/>
 
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Client.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Client.targets') "/>
 
   <!--
     Auto-enable the repo's git hooks (pre-commit: dotnet format + unit; pre-push: browser E2E) so a fresh

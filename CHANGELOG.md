@@ -260,7 +260,41 @@ them until tagged releases begin.
   ```
 
   WebAssembly is a single-page app, never a render mode: a booting browser runtime always paints its own
-  document. `rask new server --wasm` is reworked in a follow-up change.
+  document.
+
+- **BREAKING: `rask new --wasm` writes the browser app into `Client/`, and the server serves it.** The server
+  used to render every page and hand eligible ones over to a bundle built from the same sources. Now the
+  project has three parts:
+
+  | Folder | Compiled into |
+  |---|---|
+  | `Client/**` | the browser app only: `Client/Program.cs` (its entry point), `App`, pages, `Client/wwwroot/index.html` |
+  | `Shared/**` | both: message records and the shapes an API returns |
+  | everything else | the server only: `Program.cs`, handlers, the database |
+
+  - **The server renders no pages.** Its `Program.cs` maps the API and CQRS endpoints and ends with
+    `app.UseRaskSpa()`, plus `UseRaskServer<RaskDashboardShell>` when the dashboard is on.
+  - **Detection.** `Client/Program.cs` switches the build on and `<RaskClient>false</RaskClient>` switches it
+    off; `dotnet publish` publishes the client into `wwwroot`, and `rask dev` builds it and serves the build
+    output.
+  - **Boot page.** The page the browser loads is a real `Client/wwwroot/index.html` whose import map the SDK
+    fills, so the framework files are fingerprinted like any WebAssembly app's.
+  - **Template markers.** A `template.json` owner can now be negated (`!wasm`), which is how the server's own
+    pages drop out.
+
+  ```xml
+  <!-- before -->
+  <RaskBrowserRung>true</RaskBrowserRung>
+  <RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
+  <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..."/>
+
+  <!-- after: Client/Program.cs is the switch and the startup -->
+  <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="..."/>
+  ```
+
+  Two gaps are known and open: Rask.Auth's sign-in pages are server-rendered, so the browser app has none of
+  its own yet, and `Client/` is compiled only by the generated project, so an IDE does not see those files as
+  part of a loaded project.
 
 - **BREAKING: a server hosts a Rask WebAssembly app through `UseRaskSpa()`.** `Rask.Wasm.Hosting` is gone and
   `Rask.Spa.Hosting` serves both kinds of single-page app. It recognises a WebAssembly bundle from its files and
@@ -484,6 +518,12 @@ them until tagged releases begin.
   `Rask.WasmAppBundleDir` / `Rask.WasmDevManifest` build metadata and the `RaskWasmDevBundle` property. The
   published package is unlisted and deprecated at the next release, naming `Rask.Spa.Hosting` as its
   replacement.
+- The one-project build's `RaskBrowserRung`, `RaskBrowserStartup`, `RaskBrowserRootComponent`,
+  `RaskBrowserPackageReference`, `RaskBrowserUsing` and `RaskBrowserProjectReference`, the generated
+  `Program.g.cs`, and the `Browser/`/`Server/` folder convention — replaced by `Client/`, `Shared/`,
+  `RaskClientPackageReference`, `RaskClientUsing` and `RaskClientProjectReference` (see *Changed*).
+- **RASK054** (*Page cannot run in the browser*), retired rather than reused. Pages no longer move into
+  WebAssembly, so there is nothing left for it to explain.
 - `ScopedAssetBundle.BakedDirectory`, `FindBakedFile` and `FindPrecompressedSibling`. Nothing sets a
   process-wide bundle directory any more; `Rask.Server` reads a baked scoped asset from the web root.
 

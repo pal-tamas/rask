@@ -1,7 +1,7 @@
 # JS interop — IJSRuntime, typed APIs & refs
 
 Calling JS from C#, the typed browser-API layer, element refs, and wrapping a third-party JS library.
-The browser-side half is TypeScript — a `.js` sibling is [RASK054](diagnostics.md#rask054).
+The browser-side half is TypeScript — a `.js` sibling is [RASK055](diagnostics.md#rask055).
 
 ‹ Back to [JavaScript interop](js-interop.md)
 

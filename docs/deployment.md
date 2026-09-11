@@ -327,16 +327,15 @@ the `Upgrade`/`Connection` headers (most do by default; for nginx set `proxy_set
 `Connection "upgrade"` and HTTP/1.1). To host under a sub-path, pass `app.UseRask<App>(pathBase:
 "/myapp")` and route `/myapp/*` to the container.
 
-**Caching in front of the app.** Every page used to be `Cache-Control: no-store`, because the shell
-carries a session id. With [`RenderModes.Static`](render-modes.md) on, a page that needs nothing live is
-served without one and becomes browser-cacheable (`private, max-age=0, must-revalidate`), which is
-what restores instant back/forward. It stays `private`, so a shared cache or CDN still holds nothing —
-deliberately: the framework will not put a page in a shared cache on your behalf. Anything
-authenticated, faulted, or `>= 400` stays `no-store` regardless.
+**Caching in front of the app.** Every page is `Cache-Control: no-store, no-cache, must-revalidate,
+private`, because every page is [live](render-modes.md) and its document carries a session id that
+belongs to one visit. A cache or CDN in front must not store pages; it can still cache the
+content-addressed `/_rask/a/*` assets and `wwwroot` files, which are served with their own cache headers.
+Public content that should be cached belongs somewhere that renders without a session — a
+[prerendered WebAssembly site](prerendering.md), or a plain ASP.NET endpoint.
 
-If you do add a cache in front, respect the `Vary` the app sends. It carries `Cookie` — because
-"anonymous" is itself a function of the cookie — and, on a localized app, `Accept-Language` too.
-Dropping either from the key lets a cache serve one visitor's page to another.
+Several instances behind a load balancer need **sticky sessions**: a page's state lives in the memory of the
+instance that rendered it, and its connection must reach that same instance.
 
 ## A client-plus-host solution
 
@@ -350,9 +349,10 @@ solution you own its Dockerfile; it needs the `wasm-tools` workload installed be
 Server host bakes in the browser client), and it runs `MyApp.Server` on the aspnet runtime image —
 same port and TLS story as the server app above.
 
-**If you are starting today, you want `--wasm` on a server app instead** ([render
-modes](render-modes.md)): one authored project, both halves, and `dotnet publish` emits the browser
-bundle into `wwwroot` from the same sources. That path *is* scaffolded, Dockerfile included.
+**If you are starting today, you want `--wasm` on a server app instead**
+([single-page apps](spa.md#a-rask-webassembly-app)): one project whose browser app lives in `Client/`, and
+`dotnet publish` emits its bundle into the server's `wwwroot`, where `UseRaskSpa()` serves it. That path
+*is* scaffolded, Dockerfile included.
 
 ## Standalone WASM SPA (`--template wasm`)
 

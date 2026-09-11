@@ -27,17 +27,15 @@ until the page isn't. See [sizing `MaxSessions`](configuration.md#sizing-maxsess
 for turning that into a cap, and note the two exclusions: Kestrel's ~32 KB per connection, and your own
 scoped services — one `DbContext` per session can dwarf everything in the table.
 
-**A page that needs nothing live can hold no session at all.** With
-[`RenderModes.Static`](render-modes.md) on, a page with no handler, form, `Ref` or JS call is served as a
-plain document and its scope is released before the response is even written — so it never enters
-this table. That also sharpens what `MaxSessions` means: it used to bound concurrent users *and*
-`GET` traffic together, because every `GET` retained a session for ten seconds whether or not
-anything ever connected to it. A crawler sweeping N routes created N sessions. Now it bounds
-retained live sessions, which is what the name says.
+**Every page load takes a session, connected or not.** [Every page is live](render-modes.md), so a `GET`
+creates a session before anything connects to it, and one that never connects is released after
+`UnconnectedSessionGracePeriod` (10 s). `MaxSessions` therefore bounds concurrent users *and* recent page
+loads together: a crawler sweeping N routes holds N sessions for those ten seconds. Size it for both, and a
+`GET` beyond it is answered `503` rather than taking memory the box does not have.
 
-Note the other side of that trade: waiting for a page's async data
-([`RenderModes.QuiescenceTimeout`](render-modes.md)) holds an HTTP request open for up to that long,
-so a slow page costs a request slot rather than a session. Size the two together.
+Waiting for a page's async data (`o.QuiescenceTimeout`, see [Live pages](render-modes.md#the-initial-get-waits-for-your-data))
+also holds the HTTP request open for up to that long, so a slow page costs a request slot as well as a
+session. Size the two together.
 
 ## What one box serves
 

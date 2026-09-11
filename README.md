@@ -53,10 +53,9 @@ component tree, so those two mix freely.
 ### Rask components
 
 C# components, server-rendered, with every state change streaming to the browser as a minimal diff
-over a WebSocket. Add `--wasm` and the same components also publish as a WebAssembly bundle from that
-same project — no second project, no separate build. The bundle is fetched once the page goes idle, and
-a page that can run client-side moves there on the next navigation; until then, and for any page that
-reaches a database, it stays live over the socket.
+over a WebSocket. Add `--wasm` and the pages run in the browser instead: a WebAssembly app in the
+project's `Client/` folder, served by the same server that answers its API — no second project to
+maintain, and message records in `Shared/` compile into both halves.
 
 ```bash
 rask new Shop

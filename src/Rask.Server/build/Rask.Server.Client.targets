@@ -1,0 +1,331 @@
+<Project>
+
+  <!--
+    The one-project build for a Rask WebAssembly client.
+
+    `rask new` with its wasm option writes ONE project whose browser app lives in a Client/ folder, the way a
+    TypeScript front end lives in client/. A .csproj carries exactly one SDK, and the two halves need
+    different ones — Microsoft.NET.Sdk.Web on net10.0 for the server, Microsoft.NET.Sdk.WebAssembly on
+    net10.0-browser for the browser — so the build generates the second project into obj/ and drives it,
+    rather than asking the author to maintain a parallel one.
+
+    Three places say which half a file belongs to:
+
+      Client/**   the browser app: its own Program.cs, the root component, pages, components, and
+                  wwwroot/index.html, the page the browser loads. Compiled into the bundle only.
+      Shared/**   what both halves need — message records, the shapes an API returns. Compiled into both.
+      the rest    the server: Program.cs, handlers, the database. Never reaches the bundle, so a
+                  connection string or a pricing rule cannot end up in a download anybody can read.
+
+    Switched on by convention — Client/Program.cs beside the project file — and off with
+    <RaskClient>false</RaskClient>. `rask dev` reads the same two signals.
+
+    The bundle is a single-page app, and Rask.Spa.Hosting's UseRaskSpa() serves it:
+      * `dotnet publish` publishes the client and copies its wwwroot into this app's wwwroot, where
+        UseRaskSpa finds it first;
+      * with RaskSpaBuild=false — what `rask dev` passes — the client is BUILT rather than published, and
+        its build-output manifest is baked, so UseRaskSpa serves that in Development and hot reload can
+        reach the browser (a published bundle is trimmed, and trimming turns hot reload off);
+      * an ordinary `dotnet build` does neither, because linking a WebAssembly runtime takes minutes.
+  -->
+
+  <PropertyGroup>
+    <RaskClient Condition=" '$(RaskClient)' == '' AND Exists('$(MSBuildProjectDirectory)/Client/Program.cs') ">true</RaskClient>
+    <RaskClient Condition=" '$(RaskClient)' == '' ">false</RaskClient>
+    <RaskClientCompanionDir Condition=" '$(RaskClientCompanionDir)' == '' ">$(BaseIntermediateOutputPath)rask-client\</RaskClientCompanionDir>
+    <RaskClientCompanionName Condition=" '$(RaskClientCompanionName)' == '' ">$(AssemblyName).Client</RaskClientCompanionName>
+    <RaskClientCompanionProject>$(RaskClientCompanionDir)$(RaskClientCompanionName).csproj</RaskClientCompanionProject>
+    <!--
+      A SIBLING of the companion's project directory, never a child of it. The companion's static web
+      assets are discovered by globbing its own folder, so publishing into it makes each publish an input to
+      the next: the bundle's own main.js and dotnet.js come back as candidate assets and fail the build. The
+      first publish succeeds and every one after it fails, which is the worst version of this to diagnose.
+    -->
+    <RaskClientCompanionOutput Condition=" '$(RaskClientCompanionOutput)' == '' ">$(BaseIntermediateOutputPath)rask-client-out\</RaskClientCompanionOutput>
+  </PropertyGroup>
+
+  <!--
+    The server half leaves Client/ alone. The scoped CSS/TypeScript globs in Rask.Core.targets read
+    RaskScopedSourceExclude; Compile and Content are removed here. EmitCompilerGeneratedFiles is what puts
+    the typed API client the server's generator writes on disk, for the companion to compile (below).
+  -->
+  <PropertyGroup Condition=" '$(RaskClient)' == 'true' ">
+    <RaskScopedSourceExclude>$(RaskScopedSourceExclude);Client\**</RaskScopedSourceExclude>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath Condition=" '$(CompilerGeneratedFilesOutputPath)' == '' ">$(IntermediateOutputPath)rask-generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(RaskClient)' == 'true' ">
+    <Compile Remove="Client\**"/>
+    <!-- The Web SDK publishes JSON and config files from every folder as Content; the client's belong to
+         its own bundle, which the companion publishes into wwwroot. -->
+    <Content Remove="Client\**"/>
+    <!-- dotnet watch reacts to Compile items and to Watch items. Client/ is no longer the server's Compile,
+         so an edit there would reach nothing without these. -->
+    <Watch Include="Client\**\*.cs;Client\**\*.css;Client\**\*.ts;Client\wwwroot\**\*;Shared\**\*.cs"
+           Exclude="Client\**\node_modules\**"/>
+  </ItemGroup>
+
+  <!--
+    The typed API client crosses into the bundle as a FILE, not as a second generator run.
+
+    An API controller lives outside Client/ and Shared/, so the generator cannot see it from the companion —
+    but the companion can compile the client the SERVER's generator already produced, once
+    EmitCompilerGeneratedFiles has put that on disk. Deliberately not the shape Rask.Cqrs uses for its
+    TypeScript: C# needs no task assembly to lift generated text out of an assembly, because the compiler
+    writes the file itself.
+
+    Rewritten by every CoreCompile but NOT deleted by one: when the last controller goes, the generator
+    emits nothing and the previous file would stay behind, baking a client for endpoints that no longer
+    exist. This removes it before the compile that decides whether to write it again.
+  -->
+  <Target Name="RaskCleanApiClient"
+          Condition=" '$(RaskClient)' == 'true' "
+          BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_RaskStaleApiClient Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
+    </ItemGroup>
+
+    <Delete Files="@(_RaskStaleApiClient)"/>
+  </Target>
+
+  <Target Name="RaskGenerateClientCompanion" Condition=" '$(RaskClient)' == 'true' ">
+
+    <!--
+      How the companion references Rask mirrors how the APP references it. An app consuming the packages
+      gets a PackageReference at the same version; the framework's own repo and its tests wire by project
+      path, and RaskClientCompanionSrc is how they say so.
+    -->
+    <PropertyGroup>
+      <_RaskClientBySource Condition=" '$(RaskClientCompanionSrc)' != '' ">true</_RaskClientBySource>
+      <_RaskClientApp>$(MSBuildProjectDirectory)</_RaskClientApp>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_RaskServerPackage Include="@(PackageReference)" Condition=" '%(Identity)' == 'Rask.Server' "/>
+
+      <!--
+        Globbed rather than named: the compiler nests its output under the generator's assembly and full
+        type name, and pinning that path would make renaming the generator a silent loss of the client.
+        Absent is the ordinary state of an app with no API.
+      -->
+      <_RaskApiClientFile Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
+
+      <_RaskClientWebRoot Include="$(_RaskClientApp)\Client\wwwroot\**\*"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_RaskClientVersion>@(_RaskServerPackage->'%(Version)')</_RaskClientVersion>
+    </PropertyGroup>
+
+    <Error Condition=" '$(_RaskClientBySource)' != 'true' And '$(_RaskClientVersion)' == '' "
+           Text="Rask: Client/Program.cs makes this a one-project WebAssembly app, but no Rask.Server PackageReference was found to take a version from. The browser half is a separate project and must reference the same framework build as this one."/>
+
+    <Error Condition=" !Exists('$(_RaskClientApp)\Client\wwwroot\index.html') "
+           Text="Rask: Client/Program.cs makes this a one-project WebAssembly app, but Client/wwwroot/index.html is missing — it is the page the browser loads to boot the app. Add one (`rask new --template wasm` writes the standard shell), or turn the client off with &lt;RaskClient&gt;false&lt;/RaskClient&gt;."/>
+
+    <ItemGroup>
+      <!--
+        %2A is '*' and %3B is ';', escaped. These lines are DATA, but MSBuild reads an item Include as a
+        file glob and splits it on semicolons — so an unescaped wildcard line matches nothing on disk and
+        vanishes from the output, and every line carrying a semicolon is cut in two. Both happened.
+      -->
+      <_RaskClientLine Include="&lt;Project Sdk=&quot;Microsoft.NET.Sdk.WebAssembly&quot;&gt;"/>
+      <_RaskClientLine Include="  &lt;!-- GENERATED by Rask from Client/ and Shared/. Edits are lost%3B change the app instead. --&gt;"/>
+
+      <_RaskClientLine Condition=" '$(_RaskClientBySource)' == 'true' "
+                       Include="  &lt;Import Project=&quot;$(RaskClientCompanionSrc)\Rask.Wasm\build\Rask.Wasm.props&quot; /&gt;"/>
+
+      <_RaskClientLine Include="  &lt;PropertyGroup&gt;"/>
+      <_RaskClientLine Include="    &lt;TargetFramework&gt;net10.0-browser&lt;/TargetFramework&gt;"/>
+      <_RaskClientLine Include="    &lt;RuntimeIdentifier&gt;browser-wasm&lt;/RuntimeIdentifier&gt;"/>
+      <_RaskClientLine Include="    &lt;OutputType&gt;Exe&lt;/OutputType&gt;"/>
+      <_RaskClientLine Include="    &lt;Nullable&gt;$(Nullable)&lt;/Nullable&gt;"/>
+      <_RaskClientLine Include="    &lt;ImplicitUsings&gt;$(ImplicitUsings)&lt;/ImplicitUsings&gt;"/>
+      <_RaskClientLine Include="    &lt;LangVersion&gt;$(LangVersion)&lt;/LangVersion&gt;"/>
+      <_RaskClientLine Include="    &lt;RootNamespace&gt;$(RootNamespace)&lt;/RootNamespace&gt;"/>
+      <_RaskClientLine Include="    &lt;AssemblyName&gt;$(RaskClientCompanionName)&lt;/AssemblyName&gt;"/>
+      <_RaskClientLine Include="    &lt;RaskWasm&gt;true&lt;/RaskWasm&gt;"/>
+      <_RaskClientLine Include="    &lt;EnableDefaultCompileItems&gt;false&lt;/EnableDefaultCompileItems&gt;"/>
+      <!--
+        The page the browser loads is Client/wwwroot/index.html, a real document, so the SDK fills its
+        import map and preload hints with the fingerprinted framework files, exactly as it does for a
+        standalone WebAssembly app.
+      -->
+      <_RaskClientLine Include="    &lt;OverrideHtmlAssetPlaceholders&gt;true&lt;/OverrideHtmlAssetPlaceholders&gt;"/>
+      <!--
+        The companion's scoped assets are the app's Client/ components, not files in obj/. The project globs
+        are turned off and the items are named below; tsgo is rooted in Client/ so its output lines up with
+        them.
+      -->
+      <_RaskClientLine Include="    &lt;RaskScopedCssAutoInclude&gt;false&lt;/RaskScopedCssAutoInclude&gt;"/>
+      <_RaskClientLine Include="    &lt;RaskScopedTsGlob&gt;false&lt;/RaskScopedTsGlob&gt;"/>
+      <_RaskClientLine Include="    &lt;RaskScopedTsRootDir&gt;$(_RaskClientApp)\Client&lt;/RaskScopedTsRootDir&gt;"/>
+      <!--
+        Belt and braces against CS0101. The companion compiles the client the server generated, so a
+        generator running HERE too would declare every client type a second time. This makes that a
+        property rather than a coincidence, for the app that adds Rask.Api to RaskClientPackageReference.
+      -->
+      <_RaskClientLine Include="    &lt;RaskApiClientBaked&gt;true&lt;/RaskApiClientBaked&gt;"/>
+      <_RaskClientLine Include="  &lt;/PropertyGroup&gt;"/>
+      <_RaskClientLine Include="  &lt;ItemGroup&gt;"/>
+      <_RaskClientLine Include="    &lt;CompilerVisibleProperty Include=&quot;RaskApiClientBaked&quot; /&gt;"/>
+      <_RaskClientLine Include="  &lt;/ItemGroup&gt;"/>
+
+      <!--
+        Remove rather than Exclude: an Exclude attribute takes a semicolon-separated list, and every one of
+        those semicolons would split the generated line into separate items on the way out.
+      -->
+      <_RaskClientLine Include="  &lt;ItemGroup&gt;"/>
+      <_RaskClientLine Include="    &lt;Compile Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.cs&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;Compile Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;Compile Include=&quot;$(_RaskClientApp)\Shared\%2A%2A\%2A.cs&quot; /&gt;"/>
+      <_RaskClientLine Condition=" '@(_RaskApiClientFile)' != '' "
+                       Include="@(_RaskApiClientFile->'    &lt;Compile Include=&quot;%(FullPath)&quot; /&gt;')"/>
+      <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.css&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;AdditionalFiles Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;_RaskScopedTs Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.ts&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;_RaskScopedTs Remove=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.d.ts&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;_RaskScopedTs Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;_RaskScopedTsTypes Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.d.ts&quot; /&gt;"/>
+      <_RaskClientLine Include="  &lt;/ItemGroup&gt;"/>
+
+      <!--
+        Project-wide usings for the BUNDLE, named one at a time. Flowing @(Using) wholesale looks right and
+        is wrong: that item carries every using a referenced PACKAGE injected through its own build/*.props
+        as well as the app's, and several of those namespaces exist only on the server.
+      -->
+      <_RaskClientLine Condition=" '@(RaskClientUsing)' != '' " Include="  &lt;ItemGroup&gt;"/>
+      <_RaskClientLine Include="@(RaskClientUsing->'    &lt;Using Include=&quot;%(Identity)&quot; /&gt;')"
+                       Condition=" '%(RaskClientUsing.Alias)' == '' And '%(RaskClientUsing.Static)' != 'true' "/>
+      <_RaskClientLine Include="@(RaskClientUsing->'    &lt;Using Include=&quot;%(Identity)&quot; Alias=&quot;%(Alias)&quot; /&gt;')"
+                       Condition=" '%(RaskClientUsing.Alias)' != '' "/>
+      <_RaskClientLine Include="@(RaskClientUsing->'    &lt;Using Include=&quot;%(Identity)&quot; Static=&quot;true&quot; /&gt;')"
+                       Condition=" '%(RaskClientUsing.Alias)' == '' And '%(RaskClientUsing.Static)' == 'true' "/>
+      <_RaskClientLine Condition=" '@(RaskClientUsing)' != '' " Include="  &lt;/ItemGroup&gt;"/>
+
+      <!--
+        References the BROWSER half needs and the server half must not have.
+        <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="..." /> is how an app says "this
+        belongs to the bundle only": a plain PackageReference would ship endpoint-CALLING code into the very
+        process that answers those endpoints.
+      -->
+      <_RaskClientLine Include="  &lt;ItemGroup&gt;"/>
+      <_RaskClientLine Include="@(RaskClientPackageReference->'    &lt;PackageReference Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')"
+                       Condition=" '%(RaskClientPackageReference.Version)' != '' "/>
+      <_RaskClientLine Include="@(RaskClientPackageReference->'    &lt;PackageReference Include=&quot;%(Identity)&quot; /&gt;')"
+                       Condition=" '%(RaskClientPackageReference.Version)' == '' "/>
+      <_RaskClientLine Include="@(RaskClientProjectReference->'    &lt;ProjectReference Include=&quot;%(FullPath)&quot; /&gt;')"/>
+      <!-- The runtime the baked API client calls, added because the file is there. -->
+      <_RaskClientLine Condition=" '@(_RaskApiClientFile)' != '' And '$(_RaskClientBySource)' != 'true' "
+                       Include="    &lt;PackageReference Include=&quot;Rask.Api.Client&quot; Version=&quot;$(_RaskClientVersion)&quot; /&gt;"/>
+      <_RaskClientLine Condition=" '@(_RaskApiClientFile)' != '' And '$(_RaskClientBySource)' == 'true' "
+                       Include="    &lt;ProjectReference Include=&quot;$(RaskClientCompanionSrc)\Rask.Api.Client\Rask.Api.Client.csproj&quot; /&gt;"/>
+
+      <_RaskClientLine Condition=" '$(_RaskClientBySource)' != 'true' "
+                       Include="    &lt;PackageReference Include=&quot;Rask.Wasm&quot; Version=&quot;$(_RaskClientVersion)&quot; /&gt;"/>
+      <_RaskClientLine Condition=" '$(_RaskClientBySource)' == 'true' "
+                       Include="    &lt;ProjectReference Include=&quot;$(RaskClientCompanionSrc)\Rask.Core\Rask.Core.csproj&quot; /&gt;"/>
+      <_RaskClientLine Condition=" '$(_RaskClientBySource)' == 'true' "
+                       Include="    &lt;ProjectReference Include=&quot;$(RaskClientCompanionSrc)\Rask.Wasm\Rask.Wasm.csproj&quot; /&gt;"/>
+      <_RaskClientLine Condition=" '$(_RaskClientBySource)' == 'true' "
+                       Include="    &lt;ProjectReference Include=&quot;$(RaskClientCompanionSrc)\Rask.Generators\Rask.Generators.csproj&quot; OutputItemType=&quot;Analyzer&quot; ReferenceOutputAssembly=&quot;false&quot; /&gt;"/>
+      <_RaskClientLine Include="  &lt;/ItemGroup&gt;"/>
+
+      <_RaskClientLine Condition=" '$(_RaskClientBySource)' == 'true' "
+                       Include="  &lt;Import Project=&quot;$(RaskClientCompanionSrc)\Rask.Wasm\build\Rask.Wasm.targets&quot; /&gt;"/>
+      <_RaskClientLine Condition=" '$(_RaskClientBySource)' == 'true' "
+                       Include="  &lt;Import Project=&quot;$(RaskClientCompanionSrc)\Rask.Core\build\Rask.Core.targets&quot; /&gt;"/>
+
+      <_RaskClientLine Include="&lt;/Project&gt;"/>
+    </ItemGroup>
+
+    <MakeDir Directories="$(RaskClientCompanionDir)"/>
+    <WriteLinesToFile File="$(RaskClientCompanionProject)" Lines="@(_RaskClientLine)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+
+    <!--
+      The companion's web root is a copy of Client/wwwroot. The WebAssembly SDK discovers static web assets
+      in its own project folder only, and the boot page has to be one of them for the SDK to fill its import
+      map. SkipUnchangedFiles keeps an unchanged file's timestamp, so an incremental build stays incremental.
+    -->
+    <Copy SourceFiles="@(_RaskClientWebRoot)"
+          DestinationFiles="@(_RaskClientWebRoot->'$(RaskClientCompanionDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"/>
+
+    <Message Importance="high" Text="Rask: generated the browser companion at $(RaskClientCompanionProject)"/>
+  </Target>
+
+  <!--
+    Driven with `dotnet publish` / `dotnet build` in a separate process rather than the MSBuild task: the
+    companion carries a different SDK and TargetFramework, and building it in this process would share the
+    global properties and SDK resolution of the project that started it. nodeReuse:false because a reused
+    node holds the previous build's assemblies loaded, and this project did not exist when that node started.
+  -->
+  <Target Name="RaskPublishClientCompanion"
+          Condition=" '$(RaskClient)' == 'true' "
+          DependsOnTargets="RaskGenerateClientCompanion"
+          BeforeTargets="PrepareForPublish">
+
+    <Message Importance="high" Text="Rask: publishing the browser app (this links a WebAssembly runtime and takes a while)"/>
+
+    <Exec Command="dotnet publish &quot;$(RaskClientCompanionProject)&quot; -c $(Configuration) -o &quot;$(RaskClientCompanionOutput)&quot; --nologo -v:minimal -nodeReuse:false"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <Target Name="RaskCollectClientAssets"
+          Condition=" '$(RaskClient)' == 'true' "
+          DependsOnTargets="RaskPublishClientCompanion"
+          BeforeTargets="PrepareForPublish">
+
+    <ItemGroup>
+      <_RaskClientAsset Include="$(RaskClientCompanionOutput)wwwroot\**\*"/>
+
+      <!-- Into the server's own wwwroot, which is the first place UseRaskSpa looks. -->
+      <ResolvedFileToPublish Include="@(_RaskClientAsset)">
+        <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+
+    <Error Condition=" '@(_RaskClientAsset)' == '' "
+           Text="Rask: the browser app published nothing into wwwroot. Expected a bundle at $(RaskClientCompanionOutput)wwwroot."/>
+
+    <Message Importance="high" Text="Rask: browser bundle staged (@(_RaskClientAsset->Count()) files)"/>
+  </Target>
+
+  <!--
+    A development session: build the client rather than publish it. After Build, because the typed API
+    client the companion compiles is written by this project's own compile. Skipped in a design-time build,
+    which must never shell out.
+  -->
+  <Target Name="RaskBuildClientCompanion"
+          Condition=" '$(RaskClient)' == 'true' AND '$(RaskSpaBuild)' == 'false' AND '$(DesignTimeBuild)' != 'true' "
+          DependsOnTargets="RaskGenerateClientCompanion"
+          AfterTargets="Build">
+
+    <Exec Command="dotnet build &quot;$(RaskClientCompanionProject)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    What UseRaskSpa reads to find the bundle with no arguments: the published bundle's directory, which
+    publish also copies next to the app; the client folder, named in the page shown when nothing is built
+    yet; and — only when the build skipped the publish — the build output's static-web-assets manifest.
+  -->
+  <Target Name="RaskSetClientMetadata"
+          Condition=" '$(RaskClient)' == 'true' "
+          BeforeTargets="GetAssemblyAttributes">
+    <PropertyGroup>
+      <_RaskClientOutDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(RaskClientCompanionOutput)'))</_RaskClientOutDir>
+      <_RaskClientBinDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(RaskClientCompanionDir)', 'bin', '$(Configuration)', 'net10.0-browser'))</_RaskClientBinDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyMetadata Include="Rask.SpaDistDir" Value="$(_RaskClientOutDir)wwwroot"/>
+      <AssemblyMetadata Include="Rask.SpaWasmClient" Value="$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', 'Client'))"/>
+      <AssemblyMetadata Include="Rask.SpaDevManifest"
+                        Value="$(_RaskClientBinDir)$(RaskClientCompanionName).staticwebassets.runtime.json"
+                        Condition=" '$(RaskSpaBuild)' == 'false' "/>
+    </ItemGroup>
+  </Target>
+
+</Project>

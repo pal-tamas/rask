@@ -42,7 +42,7 @@
     <CompilerVisibleProperty Include="RaskScopedTsAutoInclude"/>
     <!--
       The stray .js files found beside components, as one ';'-joined string, so the generator can
-      raise RASK054 without those files ever entering @(AdditionalFiles) — csc must not open or hash
+      raise RASK055 without those files ever entering @(AdditionalFiles) — csc must not open or hash
       a file the framework no longer compiles.
 
       A string rather than an item list on purpose: the generator's incremental pipeline caches on
@@ -69,9 +69,16 @@
     A .css inside a front-end directory can never be scoped CSS: scoped CSS is paired with a Component
     class in the same folder, and there are no C# classes down there.
   -->
+  <!--
+    RaskScopedSourceExclude: more directories to leave out of every scoped CSS and TypeScript glob in this
+    file, as patterns relative to the project. Rask.Server's one-project client build sets Client\**: those
+    components compile into the browser half only, so pairing their assets here would report each of them
+    as an orphan. A property rather than an item Remove, because these globs run at evaluation and every
+    property is evaluated before any item — so it reaches them whichever file declares it.
+  -->
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
     <AdditionalFiles Include="**\*.css"
-                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**"/>
+                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
   </ItemGroup>
 
   <!--
@@ -131,16 +138,25 @@
 
     <!--
       Compiled output lands under obj/, so `dotnet clean` removes it, it never appears in the source
-      tree, and it can never be mistaken for the sibling .js that RASK054 forbids.
+      tree, and it can never be mistaken for the sibling .js that RASK055 forbids.
     -->
     <_RaskScopedTsOutDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/ts'))/</_RaskScopedTsOutDir>
     <_RaskScopedTsTypesDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/types'))/</_RaskScopedTsTypesDir>
 
     <!--
+      Where the scoped .ts sources are rooted, which is also where tsgo roots the emitted tree. The default
+      is the project. A project that supplies @(_RaskScopedTs) itself — Rask.Server's generated browser
+      companion, whose sources live in the app's Client/ folder — points this there and turns the project
+      glob off with RaskScopedTsGlob=false. The two must agree, or the emitted files land where the
+      AdditionalFiles transform below does not look.
+    -->
+    <RaskScopedTsRootDir Condition="'$(RaskScopedTsRootDir)' == ''">$(MSBuildProjectDirectory)</RaskScopedTsRootDir>
+
+    <!--
       Whether any of this happens. Design-time builds are excluded for the reason Rask.Tailwind
       records: an IDE reloading a project must never download a binary or shell out to a compiler.
       That is safe here because the generator needs only PATHS to pair components and report
-      RASK017/018/020/054 — the compiled text is needed solely for the registration string, and no
+      RASK017/018/020/055 — the compiled text is needed solely for the registration string, and no
       user code references the class that holds it. Before the first real build the text is simply
       absent, which the generator already skips rather than mistaking for an empty asset.
     -->
@@ -156,7 +172,7 @@
     vacuumed up by consumers' builds, and `.d.ts` because it compiles to an empty file the generator
     would silently skip. Opt out entirely with <RaskScopedTsAutoInclude>false</…>.
 
-    A sibling `.js` is no longer compiled or registered: it raises RASK054. It is globbed all the
+    A sibling `.js` is no longer compiled or registered: it raises RASK055. It is globbed all the
     same, into a list that never becomes <AdditionalFiles>, purely so the generator can name the
     file in that error.
 
@@ -167,7 +183,8 @@
   -->
   <ItemGroup Condition=" '$(RaskScopedTsAutoInclude)' != 'false' ">
     <_RaskScopedTs Include="**\*.ts"
-                   Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts"/>
+                   Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts;$(RaskScopedSourceExclude)"
+                   Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
       Ambient declarations — the way to describe a third-party library with no node_modules to take
@@ -177,7 +194,8 @@
       to type-check. They emit nothing, so they never become an AdditionalFile.
     -->
     <_RaskScopedTsTypes Include="**\*.d.ts"
-                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Browser\**"/>
+                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Browser\**;$(RaskScopedSourceExclude)"
+                        Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
       Watched HERE rather than beside the other <Watch> at the end of this group, and that placement
@@ -198,9 +216,10 @@
     <_RaskScopedTsTypes Include="$(MSBuildThisFileDirectory)rask-globals.d.ts"
                         Condition="Exists('$(MSBuildThisFileDirectory)rask-globals.d.ts')"/>
 
-    <!-- Never becomes <AdditionalFiles>. It exists only to feed RASK054. -->
+    <!-- Never becomes <AdditionalFiles>. It exists only to feed RASK055. -->
     <_RaskStrayScopedJs Include="**\*.js"
-                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**"/>
+                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;$(RaskScopedSourceExclude)"
+                        Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
       `dotnet watch` collects @(Compile), @(EmbeddedResource), the project file and Razor content —
@@ -212,7 +231,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
-    <Watch Include="**\*.css" Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**"/>
+    <Watch Include="**\*.css" Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
   </ItemGroup>
 
   <!--
@@ -318,7 +337,7 @@
     <Error Condition=" '$(_RaskTsgoPath)' == '' "
            Text="Rask.TypeScript: the TypeScript compiler was not resolved, so the scoped .ts files in this project cannot be compiled. Set RaskTypeScriptBuild=false to build without them."/>
     <MakeDir Directories="$(_RaskScopedTsOutDir)"/>
-    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(MSBuildProjectDirectory)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck --ignoreConfig"
+    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck --ignoreConfig"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

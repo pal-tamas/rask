@@ -4,15 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- rask:if wasm -->
-    <!-- Publish a browser bundle from this same project: see docs/render-modes.md. -->
-    <RaskBrowserRung>true</RaskBrowserRung>
-    <RaskBrowserRootComponent>$(RootNamespace).Features.Shared.App</RaskBrowserRootComponent>
-    <!-- rask:if cqrs -->
-    <!-- The bundle registers its own services here: it has no Program.cs of its own. -->
-    <RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
-    <!-- rask:end -->
-    <!-- rask:end -->
     <!-- rask:if cqrs data -->
     <!-- The litestream binary ships in the Docker image, not fetched at build time. -->
     <RaskLitestreamDownload>false</RaskLitestreamDownload>
@@ -78,7 +69,9 @@
     <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
     <!-- rask:if wasm -->
-    <PackageReference Include="Rask.Wasm.Hosting" Version="{{RaskVersion}}"/>
+    <!-- Serves the browser app in Client/: its build output under `rask dev`, its published bundle
+         otherwise. -->
+    <PackageReference Include="Rask.Spa.Hosting" Version="{{RaskVersion}}"/>
     <!-- rask:if cqrs -->
     <PackageReference Include="Rask.Cqrs.Server" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
@@ -91,10 +84,16 @@
   </ItemGroup>
 
   <!-- rask:if wasm -->
+  <!--
+    The browser app lives in Client/ (and what both halves share in Shared/). Its project is generated
+    into obj/ from those folders — Client/Program.cs is what switches that on — so the references only the
+    browser needs are declared here, and never reach this server.
+  -->
   <ItemGroup>
-    <RaskBrowserPackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <RaskClientPackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <RaskClientUsing Include="Rask.Ui"/>
     <!-- rask:if cqrs -->
-    <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="{{RaskVersion}}"/>
+    <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
   </ItemGroup>
   <!-- rask:end -->

@@ -1,7 +1,17 @@
+// rask:ifnot wasm
 using Company.RaskServer.Features.Shared;
+// rask:end
+// rask:if wasm data
+using Company.RaskServer.Features.Shared;
+// rask:end
 using Microsoft.AspNetCore.HttpOverrides;
+// rask:ifnot wasm
 using Rask.Server;
 using Rask.Server.Diagnostics;
+// rask:end
+// rask:if wasm cqrs data ops
+using Rask.Server;
+// rask:end
 // rask:if push pwa
 using Company.RaskServer.Features.Push;
 using Rask.WebPush;
@@ -10,10 +20,12 @@ using Rask.WebPush;
 using Rask.Query;
 // rask:end
 // rask:if pwa
+// rask:ifnot wasm
 using Rask.Core.Browser;
 // rask:end
+// rask:end
 // rask:if wasm
-using Rask.Wasm.Hosting;
+using Rask.Spa.Hosting;
 // rask:if cqrs
 using Rask.Cqrs.Server;
 // rask:end
@@ -53,6 +65,7 @@ using Rask.Dashboard;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// rask:ifnot wasm
 // The languages this app ships, and the one place to change them. The FIRST is the default
 // a visitor falls back to when nothing else matches; add another line to ship another.
 //
@@ -63,26 +76,34 @@ var builder = WebApplication.CreateBuilder(args);
 //
 // Text comes from Resources/Strings.{culture}.json, compiled into typed members: a
 // missing key is a build error rather than a blank on the page (docs/diagnostics.md).
-// rask:ifnot wasm
 builder.Services.AddRask(configureCulture: c =>
-// rask:end
-// rask:if wasm
-builder.Services.AddRask(configureServer: o => o.RenderModes.Wasm = true, configureCulture: c =>
-// rask:end
 {
     c.SupportedCultures.Add("en");
 });
-// rask:if wasm
-// Serves the browser bundle this project publishes into wwwroot. Registered here and
-// mapped below, before UseRouting.
-builder.Services.AddRaskWasmHost();
-// rask:end
 // A liveness/readiness endpoint (mapped below) — `rask deploy` probes it to gate the blue-green
 // swap, and any load balancer or orchestrator can use it too. AddRaskLiveSessions reports the
 // live-session pool: Degraded at 80% of MaxSessions, Unhealthy once new sessions are being
 // refused with 503 — so a host that is full says so instead of answering a bare "up". Add real
 // dependency checks alongside it, e.g. .AddDbContextCheck<AppDbContext>().
 builder.Services.AddHealthChecks().AddRaskLiveSessions();
+// rask:end
+// rask:if wasm
+// This server renders no pages of its own. The app is the WebAssembly build of Client/, served below
+// by UseRaskSpa; AddRaskSpaHost compresses what it serves and applies the defaults every Rask host
+// gets — a persisted key ring, so a deploy does not sign everyone out, and a shutdown budget that fits
+// under the deploy's SIGKILL.
+builder.Services.AddRaskSpaHost();
+// rask:if cqrs data ops
+// The live runtime, for the one server-rendered part of this app: the operator dashboard.
+builder.Services.AddRaskServer();
+// rask:end
+// A liveness/readiness endpoint (mapped below) — `rask deploy` probes it to gate the blue-green
+// swap, and any load balancer or orchestrator can use it too. Add real dependency checks alongside
+// it, e.g. .AddDbContextCheck<AppDbContext>().
+builder.Services.AddHealthChecks();
+// An API answers an unhandled exception with a problem-details body rather than an HTML page.
+builder.Services.AddProblemDetails();
+// rask:end
 
 // Behind a reverse proxy (`rask deploy` runs Caddy in front), the app sees the proxy's own
 // address and a plain-HTTP request. Without this Request.Scheme is "http", so UseHsts never
@@ -109,7 +130,7 @@ builder.Services.AddRaskCqrs();
 // See docs/query.md.
 builder.Services.AddRaskQuery();
 // rask:if wasm
-// The endpoint half of remote dispatch, for the pages that move into the browser.
+// The endpoint half of remote dispatch: the browser app in Client/ sends its messages here.
 // rask:ifnot data
 // An anonymous caller gets the same answer for a real message name as for a typo, so
 // the endpoint cannot be walked to enumerate this app's messages.
@@ -286,6 +307,7 @@ builder.Services.AddAuthorization(o =>
 
 // rask:end
 // rask:if pwa
+// rask:ifnot wasm
 // Installable PWA: AddRaskPwa serves the manifest + service worker and emits the manifest link +
 // SW registration into the server-rendered <head>. The app is installable and push-capable, but NOT
 // an offline app (a Server app renders over a live WebSocket) — offline navigations show wwwroot/
@@ -299,6 +321,7 @@ builder.Services.AddRaskPwa(new WebAppManifest
     Display = DisplayMode.Standalone,
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
 });
+// rask:end
 // rask:end
 
 var app = builder.Build();
@@ -322,7 +345,12 @@ app.UseHealthChecks("/health");
 // one deliberately shows nothing about the exception.
 if (!app.Environment.IsDevelopment())
 {
+    // rask:ifnot wasm
     app.UseExceptionHandler("/error");
+    // rask:end
+    // rask:if wasm
+    app.UseExceptionHandler();
+    // rask:end
 }
 
 // Transport security (applies whether or not auth is enabled): redirect HTTP→HTTPS, and in
@@ -360,29 +388,29 @@ app.MapPushSubscriptions();
 
 // rask:end
 // rask:if wasm
-// The browser bundle, served from this app's own wwwroot.
-//
-// BEFORE UseRouting, and UseRouting written out rather than left implicit -- both matter.
-// Routing selects an endpoint before the static-file middleware runs, and that middleware
-// steps aside when one is already selected, so mapping the bundle afterwards lets the
-// Rask catch-all answer /_framework/*.wasm with text/html -- which the browser reports as
-// a broken WebAssembly module, nowhere near the ordering that caused it. And
-// WebApplication inserts UseRouting at the START of the pipeline when nobody calls it,
-// which would put routing ahead of this line however early it appears.
-app.UseRaskWasmAssets();
-app.UseRouting();
 // rask:if cqrs
-// Answers the messages the browser half dispatches. Two endpoints, not one per message:
+// Answers the messages the browser app dispatches. Two endpoints, not one per message:
 // GET and POST on /_rask/cqrs/request/{name}, the verb carrying what IQuery and ICommand
 // already declare — so a command is 405 on GET and cannot be fired by a URL or a
-// prefetch. Mapped BEFORE UseRask, whose catch-all would otherwise answer these.
+// prefetch.
 app.MapRaskCqrs();
 // rask:end
+// rask:if cqrs data ops
+// The operator dashboard, rendered by this server under its own prefix. Every other route stays the
+// browser app's.
+app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");
 // rask:end
+// The browser app in Client/: its build output under `rask dev`, its published bundle otherwise. Its
+// fallback answers every route nothing above claims — which is what keeps a refresh or a deep link on a
+// client-side route working — so it goes last.
+app.UseRaskSpa();
+// rask:end
+// rask:ifnot wasm
 // To host this app under a sub-path (e.g. behind a reverse proxy mapping
 // /myapp/* → this server), pass pathBase. Every framework endpoint and
 // emitted URL is scoped under the prefix; user-space routes stay unprefixed.
 //   app.UseRask<App>(pathBase: "/myapp");
 app.UseRask<App>();
+// rask:end
 
 app.Run();

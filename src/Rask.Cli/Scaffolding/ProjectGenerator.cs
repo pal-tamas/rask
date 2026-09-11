@@ -14,8 +14,8 @@ namespace Rask.Cli.Scaffolding;
 /// emitter for a template, so it has to name files that exist.
 /// <para>
 /// Every template is a SINGLE project now. <c>--wasm</c> on the server template does not scaffold a
-/// second one: it sets <c>RaskBrowserRung</c>, and <c>dotnet publish</c> generates the browser half into
-/// <c>obj/</c> from these same sources. The multi-project Client/Server/Shared trio was
+/// second one: it writes the browser app into <c>Client/</c>, and the build generates the browser half
+/// into <c>obj/</c> from <c>Client/</c> and <c>Shared/</c>. The multi-project Client/Server/Shared trio was
 /// <c>wasm-hosted</c>, removed in #877 along with <c>.WasmHosted.cs</c>.
 /// </para>
 /// </remarks>
