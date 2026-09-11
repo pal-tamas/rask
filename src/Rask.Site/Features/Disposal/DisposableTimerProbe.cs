@@ -18,7 +18,7 @@ public sealed partial class DisposableTimerProbe : Component, IDisposable
 
     protected override Component? Render() =>
         Div.Class("flex gap-2 items-center flex-wrap items-center")[
-            UiBadge.Label($"#{InstanceId} alive").Tone(UiTone.Warning).Variant(UiVariant.Soft).Class("dispose-probe-pill"),
+            UiBadge.Tone(UiTone.Warning).Variant(UiVariant.Soft).Class("dispose-probe-pill")[$"#{InstanceId} alive"],
             Span.Class("text-ui-muted text-sm")[$"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire Dispose()."]
         ];
 }

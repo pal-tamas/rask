@@ -55,7 +55,7 @@ protected override Component Shell(Component head, Component body) =>
 ```csharp
 protected override Component? Render() =>
 [
-    UiButton.Label("Save").Tone(UiTone.Primary).Variant(UiVariant.Outline).Size(UiSize.Lg),
+    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Size(UiSize.Lg)["Save"],
 
     UiModal.Title("Delete order").Id("confirm").Trigger("Delete")[
         P["This cannot be undone."]

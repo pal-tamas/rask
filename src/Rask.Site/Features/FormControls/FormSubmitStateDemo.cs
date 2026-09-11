@@ -21,11 +21,10 @@ public sealed partial class FormSubmitStateDemo : Component
                         .Placeholder("Pick a name…")
                         .Id("fss-input"),
                     UiButton
-                        .Label(submitting ? "Saving…" : "Sign up")
                         .Tone(UiTone.Primary)
                         .Type(UiButtonType.Submit)
                         .Disabled(submitting)
-                        .Id("fss-submit")
+                        .Id("fss-submit")[submitting ? "Saving…" : "Sign up"]
                 ]]
             ],
             Div.Class("col-span-12 md:col-span-5")[

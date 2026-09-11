@@ -24,12 +24,12 @@ public sealed partial class FluentValidationDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
-                UiButton.Label("Order").Icon(UiIconName.ShoppingBag).Tone(UiTone.Primary).Type(UiButtonType.Submit)
+                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.ShoppingBag), "Order"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
+            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
     ];
 }
 

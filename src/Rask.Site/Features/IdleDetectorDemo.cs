@@ -17,7 +17,7 @@ public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IA
 
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
-                UiButton.Label("Start watching (60s threshold)").Tone(UiTone.Primary).Class("mb-3").Id("idle-start").OnClick(Start),
+                UiButton.Tone(UiTone.Primary).Class("mb-3").Id("idle-start").OnClick(Start)["Start watching (60s threshold)"],
                 Div.Class("text-sm text-ui-muted")["User: ", Code.Id("idle-user")[_user]],
                 Div.Class("text-sm text-ui-muted")["Screen: ", Code.Id("idle-screen")[_screen]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("idle-status")[_status]]

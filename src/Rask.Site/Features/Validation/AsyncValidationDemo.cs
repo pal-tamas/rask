@@ -31,12 +31,12 @@ public sealed partial class AsyncValidationDemo : Component
                     .For(() => _model.Username)
             ],
             Div[
-                UiButton.Label("Sign up").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit)
+                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), "Sign up"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
+            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
     ];
 }
 

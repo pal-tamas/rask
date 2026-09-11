@@ -25,12 +25,12 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
                     .PlaysInline(true)
                     .Class("rounded border mb-2 bg-slate-900 block"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Label("Start camera").Icon(UiIconName.VideoCamera).Tone(UiTone.Primary).Id("media-start").OnClick(StartCamera),
-                    UiButton.Label("Share screen").Icon(UiIconName.Desktop).Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("media-screen").OnClick(ShareScreen),
-                    UiButton.Label("Stop").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Id("media-start").OnClick(StartCamera)[UiIcon.Name(UiIconName.VideoCamera), "Start camera"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("media-screen").OnClick(ShareScreen)[UiIcon.Name(UiIconName.Desktop), "Share screen"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("media-stop")
                         .Disabled(_stream is null)
-                        .OnClick(Stop)
+                        .OnClick(Stop)["Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status]]
             ];

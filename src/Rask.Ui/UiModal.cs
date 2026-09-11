@@ -98,12 +98,11 @@ public sealed partial class UiModal : Component
             // cover the viewport anyway. `modal-open` alongside it drives the transition.
             Dialog.Class(UiClass.Compose(Classes(), Open == false ? "" : "modal-open")).Open(Open != false),
             UiButton
-                .Label("Close")
+                .AccessibleLabel("Close")
                 .Variant(UiVariant.Ghost)
                 .Size(UiSize.Sm)
                 .Square(true)
-                .Icon(UiIconName.Close)
-                .OnClick(() => Close?.Invoke() ?? Task.CompletedTask),
+                .OnClick(() => Close?.Invoke() ?? Task.CompletedTask)[UiIcon.Name(UiIconName.Close)],
             // A pointer convenience, not the only way out: the header's close button is the keyboard
             // path, which is why this carries no role and no label of its own.
             backdrop: Close is null

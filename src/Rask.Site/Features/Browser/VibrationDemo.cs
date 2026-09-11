@@ -10,15 +10,15 @@ public sealed partial class VibrationDemo(IVibration vibration) : Component
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Label("Buzz").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("vibrate-buzz")
-                        .OnClick(Buzz),
-                    UiButton.Label("Pattern").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                        .OnClick(Buzz)["Buzz"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("vibrate-pattern")
-                        .OnClick(Pattern),
-                    UiButton.Label("Cancel").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                        .OnClick(Pattern)["Pattern"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("vibrate-cancel")
-                        .OnClick(Cancel)
+                        .OnClick(Cancel)["Cancel"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
             ];

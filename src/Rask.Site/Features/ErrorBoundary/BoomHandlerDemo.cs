@@ -11,16 +11,16 @@ public sealed partial class BoomHandlerDemo : Component
             .Fallback(BoundaryFallback)[
             Div.Class("p-3 border rounded bg-white").Id("boom-handler-host")[
                 P.Class("text-ui-muted text-sm mb-2")["Healthy subtree — click to throw."],
-                UiButton.Label("Throw a handler exception").Icon(UiIconName.Warning).Tone(UiTone.Error).Id("boom-throw").OnClick(ThrowFromHandler)
+                UiButton.Tone(UiTone.Error).Id("boom-throw").OnClick(ThrowFromHandler)[UiIcon.Name(UiIconName.Warning), "Throw a handler exception"]
             ]
         ];
 
     private static Component BoundaryFallback(Exception ex, Action recover) =>
-        UiAlert.Icon(UiIconName.Warning).Tone(UiTone.Error).Variant(UiVariant.Soft).Class("flex items-start").Id("boom-fallback")[Div[
+        UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("flex items-start").Id("boom-fallback")[UiIcon.Name(UiIconName.Warning), Div[
                 Strong["Boundary caught: "],
                 Code.Class("ms-1")[ex.GetType().Name],
                 P.Class("mb-2 mt-1 text-sm")[ex.Message],
-                UiButton.Label("Recover").Icon(UiIconName.Undo).Variant(UiVariant.Outline).Id("boom-recover").OnClick(recover)
+                UiButton.Variant(UiVariant.Outline).Id("boom-recover").OnClick(recover)[UiIcon.Name(UiIconName.Undo), "Recover"]
             ]];
 
     private static void ThrowFromHandler() =>

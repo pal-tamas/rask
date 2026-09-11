@@ -12,7 +12,7 @@ public sealed partial class PerformanceDemo(IPerformance performance) : Componen
 
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
-                UiButton.Label("Read performance timing").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2").Id("perf-read").OnClick(Read),
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2").Id("perf-read").OnClick(Read)["Read performance timing"],
                 Div.Class("text-sm text-ui-muted")["Timing: ", Code.Id("perf-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("perf-status")[_status ?? "(idle)"]]
             ];

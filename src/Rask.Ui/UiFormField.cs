@@ -117,7 +117,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
 
     public bool? Disabled { get; set; }
 
-    /// <inheritdoc cref="UiButton.Id" />
+    /// <inheritdoc cref="Element.Id" />
     public string? Id { get; set; }
 
     public string? Class { get; set; }

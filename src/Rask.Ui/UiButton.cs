@@ -1,9 +1,9 @@
-using Rask.Core.Live;
+using System.Text;
 
 namespace Rask.Ui;
 
 /// <summary>
-/// A button.
+/// A button. It IS the <c>&lt;button&gt;</c> — or, given <see cref="Href" />, the <c>&lt;a&gt;</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -13,15 +13,20 @@ namespace Rask.Ui;
 /// axes and compose, so an outlined error button needs no member of its own.
 /// </para>
 /// <para>
-/// <see cref="OnClick" /> takes either shape — an action that awaits, or a state flip that does not —
-/// because both call sites exist and neither should have to wrap a void in a completed task. One
-/// property, two overloads on the step.
+/// A <see cref="UiElement" />, so what it shows is its CHILDREN — <c>UiButton["Save"]</c>, or
+/// <c>UiButton[UiIcon.Name(UiIconName.Check), "Save"]</c> — and every element step (<c>Id</c>,
+/// <c>Data</c>, <c>Role</c>, <c>TabIndex</c>, <c>Aria</c>, <c>OnClick</c> and the rest of the events) is
+/// <see cref="Element" />'s, with nothing mirrored here to fall out of step. The kit sizes an icon placed
+/// in a button from its stylesheet, so a bare <c>UiIcon.Name(…)</c> is the right size without a class.
+/// </para>
+/// <para>
+/// A square or a circle holds one glyph, so its name cannot be visible text. Give it
+/// <see cref="AccessibleLabel" />: a button whose only content is a decorative icon is announced as
+/// "button" and nothing more.
 /// </para>
 /// </remarks>
-public sealed partial class UiButton : Component
+public sealed partial class UiButton : UiElement
 {
-    public required string Label { get; set; }
-
     /// <summary>The button's colour. Omitted, it is the theme's plain button.</summary>
     public UiTone? Tone { get; set; }
 
@@ -30,8 +35,6 @@ public sealed partial class UiButton : Component
 
     public UiSize? Size { get; set; }
 
-    public UiIconName? Icon { get; set; }
-
     /// <summary>Fills the width of its container, which is what a button in a phone-width form wants.</summary>
     public bool? Block { get; set; }
 
@@ -39,12 +42,12 @@ public sealed partial class UiButton : Component
     public bool? Wide { get; set; }
 
     /// <summary>
-    ///     Draws it as a square holding nothing but its <see cref="Icon" />. <see cref="Label" /> becomes
-    ///     the accessible name rather than visible text — see the remarks on icon-only buttons.
+    ///     Draws it as a square sized for one glyph. Pair it with <see cref="AccessibleLabel" />, since the
+    ///     glyph is all a sighted user sees and a screen reader needs words.
     /// </summary>
     public bool? Square { get; set; }
 
-    /// <summary>Draws it as a circle holding nothing but its <see cref="Icon" />, as <see cref="Square" />.</summary>
+    /// <summary>Draws it as a circle sized for one glyph, as <see cref="Square" />.</summary>
     public bool? Circle { get; set; }
 
     /// <summary>
@@ -53,35 +56,24 @@ public sealed partial class UiButton : Component
     /// </summary>
     public bool? Active { get; set; }
 
-    public Callback? OnClick { get; set; }
-
-    /// <summary>Runs on a double click.</summary>
-    public Callback<MouseEventArgs>? OnDoubleClick { get; set; }
-
     /// <summary>
-    ///     Runs when the context menu is asked for — a right click, or its keyboard and touch equivalents.
-    /// </summary>
-    public Callback<MouseEventArgs>? OnContextMenu { get; set; }
-
-    /// <summary>
-    ///     An explicit ARIA role, for a button that is really something else — a <c>switch</c>, a <c>tab</c>.
+    ///     The name a screen reader announces, for a button whose content does not say what it does — an
+    ///     icon-only square or circle, most of all. Written as <c>aria-label</c>.
     /// </summary>
     /// <remarks>
-    ///     A control whose role differs from its tag is ordinary in real interfaces, and without this the
-    ///     only way to build one was a raw element and a class string.
+    ///     A <c>label</c> set through <c>Aria</c> wins over this one: a caller naming it explicitly knows
+    ///     better. Leave it off a button with visible text — that text is already its name, and a different
+    ///     <c>aria-label</c> would make what a sighted user reads and what a screen reader says disagree.
     /// </remarks>
-    public string? Role { get; set; }
-
-    /// <summary>Its position in the tab order.</summary>
-    public int? TabIndex { get; set; }
+    public string? AccessibleLabel { get; set; }
 
     /// <summary>
     ///     The action to invoke on the element named by <see cref="CommandFor" />, as HTML's invoker API.
     /// </summary>
     /// <remarks>
     ///     <c>command</c>/<c>commandfor</c> open and close a dialog or a popover with NO script and no
-    ///     handler on either side — the platform does it. A kit button that could not express them would
-    ///     push every such call site back to a raw element.
+    ///     handler on either side — the platform does it. Ignored when <see cref="Href" /> is set: only a
+    ///     button is an invoker.
     /// </remarks>
     public string? Command { get; set; }
 
@@ -89,39 +81,23 @@ public sealed partial class UiButton : Component
     public string? CommandFor { get; set; }
 
     /// <summary>
-    ///     ARIA attributes, by name without the <c>aria-</c> prefix — <c>pressed</c>, <c>expanded</c>,
-    ///     <c>controls</c>.
-    /// </summary>
-    /// <remarks>
-    ///     A dictionary rather than a property per attribute, so the whole vocabulary is reachable from a
-    ///     kit button instead of only from a raw element. It MERGES with the accessible name an icon-only
-    ///     button generates from its <see cref="Label" />, and a <c>label</c> given here wins — a caller
-    ///     naming it explicitly knows better than the fallback does.
-    /// </remarks>
-    public IReadOnlyDictionary<string, string?>? Aria { get; set; }
-
-    /// <summary>
     ///     Where it goes. Set this and it renders an <c>&lt;a&gt;</c> rather than a <c>&lt;button&gt;</c>.
     /// </summary>
     /// <remarks>
     ///     <para>
     ///     A link that looks like a button is an ordinary thing to want — a call to action, a "read the
-    ///     guide", an install link — and daisyUI documents <c>btn</c> on an anchor for exactly it. Without
-    ///     this the only way to draw one was a class string in the application, which is the parallel
-    ///     vocabulary the kit exists to remove.
+    ///     guide", an install link — and daisyUI documents <c>btn</c> on an anchor for exactly it.
     ///     </para>
     ///     <para>
-    ///     It stays ONE component rather than a second one because the three axes — tone, fill, size — and
-    ///     the icon and block treatments are identical either way; a sibling would duplicate all of them to
-    ///     change one tag. What does change is what the element means: an anchor navigates, so it takes no
-    ///     <c>type</c>, and <see cref="Disabled" /> cannot apply to it — there is no disabled state for a
-    ///     link in HTML, and faking one with a class leaves it focusable and followable by keyboard. A
-    ///     disabled link is a link that should not be rendered.
+    ///     It stays ONE component because the tone, fill and size axes are identical either way; a sibling
+    ///     would duplicate all of them to change one tag. What does change is what the element means: an
+    ///     anchor navigates, so it takes no <c>type</c>, and <see cref="Disabled" /> cannot apply to it —
+    ///     there is no disabled state for a link in HTML, and faking one with a class leaves it focusable and
+    ///     followable by keyboard. A disabled link is a link that should not be rendered.
     ///     </para>
     ///     <para>
-    ///     <see cref="OnClick" /> still works alongside it, for the case where a navigation also records
-    ///     something — but if you find yourself reaching for both to avoid navigating at all, you want a
-    ///     button.
+    ///     Sanitised exactly as Core's <c>A</c> sanitises its own, so a <c>javascript:</c> URL that reaches
+    ///     a kit button from data is refused the same way.
     ///     </para>
     /// </remarks>
     public string? Href { get; set; }
@@ -138,18 +114,6 @@ public sealed partial class UiButton : Component
     /// </remarks>
     public UiButtonType? Type { get; set; }
 
-    /// <summary>
-    ///     <c>data-*</c> attributes to put on the element.
-    /// </summary>
-    /// <remarks>
-    ///     For the headless pattern, where something else supplies the attributes that make a control work
-    ///     and the application supplies the control. Rask's own gesture triggers are exactly that: the
-    ///     trigger hands its template a dictionary of <c>data-*</c> and renders nothing itself, so a button
-    ///     that cannot carry them has to be a raw element with a class string — which is the one thing a
-    ///     component kit is for avoiding.
-    /// </remarks>
-    public IReadOnlyDictionary<string, string?>? Data { get; set; }
-
     /// <summary>Opens <see cref="Href" /> in a new tab, with the <c>rel</c> that makes that safe.</summary>
     /// <remarks>
     ///     <c>rel="noopener"</c> comes with it rather than being left to the caller: a new tab opened
@@ -159,61 +123,37 @@ public sealed partial class UiButton : Component
     public bool? NewTab { get; set; }
 
     /// <summary>
-    ///     Whether it is disabled. Only meaningful for a button — see the remarks on <see cref="Href" />.
+    ///     Whether it is disabled — by ATTRIBUTE, so the browser refuses the interaction. Only meaningful for
+    ///     a button; see the remarks on <see cref="Href" />.
     /// </summary>
     public bool? Disabled { get; set; }
 
-    /// <summary>
-    ///     The element's <c>id</c>.
-    /// </summary>
-    /// <remarks>
-    ///     Present because a control has to be addressable: a <c>&lt;label for&gt;</c>, an
-    ///     <c>aria-describedby</c>, a deep link, and the browser suite's own selectors all reach it by id.
-    ///     The kit used to expose none outside <c>UiModal</c>, which meant an application that needed one had
-    ///     to drop back to a raw element and a class string — the parallel vocabulary the kit exists to
-    ///     remove.
-    /// </remarks>
-    public string? Id { get; set; }
-
-    public string? Class { get; set; }
+    /// <inheritdoc />
+    protected override string TagName => Href is null ? "button" : "a";
 
     /// <inheritdoc />
-    protected override Component? Render()
+    protected override string? ResolveClass() =>
+        UiClass.Compose(
+            "btn",
+            Tone is { } tone ? UiClassNames.ButtonTone(tone) : "",
+            Variant is { } variant ? UiClassNames.ButtonVariant(variant) : "",
+            Size is { } size ? UiClassNames.ButtonSize(size) : "",
+            Block == true ? "btn-block" : "",
+            Wide == true ? "btn-wide" : "",
+            Square == true ? "btn-square" : "",
+            Circle == true ? "btn-circle" : "",
+            Active == true ? "btn-active" : "",
+            Class);
+
+    /// <inheritdoc />
+    protected override IReadOnlyDictionary<string, string?>? ResolveAria()
     {
-        // A square or a circle is sized to hold one glyph, so visible text would overflow it. The label
-        // is still REQUIRED — it becomes the accessible name, because a button whose only content is a
-        // decorative icon has no name at all, and a screen reader announces it as "button".
-        var iconOnly = Square == true || Circle == true;
-
-        // The classes are the same either way — that is the point of one component — so they are composed
-        // once and the tag is chosen after.
-        var classes = UiClass.Compose(
-                "btn",
-                Tone is { } tone ? UiClassNames.ButtonTone(tone) : "",
-                Variant is { } variant ? UiClassNames.ButtonVariant(variant) : "",
-                Size is { } size ? UiClassNames.ButtonSize(size) : "",
-                Block == true ? "btn-block" : "",
-                Wide == true ? "btn-wide" : "",
-                Square == true ? "btn-square" : "",
-                Circle == true ? "btn-circle" : "",
-                Active == true ? "btn-active" : "",
-                Class);
-
-        // The two children, built once and handed to whichever tag wins below. Passed as two arguments
-        // rather than wrapped: the indexer takes them directly, and `Fragment` is RaskMarkup's, which a
-        // Component cannot reach.
-        var glyph = Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null;
-        var text = iconOnly ? null : Span[Label];
-
-        // A square or a circle holds one glyph, so the label has to reach a screen reader some other way.
-        // The caller's own ARIA is layered ON TOP, so an explicit label wins over the generated one.
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
-
-        if (iconOnly)
+        if (AccessibleLabel is not { } label || Aria?.ContainsKey("label") == true)
         {
-            aria["label"] = Label;
+            return Aria;
         }
 
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = label };
         if (Aria is { } callerAria)
         {
             foreach (var (name, value) in callerAria)
@@ -222,79 +162,50 @@ public sealed partial class UiButton : Component
             }
         }
 
+        return aria;
+    }
+
+    /// <inheritdoc />
+    protected override void WriteAttributes(StringBuilder sb)
+    {
+        base.WriteAttributes(sb);
+
         if (Href is { } href)
         {
-            var link = A.Href(href).Id(Id).Class(classes).Data(Data).Role(Role).TabIndex(TabIndex);
-
-            if (OnDoubleClick is { } linkDouble)
-            {
-                link = link.OnDoubleClick(linkDouble);
-            }
-
-            if (OnContextMenu is { } linkMenu)
-            {
-                link = link.OnContextMenu(linkMenu);
-            }
-
-            if (aria.Count > 0)
-            {
-                link = link.Aria(aria);
-            }
+            AppendUrlAttr(sb, "href", href);
 
             if (NewTab == true)
             {
                 // noopener with it, always — see the remarks on NewTab.
-                link = link.Target("_blank").Rel("noopener");
+                AppendAttr(sb, "target", "_blank");
+                AppendAttr(sb, "rel", "noopener");
             }
 
-            if (OnClick is { } navigateClick)
-            {
-                link = link.OnClick(navigateClick);
-            }
-
-            // No `type`, and no `disabled`: neither means anything on an anchor, and a disabled-looking
-            // link is still focusable and still followable.
-            return link[glyph, text];
+            // No `type`, no `disabled` and no invoker: none of them means anything on an anchor, and a
+            // disabled-looking link is still focusable and still followable.
+            return;
         }
 
-        var button = Button
-            .Type(Type switch
-            {
-                UiButtonType.Submit => "submit",
-                UiButtonType.Reset => "reset",
-                _ => "button",
-            })
-            .Id(Id)
-            .Class(classes)
-            .Data(Data)
-            .Role(Role)
-            .TabIndex(TabIndex)
-            .Command(Command)
-            .CommandFor(CommandFor)
-            .Disabled(Disabled == true);
-
-        if (aria.Count > 0)
+        AppendAttr(sb, "type", Type switch
         {
-            button = button.Aria(aria);
-        }
+            UiButtonType.Submit => "submit",
+            UiButtonType.Reset => "reset",
+            _ => "button",
+        });
 
-        // Forwarded as the carrier it arrived in, so the shape the caller wrote — sync or async — is the
-        // shape the DOM slot holds. There is no "both set" to arbitrate any more: one property, one slot.
-        if (OnClick is { } click)
+        if (Disabled == true)
         {
-            button = button.OnClick(click);
+            AppendAttr(sb, "disabled", null);
         }
 
-        if (OnDoubleClick is { } doubleClick)
+        if (Command is { } command)
         {
-            button = button.OnDoubleClick(doubleClick);
+            AppendAttr(sb, "command", command);
         }
 
-        if (OnContextMenu is { } contextMenu)
+        if (CommandFor is { } commandFor)
         {
-            button = button.OnContextMenu(contextMenu);
+            AppendAttr(sb, "commandfor", commandFor);
         }
-
-        return button[glyph, text];
     }
 }

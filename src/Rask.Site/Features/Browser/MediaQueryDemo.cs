@@ -10,9 +10,9 @@ public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
 
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
-                UiButton.Label("Evaluate media queries").Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
+                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
                     .Id("media-read")
-                    .OnClick(Read),
+                    .OnClick(Read)["Evaluate media queries"],
                 Div.Class("text-sm text-ui-muted")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]
             ];

@@ -34,20 +34,18 @@ public sealed partial class NestedListIndexerDemo : Component
                 ],
                 Td.Style("width: 5rem;")[
                     UiButton
-                        .Label("Move up")
-                        .Icon(UiIconName.ArrowUp)
+                        .AccessibleLabel("Move up")
                         .Square(true)
                         .Variant(UiVariant.Outline)
                         .Class("me-1")
                         .Disabled(i == 0)
-                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1])),
+                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[UiIcon.Name(UiIconName.ArrowUp)],
                     UiButton
-                        .Label("Remove SKU")
-                        .Icon(UiIconName.Close)
+                        .AccessibleLabel("Remove SKU")
                         .Square(true)
                         .Tone(UiTone.Error)
                         .Variant(UiVariant.Outline)
-                        .OnClick(() => _model.Skus.RemoveAt(i))
+                        .OnClick(() => _model.Skus.RemoveAt(i))[UiIcon.Name(UiIconName.Close)]
                 ]
             ]);
         }
@@ -61,10 +59,10 @@ public sealed partial class NestedListIndexerDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    UiButton.Label("Add row").Icon(UiIconName.Plus).Variant(UiVariant.Outline)
+                    UiButton.Variant(UiVariant.Outline)
                         .Id("nf-idx-add")
-                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m })),
-                    UiButton.Label("Submit").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-idx-submit")
+                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[UiIcon.Name(UiIconName.Plus), "Add row"],
+                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-idx-submit")[UiIcon.Name(UiIconName.CheckCircle), "Submit"]
                 ]
             ],
             _submission is null

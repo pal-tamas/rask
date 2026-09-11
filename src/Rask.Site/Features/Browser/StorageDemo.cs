@@ -22,9 +22,9 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
                         .Id("storage-input")
                         .Placeholder("Value to persist")
                         .OnInput(v => _input = v),
-                    UiButton.Label("Set").Tone(UiTone.Primary).Id("storage-set").OnClick(Set),
-                    UiButton.Label("Read").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("storage-read").OnClick(Read),
-                    UiButton.Label("Remove").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("storage-remove").OnClick(Remove)
+                    UiButton.Tone(UiTone.Primary).Id("storage-set").OnClick(Set)["Set"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("storage-read").OnClick(Read)["Read"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("storage-remove").OnClick(Remove)["Remove"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]

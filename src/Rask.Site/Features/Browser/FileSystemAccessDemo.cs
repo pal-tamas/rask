@@ -16,12 +16,12 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Label("Open file").Icon(UiIconName.Folder).Tone(UiTone.Primary).Id("fs-open").OnClick(Open),
-                    UiButton.Label("Save").Icon(UiIconName.Save).Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Id("fs-open").OnClick(Open)[UiIcon.Name(UiIconName.Folder), "Open file"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("fs-save")
                         .Disabled(_handle is null)
-                        .OnClick(Save),
-                    UiButton.Label("Save as…").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("fs-saveas").OnClick(SaveAs)
+                        .OnClick(Save)[UiIcon.Name(UiIconName.Save), "Save"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("fs-saveas").OnClick(SaveAs)["Save as…"]
                 ],
                 Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
                 Textarea

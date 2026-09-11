@@ -45,7 +45,6 @@ div .sample-result-label
 div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .items-center
 button .btn .btn-outline .btn-primary .js-only-btn
-span
 span .text-ui-muted
 strong
 
@@ -71,7 +70,6 @@ div .sample-result-label
 div .sample-result-body
 div
 button .btn .btn-outline .mb-3
-span
 div
 
 === asset-twin-bundle ===
@@ -119,13 +117,9 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-span
 button .btn .btn-warning
-span
 button .btn .btn-outline
-span
 div .alert .alert-soft .mb-0 .py-2
-span
 
 === auth-user-gate ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -150,9 +144,7 @@ div
 p .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center
 button .btn .btn-primary
-span
 button .btn .btn-warning
-span
 
 === binding-afterbind ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -405,9 +397,8 @@ div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .btn .btn-error
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === boom-nested ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -431,9 +422,8 @@ p .mb-2 .text-sm .text-ui-muted
 div .bg-ui-well .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .btn .btn-error
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === boom-render ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -455,9 +445,8 @@ div .sample-result-body
 div .bg-white .border .p-3 .rounded
 p .mb-2 .text-sm .text-ui-muted
 button .btn .btn-warning
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === browser-battery ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -479,7 +468,6 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-span
 div .mb-1 .text-sm .text-ui-muted
 code
 div .mb-1 .text-sm .text-ui-muted
@@ -508,7 +496,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-primary .mb-2
-span
 div .mb-1 .text-sm .text-ui-muted
 div .italic .text-sm .text-ui-muted
 
@@ -533,9 +520,7 @@ div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .gap-2 .mb-2
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -562,11 +547,8 @@ div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .gap-2 .items-stretch .mb-2
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-error .btn-outline
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -592,16 +574,13 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 div .text-sm .text-ui-muted
 code
 div .mb-2 .text-sm .text-ui-muted
 code
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .btn .btn-primary .mb-2
-span
 div .text-break .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -626,7 +605,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-primary .mb-3
-span
 div .mb-2 .text-sm .text-ui-muted
 code
 div .gap-4 .grid .grid-cols-12
@@ -663,15 +641,12 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline .btn-primary
-span
 div .mb-2 .text-sm .text-ui-muted
 code
 textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
@@ -721,7 +696,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -747,7 +721,6 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-span
 div .text-sm .text-ui-muted
 code
 span .ms-2
@@ -776,23 +749,16 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-success
-span
 span .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline
-span
 span .text-sm .text-ui-muted
 div .flex .flex-wrap .gap-2 .items-center .items-center
 button .btn .btn-outline
-span
 button .btn .btn-outline
-span
 button .btn .btn-outline
-span
 video
 div .mt-3 .text-sm .text-ui-muted
 code
@@ -823,13 +789,9 @@ div .col-span-12 .sm:col-span-8
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline
-span
 button .btn .btn-error .btn-outline
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -881,7 +843,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -907,13 +868,9 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-error .btn-outline
-span
 p .mb-2 .text-sm .text-ui-muted
 div .text-sm .text-ui-muted
 code
@@ -940,11 +897,8 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline
-span
 div .border .mb-3 .p-3 .rounded
 ul .mb-0
 li
@@ -973,7 +927,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -998,7 +951,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1024,13 +976,9 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline
-span
 button .btn .btn-error .btn-outline
-span
 div .text-sm .text-ui-muted
 code
 
@@ -1054,11 +1002,8 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .mb-2
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline
-span
 button .btn .btn-outline
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1085,7 +1030,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1110,7 +1054,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1136,9 +1079,7 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1167,7 +1108,6 @@ div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .mb-2 .text-sm .text-ui-muted
 code
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .bg-ui-well .rounded .text-center .w-fullp-4
 
 === browser-screen ===
@@ -1189,7 +1129,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1217,7 +1156,6 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-span
 div .text-sm .text-ui-muted
 code
 
@@ -1241,9 +1179,7 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .gap-2 .mb-2
 button .btn .btn-primary
-span
 button .btn .btn-secondary
-span
 div .mb-1 .text-sm .text-ui-muted
 span
 div .mb-1 .text-sm .text-ui-muted
@@ -1270,9 +1206,7 @@ div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-span
 button .btn .btn-error .btn-outline
-span
 div .text-sm .text-ui-muted
 code
 
@@ -1296,9 +1230,7 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-span
 button .btn .btn-error .btn-outline
-span
 div .mb-1 .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1325,11 +1257,8 @@ div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .gap-2 .mb-2
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-error .btn-outline
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1354,7 +1283,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1380,11 +1308,8 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-error .btn-outline
-span
 div .text-sm .text-ui-muted
 code
 
@@ -1407,7 +1332,6 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 button .btn .btn-outline .btn-primary .mb-2
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1433,11 +1357,8 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline
-span
 div .mb-1 .text-sm .text-ui-muted
 code
 div .italic .text-sm .text-ui-muted
@@ -1462,11 +1383,9 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline .btn-primary
-span
 div .text-sm .text-ui-muted
 code
 div .text-sm .text-ui-muted
@@ -1512,15 +1431,10 @@ div .sample-result-body
 div
 div .gap-1 .inline-flex
 button .btn .btn-link .leading-none .text-2xl .text-ui-muted
-span
 button .btn .btn-link .leading-none .text-2xl .text-ui-muted
-span
 button .btn .btn-link .leading-none .text-2xl .text-ui-muted
-span
 button .btn .btn-link .leading-none .text-2xl .text-ui-muted
-span
 button .btn .btn-link .leading-none .text-2xl .text-ui-muted
-span
 p .mb-0 .mt-2 .text-sm .text-ui-muted
 
 === cancellation ===
@@ -1543,13 +1457,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1594,7 +1506,6 @@ div .bg-base-100 .border .border-base-300 .h-full .p-4 .rounded-xl .sm:p-5
 h6 .font-semibold .mb-1
 p .text-sm .text-ui-muted
 button .btn .btn-primary
-span
 
 === components-di ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1658,9 +1569,8 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .btn .btn-outline .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === context-theme ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1681,7 +1591,6 @@ div .sample-result-label
 div .sample-result-body
 div .border .p-3 .rounded
 button .btn .btn-outline .mb-3
-span
 div .flex .flex-wrap .gap-2 .items-center .items-center
 span .text-sm .text-ui-muted
 span .badge .badge-neutral .badge-soft .bg-amber-100 .text-amber-900 .theme-badge
@@ -1711,7 +1620,6 @@ div .flex .flex-col .gap-3
 div .flex .flex-wrap .gap-3 .items-center .items-center
 span .font-semibold .text-3xl
 button .btn .btn-primary
-span
 ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overflow-hidden .rounded-box .ui-list
 li .py-1
 
@@ -1736,9 +1644,8 @@ div .sample-result-label
 div .sample-result-body
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 div .mt-2 .text-sm .text-ui-muted
 
 === data-http-fetch ===
@@ -1830,13 +1737,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1861,13 +1766,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -1892,13 +1795,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -2056,9 +1957,7 @@ br
 output
 div
 button .btn .btn-primary
-span
 button .btn .btn-outline
-span
 
 === elements-grouping ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2136,13 +2035,10 @@ p .mb-1 .text-sm .text-ui-muted
 menu .list-inline .mb-0
 li .list-inline-item
 button .btn .btn-outline
-span
 li .list-inline-item
 button .btn .btn-outline
-span
 li .list-inline-item
 button .btn .btn-outline
-span
 
 === elements-media ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2394,7 +2290,6 @@ strong
 div .mt-2 .text-ui-muted
 div .col-span-12 .md:col-span-6
 button .btn .btn-outline .btn-primary .py-4 .w-full
-span
 div .mt-2 .text-ui-muted
 div .col-span-12 .md:col-span-6
 div .border .p-4 .rounded
@@ -2423,9 +2318,8 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === events-form ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2450,9 +2344,8 @@ form .mb-2
 div .flex .gap-2 .items-stretch
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 p .mb-0 .text-sm
 strong
 
@@ -2540,9 +2433,8 @@ textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline
 label
 div .mt-1
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === form-controls-input ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -2663,7 +2555,6 @@ form
 label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .btn .btn-primary
-span
 div .col-span-12 .md:col-span-5
 p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
 strong
@@ -2691,9 +2582,7 @@ div
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-span
 button .btn .btn-outline
-span
 div .bg-ui-well .border .p-3 .rounded
 
 === js-interop-jsruntime ===
@@ -2719,17 +2608,14 @@ label .block .font-medium .mb-1 .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-error .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 div .mb-2
 span .text-sm .text-ui-muted .uppercase
 div
@@ -2786,26 +2672,21 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-success
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 span .mx-1 .vr
 button .btn .btn-outline .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-error .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overflow-hidden .rounded-box .ui-list
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
@@ -2848,13 +2729,11 @@ div .sample-result-body
 div
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 p .italic .mb-0 .text-ui-muted
 h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm .text-ui-muted
@@ -2879,9 +2758,8 @@ div .sample-result-body
 div .flex .flex-wrap .gap-3 .items-center .mb-3
 span .badge .badge-primary .badge-soft .text-base
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
 ol .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .list-decimal .list-inside .overflow-hidden .rounded-box .ui-list
 li .ps-2
@@ -2984,34 +2862,29 @@ tr
 th
 th
 button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 th
 button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 th
 button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 th
 button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 th
 button .[&amp;_svg]:opacity-50 .btn .btn-link .font-semibold .no-underline .p-0 .text-ui-ink
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 tbody
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3022,7 +2895,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3033,7 +2906,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3044,7 +2917,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3055,7 +2928,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3066,7 +2939,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3077,7 +2950,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3088,7 +2961,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3099,7 +2972,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3110,7 +2983,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3121,7 +2994,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3132,7 +3005,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3143,7 +3016,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3154,7 +3027,7 @@ td
 tr .md-row
 td
 button .btn .btn-link .btn-square .no-underline .p-0
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 td .font-semibold
 td .text-sm .text-ui-muted
@@ -3205,17 +3078,15 @@ td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
 button .btn .btn-error .btn-outline .btn-square
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 div .flex .flex-wrap .gap-2 .items-center
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === nested-list-foreach ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3249,17 +3120,15 @@ td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
 button .btn .btn-error .btn-outline .btn-square
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 div .flex .flex-wrap .gap-2 .items-center
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === nested-list-indexer ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3295,20 +3164,18 @@ td
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 td
 button .btn .btn-outline .btn-square .me-1
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 button .btn .btn-error .btn-outline .btn-square
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
 div .flex .flex-wrap .gap-2 .items-center
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === nested-subobject ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3348,9 +3215,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === primitives-children ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3469,9 +3335,8 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 button .btn .btn-outline .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === props-attribute-order ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3532,12 +3397,10 @@ div .sample-result-label
 div .sample-result-body
 div
 button .btn .btn-outline .btn-primary
-span
 dialog .border-0 .p-3 .rounded .shadow
 p .mb-3
 code
 button .btn .btn-secondary
-span
 
 === props-data ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3607,15 +3470,10 @@ div
 code .text-base
 div .flex-wrap
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline .btn-primary
-span
 button .btn .btn-outline
-span
 button .btn .btn-error .btn-outline
-span
 
 === routing-nested-layout ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3772,7 +3630,6 @@ div .mb-2
 label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 button .btn .btn-primary
-span
 
 === tags-media ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3893,9 +3750,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-cross-field ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3923,9 +3779,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-custom-attribute ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3956,9 +3811,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-fields ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3998,9 +3852,8 @@ option
 option
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-first-error-wins ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4025,9 +3878,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-fluent ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4057,9 +3909,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-fluent-async ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4084,9 +3935,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-inline ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4119,9 +3969,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-inline-async ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4146,9 +3995,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-nested-async ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4211,9 +4059,8 @@ span
 span
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-programmatic ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4238,13 +4085,11 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div .flex .flex-wrap .gap-2 .items-center
 button .btn .btn-outline
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-summary ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4282,9 +4127,8 @@ option
 option
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === validation-validatable-object ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -4315,9 +4159,8 @@ label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 button .btn .btn-primary
-svg .shrink-0 .size-4
+svg .shrink-0 .size-5
 path
-span
 
 === virtualize-items ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm

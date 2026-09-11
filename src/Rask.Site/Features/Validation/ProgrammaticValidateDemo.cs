@@ -35,13 +35,13 @@ public sealed partial class ProgrammaticValidateDemo : Component
                 ValidationMessage.Template(FieldError).For(() => _model.Title)
             ],
             Div.Class("flex gap-2 flex-wrap items-center")[
-                UiButton.Label("Validate now").Icon(UiIconName.Search).Variant(UiVariant.Outline).Id("v6-validate-now").OnClick(ValidateNowAsync),
-                UiButton.Label("Save").Icon(UiIconName.CheckCircle).Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("v6-submit").Disabled(_ctx.IsValidatingAny)
+                UiButton.Variant(UiVariant.Outline).Id("v6-validate-now").OnClick(ValidateNowAsync)[UiIcon.Name(UiIconName.Search), "Validate now"],
+                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("v6-submit").Disabled(_ctx.IsValidatingAny)[UiIcon.Name(UiIconName.CheckCircle), "Save"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[_submission]
+            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
     ];
 }
 

@@ -56,14 +56,14 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    UiButton.Label("Publish metadata").Tone(UiTone.Primary).Id("ms-publish").OnClick(Publish),
-                    UiButton.Label("Mark playing").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    UiButton.Tone(UiTone.Primary).Id("ms-publish").OnClick(Publish)["Publish metadata"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("ms-playing")
-                        .OnClick(() => SetState(PlaybackState.Playing, "playing")),
-                    UiButton.Label("Mark paused").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                        .OnClick(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
                         .Id("ms-paused")
-                        .OnClick(() => SetState(PlaybackState.Paused, "paused")),
-                    UiButton.Label("Clear").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("ms-clear").OnClick(Clear)
+                        .OnClick(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "

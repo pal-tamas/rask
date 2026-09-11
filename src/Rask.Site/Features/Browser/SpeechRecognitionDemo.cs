@@ -21,14 +21,14 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Label("Start listening").Tone(UiTone.Primary)
+                    UiButton.Tone(UiTone.Primary)
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
-                        .OnClick(Start),
-                    UiButton.Label("Stop").Tone(UiTone.Error).Variant(UiVariant.Outline)
+                        .OnClick(Start)["Start listening"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
-                        .OnClick(Stop)
+                        .OnClick(Stop)["Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Transcript: ",

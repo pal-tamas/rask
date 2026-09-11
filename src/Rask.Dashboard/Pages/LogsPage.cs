@@ -380,21 +380,18 @@ public sealed partial class LogsPage(
             : Div.Class("mt-1.5 flex flex-wrap gap-1")[
                 // break-all, because a scope value is a request id: one unbreakable 40-character token is
                 // enough to push the whole table wider than a phone.
-                scopes.Select(s => UiBadge
-                    .Key(s.Key)
-                    .Label($"{s.Key}={s.Value}")
-                    .Class($"max-w-full break-all {UiStyles.Mono}"))
+                scopes.Select(s => UiBadge.Key(s.Key)
+                    .Class($"max-w-full break-all {UiStyles.Mono}")[$"{s.Key}={s.Value}"])
             ];
 
     private static Component LevelBadge(LogLevel level) => UiBadge
-        .Label(level.ToString())
         .Tone(level switch
         {
             LogLevel.Critical or LogLevel.Error => UiTone.Error,
             LogLevel.Warning => UiTone.Warning,
             LogLevel.Information => UiTone.Info,
             _ => null,
-        });
+        })[level.ToString()];
 
     private void OnLogged()
     {

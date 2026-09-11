@@ -228,7 +228,7 @@ Colour, fill and size are independent and compose, so an outlined error button n
 own:
 
 ```csharp
-UiButton.Label("Delete").Tone(UiTone.Error).Variant(UiVariant.Outline).Size(UiSize.Lg)
+UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Size(UiSize.Lg)["Delete"]
 ```
 
 | Enum | Members |
@@ -250,16 +250,29 @@ Other axes follow the same rule: `UiPlacement`, `UiModalPlacement`, `UiMaskShape
 
 ## Components that are one element
 
-A table is a `<table>`, and a list is a `<ul>`. `UiTable` and `UiList` do not wrap a raw element; they
-are the element. They derive from **`UiElement`**, which derives from `Element`, so every step an element
-takes works on them unchanged:
+A button is a `<button>`, and a table is a `<table>`. `UiButton`, `UiBadge`, `UiAlert`, `UiTable` and
+`UiList` do not wrap a raw element; they are the element. They derive from **`UiElement`**, which derives
+from `Element`, so every step an element takes works on them unchanged, the events included. What they
+show is their **children**, the same as a raw element's:
 
 ```csharp
+UiButton.Id("save").Tone(UiTone.Primary).OnClick(SaveAsync)[UiIcon.Name(UiIconName.Check), "Save"]
+
+UiBadge.Tone(UiTone.Success)["Live"]
+
+UiAlert.Tone(UiTone.Error)[UiIcon.Name(UiIconName.Warning), Span["Payment failed: "], Code[error]]
+
 UiTable.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
     Thead[Tr[Th["Order"], Th["Total"]]],
     Tbody[rows]
 ]
 ```
+
+A bare `UiIcon.Name(…)` is the right size in all of these. The kit's stylesheet sizes an icon nobody sized
+from the button or badge it sits in, and leaves alone an icon that has a size class of its own.
+
+A square or circle button holds one glyph, so it names itself with **`AccessibleLabel`**:
+`UiButton.AccessibleLabel("Close").Square(true)[UiIcon.Name(UiIconName.Close)]`.
 
 The kit's classes and ARIA compose with yours instead of replacing them. `.Class("mb-0")` is added to the
 kit's classes through `ResolveClass()`. A label you set with `.Aria(…)` wins over one the kit would derive
@@ -427,9 +440,9 @@ rather than wrapping, so the header is exactly one row tall however many tabs th
 
 **Every control has a name.** A label is required, not optional, and it becomes the accessible name
 rather than a placeholder — a placeholder disappears the moment typing starts, so the one thing saying
-what a field is for vanishes exactly when a reader might check it. An icon-only button puts its label
-in `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed toast changes its
-**icon** and not only its colour.
+what a field is for vanishes exactly when a reader might check it. An icon-only button names itself with
+`AccessibleLabel`, written as `aria-label`; a spinner is `aria-hidden` with its words beside it; a failed
+toast changes its **icon** and not only its colour.
 
 ## Names
 

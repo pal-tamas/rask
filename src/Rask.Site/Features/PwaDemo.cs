@@ -30,7 +30,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                 P.Class("text-sm text-ui-muted")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
-                UiButton.Label("Show a notification").Tone(UiTone.Primary).Class("mb-2").Id("pwa-notify").OnClick(ShowNotification),
+                UiButton.Tone(UiTone.Primary).Class("mb-2").Id("pwa-notify").OnClick(ShowNotification)["Show a notification"],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
             ],
 
@@ -43,11 +43,11 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                     ") for the full loop — see ", Code["docs/pwa.md"], "."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Label("Enable push (subscribe)").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-push").OnClick(EnablePush),
-                    UiButton.Label("Send a test push").Tone(UiTone.Primary)
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-push").OnClick(EnablePush)["Enable push (subscribe)"],
+                    UiButton.Tone(UiTone.Primary)
                         .Id("pwa-push-send")
                         .Disabled(!_subscribed)
-                        .OnClick(SendTestPush)
+                        .OnClick(SendTestPush)["Send a test push"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
             ],
@@ -59,8 +59,8 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                     "A silent no-op in a normal browser tab."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Label("Increment badge").Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-badge-inc").OnClick(BumpBadge),
-                    UiButton.Label("Clear badge").Tone(UiTone.Error).Variant(UiVariant.Outline).Id("pwa-badge-clear").OnClick(ClearBadge)
+                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-badge-inc").OnClick(BumpBadge)["Increment badge"],
+                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("pwa-badge-clear").OnClick(ClearBadge)["Clear badge"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
             ]

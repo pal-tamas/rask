@@ -174,12 +174,12 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div[
-                    UiButton.Label("Pay").Icon(UiIconName.CreditCard).Tone(UiTone.Primary).Type(UiButtonType.Submit)
+                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CreditCard), "Pay"]
                 ]
             ],
             _submission is null
                 ? null
-                : UiAlert.Icon(UiIconName.CheckCircle).Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("v-nlive-submission")[_submission]
+                : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("v-nlive-submission")[UiIcon.Name(UiIconName.CheckCircle), _submission]
         ];
     }
 }

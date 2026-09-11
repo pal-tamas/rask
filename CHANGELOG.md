@@ -40,6 +40,25 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`UiButton`, `UiBadge` and `UiAlert` are their elements too, and what they show is their children.**
+  They move onto `UiElement`, so `UiButton` is the `<button>` (or the `<a>`, given `Href`), `UiBadge` the
+  `<span>` and `UiAlert` the `<div>`. The props they mirrored from `Element` are retired: `Id`, `Class`,
+  `Data`, `Role`, `TabIndex`, `Aria`, `OnClick`, `OnDoubleClick` and `OnContextMenu`. Each was a hand-kept
+  copy of a step `Element` already had, under the same name, so those call sites read exactly as before.
+  `UiAlert` gains `Role` as a result, where the kit used to write it with no way to change it; the tone
+  still supplies the default.
+
+  `Label`, `Message` and `Icon` are gone. What a component shows is its children:
+  `UiButton[UiIcon.Name(UiIconName.Check), "Save"]`, `UiBadge.Tone(UiTone.Success)["Live"]`,
+  `UiAlert.Tone(UiTone.Error)[UiIcon.Name(UiIconName.Warning), "Payment failed"]`. A square or circle
+  button that shows only an icon names itself with **`AccessibleLabel`**, written as `aria-label` through
+  `ResolveAria()`, and an `aria-label` set with `Aria` wins over it.
+
+  An icon placed in a button or a badge is sized by the kit's stylesheet from what it sits in. The rule
+  matches only `UiIcon`'s default size, so an icon a call site sized on purpose is left alone. A link
+  button's `href` goes through the same sanitiser Core's `A` uses, so a `javascript:` URL is refused as it
+  was before. The 305 call sites across the site, the console and the kit move to the children form.
+
 - **`UiTable` and `UiList` are their elements now, on a new `UiElement` base.** Both used to wrap a raw
   `Table`/`Ul` and mirror a hand-picked prop or two onto it, so an `id` on a kit table, a `data-*` a test
   selects on, or an `aria-label` meant dropping back to the raw element and a class string. `UiElement`
