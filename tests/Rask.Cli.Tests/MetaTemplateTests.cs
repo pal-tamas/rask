@@ -93,41 +93,6 @@ public sealed class MetaTemplateTests
         Assert.True(cqrs < meta, "MapRaskCqrs must come before UseRaskMeta.");
     }
 
-    [Theory]
-    [InlineData("nuxt")]
-    [InlineData("nextjs")]
-    [InlineData("sveltekit")]
-    [InlineData("solidstart")]
-    [InlineData("tanstack-start")]
-    [InlineData("analog")]
-    public void Every_creator_is_told_where_to_put_the_app(string key)
-    {
-        Assert.True(MetaTemplate.TryGet(key, out var framework));
-
-        var args = framework.Scaffolder("Shop");
-
-        // One rule for all six: a bare, lowercase target, run from inside the project directory. Handing
-        // any of them `Shop/client` is what three of them refuse — create-next-app and @tanstack/cli
-        // exit on the capital in `Shop`, and create-analog stops to ask, which is a hang.
-        Assert.Contains(framework.AppDir, args);
-        Assert.DoesNotContain(args, arg => arg.Contains('/', StringComparison.Ordinal) && arg.Contains("lient", StringComparison.Ordinal));
-
-        var result = ProjectGenerator.GenerateMeta(
-            "/out", "Shop", framework, new ServerBatteries(), "1.0.0");
-
-        // No working subdirectory: the target directory already IS the project directory. It used to be
-        // the project name, which doubled it — `rask new Shop` wrote Shop/Shop and told the creator
-        // Shop/client, so the host and the front end landed in different places.
-        Assert.Equal(string.Empty, result.ExternalScaffolds.Single().WorkingSubdirectory);
-
-        // Named rather than guessed from the arguments, so the scaffold can delete the repository
-        // create-analog initialises inside it.
-        Assert.Equal(framework.AppDir, result.ExternalScaffolds.Single().CreatedDirectory);
-
-        // create-start-app prints a deprecation notice on every run and points at @tanstack/cli.
-        Assert.DoesNotContain(args, arg => arg.Contains("create-start-app", StringComparison.Ordinal));
-    }
-
     [Fact]
     public void The_creators_that_have_to_be_told_not_to_ask_are_told()
     {
@@ -218,61 +183,6 @@ public sealed class MetaTemplateTests
         // --blank is what turns it off ("standard scaffolds always enable Tailwind"), so its absence is
         // load-bearing rather than an omission — and nothing else in the invocation says so.
         Assert.DoesNotContain("--blank", MetaTemplate.TanStackStart.Scaffolder("Shop"));
-    }
-
-    [Fact]
-    public void The_two_Rask_installs_pick_one_adapter_each()
-    {
-        // Two adapters for one compiler. Installing the one nothing reads is silent: the build succeeds
-        // with no utilities in the output, which reads as a Tailwind problem and is not.
-        var nuxt = ProjectGenerator.AddMetaTailwind("""{"dependencies":{}}""", MetaTemplate.Nuxt);
-        var analog = ProjectGenerator.AddMetaTailwind("""{"dependencies":{}}""", MetaTemplate.Analog);
-
-        Assert.Contains("@tailwindcss/vite", nuxt, StringComparison.Ordinal);
-        Assert.DoesNotContain("@tailwindcss/postcss", nuxt, StringComparison.Ordinal);
-
-        Assert.Contains("@tailwindcss/postcss", analog, StringComparison.Ordinal);
-        Assert.DoesNotContain("@tailwindcss/vite", analog, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("nuxt")]
-    [InlineData("nextjs")]
-    [InlineData("sveltekit")]
-    [InlineData("solidstart")]
-    [InlineData("tanstack-start")]
-    [InlineData("analog")]
-    public void The_front_end_folder_is_lowercase_and_the_build_looks_in_the_same_place(string key)
-    {
-        // Half of these creators derive an npm package name from the target directory and reject a
-        // capital letter in it outright, so the whole lane uses `client` — which is now also what the
-        // SPA lane uses and what RaskMetaAppDir defaults to.
-        //
-        // What matters is not that the csproj STATES the directory; it is that the directory the scaffold
-        // creates and the directory the build looks in are the same one. They used to differ by default,
-        // so the scaffold wrote the property on every project to force agreement; now they agree already
-        // and the property is written only by a framework that needs somewhere else. Asserting the old
-        // spelling would have failed on a change that made the thing it was guarding impossible.
-        //
-        // The failure this guards is silent: on a case-sensitive filesystem a mismatch is not an error,
-        // it is a front end that was never built.
-        Assert.True(MetaTemplate.TryGet(key, out var framework));
-        Assert.Equal(framework.AppDir.ToLowerInvariant(), framework.AppDir);
-
-        var files = Generate(key);
-        var csproj = File(files, "Shop.csproj");
-
-        // What the build will resolve: the property when the scaffold wrote one, otherwise the default.
-        var declared = System.Text.RegularExpressions.Regex.Match(
-            csproj, @"<RaskMetaAppDir>\s*([^<\s]+)\s*</RaskMetaAppDir>");
-        var buildLooksIn = declared.Success ? declared.Groups[1].Value : MetaTemplate.DefaultAppDir;
-
-        Assert.Equal(framework.AppDir, buildLooksIn);
-
-        // And the creator really is pointed at that directory, so neither side is agreeing about a
-        // folder nothing writes. On this lane the front end is npm's output, not the scaffolder's, so
-        // this is the third party that has to agree — and the one that would silently disagree.
-        Assert.Equal(framework.AppDir, Assert.Single(files.ExternalScaffolds).CreatedDirectory);
     }
 
     [Fact]

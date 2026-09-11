@@ -37,6 +37,20 @@ internal static class TemplateMaterializer
     /// <summary>The placeholder for the Rask package version the scaffold pins.</summary>
     internal const string VersionToken = "{{RaskVersion}}";
 
+    /// <summary>
+    ///     The npm-safe spelling of <see cref="NameToken"/>, which some tooling writes instead of the
+    ///     name itself.
+    /// </summary>
+    /// <remarks>
+    ///     Angular is the one that needs it: <c>ng new</c> derives its project name from the directory
+    ///     and lowercases it, so the Angular template says <c>company-raskserver-client</c> in
+    ///     angular.json, in the client's package.json name, in a spec's expected text, and in the host's
+    ///     RaskSpaDistDir. Substituting only the exact name token leaves every one of those naming the
+    ///     placeholder, and the host then looks for the bundle under a directory Angular never writes —
+    ///     a scaffolded Angular app that builds and serves nothing.
+    /// </remarks>
+    internal const string SlugToken = "company-raskserver";
+
     /// <summary>The manifest, at the root of every template tree.</summary>
     internal const string ManifestFile = "template.json";
 
@@ -96,6 +110,9 @@ internal static class TemplateMaterializer
             text = TemplateMarkers.Apply(text, on, asset.Path);
             text = text
                 .Replace(VersionToken, version, StringComparison.Ordinal)
+                // Before the name token, because the slug is the name's own lower-case spelling and
+                // replacing the name first would leave nothing for this to match.
+                .Replace(SlugToken, Slug(name), StringComparison.Ordinal)
                 .Replace(NameToken, name, StringComparison.Ordinal);
 
             files.Add(new ScaffoldFile(destination, text));
@@ -126,6 +143,12 @@ internal static class TemplateMaterializer
         Add(batteries.Logs, "logs");
         Add(batteries.Ops, "ops");
         Add(batteries.Wasm, "wasm");
+
+        // Not a `rask new` flag — it is whether the template ships the language registration at all
+        // (TemplateInfo.ShipsLocalization, true for the server template and false in the browser, where
+        // naming a culture costs about a megabyte of ICU). It is still a CONDITION, because a caller
+        // that turns it off must not be handed a string catalog it never asked for.
+        Add(batteries.Localization, "localization");
         return on.ToFrozenSet(StringComparer.Ordinal);
 
         void Add(bool enabled, string flag)
@@ -135,6 +158,36 @@ internal static class TemplateMaterializer
                 on.Add(flag);
             }
         }
+    }
+
+    /// <summary>
+    ///     An app name as npm and the Angular CLI spell it: lower case, with every run of characters
+    ///     that is not a letter or digit collapsed to a single dash.
+    /// </summary>
+    /// <remarks>
+    ///     Matches what <c>ng new</c> does to a directory name, which is what the Angular template's
+    ///     committed files were written against — <c>Company.RaskServer</c> becomes
+    ///     <c>company-raskserver</c>. An npm package name may not contain an upper-case letter or a dot,
+    ///     so this is a requirement rather than a convention.
+    /// </remarks>
+    internal static string Slug(string name)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        var slug = new StringBuilder(name.Length);
+        foreach (var c in name)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                slug.Append(char.ToLowerInvariant(c));
+            }
+            else if (slug.Length > 0 && slug[^1] != '-')
+            {
+                slug.Append('-');
+            }
+        }
+
+        return slug.ToString().Trim('-');
     }
 
     /// <summary>The stored name with its leading dot restored, if it was stored without one.</summary>

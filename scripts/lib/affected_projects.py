@@ -168,7 +168,9 @@ def main() -> None:
         # nothing and every template edit answers FULL, which is safe and needlessly expensive —
         # editing a template is meant to be the cheap, ordinary way to change what `rask new` writes.
         if rel.startswith("src/Rask.Templates/"):
-            affected.add("src/Rask.Cli")
+            # The csproj, not the directory: everything downstream passes these straight to MSBuild,
+            # which answers MSB3202 ("project file was not found") for a directory.
+            affected.add("src/Rask.Cli/Rask.Cli.csproj")
             continue
 
         owner = owning_project(rel, project_dirs)

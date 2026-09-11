@@ -22,6 +22,9 @@
       "cqrs",
       "data"
     ],
+    "Resources/Strings.en.json": [
+      "localization"
+    ],
     "wwwroot/icon.svg": [
       "pwa"
     ],

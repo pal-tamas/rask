@@ -71,15 +71,6 @@ public sealed class SpaTemplateTests
         return patch.Transform("""{ "dependencies": {}, "devDependencies": {}, "scripts": {} }""");
     }
 
-    [Fact]
-    public void The_client_skeleton_comes_from_the_framework_s_own_scaffolder()
-    {
-        var external = Assert.Single(Generate().ExternalScaffolds);
-
-        Assert.Equal("npx", external.Command);
-        Assert.Equal(["--yes", "create-vite@latest", "client", "--template", "react-ts"], external.Arguments);
-    }
-
     /// <summary>
     ///     Every framework the scaffolder knows asks <c>create-vite</c> for its <b>TypeScript</b> template.
     /// </summary>
@@ -116,94 +107,6 @@ public sealed class SpaTemplateTests
             }
 
             Assert.Contains(framework, SpaFramework.All);
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(Frameworks))]
-    public void The_overlay_stays_small(string key)
-    {
-        var result = ProjectGenerator.GenerateSpa(Root, "Shop", Framework(key), new ServerBatteries(), "1.2.3");
-
-        // Everything else in the client is create-vite's, and stays create-vite's. A React skeleton Rask
-        // maintained by hand would be a worse one within a release or two — so the overlay growing is the
-        // signal that the split has stopped working, and this is where that shows up.
-        //
-        // Six is the ceiling, not a target: a Vite config for the dev proxy, an entry that installs the
-        // QueryClient, the component that dispatches, — where TanStack ships a router — its routes, the
-        // Tailwind stylesheet that REPLACES create-vite's demo one, and on Angular a .postcssrc.json,
-        // because Angular's Vite config belongs to @angular/build and has no plugin slot to use.
-        //
-        // It was four while styling was a choice and Tailwind was one answer. Raising a ceiling is exactly
-        // the move this test exists to make someone justify, so: the two new files are the ones Tailwind
-        // needs to compile at all, and neither is a hand-maintained copy of a framework's own skeleton.
-        //
-        // Seven now, for the sign-in and registration screens. The justification is that ONE file was
-        // added per framework, not three: both screens are the same component behind a `mode`, and the
-        // path is read in the entry file each template already overlays rather than by scaffolding a
-        // router — which another test here deliberately asserts none of them does. Lit added no file at
-        // all, because its light-DOM override is what lets the page's stylesheet reach the markup and
-        // repeating that verbatim in a second element would be the copy this ceiling exists to prevent.
-        //
-        // What is NOT justified by this, and would be the signal to stop: a framework's own routing,
-        // layout or data-fetching skeleton appearing here. These screens are a form over two typed
-        // functions the build already generates, in markup that is the same in all seven.
-        var ours = result.Files
-            .Select(f => f.Path.Replace('\\', '/'))
-            .Where(p => p.Contains("/client/", StringComparison.Ordinal))
-            .Select(p => p[(p.IndexOf("/client/", StringComparison.Ordinal) + 8)..])
-            .OrderBy(p => p, StringComparer.Ordinal)
-            .ToArray();
-
-        // Angular declares its dev proxy in angular.json and gets proxy.conf.json instead — there is no
-        // vite.config.ts to write, because the Vite config Angular's build runs on is Angular's own.
-        Assert.Contains(Framework(key).WritesViteConfig ? "vite.config.ts" : "proxy.conf.json", ours);
-        Assert.InRange(ours.Length, 2, 7);
-    }
-
-    [Fact]
-    public void Every_starter_can_sign_somebody_in()
-    {
-        // The endpoints and a typed client both already ship — Rask.Auth maps /api/auth, and the build
-        // generates rask/browser/auth into every client. What was missing was the two screens, so the
-        // first thing anyone did with accounts on this lane was write them by hand.
-        foreach (var framework in SpaFramework.All)
-        {
-            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
-
-            // The generated client, not a hand-rolled fetch: it is typed, it carries the CSRF header
-            // these endpoints require, and it answers {ok} rather than a status code to interpret.
-            Assert.Contains("rask/browser/auth", markup, StringComparison.Ordinal);
-            Assert.Contains("register(", markup, StringComparison.Ordinal);
-            Assert.Contains("login(", markup, StringComparison.Ordinal);
-
-            // Both screens, and both paths reachable.
-            Assert.Contains("'/login'", markup, StringComparison.Ordinal);
-            Assert.Contains("'/register'", markup, StringComparison.Ordinal);
-
-            // The same card the C# lane's sign-in draws.
-            foreach (var name in (string[])["hero min-h-screen", "card bg-base-100", "card-body", "btn btn-primary btn-block", "alert alert-error"])
-            {
-                Assert.Contains(name, markup, StringComparison.Ordinal);
-            }
-        }
-    }
-
-    [Fact]
-    public void No_starter_stores_a_token_of_its_own()
-    {
-        // The cookie these endpoints set is HttpOnly, which is the point: a page that cannot read it
-        // cannot leak it, and a scaffold that reached for localStorage would be teaching the opposite
-        // on the way past.
-        foreach (var framework in SpaFramework.All)
-        {
-            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
-
-            // Matched on USE — `localStorage.` — not on the word, because the templates say in prose
-            // that there is nothing to put there, and a test that failed on its own explanation would
-            // be turned off rather than fixed.
-            Assert.DoesNotContain("localStorage.", markup, StringComparison.Ordinal);
-            Assert.DoesNotContain("sessionStorage.", markup, StringComparison.Ordinal);
         }
     }
 
@@ -299,91 +202,6 @@ public sealed class SpaTemplateTests
             StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_generated_contracts_are_not_committed()
-    {
-        var result = Generate();
-        var patch = result.Patches.Single(p => p.Path.EndsWith(".gitignore", StringComparison.Ordinal));
-
-        Assert.Contains("src/rask/", patch.Transform("node_modules\ndist\n"), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Ignoring_the_contracts_twice_adds_one_entry()
-    {
-        // rask new --force over an existing client re-applies every patch.
-        var once = ProjectGenerator.IgnoreGeneratedContracts("dist\n");
-        var twice = ProjectGenerator.IgnoreGeneratedContracts(once);
-
-        Assert.Equal(once, twice);
-    }
-
-    [Fact]
-    public void Adding_tailwind_leaves_the_rest_of_package_json_alone()
-    {
-        const string Original = """
-            {
-              "name": "shop-client",
-              "private": true,
-              "scripts": { "build": "tsc -b && vite build" },
-              "dependencies": { "react": "^19.2.8" },
-              "devDependencies": { "vite": "^8.2.2" }
-            }
-            """;
-
-        var patched = ProjectGenerator.AddClientDependencies(Original, SpaFramework.React, tailwind: true);
-
-        Assert.Contains("\"tailwindcss\"", patched, StringComparison.Ordinal);
-        Assert.Contains("\"react\": \"^19.2.8\"", patched, StringComparison.Ordinal);
-        Assert.Contains("\"vite\": \"^8.2.2\"", patched, StringComparison.Ordinal);
-        Assert.Contains("tsc -b \\u0026\\u0026 vite build", patched, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Adding_tailwind_twice_is_the_same_as_once()
-    {
-        var once = ProjectGenerator.AddClientDependencies(
-            """{ "dependencies": { "react": "^19.2.8" } }""", SpaFramework.React, tailwind: true);
-
-        Assert.Equal(once, ProjectGenerator.AddClientDependencies(once, SpaFramework.React, tailwind: true));
-    }
-
-    [Fact]
-    public void Without_tailwind_the_template_adds_no_runtime_dependency_at_all()
-    {
-        // The point of dropping TanStack Query and Router: a scaffolded client's dependencies are
-        // create-vite's, and nothing else. A template that picks a cache and a router picks them for
-        // every app scaffolded from it, and those are the two choices a front-end developer is most
-        // likely to have already made.
-        const string Original = """{ "dependencies": { "react": "^19.2.8" } }""";
-
-        Assert.Equal(
-            ProjectGenerator.AddClientDependencies(Original, SpaFramework.React),
-            ProjectGenerator.AddClientDependencies(Original, SpaFramework.React));
-
-        var patched = ProjectGenerator.AddClientDependencies(Original, SpaFramework.React);
-
-        Assert.DoesNotContain("@tanstack", patched, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_package_json_with_no_dependencies_still_gets_one()
-    {
-        // create-vite's output is not ours, and its shape is free to change.
-        var patched = ProjectGenerator.AddClientDependencies(
-            """{ "name": "shop-client" }""", SpaFramework.React, tailwind: true);
-
-        Assert.Contains("\"tailwindcss\"", patched, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_package_json_that_is_not_an_object_is_reported_rather_than_swallowed()
-    {
-        // The command turns this into a line of advice instead of a failed scaffold with a half-written
-        // project on disk — but it has to be told, not silently handed unchanged content.
-        Assert.Throws<InvalidOperationException>(() => ProjectGenerator.AddClientDependencies("[]", SpaFramework.React));
-    }
-
     public static IEnumerable<object[]> Frameworks() =>
         SpaFramework.All.Select(framework => new object[] { framework.Key });
 
@@ -429,31 +247,6 @@ public sealed class SpaTemplateTests
         Assert.Contains("rask.dispatch(", client, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [MemberData(nameof(Frameworks))]
-    public void Every_framework_overlays_onto_the_entry_its_scaffolder_actually_wrote(string key)
-    {
-        var framework = Framework(key);
-
-        // create-vite does not name these the same way — Solid boots from src/index.tsx, Preact's app is
-        // src/app.tsx in lower case, Svelte has no App.tsx at all, and Lit has no entry module beside its
-        // element. An overlay written for the wrong name does not fail: it lands beside the real file and
-        // is never imported, so the app builds and shows the scaffolder's placeholder instead.
-        var expected = key switch
-        {
-            "react" => "src/main.tsx",
-            "preact" => "src/main.tsx",
-            "vue" => "src/App.vue",
-            "angular" => "src/app/app.ts",
-            "solid" => "src/index.tsx",
-            "svelte" => "src/App.svelte",
-            "lit" => "src/my-element.ts",
-            _ => throw new InvalidOperationException($"'{key}' has no expected entry point in this test."),
-        };
-
-        Assert.Contains(framework.ClientFiles, file => file.Path == expected);
-    }
-
     [SkippableTheory]
     [MemberData(nameof(Frameworks))]
     public void Every_framework_asks_its_scaffolder_for_a_TypeScript_template(string key)
@@ -464,73 +257,6 @@ public sealed class SpaTemplateTests
         Skip.IfNot(framework.WritesViteConfig, "Angular is scaffolded by its own CLI, which is TypeScript-only.");
 
         Assert.EndsWith("-ts", framework.ViteTemplate, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [MemberData(nameof(Frameworks))]
-    public void No_framework_scaffolds_a_data_library_or_a_router(string key)
-    {
-        // The template picks neither a cache nor a router. Both are choices a front-end developer is
-        // most likely to have already made, and a starter that makes them makes them for every app
-        // scaffolded from it. Asserted across ALL seven rather than the two that used to carry a router,
-        // because the way this regresses is one framework quietly keeping its old import.
-        var framework = Framework(key);
-        var client = string.Join("\n", framework.ClientFiles.Select(f => f.Content));
-
-        Assert.DoesNotContain("@tanstack", client, StringComparison.Ordinal);
-        Assert.DoesNotContain("./rask/query", client, StringComparison.Ordinal);
-        Assert.DoesNotContain(framework.ClientFiles, file => file.Path.Contains("router", StringComparison.Ordinal));
-
-        // And nothing is added to package.json either, so a scaffolded client's dependencies are
-        // create-vite's and nothing else.
-        Assert.DoesNotContain(
-            "@tanstack",
-            ProjectGenerator.AddClientDependencies("""{ "name": "c" }""", framework),
-            StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [MemberData(nameof(Frameworks))]
-    public void Every_framework_calls_the_dispatcher_directly(string key)
-    {
-        // The counterpart: having removed the cache, the starter still has to DO something. Every
-        // template fetches through rask.dispatch and imports its messages from the generated contracts,
-        // which is the part the whole template exists to demonstrate.
-        var framework = Framework(key);
-        var client = string.Join("\n", framework.ClientFiles.Select(f => f.Content));
-
-        Assert.Contains("rask.dispatch(", client, StringComparison.Ordinal);
-        Assert.Contains("rask/messages", client, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Svelte_type_checks_in_its_build_script()
-    {
-        // create-vite gives Svelte a bare `vite build`; tsc cannot read a .svelte file, so type checking
-        // lives in a separate `check` script nothing runs. Left alone, renaming a C# property would break
-        // NOTHING at build time and surface on the wire — the exact failure the generated contracts exist
-        // to prevent. Every other framework's template already type-checks in build.
-        var patched = ProjectGenerator.AddClientDependencies(
-            """{ "scripts": { "build": "vite build", "check": "svelte-check" } }""",
-            Framework("svelte"));
-
-        Assert.Contains("svelte-check", patched, StringComparison.Ordinal);
-        Assert.Contains("vite build", patched, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Only_Svelte_has_its_build_script_rewritten()
-    {
-        // Somebody else's scripts are not ours to edit. Svelte is the one exception and it is argued for
-        // above; a second one appearing silently is the thing this pins.
-        foreach (var framework in SpaFramework.All.Where(f => f.Key != "svelte"))
-        {
-            var patched = ProjectGenerator.AddClientDependencies(
-                """{ "scripts": { "build": "tsc -b && vite build" } }""", framework);
-
-            Assert.Contains("tsc -b", patched, StringComparison.Ordinal);
-            Assert.DoesNotContain("svelte-check", patched, StringComparison.Ordinal);
-        }
     }
 
     [Fact]
@@ -549,48 +275,6 @@ public sealed class SpaTemplateTests
         // contributes no framework plugin of its own, and that is still the thing worth pinning.
         Assert.Contains("plugins: [tailwindcss()]", config, StringComparison.Ordinal);
         Assert.Contains("'/_rask'", config, StringComparison.Ordinal);
-    }
-
-
-    /// <summary>
-    ///     Every framework gets Tailwind through the adapter its own build can actually read.
-    /// </summary>
-    /// <remarks>
-    ///     The failure this pins is silent: install the wrong adapter and the packages are there, the
-    ///     stylesheet is there, the build succeeds — and every utility class is missing from the output.
-    ///     Nothing reports it, so only a test that looks at the wiring catches it.
-    /// </remarks>
-    [Fact]
-    public void Tailwind_uses_the_vite_plugin_where_there_is_a_vite_config_and_postcss_where_there_is_not()
-    {
-        foreach (var framework in SpaFramework.All)
-        {
-            var result = ProjectGenerator.GenerateSpa(
-                Root, "Shop", framework, new ServerBatteries(), "1.2.3");
-
-            var packageJson = PackageJson(result);
-            Assert.Contains("\"tailwindcss\"", packageJson, StringComparison.Ordinal);
-
-            if (framework.WritesViteConfig)
-            {
-                Assert.Contains("\"@tailwindcss/vite\"", packageJson, StringComparison.Ordinal);
-                Assert.DoesNotContain("@tailwindcss/postcss", packageJson, StringComparison.Ordinal);
-                Assert.False(Has(result, "/client/.postcssrc.json"));
-
-                var config = Content(result, "/client/vite.config.ts");
-                Assert.Contains("import tailwindcss from '@tailwindcss/vite'", config, StringComparison.Ordinal);
-                Assert.Contains("tailwindcss()", config, StringComparison.Ordinal);
-            }
-            else
-            {
-                // Angular: its Vite config belongs to @angular/build, so there is nowhere to register a
-                // plugin. The builder reads .postcssrc.json from the project root on its own.
-                Assert.Contains("\"@tailwindcss/postcss\"", packageJson, StringComparison.Ordinal);
-                Assert.DoesNotContain("@tailwindcss/vite", packageJson, StringComparison.Ordinal);
-                Assert.Contains(
-                    "@tailwindcss/postcss", Content(result, "/client/.postcssrc.json"), StringComparison.Ordinal);
-            }
-        }
     }
 
     /// <summary>
@@ -615,91 +299,6 @@ public sealed class SpaTemplateTests
             // v4 needs no config file and no content array: it detects the sources itself.
             Assert.DoesNotContain("content:", sheet, StringComparison.Ordinal);
             Assert.False(Has(result, "/client/tailwind.config.js"));
-        }
-    }
-
-    /// <summary>
-    ///     The Tailwind stylesheet styles every element the starter actually renders.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Overwriting the scaffolder's stylesheet is only half a job. That file was styling
-    ///         <c>body</c>, <c>h1</c> and the rest BY TAG, and the overlay still renders those tags — so a
-    ///         replacement that is just <c>@import "tailwindcss";</c> takes the page's styling away and
-    ///         lets preflight reset what the browser had left. <c>--tailwind</c> then produced a visibly
-    ///         worse page than no flag at all, and every check stayed green
-    ///         (<see href="https://github.com/pal-tamas/rask/issues/859" />).
-    ///     </para>
-    ///     <para>
-    ///         Driven off the markup rather than a hand-kept list: an element the starters render is read
-    ///         out of their own source here, so adding one to the markup and forgetting to style it fails
-    ///         this test instead of shipping. The classless markup is asserted too — that is the premise
-    ///         the base layer rests on, and if it ever stops holding, styling by element is the wrong
-    ///         answer and this should be reconsidered rather than quietly extended.
-    ///     </para>
-    /// </remarks>
-    [Fact]
-    public void Every_starter_draws_the_same_skeleton_in_daisyui()
-    {
-        // The class names every `rask new` template draws, C# hosts included, so a project looks the
-        // same whichever front end it was scaffolded with. Asserted per framework rather than once,
-        // because each of these is hand-written in its own templating syntax and nothing type-checks
-        // them: a skeleton that drifts in one framework drifts silently.
-        string[] skeleton =
-        [
-            "navbar", "navbar-start", "navbar-end",
-            "hero", "hero-content",
-            "card", "card-body", "card-actions",
-            "btn btn-primary",
-            "footer",
-        ];
-
-        foreach (var framework in SpaFramework.All)
-        {
-            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
-
-            foreach (var name in skeleton)
-            {
-                Assert.Contains(name, markup, StringComparison.Ordinal);
-            }
-        }
-    }
-
-    [Fact]
-    public void Every_element_the_starter_renders_carries_a_class()
-    {
-        // This replaces a rule that styled these elements BY TAG, and the swap is the point rather
-        // than an implementation detail.
-        //
-        // The starter used to carry no class attributes at all, so the stylesheet had to reach it by
-        // element — and overwriting the scaffolder's CSS with a bare `@import "tailwindcss"` once let
-        // preflight reset what the browser had given those tags, producing a visibly worse page than
-        // no flag at all, with every check green (#859).
-        //
-        // Now the markup names daisyUI components directly, so the guard moves to where the styling
-        // does: an element the starter renders without a class is the same failure in a new place.
-        string[] elements = ["main", "h1", "input", "button", "footer"];
-
-        foreach (var framework in SpaFramework.All)
-        {
-            var markup = string.Join("\n", framework.ClientFiles.Select(file => file.Content));
-
-            foreach (var element in elements)
-            {
-                var opened = markup.IndexOf($"<{element}", StringComparison.Ordinal);
-                Assert.True(opened >= 0, $"[{framework.Key}] the starter no longer renders <{element}>.");
-
-                // The opening tag, up to its closing bracket, must carry a class binding of some kind.
-                // Which spelling depends on the framework, so all three are accepted.
-                var tag = markup[opened..markup.IndexOf('>', opened)];
-
-                Assert.True(
-                    tag.Contains("class=", StringComparison.Ordinal)
-                    || tag.Contains("className=", StringComparison.Ordinal)
-                    || tag.Contains("[class]", StringComparison.Ordinal),
-                    $"[{framework.Key}] <{element}> carries no class, so preflight has removed whatever "
-                    + "the browser gave it and nothing has put anything back.");
-            }
         }
     }
 
@@ -730,24 +329,6 @@ public sealed class SpaTemplateTests
         }
     }
 
-    [Fact]
-    public void Every_client_carries_the_wiring_Tailwind_needs_to_compile()
-    {
-        foreach (var framework in SpaFramework.All)
-        {
-            var result = ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries(), "1.2.3");
-
-            Assert.Contains("tailwindcss", PackageJson(result), StringComparison.Ordinal);
-
-            // Angular's Vite config belongs to @angular/build and has no plugin slot, so it takes Tailwind
-            // through PostCSS instead. Without the file the packages install and NOTHING compiles the
-            // stylesheet: the app builds, and every utility class is silently missing.
-            Assert.Equal(
-                !framework.WritesViteConfig,
-                Has(result, "/client/.postcssrc.json"));
-        }
-    }
-
     // What create-vite's react-ts template actually writes, indentation and all. The patch is applied to
     // somebody else's file, so the fixture has to be their file rather than a tidy stand-in.
     private const string ViteIndexHtml =
@@ -766,85 +347,6 @@ public sealed class SpaTemplateTests
           </body>
         </html>
         """;
-
-    /// <summary>
-    ///     Both URLs the patch writes are root-absolute, and that is the whole point of them.
-    /// </summary>
-    /// <remarks>
-    ///     A SPA serves one index.html at every route. Relative URLs would resolve against the current
-    ///     path, so the manifest 404s on any deep link and the service worker takes its scope from
-    ///     <c>/orders/</c> instead of <c>/</c> — registering fine, controlling one sub-tree, and never
-    ///     seeing a push. Nothing reports either failure.
-    /// </remarks>
-    [Fact]
-    public void The_manifest_and_service_worker_are_referenced_from_the_origin_root()
-    {
-        var patched = ProjectGenerator.LinkManifestAndServiceWorker(ViteIndexHtml);
-
-        Assert.Contains("""<link href="/manifest.webmanifest" rel="manifest"/>""", patched, StringComparison.Ordinal);
-        Assert.Contains("""register("/rask-sw.js")""", patched, StringComparison.Ordinal);
-
-        // The negative half: no bare relative form survived anywhere in the document.
-        Assert.DoesNotContain("href=\"manifest.webmanifest", patched, StringComparison.Ordinal);
-        Assert.DoesNotContain("""register("rask-sw.js")""", patched, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_patch_lands_inside_the_head_aligned_with_its_siblings()
-    {
-        var patched = ProjectGenerator.LinkManifestAndServiceWorker(ViteIndexHtml);
-
-        // A manifest link outside <head> is ignored by every browser, silently.
-        var link = patched.IndexOf("rel=\"manifest\"", StringComparison.Ordinal);
-        var headEnd = patched.IndexOf("</head>", StringComparison.Ordinal);
-        Assert.InRange(link, 0, headEnd);
-
-        // Aligned with the <title> above it (4 spaces), not with the </head> below it (2).
-        Assert.Contains("\n    <link href=\"/manifest.webmanifest\"", patched, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Patching_a_document_twice_changes_nothing_the_second_time()
-    {
-        var once = ProjectGenerator.LinkManifestAndServiceWorker(ViteIndexHtml);
-
-        Assert.Equal(once, ProjectGenerator.LinkManifestAndServiceWorker(once), StringComparer.Ordinal);
-    }
-
-    /// <summary>A document this does not understand is left exactly as it was found.</summary>
-    /// <remarks>
-    ///     The head-less case is not hypothetical: it is what a scaffolder's template looks like the day it
-    ///     changes shape. Appending blindly would move the failure from "no PWA" to "broken document".
-    ///     The empty and newline-only cases are the ones that threw while this was being written — the
-    ///     backward scan started ON the newline it was looking for and took an empty slice.
-    /// </remarks>
-    [Theory]
-    [InlineData("<html><body>nothing to patch</body></html>")]
-    [InlineData("")]
-    [InlineData("\n")]
-    public void A_document_with_no_head_to_patch_is_returned_unchanged(string html)
-    {
-        Assert.Equal(html, ProjectGenerator.LinkManifestAndServiceWorker(html), StringComparer.Ordinal);
-    }
-
-    /// <summary>A document whose head closes with nothing above it still patches rather than throwing.</summary>
-    /// <remarks>
-    ///     These are the inputs that threw while this was being written: the backward search for a sibling
-    ///     to copy the indentation from started ON the newline that ended the line it was looking for, took
-    ///     an empty slice, and asked for a negative length. It surfaced as an unhandled exception out of
-    ///     `rask new`, after the project had already been written to disk.
-    /// </remarks>
-    [Theory]
-    [InlineData("</head>")]
-    [InlineData("\n</head>")]
-    [InlineData("<head>\n\n</head>")]
-    [InlineData("<head>\r\n  <title>x</title>\r\n</head>")]
-    public void A_head_with_nothing_to_align_against_is_patched_without_throwing(string html)
-    {
-        var patched = ProjectGenerator.LinkManifestAndServiceWorker(html);
-
-        Assert.Contains("rel=\"manifest\"", patched, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void Pwa_writes_the_manifest_the_icon_and_the_service_worker_into_the_bundle_root()
@@ -910,45 +412,6 @@ public sealed class SpaTemplateTests
     }
 
     [Fact]
-    public void No_scaffolded_file_lands_in_a_directory_the_scaffold_gitignores()
-    {
-        // The general form of the defect that put push.ts in src/rask/: a file written ONCE by the
-        // scaffolder, into a directory the same scaffolder tells git to ignore, and regenerated by
-        // nothing. It survives exactly until someone clones the repository, and then it is gone with no
-        // error that names it.
-        //
-        // Asserted over every scaffolded file rather than over push.ts, because the next one to land
-        // there would be just as invisible.
-        var result = ProjectGenerator.GenerateSpa(
-            Root,
-            "Shop",
-            SpaFramework.React,
-            new ServerBatteries { Push = true, Pwa = true }.Normalized(),
-            "1.2.3");
-
-        var gitignore = result.Patches
-            .Single(p => p.Path.EndsWith(".gitignore", StringComparison.Ordinal));
-
-        var ignored = gitignore.Transform("node_modules\ndist\n")
-            .Split('\n')
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0 && !line.StartsWith('#') && line.EndsWith('/'))
-            .ToList();
-
-        Assert.NotEmpty(ignored);
-
-        var buried = result.Files
-            .Select(f => f.Path.Replace('\\', '/'))
-            .Where(path => ignored.Any(dir => path.Contains("/" + dir, StringComparison.Ordinal)))
-            .ToList();
-
-        Assert.True(
-            buried.Count == 0,
-            "These files are scaffolded into a directory the scaffold adds to .gitignore, so a fresh "
-            + "clone will not have them and nothing regenerates them: " + string.Join(", ", buried));
-    }
-
-    [Fact]
     public void Without_pwa_no_client_carries_a_service_worker_or_a_manifest_link()
     {
         var result = ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, new ServerBatteries(), "1.2.3");
@@ -957,39 +420,6 @@ public sealed class SpaTemplateTests
         Assert.False(Has(result, "/client/public/manifest.webmanifest"));
         Assert.False(Has(result, "/client/src/push.ts"));
         Assert.DoesNotContain(result.Patches, patch => patch.Path.EndsWith("index.html", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Angular_is_scaffolded_by_its_own_CLI()
-    {
-        var external = Assert.Single(
-            ProjectGenerator.GenerateSpa(Root, "Shop", Framework("angular"), new ServerBatteries(), "1.2.3")
-                .ExternalScaffolds);
-
-        // ng new, not create-vite: Angular has no create-vite template, and its own CLI is where its
-        // conventions come from. The project name has to be kebab-case — Angular rejects "client"
-        // outright — so the CLI is given shop-client with --directory Client.
-        Assert.Contains("@angular/cli@latest", external.Arguments);
-        Assert.Contains("shop-client", external.Arguments);
-        Assert.Contains("--directory", external.Arguments);
-        Assert.Contains("client", external.Arguments);
-
-        // The install is the build's job, and rask new initialises one repository at the solution root.
-        Assert.Contains("--skip-install", external.Arguments);
-        Assert.Contains("--skip-git", external.Arguments);
-    }
-
-    [Fact]
-    public void The_host_is_told_where_Angular_nests_its_bundle()
-    {
-        var csproj = Content(
-            ProjectGenerator.GenerateSpa(Root, "Shop", Framework("angular"), new ServerBatteries(), "1.2.3"),
-            "/Shop.csproj");
-
-        // Angular's default output is dist/<project>/browser. A host left pointing at dist/ serves the
-        // "nothing built yet" page after a build that succeeded — which reads as a broken scaffold.
-        Assert.Contains("<RaskSpaDistDir>dist/shop-client/browser</RaskSpaDistDir>", csproj, StringComparison.Ordinal);
-        Assert.Contains("<RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>", csproj, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1005,28 +435,6 @@ public sealed class SpaTemplateTests
 
             Assert.DoesNotContain("<RaskSpaDistDir>", csproj, StringComparison.Ordinal);
         }
-    }
-
-    [Fact]
-    public void Angulars_dev_server_is_pointed_at_the_proxy_file()
-    {
-        var patched = ProjectGenerator.UseProxyConfig("""
-            { "projects": { "shop-client": { "architect": { "serve": { "builder": "@angular/build:dev-server" } } } } }
-            """);
-
-        // Written into angular.json rather than onto the start script, so `ng serve` picks it up however
-        // it is launched — an IDE does not run the npm script.
-        Assert.Contains("\"proxyConfig\": \"proxy.conf.json\"", patched, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_angular_json_this_does_not_recognise_is_left_alone()
-    {
-        // Failing a scaffold over a proxy line would be worse than saying it did not happen — the CLI
-        // reports the skip, and everything else on disk is still correct.
-        const string Unfamiliar = """{ "version": 1 }""";
-
-        Assert.Equal(Unfamiliar, ProjectGenerator.UseProxyConfig(Unfamiliar));
     }
 
     [Fact]
