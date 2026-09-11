@@ -182,6 +182,23 @@ public class BrowserCompanionGenerationTests : IDisposable
         Assert.Contains("<WasmFingerprintAssets>false</WasmFingerprintAssets>", Generate(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("net10.0", "net10.0-browser")]
+    [InlineData("net11.0", "net11.0-browser")]
+    public void TheBundleTargetsTheServerHalfsDotnetVersion(string server, string bundle)
+    {
+        // The companion compiles the app's own sources, so it builds them for the .NET version the app
+        // targets. It was a literal net10.0-browser, which compiled a net11.0 app for an older framework
+        // than its own server half.
+        var csproj = Path.Combine(_dir, "App.csproj");
+        File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
+            "<TargetFramework>net10.0</TargetFramework>",
+            $"<TargetFramework>{server}</TargetFramework>",
+            StringComparison.Ordinal));
+
+        Assert.Contains($"<TargetFramework>{bundle}</TargetFramework>", Generate(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheCompanionPublishesOutsideItsOwnProjectDirectory()
     {

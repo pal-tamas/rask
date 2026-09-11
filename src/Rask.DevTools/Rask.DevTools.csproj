@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Both faces: the devtools attach to a Server host and to a browser-WASM host alike. -->
-    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -12,8 +12,8 @@
       with nothing left referencing the assembly the trimmer removes it. A Debug build roots it instead
       (see buildTransitive/Rask.DevTools.targets).
     -->
-    <IsTrimmable Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsTrimmable>
-    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
+    <IsTrimmable Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsTrimmable>
+    <IsAotCompatible Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsAotCompatible>
 
     <PackageId>Rask.DevTools</PackageId>
     <Title>Rask — DevTools</Title>
@@ -57,7 +57,7 @@
     IslandDevPointer arrive with Rask.Server, whose internals this assembly sees, and a second copy of either
     would conflict with that one (CS0436).
   -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     <ProjectReference Include="..\Rask.Server\Rask.Server.csproj" PrivateAssets="all"/>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-host.js"
@@ -68,7 +68,7 @@
   </ItemGroup>
 
   <!-- The browser face has no Server host to map endpoints on, and no Kestrel to bind. -->
-  <ItemGroup Condition=" '$(TargetFramework)' != 'net10.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
     <Compile Remove="DevToolsBootstrap.Server.cs;Endpoints\**;Server\**"/>
   </ItemGroup>
 
@@ -92,7 +92,7 @@
     es2019 like the runtime it sits beside, embedded for the endpoint to serve.
   -->
   <Target Name="_RaskDevToolsBundleHostJs" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
-          Condition=" '$(TargetFramework)' == 'net10.0' "
+          Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' "
           Inputs="@(_RaskDevToolsHostTs)"
           Outputs="$(IntermediateOutputPath)rask-devtools-host.js">
     <ResolveTypeScriptToolTask Tool="esbuild"

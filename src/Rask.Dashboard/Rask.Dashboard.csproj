@@ -3,7 +3,7 @@
   <PropertyGroup>
     <!-- Server-only: every panel reads the application's DbContext, and a WASM app has no database.
          Single-targeted (no net10.0-browser) so that constraint is enforced by the compiler. -->
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -53,11 +53,15 @@
                       ReferenceOutputAssembly="false"/>
 
     <!-- Build-order edge only: it puts Rask.Tailwind.Tasks.dll in Rask.Tailwind's build/ folder before
-         the import below loads it with <UsingTask>. Nothing is referenced and nothing flows. -->
+         the import below loads it with <UsingTask>. Nothing is referenced and nothing flows.
+         UndefineProperties, because this project's frameworks are a list: each inner build carries
+         TargetFramework as a GLOBAL property, and handed on to netstandard2.0 Rask.Tailwind that is
+         NETSDK1005. Rask.Ui and Rask.Auth carry the same pair for the same reason. -->
     <ProjectReference Include="..\Rask.Tailwind\Rask.Tailwind.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
-                      SkipGetTargetFrameworkProperties="true"/>
+                      SkipGetTargetFrameworkProperties="true"
+                      UndefineProperties="TargetFramework"/>
   </ItemGroup>
 
   <ItemGroup>

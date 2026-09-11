@@ -379,6 +379,39 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every shipped package reads its .NET versions from one place** — the groundwork for building each package
+  for .NET 10 and .NET 11 side by side. `Directory.Build.props` now states `RaskNetTargets` /
+  `RaskBrowserTargets`, and all 39 packable projects take `<TargetFrameworks>` from them instead of spelling
+  `net10.0` out. What a consumer installs is unchanged — a fresh-tree pack lists the same files and nuspecs as
+  before — with one exception that was a leak: `Rask.Auth` no longer ships its compiled stylesheet's build
+  intermediate (`obj/net10.0/auth.generated.css`) as a NuGet content file, which put a stray `obj/` item into
+  every consuming project. The pages never used it; the stylesheet is embedded in `Rask.Auth.dll` as before.
+  - **Faces are chosen by platform, not by version string.** The 21 `'$(TargetFramework)' == 'net10.0'`
+    conditions that pick a package's server or browser half now ask `GetTargetPlatformIdentifier`, so a second
+    .NET version lands on the right half — one of them (`!= 'net10.0'` in Rask.DevTools) would have sent it
+    to the browser branch, and `RASK_BROWSER` would have compiled Rask.Wasm's browser build with no exports.
+  - **Rask.Core is bundled by `src/RaskCoreBundle.targets`** for Rask.Server and Rask.Wasm, through
+    `BuildOutputInPackage`, so NuGet names each `lib/` folder. The literal `lib/net10.0/` paths would have
+    shipped a second version's folder without `Rask.Core.dll` while pack stayed green.
+  - **Two new build errors keep it that way.** `RaskVerifyTargetFrameworks` fails a shipped project that writes
+    its frameworks literally (the `rask` tool is exempt: it rolls forward instead), and the public-API gate
+    maps each version onto its face's baseline (`RaskPublicApiTfm`) and refuses a `PublicAPI/<tfm>` folder no
+    build reads. `PackageDependencyTests` now follows the imports the bundling moved into, and fails if it
+    stops seeing Rask.Server and Rask.Wasm bundle Core rather than passing on nothing.
+- **The build targets shipped to apps follow the app's .NET version instead of assuming .NET 10.** The browser
+  companion generated for `RaskBrowserRung` now targets the server half's framework as `-browser` (`net11.0` →
+  `net11.0-browser`), and the prerender companion the browser app's desktop twin (`net11.0-browser` →
+  `net11.0`); both were literal `net10.0` names.
+  - **`Rask.Wasm.Hosting` asks MSBuild for the WASM client's framework** (`GetTargetFrameworks`) rather than
+    reading a literal `<TargetFramework>` element off its csproj and assuming `net10.0-browser` otherwise. A
+    client whose framework comes from a `Directory.Build.props` or a property now gets the right bundle path
+    baked in, where on any other .NET version the host would have served its whole app as 404s from a green
+    build.
+  - **A WASM client that targets several frameworks is now a build error on the host** ("must build for
+    exactly one framework"), where the probe used to guess `net10.0-browser`. A bundle is published for one
+    framework; give the client a single `<TargetFramework>`. One framework written as a one-entry
+    `<TargetFrameworks>` list still counts as one and is served.
+
 - **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
   own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
   `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer`,

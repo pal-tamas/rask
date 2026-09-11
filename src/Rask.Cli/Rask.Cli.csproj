@@ -11,6 +11,12 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>rask</ToolCommandName>
     <RollForward>Major</RollForward>
+    <!--
+      One framework on purpose, unlike the libraries: a tool is an application, and RollForward=Major already
+      runs it on any newer runtime, so a second build would only double the package. See
+      RaskVerifyTargetFrameworks in Directory.Build.targets.
+    -->
+    <RaskTargetFrameworksExempt>true</RaskTargetFrameworksExempt>
 
     <PackageId>Rask.Cli</PackageId>
     <Title>Rask.Cli — the `rask` command-line tool</Title>
