@@ -597,6 +597,14 @@ them until tagged releases begin.
   - **The fix.** Both log stores now match the JSON-encoded `"key":"value"` pair, which is exact whatever the key
     holds.
 
+- **`rask new --cqrs` without `--wasm` scaffolds an app that compiles again.** The server template wrote the
+  database-free `AddRaskCqrsServer()` call outside its WebAssembly region.
+  The `Rask.Cqrs.Server` package and its `using` are written only with `--wasm`, so a `--cqrs` app with no
+  database failed with CS1061. The call now sits inside that region. So does its
+  `Rask:Cqrs:Server:RequireAuthenticatedUser` setting in `appsettings.json`, which described endpoints a
+  server-only app does not have. The CLI build gate's two cases for it pass, and a unit test pins the absence
+  of both without `--wasm` (#1071).
+
 - **A `RaskApp` with its Web Push keys in configuration starts.** The keys were enough to switch the battery on
   but were never copied into its options, so an app configured the documented way stopped at startup on a
   missing key pair. The section is now bound like every other, so the keys reach the sender — and keys without a
