@@ -80,8 +80,10 @@ The other pillars are **one registration + one `modelBuilder` line + a migration
 builder.Services.AddRaskJobs<ProductsDbContext>(o => { /* … */ });   modelBuilder.AddRaskJobs();
 builder.Services.AddRaskMail<ProductsDbContext>(o => { /* … */ });   modelBuilder.AddRaskMail();
 builder.Services.AddRaskCache<ProductsDbContext>();                  modelBuilder.AddRaskCache();
+builder.Services.AddRaskStorage<ProductsDbContext>();                modelBuilder.AddRaskStorage();
 builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ }); modelBuilder.AddRaskOutbox();
 // the outbox claims domain-event delivery on its own — AddRaskData stays bare, in any order
+app.MapRaskStorage();   // file storage's public/temporary link routes — after app.UseRask<App>()
 
 // production SQLite — a drop-in for .UseSqlite that installs the pragma interceptor:
 .UseRaskSqlite("Data Source=app.db")
@@ -113,6 +115,10 @@ UiDataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.N
 // Cache an expensive read; invalidate on write:
 var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);
 await cache.RemoveAsync("products");
+
+// Keep an upload, then link to it — Url does no I/O, so it is safe inside Render:
+var saved = await files.SaveAsync(file, o => o.Public = true, CancellationToken);   // IFiles, ctor-injected
+Img.Src(files.Url(saved.Id)).Alt(product.Name)
 
 // Enqueue work off the request thread — returns as soon as the row is written:
 await jobs.EnqueueAsync(new SendOrderReceipt(order.Id), CancellationToken);

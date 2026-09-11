@@ -7,6 +7,7 @@ using Rask.Cache;
 using Rask.Jobs;
 using Rask.Mail;
 using Rask.Outbox;
+using Rask.Storage;
 
 namespace Rask.Tests;
 
@@ -84,6 +85,7 @@ public sealed class RaskBatteryTests
             modelBuilder.AddRaskAuth();
             modelBuilder.AddRaskMail();
             modelBuilder.AddRaskCache();
+            modelBuilder.AddRaskStorage();
             modelBuilder.AddRaskJobs();
             modelBuilder.AddRaskOutbox();
         }
@@ -94,6 +96,7 @@ public sealed class RaskBatteryTests
     private const string Jobs = "JobProcessor`1";
     private const string Mail = "MailProcessor`1";
     private const string Cache = "CachePurger`1";
+    private const string Files = "OrphanSweeper`1";
     private const string Outbox = "OutboxProcessor`1";
 
     // Auth's is not a processor: it is the startup step that decides whether this app still needs a
@@ -135,6 +138,7 @@ public sealed class RaskBatteryTests
         Assert.Contains(Jobs, workers);
         Assert.Contains(Mail, workers);
         Assert.Contains(Cache, workers);
+        Assert.Contains(Files, workers);
         Assert.Contains(Outbox, workers);
         Assert.Contains(Auth, workers);
     }
@@ -209,6 +213,7 @@ public sealed class RaskBatteryTests
         Assert.DoesNotContain(Jobs, workers);
         Assert.Contains(Mail, workers);
         Assert.Contains(Cache, workers);
+        Assert.Contains(Files, workers);
         Assert.Contains(Outbox, workers);
         Assert.Contains(Auth, workers);
     }
@@ -223,6 +228,7 @@ public sealed class RaskBatteryTests
         Assert.DoesNotContain(Jobs, workers);
         Assert.DoesNotContain(Mail, workers);
         Assert.DoesNotContain(Cache, workers);
+        Assert.DoesNotContain(Files, workers);
         Assert.DoesNotContain(Outbox, workers);
 
         // Accounts live on the application database like the rest of them.
@@ -310,6 +316,32 @@ public sealed class RaskBatteryTests
         Assert.Single(built.Services.GetServices<IHostedService>(), s => s.GetType().Name == Mail);
     }
 
+    [Fact]
+    public void Turning_storage_off_takes_the_service_and_its_sweep_with_it()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Configure(c => c.Storage.Off());
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
+        var built = app.Build<TestApp>();
+
+        Assert.Null(built.Services.GetService<IFiles>());
+        Assert.DoesNotContain(built.Services.GetServices<IHostedService>(), s => s.GetType().Name == Files);
+    }
+
+    [Fact]
+    public void Storage_is_configured_in_the_same_block()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Configure(c => c.Storage.Configure(o => o.MaxFileSize = 1234));
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
+        var built = app.Build<TestApp>();
+
+        Assert.NotNull(built.Services.GetService<IFiles>());
+        Assert.Equal(1234, built.Services.GetRequiredService<StorageOptions>().MaxFileSize);
+    }
+
     /// <summary>
     /// Every battery's model check, found by name because each type is internal to its own package.
     /// </summary>
@@ -340,11 +372,11 @@ public sealed class RaskBatteryTests
 
         var checks = ModelChecks(built.Services);
 
-        // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache. Asserted as a count rather
+        // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache, Storage. Asserted as a count rather
         // than "at least one" because a check that silently stopped being registered is precisely the
         // failure this whole exercise is about — the original guard lived in the meta package and fired
         // for nothing a real app does.
-        Assert.Equal(5, checks.Count);
+        Assert.Equal(6, checks.Count);
 
         var messages = new List<string>();
         foreach (var check in checks)
@@ -360,6 +392,7 @@ public sealed class RaskBatteryTests
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskAuth()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskJobs()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskCache()", StringComparison.Ordinal));
+        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskStorage()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskOutbox()", StringComparison.Ordinal));
         Assert.All(messages, m => Assert.Contains("OnModelCreating", m, StringComparison.Ordinal));
     }
@@ -382,7 +415,7 @@ public sealed class RaskBatteryTests
         var built = app.Build<TestApp>();
 
         var checks = ModelChecks(built.Services);
-        Assert.Equal(5, checks.Count);
+        Assert.Equal(6, checks.Count);
 
         foreach (var check in checks)
         {

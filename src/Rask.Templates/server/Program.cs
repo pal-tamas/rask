@@ -36,6 +36,9 @@ using Rask.Mail;
 // rask:if cache
 using Rask.Cache;
 // rask:end
+// rask:if storage
+using Rask.Storage;
+// rask:end
 // rask:if outbox
 using Rask.Outbox;
 // rask:end
@@ -210,6 +213,16 @@ builder.Services.AddRaskMail<AppDbContext>(o =>
 // caching just works) plus a typed ICache with GetOrAddAsync and absolute/sliding expiry. A
 // background purger sweeps expired rows.
 builder.Services.AddRaskCache<AppDbContext>();
+// rask:end
+// rask:if storage
+
+// The files your users upload, kept by id: save a RaskFile with IFiles.SaveAsync, keep the returned
+// Id on your entity, and hand the file back with files.Url(id), files.TemporaryUrlAsync(id, lifetime)
+// or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
+// which NO backup covers — until you point them at a bucket: rask deploy --env Storage__Provider=S3
+// --env Storage__S3__Bucket=... (and the keys beside it), or Storage__Provider=Azure. The routes that
+// serve the links are mapped further down, by app.MapRaskStorage().
+builder.Services.AddRaskStorage<AppDbContext>();
 // rask:end
 // rask:if snapshots
 
@@ -386,4 +399,10 @@ app.MapRaskCqrs();
 //   app.UseRask<App>(pathBase: "/myapp");
 app.UseRask<App>();
 
+// rask:if storage
+// The routes behind files.Url(id) and files.TemporaryUrlAsync(id, lifetime). After UseRask, which sets
+// the path base they live under.
+app.MapRaskStorage();
+
+// rask:end
 app.Run();

@@ -18,6 +18,50 @@ them until tagged releases begin.
   New, Edit, Cancel and Back links are kit buttons and links now, and rask.sh's `PageMeta.LinkTo` keeps
   the route's page type through the trailing slash it adds.
 
+- **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
+  and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
+  `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own
+  database; the app keeps the `Guid` on its entity and gets a link back three ways — `files.Url(id)` for a
+  file saved as public (built from the id alone, so it costs nothing inside a render),
+  `files.TemporaryUrlAsync(id, lifetime)` for one that expires, and `files.Download(id)` for an endpoint
+  that has already checked the caller may see it. Files go to `/data/files` on the deploy volume by
+  default, `storage/` under the content root otherwise, and `app.MapRaskStorage()` serves the links.
+  It is **on** in the `Rask` package like every other battery — the table is mapped on `RaskAppDbContext`
+  and `RaskApp` maps the routes, so an app writes nothing — and `app.Configure(c => c.Storage.Off())` or
+  `c.Storage.Configure(o => …)` is the one place it differs. `Storage__Provider=S3` or `Azure` moves them into a bucket — AWS S3, Cloudflare R2, Backblaze B2, MinIO,
+  DigitalOcean Spaces, Google Cloud Storage's S3 interop, or Azure Blob — with **no cloud SDK behind it**:
+  S3 is signed in-process with SigV4 and Azure with Shared Key, and a temporary URL becomes the provider's
+  own signed URL, so the download never passes through the app. The signers are pinned to AWS's published
+  examples and proven against real MinIO and Azurite by `scripts/run-storage-providers-local.sh`.
+  - **`rask new` scaffolds it** — the package, `AddRaskStorage<AppDbContext>()`, the table in `AppDbContext`
+    and `app.MapRaskStorage()` in the right place for each host — and `--no-storage` leaves it out.
+  - **The operator console gains a read-only Storage tab** at `/_rask/storage`: files, bytes and public
+    files, usage per provider, a searchable newest-first list, and a plain warning whenever files sit on disk,
+    which nothing backs up.
+  - **Public and private files live under different key folders** (`public/`, `private/`), so a CDN or a
+    public bucket can be granted read on `public/` alone — a private file's key shows in its signed URL, and
+    one policy covering both would make a five-minute link permanent.
+  - **The content type is sniffed from the bytes, never taken from the browser.** Only raster images, audio
+    and video are ever served `inline`; everything else downloads as an attachment, and HTML, SVG and XML
+    go out as `application/octet-stream`. Every response carries `nosniff`, a `sandbox` Content Security
+    Policy and `no-referrer`; ranges, `If-None-Match` and `HEAD` are ASP.NET's own handling, with the
+    file's SHA-256 as its entity tag.
+  - **Uploads are capped** at 50 MB by default, before a byte is read when the size is declared and while
+    copying when it is not; `AllowedTypes` narrows what is accepted, by what the bytes are. A refused file is
+    a `FileRejectedException` whose message names the setting to change and never repeats the file name.
+  - **A temporary URL on disk is a Data Protection token** under a purpose of its own, carrying only the
+    file id. Expired, tampered, unknown and deleted all answer one identical `404`, so a response never says
+    whether a file exists — and deleting the file revokes every link to it.
+  - **Bytes are written before the row, and a sweep removes what a failed save leaves behind.** It fails
+    closed (a database error deletes nothing), re-checks each candidate just before deleting it, only ever
+    touches keys in its own layout under `Storage__Prefix`, and refuses outright when it would remove more
+    than a tenth of what it looked at — the signature of an app pointed at the wrong database. It deletes
+    nothing against an empty table, and on S3 or Azure nothing at all until `Storage__Prefix` is set: a bucket
+    is easily shared, and a key's shape cannot tell this app's orphans from another environment's files.
+  - Configuration comes from `Storage__*` keys read inside `AddRaskStorage`, so an app `rask new` wrote
+    honours them; code set in the delegate wins. A bad value fails the boot, and a storage directory inside
+    `wwwroot` is refused because the static-file middleware would serve uploads with none of these checks.
+
 - **A Debug build running in Development loads Rask DevTools' host script into every live page.** `AddRask`
   attaches the devtools when the build carries `Rask.DevTools`; `UseRask` then maps `/_rask-devtools/host.js` —
   anonymous, so an app with a fallback authorization policy still loads its own tools — and each interactive

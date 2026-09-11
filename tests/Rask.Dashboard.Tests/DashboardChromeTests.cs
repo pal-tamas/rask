@@ -32,7 +32,7 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
         await using var h = Harness(Batteries.All);
 
         // Five sections, whatever the deployment runs — not one per battery.
-        Assert.Equal(["Overview", "Queues", "Cache", "Logs", "System"], Sections(h, "/_rask"));
+        Assert.Equal(["Overview", "Queues", "Cache", "Storage", "Logs", "System"], Sections(h, "/_rask"));
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
         // The tab would otherwise be a link to a queue that does not exist.
         await using var h = Harness(Batteries.Cache);
 
-        Assert.Equal(["Overview", "Cache", "Logs", "System"], Sections(h, "/_rask"));
+        Assert.Equal(["Overview", "Cache", "Storage", "Logs", "System"], Sections(h, "/_rask"));
     }
 
     [Fact]
