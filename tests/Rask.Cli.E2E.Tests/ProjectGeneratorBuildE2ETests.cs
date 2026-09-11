@@ -300,18 +300,15 @@ public sealed class ProjectGeneratorBuildE2ETests
                 fs.WriteAllText(file.Path, file.Content);
             }
 
-            // Both files, because both are load-bearing: package.json is what makes the Client folder
-            // convention resolve, and tsconfig.json is what satisfies RASKSPA004 — the build's refusal to
-            // generate TypeScript contracts into a client that is not a TypeScript project.
-            var client = Path.Combine(projectDir, "Client");
-            fs.CreateDirectory(client);
-            fs.WriteAllText(Path.Combine(client, "package.json"), """{ "name": "stand-in", "private": true }""");
-
-            // A tsconfig.json beside it, because a TypeScript client is what this package supports and the
-            // build says so (RASKSPA004). create-vite's react-ts template writes one; the stand-in has to
-            // model that, or this gate would be testing a client the real template never produces.
-            fs.WriteAllText(Path.Combine(client, "tsconfig.json"), """{ "compilerOptions": { "strict": true } }""");
-            fs.WriteAllText(Path.Combine(client, "tsconfig.json"), """{ "files": [] }""");
+            // The client the template writes, as it writes it. Two of its files are load-bearing here:
+            // package.json is what makes the client folder convention resolve, and tsconfig.json is what
+            // satisfies RASKSPA004, the build's refusal to generate TypeScript contracts into a client that
+            // is not a TypeScript project. This used to write a stand-in of both into Client/, from before
+            // the template shipped a client of its own; on a case-insensitive disk that overwrote the real
+            // one, and elsewhere it sat unused beside it.
+            var client = Path.Combine(projectDir, "client");
+            Assert.True(File.Exists(Path.Combine(client, "package.json")), "the template wrote no client/package.json.");
+            Assert.True(File.Exists(Path.Combine(client, "tsconfig.json")), "the template wrote no client/tsconfig.json.");
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
@@ -381,7 +378,15 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             // package.json and no tsconfig.json: the convention resolves the client, the contract emit turns
             // itself on, and there is nothing on the other side able to check what it writes.
-            var client = Path.Combine(projectDir, "Client");
+            //
+            // The template writes a real TypeScript client into client/, so that one is REPLACED rather than
+            // added to. A stand-in written beside it under another casing is the same directory on a
+            // case-insensitive disk, where the template's tsconfig.json survived and the build succeeded.
+            var client = Path.Combine(projectDir, "client");
+            Assert.True(
+                File.Exists(Path.Combine(client, "tsconfig.json")),
+                "the template no longer writes client/tsconfig.json, so this test no longer removes what it means to.");
+            Directory.Delete(client, recursive: true);
             fs.CreateDirectory(client);
             fs.WriteAllText(Path.Combine(client, "package.json"), """{ "name": "stand-in", "private": true }""");
 
