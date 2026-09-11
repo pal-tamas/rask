@@ -79,9 +79,11 @@ them until tagged releases begin.
   control with no text to float over keeps the legend, and so does a `UiSelect` that draws its own list.
   A field with no `Label` renders exactly as before.
 
-  When the label floats, the placeholder falls back to the label text. daisyUI raises the caption from a
-  *shown* placeholder, and an empty one never counts as shown, so the caption would sit risen over an
-  empty box.
+  While the label floats it is also the placeholder, and a `Placeholder` the call site set is ignored.
+  daisyUI raises the caption from a *shown* placeholder, and a different placeholder would sit in the box in
+  the label's place until someone focused the field. Guidance about the value goes in `Hint`, under the
+  field. `Placeholder` still applies to an unlabelled field and to `Floating(false)`. The site's floating
+  fields moved their placeholder guidance into `Hint`, and dropped bare prompts like "Type…".
 
   Holding the control inside the label takes it out of daisyUI's sibling selector for `.validator-hint`,
   the failure that once kept an `Error` message invisible behind a wrapping legend. A kit stylesheet rule

@@ -14,7 +14,7 @@ public sealed partial class FormControlsInputDemo : Component
             Div.Class("col-span-12 md:col-span-6")[
                 UiInput.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
-                    .Placeholder("Type, then blur…")
+                    .Hint("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-input-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-input-controlled-out")[
                     "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]
@@ -23,7 +23,6 @@ public sealed partial class FormControlsInputDemo : Component
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
                     UiInput.Bind(() => _model.Text).Label("Bound (two-way)")
-                        .Placeholder("Type…")
                         .Id("fc-input-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-input-bound-out")[

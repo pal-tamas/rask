@@ -244,6 +244,7 @@ div .fieldset
 label .floating-label
 span
 input .input .validator
+p .label
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -336,6 +337,7 @@ div .fieldset
 label .floating-label
 span
 input .input .validator
+p .label
 div .mb-3
 div .fieldset
 label .floating-label
@@ -355,6 +357,7 @@ div .fieldset
 label .floating-label
 span
 input .input .validator
+p .label
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -680,9 +683,11 @@ path
 button .btn .btn-outline .btn-primary
 div .mb-2 .text-sm .text-ui-muted
 code
+div .fieldset
 label .floating-label
 span
 textarea .mb-2 .textarea .validator
+p .label
 div .text-sm .text-ui-muted
 code
 
@@ -2500,9 +2505,11 @@ div .sample-result-label
 div .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
+div .fieldset
 label .floating-label
 span
 input .input .mb-2 .validator
+p .label
 p .mb-0 .text-sm .text-ui-muted
 strong
 div .col-span-12 .md:col-span-6
@@ -2572,9 +2579,11 @@ div .sample-result-label
 div .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
+div .fieldset
 label .floating-label
 span
 textarea .mb-2 .textarea .validator
+p .label
 p .mb-0 .text-sm .text-ui-muted
 strong
 div .col-span-12 .md:col-span-6

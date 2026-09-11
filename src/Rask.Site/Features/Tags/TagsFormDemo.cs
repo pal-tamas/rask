@@ -10,7 +10,6 @@ public sealed partial class TagsFormDemo : Component
             UiInput.Value<string>(null).Label("Name")
                 .Type(InputType.Text)
                 .Id("n")
-                .Placeholder("Jane Doe")
         ],
         UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)["Submit"]
     ];

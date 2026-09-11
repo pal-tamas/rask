@@ -16,7 +16,6 @@ public sealed partial class FormSubmitStateDemo : Component
                 Form.Model(_model).OnValidSubmit(SaveAsync).Id("fss-form")[submitting => [
                     UiInput.Bind(() => _model.Username).Label("Username")
                         .Disabled(submitting)
-                        .Placeholder("Pick a name…")
                         .Id("fss-input").Class("mb-2"),
                     UiButton
                         .Tone(UiTone.Primary)

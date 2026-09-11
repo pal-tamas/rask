@@ -15,7 +15,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                 UiTextarea.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
                     .Rows(3)
-                    .Placeholder("Type, then blur…")
+                    .Hint("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-textarea-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
                     "Length: ", Strong[_controlled.Length.ToString()]
@@ -25,7 +25,6 @@ public sealed partial class FormControlsTextareaDemo : Component
                 Form.Model(_model)[
                     UiTextarea.Bind(() => _model.Bio).Label("Bound (two-way)")
                         .Rows(3)
-                        .Placeholder("Type…")
                         .Id("fc-textarea-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-bound-out")[

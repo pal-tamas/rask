@@ -30,7 +30,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                     .Id("fs-text")
                     .Class("mb-2")
                     .Rows(8)
-                    .Placeholder("Open a text file, or type here and Save as…")
+                    .Hint("Open a text file, or type here and Save as…")
                     .OnInput(v => _text = v),
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fs-status")[_status]]
             ];
