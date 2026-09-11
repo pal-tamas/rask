@@ -34,7 +34,19 @@
   <PropertyGroup>
     <RaskClient Condition=" '$(RaskClient)' == '' AND Exists('$(MSBuildProjectDirectory)/Client/Program.cs') ">true</RaskClient>
     <RaskClient Condition=" '$(RaskClient)' == '' ">false</RaskClient>
-    <RaskClientCompanionDir Condition=" '$(RaskClientCompanionDir)' == '' ">$(BaseIntermediateOutputPath)rask-client\</RaskClientCompanionDir>
+    <!--
+      The bundle's framework follows the SERVER half's, version for version: a net10.0 app ships a
+      net10.0-browser bundle and a net11.0 app a net11.0-browser one. A literal would compile the app's own
+      Client/ sources for a .NET version the app does not target, or run the bundle on an older runtime than
+      its server. Empty in a multi-targeted project's outer evaluation, where nothing below runs, and in any
+      project without a client, which pays nothing for it.
+
+      Each framework gets its own companion folders below. The builds of a multi-targeted server run the
+      companion once per framework, and one shared folder would have them write a single project file with
+      two frameworks in it and build whichever landed last.
+    -->
+    <_RaskClientFramework Condition=" '$(RaskClient)' == 'true' AND '$(TargetFramework)' != '' ">net$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)', 2))-browser</_RaskClientFramework>
+    <RaskClientCompanionDir Condition=" '$(RaskClientCompanionDir)' == '' ">$(BaseIntermediateOutputPath)rask-client\$(_RaskClientFramework)\</RaskClientCompanionDir>
     <RaskClientCompanionName Condition=" '$(RaskClientCompanionName)' == '' ">$(AssemblyName).Client</RaskClientCompanionName>
     <RaskClientCompanionProject>$(RaskClientCompanionDir)$(RaskClientCompanionName).csproj</RaskClientCompanionProject>
     <!--
@@ -43,14 +55,7 @@
       the next: the bundle's own main.js and dotnet.js come back as candidate assets and fail the build. The
       first publish succeeds and every one after it fails, which is the worst version of this to diagnose.
     -->
-    <RaskClientCompanionOutput Condition=" '$(RaskClientCompanionOutput)' == '' ">$(BaseIntermediateOutputPath)rask-client-out\</RaskClientCompanionOutput>
-    <!--
-      The bundle's framework follows the SERVER half's, version for version: a net10.0 app ships a
-      net10.0-browser bundle and a net11.0 app a net11.0-browser one. A literal would compile the app's own
-      Client/ sources for a .NET version the app does not target, or run the bundle on an older runtime than
-      its server. Empty in a multi-targeted project's outer evaluation, where nothing below runs.
-    -->
-    <_RaskClientFramework Condition=" '$(TargetFramework)' != '' ">net$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)', 2))-browser</_RaskClientFramework>
+    <RaskClientCompanionOutput Condition=" '$(RaskClientCompanionOutput)' == '' ">$(BaseIntermediateOutputPath)rask-client-out\$(_RaskClientFramework)\</RaskClientCompanionOutput>
   </PropertyGroup>
 
   <!--

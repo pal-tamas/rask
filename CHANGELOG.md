@@ -458,7 +458,7 @@ them until tagged releases begin.
     stops seeing Rask.Server and Rask.Wasm bundle Core rather than passing on nothing.
 - **The build targets shipped to apps follow the app's .NET version instead of assuming .NET 10.** The browser
   companion generated for a `Client/` app now targets the server half's framework as `-browser` (`net11.0` →
-  `net11.0-browser`), and the prerender companion the browser app's desktop twin (`net11.0-browser` →
+  `net11.0-browser`), each in a folder of its own under `obj/rask-client/`, and the prerender companion the browser app's desktop twin (`net11.0-browser` →
   `net11.0`); both were literal `net10.0` names.
   - **`Rask.Spa.Hosting` asks MSBuild for a referenced WASM client's framework** (`GetTargetFrameworks`) rather than
     reading a literal `<TargetFramework>` element off its csproj and assuming `net10.0-browser` otherwise. A

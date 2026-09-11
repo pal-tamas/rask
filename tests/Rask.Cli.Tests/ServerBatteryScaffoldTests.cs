@@ -337,6 +337,10 @@ public sealed class ServerBatteryScaffoldTests
 
         // …and none of the old spellings survive in the code that used to read them.
         var program = files["Program.cs"];
+
+        // Nor does either file's settings note name AddRask, which a --wasm server never calls.
+        Assert.DoesNotContain("AddRask reads", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddRask reads", program, StringComparison.Ordinal);
         Assert.DoesNotContain("GetConnectionString(", program, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Litestream:ReplicaUrl\"", program, StringComparison.Ordinal);
         Assert.DoesNotContain("\"WebPush:PublicKey\"", program, StringComparison.Ordinal);

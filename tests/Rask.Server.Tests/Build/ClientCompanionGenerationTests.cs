@@ -61,7 +61,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         var project = Generate();
 
         Assert.DoesNotContain("Program.g.cs", project, StringComparison.Ordinal);
-        Assert.False(File.Exists(Path.Combine(_dir, "obj", "rask-client", "Program.g.cs")));
+        Assert.False(File.Exists(Path.Combine(CompanionDir(), "Program.g.cs")));
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         var project = Generate();
 
         Assert.Contains("<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>", project, StringComparison.Ordinal);
-        Assert.True(File.Exists(Path.Combine(_dir, "obj", "rask-client", "wwwroot", "index.html")));
+        Assert.True(File.Exists(Path.Combine(CompanionDir(), "wwwroot", "index.html")));
     }
 
     [Fact]
@@ -126,8 +126,8 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         // Publishing into the companion's own folder makes each publish an input to the next.
         Generate();
 
-        var companionDir = Path.Combine(_dir, "obj", "rask-client");
-        var outputDir = Path.Combine(_dir, "obj", "rask-client-out");
+        var companionDir = CompanionDir();
+        var outputDir = Path.Combine(_dir, "obj", "rask-client-out", "net10.0-browser");
 
         Assert.True(Directory.Exists(companionDir));
         Assert.False(
@@ -175,13 +175,14 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         // The companion compiles the app's Client/ sources, so it builds them for the .NET version the app
         // targets — and the development manifest UseRaskSpa serves is looked for under that framework's bin
         // folder. A literal net10.0-browser compiled a net11.0 app for an older framework than its server.
+        // Each framework's project is generated into a folder of its own, which is where Generate looks.
         var csproj = Path.Combine(_dir, "App.csproj");
         File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
             "<TargetFramework>net10.0</TargetFramework>",
             $"<TargetFramework>{server}</TargetFramework>",
             StringComparison.Ordinal));
 
-        Assert.Contains($"<TargetFramework>{bundle}</TargetFramework>", Generate(), StringComparison.Ordinal);
+        Assert.Contains($"<TargetFramework>{bundle}</TargetFramework>", Generate(bundle), StringComparison.Ordinal);
         Assert.Equal(bundle, Evaluate("-getProperty:_RaskClientFramework").Trim());
     }
 
@@ -220,12 +221,16 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     // evaluates them — so the file works on every platform and only these assertions care.
     private static string Slashes(string s) => s.Replace('\\', '/');
 
-    private string Generate()
+    // One folder per browser framework, so the per-framework builds of a multi-targeted server never share one.
+    private string CompanionDir(string framework = "net10.0-browser") =>
+        Path.Combine(_dir, "obj", "rask-client", framework);
+
+    private string Generate(string framework = "net10.0-browser")
     {
         var (exit, output) = Run("-t:RaskGenerateClientCompanion", "-v:quiet");
         Assert.True(exit == 0, $"generation failed:\n{output}");
 
-        var generated = Path.Combine(_dir, "obj", "rask-client", "App.Client.csproj");
+        var generated = Path.Combine(CompanionDir(framework), "App.Client.csproj");
         Assert.True(File.Exists(generated), $"no companion was generated:\n{output}");
         return File.ReadAllText(generated);
     }
