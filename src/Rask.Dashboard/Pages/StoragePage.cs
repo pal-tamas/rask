@@ -42,6 +42,14 @@ public sealed partial class StoragePage(
             .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
             .ConfigureAwait(false);
 
+        if (_rows.Count == 0 && _page > DashboardParts.LastPageIndex(_total, options.PageSize))
+        {
+            _page = DashboardParts.LastPageIndex(_total, options.PageSize);
+            (_rows, _total) = await storage
+                .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return string.Join('|',
             [$"{_stats.Files}:{_stats.Bytes}:{_stats.Public}:{_total}",
              .. _rows.Select(r => r.Id.ToString("N"))]);
@@ -57,8 +65,11 @@ public sealed partial class StoragePage(
 
         if (!storage.IsAvailable)
         {
-            return DashboardEmpty.Heading("Storage isn't registered")
-                .Detail("Call AddRaskStorage<TContext>() and modelBuilder.AddRaskStorage() to see stored files here.");
+            return UiCard[
+                UiEmpty
+                    .Heading("Storage isn't registered")
+                    .Detail("Call AddRaskStorage<TContext>() and modelBuilder.AddRaskStorage() to see stored files here.")
+            ];
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -67,30 +78,17 @@ public sealed partial class StoragePage(
                 $"new files go to {_stats.ActiveProvider} · orphans swept every {DashboardParts.Duration(_stats.SweepInterval)}"),
             DashboardError.Message(LoadError),
             DiskNotice(),
-            Div.Class("mb-4 sm:mb-5")[
-                UiMetricRow.Columns(3)[
-                    UiMetric.Key("files").Label("Files").Value(_stats.Files.ToString(CultureInfo.InvariantCulture)),
-                    UiMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
-                    UiMetric
-                        .Key("public")
-                        .Label("Public")
-                        .Value(_stats.Public.ToString(CultureInfo.InvariantCulture))
-                        .Caption("served to anyone with the link")
-                ]
+            UiMetricRow.Columns(3)[
+                UiMetric.Key("files").Label("Files").Value(_stats.Files.ToString(CultureInfo.InvariantCulture)),
+                UiMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                UiMetric
+                    .Key("public")
+                    .Label("Public")
+                    .Value(_stats.Public.ToString(CultureInfo.InvariantCulture))
+                    .Caption("served to anyone with the link")
             ],
-            ProviderTable(),
-            Div.Class("mb-4")[
-                UiSearch
-                    .Placeholder("Search file names")
-                    .AccessibleLabel("Search stored files")
-                    .Value(Search)
-                    .OnSearch(SearchAsync)
-            ],
-            _rows.Count == 0
-                ? DashboardEmpty.Heading(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
-                    .Detail("Files appear here as soon as the app saves one.")
-                : FileTable(now),
-            Pager(),
+            ProviderGrid(),
+            FileGrid(now),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
@@ -99,33 +97,24 @@ public sealed partial class StoragePage(
     // the docs to find out.
     private Component? DiskNotice() =>
         _stats.ActiveProvider == StorageProvider.Disk || _stats.ByProvider.Any(p => p.Provider == StorageProvider.Disk)
-            ? UiNotice.Tone("warn")[
-                Span.Class("min-w-0 grow break-words")[
+            ? UiAlert.Tone(UiTone.Warning)[
+                UiIcon.Name(UiIconName.Warning),
+                Span[
                     "Files on disk are not covered by rask db backup, Litestream or snapshots, and live on this host "
                     + "only. Use S3 or Azure for uploads you can't afford to lose."
                 ]
             ]
             : null;
 
-    private Component? ProviderTable() =>
+    // Only once files are split across providers: a single row would restate the tiles above it.
+    private Component? ProviderGrid() =>
         _stats.ByProvider.Count <= 1
             ? null
-            : Div.Class("mb-4 sm:mb-5")[
-                UiTable.Scroll(true)[
-                    Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
-                        Tr[
-                            Th.Class("px-3 py-2 font-medium")["Provider"],
-                            Th.Class("px-3 py-2 font-medium")["Files"],
-                            Th.Class("px-3 py-2 font-medium")["Stored"]
-                        ]
-                    ],
-                    Tbody[_stats.ByProvider.Select(p => Tr.Key(p.Provider.ToString()).Class("border-b border-ui-line/60 last:border-0")[
-                        Td.Class("px-3 py-2")[p.Provider.ToString()],
-                        Td.Class("px-3 py-2 tabular-nums")[p.Files.ToString(CultureInfo.InvariantCulture)],
-                        Td.Class("px-3 py-2 tabular-nums")[DashboardParts.Bytes(p.Bytes)]
-                    ])]
-                ]
-            ];
+            : UiDataGrid.Data(_stats.ByProvider).RowKey(p => p.Provider).Label("Stored files by provider")[c => [
+                c.Field(p => p.Provider).Title("Provider"),
+                c.Field(p => p.Files).Title("Files").Value(p => p.Files.ToString(CultureInfo.InvariantCulture)),
+                c.Field(p => p.Bytes).Title("Stored").Value(p => DashboardParts.Bytes(p.Bytes)),
+            ]];
 
     private Task SearchAsync(string value)
     {
@@ -136,61 +125,34 @@ public sealed partial class StoragePage(
         return Task.CompletedTask;
     }
 
-    private Component FileTable(DateTime now) =>
-        UiTable.Scroll(true)[
-            Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
-                Tr[
-                    Th.Class("px-3 py-2 font-medium")["Name"],
-                    Th.Class("hidden px-3 py-2 font-medium md:table-cell")["Type"],
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Size"],
-                    Th.Class("hidden px-3 py-2 font-medium lg:table-cell")["Provider"],
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Saved"]
-                ]
-            ],
-            Tbody[_rows.Select(r => Tr.Key(r.Id.ToString("N")).Class("border-b border-ui-line/60 last:border-0")[
-                Td.Class("w-full max-w-0 px-3 py-2 align-top")[
-                    Div.Class("min-w-0")[
-                        Div.Class("flex min-w-0 items-center gap-2")[
-                            Span.Class("truncate sm:max-w-[28rem]").Title(r.Name)[r.Name],
-                            r.Public ? UiBadge["public"] : null
-                        ],
-                        Div.Class($"mt-0.5 truncate text-xs text-ui-muted {UiStyles.Mono}").Title(r.Id.ToString())[r.Id.ToString("N")],
-                        // Size and age follow the name down when their own columns are gone.
-                        Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
-                            Span.Class("tabular-nums")[DashboardParts.Bytes(r.Size)],
-                            Span[DashboardParts.Ago(r.CreatedAt, now)]
-                        ]
-                    ]
-                ],
-                Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted md:table-cell {UiStyles.Mono}")[r.ContentType],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums sm:table-cell")[DashboardParts.Bytes(r.Size)],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted lg:table-cell")[r.Provider.ToString()],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted sm:table-cell")
-                    .Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]
-            ])]
-        ];
-
-    private Component? Pager()
-    {
-        var pages = (int)Math.Ceiling(_total / (double)options.PageSize);
-        if (pages <= 1)
-        {
-            return null;
-        }
-
-        return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            UiButton.Key("prev")
-                .Disabled(_page == 0)
-                .OnClick(() => GoAsync(_page - 1))["Previous"],
-            Span.Class("text-center text-xs text-ui-muted")[
-                Span[$"Page {_page + 1} of {pages}"],
-                Span.Class("hidden sm:inline")[$" — {_total} files"]
-            ],
-            UiButton.Key("next")
-                .Disabled(_page >= pages - 1)
-                .OnClick(() => GoAsync(_page + 1))["Next"]
-        ];
-    }
+    // The name is the column an operator came for, so it is the one every width keeps. The type and the provider
+    // wait until the table has room; the id shows at every width, as it always did under the name, and a phone
+    // lists every column as its own line.
+    private Component FileGrid(DateTime now) =>
+        UiDataGrid.Data(_rows)
+            .RowKey(r => r.Id)
+            .Label("Stored files, newest first")
+            .PageSize(options.PageSize)
+            .Page(_page)
+            .TotalCount(_total)
+            .OnPageChange(GoAsync)
+            .Toolbar(UiSearch
+                .Placeholder("Search file names")
+                .AccessibleLabel("Search stored files")
+                .Value(Search)
+                .OnSearch(SearchAsync))
+            .Empty(UiEmpty
+                .Heading(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
+                .Detail("Files appear here as soon as the app saves one."))[c => [
+                c.Field(r => r.Name).Title("Name"),
+                c.Field(r => r.Public).Title("Access").Value(r => r.Public ? "public" : "private"),
+                c.Field(r => r.ContentType).Title("Type").Mono(true).ShowFrom(UiBreakpoint.Md),
+                c.Field(r => r.Size).Title("Size").Value(r => DashboardParts.Bytes(r.Size)),
+                c.Field(r => r.Provider).Title("Provider").ShowFrom(UiBreakpoint.Lg),
+                c.Field(r => r.Id).Title("Id").Mono(true).Value(r => r.Id.ToString("N")),
+                c.Field(r => r.CreatedAt).Title("Saved").Cell(r =>
+                    Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]),
+            ]];
 
     private async Task GoAsync(int page)
     {

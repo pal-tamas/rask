@@ -16,7 +16,11 @@ internal sealed partial class DevToolsBootstrap
     // panel is mounted as its own application so its pages share neither the host's document nor its route table.
     static partial void AttachHost(IServiceCollection services)
     {
-        services.TryAddSingleton<IRaskServerDevTools, DevToolsServerEndpoints>();
+        // One instance under both names: the panel's inspection verifies tokens with the same per-process key the
+        // endpoints signed them with.
+        services.TryAddSingleton<DevToolsServerEndpoints>();
+        services.TryAddSingleton<IRaskServerDevTools>(sp => sp.GetRequiredService<DevToolsServerEndpoints>());
+        services.TryAddScoped<IDevToolsInspection, DevToolsServerInspection>();
 
         // Once, however often the devtools attach: a second mount of the same pattern would be a second endpoint.
         if (!services.Any(d => !d.IsKeyedService && d.ImplementationInstance is RaskMountedApp { Root: var root }
@@ -24,5 +28,9 @@ internal sealed partial class DevToolsBootstrap
         {
             services.AddSingleton(new RaskMountedApp(typeof(DevToolsShell), PanelPattern, typeof(DevToolsShell).Assembly));
         }
+
+        // An app VS Code's F5 launched: the .test address when `rask dev` has set it up, and where to point the
+        // browser. Registers nothing unless the build was a dev session.
+        Server.EditorDevSessionServices.Add(services);
     }
 }

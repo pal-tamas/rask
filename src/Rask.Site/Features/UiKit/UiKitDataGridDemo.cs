@@ -23,10 +23,17 @@ public sealed partial class UiKitDataGridDemo : Component
         new(7, "Rask.Signaling", "alpha", 210, new DateOnly(2026, 8, 8)),
     ];
 
+    private const int UrlPageSize = 3;
+
     private IReadOnlyList<int> _selected = [];
     private string? _sort = "downloads";
     private bool _descending = true;
     private int _page;
+
+    /// <summary>The page of the last grid, counted from one, as the docs page read it from <c>?page=</c>.</summary>
+    public int? UrlPage { get; set; }
+
+    private int UrlPageIndex => Math.Clamp((UrlPage ?? 1) - 1, 0, (Catalog.Length - 1) / UrlPageSize);
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -109,6 +116,29 @@ public sealed partial class UiKitDataGridDemo : Component
                     $"Page {_page + 1}, sorted by {_sort ?? "nothing"} "
                     + (_descending ? "descending." : "ascending.")
                 ]
+            ]),
+
+        Section(
+            "An operator's table",
+            "Secondary columns wait until the table has room for them, while the phone's stacked lines "
+            + "still list every one. A row can carry a tone, ids are set in mono, and the toolbar is one row "
+            + "that stacks on a phone. The pages are links: this page's ?page= is the grid's page, so a page "
+            + "can be shared and the back button walks back through them.",
+            Div.Data(Testid("ui-grid-console"))[
+                UiDataGrid.Data(Catalog.Skip(UrlPageIndex * UrlPageSize).Take(UrlPageSize))
+                    .RowKey(r => r.Id)
+                    .Label("Packages, paged by the URL")
+                    .PageSize(UrlPageSize)
+                    .Page(UrlPageIndex)
+                    .TotalCount(Catalog.Length)
+                    .PageHref(page => PageMeta.LinkTo(Routes.UiKitDataGridPage(Page: page + 1)))
+                    .RowTone(r => r.Downloads > 9000 ? UiTone.Success : null)
+                    .Toolbar(UiBadge.Tone(UiTone.Info)[$"{Catalog.Length} packages"])[c => [
+                        c.Field(r => r.Id).Title("#").Mono(true),
+                        c.Field(r => r.Name).Title("Package"),
+                        c.Field(r => r.Channel).Title("Channel").ShowFrom(UiBreakpoint.Md),
+                        c.Field(r => r.Shipped).Title("Shipped").ShowFrom(UiBreakpoint.Lg),
+                    ]]
             ])
     ];
 

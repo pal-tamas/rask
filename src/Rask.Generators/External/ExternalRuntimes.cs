@@ -60,6 +60,28 @@ internal static class ExternalRuntimes
         return null;
     }
 
+    /// <summary>
+    ///     The child type a runtime's islands take — <c>Rask.External.ReactChild</c> for React — with its base class and
+    ///     the name messages call the runtime by, or null for a runtime the table does not know.
+    /// </summary>
+    /// <remarks>
+    ///     Derived from the base name rather than tabled a second time: the child type sits beside its base class and is
+    ///     named after it, so the two cannot drift.
+    /// </remarks>
+    public static (string BaseName, string ChildName, string Label)? ChildTypeOf(string runtime)
+    {
+        foreach (var (baseName, key, _) in All)
+        {
+            if (string.Equals(key, runtime, StringComparison.Ordinal))
+            {
+                var stem = baseName.Substring(0, baseName.Length - "Component".Length);
+                return (baseName, stem + "Child", stem.Substring(stem.LastIndexOf('.') + 1));
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>The sibling file's extension for a runtime, without the dot.</summary>
     /// <remarks>
     ///     Falls back to <c>tsx</c> for a runtime the table does not know, which cannot happen: the key came

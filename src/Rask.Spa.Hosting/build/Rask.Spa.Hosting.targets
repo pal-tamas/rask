@@ -305,6 +305,9 @@
       <AssemblyMetadata Include="Rask.SpaClientDir" Value="$(_RaskSpaDir)"/>
       <AssemblyMetadata Include="Rask.SpaDevServerUrl" Value="$(RaskSpaDevServerUrl)"
                         Condition="'$(RaskSpaDevServerUrl)' != ''"/>
+      <!-- A dev-session build (VS Code's F5 task), so the app starts the bundler's dev server itself when no
+           `rask dev` is doing it. Only when set; same key and rule as Rask.Core.targets. -->
+      <AssemblyMetadata Include="Rask.DevSession" Value="true" Condition="'$(RaskDevSession)' == 'true'"/>
     </ItemGroup>
   </Target>
 

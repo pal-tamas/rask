@@ -18,7 +18,7 @@
       This package is deliberately not in the Rask meta-package on either framework: it is opt-in, so
       an app that wants nothing to do with Blazor never pays for it. PackageShapeTests pins that.
     -->
-    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -54,7 +54,7 @@
     packaged and Directory.Packages.props needs no entry — the same way
     tests/Rask.Benchmarks.VsBlazor takes its Blazor dependency.
   -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
@@ -62,7 +62,7 @@
     Browser: there is no shared framework to reference, so the identical types come from the package
     instead. This is the only difference between the two targets — no #if, no second code path.
   -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0-browser' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
     <PackageReference Include="Microsoft.AspNetCore.Components.Web"/>
   </ItemGroup>
 

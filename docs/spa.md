@@ -256,6 +256,10 @@ answers `/_rask` itself, on one port.
 The generated contracts are written on **every** build, including under `rask dev` — a dev server
 compiling the previous build's contracts is exactly the failure this pipeline exists to prevent.
 
+**Under VS Code's F5** the host starts the client's dev server itself — the same script on the same port —
+because no `rask dev` runs beside an app the debugger launched, and VS Code opens the dev server's address
+once it answers. See [debugging in VS Code](cli.md#debugging-in-vs-code).
+
 ## Building and publishing
 
 `dotnet build` runs the client's own toolchain: `npm ci` (or `npm install` when there is no

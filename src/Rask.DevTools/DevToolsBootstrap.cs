@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core.Diagnostics.DevTools;
+using Rask.DevTools.Probe;
 
 namespace Rask.DevTools;
 
@@ -14,8 +15,14 @@ internal sealed partial class DevToolsBootstrap : IRaskDevToolsBootstrap
     public void Attach(IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.TryAddSingleton<DevToolsRegistration>();
+        // The host face first: a face that installs the probe before the container exists registers it as an instance,
+        // which the registrations below then leave alone.
         AttachHost(services);
+        services.TryAddSingleton<DevToolsRegistration>();
+        // What the runtime reports to, and where it lands — one of each per container. Registered on every attach, but
+        // installed into the process-wide hook only where the devtools switch on, which is the host's decision.
+        services.TryAddSingleton<DevToolsFeeds>();
+        services.TryAddSingleton<DevToolsProbe>();
     }
 
     /// <summary>

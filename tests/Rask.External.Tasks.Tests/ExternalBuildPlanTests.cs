@@ -25,6 +25,29 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void Every_entry_also_exports_its_component_for_a_parent_island_to_render()
+    {
+        // The default export is the adapter the host mounts with. A parent island rendering this one as a CHILD loads the
+        // same chunk and reads `component` instead — the framework component itself, or for Lit the tag it registers.
+        const string adapters = "/obj/rask-external/rask";
+        var file = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "Chart", Source = "/app/Features/Chart.tsx", Runtime = "react" }, adapters);
+        var package = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "MuiButton", Source = "/app/MuiButton.props.json", Runtime = "react", Package = "@mui/material/Button" },
+            adapters);
+        var litFile = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "Gauge", Source = "/app/widgets/gauge.ts", Runtime = "lit" }, adapters);
+        var litPackage = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxSwitch", Source = "/app/FxSwitch.props.json", Runtime = "lit", Package = "fixture-lit/fx-switch.js#fx-switch" },
+            adapters);
+
+        Assert.Contains("export { Component as component }", file, StringComparison.Ordinal);
+        Assert.Contains("export { Component as component }", package, StringComparison.Ordinal);
+        Assert.Contains("export { tag as component }", litFile, StringComparison.Ordinal);
+        Assert.Contains("export const component = 'fx-switch'", litPackage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_lit_entry_takes_the_tag_name_from_the_module()
     {
         var entry = ExternalBuildPlan.EntryModule(

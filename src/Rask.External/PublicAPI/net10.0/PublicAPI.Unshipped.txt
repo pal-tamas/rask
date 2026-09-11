@@ -1,10 +1,19 @@
 #nullable enable
+Rask.External.AngularChild
+Rask.External.AngularChild.AngularChild() -> void
 Rask.External.AngularComponent
 Rask.External.AngularComponent.AngularComponent() -> void
+Rask.External.AngularComponent.SetChildren(Rask.External.AngularChild[]! children) -> void
+Rask.External.AngularComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.AngularChild>! children) -> void
+Rask.External.AngularComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.AngularComponent?>! children) -> void
 Rask.External.ExternalComponent
 Rask.External.ExternalComponent.ExternalComponent() -> void
 Rask.External.ExternalComponent.Hydration.get -> Rask.External.ExternalHydration?
 Rask.External.ExternalComponent.Hydration.set -> void
+Rask.External.ExternalComponent.SetTextChildren(System.Collections.Generic.IEnumerable<string?>! children) -> void
+Rask.External.ExternalComponent.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.External.NotAChildOfThisIsland
+Rask.External.ExternalComponent.this[params Rask.Core.Component?[]! children].get -> Rask.External.NotAChildOfThisIsland
+Rask.External.ExternalComponent.this[params object?[]! children].get -> Rask.External.NotAChildOfThisIsland
 Rask.External.ExternalDefaults
 Rask.External.ExternalHandlers
 Rask.External.ExternalHydration
@@ -12,17 +21,49 @@ Rask.External.ExternalHydration.Idle = 1 -> Rask.External.ExternalHydration
 Rask.External.ExternalHydration.Load = 0 -> Rask.External.ExternalHydration
 Rask.External.ExternalHydration.None = 3 -> Rask.External.ExternalHydration
 Rask.External.ExternalHydration.Visible = 2 -> Rask.External.ExternalHydration
+Rask.External.LitChild
+Rask.External.LitChild.LitChild() -> void
 Rask.External.LitComponent
 Rask.External.LitComponent.LitComponent() -> void
+Rask.External.LitComponent.SetChildren(Rask.External.LitChild[]! children) -> void
+Rask.External.LitComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.LitChild>! children) -> void
+Rask.External.LitComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.LitComponent?>! children) -> void
+Rask.External.NotAChildOfThisIsland
+Rask.External.NotAChildOfThisIsland.NotAChildOfThisIsland() -> void
+Rask.External.PreactChild
+Rask.External.PreactChild.PreactChild() -> void
 Rask.External.PreactComponent
 Rask.External.PreactComponent.PreactComponent() -> void
+Rask.External.PreactComponent.SetChildren(Rask.External.PreactChild[]! children) -> void
+Rask.External.PreactComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.PreactChild>! children) -> void
+Rask.External.PreactComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.PreactComponent?>! children) -> void
+Rask.External.ReactChild
+Rask.External.ReactChild.ReactChild() -> void
 Rask.External.ReactComponent
 Rask.External.ReactComponent.ReactComponent() -> void
+Rask.External.ReactComponent.SetChildren(Rask.External.ReactChild[]! children) -> void
+Rask.External.ReactComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.ReactChild>! children) -> void
+Rask.External.ReactComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.ReactComponent?>! children) -> void
+Rask.External.SolidChild
+Rask.External.SolidChild.SolidChild() -> void
 Rask.External.SolidComponent
+Rask.External.SolidComponent.SetChildren(Rask.External.SolidChild[]! children) -> void
+Rask.External.SolidComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.SolidChild>! children) -> void
+Rask.External.SolidComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.SolidComponent?>! children) -> void
 Rask.External.SolidComponent.SolidComponent() -> void
+Rask.External.SvelteChild
+Rask.External.SvelteChild.SvelteChild() -> void
 Rask.External.SvelteComponent
+Rask.External.SvelteComponent.SetChildren(Rask.External.SvelteChild[]! children) -> void
+Rask.External.SvelteComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.SvelteChild>! children) -> void
+Rask.External.SvelteComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.SvelteComponent?>! children) -> void
 Rask.External.SvelteComponent.SvelteComponent() -> void
+Rask.External.VueChild
+Rask.External.VueChild.VueChild() -> void
 Rask.External.VueComponent
+Rask.External.VueComponent.SetChildren(Rask.External.VueChild[]! children) -> void
+Rask.External.VueComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.VueChild>! children) -> void
+Rask.External.VueComponent.SetChildren(System.Collections.Generic.IEnumerable<Rask.External.VueComponent?>! children) -> void
 Rask.External.VueComponent.VueComponent() -> void
 RaskBuilderSettersRask_External
 abstract Rask.External.ExternalComponent.ComponentName.get -> string!
@@ -42,6 +83,7 @@ override Rask.External.ExternalComponent.HeadAssets.get -> Rask.Core.Component?
 override sealed Rask.External.AngularComponent.Runtime.get -> string!
 override sealed Rask.External.ExternalComponent.OpaqueSubtree.get -> bool
 override sealed Rask.External.ExternalComponent.Render() -> Rask.Core.Component?
+override sealed Rask.External.ExternalComponent.RenderChildren() -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>!
 override sealed Rask.External.ExternalComponent.TagName.get -> string?
 override sealed Rask.External.ExternalComponent.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override sealed Rask.External.LitComponent.Runtime.get -> string!
@@ -50,6 +92,111 @@ override sealed Rask.External.ReactComponent.Runtime.get -> string!
 override sealed Rask.External.SolidComponent.Runtime.get -> string!
 override sealed Rask.External.SvelteComponent.Runtime.get -> string!
 override sealed Rask.External.VueComponent.Runtime.get -> string!
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(Rask.External.AngularComponent? island) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(System.DateOnly value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(System.DateTime value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(System.DateTimeOffset value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(System.Guid value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(System.TimeOnly value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(System.TimeSpan value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(bool value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(char value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(decimal value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(double value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(float value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(int value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(long value) -> Rask.External.AngularChild
+static Rask.External.AngularChild.implicit operator Rask.External.AngularChild(string? text) -> Rask.External.AngularChild
 static Rask.External.ExternalDefaults.Wire(Rask.External.ExternalHydration hydration) -> string?
 static Rask.External.ExternalHandlers.Register(Rask.Core.Component! owner, System.Delegate! handler) -> string!
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(Rask.External.LitComponent? island) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(System.DateOnly value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(System.DateTime value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(System.DateTimeOffset value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(System.Guid value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(System.TimeOnly value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(System.TimeSpan value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(bool value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(char value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(decimal value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(double value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(float value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(int value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(long value) -> Rask.External.LitChild
+static Rask.External.LitChild.implicit operator Rask.External.LitChild(string? text) -> Rask.External.LitChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(Rask.External.PreactComponent? island) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(System.DateOnly value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(System.DateTime value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(System.DateTimeOffset value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(System.Guid value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(System.TimeOnly value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(System.TimeSpan value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(bool value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(char value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(decimal value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(double value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(float value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(int value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(long value) -> Rask.External.PreactChild
+static Rask.External.PreactChild.implicit operator Rask.External.PreactChild(string? text) -> Rask.External.PreactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(Rask.External.ReactComponent? island) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(System.DateOnly value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(System.DateTime value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(System.DateTimeOffset value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(System.Guid value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(System.TimeOnly value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(System.TimeSpan value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(bool value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(char value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(decimal value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(double value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(float value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(int value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(long value) -> Rask.External.ReactChild
+static Rask.External.ReactChild.implicit operator Rask.External.ReactChild(string? text) -> Rask.External.ReactChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(Rask.External.SolidComponent? island) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(System.DateOnly value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(System.DateTime value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(System.DateTimeOffset value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(System.Guid value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(System.TimeOnly value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(System.TimeSpan value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(bool value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(char value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(decimal value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(double value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(float value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(int value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(long value) -> Rask.External.SolidChild
+static Rask.External.SolidChild.implicit operator Rask.External.SolidChild(string? text) -> Rask.External.SolidChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(Rask.External.SvelteComponent? island) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(System.DateOnly value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(System.DateTime value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(System.DateTimeOffset value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(System.Guid value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(System.TimeOnly value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(System.TimeSpan value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(bool value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(char value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(decimal value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(double value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(float value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(int value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(long value) -> Rask.External.SvelteChild
+static Rask.External.SvelteChild.implicit operator Rask.External.SvelteChild(string? text) -> Rask.External.SvelteChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(Rask.External.VueComponent? island) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(System.DateOnly value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(System.DateTime value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(System.DateTimeOffset value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(System.Guid value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(System.TimeOnly value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(System.TimeSpan value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(bool value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(char value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(decimal value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(double value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(float value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(int value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(long value) -> Rask.External.VueChild
+static Rask.External.VueChild.implicit operator Rask.External.VueChild(string? text) -> Rask.External.VueChild
 virtual Rask.External.ExternalComponent.ManifestUrl.get -> string?

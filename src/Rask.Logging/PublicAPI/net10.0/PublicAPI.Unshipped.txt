@@ -6,6 +6,7 @@ Rask.Logging.ILogs.ClearAsync(System.Threading.CancellationToken cancellationTok
 Rask.Logging.ILogs.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
 Rask.Logging.ILogs.PurgeAsync(System.TimeSpan retention, int maxRows, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 Rask.Logging.ILogs.SearchAsync(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
+Rask.Logging.LoggingModelBuilderExtensions
 Rask.Logging.LogMetrics
 Rask.Logging.LogMetrics.Dispose() -> void
 Rask.Logging.LogMetrics.Dropped(int count = 1) -> void
@@ -131,6 +132,8 @@ static Rask.Logging.LogRecord.operator !=(Rask.Logging.LogRecord? left, Rask.Log
 static Rask.Logging.LogRecord.operator ==(Rask.Logging.LogRecord? left, Rask.Logging.LogRecord? right) -> bool
 static Rask.Logging.LogScopeValue.operator !=(Rask.Logging.LogScopeValue left, Rask.Logging.LogScopeValue right) -> bool
 static Rask.Logging.LogScopeValue.operator ==(Rask.Logging.LogScopeValue left, Rask.Logging.LogScopeValue right) -> bool
+static Rask.Logging.LoggingModelBuilderExtensions.AddRaskLogging(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Logging.RaskLoggingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Logging.RaskLoggingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 ~override Rask.Logging.LogScopeValue.Equals(object obj) -> bool
 ~override Rask.Logging.LogScopeValue.ToString() -> string

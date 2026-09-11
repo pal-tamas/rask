@@ -82,4 +82,57 @@ public sealed class ExternalRuntimeTests
         Assert.Equal(new[] { "Chart" }, requested);
         Assert.DoesNotContain("Inert", requested);
     }
+
+    [Fact]
+    public void Children_reach_the_adapter_as_nodes_and_never_as_a_prop()
+    {
+        // `$c` is the runtime's key, not the component's: left in the props, every framework would hand the component a
+        // prop it never declared, and the children would render nowhere.
+        var doc = NodeFixture.Run("ExternalRuntimeFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var run = doc.Value;
+        Assert.False(run.GetProperty("propsOnMountHadChildrenKey").GetBoolean(), "the $c key reached the adapter as a prop");
+        Assert.Equal("Revenue ", run.GetProperty("childText").GetString());
+        Assert.Equal("Badge", run.GetProperty("childName").GetString());
+        Assert.Equal("b1", run.GetProperty("childKey").GetString());
+
+        // Loaded before the adapter ever saw it: the adapter renders a component, it does not fetch one.
+        Assert.Equal("component:Badge", run.GetProperty("childComponent").GetString());
+        Assert.True(run.GetProperty("childCallbackIsFunction").GetBoolean(), "the child's $h handler was not revived");
+    }
+
+    [Fact]
+    public void A_child_islands_chunk_loads_once_and_an_update_needing_no_fetch_lands_in_the_same_turn()
+    {
+        // The ordinary re-render repeats the same children. Fetching their chunks again, or deferring the update behind a
+        // promise that has nothing to wait for, would make every C# re-render of a parent with children asynchronous.
+        var doc = NodeFixture.Run("ExternalRuntimeFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var run = doc.Value;
+        Assert.Equal(1, run.GetProperty("childRequests").GetInt32());
+        Assert.Equal("newer", run.GetProperty("childLabelSameTurn").GetString());
+        Assert.True(run.GetProperty("childCallbackStable").GetBoolean(),
+            "the child's callback became a new function across an update, like a host callback must not");
+    }
+
+    [Fact]
+    public void An_update_without_children_hands_the_adapter_none()
+    {
+        var doc = NodeFixture.Run("ExternalRuntimeFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        Assert.True(doc.Value.GetProperty("childrenAfterRemovalIsNull").GetBoolean(),
+            "the adapter kept being handed children C# had removed");
+    }
 }

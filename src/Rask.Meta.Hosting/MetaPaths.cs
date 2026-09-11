@@ -16,6 +16,8 @@ internal sealed class MetaPaths
     // constructors, and an internal type's members are not public API.
     public MetaPaths(MetaHostingOptions options, IHostEnvironment environment)
     {
+        ContentRoot = environment.ContentRootPath;
+
         AppDirectory = Path.IsPathRooted(options.AppDirectory)
             ? options.AppDirectory
             : Path.Combine(environment.ContentRootPath, options.AppDirectory);
@@ -30,6 +32,9 @@ internal sealed class MetaPaths
                 AppDirectory,
                 options.Framework.WorkingSubdirectory.Replace('/', Path.DirectorySeparatorChar));
     }
+
+    /// <summary>The app's content root — where a dev session keeps its state, under <c>obj/</c>.</summary>
+    internal string ContentRoot { get; }
 
     /// <summary>The absolute path of the framework's build output directory.</summary>
     internal string AppDirectory { get; }

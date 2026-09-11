@@ -8,11 +8,11 @@
       gives the warnings-as-errors build continuous IL2xxx/IL3050 coverage for the framework's
       AOT-sensitive paths (routing, forms binding).
     -->
-    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
+    <IsAotCompatible Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

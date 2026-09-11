@@ -16,8 +16,9 @@ namespace Rask.Generators.Tests;
 // in-repo build resolves Rask.Core through the ProjectReference, so only a restore of the *published* package failed.
 //
 // Unpackable projects reach consumers by being bundled into a host package's lib/ folder (see
-// _RaskAddCoreToLib in Rask.Wasm/Rask.Server), which is exactly what PrivateAssets="all" pairs with. This
-// test reads the csproj XML rather than packing, so it's instant and covers every package at once.
+// src/RaskCoreBundle.targets, imported by Rask.Wasm and Rask.Server), which is exactly what PrivateAssets="all"
+// pairs with. This test reads the project XML — each csproj and the repo files it imports — rather than
+// packing, so it's instant and covers every package at once.
 public class PackageDependencyTests
 {
     [Fact]
@@ -284,14 +285,16 @@ public class PackageDependencyTests
         // generator packages (Rask.Generators, Rask.Batteries.Generators) ship
         // without an .xml on purpose, and demanding one there would be noise, not a guard.
         var offenders = new List<string>();
+        var bundlers = new List<string>();
 
         foreach (var (name, path) in SourceProjects().Where(p => IsPackable(p.Value)))
         {
-            var packed = XDocument.Load(path)
-                .Descendants()
-                .Where(e => e.Name.LocalName is "None" or "TfmSpecificPackageFile")
-                .Where(e => e.Attribute("PackagePath")?.Value.Replace('\\', '/')
-                    .StartsWith("lib", StringComparison.OrdinalIgnoreCase) == true)
+            // Imports included: the hosts bundle Core through src/RaskCoreBundle.targets, not in their csproj.
+            var packed = ProjectAndImports(path)
+                .Where(e => e.Name.LocalName is "BuildOutputInPackage"
+                    || (e.Name.LocalName is "None" or "TfmSpecificPackageFile"
+                        && e.Attribute("PackagePath")?.Value.Replace('\\', '/')
+                            .StartsWith("lib", StringComparison.OrdinalIgnoreCase) == true))
                 .Select(e => e.Attribute("Include")?.Value)
                 .Where(v => v is not null)
                 .Select(v => v!.Replace('\\', '/'))
@@ -299,6 +302,7 @@ public class PackageDependencyTests
 
             foreach (var dll in packed.Where(v => v.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)))
             {
+                bundlers.Add(name);
                 var xml = dll[..^4] + ".xml";
                 if (!packed.Contains(xml, StringComparer.OrdinalIgnoreCase))
                 {
@@ -306,6 +310,11 @@ public class PackageDependencyTests
                 }
             }
         }
+
+        // A guard that finds no bundled DLL checks nothing and passes. Moving the bundling out of the csproj
+        // did exactly that once, so the hosts that ship Core have to be seen doing it.
+        Assert.Contains("Rask.Server", bundlers);
+        Assert.Contains("Rask.Wasm", bundlers);
 
         Assert.True(
             offenders.Count == 0,
@@ -338,12 +347,19 @@ public class PackageDependencyTests
     {
         var projects = SourceProjects();
         var offenders = new List<string>();
+        var coreBundlers = new List<string>();
 
         foreach (var (name, path) in projects.Where(p => IsPackable(p.Value)).OrderBy(p => p.Key, StringComparer.Ordinal))
         {
             var document = XDocument.Load(path);
 
-            var bundled = BundledProjects(document, projects);
+            // Imports included: the hosts bundle Core through src/RaskCoreBundle.targets, not in their csproj.
+            var bundled = BundledProjects(ProjectAndImports(path), projects);
+            if (bundled.Contains("Rask.Core", StringComparer.OrdinalIgnoreCase))
+            {
+                coreBundlers.Add(name);
+            }
+
             if (bundled.Count == 0)
             {
                 continue;
@@ -390,6 +406,14 @@ public class PackageDependencyTests
             }
         }
 
+        // Found nothing bundled means checked nothing. The two hosts that ship Core must be seen doing it, or the
+        // bundling moved somewhere this guard no longer looks — which is how it passed on everything once.
+        Assert.True(
+            coreBundlers.Contains("Rask.Server") && coreBundlers.Contains("Rask.Wasm"),
+            "Rask.Server and Rask.Wasm bundle Rask.Core.dll into their lib/ folders, but this guard found Core bundled by: "
+            + (coreBundlers.Count == 0 ? "(nothing)" : string.Join(", ", coreBundlers))
+            + ". The bundling has moved out of sight of BundledProjects/ProjectAndImports, so nothing below was checked.");
+
         Assert.True(
             offenders.Count == 0,
             "A bundled assembly's package dependencies do not flow to consumers — PrivateAssets=\"all\" is what "
@@ -398,15 +422,14 @@ public class PackageDependencyTests
             + string.Join("\n  ", offenders));
     }
 
-    // The unpackable projects whose DLL this host packs into its own lib/ folder. Two mechanisms are in use
-    // and both count: TfmSpecificPackageFile with a lib/ PackagePath (Rask.Server, Rask.Wasm) and
-    // BuildOutputInPackage. A PrivateAssets="all" ProjectReference on its own does NOT count —
-    // the batteries take one to compile against Rask.Core without bundling it, relying on the host package
-    // the consumer already has, so demanding they re-declare Core's dependencies would be noise.
-    private static IReadOnlyList<string> BundledProjects(XDocument document, Dictionary<string, string> projects) =>
+    // The unpackable projects whose DLL this host packs into its own lib/ folder. Two mechanisms count:
+    // BuildOutputInPackage (Rask.Server and Rask.Wasm, through src/RaskCoreBundle.targets) and
+    // TfmSpecificPackageFile with a lib/ PackagePath. A PrivateAssets="all" ProjectReference on its own does
+    // NOT count — the batteries take one to compile against Rask.Core without bundling it, relying on the host
+    // package the consumer already has, so demanding they re-declare Core's dependencies would be noise.
+    private static IReadOnlyList<string> BundledProjects(IEnumerable<XElement> elements, Dictionary<string, string> projects) =>
     [
-        .. document
-            .Descendants()
+        .. elements
             .Where(e => e.Name.LocalName is "BuildOutputInPackage"
                 || (e.Name.LocalName == "TfmSpecificPackageFile"
                     && e.Attribute("PackagePath")?.Value.Replace('\\', '/')
@@ -427,6 +450,42 @@ public class PackageDependencyTests
     {
         var afterProperty = include.LastIndexOf(')') is var close and >= 0 ? include[(close + 1)..] : include;
         return Path.GetFileNameWithoutExtension(afterProperty);
+    }
+
+    // The csproj's elements plus those of every project file it imports by a relative path, recursively.
+    // Packaging a host shares lives in .targets beside the projects (src/RaskCoreBundle.targets), and a guard
+    // that read only the csproj would see no bundled DLL at all and pass on everything — the same silent
+    // emptying BundledAssemblyName records. An import through an MSBuild property ($(...)) names an SDK or a
+    // computed path rather than one of the repo's own files, so it is not followed.
+    private static IReadOnlyList<XElement> ProjectAndImports(string csprojPath)
+    {
+        var elements = new List<XElement>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Stack<string>([Path.GetFullPath(csprojPath)]);
+
+        while (pending.Count > 0)
+        {
+            var file = pending.Pop();
+            if (!seen.Add(file) || !File.Exists(file))
+            {
+                continue;
+            }
+
+            var document = XDocument.Load(file);
+            elements.AddRange(document.Descendants());
+
+            foreach (var import in document.Descendants("Import"))
+            {
+                if (import.Attribute("Project")?.Value is { } project && !project.Contains('$', StringComparison.Ordinal))
+                {
+                    pending.Push(Path.GetFullPath(Path.Combine(
+                        Path.GetDirectoryName(file)!,
+                        project.Replace('\\', Path.DirectorySeparatorChar))));
+                }
+            }
+        }
+
+        return elements;
     }
 
     private static HashSet<string> PackageReferences(XDocument document) =>
