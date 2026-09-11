@@ -74,6 +74,12 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!-- The one definition of what marks a dev-session build and the line an editor-launched app logs, shared
+       with the hosts that act on it. The scaffolded .vscode/ files carry both, and a test holds them together. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\EditorDevSession.cs" Link="Shared\EditorDevSession.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cli.Tests" />
     <!-- The template gate scaffolds through the same generator dispatch NewCommand uses, so the arm

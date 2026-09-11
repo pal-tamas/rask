@@ -67,7 +67,12 @@ internal static partial class ProjectGenerator
 
         # IDE / editor
         .vs/
-        .vscode/
+        # VS Code: the shared debug setup (F5) is committed; anything else in .vscode stays yours.
+        /.vscode/*
+        !/.vscode/launch.json
+        !/.vscode/tasks.json
+        !/.vscode/settings.json
+        !/.vscode/extensions.json
         .idea/
         *.user
         *.suo

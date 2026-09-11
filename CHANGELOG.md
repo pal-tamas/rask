@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json`,
+  `settings.json`, `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a
+  dev session and runs it under the C# debugger, so breakpoints hit from startup, and with C# Dev Kit's debug
+  hot reload (which the workspace turns on) saves still apply while it runs. `rask dev` cannot be that loop:
+  the runtime refuses to apply a hot-reload update to a process a debugger is attached to, so the editor
+  launches the app instead. The scaffold's `.gitignore` commits those four files and keeps the rest of
+  `.vscode/` personal. A handler or async lifecycle hook that throws now **stops the debugger** at the fault
+  (`Debugger.BreakForUserUnhandledException`, with Just My Code and "User-Unhandled Exceptions" on) rather
+  than being swallowed by its error boundary, and the dev error panel turns every stack frame and compiler
+  error that names an absolute path into a `vscode://file` link to that line. One MSBuild switch,
+  `RaskDevSession=true`, now drives both `rask dev` and the F5 build: each package expands it for itself (a
+  WASM host serves its client's build output, SPA and meta lanes skip their production front-end build,
+  islands come from Vite), replacing the four properties `rask dev` passed by hand; an explicit value still
+  wins. Browser-side debugging — C# running in WASM, and scoped `.ts` — is not covered yet.
+
 - **A shared rask.sh link unfurls as a card.** Every page names a 1200×630 social card — the site's bolt,
   its own type and palette, the one-line pitch and a real markup chain — as `og:image` with its size, type
   and alt text, and as a `summary_large_image` Twitter card; guides and the front door carry it as the

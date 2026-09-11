@@ -50,7 +50,9 @@
     MetadataUpdater.IsSupported to false, so a hot-reload delta could never be applied in it even if one
     arrived. Serving build output is therefore a precondition for WASM hot reload, not an optimisation.
 
-    Opt-in via the property, which `rask dev` passes for a wasm-hosted target. It deliberately does NOT
+    Opt-in via the property, or via RaskDevSession=true — the one switch `rask dev` and the scaffolded VS
+    Code build task pass for a whole dev session (an explicit RaskWasmDevBundle still wins, which is how
+    `rask dev` without hot reload keeps the published bundle). It deliberately does NOT
     default from $(DOTNET_WATCH): watch sets that variable on the app it *runs*, not on the `dotnet
     build` it shells out to first, so the property would read empty exactly where it is needed — the
     publish would run and no dev manifest would be baked. (Verified against a real watch session; the
@@ -59,6 +61,9 @@
     Also NOT keyed off $(Configuration): the E2E fixtures run Debug against the PUBLISHED bundle, so
     flipping on Debug would pull the bundle out from under them.
   -->
+  <PropertyGroup>
+    <RaskWasmDevBundle Condition=" '$(RaskWasmDevBundle)' == '' AND '$(RaskDevSession)' == 'true' ">true</RaskWasmDevBundle>
+  </PropertyGroup>
 
   <Target Name="_RaskProbeWasmProjectRef"
           Outputs="%(ProjectReference.Identity)">

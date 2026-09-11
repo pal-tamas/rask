@@ -1,0 +1,31 @@
+{
+  // F5 builds this app as a dev session and runs it under the C# debugger: breakpoints hit from startup,
+  // saves apply while it runs, and a handler that throws stops right here. `rask dev` in a terminal is
+  // the same loop without a debugger — the runtime cannot hot-reload a process a debugger is attached to,
+  // which is why the two are separate.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Rask: debug",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "rask: build",
+      "program": "${workspaceFolder}/bin/Debug/net10.0/Company.RaskServer.dll",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        // What lets a running app take edits at all, and what Rask checks before repainting the page.
+        "DOTNET_MODIFIABLE_ASSEMBLIES": "debug"
+      },
+      "justMyCode": true,
+      "console": "internalConsole",
+      // The app names the address to open once it is listening: https://<name>.test when `rask dev` has
+      // set that up on this machine, the front end's dev server for a React or meta-framework app, and
+      // localhost otherwise.
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Rask dev: open (https?://\\S+)",
+        "uriFormat": "%s"
+      }
+    }
+  ]
+}

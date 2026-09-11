@@ -20,6 +20,8 @@ public sealed class ProjectGeneratorTests
         // but without a tsconfig an author gets no checking and no completion while writing it.
         "Styles/app.css",
         "tsconfig.json",
+        // F5 in VS Code: build as a dev session, run under the C# debugger (VsCodeAssembly).
+        ".vscode/launch.json", ".vscode/tasks.json", ".vscode/settings.json", ".vscode/extensions.json",
     ];
 
     // Demo content `rask new` used to scaffold and deliberately no longer does — a new project ships one

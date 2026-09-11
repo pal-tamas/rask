@@ -32,6 +32,13 @@ internal sealed class DevCommand(
     /// </summary>
     internal const string DevStatusEnvironmentVariable = "RASK_DEV_STATUS";
 
+    /// <summary>
+    ///     The MSBuild property that marks a dev session. Each Rask package expands it into what that
+    ///     package needs (see <see cref="BuildDotnetArguments" />), and the scaffolded VS Code build task
+    ///     passes the same property — so an F5 build and a <c>rask dev</c> build cannot drift apart.
+    /// </summary>
+    internal const string DevSessionProperty = "RaskDevSession";
+
     private readonly IProcessRunner _process = process;
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IBrowserLauncher _browser = browser;
@@ -106,8 +113,7 @@ internal sealed class DevCommand(
 
         var dotnetArgs = BuildDotnetArguments(
             target.ProjectPath, once, parsed.HasFlag("no-hot-reload"),
-            parsed.Option("launch-profile"), nonInteractive, parsed.Passthrough, target.Kind,
-            target.HasIslands);
+            parsed.Option("launch-profile"), nonInteractive, parsed.Passthrough, target.Kind);
 
         var environment = BuildEnvironment(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable,
@@ -390,8 +396,7 @@ internal sealed class DevCommand(
         string? launchProfile,
         bool nonInteractive,
         IReadOnlyList<string> passthrough,
-        DevTemplateKind kind = DevTemplateKind.Server,
-        bool islands = false)
+        DevTemplateKind kind = DevTemplateKind.Server)
     {
         var args = new List<string>();
 
@@ -424,48 +429,32 @@ internal sealed class DevCommand(
 
             args.Add("run");
 
-            // A wasm-hosted host serves its client's PUBLISHED bundle by default, which is (a) republished
-            // by a nested emscripten relink on every save and (b) trimmed — and trimming folds
-            // MetadataUpdater.IsSupported to false, so an applied delta could never reach the browser
-            // session. This switches it to the client's build output for the watch session. Not passed
-            // under --no-hot-reload (nothing to apply) or --once (that mode is deliberately a plain run).
+            // ONE switch for the whole dev session, expanded by each referenced package's own props into
+            // what that package needs — and ignored by every package the project does not reference:
+            //
+            //   • Rask.Wasm.Hosting serves the client's BUILD output. The published bundle is republished
+            //     by a nested emscripten relink on every save, and it is trimmed — trimming folds
+            //     MetadataUpdater.IsSupported to false, so an applied delta could never reach the page.
+            //   • Rask.Spa.Hosting and Rask.Meta.Hosting skip their production front-end build: the
+            //     framework's own dev server owns the client and is what the browser talks to. The
+            //     generated TypeScript is emitted anyway, because a dev server compiling last build's
+            //     contracts is exactly the failure that pipeline exists to prevent.
+            //   • Rask.External serves islands from a Vite dev server instead of bundling them. NOT
+            //     RaskExternalBuild=false, which turns the feature off outright and leaves islands that
+            //     never mount.
+            //
+            // The scaffolded VS Code build task passes the very same property, which is what keeps an F5
+            // session and this one from drifting apart. Not passed under --once, which is deliberately a
+            // plain run against a real build.
             //
             // `--property:`, not `-p:`: on `dotnet run` the short form is ambiguous with --project.
-            if (kind == DevTemplateKind.WasmHosted && !noHotReload)
-            {
-                args.Add("--property:RaskWasmDevBundle=true");
-            }
+            args.Add($"--property:{DevSessionProperty}=true");
 
-            // The bundler's own dev server owns the client during a dev session — it is started beside
-            // this, and it is what the browser talks to. Paying for a full production bundle on every
-            // save as well would make watch unusable, and nothing would ever read the result.
-            //
-            // The generated TypeScript is emitted anyway: that is deliberately independent of
-            // RaskSpaBuild, because a dev server compiling last build's contracts is exactly the failure
-            // this whole pipeline exists to prevent.
-            if (kind == DevTemplateKind.SpaHosted)
+            // Under --no-hot-reload there is nothing to apply, so a wasm-hosted app serves its published
+            // bundle as it always did. Explicit, because an explicit value beats the dev session's.
+            if (kind == DevTemplateKind.WasmHosted && noHotReload)
             {
-                args.Add("--property:RaskSpaBuild=false");
-            }
-
-            // The same trade on the meta lane, where it is worth more: `npm run build` there is a full
-            // PRODUCTION build of Nuxt, Next or SvelteKit — the framework's own dev server is running
-            // beside this and is what the browser talks to, so that output is never read. The generated
-            // TypeScript is emitted anyway, independently of this flag, for the same reason as above.
-            if (kind == DevTemplateKind.MetaHosted)
-            {
-                args.Add("--property:RaskMetaBuild=false");
-            }
-
-            // Islands are served by their own Vite dev server for this session, so the production
-            // bundle would be a full rebuild of every island on every save that nothing then reads.
-            //
-            // NOT RaskExternalBuild=false, which turns the feature off outright — no entry modules, no
-            // manifest, no prop types, and islands that never mount. This skips exactly the bundling
-            // step and leaves the manifest being written, pointing at the dev server.
-            if (islands)
-            {
-                args.Add("--property:RaskExternalDevServer=true");
+                args.Add("--property:RaskWasmDevBundle=false");
             }
         }
 
