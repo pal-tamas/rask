@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Rask.Generators.Shared;
 
 namespace Rask.Generators.External;
@@ -23,9 +26,15 @@ namespace Rask.Generators.External;
 ///         runtime.
 ///     </para>
 /// </remarks>
-internal sealed class PropsWriterEmitter
+/// <param name="stringEnums">
+///     Whether an enum is written as its member's name rather than its number. True for a package island,
+///     whose TypeScript declares string literals: a C# enum the author declares on one has to arrive as
+///     <c>"contained"</c>, not <c>2</c>. Everywhere else the number stays, so a rename cannot change the wire.
+/// </param>
+internal sealed class PropsWriterEmitter(bool stringEnums = false)
 {
     private const string Writer = "global::System.Text.Json.Utf8JsonWriter";
+    private const string StringEnumMemberName = "System.Text.Json.Serialization.JsonStringEnumMemberNameAttribute";
 
     private readonly StringBuilder _methods = new();
     private readonly Dictionary<string, string> _emitted = new();
@@ -74,6 +83,10 @@ internal sealed class PropsWriterEmitter
         {
             case WireKind.Scalar:
                 sb.AppendLine($"        {Format(type.WriteExpression!, access)};");
+                break;
+
+            case WireKind.Enum when stringEnums && type.Symbol is { } symbol:
+                WriteStringEnum(sb, type, symbol, access);
                 break;
 
             case WireKind.Enum:
@@ -147,7 +160,9 @@ internal sealed class PropsWriterEmitter
                 foreach (var member in type.Members)
                 {
                     var inner = Ensure(member.Type);
-                    sb.AppendLine($"        writer.WritePropertyName(\"{member.WireName}\");");
+                    // Escaped, not quoted by hand: a [JsonPropertyName] can hold a quote or a backslash, and
+                    // pasted into a literal either one ends the string and starts code.
+                    sb.AppendLine($"        writer.WritePropertyName({Literal(member.WireName)});");
                     sb.AppendLine($"        WP{inner}(writer, {access}.{member.ClrName}!);");
                 }
 
@@ -163,6 +178,47 @@ internal sealed class PropsWriterEmitter
                 break;
         }
     }
+
+    /// <summary>Writes an enum as the string its member stands for.</summary>
+    /// <remarks>
+    ///     <c>[JsonStringEnumMemberName]</c> wins where present, so a C# member can match a TypeScript literal
+    ///     it cannot be spelled as (<c>x-large</c>); otherwise the camelCase member name, matching how every
+    ///     prop name is written. A value that names no member — a cast from a number — falls back to that
+    ///     number rather than to a string the package would not recognise.
+    /// </remarks>
+    private static void WriteStringEnum(StringBuilder sb, WireType type, INamedTypeSymbol symbol, string access)
+    {
+        sb.AppendLine($"        switch ({access})");
+        sb.AppendLine("        {");
+
+        // One case per distinct VALUE: two members aliasing one number would otherwise be a duplicate case
+        // label, which does not compile.
+        var seen = new HashSet<object>();
+        foreach (var field in symbol.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (!field.HasConstantValue || field.ConstantValue is null || !seen.Add(field.ConstantValue))
+            {
+                continue;
+            }
+
+            var wire = field.GetAttributes()
+                           .Where(a => a.AttributeClass?.ToDisplayString() == StringEnumMemberName)
+                           .Select(a => a.ConstructorArguments.Length == 1 ? a.ConstructorArguments[0].Value as string : null)
+                           .FirstOrDefault(v => v is not null)
+                       ?? CamelCase(field.Name);
+
+            var member = SyntaxFacts.GetKeywordKind(field.Name) != SyntaxKind.None ? "@" + field.Name : field.Name;
+            sb.AppendLine($"            case {type.Fqn}.{member}: writer.WriteStringValue({Literal(wire)}); break;");
+        }
+
+        sb.AppendLine($"            default: writer.WriteNumberValue((long){access}); break;");
+        sb.AppendLine("        }");
+    }
+
+    private static string CamelCase(string name) =>
+        name.Length == 0 || char.IsLower(name[0]) ? name : char.ToLowerInvariant(name[0]) + name.Substring(1);
+
+    private static string Literal(string value) => SymbolDisplay.FormatLiteral(value, quote: true);
 
     private static string Format(string expression, string access) =>
         expression.Replace("{0}", access);

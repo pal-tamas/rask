@@ -225,14 +225,9 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
             SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    private static string NormalizeDirectory(string path)
-    {
-        var dir = Path.GetDirectoryName(path) ?? string.Empty;
-        return dir.Replace('\\', '/');
-    }
+    private static string NormalizeDirectory(string path) => AssetPairing.NormalizeDirectory(path);
 
-    private static string MakeKey(string dir, string name) =>
-        dir.Length == 0 ? name : dir + "/" + name;
+    private static string MakeKey(string dir, string name) => AssetPairing.MakeKey(dir, name);
 
     private static void AppendVerbatimStringLiteral(StringBuilder sb, string value)
     {

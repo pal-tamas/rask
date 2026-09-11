@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Text;
+using Rask.Generators.Json;
 
 namespace Rask.Generators.Translations;
 
@@ -11,7 +11,9 @@ namespace Rask.Generators.Translations;
 ///     netstandard2.0, loaded into csc and into every IDE, and carrying exactly one package reference.
 ///     Shipping a serializer alongside it is how an analyzer starts failing to load against whatever
 ///     version the IDE already has. The grammar needed here is tiny, and doing it by hand also keeps
-///     precise line/column offsets, so a defect points at the key rather than at the file.
+///     precise line/column offsets, so a defect points at the key rather than at the file. The lexing —
+///     position, whitespace, comments, escapes — is <see cref="JsonScanner" />, shared with the island
+///     props snapshot reader.
 /// </remarks>
 internal static class JsonCatalogReader
 {
@@ -23,15 +25,11 @@ internal static class JsonCatalogReader
 
     private sealed class Reader(string text, Catalog catalog)
     {
-        private int _pos;
-        private int _line = 1;
-        private int _lineStart;
-
-        private int Column => _pos - _lineStart + 1;
+        private readonly JsonScanner _scanner = new(text);
 
         public void ReadDocument()
         {
-            SkipWhitespace();
+            _scanner.SkipWhitespace();
             if (!TryExpect('{', "a catalog must be a JSON object mapping keys to text"))
             {
                 return;
@@ -47,8 +45,8 @@ internal static class JsonCatalogReader
                 return;
             }
 
-            SkipWhitespace();
-            if (_pos < text.Length)
+            _scanner.SkipWhitespace();
+            if (!_scanner.AtEnd)
             {
                 Defect("trailing content after the closing brace");
             }
@@ -61,23 +59,22 @@ internal static class JsonCatalogReader
             // "one"/"other" would already have been flattened into separate keys by the time the marker
             // was seen.
             var members = new List<(string Key, string Value, int Line, int Column)>();
-            var line = _line;
-            var column = Column;
+            var line = _scanner.Line;
+            var column = _scanner.Column;
 
-            SkipWhitespace();
-            if (Peek() == '}')
+            _scanner.SkipWhitespace();
+            if (_scanner.TryConsume('}'))
             {
-                _pos++;
                 return;
             }
 
             while (true)
             {
-                SkipWhitespace();
-                var keyLine = _line;
-                var keyColumn = Column;
+                _scanner.SkipWhitespace();
+                var keyLine = _scanner.Line;
+                var keyColumn = _scanner.Column;
 
-                if (Peek() != '"')
+                if (_scanner.Peek() != '"')
                 {
                     Defect("expected a quoted key");
                     return;
@@ -88,7 +85,7 @@ internal static class JsonCatalogReader
                     return;
                 }
 
-                SkipWhitespace();
+                _scanner.SkipWhitespace();
                 if (!TryExpect(':', $"expected ':' after the key '{key}'"))
                 {
                     return;
@@ -96,8 +93,8 @@ internal static class JsonCatalogReader
 
                 var path = prefix is null ? key : prefix + "." + key;
 
-                SkipWhitespace();
-                var c = Peek();
+                _scanner.SkipWhitespace();
+                var c = _scanner.Peek();
                 if (c == '"')
                 {
                     if (!TryReadString(out var value))
@@ -109,7 +106,7 @@ internal static class JsonCatalogReader
                 }
                 else if (c == '{')
                 {
-                    _pos++;
+                    _scanner.Advance();
                     ReadObject(path);
                 }
                 else
@@ -120,16 +117,14 @@ internal static class JsonCatalogReader
                     return;
                 }
 
-                SkipWhitespace();
-                if (Peek() == ',')
+                _scanner.SkipWhitespace();
+                if (_scanner.TryConsume(','))
                 {
-                    _pos++;
                     continue;
                 }
 
-                if (Peek() == '}')
+                if (_scanner.TryConsume('}'))
                 {
-                    _pos++;
                     Flush(prefix, members, line, column);
                     return;
                 }
@@ -194,107 +189,19 @@ internal static class JsonCatalogReader
 
         private bool TryReadString(out string value)
         {
-            value = string.Empty;
-            _pos++; // opening quote
-            var sb = new StringBuilder();
-
-            while (_pos < text.Length)
+            if (_scanner.TryReadString(out value, out var defect))
             {
-                var c = text[_pos];
-                if (c == '"')
-                {
-                    _pos++;
-                    value = sb.ToString();
-                    return true;
-                }
-
-                if (c == '\\')
-                {
-                    _pos++;
-                    if (_pos >= text.Length)
-                    {
-                        break;
-                    }
-
-                    var esc = text[_pos];
-                    switch (esc)
-                    {
-                        case '"': sb.Append('"'); break;
-                        case '\\': sb.Append('\\'); break;
-                        case '/': sb.Append('/'); break;
-                        case 'b': sb.Append('\b'); break;
-                        case 'f': sb.Append('\f'); break;
-                        case 'n': sb.Append('\n'); break;
-                        case 'r': sb.Append('\r'); break;
-                        case 't': sb.Append('\t'); break;
-                        case 'u':
-                            if (_pos + 4 < text.Length
-                                && TryParseHex(text.Substring(_pos + 1, 4), out var code))
-                            {
-                                sb.Append((char)code);
-                                _pos += 4;
-                            }
-                            else
-                            {
-                                Defect("malformed \\u escape");
-                                return false;
-                            }
-
-                            break;
-                        default:
-                            Defect($"unknown escape '\\{esc}'");
-                            return false;
-                    }
-
-                    _pos++;
-                    continue;
-                }
-
-                if (c == '\n')
-                {
-                    Defect("a newline inside a quoted value — use \\n");
-                    return false;
-                }
-
-                sb.Append(c);
-                _pos++;
+                return true;
             }
 
-            Defect("unterminated text value");
+            Defect(defect!);
             return false;
         }
 
-        private static bool TryParseHex(string s, out int value)
-        {
-            value = 0;
-            foreach (var c in s)
-            {
-                var digit = c switch
-                {
-                    >= '0' and <= '9' => c - '0',
-                    >= 'a' and <= 'f' => c - 'a' + 10,
-                    >= 'A' and <= 'F' => c - 'A' + 10,
-                    _ => -1,
-                };
-
-                if (digit < 0)
-                {
-                    return false;
-                }
-
-                value = (value * 16) + digit;
-            }
-
-            return true;
-        }
-
-        private char Peek() => _pos < text.Length ? text[_pos] : '\0';
-
         private bool TryExpect(char expected, string reason)
         {
-            if (Peek() == expected)
+            if (_scanner.TryConsume(expected))
             {
-                _pos++;
                 return true;
             }
 
@@ -302,43 +209,7 @@ internal static class JsonCatalogReader
             return false;
         }
 
-        private void SkipWhitespace()
-        {
-            while (_pos < text.Length)
-            {
-                var c = text[_pos];
-                if (c == '\n')
-                {
-                    _line++;
-                    _pos++;
-                    _lineStart = _pos;
-                    continue;
-                }
-
-                if (c is ' ' or '\t' or '\r')
-                {
-                    _pos++;
-                    continue;
-                }
-
-                // Line comments are not JSON, but every catalog file eventually grows a note about
-                // where a string appears. Accepting them costs four lines and avoids a defect that
-                // teaches nothing.
-                if (c == '/' && _pos + 1 < text.Length && text[_pos + 1] == '/')
-                {
-                    while (_pos < text.Length && text[_pos] != '\n')
-                    {
-                        _pos++;
-                    }
-
-                    continue;
-                }
-
-                return;
-            }
-        }
-
         private void Defect(string reason) =>
-            catalog.Defects.Add(new CatalogDefect(reason, _line, Column));
+            catalog.Defects.Add(new CatalogDefect(reason, _scanner.Line, _scanner.Column));
     }
 }
