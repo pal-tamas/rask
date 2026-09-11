@@ -409,6 +409,22 @@ them until tagged releases begin.
   optional third argument to `mount` and `update`, so an adapter you vendored and edited keeps working and
   renders no children until you add them.
 
+- **A package island and island children, live on the islands page.** `/docs/islands` now nests
+  react-colorful's `HexColorPicker` inside the hand-written React counter as a child island — no `.tsx`
+  of its own, its `.Color`/`.OnChange` steps generated from the committed `ColorPicker.props.json` —
+  and reports the picked colour back to C#. A hand-written island's generated props type now declares
+  `children`, typed as its framework types children (React's `ReactNode`, Preact's
+  `ComponentChildren`, Solid's `JSX.Element`, Svelte's `Snippet`), so the front-end file destructures
+  it with no cast; Vue, Lit and Angular receive children as a slot or content rather than a prop.
+  A prerendered WASM publish and a Server app's browser half now compile package islands: both companion
+  projects carry the app's `*.props.json`, without which the island had no chain steps and the publish
+  failed on its first one (CS1929) while the ordinary build stayed green. And a style an island's
+  library injects into `<head>` — react-colorful's, emotion's — now survives a prerendered page going
+  interactive: the island runtime mounts islands before the page runtime watches `<head>`, so the
+  takeover morph trimmed that `<style>` as boot-shell content and the island rendered at zero size. The
+  island runtime now tags what is added to `<head>` until the page runtime arms its own watch and takes
+  over.
+
 ### Changed
 
 - **Every shipped package reads its .NET versions from one place** — the groundwork for building each package
