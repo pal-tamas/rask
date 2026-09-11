@@ -9,7 +9,7 @@
 
     <PackageId>Rask.Wasm</PackageId>
     <Title>Rask — Browser WASM Runtime</Title>
-    <Description>Rask browser-WASM runtime. Boots a Rask App in the browser via dotnet WASM. Ships the JS boot scripts, the framework page shell, and an MSBuild integration that wires them into a WasmGenerateAppBundle project. Includes Rask.Core and the Rask source generators.</Description>
+    <Description>The Rask browser runtime: runs a Rask app's C# components client-side on .NET WebAssembly. Ships the JS boot scripts, the page shell, and the MSBuild integration that stages them into the published bundle — and, opted in, prerenders every route to static HTML with a sitemap.xml at publish, so a static host serves real pages to visitors and crawlers. Includes Rask.Core and the Rask source generators.</Description>
   </PropertyGroup>
 
 

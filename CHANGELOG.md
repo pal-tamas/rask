@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **rask.sh is built to be found — by search engines and by AI assistants.** Every guide carries search
+  copy of its own (`GuideEntry.SearchTitle` and `Description`, both `required`, so a guide added without
+  them does not compile): "IBattery — Guides — Rask" became "Battery Status API in C# and .NET (IBattery)
+  — Rask", and fifty-two "Typed browser API: IX." descriptions became what each page teaches. Every page
+  carries one schema.org JSON-LD graph — the website, its author, a `TechArticle` or `WebPage`, a
+  `BreadcrumbList`, and on the front door a `SoftwareApplication` — and a guide is an Open Graph `article`
+  with its section, an `article:modified_time` taken from git, a visible "Updated" date and a
+  `rel="alternate" type="text/markdown"` link. The publish writes [`/llms.txt`](https://rask.sh/llms.txt),
+  [`/llms-full.txt`](https://rask.sh/llms-full.txt) and a Markdown twin beside every guide
+  (`/docs/guides/cqrs.md`), with the docs' relative links rewritten to resolve on the site. The front
+  door's description was 250 characters, so every result for it was cut mid-sentence; every indexable page
+  is now held to a 60-character title and a 110–160-character description by `PageMetaTests`. The NuGet
+  packages name rask.sh as their project website and carry searchable base tags, and the committed
+  `rask-seo` skill keeps all of it true as the site grows.
+
+- **A prerendered sitemap dates its pages.** The prerender pass writes each URL's `<lastmod>` from the
+  page's own `<meta property="article:modified_time">` — a date or an ISO 8601 timestamp, normalised to a
+  W3C datetime — and nothing for a page that declares none or declares something that is not a date.
+  Never the publish time: that marks every URL changed on every deploy, and a crawler that notices stops
+  trusting the field for the whole site. See `docs/prerendering.md`.
+
 - **Bearer tokens, opt-in and cookie-first.** `AuthOptions.Bearer` adds a JWT scheme **beside** the
   cookie — never instead of it — for the callers a cookie cannot serve: a native client, a CLI, a
   service-to-service call. A caller asks with `X-Rask-Auth-Mode: bearer` on login and gets the token in
@@ -119,6 +140,17 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **Links between guides in subfolders no longer 404.** The guide renderer sent every `../x.md` link to
+  `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51
+  `../browser-capabilities.md` links on the browser-API pages and the tutorial's `../cli.md`, `../jobs.md`
+  and the rest. A link that names a guide now routes to it however it climbs. `DocsLinkTests` had skipped
+  every `../` link on the renderer's own assumption, so it could not see this; it now checks every link
+  that stays inside `docs/`.
+
+- **`NoTwoPagesShareATitleOrADescription` checks the site rather than one page.** Its "claims to be this
+  page" filter compared the canonical, which always ends in a slash, with the bare route path, which never
+  does — so it skipped every page except `/` and asserted uniqueness over a set of one.
 
 - **A validation message the kit renders is visible.** `UiValidator` produced the right text, in the
   right place, and invisible: it inherited daisyUI's hidden-until-invalid rule,

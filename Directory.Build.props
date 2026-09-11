@@ -11,10 +11,16 @@
     <!-- Square gallery/IDE icon (NuGet rejects SVG, so a PNG derived from assets/rask-icon.svg).
          Packed for every packable project by the IsPackable ItemGroup below. -->
     <PackageIcon>rask-icon.png</PackageIcon>
-    <PackageProjectUrl>https://github.com/pal-tamas/rask</PackageProjectUrl>
+    <!-- The site, not the repository: RepositoryUrl already names the repository, and nuget.org renders
+         the two as separate links. This one is labelled "Project website" on every package page, which is
+         a link from nuget.org to the docs a reader actually wants — for twenty packages. -->
+    <PackageProjectUrl>https://rask.sh/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/pal-tamas/rask.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>web component framework wasm net10</PackageTags>
+    <!-- The fallback for a package that names no tags of its own — Rask, Rask.Server, Rask.Wasm and the other
+         hosts. nuget.org search matches tags, and "web component framework wasm net10" matched nothing a
+         .NET developer looking for a web framework types. -->
+    <PackageTags>web framework components csharp dotnet aspnetcore webassembly wasm ssr blazor-alternative one-person-framework sqlite net10</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

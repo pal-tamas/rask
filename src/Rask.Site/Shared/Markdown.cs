@@ -201,13 +201,20 @@ public sealed partial class Markdown : Component
         {
             var path = m.Groups["path"].Value;
             var fragment = m.Groups["frag"].Value;
-            if (path.Contains("../", StringComparison.Ordinal))
+            var slug = path[(path.LastIndexOf('/') + 1)..^".md".Length];
+
+            // A guide first, however the link climbs to it. "../" used to mean "the repo root, on GitHub"
+            // unconditionally — right for docs/README.md's "../README.md", and wrong for every guide in a
+            // subfolder linking a sibling one level up: the 51 "../browser-capabilities.md" links on the
+            // browser-API pages, the tutorial's "../cli.md", all pointed at GitHub URLs with no file behind
+            // them. A dead link on every one of those pages, and the internal links between guides — the
+            // ones a crawler follows to find them — sent off-site instead.
+            if (path.Contains("../", StringComparison.Ordinal) && Features.GuideCatalog.Find(slug) is null)
             {
                 var leaf = path[(path.LastIndexOf('/') + 1)..];
                 return $"href=\"https://github.com/pal-tamas/rask/blob/main/{leaf}{fragment}\"";
             }
 
-            var slug = path[(path.LastIndexOf('/') + 1)..^".md".Length];
             // The generated route, not a literal "/guides/{slug}". It WAS a literal, and the day the
             // showcase moved from / to /docs every in-doc link in every guide pointed at a URL that no
             // longer existed — silently, because a dead href renders exactly like a live one.

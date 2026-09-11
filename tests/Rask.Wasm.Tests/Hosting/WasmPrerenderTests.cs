@@ -343,6 +343,70 @@ public class WasmPrerenderTests
         Assert.Equal("https://x.test/page", WasmPrerender.CanonicalTarget(Head));
     }
 
+    [Theory]
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"2026-09-10\"></head>", "2026-09-10")]
+    // Attribute order is the serializer's business, and it writes an offset's '+' as an entity.
+    [InlineData("<head><meta content=\"2026-09-10T08:30:00&#x2B;02:00\" property=\"article:modified_time\"></head>",
+        "2026-09-10T08:30:00+02:00")]
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"2026-09-10T06:30:00Z\"></head>",
+        "2026-09-10T06:30:00+00:00")]
+    // Not a date. No lastmod beats a malformed one, which is reported against the whole sitemap.
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"last Tuesday\"></head>", null)]
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"10\"></head>", null)]
+    // A different property, and no date at all: nothing to say, so nothing said.
+    [InlineData("<head><meta property=\"og:updated_time\" content=\"2026-09-10\"></head>", null)]
+    [InlineData("<head><title>x</title></head>", null)]
+    public void ALastmodIsReadOffThePagesOwnModifiedTime(string html, string? expected) =>
+        Assert.Equal(expected, WasmPrerender.LastModified(html));
+
+    [Fact]
+    public void AModifiedTimeIsReadFromItsOwnTagAndNotANeighbours()
+    {
+        // The same trap as the canonical reader: a tag with no content followed by one with a date must not
+        // lend the first one the second one's date.
+        const string Head =
+            "<head><meta property=\"article:modified_time\"><meta name=\"x\" content=\"2020-01-01\"></head>";
+
+        Assert.Null(WasmPrerender.LastModified(Head));
+    }
+
+    [Fact]
+    public async Task ASitemapCarriesTheDateAPageStatesAndNoneForAPageThatStatesNone()
+    {
+        // The page is the one place its date is stated. A page with none gets a <url> with no <lastmod> —
+        // never the time of the publish, which would mark every URL changed on every deploy.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(ASitemapCarriesTheDateAPageStatesAndNoneForAPageThatStatesNone), [
+            new RouteRegistration(typeof(DatedOnOneRoute), "/dated", null),
+            new RouteRegistration(typeof(DatedOnOneRoute), "/plain", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, "https://example.com");
+        try
+        {
+            await WasmPrerender.RunAsync<DatedOnOneRoute>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+
+            Assert.Contains(
+                "<url><loc>https://example.com/dated/</loc><lastmod>2026-09-10</lastmod></url>",
+                sitemap,
+                StringComparison.Ordinal);
+            Assert.Contains("<url><loc>https://example.com/plain/</loc></url>", sitemap, StringComparison.Ordinal);
+            Assert.Equal(1, Occurrences(sitemap, "<lastmod>"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.SiteUrlVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
     [Fact]
     public void APageWithNoRobotsMetaIsIndexable()
     {
@@ -843,6 +907,19 @@ public class WasmPrerenderTests
         ];
 
         protected override Component? Render() => Div["home-page"];
+    }
+
+    /// <summary>States a modified time on one route and none on the others.</summary>
+    /// <remarks>
+    ///     Reads the route itself for the reason <see cref="BrokenOnOneRoute" /> does: the pass renders the same
+    ///     app for every path.
+    /// </remarks>
+    private sealed class DatedOnOneRoute(RouteState route) : Component
+    {
+        protected override Component? HeadAssets =>
+            route.Path == "/dated" ? Meta.Property("article:modified_time").Content("2026-09-10") : null;
+
+        protected override Component? Render() => Div["page"];
     }
 
     private sealed class Broken : Component

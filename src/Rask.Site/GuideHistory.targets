@@ -1,0 +1,51 @@
+<Project>
+
+  <!--
+    When each guide last changed, as git knows it: the raw output of ONE `git log`, embedded for
+    GuideHistory to reduce to a date per slug. That date is the guide's visible "Updated" line, its
+    dateModified and article:modified_time, and — read back off that tag by the prerender pass — its
+    sitemap <lastmod>.
+
+    A .targets of its own because TWO assemblies compile GuideHistory: the site, and Rask.Site.Tests, which
+    links the site's sources rather than referencing a browser EXE it cannot reference. A target written
+    into the site's csproj ran for the site and never for the tests, so every guide was undated in exactly
+    the assembly that asserts the dates exist. Imported by both, stated once.
+
+    Embedded rather than looked up at render, because the page renders twice: at publish, and again in the
+    browser when the bundle takes over, which is the copy a JavaScript-running crawler indexes.
+
+    One git call over docs/ (~40 KB of output) rather than one per file (~130 calls, seconds per build).
+    WriteOnlyWhenDifferent, so an unchanged history does not touch the file and does not recompile the
+    project. A SHALLOW clone would date every guide to its single commit, which is a confident lie, so it
+    writes nothing instead; so does a build with no git at all. Either way every guide simply has no date.
+  -->
+  <Target Name="RaskSiteGuideHistory" BeforeTargets="PrepareForBuild" Condition=" '$(DesignTimeBuild)' != 'true' ">
+    <PropertyGroup>
+      <_RaskGuideHistoryFile>$(IntermediateOutputPath)raskdoc-history.txt</_RaskGuideHistoryFile>
+      <_RaskGuideHistoryRepo>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../..'))</_RaskGuideHistoryRepo>
+    </PropertyGroup>
+
+    <Exec Command="git -C &quot;$(_RaskGuideHistoryRepo)&quot; rev-parse --is-shallow-repository"
+          ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="low" StandardErrorImportance="low" EchoOff="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_RaskGuideHistoryShallow"/>
+      <Output TaskParameter="ExitCode" PropertyName="_RaskGuideHistoryExit"/>
+    </Exec>
+
+    <Exec Condition=" '$(_RaskGuideHistoryExit)' == '0' and '$(_RaskGuideHistoryShallow)' == 'false' "
+          Command="git -C &quot;$(_RaskGuideHistoryRepo)&quot; log --no-merges --format=@%cs --name-only -- docs"
+          ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="low" StandardErrorImportance="low" EchoOff="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="_RaskGuideHistoryLine"/>
+    </Exec>
+
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <WriteLinesToFile File="$(_RaskGuideHistoryFile)" Lines="@(_RaskGuideHistoryLine)"
+                      Overwrite="true" WriteOnlyWhenDifferent="true"/>
+
+    <ItemGroup>
+      <EmbeddedResource Include="$(_RaskGuideHistoryFile)" LogicalName="raskdoc-history.txt"/>
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -19,8 +19,9 @@ public sealed partial class IslandsPage : Component
 {
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Islands — Rask",
-            "React, Preact, Solid, Vue, Svelte, Angular and Lit components hosted inside a Rask page as ordinary C# components — props declared in C#, callbacks re-entering C#, each island a diff boundary.",
+            "Islands demo: React, Vue, Svelte and Lit in C# — Rask",
+            "Vue, React, Svelte, Solid and Lit components as ordinary C# components in a WebAssembly app, "
+            + "with props declared in C# and callbacks that reach C#.",
             Routes.IslandsPage());
 
     protected override Component? Render() =>

@@ -15,6 +15,9 @@
 
 This file helps AI coding assistants build apps with Rask. Start with the repo-root AGENTS.md
 (the AI guidance shipped alongside this file) for app-authoring conventions, then the docs below.
+Reading the web rather than this checkout? The published index is https://rask.sh/llms.txt, every
+guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is its page's URL plus
+`.md` (https://rask.sh/docs/guides/cqrs.md).
 
 ## Docs
 - [The .NET One Person Framework](docs/one-person-framework.md): the doctrine — one dev, whole product, one C# codebase on one server, SQLite-first; links the batteries + roadmap.

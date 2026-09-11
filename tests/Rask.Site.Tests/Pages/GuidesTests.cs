@@ -56,6 +56,14 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Markdown_RewritesAClimbingLinkToAGuide_ToItsSpaRoute() =>
+        // docs/apis/*.md link the capability matrix as "../browser-capabilities.md". Reading every "../" as
+        // the repo root sent all 51 of those to a GitHub URL with no file behind it — a dead link on every
+        // browser-API page, and the one internal link a crawler would follow between them sent off-site.
+        Assert.Contains($"href=\"{Features.Routes.GuidePage("browser-capabilities")}\" data-rask-nav",
+            Markdown.Source("[matrix](../browser-capabilities.md)").ToHtml());
+
+    [Fact]
     public void Markdown_RewritesRepoRootLink_ToGitHub() =>
         Assert.Contains("href=\"https://github.com/pal-tamas/rask/blob/main/README.md\"",
             Markdown.Source("[readme](../README.md)").ToHtml());

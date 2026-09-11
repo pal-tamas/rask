@@ -33,8 +33,9 @@ public sealed partial class TodosPage : Component
 
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Todos — Rask",
-            "A full CRUD slice built from Rask components — list, add, edit and complete — with routing, forms and validation, running entirely in the browser on WebAssembly.",
+            "C# CRUD example with routing and forms — Rask",
+            "A to-do list CRUD example in C#: list, add, edit, complete and delete, with route-driven "
+            + "dialogs, form validation and the full source, running in WebAssembly.",
             Routes.TodosPage());
 
     private bool IsAdding => _route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
