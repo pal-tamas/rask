@@ -1712,8 +1712,8 @@ div .flex .flex-wrap .gap-3 .items-center .items-center
 span .font-semibold .text-3xl
 button .btn .btn-primary
 span
-ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
-li .bg-ui-bg .flex .gap-2 .items-center .px-4 .py-1 .py-2 .text-sm .text-ui-ink
+ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overflow-hidden .rounded-box .ui-list
+li .py-1
 
 === data-download ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1982,24 +1982,24 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-ul .dd-list .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
-li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+ul .bg-base-100 .border .border-base-300 .dd-list .divide-base-300 .divide-y .list .overflow-hidden .rounded-box .ui-list
+li .dd-item .flex .gap-2 .items-center
 svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
-li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+li .dd-item .flex .gap-2 .items-center
 svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
-li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+li .dd-item .flex .gap-2 .items-center
 svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
-li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+li .dd-item .flex .gap-2 .items-center
 svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
-li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+li .dd-item .flex .gap-2 .items-center
 svg .shrink-0 .size-5 .text-ui-muted
 path
 span .font-semibold
@@ -2286,7 +2286,7 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-table .[&amp;_td]:border .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:border .[&amp;_th]:px-3 .[&amp;_th]:py-2 .mb-0 .text-left .text-sm .text-sm .w-full
+table .[&amp;_td]:border .[&amp;_th]:border .border-collapse .mb-0 .text-left .text-sm .ui-table .w-full
 caption .caption-top
 colgroup
 col .bg-ui-well
@@ -2806,24 +2806,24 @@ button .btn .btn-error .btn-outline
 svg .shrink-0 .size-4
 path
 span
-ul .divide-ui-line .divide-y .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
-li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
+ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overflow-hidden .rounded-box .ui-list
+li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
+li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
+li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
+li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-li .bg-ui-bg .flex .flex .gap-2 .gap-3 .items-center .items-center .px-4 .py-2 .text-ui-ink
+li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
@@ -2883,26 +2883,26 @@ svg .shrink-0 .size-4
 path
 span
 h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
-ol .divide-ui-line .divide-ui-line .divide-y .divide-y .list-decimal .list-inside .overflow-hidden .ring-1 .ring-ui-line .rounded-lg
-li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+ol .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .list-decimal .list-inside .overflow-hidden .rounded-box .ui-list
+li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
-li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
-li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
-li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
-li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
-li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
-li .bg-ui-bg .flex .gap-2 .items-center .ps-2 .px-4 .py-2 .text-sm .text-ui-ink
+li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
 
@@ -2926,7 +2926,7 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-table .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .align-middle .text-left .text-sm .text-sm .w-full
+table .align-middle .border-collapse .text-left .text-sm .ui-table .w-full
 thead
 tr
 th
@@ -2978,7 +2978,7 @@ div .sample-result-label
 div .sample-result-body
 div .!p-0 .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .overflow-x-auto
-table .[&amp;_tbody_tr:hover]:bg-ui-well .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .align-middle .mb-0 .text-left .text-sm .w-full
+table .[&amp;_tbody_tr:hover]:bg-ui-well .align-middle .border-collapse .mb-0 .text-left .text-sm .ui-table .w-full
 thead .bg-ui-well
 tr
 th
@@ -3191,7 +3191,7 @@ div
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
 div
 input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
-table .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .align-middle .mb-0 .mt-2 .text-left .text-sm .text-sm .w-full
+table .align-middle .border-collapse .mb-0 .mt-2 .text-left .text-sm .ui-table .w-full
 thead
 tr
 th
@@ -3235,7 +3235,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
-table .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .align-middle .mb-0 .text-left .text-sm .text-sm .w-full
+table .align-middle .border-collapse .mb-0 .text-left .text-sm .ui-table .w-full
 thead
 tr
 th
@@ -3279,7 +3279,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
-table .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .align-middle .mb-0 .text-left .text-sm .text-sm .w-full
+table .align-middle .border-collapse .mb-0 .text-left .text-sm .ui-table .w-full
 thead
 tr
 th
@@ -3810,7 +3810,7 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-table .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .mb-0 .text-left .text-sm .text-sm .w-full
+table .border-collapse .mb-0 .text-left .text-sm .ui-table .w-full
 thead
 tr
 th
@@ -4337,7 +4337,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .bg-white .border .rounded
-table .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .mb-0 .text-left .text-sm .text-sm .w-full
+table .border-collapse .mb-0 .text-left .text-sm .ui-table .w-full
 thead
 tr
 th
@@ -4448,7 +4448,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .bg-white .border .rounded
-table .[&amp;_td]:px-3 .[&amp;_td]:py-2 .[&amp;_th]:px-3 .[&amp;_th]:py-2 .mb-0 .text-left .text-sm .text-sm .w-full
+table .border-collapse .mb-0 .text-left .text-sm .ui-table .w-full
 thead
 tr
 th

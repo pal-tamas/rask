@@ -165,7 +165,7 @@ public sealed partial class SystemPage(
     private Component SnapshotList(DateTime now) =>
         _snapshots.Count == 0
             ? Div.Class("text-xs text-ui-muted")["No snapshots stored."]
-            : UiTable[
+            : UiTable.Scroll(true)[
                 Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Snapshot"],
@@ -200,7 +200,7 @@ public sealed partial class SystemPage(
         }
 
         return UiCard.Heading("Recurring jobs")[
-            UiTable[
+            UiTable.Scroll(true)[
                 Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                     Tr[
                         Th.Class("px-3 py-2 font-medium")["Name"],

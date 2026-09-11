@@ -506,6 +506,30 @@
   }
 }
 
+/*
+  THE PADDING OF A TABLE CELL AND A LIST ROW — the kit's default, and only a default.
+
+  UiTable and UiList render the element itself and pass the call site's rows and cells straight through, so
+  their padding has to reach elements the kit never builds. A Tailwind descendant variant on the container
+  (`[&_td]:px-3`) does that and is wrong in a way nothing reports: `.x td` outranks the `.px-0` a cell writes
+  on itself, so the cell asks for flush content and silently does not get it.
+
+  In `rask`, which the order statement at the top of this file puts BEFORE `utilities`: any utility the app
+  writes on a cell or a row wins, whatever its specificity. Keyed to the kit's own markers, so hand-written
+  daisyUI `list` and `table` markup is left exactly as daisyUI draws it. `list-row` keeps daisyUI's own grid
+  padding.
+*/
+@layer rask {
+  .ui-table th,
+  .ui-table td {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .ui-list > li:not(.list-row) {
+    padding: 0.5rem 1rem;
+  }
+}
+
 @layer rask {
   [data-theme="caramellatte"] {
     --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 31%, var(--color-base-content));

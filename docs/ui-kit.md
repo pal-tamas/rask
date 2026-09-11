@@ -248,6 +248,37 @@ the markup looking as though it styled something.
 Other axes follow the same rule: `UiPlacement`, `UiModalPlacement`, `UiMaskShape`, `UiLoadingShape`,
 `UiSwapAnimation`, `UiAuraStyle`, `UiTabStyle`, `UiMarker`, `UiOpenOn`.
 
+## Components that are one element
+
+A table is a `<table>`, and a list is a `<ul>`. `UiTable` and `UiList` do not wrap a raw element; they
+are the element. They derive from **`UiElement`**, which derives from `Element`, so every step an element
+takes works on them unchanged:
+
+```csharp
+UiTable.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
+    Thead[Tr[Th["Order"], Th["Total"]]],
+    Tbody[rows]
+]
+```
+
+The kit's classes and ARIA compose with yours instead of replacing them. `.Class("mb-0")` is added to the
+kit's classes through `ResolveClass()`. A label you set with `.Aria(…)` wins over one the kit would derive
+through `ResolveAria()`, which writes into Core's `aria-*` slot so the attribute order stays the one
+`Element` documents.
+
+**One tag, and that has a consequence.** An element's children are written straight from the indexer, so
+an element-derived component cannot draw anything around them. The two places this shows:
+
+- **`UiTable.Scroll(true)`** puts the table in a bordered box that scrolls sideways. While it does,
+  `UiTable` renders as the box with the `<table>` inside. The id, classes, data, ARIA and handlers stay on
+  the `<table>`, so `#orders tbody tr` finds the same rows either way.
+- **`UiList.Ordered(true)`** is an `<ol>`, numbered. Use it when the order means something, such as a log
+  or a set of steps. A row is a plain `Li`.
+
+The kit pads cells and rows with a stylesheet rule on its `ui-table` / `ui-list` marker, in the layer
+below your utilities. A `px-0` on a cell therefore gets flush content. A `[&_td]:px-3` variant would have
+out-specified it.
+
 ## What is in it
 
 Grouped as daisyUI groups them, so its documentation reads straight across.

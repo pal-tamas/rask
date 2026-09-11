@@ -40,6 +40,34 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`UiTable` and `UiList` are their elements now, on a new `UiElement` base.** Both used to wrap a raw
+  `Table`/`Ul` and mirror a hand-picked prop or two onto it, so an `id` on a kit table, a `data-*` a test
+  selects on, or an `aria-label` meant dropping back to the raw element and a class string. `UiElement`
+  derives from `Element`, so every element step — `Id`, `Class`, `Style`, `Data`, `Role`, `Aria`,
+  `Attributes` and the whole event surface — applies with nothing redeclared, and nothing can drift out
+  of step with Core. `UiList.Class` is gone as a result; `.Class(…)` on a list is `Element`'s now and
+  composes with the kit's classes exactly as before.
+
+  A kit component adds its own ARIA through **`UiElement.ResolveAria()`**, the twin of `ResolveClass()`.
+  The resolved bag is written in Core's `aria-*` slot, so the documented attribute order holds, and a key
+  the call site set wins over one the kit derives.
+
+  **`UiTable` no longer puts itself in a scroll box.** That box is `UiTable.Scroll(true)` now, because an
+  element renders exactly one tag. Scrolling, the id, classes, data, ARIA and handlers all stay on the
+  `<table>`, and the box carries only its own classes. The console's five tables ask for it.
+
+  **`UiList.Ordered(true)`** renders an `<ol>` with its numbers turned on. The site's four ordered logs had
+  never shown a number: each row carried a `flex` class, and a flex item is not a list item, so it draws
+  no marker.
+
+  Cell and row padding is a kit stylesheet rule on `ui-table` / `ui-list`, in the layer below the app's
+  utilities, rather than a `[&_td]:px-3` variant. The variant was more specific than a cell's own `px-0`
+  and silently beat it.
+
+  The site's nine tables and eight bordered lists move onto the kit. `Tw.Table`, `Tw.ListGroup` and
+  `Tw.ListGroupItem` are deleted, along with the drag-drop demo's leftover Bootstrap class names, which
+  styled nothing.
+
 - **Every alert and badge in the showcase is a kit component.** 35 alerts and 20 badges move off the
   class-string vocabulary onto `UiAlert` and `UiBadge`, and 18 `Alert*`/`Badge*` constants are deleted —
   `Tw.cs` is down from 215 lines to 115.

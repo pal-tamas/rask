@@ -330,7 +330,7 @@ public sealed partial class LogsPage(
         record.Scopes);
 
     private static Component LogTable(IEnumerable<LogRow> rows, DateTime now) =>
-        UiTable[
+        UiTable.Scroll(true)[
             // The message is the column an operator came for, so it is the one that survives a narrow
             // screen; when, level and category fold in above it rather than scrolling off to the right.
             Thead.Class("border-b border-ui-line text-xs text-ui-muted")[

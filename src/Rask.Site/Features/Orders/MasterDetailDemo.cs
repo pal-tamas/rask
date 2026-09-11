@@ -46,7 +46,7 @@ public sealed partial class MasterDetailDemo : Component
 
         return UiCard.Class("shadow-sm !p-0")[
             Div.Class("overflow-x-auto")[
-                Table.Id("md-orders").Class($"{Tw.Table} [&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
+                UiTable.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
                     Thead.Class("bg-ui-well")[
                         Tr[_orderColumns.Select(c =>
                             c.Sortable
@@ -108,7 +108,7 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Table.Class($"{Tw.Table} text-sm [&_tbody_tr:nth-child(odd)]:bg-ui-well align-middle mb-0 bg-white")[
+        return UiTable.Class("[&_tbody_tr:nth-child(odd)]:bg-ui-well align-middle mb-0 bg-white")[
             Thead[
                 Tr[_itemColumns.Select(c =>
                     SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]

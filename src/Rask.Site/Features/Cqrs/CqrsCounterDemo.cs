@@ -26,10 +26,10 @@ public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
             ],
             _view.Log.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Loading the counter…"]
-                : Ul.Id("cqrs-log").Class(Tw.ListGroup)[
+                : UiList.Id("cqrs-log")[
                     // The behavior logs every dispatch (the on-mount query included), and the
                     // notification handler adds the "count is now N" line after each command.
-                    _view.Log.Select((entry, i) => Li.Key(i).Class($"{Tw.ListGroupItem} text-sm py-1")[entry])
+                    _view.Log.Select((entry, i) => Li.Key(i).Class("py-1")[entry])
                 ]
         ];
 }

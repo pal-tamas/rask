@@ -38,7 +38,7 @@ public sealed partial class CultureFormatsDemo : Component
             return UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft)["This build runs with ", Code["InvariantGlobalization"], ", so every culture formats identically. Set ", Code["<RaskGlobalization>true</RaskGlobalization>"], " to ship ICU — see the WASM section of this guide."];
         }
 
-        return Table.Class($"{Tw.Table} text-sm align-middle")[
+        return UiTable.Class("align-middle")[
             Thead[
                 Tr[
                     Th["Language"],

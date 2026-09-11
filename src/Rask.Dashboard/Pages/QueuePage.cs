@@ -131,7 +131,7 @@ public sealed partial class QueuePage(
     private Component RowsTable()
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        return UiTable[
+        return UiTable.Scroll(true)[
             // The secondary columns are dropped below sm rather than scrolled to. A table an operator has to
             // swipe sideways has hidden the column they came for; the primary cell carries the same facts
             // stacked underneath instead, so nothing is lost — see the remarks on UiTable.

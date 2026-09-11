@@ -63,7 +63,7 @@ public sealed partial class NestedFluentValidationDemo : Component
                         ]
                     ]
                 ],
-                Table.Class($"{Tw.Table} text-sm align-middle mb-0 mt-2")[
+                UiTable.Class("align-middle mb-0 mt-2")[
                     Thead[Tr[Th["SKU"], Th["Qty"], Th]],
                     Tbody[rows]
                 ],

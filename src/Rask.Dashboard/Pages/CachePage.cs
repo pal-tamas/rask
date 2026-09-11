@@ -113,7 +113,7 @@ public sealed partial class CachePage(
     }
 
     private Component KeyTable(DateTime now) =>
-        UiTable[
+        UiTable.Scroll(true)[
             Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
                 Tr[
                     Th.Class("px-3 py-2 font-medium")["Key"],

@@ -38,7 +38,7 @@ public sealed partial class KeyedListsReorderDemo : Component
                     .Disabled(_items.Count == 0)
                     .OnClick(RemoveTop)
             ],
-            Ul.Class(Tw.ListGroup).Id("kl-list")[BuildRows()]
+            UiList.Id("kl-list")[BuildRows()]
         ];
 
     private List<Component> BuildRows()
@@ -51,8 +51,8 @@ public sealed partial class KeyedListsReorderDemo : Component
             // reconciliation; RASK022 would otherwise flag it.
 #pragma warning disable RASK022
             rows.Add(_useKeys
-                ? Li.Key(f.Id).Class($"{Tw.ListGroupItem} flex items-center gap-3")[Row(f, i)]
-                : Li.Class($"{Tw.ListGroupItem} flex items-center gap-3")[Row(f, i)]);
+                ? Li.Key(f.Id).Class("flex items-center gap-3")[Row(f, i)]
+                : Li.Class("flex items-center gap-3")[Row(f, i)]);
 #pragma warning restore RASK022
         }
 

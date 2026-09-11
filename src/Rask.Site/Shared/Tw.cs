@@ -78,16 +78,6 @@ public static class Tw
     /// <summary>An input with something butted against it.</summary>
     public const string InputGroup = "flex items-stretch gap-2";
 
-    /// <summary>A bordered list.</summary>
-    public const string ListGroup =
-        "divide-y divide-ui-line overflow-hidden rounded-lg ring-1 ring-ui-line";
-
-    /// <summary>One row of a bordered list.</summary>
-    public const string ListGroupItem = "flex items-center gap-2 bg-ui-bg px-4 py-2 text-ui-ink";
-
-    /// <summary>A data table.</summary>
-    public const string Table = "w-full text-left text-sm [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-2";
-
     /// <summary>A busy indicator.</summary>
     public const string Spinner =
         "inline-block size-5 animate-spin rounded-full border-2 border-current border-r-transparent";
