@@ -7,6 +7,7 @@ using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
+using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Forms;
 using Rask.Core.Globalization;
 using Rask.Core.Http;
@@ -338,6 +339,10 @@ public sealed class WasmHostBuilder
         // including any Configure block that turned one off. Inert unless the app references the `Rask`
         // package, which is what registers the wiring.
         RaskWasmBatteryRegistry.Apply(this, Services);
+
+        // The in-page devtools, when this is a Debug build that carries Rask.DevTools — at the same last
+        // moment, for the same reason. Found by name, so the app writes nothing.
+        RaskDevToolsLoader.TryAttach(Services);
 
         var provider = Services.BuildServiceProvider();
 

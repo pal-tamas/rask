@@ -46,6 +46,10 @@
     <InternalsVisibleTo Include="Rask.Blazor.Tests"/>
     <InternalsVisibleTo Include="Rask.External"/>
     <InternalsVisibleTo Include="Rask.External.Tests"/>
+    <!-- Hosts cannot reference the devtools (the devtools reference the hosts), so they meet in Core: the
+         loader and the probe seam live here, internal, and Rask.DevTools implements them. -->
+    <InternalsVisibleTo Include="Rask.DevTools"/>
+    <InternalsVisibleTo Include="Rask.DevTools.Tests"/>
     <!-- For Navigator.EnterHandler: the remote-dispatch file bridge extends Navigator, so its tests need
          the same handler scope Rask.Core.Tests uses to exercise Download. -->
     <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>
