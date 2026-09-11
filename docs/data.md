@@ -608,7 +608,9 @@ Three things worth knowing:
   drops the original — taking its triggers with it. Rask re-emits them at the end of every migration that
   touches the table, so the constraint cannot silently disappear.
 
-Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. Both are inert
+Requires `UseRaskSqlite(...)`, which registers the generator and the exception translation. On any other
+provider — including a plain `UseSqlite` — the rule would be silently ignored, so `AddRaskData<TContext>`
+**refuses to boot** instead, naming the entity and the call that enforces it. Both are inert
 until an entity declares a rule, and the rule composes with
 [`o => o.StrictTables = true`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
