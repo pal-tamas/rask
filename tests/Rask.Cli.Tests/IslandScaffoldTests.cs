@@ -28,16 +28,29 @@ public sealed class IslandScaffoldTests
     public void Every_runtime_scaffolds_a_pair(string runtime)
     {
         var files = Scaffold(runtime);
-        var islandFiles = files
+
+        // A pair, always: the .cs that declares the component (its base class IS the declaration) and
+        // the front-end file that renders it. One without the other is not an island.
+        var declaration = files
             .Where(f => f.Path.Contains("Islands", StringComparison.Ordinal))
             .Select(f => Path.GetFileName(f.Path))
             .ToArray();
 
-        // A pair, always: the .cs that declares the component (its base class IS the declaration) and
-        // the front-end file that renders it. One without the other is not an island.
-        Assert.Equal(2, islandFiles.Length);
-        Assert.Contains(islandFiles, f => f.EndsWith(".cs", StringComparison.Ordinal));
-        Assert.Contains(islandFiles, f => !f.EndsWith(".cs", StringComparison.Ordinal));
+        Assert.Contains(declaration, f => f.EndsWith(".cs", StringComparison.Ordinal));
+
+        if (runtime == IslandRuntimes.Blazor)
+        {
+            // Blazor's half of the pair is a .razor in a REFERENCED Razor Class Library, not beside the
+            // declaration: a .razor in the same project is generated during the same compilation, so
+            // its [Parameter]s cannot be read and no chain steps are generated for them (RASK066).
+            Assert.Single(declaration);
+            Assert.Contains(files, f => f.Path.EndsWith("BlazorCounter.razor", StringComparison.Ordinal));
+            Assert.Contains(files, f => f.Path.EndsWith(".Components.csproj", StringComparison.Ordinal));
+            return;
+        }
+
+        Assert.Equal(2, declaration.Length);
+        Assert.Contains(declaration, f => !f.EndsWith(".cs", StringComparison.Ordinal));
     }
 
     [Theory]

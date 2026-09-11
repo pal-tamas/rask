@@ -94,4 +94,13 @@
   </ItemGroup>
   <!-- rask:end -->
 
+  <!-- rask:if islands-blazor -->
+  <ItemGroup>
+    <!-- The Razor Class Library holding this app's Blazor components. A separate project because a
+         .razor compiled in THIS project is generated during this same compilation, so Rask cannot
+         read its [Parameter]s and generates no chain steps for them (RASK066). -->
+    <ProjectReference Include="Company.RaskServer.Components\Company.RaskServer.Components.csproj"/>
+  </ItemGroup>
+  <!-- rask:end -->
+
 </Project>

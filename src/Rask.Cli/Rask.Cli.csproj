@@ -76,6 +76,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cli.Tests" />
+    <!-- The template gate scaffolds through the same generator dispatch NewCommand uses, so the arm
+         under test is the one that ships rather than a re-implementation of the switch. -->
+    <InternalsVisibleTo Include="Rask.Templates.E2E.Tests" />
     <InternalsVisibleTo Include="Rask.Cli.E2E.Tests" />
   </ItemGroup>
 

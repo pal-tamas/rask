@@ -47,6 +47,17 @@ them until tagged releases begin.
   writes only a `.prettierrc`, and three of the meta creators write nothing at all. All thirteen
   templates and six island combinations were installed for real and linted; all are clean.
 
+- **A gate that builds every template.** `scripts/run-template-e2e.sh` scaffolds each of the fifteen
+  through the same dispatch `rask new` uses and builds what it wrote with `-warnaserror`. Eleven of
+  them had nothing making that claim: only `server`, `wasm` and `react` were ever
+  scaffolded-and-built, plus `angular` for its Tailwind output, and **no meta template was built by
+  anything** — that lane's only gate publishes a hand-written stub csproj against stand-in files.
+
+  Two tiers, because the costs differ by two orders of magnitude: the default runs the C# half of all
+  fifteen and joins `run-all-gates.sh`; `--front-end` adds each client's real `npm ci`, lint,
+  format check and production build, which is four to six minutes per template. Opt-in via
+  `RASK_TEMPLATE_E2E=1`, and SKIPPED rather than silently passing without it.
+
 - **Dependabot can see the front end.** `.github/dependabot.yml` gains an npm ecosystem entry over the
   thirteen template clients and `src/Rask.Site`, grouped into one PR per wave. Every client ships a
   `package-lock.json`: with only a range declared, Dependabot acts solely when a release falls outside

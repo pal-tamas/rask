@@ -346,6 +346,23 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by
   `RASK_CLI_BUILD_E2E=1`, which the script exports; without it every case reports **SKIPPED** rather than
   passing silently, so an un-run gate is always visible in the test output.
+- **The template gate builds every template, not the four that used to have one.**
+  `scripts/run-template-e2e.sh` scaffolds each of the fifteen templates through the same dispatch
+  `rask new` uses and builds what it wrote with `-warnaserror`. Before it existed only `server`, `wasm`
+  and `react` were ever scaffolded-and-built, plus `angular` for its Tailwind output — and **no meta
+  template was built by anything**: that lane's only gate publishes a hand-written stub csproj against
+  stand-in files, so a real Nuxt or SvelteKit app compiling was checked nowhere.
+
+  Two tiers, because the costs differ by two orders of magnitude. The default runs the C# half of all
+  fifteen and is what `run-all-gates.sh` includes. `--front-end` additionally runs each client's real
+  `npm ci`, `npm run lint`, `npm run format:check` and production build — four to six minutes per
+  template on a cold cache, so about an hour for the thirteen, which belongs to a release rather than
+  to every run of every gate. The lint run is there rather than in the unit gate for a specific reason:
+  a plugin's exported config name differs per plugin and per major, and a wrong one throws at ESLint
+  *startup*, which nothing that merely reads the config file can see.
+
+  Opted into by `RASK_TEMPLATE_E2E=1`, which the script exports; without it every case reports
+  **SKIPPED** rather than passing silently.
 - **A red gate names the culprit it actually found.** Both the CLI build gate and the E2E gate build
   browser targets, so both can fail for a reason that has nothing to do with your branch — most often
   `NETSDK1147`, the `wasm-tools` workload resolving as missing because a workload install elsewhere on

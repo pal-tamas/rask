@@ -715,7 +715,18 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 _fileSystem.CreateDirectory(directory);
             }
 
-            _fileSystem.WriteAllText(file.Path, file.Content);
+            // Bytes for a file that is not text. The templates carry a PNG and two .ico favicons the
+            // front-end creators ship, and writing one of those through WriteAllText re-encodes it as
+            // UTF-8: the scaffold succeeds, the build succeeds, and the favicon is quietly corrupt.
+            if (file.Bytes is { } bytes)
+            {
+                _fileSystem.WriteAllBytes(file.Path, bytes);
+            }
+            else
+            {
+                _fileSystem.WriteAllText(file.Path, file.Content);
+            }
+
             WriteCreated(Path.GetRelativePath(_workingDirectory, file.Path));
         }
 

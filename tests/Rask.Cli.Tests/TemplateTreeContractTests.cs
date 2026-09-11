@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -139,6 +140,31 @@ public sealed class TemplateTreeContractTests
             "These scaffolded files still name the placeholder slug:\n  " + string.Join("\n  ", leftovers));
 
         Assert.Contains(files, f => f.Content.Contains("shop-client", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_binary_asset_is_written_as_bytes()
+    {
+        // The scaffolder writes every file it is handed, and for a while it wrote them all as TEXT —
+        // which re-encodes a PNG or an .ico as UTF-8. The scaffold succeeds, the build succeeds, and
+        // the favicon is quietly corrupt; only opening it in a browser shows anything. Caught by the
+        // template gate writing bytes while the CLI did not, which is the kind of difference between a
+        // test's own helper and the shipping path that makes a green suite worth less than it looks.
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        var command = new NewCommand(console, fs, new FakeProcessRunner(), "/proj");
+
+        var exit = await command.ExecuteAsync(
+            ["Shop", "--template", "react", "--no-restore", "--no-git"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+
+        var png = fs.BinaryFiles.Keys.FirstOrDefault(p => p.EndsWith("hero.png", StringComparison.Ordinal));
+        Assert.NotNull(png);
+
+        // The PNG signature, which a UTF-8 round trip destroys.
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, fs.BinaryFiles[png][..4]);
+        Assert.DoesNotContain(fs.Files.Keys, p => p.EndsWith("hero.png", StringComparison.Ordinal));
     }
 
     [Theory]
