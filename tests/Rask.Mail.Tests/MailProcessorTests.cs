@@ -69,10 +69,15 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
                 await harness.Queue.SendAsync(Email.To($"user{i}@example.com").Subject($"#{i}").Body("<p>hi</p>"));
             }
 
-            await harness.WaitUntilAsync(async () => harness.Sender.Sent.Count == 5);
+            // Wait for the ROWS, not for the sends: the processor marks a row after its sender returns, so waiting
+            // on Sent.Count left the last row's write racing the count below. It lost under a loaded full gate.
+            await harness.WaitUntilAsync(async () =>
+            {
+                await using var db = harness.NewContext();
+                return await db.Set<QueuedMail>().CountAsync(m => m.ProcessedAt != null) == 5;
+            });
 
-            await using var db = harness.NewContext();
-            Assert.Equal(5, await db.Set<QueuedMail>().CountAsync(m => m.ProcessedAt != null));
+            Assert.Equal(5, harness.Sender.Sent.Count);
         }
         finally
         {

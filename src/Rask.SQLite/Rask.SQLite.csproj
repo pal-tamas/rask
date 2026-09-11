@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -22,8 +22,25 @@
     <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
+  <!--
+    SqliteOptions binds Rask:Sqlite and the connection string comes from Rask:ConnectionStrings:App. The configuration
+    binding source generator writes the bind at compile time, so no reflection binder runs (the SDK leaves it off
+    unless a project asks). The helper is source-linked; Rask.SQLite.EntityFrameworkCore uses THIS copy through
+    InternalsVisibleTo rather than linking a second one, which would put two identical internal types in its sight.
+  -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
   <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Options"/>
     <PackageReference Include="Microsoft.Data.Sqlite"/>
     <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one
          Microsoft.Data.Sqlite / EF Core pin (CVE-2025-6965). A direct reference is the only

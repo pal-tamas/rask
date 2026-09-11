@@ -279,6 +279,22 @@ public class LivePayloadTests
     }
 
     [Fact]
+    public void InjectDevToolsScript_NamesThePanelTheScriptFrames()
+    {
+        const string panel = "/_rask-devtools/?inspect=s1&t=a\"b<c";
+
+        var injected = LivePayload.InjectDevToolsScript(
+            "<html><head></head><body></body></html>", "/_rask-devtools/host.js", panel);
+
+        var match = System.Text.RegularExpressions.Regex.Match(injected, "data-panel=\"([^\"]*)\"");
+        Assert.True(match.Success, injected);
+        // Encoded in the markup, and exactly the URL again once the browser decodes the attribute.
+        Assert.DoesNotContain("<c", match.Groups[1].Value, StringComparison.Ordinal);
+        Assert.Equal(panel, System.Net.WebUtility.HtmlDecode(match.Groups[1].Value));
+        Assert.Contains("data-rask-managed defer></script></head>", injected, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InjectDevToolsScript_LeavesThePageAloneWithoutAHostScript()
     {
         const string page = "<html><head></head><body></body></html>";

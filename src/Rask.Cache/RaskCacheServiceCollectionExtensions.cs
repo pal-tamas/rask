@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cache;
 
@@ -12,7 +14,8 @@ public static class RaskCacheServiceCollectionExtensions
     /// Registers <see cref="IDistributedCache"/> (as <see cref="RaskDistributedCache{TContext}"/>), the typed
     /// <see cref="ICache"/>, and the background <see cref="CachePurger{TContext}"/>. Map the table with
     /// <c>modelBuilder.AddRaskCache()</c> in <c>OnModelCreating</c> and register your context as an
-    /// <see cref="IDbContextFactory{TContext}"/>. Idempotent.
+    /// <see cref="IDbContextFactory{TContext}"/>. <see cref="CacheOptions"/> reads the <c>Rask:Cache</c>
+    /// configuration section first and then <paramref name="configure"/>, so code wins. Idempotent.
     /// </summary>
     /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the cache table.</typeparam>
     public static IServiceCollection AddRaskCache<TContext>(this IServiceCollection services, Action<CacheOptions>? configure = null)
@@ -20,11 +23,8 @@ public static class RaskCacheServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = new CacheOptions();
-        configure?.Invoke(options);
-        options.Validate();
-
-        services.TryAddSingleton(options);
+        services.AddRaskOptions<CacheOptions>("Rask:Cache", static (section, o) => section.Bind(o), configure,
+            static o => o.Validate());
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IDistributedCache, RaskDistributedCache<TContext>>();
         services.TryAddSingleton<ICache, Cache>();

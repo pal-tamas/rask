@@ -23,7 +23,7 @@ public sealed class LitestreamReplicationServiceTests
         });
 
         await using var provider = services.BuildServiceProvider();
-        var service = provider.GetServices<IHostedService>().Single();
+        var service = provider.GetServices<IHostedService>().OfType<LitestreamReplicationService>().Single();
 
         await service.StartAsync(CancellationToken.None);
         await executor.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5));

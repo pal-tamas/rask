@@ -74,6 +74,21 @@ public sealed class WasmRemoteDispatchTests
             $"--{flag} alone scaffolded a browser startup it has no use for.");
 
         Assert.DoesNotContain("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
+
+        // The endpoint half belongs to the browser rung too. Its package and using are written only with
+        // --wasm, so a call written without them is an app that does not compile: the database-free
+        // AddRaskCqrsServer once sat outside the wasm region, and --cqrs alone failed with CS1061.
+        Assert.DoesNotContain("AddRaskCqrsServer", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs.Server", files["App.csproj"], StringComparison.Ordinal);
+
+        // Nor its setting: an app with no endpoints has no sign-in for them to waive, and a note warning
+        // that every message would answer 401 describes endpoints this app does not have.
+        Assert.DoesNotContain("RequireAuthenticatedUser", files["appsettings.json"], StringComparison.Ordinal);
+
+        // Nor the bare comment line that joined that call's paragraph to the one before it, which was left
+        // dangling straight after the query cache's registration.
+        Assert.DoesNotContain(
+            "builder.Services.AddRaskQuery();\n//\n", files["Program.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -132,21 +147,23 @@ public sealed class WasmRemoteDispatchTests
         // This app does not, so left on every message answers 401 — and the failure reads as broken
         // transport rather than as the secure default doing its job. That is the exact shape this feature
         // exists to avoid: a page that looks eligible for the browser and cannot reach its own server.
-        Assert.Contains(
-            "builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);",
-            Generate("wasm", "cqrs")["Program.cs"],
-            StringComparison.Ordinal);
+        // It is a setting, so it lives in appsettings.json beside the note on when to turn it back on.
+        var files = Generate("wasm", "cqrs");
+
+        Assert.Contains("builder.Services.AddRaskCqrsServer();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("\"RequireAuthenticatedUser\": false", files["appsettings.json"], StringComparison.Ordinal);
     }
 
     [Fact]
     public void With_a_database_the_secure_default_stands()
     {
-        var program = Generate("wasm", "cqrs", "data")["Program.cs"];
+        var files = Generate("wasm", "cqrs", "data");
 
         // A database means accounts, so there is something to authenticate — and the scaffold must not
-        // hand the app a loosening it never asked for. A message reachable by anyone is a decision worth
-        // making per app.
-        Assert.Contains("builder.Services.AddRaskCqrsServer();", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("RequireAuthenticatedUser", program, StringComparison.Ordinal);
+        // hand the app a loosening it never asked for, in either file. A message reachable by anyone is a
+        // decision worth making per app.
+        Assert.Contains("builder.Services.AddRaskCqrsServer();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("RequireAuthenticatedUser", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("RequireAuthenticatedUser", files["appsettings.json"], StringComparison.Ordinal);
     }
 }

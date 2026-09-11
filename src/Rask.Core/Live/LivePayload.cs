@@ -128,7 +128,13 @@ public static class LivePayload
     ///         be a node the diff's positional paths do not know about.
     ///     </para>
     /// </remarks>
-    internal static string InjectDevToolsScript(string html, string? hostScriptUrl)
+    /// <param name="html">The rendered page.</param>
+    /// <param name="hostScriptUrl">The devtools host script, or null when the page loads no devtools.</param>
+    /// <param name="panelUrl">
+    ///     The panel page the host script frames, written as <c>data-panel</c>. It carries the inspected session's
+    ///     token, so it belongs to this response alone.
+    /// </param>
+    internal static string InjectDevToolsScript(string html, string? hostScriptUrl, string? panelUrl = null)
     {
         if (string.IsNullOrEmpty(hostScriptUrl))
         {
@@ -141,7 +147,9 @@ public static class LivePayload
             return html;
         }
 
-        var tag = "<script src=\"" + HtmlEncoder.Default.Encode(hostScriptUrl) + "\" data-rask-managed defer></script>";
+        var tag = "<script src=\"" + HtmlEncoder.Default.Encode(hostScriptUrl) + "\""
+                  + (string.IsNullOrEmpty(panelUrl) ? "" : " data-panel=\"" + HtmlEncoder.Default.Encode(panelUrl) + "\"")
+                  + " data-rask-managed defer></script>";
         return string.Concat(html.AsSpan(0, headClose), tag.AsSpan(), html.AsSpan(headClose));
     }
 

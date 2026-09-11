@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -24,13 +24,23 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Options"/>
     <PackageReference Include="MailKit"/>
   </ItemGroup>
 
+  <!-- MailOptions binds Rask:Mail. The configuration binding source generator writes that bind at compile time,
+       so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
 
   <ItemGroup>

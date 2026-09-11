@@ -10,8 +10,14 @@ public sealed class RaskLoggingOptions
     /// The categories never captured, whatever else is configured. The store's own plumbing must not be
     /// logged into the store: a SQLite failure that logs a line that fails to write logs a line. Matched as
     /// a prefix, so <c>Rask.Logging.LogWriter</c> is covered by <c>Rask.Logging</c>.
+    /// <para>
+    /// The PostgreSQL and SQL Server drivers are here for the application-database store. What EF Core logs while
+    /// the store works is skipped by flow (see <see cref="LogStoreScope"/>), but a driver also logs from threads of
+    /// its own — a connection pool pruning idle connections — where no flow marks it as the store's.
+    /// </para>
     /// </summary>
-    private static readonly string[] AlwaysExcluded = ["Rask.Logging", "Microsoft.Data.Sqlite"];
+    private static readonly string[] AlwaysExcluded =
+        ["Rask.Logging", "Microsoft.Data.Sqlite", "Npgsql", "Microsoft.Data.SqlClient"];
 
     /// <summary>
     /// The lowest level captured. Default <see cref="LogLevel.Information" />.
@@ -93,12 +99,20 @@ public sealed class RaskLoggingOptions
     /// The production pragmas applied to every connection the store opens. Defaults to the same tuned set
     /// <c>Rask.SQLite</c> applies to the application database — WAL matters here in particular, since it is
     /// what lets a dashboard read the store while the writer is flushing.
+    /// <para>
+    /// For the SQLite file store (<c>AddRaskLogging()</c>) only. The application-database store
+    /// connects through your context, with whatever its <c>UseRaskX</c> call configured.
+    /// </para>
     /// </summary>
     public SqliteOptions Pragmas { get; set; } = new();
 
     /// <summary>
     /// The non-blocking busy-retry used when the write lock is contended (a reader checkpointing, a second
     /// process). Defaults to <c>Rask.SQLite</c>'s constant-interval retry.
+    /// <para>
+    /// For the SQLite file store only; the application-database store retries through your context's execution
+    /// strategy.
+    /// </para>
     /// </summary>
     public SqliteBusyRetryOptions BusyRetry { get; set; } = new();
 
@@ -133,7 +147,7 @@ public sealed class RaskLoggingOptions
         return false;
     }
 
-    /// <summary>Validates the option values at registration, so a bad value fails fast.</summary>
+    /// <summary>Validates the option values once <c>Rask:Logging</c> and the callback have applied, at host start, so a bad value fails fast.</summary>
     internal void Validate()
     {
         if (Retention < TimeSpan.Zero)

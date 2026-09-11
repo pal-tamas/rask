@@ -26,10 +26,6 @@ public sealed class PackageIslandTargetsTests
         "namespace Shop;\n\npublic sealed partial class MuiButton : Rask.External.ReactComponent\n{\n"
         + "    protected override string Module => \"@mui/material#Button\";\n}\n";
 
-    private const string VueIsland =
-        "namespace Shop;\n\npublic sealed partial class Toggle : Rask.External.VueComponent\n{\n"
-        + "    protected override string Module => \"@acme/toggle\";\n}\n";
-
     private const string Snapshot =
         "{\n  \"schema\": 1,\n  \"runtime\": \"react\",\n  \"module\": \"@mui/material\",\n  \"export\": \"Button\",\n"
         + "  \"package\": {\n    \"name\": \"@mui/material\",\n    \"version\": \"7.3.1\"\n  },\n  \"props\": []\n}\n";
@@ -80,20 +76,6 @@ public sealed class PackageIslandTargetsTests
         // No scan without a package.json, and the committed file still reaches the compile.
         Assert.DoesNotContain("PACKAGE=", output, StringComparison.Ordinal);
         Assert.Single(Regex.Matches(output, @"ADDITIONAL=MuiButton\.props\.json"));
-    }
-
-    [Fact]
-    public async Task A_runtime_whose_packages_are_not_read_yet_is_held_to_its_snapshot_instead()
-    {
-        // Extraction is possible here, and still a Vue package island is not sent to the extractor, which would
-        // fail it (RASKISLAND007) on every build. It is held to its committed snapshot, which is missing.
-        var (exit, output) = await Build(
-            packageJson: true, snapshot: false, "-t:_RaskExternalPackageProps", source: VueIsland, name: "Toggle");
-
-        Assert.NotEqual(0, exit);
-        Assert.Contains("RASKISLAND006", output, StringComparison.Ordinal);
-        Assert.Contains("React, Preact and Solid", output, StringComparison.Ordinal);
-        Assert.DoesNotContain("RASKISLAND007", output, StringComparison.Ordinal);
     }
 
     private static async Task<(int Exit, string Output)> Build(

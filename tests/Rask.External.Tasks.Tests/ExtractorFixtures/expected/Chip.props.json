@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "runtime": "vue",
+  "module": "fixture-vue",
+  "export": "Chip",
+  "package": {
+    "name": "fixture-vue",
+    "version": "2.0.1"
+  },
+  "tag": null,
+  "content": "node",
+  "props": [
+    {
+      "name": "label",
+      "required": true,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onRemove",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "id",
+            "type": {
+              "kind": "number"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "skipped": []
+}

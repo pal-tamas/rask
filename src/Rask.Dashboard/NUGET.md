@@ -66,9 +66,14 @@ builder.Services.AddRaskDashboard<AppDbContext>(o =>
 
     o.LogBufferSize   = 500;
     o.LogMinimumLevel = LogLevel.Information;
-    // o.CaptureLogs  = false;                     // no logging provider is registered at all
+    // o.CaptureLogs  = false;                     // the logging provider drops everything
 });
 ```
+
+Every one of these is also `Rask:Dashboard` in `appsettings.json` (`"RefreshInterval": "00:00:02"`,
+`"Actions": "All"`), and the callback runs after the section and wins. That includes `AllowAnonymousAccess`,
+which opens the console to everyone — settable from an environment variable, so guard the deploy environment's
+variables as carefully as the code.
 
 Panels poll, compare, and only re-render on a real change — an idle system produces no diff and no
 WebSocket traffic. The loop is bounded on purpose: every open tab is a reader competing with the

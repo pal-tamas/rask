@@ -41,6 +41,9 @@
                       ReferenceOutputAssembly="false"/>
     <!-- NodeFixture, which runs the host-script fixtures below. -->
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
+    <!-- The panel is drawn with Rask.Ui, which Rask.DevTools references privately: an app brings its own copy, and so
+         does this test host. -->
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -51,6 +54,7 @@
     <!-- The Server tests' host, shared rather than copied: the endpoint tests need the same AddRask/UseRask
          wiring a real app gets. -->
     <Compile Include="..\Rask.Server.Tests\Infrastructure\RaskTestHost.cs" Link="Infrastructure\RaskTestHost.cs"/>
+    <Compile Include="..\Rask.Server.Tests\Infrastructure\WebSocketHelper.cs" Link="Infrastructure\WebSocketHelper.cs"/>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>

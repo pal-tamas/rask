@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Meta.Hosting</RootNamespace>
@@ -13,6 +13,16 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!-- MetaHostingOptions binds Rask:Meta. The configuration binding source generator writes that bind at
+       compile time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -38,9 +38,28 @@ public sealed class PropsExtractorTests : IDisposable
             typescript,
             Island("FixtureButton", "fixture-button"),
             Island("Badge", "fixture-button#Badge"),
-            Island("Switch", "fixture-button#Switch"));
+            Island("Switch", "fixture-button#Switch"),
+            Island("Toggle", "fixture-vue", "vue"),
+            Island("PrimeButton", "fixture-vue#PrimeButton", "vue"),
+            Island("Picker", "fixture-vue#Picker", "vue"),
+            Island("Chip", "fixture-vue#Chip", "vue"),
+            Island("SwitchRoot", "fixture-svelte#Switch.Root", "svelte"),
+            Island("Toaster", "fixture-svelte", "svelte"),
+            Island("LegacySelect", "fixture-svelte#LegacySelect", "svelte"),
+            Island("Card", "fixture-vue#Card", "vue"),
+            Island("Tabs", "fixture-vue#Tabs", "vue"),
+            Island("Dropdown", "fixture-svelte#Dropdown", "svelte"),
+            Island("FxSwitch", "fixture-lit/fx-switch.js#fx-switch", "lit"),
+            Island("FxBadge", "fixture-lit/components/badge/badge.js", "lit"),
+            Island("FxToggle", "fixture-angular#FxToggle", "angular"),
+            Island("FxSlider", "fixture-angular#FxSlider", "angular"),
+            Island("FxField", "fixture-angular#FxField", "angular"));
 
-        foreach (var name in new[] { "Badge", "FixtureButton", "Switch" })
+        foreach (var name in new[]
+                 {
+                     "Badge", "Card", "Chip", "Dropdown", "FixtureButton", "FxBadge", "FxField", "FxSlider", "FxSwitch", "FxToggle",
+                     "LegacySelect", "Picker", "PrimeButton", "Switch", "SwitchRoot", "Tabs", "Toaster", "Toggle",
+                 })
         {
             var actual = File.ReadAllText(Path.Combine(output, name + ".props.json"));
             var expected = Path.Combine(Fixtures, "expected", name + ".props.json");
@@ -71,6 +90,35 @@ public sealed class PropsExtractorTests : IDisposable
         Assert.Equal("module-not-found", results["Absent"].Code);
         Assert.Equal("export-not-found", results["Nameless"].Code);
         Assert.True(File.Exists(Path.Combine(output, "FixtureButton.props.json")));
+    }
+
+    [SkippableFact]
+    public void What_cannot_be_mounted_as_a_lit_or_angular_island_is_refused_by_name()
+    {
+        var typescript = Toolchain();
+        var output = Extract(
+            typescript,
+            Island("FxTooltip", "fixture-angular#FxTooltip", "angular"),
+            Island("FxLegacy", "fixture-angular#FxLegacy", "angular"),
+            Island("FxNothing", "fixture-lit/fx-switch.js#fx-nothing", "lit"),
+            Island("FxSwitch", "fixture-lit/fx-switch.js#fx-switch", "lit"),
+            Island("FxSwitchClass", "fixture-lit/components/switch/switch.js#FxSwitch", "lit"),
+            Island("FxBorrowed", "fixture-lit/components/badge/badge.js#fx-switch", "lit"));
+
+        var results = SyncExternalPropsSnapshotsTask.ReadResults(File.ReadAllText(Path.Combine(output, "result.json")));
+
+        // A directive is not a component, a non-standalone component cannot be mounted on its own, and a tag the module
+        // never registers has no element behind it.
+        Assert.Equal("not-a-component", results["FxTooltip"].Code);
+        Assert.Equal("not-standalone", results["FxLegacy"].Code);
+        Assert.Equal("lit-tag-unknown", results["FxNothing"].Code);
+
+        // Every Lit island shares one program, and so one tag map. FxSwitch's define module registering fx-switch must not
+        // lend that tag to a class module that registers nothing, nor to another module named by it: importing either
+        // one alone would load no element, and the island would render only when FxSwitch's chunk happened to load first.
+        Assert.True(results["FxSwitch"].Ok);
+        Assert.Equal("lit-tag-unknown", results["FxSwitchClass"].Code);
+        Assert.Equal("lit-tag-unknown", results["FxBorrowed"].Code);
     }
 
     [SkippableFact]
@@ -149,11 +197,11 @@ public sealed class PropsExtractorTests : IDisposable
         return resolve.ToolPath;
     }
 
-    private static TaskItem Island(string name, string module)
+    private static TaskItem Island(string name, string module, string runtime = "react")
     {
         var item = new TaskItem(name + ".props.json");
         item.SetMetadata("IslandName", name);
-        item.SetMetadata("Runtime", "react");
+        item.SetMetadata("Runtime", runtime);
         item.SetMetadata("PackageModule", module);
         return item;
     }

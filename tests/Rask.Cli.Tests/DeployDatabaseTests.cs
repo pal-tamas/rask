@@ -21,7 +21,7 @@ public sealed class DeployDatabaseTests
         var args = DeployCommand.BuildRunArguments(Host, "shop", domain: null, color: null, 8080, []);
 
         Assert.Contains("shop-data:/data", args, StringComparer.Ordinal);
-        Assert.Contains("ConnectionStrings__App=Data Source=/data/app.db", args, StringComparer.Ordinal);
+        Assert.Contains("Rask__ConnectionStrings__App=Data Source=/data/app.db", args, StringComparer.Ordinal);
     }
 
     [Fact]

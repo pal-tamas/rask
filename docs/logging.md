@@ -3,8 +3,9 @@
 > **In practice:** the [dashboard](dashboard.md)'s Logs page reads it · [observability](observability.md) ·
 > [deployment](deployment.md#the-log-store).
 
-`Rask.Logging` keeps the application's log in a SQLite file of its own — no agent, no hosted log service. It
-registers a standard **`ILoggerProvider`**, so it captures exactly what every other sink sees, buffers entries
+`Rask.Logging` keeps the application's log where you can query it — in a SQLite file of its own, or, on
+PostgreSQL or SQL Server, [in the application's database](#on-postgresql-or-sql-server) — with no agent and no
+hosted log service. It registers a standard **`ILoggerProvider`**, so it captures exactly what every other sink sees, buffers entries
 through a bounded channel that never blocks the caller, and writes them in batches on a background service.
 Retention is enforced by **age** and by **row count**.
 
@@ -28,33 +29,85 @@ restart. This is the other half — the log you can still read tomorrow, and sea
 
 ```csharp
 // Program.cs
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+builder.Services.AddRaskLogging();
 ```
 
-That is the whole setup. The schema is created on first use, so **there is no migration to add** — unlike the
-other database-backed pillars, this one doesn't touch your `DbContext`.
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "ConnectionStrings": {
+      "Logs": "Data Source=logs.db"
+    }
+  }
+}
+```
 
-`rask new MyApp` scaffolds exactly the line above — the log store is on by default (`--no-logs` leaves it out).
+That is the whole setup. The store opens `Rask:ConnectionStrings:Logs`, and a missing one is an error naming
+the key to set. The schema is created on first use, so **there is no migration to add** — unlike the other
+database-backed pillars, this one doesn't touch your `DbContext`.
+
+`rask new MyApp` scaffolds exactly the lines above — the log store is on by default (`--no-logs` leaves it out).
+
+### On PostgreSQL or SQL Server
+
+```csharp
+// Program.cs
+builder.Services.AddRaskLogging<AppDbContext>();
+
+// AppDbContext.OnModelCreating
+modelBuilder.AddRaskLogging();
+```
+
+```bash
+rask db add AddLogs && rask db update
+```
+
+On a server database the log goes into the application's own database, as a `RaskLog` table your migrations
+create. The reasons for a file of its own ([below](#its-own-file-on-purpose)) weigh differently there:
+
+- **Write frequency.** PostgreSQL and SQL Server lock rows, not the whole database, so a machine-rate writer does
+  not queue your requests behind it.
+- **Transaction entanglement.** Every flush runs on a context — and a connection — of its own, so a line logged
+  while one of your transactions is failing commits on its own and survives the rollback.
+
+In return the log is covered by the database's own backups, and several instances of the app share one log; each
+runs its writer, and their retention sweeps are safe to run at the same time.
+
+Everything else on this page is the same — options, scopes, queries, the dashboard, metrics. `Pragmas` and
+`BusyRetry` belong to the file store and do nothing here. What EF Core logs on the store's own behalf is never
+captured back into it, while your application's SQL still is, so [keeping the noise down](#keeping-the-noise-down)
+still applies. A model that never mapped the table fails the boot with the line to add. There is no
+`Rask:ConnectionStrings:Logs` to set: the store connects through your context.
+
+On SQLite, keep the file store: there every writer shares one lock, and a file of its own is the point.
 
 ### Options
 
-```csharp
-builder.Services.AddRaskLogging(connectionString, o =>
-{
-    o.MinimumLevel = LogLevel.Warning;       // a floor, not an override — see below
-    o.Retention    = TimeSpan.FromDays(30);  // TimeSpan.Zero keeps entries forever
-    o.MaxRows      = 250_000;                // 0 removes the cap
-    o.FlushInterval = TimeSpan.FromSeconds(1);
-    o.BatchSize     = 500;
-    o.QueueCapacity = 10_000;
-    o.ExcludedCategories.Add("Microsoft.AspNetCore.");
+Every option is `Rask:Logging` in `appsettings.json`:
 
-    o.CaptureScopes        = true;  // store ambient ILogger.BeginScope state (default)
-    o.MaxScopeValues       = 16;    // per entry
-    o.MaxScopeValueLength  = 256;   // per value
-});
+```jsonc
+{
+  "Rask": {
+    "Logging": {
+      "MinimumLevel": "Warning",        // a floor, not an override — see below
+      "Retention": "30.00:00:00",       // "00:00:00" keeps entries forever
+      "MaxRows": 250000,                // 0 removes the cap
+      "FlushInterval": "00:00:01",
+      "BatchSize": 500,
+      "QueueCapacity": 10000,
+      "ExcludedCategories": [ "Microsoft.AspNetCore." ],
+
+      "CaptureScopes": true,            // store ambient ILogger.BeginScope state (default)
+      "MaxScopeValues": 16,             // per entry
+      "MaxScopeValueLength": 256        // per value
+    }
+  }
+}
 ```
+
+`ExcludedCategories` is appended to rather than replaced. A callback — `AddRaskLogging(o => …)` — runs after
+the section and wins.
 
 ### Scopes
 
@@ -89,9 +142,9 @@ will contain. Two levers, and the first is usually the right one:
 "Logging": { "LogLevel": { "Microsoft.EntityFrameworkCore.Database.Command": "Warning" } }
 ```
 
-```csharp
+```jsonc
 // …or skip a category for this sink only, leaving your console output alone
-o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database");
+"Rask": { "Logging": { "ExcludedCategories": [ "Microsoft.EntityFrameworkCore.Database" ] } }
 ```
 
 > **`MinimumLevel` is a floor, not an override.** The logging pipeline applies your `Logging:LogLevel`
@@ -118,9 +171,11 @@ public sealed partial class IncidentPage(ILogs store) : Component
 }
 ```
 
-Each `LogRecord` carries its `Scopes` as key/value pairs. The scope filter matches the stored key exactly
-(via SQLite's `json_extract`) rather than searching the row as text, so a request id cannot match an entry
-that merely mentioned it in a message.
+Each `LogRecord` carries its `Scopes` as key/value pairs. The scope filter matches the stored key and value
+exactly rather than searching the row as text: it looks for the JSON-encoded `"key":"value"` pair, so a request id
+cannot match an entry that merely mentioned it in a message, and `r2` does not match `r22`. Keys and values may hold
+spaces, quotes or accents. On SQL Server the comparison follows the database's collation, which ignores case by
+default.
 
 `LogPage` carries the matching entries (newest first), the `TotalCount` behind the filter, and a `PageCount`.
 `ILogs` also exposes `CategoriesAsync()`, `CountAsync()`, `PurgeAsync(retention, maxRows)` and
@@ -144,7 +199,8 @@ the same way, so `rask.logs.dropped` stays the single honest answer to *"is the 
 ### Its own file, on purpose
 
 Every other database-backed pillar (`AddRaskJobs<TContext>`, `AddRaskOutbox<TContext>`, …) maps an entity onto
-*your* `DbContext` and rides your migrations. This one deliberately doesn't:
+*your* `DbContext` and rides your migrations. On SQLite this one deliberately doesn't (on a server database it does —
+[see above](#on-postgresql-or-sql-server)):
 
 - **Write frequency.** Jobs and emails arrive at human rates; log lines arrive at machine rates. Routing them
   through your `DbContext` would put a high-frequency writer on the same single SQLite write lock your request
@@ -188,17 +244,20 @@ dotnet-counters monitor --counters Rask.Logging
 
 ## Deploying
 
-`rask deploy` sets `ConnectionStrings__Logs=Data Source=/data/logs.db`, on the same named volume as the
+`rask deploy` sets `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db`, on the same named volume as the
 application database — without it the log would land in the container's writable layer and be destroyed by the
 very restart it exists to survive.
 
 ## Notes
 
-- **One writer per app.** SQLite is single-writer; run one process against a given `logs.db`, exactly as with
-  the jobs and outbox processors.
-- **Trim / AOT safe.** No reflection. Scope state is encoded with a source-generated
-  `JsonSerializerContext`, not the reflection serializer, so the package stays free of IL2026/IL3050 in a
-  published WASM or AOT app. It depends only on `Microsoft.Data.Sqlite` and the logging/hosting abstractions.
+- **One writer per `logs.db`.** SQLite is single-writer; run one process against a given file, exactly as with
+  the jobs and outbox processors. On a server database, every instance of the app writes to the shared table.
+- **The drivers are never captured.** `Microsoft.Data.Sqlite`, `Npgsql` and `Microsoft.Data.SqlClient` log from
+  inside the store's own writes, so they are excluded whatever `ExcludedCategories` says.
+- **No reflection of its own.** Scope state is encoded with a source-generated `JsonSerializerContext`, not the
+  reflection serializer, so the file store is free of IL2026/IL3050. The application-database store runs EF Core
+  LINQ queries and is exactly as trim- and AOT-ready as EF Core itself — which for a server app is not a concern.
+  The package depends on `Microsoft.Data.Sqlite`, EF Core and the logging/hosting abstractions.
 - **The schema upgrades itself.** The `Scopes` column is added to a store created by an earlier version on
   first use — this database is framework-owned and deliberately outside your migration history, so there is
   nothing for you to run.

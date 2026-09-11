@@ -85,10 +85,14 @@ internal sealed class SqliteLogStore : ILogs
                         {
                             timestamp.Value = FormatTimestamp(record.Timestamp);
                             level.Value = (int)record.Level;
-                            category.Value = record.Category;
+                            // NUL as U+FFFD, the same as the application-database store (see LogText), so a
+                            // line reads back identically whichever store keeps it.
+                            category.Value = LogText.WithoutNul(record.Category);
                             eventId.Value = record.EventId;
-                            message.Value = record.Message;
-                            exception.Value = (object?)record.Exception ?? DBNull.Value;
+                            message.Value = LogText.WithoutNul(record.Message);
+                            exception.Value = record.Exception is null
+                                ? DBNull.Value
+                                : LogText.WithoutNul(record.Exception);
                             // Encoded here, on the writer's thread, rather than at the log call — the call
                             // site only pays for the flattened snapshot (see LogScopes).
                             scopes.Value = (object?)LogScopeJson.Encode(record.Scopes) ?? DBNull.Value;
@@ -491,22 +495,17 @@ internal sealed class SqliteLogStore : ILogs
 
         if (!string.IsNullOrWhiteSpace(query.ScopeKey))
         {
-            // json_extract rather than a LIKE over the raw column: a LIKE for "RequestId" would also match
-            // an entry whose *message* merely mentioned it, and a value search would match a prefix of a
-            // different id. SQLite ships JSON1 in every build Microsoft.Data.Sqlite bundles.
-            //
-            // The key is concatenated into the JSON path as a PARAMETER, not into the SQL, so a key
-            // containing quotes cannot change the shape of the statement.
-            var clause = string.IsNullOrWhiteSpace(query.ScopeValue)
-                ? "json_extract(Scopes, '$.' || $scopeKey) IS NOT NULL"
-                : "json_extract(Scopes, '$.' || $scopeKey) = $scopeValue";
-
-            Add(clause, "$scopeKey", SqliteType.Text, query.ScopeKey);
-
-            if (!string.IsNullOrWhiteSpace(query.ScopeValue))
-            {
-                filters.Add(new SqliteParameter("$scopeValue", SqliteType.Text) { Value = query.ScopeValue });
-            }
+            // The encoded "key":"value" text, found with instr — exact, and the same match the application-database
+            // store makes (see LogScopeJson.Fragment). It replaced json_extract(Scopes, '$.' || key), which read the
+            // key as a JSON *path*: a dotted or bracketed key (user.id, items[0]) was a nested path that matched
+            // nothing, and a key starting with a double quote was no valid path at all, so the query threw.
+            Add(
+                "instr(Scopes, $scope) > 0",
+                "$scope",
+                SqliteType.Text,
+                LogScopeJson.Fragment(
+                    query.ScopeKey,
+                    string.IsNullOrWhiteSpace(query.ScopeValue) ? null : query.ScopeValue));
         }
 
         if (query.From is { } from)

@@ -56,12 +56,12 @@ single-box deployment usually means the container's stdout — gone with the nex
 [`Rask.Logging`](logging.md) to keep them:
 
 ```csharp
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+builder.Services.AddRaskLogging();   // a SQLite file of its own, at Rask:ConnectionStrings:Logs
 ```
 
 It registers an `ILoggerProvider`, so it captures exactly what every other sink sees — the categories above
-included — into a SQLite file of its own, with retention by age and row count and a searchable view in the
+included — into a SQLite file of its own (or, on PostgreSQL or SQL Server, into the app's own database with
+`AddRaskLogging<AppDbContext>()`), with retention by age and row count and a searchable view in the
 [dashboard](dashboard.md). Its `rask.logs.dropped` counter is the one metric that tells you the stored log is
 incomplete.
 
@@ -173,7 +173,7 @@ above (or any `ActivityListener`).
 Register them on your health-checks pipeline:
 
 ```csharp
-builder.Services.AddRask(o => o.MaxSessions = 1000);
+builder.Services.AddRask();   // "Rask": { "Live": { "MaxSessions": 1000 } } in appsettings.json
 builder.Services.AddHealthChecks().AddRaskLiveSessions();
 // ...
 app.MapHealthChecks("/health");

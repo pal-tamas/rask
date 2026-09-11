@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Server</RootNamespace>
@@ -58,7 +58,15 @@
   <ItemGroup>
     <Compile Include="..\Rask.Hosting.Shared\RaskDataProtectionSetup.cs" Link="Shared\RaskDataProtectionSetup.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskShutdownDefaults.cs" Link="Shared\RaskShutdownDefaults.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
+
+  <!-- The live, server, culture and upload options bind Rask:Live / Rask:Server / Rask:Culture / Rask:Uploads.
+       The configuration binding source generator writes those binds at compile time, so no reflection binder
+       runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
 
   <!--
     Every file the two bundles can reach, so an edit to any of them re-bundles. Stated as an
@@ -153,20 +161,12 @@
   </ItemGroup>
 
   <!--
-    Bundle Rask.Core.dll into lib/net10.0/ alongside Rask.Server.dll. PrivateAssets="all" on the Core
-    ProjectReference keeps the Rask.Core "package" out of the nuspec dependency list — we explicitly pack
-    its DLL here. Microsoft.AspNetCore.App (declared as a FrameworkReference) covers all of Core's runtime
-    needs at consume time on net10.0. The analyzer/generator/code-fix payload is packed by the shared
-    RaskAnalyzerPack.targets import below.
+    Rask.Core.dll and its XML docs into lib/, next to Rask.Server.dll. PrivateAssets="all" on the Core
+    ProjectReference keeps a Rask.Core "package" out of the nuspec, so this is the only thing that ships it;
+    Microsoft.AspNetCore.App (the FrameworkReference) covers Core's runtime needs at consume time. Shared
+    with Rask.Wasm. The analyzer/generator/code-fix payload is packed by RaskAnalyzerPack.targets below.
   -->
-  <ItemGroup>
-    <None Include="$(OutputPath)Rask.Core.dll"
-          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
-    <!-- Ship Rask.Core's XML docs next to its bundled DLL so Core's public API (Component,
-         Element, the HTML/SVG element family, forms, routing) surfaces IntelliSense for consumers too. -->
-    <None Include="$(OutputPath)Rask.Core.xml"
-          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
-  </ItemGroup>
+  <Import Project="..\RaskCoreBundle.targets"/>
 
   <Import Project="..\RaskAnalyzerPack.targets"/>
   <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Server.targets. -->

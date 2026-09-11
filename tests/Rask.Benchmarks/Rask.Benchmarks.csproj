@@ -14,6 +14,8 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet"/>
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- ConfigurationBuilder: UseRaskSqlite reads Rask:ConnectionStrings:App, which TestConnectionStrings supplies. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
   </ItemGroup>
 
   <ItemGroup>

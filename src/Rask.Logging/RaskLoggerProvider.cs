@@ -54,9 +54,10 @@ internal sealed class RaskLoggerProvider(
             _options.CaptureScopes ? LogScopes.Push(state) : null;
 
         // Checked by the logging infrastructure before it formats anything, so an entry below the store's
-        // threshold costs a comparison rather than a string.
+        // threshold costs a comparison rather than a string. The store's own flow is checked last, so an entry
+        // the category or level already rules out never pays for the async-local read (see LogStoreScope).
         public bool IsEnabled(LogLevel logLevel) =>
-            !_excluded && logLevel != LogLevel.None && logLevel >= _options.MinimumLevel;
+            !_excluded && logLevel != LogLevel.None && logLevel >= _options.MinimumLevel && !LogStoreScope.Active;
 
         public void Log<TState>(
             LogLevel logLevel,
