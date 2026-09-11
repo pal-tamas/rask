@@ -151,7 +151,7 @@ public sealed class RaskDistributedCache<TContext>(
         {
             await db.SaveChangesAsync(token).ConfigureAwait(false);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException error)
         {
             // A concurrent writer (a cache stampede on a cold key) may have inserted this key first — last write
             // wins: clear the failed insert and update the now-existing row instead of surfacing the primary-key
@@ -171,6 +171,21 @@ public sealed class RaskDistributedCache<TContext>(
                 .ConfigureAwait(false);
             if (updated == 0)
             {
+                // A key longer than the table's key column never stores on a provider that enforces the length
+                // (PostgreSQL, SQL Server): the insert failed on truncation, and there is no row to update. Name
+                // that, rather than surface a provider error about some value being too long for some column.
+                // SQLite does not enforce the length, so it never reaches here for this reason.
+                if (db.Model.FindEntityType(typeof(CacheEntry))?.FindProperty(nameof(CacheEntry.Key))?.GetMaxLength()
+                        is { } maxLength
+                    && key.Length > maxLength)
+                {
+                    throw new ArgumentException(
+                        $"The cache key is {key.Length} characters long, and this database's cache table holds keys of "
+                        + $"at most {maxLength}. Shorten the key — hash a long one, for example with SHA-256.",
+                        nameof(key),
+                        error);
+                }
+
                 throw;
             }
         }

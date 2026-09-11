@@ -9,6 +9,51 @@ them until tagged releases begin.
 
 ### Added
 
+- **A Debug build running in Development loads Rask DevTools' host script into every live page.** `AddRask`
+  attaches the devtools when the build carries `Rask.DevTools`; `UseRask` then maps `/_rask-devtools/host.js` —
+  anonymous, so an app with a fallback authorization policy still loads its own tools — and each interactive
+  page gets a deferred, `data-rask-managed` `<script>` for it at the end of its `<head>`. Outside Development
+  nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
+  it. The script is an entry point so far; the in-page tools arrive in the next slices.
+
+  The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
+  load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
+  bundles both runtimes with the pinned esbuild, with and without the hooks, and fails past 250 minified bytes
+  (184 and 185 today). The three per-response `<body>` stamps now share one insertion helper.
+
+- **Use an npm component as an island with no wrapper — its props come from its own TypeScript.** A class whose
+  `Module` names a package (`protected override string Module => "@mui/material/Button";`, or
+  `"@mui/material#Button"` for a named export) is a *package island*, and a committed `MuiButton.props.json`
+  beside it describes the package's props. From it the island generator declares the properties and a
+  reflection-free writer and the factory generator the chain steps —
+  `MuiButton.Variant(MuiButtonVariant.Contained).Disabled(saving).OnClick(Save)` — both reading one resolver, so
+  a step can never exist without its property. String-literal unions become generated enums sent as the
+  original literal; `number` is `double`; objects become generated records; `string | number` a generated
+  struct that takes either; dates cross tagged and arrive as a `Date`. An unset prop is left out rather than
+  sent as `null`, so the package's own default applies. A callback never forwards an event object —
+  `onChange(event, value)` is `Callback<double>` and only the number crosses (`$a`), which also stops a
+  package's synthetic event throwing inside the host's `JSON.stringify` and losing the call. A property
+  declared by hand wins and keeps its own type. RASK077–080 report a missing, unreadable or mismatched snapshot
+  and any prop that could not be generated. See
+  [Using a package component directly](docs/islands.md#using-a-package-component-directly).
+
+- **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
+  attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
+  `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
+  bypass, ambient state, children, or an empty cache), the serializer's walk and its replay of a captured
+  subtree, `StateHasChanged`, handler dispatch, the tree commit, and per session the walk, the diff-or-full
+  decision and every frame sent or received. A build without the devtools folds that read to null. Both
+  browser runtimes gained matching `send`, `recv` and `commit` hooks, and a frame-span walker locates a
+  component's DOM nodes with the differ's own slot rules — cross-checked against the differ's op paths.
+
+  Handler dispatch is now a non-async forwarder that enters an instrumented path only when a probe is
+  attached, so the dispatch every event takes gains no async state-machine field.
+
+  Measured: all 45 `LiveRenderRoundTrip`, `HtmlSerializerLiveRoot`, `RenderRoundTrip`, `FrameDiffer`,
+  `LivePayloadUtf8`, `WsDispatch` and `WasmDispatch` cases allocate exactly what they did before. That reaches
+  the component-level seams; no benchmark reaches handler dispatch or a session's render-to-send loop (see
+  #1062), so those seams rest on how they are built and on the Server, WASM and Core suites.
+
 - **A shared rask.sh link unfurls as a card.** Every page names a 1200×630 social card — the site's bolt,
   its own type and palette, the one-line pitch and a real markup chain — as `og:image` with its size, type
   and alt text, and as a `summary_large_image` Twitter card; guides and the front door carry it as the
@@ -33,6 +78,41 @@ them until tagged releases begin.
   keyword-named table under the retrying strategy, and fifty concurrent writers on one cold cache key all
   succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
   (`docs/data.md#postgresql`).
+
+- **SQL Server is back too, as the opt-in `Rask.SqlServer`.** `UseRaskSqlServer(sp, o => …)` — connection string from `Rask:ConnectionStrings:App`, options from `Rask:SqlServer` — is a drop-in for
+  `UseSqlServer` that sends `SET XACT_ABORT ON` and `SET LOCK_TIMEOUT` (10s, validated below the command
+  timeout) as one batch on every connection EF opens — SQL Server takes no session settings in the connection
+  string, and SqlClient resets them on every pooled open — sets a client `CommandTimeout` (30s, rounded up to
+  whole seconds because 0 means "wait forever"), and turns on SQL Server's retrying strategy through `o.Retry`.
+  `Rask.Cache` keys its table at 512 characters, which SQL Server's 900-byte index key limit only admits with
+  a warning; `UseRaskSqlServer` caps that one key at 450 in the model through its own convention, so the table
+  is created cleanly, no other entity is resized, and SQLite apps get no migration. A key longer than 450
+  characters still cannot be stored on SQL Server — see the cache entry under Fixed for the error it now gets.
+  Calling `UseRaskSqlServer` twice on one configuration keeps one interceptor and the last call's settings. The provider suite gains the same
+  claim, cache, session-settings and bulk-insert scenarios against SQL Server 2022 — started on amd64 hosts
+  only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
+  summary that SQL Server was not proven rather than counting it as a pass.
+
+- **MySQL, as the opt-in `Rask.MySql`.** `UseRaskMySql(sp, o => …)` — connection string from `Rask:ConnectionStrings:App`, options from `Rask:MySql` — wraps Oracle's `UseMySQL` provider —
+  Pomelo had no EF Core 10 release — and sends `innodb_lock_wait_timeout` (10s, whole seconds, validated below the
+  command timeout) and `max_execution_time` (30s) as one `SET` on every connection EF opens, sets a client
+  `CommandTimeout` (30s) and turns on the provider's retrying strategy through `o.Retry`. The knobs follow MySQL
+  rather than the other packages: `max_execution_time` stops read-only `SELECT`s only, so the command timeout is
+  the ceiling on a runaway write, and both timeouts round up — a short lock wait must not fall below MySQL's 1-second minimum, and a
+  0 `max_execution_time` means "no limit"; the lock wait is validated below the command timeout after rounding. The settings live on
+  the options extension, so calling it twice keeps one interceptor and the last call's values. It also registers a
+  model convention, because a real server showed Oracle's provider losing a `DateTimeOffset`'s fractional seconds
+  twice — a whole-second `datetime` column by default, and a reader that truncates even a `datetime(6)` one: every
+  `DateTimeOffset` without a converter of its own is stored as its UTC `DateTime` in `datetime(6)` and read back
+  at offset zero, the offset the provider returned anyway. The provider suite
+  gains MySQL 8.4 — a native image, so unlike SQL Server it is proven on every host and a host that cannot start it
+  fails the gate: the start-gated claim races, session settings re-applied on every open, fifty cache writers on one
+  key, a 513-character key rejected with its limit named, bulk insert into a backtick-quoted keyword table, and a
+  Guid, a +02:00 DateTimeOffset (back as the same instant at offset zero) and a microsecond `DateTime`
+  round-tripped through a server whose own time zone is +05:00. Three things to know: Oracle's packages are
+  `GPL-2.0-only WITH Universal-FOSS-exception-1.0` (Rask is MIT); MariaDB is not supported, having no
+  `max_execution_time`; and an app switching from `UseMySQL` needs a migration, since its `DateTimeOffset`
+  columns become `datetime(6)`.
 
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
@@ -164,7 +244,7 @@ them until tagged releases begin.
 
 - **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
   own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
-  `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`,
+  `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer`, `Rask:MySql`,
   `Rask:Litestream`, `Rask:Snapshots`, `Rask:Cache`, `Rask:Jobs`, `Rask:Logging`, `Rask:Mail`, `Rask:Outbox`,
   `Rask:Cqrs`, `Rask:Cqrs:Server`, `Rask:WebPush` — and the connection strings are `Rask:ConnectionStrings:App` and
   `Rask:ConnectionStrings:Logs`. Nothing is bound by hand any more (`GetSection("Rask").Bind(o)` is gone from the
@@ -202,13 +282,27 @@ them until tagged releases begin.
 
 - **BREAKING — the connection-string overloads are gone; the connection string is configuration.**
   `UseRaskSqlite(cs, …)` is `UseRaskSqlite(sp, …)` (`AddDbContextFactory<T>((sp, o) => o.UseRaskSqlite(sp))`),
-  `UseRaskPostgres(cs, …)` is `UseRaskPostgres(sp, …)`, `AddRaskSqlite(cs, …)` is `AddRaskSqlite(…)` and
+  `UseRaskPostgres(cs, …)` is `UseRaskPostgres(sp, …)` (and likewise `UseRaskSqlServer` and `UseRaskMySql`), `AddRaskSqlite(cs, …)` is `AddRaskSqlite(…)` and
   `AddRaskLogging(cs, …)` is `AddRaskLogging(…)`. Each reads `Rask:ConnectionStrings:App` (or `:Logs`) and,
   when it is missing, stops with an error naming the key in both spellings rather than opening a file wherever the
   process happens to be — which in a container is somewhere the next deploy deletes. A design-time factory builds
   a service provider over its configuration and passes that. `AddRaskSqliteLitestream`, `AddRaskSqliteSnapshots`
   and `AddRaskWebPush` no longer require a callback, and the first two default their database path to the file
   behind `Rask:ConnectionStrings:App`.
+
+- **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
+  and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
+  `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
+  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
+  not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+
+- **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
+  writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
+  adds beside the props shares one writer. Only a hand-written `ExternalComponent` subclass has to change —
+  `protected override void WriteProps(Utf8JsonWriter writer)` — and there is no reason to write one.
+- **A `Module` that names a package makes the island a package island**, including one that declares its props
+  by hand: an unset prop is left out of the props rather than written as `null`, so the package's default
+  applies, and each callback forwards only its first argument to C#.
 
 - **rask.sh's internal links name the URL the host serves.** The sidebar, the guide cards, prev/next, the
   in-guide cross-links and the front door's links now carry the trailing-slash form (`PageMeta.LinkTo`).
@@ -391,6 +485,19 @@ them until tagged releases begin.
 
 - **A second `AddRaskWebPush` or `AddRaskSignaling` no longer registers everything twice.** Both appended their
   options (and a second typed client or hub) where every other battery keeps the first call's.
+
+- **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
+  compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island
+  the app declares but globs for their front-end files from its own directory and finds none, so every
+  rask.sh deploy warned, twice per island, that five islands shipping fine would never mount. The companion
+  now turns the island build and prop types off (`RaskExternalBuild`, `RaskExternalPropTypes`); the app's
+  own build still checks and bundles them (#1068).
+
+- **A cache key too long for the database says so.** `ICache` over the database-backed cache keys its table at
+  512 characters (450 on SQL Server). PostgreSQL and SQL Server refuse a longer key, and the insert-then-update
+  upsert surfaced that as a `DbUpdateException` about a value too long for some column. It now throws an
+  `ArgumentException` naming the key's length and the table's limit, with the provider error as its inner
+  exception. SQLite does not enforce the length, so nothing changes there.
 
 - **The builder allocation pins no longer fail a busy machine's gate.** `BuilderEntryAllocationPinTests`
   runs in a non-parallel collection. It reads the measuring thread's allocations, which looked immune to

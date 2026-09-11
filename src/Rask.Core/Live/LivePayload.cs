@@ -88,18 +88,7 @@ public static class LivePayload
             return stamped;
         }
 
-        var i = IndexOfBodyOpen(stamped);
-        if (i < 0)
-        {
-            return stamped;
-        }
-
-        var insertAt = i + "<body".Length;
-        var attribute = " data-rask-dev-status=\"" + HtmlEncoder.Default.Encode(devStatusUrl) + "\"";
-        return string.Concat(
-            stamped.AsSpan(0, insertAt),
-            attribute.AsSpan(),
-            stamped.AsSpan(insertAt));
+        return InjectBodyAttr(stamped, "data-rask-dev-status", devStatusUrl);
     }
 
     /// <summary>
@@ -118,25 +107,42 @@ public static class LivePayload
     ///         URL would have every visitor's browser try to open a websocket to their own machine.
     ///     </para>
     /// </remarks>
-    public static string InjectIslandsDevAttr(string html, bool dev, string? devServerUrl)
+    public static string InjectIslandsDevAttr(string html, bool dev, string? devServerUrl) =>
+        dev ? InjectBodyAttr(html, "data-rask-islands-dev", devServerUrl) : html;
+
+    /// <summary>
+    ///     Loads the devtools host script into the page: a deferred <c>&lt;script&gt;</c> at the end of
+    ///     <c>&lt;head&gt;</c>, marked <c>data-rask-managed</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The host decides whether there is one: a Debug build that carries Rask.DevTools, running in
+    ///         Development. Anywhere else <paramref name="hostScriptUrl" /> is null and the page is returned as
+    ///         it was.
+    ///     </para>
+    ///     <para>
+    ///         Written by the server rather than loaded by the client runtime, so <c>rask.js</c> and
+    ///         <c>rask.wasm.js</c> — which every Release page loads — carry no code to load it. In the head
+    ///         because the diff stream never addresses a node there: head changes arrive as a morph, and the morph
+    ///         keeps a <c>data-rask-managed</c> node. A node the render never produced anywhere in the body would
+    ///         be a node the diff's positional paths do not know about.
+    ///     </para>
+    /// </remarks>
+    internal static string InjectDevToolsScript(string html, string? hostScriptUrl)
     {
-        if (!dev || string.IsNullOrEmpty(devServerUrl))
+        if (string.IsNullOrEmpty(hostScriptUrl))
         {
             return html;
         }
 
-        var i = IndexOfBodyOpen(html);
-        if (i < 0)
+        var headClose = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+        if (headClose < 0)
         {
             return html;
         }
 
-        var insertAt = i + "<body".Length;
-        var attribute = " data-rask-islands-dev=\"" + HtmlEncoder.Default.Encode(devServerUrl) + "\"";
-        return string.Concat(
-            html.AsSpan(0, insertAt),
-            attribute.AsSpan(),
-            html.AsSpan(insertAt));
+        var tag = "<script src=\"" + HtmlEncoder.Default.Encode(hostScriptUrl) + "\" data-rask-managed defer></script>";
+        return string.Concat(html.AsSpan(0, headClose), tag.AsSpan(), html.AsSpan(headClose));
     }
 
     /// <summary>
@@ -149,26 +155,8 @@ public static class LivePayload
     ///     no such attribute never asks for a bundle, which is what keeps this free for every app that
     ///     does not use it.
     /// </remarks>
-    public static string InjectWasmBundleAttr(string html, string? bootModuleUrl)
-    {
-        if (string.IsNullOrEmpty(bootModuleUrl))
-        {
-            return html;
-        }
-
-        var i = IndexOfBodyOpen(html);
-        if (i < 0)
-        {
-            return html;
-        }
-
-        var insertAt = i + "<body".Length;
-        var attribute = " data-rask-wasm=\"" + HtmlEncoder.Default.Encode(bootModuleUrl) + "\"";
-        return string.Concat(
-            html.AsSpan(0, insertAt),
-            attribute.AsSpan(),
-            html.AsSpan(insertAt));
-    }
+    public static string InjectWasmBundleAttr(string html, string? bootModuleUrl) =>
+        InjectBodyAttr(html, "data-rask-wasm", bootModuleUrl);
 
     /// <summary>
     ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
@@ -928,6 +916,32 @@ public static class LivePayload
         }
 
         writer.WriteEndArray();
+    }
+
+    /// <summary>
+    ///     Inserts <c>name="value"</c>, the value HTML-encoded, right after the page's first <c>&lt;body</c>.
+    ///     The one shape every per-response body stamp shares; no value, or a page with no body, leaves the
+    ///     HTML as it was.
+    /// </summary>
+    private static string InjectBodyAttr(string html, string name, string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return html;
+        }
+
+        var i = IndexOfBodyOpen(html);
+        if (i < 0)
+        {
+            return html;
+        }
+
+        var insertAt = i + "<body".Length;
+        var attribute = " " + name + "=\"" + HtmlEncoder.Default.Encode(value) + "\"";
+        return string.Concat(
+            html.AsSpan(0, insertAt),
+            attribute.AsSpan(),
+            html.AsSpan(insertAt));
     }
 
     private static int IndexOfBodyOpen(string html)

@@ -454,16 +454,9 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     ///         enough: the prefix is fixed, documented, and applies to every path under it.
     ///     </para>
     /// </remarks>
-    private static string NormalizeDirectory(string path)
-    {
-        var dir = Path.GetDirectoryName(path) ?? string.Empty;
-        dir = dir.Replace('\\', '/');
+    private static string NormalizeDirectory(string path) => AssetPairing.NormalizeDirectory(path);
 
-        return dir.StartsWith("/private/", StringComparison.Ordinal) ? dir.Substring("/private".Length) : dir;
-    }
-
-    private static string MakeKey(string dir, string name) =>
-        dir.Length == 0 ? name : dir + "/" + name;
+    private static string MakeKey(string dir, string name) => AssetPairing.MakeKey(dir, name);
 
     private static void AppendVerbatimStringLiteral(StringBuilder sb, string value)
     {

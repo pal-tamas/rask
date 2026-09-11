@@ -36,8 +36,15 @@ pg_container="rask-providers-pg-$$"
 pg_port="${RASK_PG_PORT:-}"
 pg_password="rask-test"
 
+mssql_container="rask-providers-mssql-$$"
+mssql_password="Rask-test-1234"
+mysql_container="rask-providers-mysql-$$"
+mysql_password="rask-test"
+
 cleanup() {
   docker rm -f "$pg_container" >/dev/null 2>&1 || true
+  docker rm -f "$mssql_container" >/dev/null 2>&1 || true
+  docker rm -f "$mysql_container" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -72,6 +79,85 @@ else
   docker logs "$pg_container" 2>&1 | tail -5 >&2 || true
 fi
 
+# SQL Server. Microsoft publishes mssql/server for amd64 only, and on Apple Silicon it SEGFAULTS under emulation
+# (exit 139 from launch_sqlservr.sh, confirmed again 2026-09-11). So it is started only on an amd64 host; anywhere
+# else, point RASK_MSSQL_TEST_DB at a server you have, or accept that SQL Server is not proven by this run — which
+# the summary says out loud rather than counting as a pass.
+mssql_state="not-proven"
+arch="$(uname -m)"
+if [ -n "${RASK_MSSQL_TEST_DB:-}" ]; then
+  echo "==> SQL Server: using RASK_MSSQL_TEST_DB from the environment"
+  mssql_state="external"
+elif [ "$arch" = "x86_64" ] || [ "$arch" = "amd64" ]; then
+  echo "==> Starting SQL Server 2022 ($mssql_container)"
+  docker run -d --name "$mssql_container" \
+    -e ACCEPT_EULA=Y \
+    -e "MSSQL_SA_PASSWORD=$mssql_password" \
+    -p "127.0.0.1::1433" \
+    mcr.microsoft.com/mssql/server:2022-latest >/dev/null
+  mssql_port="$(docker port "$mssql_container" 1433/tcp | head -n 1 | sed 's/.*://')"
+
+  echo "==> Waiting for it to accept logins (127.0.0.1:$mssql_port)"
+  mssql_state="failed"
+  for _ in $(seq 1 90); do
+    # A real login, not the "ready for client connections" log line. That line is written before master and msdb
+    # finish recovery and the first-start upgrade scripts run, and a login then fails with 18456 (script upgrade
+    # mode), which no retry strategy treats as transient. Matching the log with `grep -q` under pipefail also
+    # misreads a match as a miss whenever `docker logs` takes the SIGPIPE.
+    if docker exec "$mssql_container" /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P "$mssql_password" -C -b -Q "SELECT 1" >/dev/null 2>&1; then
+      mssql_state="started"
+      break
+    fi
+    sleep 2
+  done
+
+  if [ "$mssql_state" = "started" ]; then
+    export RASK_MSSQL_TEST_DB="Server=127.0.0.1,$mssql_port;Database=master;User Id=sa;Password=$mssql_password;TrustServerCertificate=true"
+  else
+    echo "    WARNING: SQL Server did not become ready — its tests will report SKIPPED." >&2
+    docker logs "$mssql_container" 2>&1 | tail -5 >&2 || true
+  fi
+else
+  echo "==> SQL Server: NOT STARTED on this $arch host (the amd64 image segfaults under emulation)."
+  echo "    Its tests report SKIPPED. Run this gate on amd64, or set RASK_MSSQL_TEST_DB, to prove it."
+fi
+
+# MySQL. The official image is multi-arch, so unlike SQL Server it runs natively everywhere, and a host that cannot
+# prove it has a real problem. The server's own time zone is set away from UTC on purpose: a DateTimeOffset coming
+# back as the same instant through Oracle's provider is one of the claims this gate exists to prove, and a UTC
+# server would hide a shift.
+mysql_state="failed"
+if [ -n "${RASK_MYSQL_TEST_DB:-}" ]; then
+  echo "==> MySQL: using RASK_MYSQL_TEST_DB from the environment"
+  mysql_state="external"
+else
+  echo "==> Starting MySQL 8.4 ($mysql_container)"
+  docker run -d --name "$mysql_container" \
+    -e MYSQL_ROOT_PASSWORD="$mysql_password" \
+    -e MYSQL_DATABASE=rask \
+    -p "127.0.0.1::3306" \
+    mysql:8.4 --default-time-zone=+05:00 >/dev/null
+  mysql_port="$(docker port "$mysql_container" 3306/tcp | head -n 1 | sed 's/.*://')"
+
+  echo "==> Waiting for it to accept logins (127.0.0.1:$mysql_port)"
+  for _ in $(seq 1 60); do
+    # A real query over TCP. First boot runs a socket-only temporary server to initialize the data directory and
+    # then restarts, so a socket probe — or the log — can report ready before connections are accepted.
+    if docker exec "$mysql_container" mysql -h 127.0.0.1 -uroot "-p$mysql_password" -e "SELECT 1" >/dev/null 2>&1; then
+      mysql_state="started"
+      break
+    fi
+    sleep 2
+  done
+
+  if [ "$mysql_state" = "started" ]; then
+    export RASK_MYSQL_TEST_DB="Server=127.0.0.1;Port=$mysql_port;Database=rask;User ID=root;Password=$mysql_password;SslMode=Disabled;AllowPublicKeyRetrieval=true"
+  else
+    echo "    WARNING: MySQL did not become ready in 120s — its tests will report SKIPPED, not pass." >&2
+    docker logs "$mysql_container" 2>&1 | tail -5 >&2 || true
+  fi
+fi
+
 echo "==> Provider tests"
 dotnet test tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj -c Release \
   --logger "console;verbosity=normal"
@@ -81,4 +167,18 @@ if [ "$pg_ready" != "1" ]; then
   exit 1
 fi
 
-echo "==> Provider gate passed."
+if [ "$mysql_state" = "failed" ]; then
+  echo "run-providers-local: FINISHED WITH SKIPS — MySQL never became ready, so it was not proven." >&2
+  exit 1
+fi
+
+if [ "$mssql_state" = "failed" ]; then
+  echo "run-providers-local: FINISHED WITH SKIPS — SQL Server was started here and never became ready." >&2
+  exit 1
+fi
+
+if [ "$mssql_state" = "not-proven" ]; then
+  echo "==> Provider gate passed for PostgreSQL and MySQL. SQL Server was NOT proven on this host."
+else
+  echo "==> Provider gate passed (PostgreSQL, MySQL and SQL Server)."
+fi

@@ -43,6 +43,7 @@ using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
 using Rask.Hosting.Shared;
 using Rask.Server.Authentication;
+using Rask.Server.DevTools;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.Http;
@@ -648,6 +649,8 @@ public static partial class RaskEndpointExtensions
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
             var dev = IsDevHotReloadEnabled(httpContext.RequestServices);
+            // The devtools host script, when AddRask attached the devtools and they switched on (Development).
+            var devToolsHost = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.HostScriptUrl(httpContext);
             string content;
             if (interactive)
             {
@@ -660,7 +663,7 @@ public static partial class RaskEndpointExtensions
                     return;
                 }
 
-                content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev);
+                content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev, devToolsHost);
             }
             else
             {
@@ -678,7 +681,7 @@ public static partial class RaskEndpointExtensions
                         return;
                     }
 
-                    content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev);
+                    content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev, devToolsHost);
                 }
                 else
                 {
@@ -936,6 +939,10 @@ public static partial class RaskEndpointExtensions
         var script = LoadEmbeddedScript();
         endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)(ctx =>
             Results.Text(script, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
+
+        // The in-page devtools' own endpoints, when AddRask attached them (a Debug build carrying
+        // Rask.DevTools). Here, beside the runtime they extend, so they are mapped once per app too.
+        endpoints.ServiceProvider.GetService<IRaskServerDevTools>()?.MapEndpoints(endpoints, pathBase);
 
         // PWA endpoints — wired only when AddRaskPwa registered a manifest (off by default). The manifest
         // JSON is rooted at pathBase here (a manifest's members resolve relative to the manifest's own URL,
@@ -1227,6 +1234,13 @@ public static partial class RaskEndpointExtensions
                 {
                     continue;
                 }
+
+                // Only once there is a session to attribute it to: the hello that creates one arrives first.
+                if (session is not null && RaskDevToolsHook.Active is { } devTools)
+                {
+                    devTools.FrameReceived(session, payload.Length, root);
+                }
+
                 // Match the frame "type" against the UTF-8 literals directly (ValueEquals) instead of
                 // materializing a string per frame — this runs on every inbound frame (keystroke,
                 // 60 Hz scroll, click), and the string was allocated only to == four constants.

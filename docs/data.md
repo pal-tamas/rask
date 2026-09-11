@@ -654,6 +654,77 @@ against a real server. Three things change:
 - **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
   there is no file — back up with your provider's snapshots or `pg_dump`.
 
+## SQL Server
+
+When SQL Server is already the house database, `Rask.SqlServer` is the provider package:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskSqlServer(sp)
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+The connection string is `Rask:ConnectionStrings:App` (`Rask__ConnectionStrings__App` in the environment), and a
+missing one is an error naming that key.
+
+`UseRaskSqlServer` is a drop-in for `UseSqlServer`. SQL Server has no server-side statement timeout, so the
+ceiling on a runaway query is the client `CommandTimeout` (30s). On every connection EF opens it sends
+`SET XACT_ABORT ON` — so a run-time error rolls the whole transaction back instead of leaving it open with its
+locks — and `SET LOCK_TIMEOUT` (10s, below the command timeout, so lock contention is not reported as a slow
+query). Those go as one batch per open: SQL Server takes no session settings in the connection string, and
+SqlClient resets them on every pooled open. Retrying (`Retry`) is SQL Server's own strategy. Each is
+`Rask:SqlServer` in `appsettings.json` (`"LockTimeout": "00:00:03"`, `"Retry": { "MaxCount": 3 }`); a callback —
+`UseRaskSqlServer(sp, s => …)` — runs after the section and wins.
+
+Everything in this guide works unchanged, with the same three things to know as on PostgreSQL:
+
+- **Retrying refuses a transaction you open yourself** outside the execution strategy — wrap it in
+  `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `Rask:SqlServer:Retry:Enabled` to `false`.
+- **Litestream and snapshots do not apply.** Back up with `BACKUP DATABASE` or your provider's snapshots.
+- **Open connections through EF** (`context.Database.OpenConnectionAsync()`) in hand-written ADO code, or the
+  session settings are not sent.
+
+One model detail is handled for you: a SQL Server index key holds 450 `nvarchar` characters, and `Rask.Cache`
+configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.
+A longer cache key cannot be stored there; `ICache` rejects it with an error naming the limit, so hash long keys.
+
+## MySQL
+
+When MySQL is the house database, `Rask.MySql` is the provider package. It wraps Oracle's `UseMySQL` provider:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskMySql(sp)
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+The connection string is `Rask:ConnectionStrings:App` (`Rask__ConnectionStrings__App` in the environment), and a
+missing one is an error naming that key. Every setting below is `Rask:MySql` in `appsettings.json`
+(`"LockTimeout": "00:00:05"`); a callback — `UseRaskMySql(sp, m => …)` — runs after the section and wins.
+
+On every connection EF opens, `UseRaskMySql` sends one `SET` for `innodb_lock_wait_timeout` (`LockTimeout`, 10s —
+MySQL's own 50s outlasts the command timeout and reports lock contention as a slow query) and `max_execution_time`
+(`StatementTimeout`, 30s). That second one is narrower than its name: MySQL applies it to read-only `SELECT`s
+only, so the ceiling on a runaway write is the client `CommandTimeout` (30s). Retrying (`Retry`) is the
+provider's own strategy.
+
+It also keeps a `DateTimeOffset`'s fractional seconds. Oracle's provider loses them twice: it maps one to `datetime`,
+which holds whole seconds, and even from a `datetime(6)` column its reader truncates the value to the second.
+`UseRaskMySql` stores every `DateTimeOffset` as its UTC `DateTime` in `datetime(6)` and reads it back as that
+instant at offset zero — the offset the provider returned anyway. A precision or column type you configure is kept,
+and a property with its own value converter is left alone. An app moving to `UseRaskMySql` from a plain
+`UseMySQL` therefore needs a migration (`rask db add`): its `DateTimeOffset` columns become `datetime(6)`.
+
+Two things to check before choosing it. Oracle's `MySql.EntityFrameworkCore` and `MySql.Data` are licensed
+`GPL-2.0-only WITH Universal-FOSS-exception-1.0`, not MIT like Rask. And MariaDB is not supported: it has no
+`max_execution_time`, so the session `SET` fails on every open.
+
+The same three things to know as on the other client-server databases apply — retrying refuses a transaction you
+open outside the execution strategy, Litestream and snapshots do not apply (use `mysqldump` or your provider's
+snapshots), and hand-written ADO code should open connections through EF so the session settings are sent — plus
+one of MySQL's own: **DDL commits implicitly**, so a migration that fails part-way leaves the schema part-applied.
+Review generated migrations before running them in production.
+
 ## Notes
 
 - **Server-side.** These interceptors run against a real EF Core provider (SQLite by default in Rask);

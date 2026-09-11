@@ -74,6 +74,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The committed props snapshot beside PackageIslands/MuiButton.cs. Snapshots are additional files the
+         island and factory generators read to generate a package island's props; this one is a fixture in the
+         extractor's format, so the generated half is exercised with nothing installed. -->
+    <AdditionalFiles Include="PackageIslands\*.props.json"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- For NodeFixture: the client runtime is exercised as the JavaScript it ships, in node. -->

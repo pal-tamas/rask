@@ -13,7 +13,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace Rask.Generators;
 
 [Generator(LanguageNames.CSharp)]
-public sealed class ComponentFactoryGenerator : IIncrementalGenerator
+public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
@@ -144,7 +144,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Where(static c => c is not null)
             .Select(static (c, _) => c!);
 
-        var grouped = candidates.Collect();
+        // A package island's props come from its committed snapshot — an additional file the syntax transform
+        // above cannot read — so they are merged in after collection. See WithPackageProps.
+        var grouped = candidates.Collect()
+            .Combine(External.PackageIslands.PackageIslandProps.Snapshots(context))
+            .Select(static (t, _) => WithPackageProps(t.Left, t.Right))
+            .WithComparer(CandidateListComparer.Instance);
 
         // The two kinds of injection host that are NOT candidates — neither has an entry of its own, and
         // both need the surface injected into their own partial:
@@ -4255,7 +4260,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             SummaryOf(symbol),
             ReachableMemberNames(symbol),
             EnclosingTypeHeaders(symbol),
-            AllEnclosingPartial(symbol));
+            AllEnclosingPartial(symbol),
+            global::Rask.Generators.External.PackageIslands.PackageIslandProps.Facts(symbol));
     }
 
     // Whether the component declares ISubmitAware, which is what puts its chain on the FormBuild<T>
@@ -5261,7 +5267,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // The enclosing types, outermost first, each written as the partial header that re-opens it — what
         // lets a NESTED component be injected into. Empty for a top-level component.
         EquatableArray<string> EnclosingTypes = default,
-        bool EnclosingAllPartial = false);
+        bool EnclosingAllPartial = false,
+        // What pairs an island with its committed props snapshot, when this is one — symbol-side facts only,
+        // because the snapshot itself is an additional file the syntax transform cannot read. See
+        // WithPackageProps, which adds the steps once snapshots and candidates are both in hand.
+        global::Rask.Generators.External.PackageIslands.IslandFacts? Package = null);
 
     // Set when a component implements IFormControl<T> — drives the synthesized bound factory and the
     // exclusion of the bound-mode interface members from the controlled factory. ValueTypeFqn is the T
