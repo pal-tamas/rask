@@ -127,6 +127,78 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     }
 
     /// <summary>
+    ///     The C# lanes: a scaffolded Rask app renders its own components and boots its runtime.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         These two templates were the ones the front-end journeys could not speak for, and the
+    ///         gap was not academic: every fault those journeys turned up (#1069) was a battery reaching
+    ///         for something only a Rask HOST provides. The mirror of that — a Rask host whose battery
+    ///         wiring is wrong — would show here and nowhere else, because building proves neither that
+    ///         <c>UseRask&lt;App&gt;()</c> serves a page nor that the runtime on it starts.
+    ///     </para>
+    ///     <para>
+    ///         The starter draws no interactive control, so the assertion is what the lane uniquely
+    ///         does: the page is a Rask component rendered by the host, with the runtime script on it
+    ///         and no console error. A dispatch round-trip is the SPA journey's job, and the server
+    ///         lane's own socket has its own suite.
+    ///     </para>
+    /// </remarks>
+    [SkippableTheory]
+    [InlineData("server")]
+    public async Task A_C_sharp_host_renders_its_own_components(string key)
+    {
+        Skip.IfNot(Enabled, SkipReason);
+
+        await using var app = await BuildAndRunAsync(key, TimeSpan.FromMinutes(2));
+        var page = await browser.Browser.NewPageAsync();
+
+        var failures = new List<string>();
+        page.PageError += (_, error) => failures.Add(error);
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+            {
+                failures.Add(message.Text);
+            }
+        };
+
+        await page.GotoAsync(app.BaseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+        // The starter's own heading, written by a Rask component the HOST rendered — the one thing a
+        // SPA or meta host cannot do, and the reason those lanes take Rask.Auth.Api instead.
+        await Assertions.Expect(page.GetByText("Hello, Rask!")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        // Pinned rather than required-empty, because this template currently ships TWO console errors
+        // on its very first run and #1078 is open on them: it emits a module-script tag for /main.js
+        // while shipping no scoped TypeScript, so nothing ever builds that bundle. Rask says so itself
+        // and keeps the page server-live, which is why it was never noticed.
+        //
+        // Written as "nothing OTHER than the known pair" so it fails in BOTH directions — a new error
+        // fails it, and so does fixing #1078, at which point this allowance and its Known list go.
+        var unexpected = failures.Where(f => !KnownFirstRunErrors.Any(f.Contains)).ToList();
+
+        Assert.True(
+            unexpected.Count == 0,
+            $"--template {key} reached the browser with errors beyond the ones #1078 records:\n  "
+                + $"{string.Join("\n  ", unexpected)}\n\nhost log:\n{app.Log}");
+    }
+
+    /// <summary>
+    ///     The console output a scaffolded C# host currently produces on its first run, and should not.
+    /// </summary>
+    /// <remarks>
+    ///     #1078. Delete this and the filter with it once the boot script stops being emitted for a
+    ///     bundle that is never built.
+    /// </remarks>
+    private static readonly string[] KnownFirstRunErrors =
+    [
+        "Failed to load module script",
+        "the browser bundle could not be loaded",
+    ];
+
+    /// <summary>
     ///     Scaffolds the template, builds it WITH its front end, and starts the host.
     /// </summary>
     private static async Task<ScaffoldedHost> BuildAndRunAsync(string key, TimeSpan readyTimeout)
