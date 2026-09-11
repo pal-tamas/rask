@@ -15,6 +15,14 @@
       imports Rask.Core.targets, so there is no item to remove yet.
     -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+
+    <!--
+      The devtools probe seams, observable in every configuration. RaskDevTools defaults to Debug-only, but the unit
+      gate (scripts/run-unit-local.sh) runs this assembly in Release — so without this the switch is off there,
+      RaskDevToolsHook.Active is always null, and DevToolsProbeSeamTests could never see a seam fire. No probe is
+      attached outside those tests, so every other test runs exactly as before.
+    -->
+    <RaskDevTools>true</RaskDevTools>
   </PropertyGroup>
 
   <ItemGroup>

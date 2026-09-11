@@ -128,6 +128,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private string? _lastResumeUrl;
 
     public string Id { get; }
+
+    internal override string? DevToolsSessionId => Id;
+
     public IServiceScope Scope { get; }
     public SemaphoreSlim Lock { get; } = new(1, 1);
 

@@ -9,6 +9,23 @@ them until tagged releases begin.
 
 ### Added
 
+- **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
+  attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
+  `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache
+  bypass, ambient state, children, or an empty cache), the serializer's walk and its replay of a captured
+  subtree, `StateHasChanged`, handler dispatch, the tree commit, and per session the walk, the diff-or-full
+  decision and every frame sent or received. A build without the devtools folds that read to null. Both
+  browser runtimes gained matching `send`, `recv` and `commit` hooks, and a frame-span walker locates a
+  component's DOM nodes with the differ's own slot rules — cross-checked against the differ's op paths.
+
+  Handler dispatch is now a non-async forwarder that enters an instrumented path only when a probe is
+  attached, so the dispatch every event takes gains no async state-machine field.
+
+  Measured: all 45 `LiveRenderRoundTrip`, `HtmlSerializerLiveRoot`, `RenderRoundTrip`, `FrameDiffer`,
+  `LivePayloadUtf8`, `WsDispatch` and `WasmDispatch` cases allocate exactly what they did before. That reaches
+  the component-level seams; no benchmark reaches handler dispatch or a session's render-to-send loop (see
+  #1062), so those seams rest on how they are built and on the Server, WASM and Core suites.
+
 - **`Rask.DevTools`, the package the in-page devtools will ship in — present in a Debug build and
   nowhere else.** This slice is the gate, not the tool: the package attaches to both hosts with no code in
   the app, and does nothing yet. Every `rask new` template references it, and so does the `Rask`

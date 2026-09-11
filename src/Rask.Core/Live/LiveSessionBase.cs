@@ -58,6 +58,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
     protected virtual RenderEngine EngineCore => RenderEngine.Server;
 
+    // How Rask DevTools names this session in its feed. Null on a host that has only one session per
+    // process (WASM); the Server session answers with its id. A virtual rather than a type test in the
+    // devtools, so that package needs no reference to Rask.Server.
+    internal virtual string? DevToolsSessionId => null;
+
     // The session's culture, read by LiveRenderContext at the top of every render walk. Resolved once in
     // the constructor rather than per walk: the service is scoped to this session, so the instance never
     // changes — only the culture inside it does.
@@ -310,6 +315,12 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
         await SendFrameAsync(_writeBuffer.WrittenMemory).ConfigureAwait(false);
 
+        // Before the swap: the frame just sent is still the write buffer.
+        if (RaskDevToolsHook.Active is { } devTools)
+        {
+            devTools.FrameSent(this, _writeBuffer.WrittenCount);
+        }
+
         (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>());
         return true;
     }
@@ -330,6 +341,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     protected ReadOnlyMemory<char> RenderTreeToHtml(bool publishOnly, out FrameWriter? frameWriter)
     {
         OnBeforeRenderWalk();
+        RaskDevToolsHook.Active?.WalkStarted(this, publishOnly);
         frameWriter = null;
         FrameSinkScope.Popper popper = default;
         if (DiffMode != LiveDiffMode.DisabledFull)
@@ -435,6 +447,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         // <link>, a reactive title) ride the diff as an attached <head> fragment since the diff
         // frame stream never carries <head>. Genuine body-restructuring page swaps fall back to full
         // HTML via DiffOpsAreClientSupported. jsInvokes do NOT force full HTML — they ride the diff.
+        // Timed from here, so the devtools see the diff-or-full decision and the payload build as one cost.
+        var devTools = RaskDevToolsHook.Active;
+        var devToolsStart = devTools is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
+
         var usedDiff = false;
         var diffPathEntered = false;
         if (frameWriter is not null && _renderCache is not null && auth is null && download is null)
@@ -497,5 +513,8 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
                 _renderCache?.Snapshot();
             }
         }
+
+        // Ops only count when they shipped: a diff that lost on size was rebuilt as full HTML above.
+        devTools?.DiffComputed(this, usedDiff ? _diffOps!.Count : 0, usedDiff, devToolsStart);
     }
 }
