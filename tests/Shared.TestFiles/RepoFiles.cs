@@ -40,6 +40,12 @@ internal static class RepoFiles
     /// </remarks>
     private static readonly string[] Pruned =
     [
+        // The scaffolder's payload, not this repository's source. It holds fifteen .csproj files all
+        // called Company.RaskServer.csproj, plus .cs that belongs to no compilation here — so a
+        // convention test that walks into it reports another project's code as though it were ours, and
+        // anything keyed by project name throws on the duplicate. That is not hypothetical: it is
+        // exactly how the previous Rask.Templates crashed PackageDependencyTests (CHANGELOG 0.19.0).
+        "Rask.Templates",
         ".git",
         ".claude",
         ".vs",
