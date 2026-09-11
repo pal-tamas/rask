@@ -110,6 +110,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK074](#rask074) | Warning | More than one account type |
 | [RASK075](#rask075) | Warning | Option template on a native select |
 | [RASK076](#rask076) | Warning | Grid column with no field token |
+| [RASK077](#rask077) | Warning | Package island has no props snapshot |
+| [RASK078](#rask078) | Error | Props snapshot cannot be read |
+| [RASK079](#rask079) | Error | Props snapshot describes a different component |
+| [RASK080](#rask080) | Warning | Package prop was not generated |
 | [RASK081](#rask081) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
 | [RASK082](#rask082) | Error | A type already has the generated model's name |
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
@@ -1780,6 +1784,84 @@ knowing that RASK034 stopped firing when the grid moved to a chain and nothing n
 tested on the shape it has to catch rather than only on compiling.
 
 ---
+
+## RASK077
+
+**Package island has no props snapshot** · Warning
+
+An island whose `Module` names an npm package — a *package island* — gets its props from the package's own
+TypeScript, read from `{Island}.props.json` beside the class. That file is committed like a lockfile, so a fresh
+clone, the IDE and a build without Node all see every step. This island has neither a snapshot beside it nor a
+prop declared by hand, so there is nothing it can be told.
+
+```csharp
+// Features/Shop/MuiButton.cs
+public sealed partial class MuiButton : ReactComponent
+{
+    // ⚠ RASK077 — no MuiButton.props.json beside this file
+    protected override string Module => "@mui/material/Button";
+}
+```
+
+Add `MuiButton.props.json` beside the class and commit it, or declare the props on the island in C#. An island
+that declares its props by hand is not reported — see
+[Using a package component directly](islands.md#using-a-package-component-directly).
+
+## RASK078
+
+**Props snapshot cannot be read** · Error
+
+The snapshot is not one this Rask.External can read: malformed JSON, a required field missing, or a `"schema"`
+newer than it understands. The diagnostic points at the line it breaks on, and nothing is generated for the
+island rather than a partial set of steps.
+
+A snapshot describes a package; it is not somewhere to hand-tune the island. Re-extract it, or update
+Rask.External when the schema is newer than it reads.
+
+## RASK079
+
+**Props snapshot describes a different component** · Error
+
+A snapshot records the runtime and the module it was extracted for. The class beside it now names another:
+
+```csharp
+public sealed partial class MuiButton : ReactComponent
+{
+    // ✗ RASK079 — MuiButton.props.json was extracted for "@mui/material/Button"
+    protected override string Module => "@mui/material#Button";
+}
+```
+
+`"@mui/material/Button"` and `"@mui/material#Button"` import different exports, and the base class decides
+whose types were read, so the props cannot be assumed to match. Re-extract the snapshot, or put the base class
+and `Module` back to what it was taken from.
+
+## RASK080
+
+**Package prop was not generated** · Warning
+
+A prop in the snapshot has no C# type Rask can generate for it, or its C# name collides with one the island
+already has. The other props are generated as usual; this one gets no chain step.
+
+| TypeScript | Why it is left out |
+|---|---|
+| `string \| boolean`, any union of unrelated types | no single C# type — only `string \| number` has one |
+| a callback that returns a value | the package needs the value synchronously, and a call into C# is asynchronous |
+| an object with no declared members, a function nested in a value | no JSON encoding |
+
+Declare the property on the island yourself, with the type you want, and it is sent under the package's own name:
+
+```csharp
+public sealed partial class MuiToggle : ReactComponent
+{
+    protected override string Module => "@mui/material/ToggleButton";
+
+    /// <summary>
+    ///     The package takes <c>string | boolean</c>; this app only ever passes a string.
+    /// </summary>
+    public string? Value { get; set; }
+}
+```
 
 ## RASK081
 

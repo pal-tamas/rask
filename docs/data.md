@@ -917,6 +917,35 @@ against a real server. Three things change:
 - **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
   there is no file — back up with your provider's snapshots or `pg_dump`.
 
+## SQL Server
+
+When SQL Server is already the house database, `Rask.SqlServer` is the provider package:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseRaskSqlServer(builder.Configuration.GetConnectionString("App")!)
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+```
+
+`UseRaskSqlServer` is a drop-in for `UseSqlServer`. SQL Server has no server-side statement timeout, so the
+ceiling on a runaway query is the client `CommandTimeout` (30s). On every connection EF opens it sends
+`SET XACT_ABORT ON` — so a run-time error rolls the whole transaction back instead of leaving it open with its
+locks — and `SET LOCK_TIMEOUT` (10s, below the command timeout, so lock contention is not reported as a slow
+query). Those go as one batch per open: SQL Server takes no session settings in the connection string, and
+SqlClient resets them on every pooled open. Retrying (`o.Retry`) is SQL Server's own strategy.
+
+Everything in this guide works unchanged, with the same three things to know as on PostgreSQL:
+
+- **Retrying refuses a transaction you open yourself** outside the execution strategy — wrap it in
+  `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `o.Retry.Enabled = false`.
+- **Litestream and snapshots do not apply.** Back up with `BACKUP DATABASE` or your provider's snapshots.
+- **Open connections through EF** (`context.Database.OpenConnectionAsync()`) in hand-written ADO code, or the
+  session settings are not sent.
+
+One model detail is handled for you: a SQL Server index key holds 450 `nvarchar` characters, and `Rask.Cache`
+configures its key at 512 for the other providers. `UseRaskSqlServer` caps that key — and only that key — at 450.
+A longer cache key cannot be stored there; `ICache` rejects it with an error naming the limit, so hash long keys.
+
 ## Notes
 
 - **Server-side.** These interceptors run against a real EF Core provider (SQLite by default in Rask);

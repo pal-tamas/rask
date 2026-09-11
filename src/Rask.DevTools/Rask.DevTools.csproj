@@ -31,6 +31,60 @@
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!--
+    The Server face. Rask.Server is PrivateAssets="all" too: only its AddRask runs the Server half of the
+    bootstrap, so any app in which that code runs already references the host. Declaring it would pull the
+    Server host into a net10.0 app that referenced the devtools without one.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net10.0' ">
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    <ProjectReference Include="..\Rask.Server\Rask.Server.csproj" PrivateAssets="all"/>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-host.js"
+                      LogicalName="Rask.DevTools.Resources.rask-devtools-host.js"/>
+  </ItemGroup>
+
+  <!-- The browser face has no Server host to map endpoints on. -->
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net10.0' ">
+    <Compile Remove="DevToolsBootstrap.Server.cs;Endpoints\**"/>
+  </ItemGroup>
+
+  <!--
+    Every file the host bundle can reach, so an edit to any of them re-bundles (a target's Inputs does not
+    expand wildcards itself). Under Resources/ like the hosts' own runtimes, and for the same reason: the
+    scoped-TypeScript glob in Rask.Core.targets excludes that folder. Anywhere else the host script would be
+    compiled as a component's scoped asset and handed to the generators.
+  -->
+  <ItemGroup>
+    <_RaskDevToolsHostTs Include="Resources\**\*.ts" Exclude="Resources\**\*.d.ts"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Minified in Release only, so a Debug build stays readable in the browser's debugger. -->
+    <_RaskEsbuildMinify Condition=" '$(Configuration)' == 'Release' ">--minify</_RaskEsbuildMinify>
+  </PropertyGroup>
+
+  <!--
+    The host script, bundled the way Rask.Server bundles rask.js: an iife delivered by a plain <script src>,
+    es2019 like the runtime it sits beside, embedded for the endpoint to serve.
+  -->
+  <Target Name="_RaskDevToolsBundleHostJs" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
+          Condition=" '$(TargetFramework)' == 'net10.0' "
+          Inputs="@(_RaskDevToolsHostTs)"
+          Outputs="$(IntermediateOutputPath)rask-devtools-host.js">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-devtools-host.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-devtools-host.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
   <ItemGroup>
     <!--
       Packed to BOTH folders. NuGet imports build/ for a direct PackageReference (the scaffolded apps) and

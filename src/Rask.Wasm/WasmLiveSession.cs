@@ -232,6 +232,12 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             ? t.GetString()
             : null;
 
+        // Before the navigate branch, so a navigation counts as inbound traffic like any handler event.
+        if (Rask.Core.Diagnostics.DevTools.RaskDevToolsHook.Active is { } devTools)
+        {
+            devTools.FrameReceived(this, json.Length, root);
+        }
+
         if (type == "navigate")
         {
             return await HandleNavigateAsync(root).ConfigureAwait(false);

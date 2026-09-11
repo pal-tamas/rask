@@ -22,10 +22,9 @@ public class SupervisorSeamTests
     private static WebApplication BuildHost(Action<MetaHostingOptions> configure)
     {
         var builder = WebApplication.CreateSlimBuilder();
-
-        // An ephemeral port, as NodeForwarderTests and StaticAssetsTests already bind. With no URL, Kestrel
-        // takes localhost:5000, which anything else on the machine may hold: a scaffolded app from a
-        // concurrent template E2E did, and both tests here failed with "address already in use".
+        // A port the OS picks. Left unset, Kestrel binds its default http://localhost:5000, and these tests then fail
+        // with "address already in use" whenever anything else on the machine holds 5000 — macOS's AirPlay receiver,
+        // or a scaffolded app some other run left behind. None of them sends a request, so which port is irrelevant.
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddRaskMeta(configure);
