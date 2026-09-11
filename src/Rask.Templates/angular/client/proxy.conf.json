@@ -1,0 +1,11 @@
+{
+  "//": "In development the browser talks to `ng serve`, which forwards the CQRS calls to the ASP.NET host — so the browser only ever sees one origin and there is no CORS to configure. angular.json points at this file. In production it is not used at all: the host serves the built bundle and answers /_rask itself.",
+  "/_rask": {
+    "target": "http://localhost:5000",
+    "secure": false
+  },
+  "/api/auth": {
+    "target": "http://localhost:5000",
+    "secure": false
+  }
+}

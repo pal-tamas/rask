@@ -91,18 +91,33 @@ public sealed class DaisyUiVersionPinTests
             int.Parse(match.Groups[3].Value));
     }
 
-    /// <summary>Reads the range the SPA generator writes, via the package.json patch that carries it.</summary>
+    /// <summary>
+    ///     The range the templates actually ship, read from every committed client manifest.
+    /// </summary>
+    /// <remarks>
+    ///     Read from the manifests rather than from a generated patch, for the reason given on the
+    ///     Tailwind pin: the manifests are committed now, so this checks the bytes a scaffolded app
+    ///     receives, across every template rather than only React's.
+    /// </remarks>
     private static string SpaDaisyUiRange
     {
         get
         {
-            var result = ProjectGenerator.GenerateSpa(
-                "/proj/App", "App", SpaFramework.React, new ServerBatteries(), "9.9.9");
+            var found = TailwindVersionPinTests.TemplateManifests("daisyui");
 
-            var patch = result.Patches.Single(p => p.Path.EndsWith("package.json", StringComparison.Ordinal));
-            var json = patch.Transform("""{ "dependencies": {}, "devDependencies": {}, "scripts": {} }""");
+            Assert.True(
+                found.Count > 0,
+                "No committed template manifest declares daisyui. Either the templates stopped shipping "
+                + "the kit's plugin or this pin is looking in the wrong place.");
 
-            return Regex.Match(json, @"""daisyui""\s*:\s*""([^""]+)""").Groups[1].Value;
+            var distinct = found.Values.Distinct(StringComparer.Ordinal).ToArray();
+            Assert.True(
+                distinct.Length == 1,
+                "The templates do not agree on a daisyUI range, so the same starter page would render "
+                + "differently between two of them:\n  "
+                + string.Join("\n  ", found.Select(f => $"{f.Key}: {f.Value}")));
+
+            return distinct[0];
         }
     }
 

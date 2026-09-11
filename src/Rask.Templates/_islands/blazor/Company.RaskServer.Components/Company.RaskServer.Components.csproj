@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    The Razor Class Library holding this app's Blazor components. A separate project on purpose: a
+    .razor compiled in the SAME project as the island that hosts it is generated during that same
+    compilation, so Rask cannot read its [Parameter]s and generates no chain steps for them (RASK066).
+    From a referenced library they come out of metadata and are checked.
+
+    This is also where a third-party kit goes — MudBlazor, Radzen — if you add one: reference it here
+    and host its components the same way.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Company.RaskServer.Components</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+</Project>

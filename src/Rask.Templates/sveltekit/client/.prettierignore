@@ -1,0 +1,17 @@
+# Generated on every build from the C# contracts — not ours to format.
+src/rask/
+app/rask/
+
+# Build output.
+dist/
+build/
+.output/
+.next/
+.nuxt/
+.svelte-kit/
+.angular/
+node_modules/
+
+# Lockfiles are written by npm, and reformatting one makes every diff unreadable.
+package-lock.json
+

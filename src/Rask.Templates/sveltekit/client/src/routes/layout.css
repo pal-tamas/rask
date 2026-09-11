@@ -1,0 +1,5 @@
+@layer properties, theme, base, components, daisyui, utilities;
+
+@import 'tailwindcss';
+@plugin "daisyui";
+@plugin '@tailwindcss/typography';

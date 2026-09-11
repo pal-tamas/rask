@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vue": "^3.5.42",
+    "vue-tsc": "^3.3.11"
+  },
+  "runtime": "vue"
+}

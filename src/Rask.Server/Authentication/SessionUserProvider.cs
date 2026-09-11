@@ -15,11 +15,48 @@ namespace Rask.Server.Authentication;
 /// </remarks>
 public sealed class SessionUserProvider : IUserProvider
 {
+    private ClaimsPrincipal _current = new(new ClaimsIdentity());
+    private int _reads;
+
     /// <summary>
     ///     The session's principal. An unauthenticated <see cref="ClaimsPrincipal" /> until something signs
     ///     in — never <see langword="null" />, so <c>Current.Identity?.IsAuthenticated</c> is the check.
     /// </summary>
-    public ClaimsPrincipal Current { get; private set; } = new(new ClaimsIdentity());
+    public ClaimsPrincipal Current
+    {
+        get
+        {
+            Interlocked.Increment(ref _reads);
+            return _current;
+        }
+    }
+
+    /// <summary>
+    ///     How many times <see cref="Current" /> has been read — by a component, or by anything else.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Read before and after a render, the difference says whether that render's markup can
+    ///         depend on who is signed in. A page that never asked cannot, so one stored copy of it is
+    ///         correct for every visitor; a page that did — a navigation bar greeting the user, an
+    ///         <c>Authorize</c> gate — is correct only for the principal it was rendered for.
+    ///     </para>
+    ///     <para>
+    ///         Counted here rather than detected in the render walk because this is the door the framework's
+    ///         own components — <c>Authorize</c> among them — go through to learn the user, and it costs a
+    ///         single increment on a property read that is already rare. <see cref="Set" /> and
+    ///         <see cref="Clear" /> use the field, so the framework replacing the principal is not mistaken
+    ///         for a page reading it.
+    ///     </para>
+    ///     <para>
+    ///         <b>It is not the only door, and a caller must not read it as one.</b> An app can register an
+    ///         <see cref="IUserProvider" /> of its own, whose reads never reach this count — so a caller
+    ///         that finds the resolved provider is not this instance has to assume the user was read. And a
+    ///         component can go straight to the request through <c>IHttpContextAccessor</c>, which nothing
+    ///         here can see at all.
+    ///     </para>
+    /// </remarks>
+    internal int ReadCount => Volatile.Read(ref _reads);
 
     /// <summary>
     ///     Raised when <see cref="Current" /> is replaced by a different principal, so UI that depends on
@@ -37,8 +74,8 @@ public sealed class SessionUserProvider : IUserProvider
     public void Set(ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        var prev = Current;
-        Current = user;
+        var prev = _current;
+        _current = user;
         if (!ReferenceEquals(prev, user))
         {
             Changed?.Invoke();
@@ -52,7 +89,7 @@ public sealed class SessionUserProvider : IUserProvider
     /// </summary>
     public void Clear()
     {
-        if (Current.Identity?.IsAuthenticated == true)
+        if (_current.Identity?.IsAuthenticated == true)
         {
             Set(new ClaimsPrincipal(new ClaimsIdentity()));
         }

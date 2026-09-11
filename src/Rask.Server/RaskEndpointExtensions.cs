@@ -575,102 +575,60 @@ public static partial class RaskEndpointExtensions
                     .ConfigureAwait(false);
                 return;
             }
-            session.Services.GetRequiredService<SessionUserProvider>().Set(user);
-            var routeState = session.Services.GetRequiredService<RouteState>();
-            routeState.Path = path;
-            routeState.Query = AdaptQuery(httpContext.Request.Query);
-
-            // The visitor's language, seeded from the request alongside their identity and route, and
-            // BEFORE the first render below — so the page is built in their language rather than
-            // rendered in the default and corrected in a second frame they would see flash.
+            // The visitor's language, negotiated from the request and remembered on the response here,
+            // because this handler is what holds a response. It reaches the session inside the render
+            // below, alongside the identity and the route and BEFORE the first wave — so the page is built
+            // in their language rather than rendered in the default and corrected in a frame they would see.
+            CultureNegotiation? culture = null;
             if (ServerCultureNegotiation.TryNegotiate(
-                    httpContext.Request, httpContext.RequestServices, out var culture))
+                    httpContext.Request, httpContext.RequestServices, out var negotiated))
             {
-                ServerCultureNegotiation.Apply(session.Services, culture);
+                culture = negotiated;
                 ServerCultureNegotiation.Persist(
                     httpContext.Response,
-                    culture,
+                    negotiated,
                     httpContext.RequestServices.GetRequiredService<RaskCultureOptions>());
             }
-            // Render the GET shell and seed both baselines: the dedup baseline so a no-op
-            // click after hello dedups against the HTML the browser already has (mirroring
-            // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
-            // baseline so the FIRST interactive WS render ships a diff instead of the whole
-            // document. See LiveSession.RenderInitialRoot.
-            // The page may shape the response only while this render is running. Closed in the
-            // finally so a later event handler — which runs long after these bytes are gone —
-            // throws instead of setting a status nobody will ever read.
-            var pageResponse = session.Services.GetRequiredService<ServerPageResponse>();
-            var navigator = session.Services.GetRequiredService<Navigator>();
-            pageResponse.Phase = PageResponsePhase.Initial;
-            string html;
-            // Navigation is legal for the duration of this render and becomes a real redirect
-            // below, so a page can decide on load that the user belongs elsewhere using the same
-            // NavigateTo it would call from a handler. Closed straight after, so a background
-            // render cannot navigate a request that no longer exists.
-            using (navigator.EnterInitialRender())
-            {
-                try
-                {
-                    // Awaited, so a page that loads its data in OnMountAsync ships that data rather
-                    // than its placeholder. Falls back to the synchronous render when disabled.
-                    html = await session
-                        .RenderInitialRootAsync(limits.InitialRenderQuiescenceTimeout)
-                        .ConfigureAwait(false);
-                }
-                finally
-                {
-                    pageResponse.Phase = PageResponsePhase.None;
-                }
-            }
+
+            // Render the GET shell and seed both baselines: the dedup baseline so a no-op click after
+            // hello dedups against the HTML the browser already has (mirroring WASM's InitialRenderAsync /
+            // `_lastAppliedHtml`), AND the diff-codec frame baseline so the FIRST interactive WS render
+            // ships a diff instead of the whole document. See LiveSession.RenderInitialRoot. The render —
+            // and every decision it ends in — is PageRender's, so anything else that renders a page
+            // reaches the answer this request does.
+            var render = await Prerender.PageRender
+                .RenderAsync(
+                    session,
+                    new Prerender.PageRenderInput(
+                        path, AdaptQuery(httpContext.Request.Query), user, culture, chain, notFoundPage),
+                    limits)
+                .ConfigureAwait(false);
 
             // A page that navigated during its own render is telling us the user belongs somewhere
             // else. Answering 302 costs one response instead of a whole page the client immediately
             // navigates away from — and unlike a client-side hop, a crawler and a cache both
             // understand it. The session goes too: nothing will ever connect to this page.
-            if (navigator.TryConsumeHistory(out var redirectUrl, out _))
+            if (render.Kind == Prerender.PageRenderKind.Redirect)
             {
                 store.Remove(session.Id);
                 httpContext.Response.StatusCode = StatusCodes.Status302Found;
-                // Sanitized on the way out even though NavigateTo takes a local path by contract:
-                // this value reaches a Location header, and a header is exactly where an unchecked
-                // path becomes an open redirect.
-                httpContext.Response.Headers.Location =
-                    LiveOptions.PathBase + LocalUrl.Sanitize(redirectUrl);
+                httpContext.Response.Headers.Location = render.RedirectLocation;
                 // Never cacheable. A redirect computed from runtime state — a flag, a tenant, an
                 // experiment — that a browser pinned would be unrecoverable without changing the URL.
                 httpContext.Response.Headers.CacheControl = "no-store";
                 return;
             }
-            // The verdict. Everything the walk saw has been accumulated by now; a page that
-            // recorded no reason at all needs no connection, so it can be served as a plain
-            // document. Development keeps the session either way, so `rask dev` still repaints on
-            // an edit and the audit warning below has a socket to have been worth checking.
-            // A page may ask to be served static even where the app default is interactive. Honoured
-            // only from the routed page itself or the app root: letting an arbitrary helper deep in a
-            // tree force a whole page static would be a very quiet way to break it.
-            var declaredStatic = notFoundPage is null
-                                 && chain.Count > 0
-                                 && DeclaredRenderModes.Of(chain[^1]) == RenderMode.Static;
 
-            // Gated as a whole rather than folded in as another reason: every clause below assumes a
-            // session is AVAILABLE, and with server interactivity off none of them can be honoured —
-            // including the Development one, which would otherwise make every page live while you are
-            // developing the very thing you turned off.
-            var interactive = limits.ServerInteractivity
-                              && (!(staticPages || declaredStatic)
-                                  || session.RequiresLiveSession
-                                  || session.LastRenderFaulted
-                                  // A JS call issued from a continuation AFTER the walk is invisible
-                                  // to the render context, but it is still queued waiting for a frame
-                                  // that only a socket can carry.
-                                  || session.JsInvokes.HasPending
-                                  || LiveOptions.IsDevelopment == true);
+            // The verdict. Everything the walk saw has been accumulated by now; a page that recorded no
+            // reason at all needs no connection, so it can be served as a plain document. Development
+            // keeps the session either way, so `rask dev` still repaints on an edit and the audit warning
+            // below has a socket to have been worth checking.
+            var interactive = render.NeedsSession;
 
             // A page that asked to be static and turned out to need a connection keeps the connection —
             // a request, not a command. Reported, because the two facts contradict each other and the
             // author asked for the one that would have broken the page.
-            if (declaredStatic && session.RequiresLiveSession)
+            if (render.DeclaredStatic && session.RequiresLiveSession)
             {
                 RaskDiagnostics.Report(
                     RaskLogLevel.Warning,
@@ -685,10 +643,6 @@ public static partial class RaskEndpointExtensions
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
             var dev = IsDevHotReloadEnabled(httpContext.RequestServices);
-            // Where to ask about build status when the socket drops (#603). Read from the environment
-            // because the only thing that can answer is `rask dev`, which is the process that launched
-            // this one — and it is stamped onto the page rather than pushed over the socket because the
-            // question only arises once that socket is gone.
             string content;
             if (interactive)
             {
@@ -697,23 +651,11 @@ public static partial class RaskEndpointExtensions
                 // which is the honest cost of not knowing the answer until the render was over.
                 if (staticPages && !store.TryRegister(session))
                 {
-                    await store.DiscardAsync(session).ConfigureAwait(false);
-                    httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                    httpContext.Response.Headers.RetryAfter = "5";
-                    httpContext.Response.Headers.CacheControl = "no-store";
-                    await httpContext.Response
-                        .WriteAsync("Server is at session capacity; please retry shortly.")
-                        .ConfigureAwait(false);
+                    await RefuseAdmissionAsync(httpContext, store, session).ConfigureAwait(false);
                     return;
                 }
 
-                content = LivePayload.InjectIslandsDevAttr(
-                    LivePayload.InjectWasmBundleAttr(
-                        LivePayload.InjectRootAttr(
-                            html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
-                        WasmBootModuleUrl(limits)),
-                    dev,
-                    dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null);
+                content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev);
             }
             else
             {
@@ -721,30 +663,17 @@ public static partial class RaskEndpointExtensions
                 // not exactly where it should be, TryRemove declines and the page is treated as
                 // interactive — serving a document that might still carry a session-bearing script
                 // as a cacheable static page is the one outcome worth refusing outright.
-                var stripped = RuntimeScriptSplice.TryRemove(html, LiveOptions.PathBase);
+                var stripped = RuntimeScriptSplice.TryRemove(render.Html, LiveOptions.PathBase);
                 if (stripped is null)
                 {
                     interactive = true;
                     if (staticPages && !store.TryRegister(session))
                     {
-                        await store.DiscardAsync(session).ConfigureAwait(false);
-                        httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                        httpContext.Response.Headers.RetryAfter = "5";
-                        httpContext.Response.Headers.CacheControl = "no-store";
-                        await httpContext.Response
-                            .WriteAsync("Server is at session capacity; please retry shortly.")
-                            .ConfigureAwait(false);
+                        await RefuseAdmissionAsync(httpContext, store, session).ConfigureAwait(false);
                         return;
                     }
 
-                    content = LivePayload.InjectIslandsDevAttr(
-                        LivePayload.InjectWasmBundleAttr(
-                            LivePayload.InjectRootAttr(
-                                html, session.Id, dev,
-                                dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
-                            WasmBootModuleUrl(limits)),
-                        dev,
-                        dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null);
+                    content = Prerender.PageDocument.Live(render.Html, session.Id, limits, dev);
                 }
                 else
                 {
@@ -753,32 +682,13 @@ public static partial class RaskEndpointExtensions
             }
 
             httpContext.Response.ContentType = "text/html; charset=utf-8";
-            // A page that crashed is not a 200. The root boundary catches the exception and renders the
-            // error document, so without this the response looked entirely healthy to every cache,
-            // crawler and uptime check (#607). The body is unchanged — the error page is still served,
-            // and the live session still attaches, so "Try again" and the reload button both work.
-            if (session.LastRenderFaulted)
+            // A page that crashed is not a 200, a page may set its own status, and the not-found page
+            // answers 404 once it was actually mounted — PageVerdict.Status says why each wins where it
+            // does (#607). The body is unchanged whatever the status, and a live session still attaches,
+            // so "Try again", the reload button and navigation off a missing page all keep working.
+            if (render.StatusCode != StatusCodes.Status200OK)
             {
-                httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            }
-            else if (pageResponse.Status is { } pageStatus)
-            {
-                // Below the faulted check on purpose: a page that threw does not get to claim it
-                // succeeded, and the error document is what is actually being served. Above the
-                // not-found check so a page can deliberately answer 200 there (a soft 404).
-                httpContext.Response.StatusCode = pageStatus;
-            }
-            else if (notFoundPage is not null && session.LastRenderMounted(notFoundPage))
-            {
-                // The not-found page renders perfectly ordinary HTML, so without this the response
-                // told every cache, crawler and uptime check that a missing page was fine — the
-                // same defect #607 fixed for a crashed one. The body is unchanged and the live
-                // session still attaches, so navigation off the page still works.
-                //
-                // Gated on the page actually having been MOUNTED, not merely resolved: an app that
-                // renders its root directly resolves the fallback too, and 404-ing every path such
-                // an app serves would be a far worse lie than the one being fixed.
-                httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                httpContext.Response.StatusCode = render.StatusCode;
             }
 
             // The shell embeds the session id (data-rask-root), which is the de-facto bearer
@@ -787,10 +697,8 @@ public static partial class RaskEndpointExtensions
             // replayed by another principal.
             var cache = ShellCachePolicy.For(
                 interactive,
-                (httpContext.User?.Identity?.IsAuthenticated == true)
-                || session.Services.GetRequiredService<SessionUserProvider>()
-                    .Current.Identity?.IsAuthenticated == true,
-                session.LastRenderFaulted,
+                render.Authenticated,
+                render.Faulted,
                 httpContext.Response.StatusCode);
             httpContext.Response.Headers.CacheControl = cache.CacheControl;
             if (cache.Pragma is { } pragma)
@@ -902,6 +810,25 @@ public static partial class RaskEndpointExtensions
 
     private static Task ForbidAsync(HttpContext ctx, string? scheme) =>
         scheme is null ? ctx.ForbidAsync() : ctx.ForbidAsync(scheme);
+
+    /// <summary>
+    ///     Answers a page whose session could not be admitted once its render was over.
+    /// </summary>
+    /// <remarks>
+    ///     Under static pages the tree is built detached and admitted only after the render has said it
+    ///     needs a session, so a refusal here comes after the work is done — the honest cost of not knowing
+    ///     the answer sooner. The session was never registered, so it is discarded rather than removed.
+    /// </remarks>
+    private static async Task RefuseAdmissionAsync(HttpContext httpContext, LiveSessionStore store, LiveSession session)
+    {
+        await store.DiscardAsync(session).ConfigureAwait(false);
+        httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        httpContext.Response.Headers.RetryAfter = "5";
+        httpContext.Response.Headers.CacheControl = "no-store";
+        await httpContext.Response
+            .WriteAsync("Server is at session capacity; please retry shortly.")
+            .ConfigureAwait(false);
+    }
 
     private static QueryCollection AdaptQuery(IQueryCollection source)
     {
