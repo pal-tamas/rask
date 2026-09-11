@@ -33,6 +33,15 @@ internal sealed class StorageStartupCheck(IServiceProvider services, ILogger<Sto
     {
         var runtime = services.GetRequiredService<StorageRuntime>();
 
+        if (!SweepPolicy.MayDelete(runtime.Backend.Provider, runtime.Options.Prefix))
+        {
+            logger.LogWarning(
+                "Rask.Storage writes to {Provider} with no Storage__Prefix, so the orphan sweep only reports what it would "
+                + "remove: a bucket is easily shared, and without a prefix it cannot tell this app's files from another "
+                + "environment's. Set Storage__Prefix (for example \"myapp/\") to let it clean up.",
+                runtime.Backend.Provider);
+        }
+
         if (!runtime.EndpointsMapped && services.GetService<IWebHostEnvironment>() is not null)
         {
             logger.LogWarning(

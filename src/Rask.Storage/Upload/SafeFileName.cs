@@ -7,11 +7,23 @@ namespace Rask.Storage.Upload;
 /// <c>Content-Disposition</c> header.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The same rules as the server's upload staging (<c>SanitizeUploadFileName</c>) and the CQRS download
-/// header (<c>SafeLeaf</c>), plus two a stored name needs: bidirectional overrides are removed, so
-/// <c>invoice&#x202E;fdp.exe</c> cannot display as <c>invoiceexe.pdf</c>, and the result is NFC so one name
-/// has one spelling. The name never reaches a path or a key — keys come from the id — so this is about what a
-/// person reads, and what a header carries.
+/// header (<c>SafeLeaf</c>), plus three a stored name needs:
+/// <list type="bullet">
+/// <item><description>Bidirectional overrides are removed, so <c>invoice&#x202E;fdp.exe</c> cannot display as <c>invoiceexe.pdf</c>.</description></item>
+/// <item><description>The result is NFC, so one name has one spelling.</description></item>
+/// <item><description>
+/// A run of whitespace becomes one space. The name travels inside a SIGNED header to S3 and Azure, and the
+/// specifications and the services disagree about whether whitespace inside a header value is collapsed
+/// before signing; a name with no runs signs the same whichever reading a service takes.
+/// </description></item>
+/// </list>
+/// </para>
+/// <para>
+/// The name never reaches a path or a key — keys come from the id — so this is about what a person reads, and
+/// what a header carries.
+/// </para>
 /// </remarks>
 internal static class SafeFileName
 {
@@ -45,6 +57,16 @@ internal static class SafeFileName
 
             if (char.IsLowSurrogate(c) || char.IsControl(c) || c == '"' || IsBidiControl(c))
             {
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c))
+            {
+                if (sb.Length == 0 || sb[^1] != ' ')
+                {
+                    sb.Append(' ');
+                }
+
                 continue;
             }
 

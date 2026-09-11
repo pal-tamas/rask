@@ -147,7 +147,9 @@ internal static class ContentSniffer
             return "image/x-icon";
         }
 
-        if (h.StartsWith("BM"u8) && h.Length >= 14)
+        // "BM" is also how "BMW …" starts; the DIB header size that follows is what makes it a bitmap.
+        if (h.StartsWith("BM"u8) && h.Length >= 18
+            && BinaryPrimitives.ReadUInt32LittleEndian(h.Slice(14, 4)) is 12 or 40 or 52 or 56 or 108 or 124)
         {
             return "image/bmp";
         }

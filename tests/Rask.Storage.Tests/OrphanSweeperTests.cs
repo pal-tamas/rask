@@ -22,6 +22,7 @@ public sealed class OrphanSweeperTests
     public async Task A_young_orphan_is_kept()
     {
         await using var harness = new StorageHarness();
+        await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
         var orphan = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(1));
 
@@ -58,9 +59,26 @@ public sealed class OrphanSweeperTests
     }
 
     [Fact]
+    public async Task An_empty_table_deletes_nothing()
+    {
+        // An app pointed at a fresh database sees every object as an orphan; the numbers alone would not stop it
+        // when the store holds 100 objects or fewer.
+        await using var harness = new StorageHarness();
+        var orphan = WriteOrphan(harness, Guid.NewGuid());
+        harness.Clock.Advance(TimeSpan.FromHours(25));
+
+        var result = await harness.Sweeper.SweepAsync(default);
+
+        Assert.True(result.Tripped);
+        Assert.Equal(0, result.Deleted);
+        Assert.True(File.Exists(orphan));
+    }
+
+    [Fact]
     public async Task A_mass_deletion_trips_the_breaker_and_deletes_nothing()
     {
         await using var harness = new StorageHarness();
+        await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
         var orphans = Enumerable.Range(0, OrphanSweeper<StorageDbContext>.BreakerFloor + 1)
             .Select(_ => WriteOrphan(harness, Guid.NewGuid()))
             .ToList();
@@ -74,16 +92,18 @@ public sealed class OrphanSweeperTests
     }
 
     [Fact]
-    public async Task Stale_spool_files_from_a_crashed_save_are_removed()
+    public async Task Stale_spool_files_are_removed_even_when_the_sweep_deletes_nothing_else()
     {
         await using var harness = new StorageHarness();
         var spool = harness.Runtime.Backend.CreateSpoolPath();
         await File.WriteAllBytesAsync(spool, [1, 2, 3]);
         File.SetLastWriteTimeUtc(spool, DateTime.UtcNow.AddHours(-2));
+        WriteOrphan(harness, Guid.NewGuid()); // with an empty table, the sweep itself refuses
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        await harness.Sweeper.SweepAsync(default);
+        var result = await harness.Sweeper.SweepAsync(default);
 
+        Assert.True(result.Tripped);
         Assert.False(File.Exists(spool));
     }
 
@@ -91,6 +111,7 @@ public sealed class OrphanSweeperTests
     public async Task The_sweep_stays_under_its_prefix()
     {
         await using var harness = new StorageHarness(o => o.Prefix = "app");
+        await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
         var outside = Path.Combine(harness.Root, KeyLayout.KeyOf("", Guid.NewGuid(), isPublic: false));
         Directory.CreateDirectory(Path.GetDirectoryName(outside)!);
         await File.WriteAllBytesAsync(outside, [1]);
@@ -103,6 +124,16 @@ public sealed class OrphanSweeperTests
         Assert.False(File.Exists(inside));
         Assert.True(File.Exists(outside));
     }
+
+    [Theory]
+    [InlineData(StorageProvider.Disk, "", true)]
+    [InlineData(StorageProvider.Disk, "app/", true)]
+    [InlineData(StorageProvider.S3, "", false)]
+    [InlineData(StorageProvider.S3, "app/", true)]
+    [InlineData(StorageProvider.Azure, "", false)]
+    [InlineData(StorageProvider.Azure, "app/", true)]
+    public void A_bucket_needs_a_prefix_before_the_sweep_deletes_from_it(StorageProvider provider, string prefix, bool mayDelete) =>
+        Assert.Equal(mayDelete, SweepPolicy.MayDelete(provider, prefix));
 
     private static string WriteOrphan(StorageHarness harness, Guid id)
     {

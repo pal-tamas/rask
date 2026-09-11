@@ -11,7 +11,8 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
     private const int MaxErrorBodyBytes = 64 * 1024;
     private const int MaxListingBytes = 16 * 1024 * 1024;
 
-    private static readonly string SpoolDirectory = Path.Combine(Path.GetTempPath(), "rask-storage");
+    private readonly Lock _spoolGate = new();
+    private string? _spoolDirectory;
 
     private static readonly XmlReaderSettings SafeXml = new()
     {
@@ -27,10 +28,22 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
 
     public abstract long MaxSinglePutBytes { get; }
 
+    /// <summary>
+    /// A spool file in a directory private to this backend. Not a fixed <c>/tmp</c> path: a predictable shared folder
+    /// can be created first by another local user, who then owns it and could swap a vetted upload's bytes between
+    /// the sniff and the upload. <see cref="Directory.CreateTempSubdirectory"/> makes a fresh one, owner-only on Unix.
+    /// </summary>
     public string CreateSpoolPath()
     {
-        Directory.CreateDirectory(SpoolDirectory);
-        return Path.Combine(SpoolDirectory, Guid.NewGuid().ToString("N") + ".tmp");
+        lock (_spoolGate)
+        {
+            if (_spoolDirectory is null || !Directory.Exists(_spoolDirectory))
+            {
+                _spoolDirectory = Directory.CreateTempSubdirectory("rask-storage-").FullName;
+            }
+
+            return Path.Combine(_spoolDirectory, Guid.NewGuid().ToString("N") + ".tmp");
+        }
     }
 
     public abstract Task PutFileAsync(string key, string sourcePath, long length, BlobHeaders headers,
@@ -51,7 +64,11 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
 
     public Task DeleteStaleSpoolAsync(DateTimeOffset olderThan, CancellationToken cancellationToken)
     {
-        SpoolCleanup.DeleteOlderThan(SpoolDirectory, olderThan, cancellationToken);
+        if (_spoolDirectory is { } directory)
+        {
+            SpoolCleanup.DeleteOlderThan(directory, olderThan, cancellationToken);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -92,8 +109,16 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
         }
 
         await EnsureSuccessAsync(response, "read an object", cancellationToken).ConfigureAwait(false);
-        var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        return new ResponseStream(response, body);
+        try
+        {
+            var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            return new ResponseStream(response, body);
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

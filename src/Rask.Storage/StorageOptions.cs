@@ -4,9 +4,10 @@ using Rask.Storage.Backends;
 namespace Rask.Storage;
 
 /// <summary>
-/// Where files go and what is accepted. Every option can also come from configuration under <c>Storage</c>
-/// (<c>Storage__Provider</c>, <c>Storage__MaxFileSize</c>, <c>Storage__S3__Bucket</c>, …); code set here wins
-/// over configuration.
+/// Where files go and what is accepted. The provider and its settings, the size limit, the prefix and the public
+/// base URL can also come from configuration under <c>Storage</c> (<c>Storage__Provider</c>,
+/// <c>Storage__MaxFileSize</c>, <c>Storage__S3__Bucket</c>, …); code set here wins over configuration.
+/// <see cref="AllowedTypes"/> and the sweep's timings are set in code.
 /// </summary>
 public sealed class StorageOptions
 {
@@ -41,7 +42,8 @@ public sealed class StorageOptions
 
     /// <summary>
     /// A key prefix, so one bucket can hold several apps (<c>"myapp/"</c>). Default empty. The orphan sweep
-    /// only ever looks under it. Configuration: <c>Storage__Prefix</c>.
+    /// only ever looks under it — and on S3 or Azure it deletes nothing until one is set, because a key's shape
+    /// alone cannot tell this app's orphans from another environment's files. Configuration: <c>Storage__Prefix</c>.
     /// </summary>
     public string Prefix { get; set; } = "";
 

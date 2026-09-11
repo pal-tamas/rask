@@ -7,6 +7,17 @@ namespace Rask.Storage;
 /// <summary>What one sweep did.</summary>
 internal readonly record struct SweepResult(int Deleted, int Orphans, bool Tripped);
 
+/// <summary>When the sweep is allowed to delete at all.</summary>
+internal static class SweepPolicy
+{
+    /// <summary>
+    /// A disk root belongs to the app. A bucket is easily shared by two environments, and without a prefix a
+    /// key's shape alone cannot tell this app's orphans from another app's files — so there it only reports.
+    /// </summary>
+    internal static bool MayDelete(StorageProvider provider, string prefix) =>
+        provider == StorageProvider.Disk || prefix.Length > 0;
+}
+
 /// <summary>
 /// Removes bytes that have no <see cref="StoredFile"/> row once they are older than
 /// <see cref="StorageOptions.OrphanGracePeriod"/>: what a save that failed between writing the bytes and the
@@ -15,14 +26,14 @@ internal readonly record struct SweepResult(int Deleted, int Orphans, bool Tripp
 /// <remarks>
 /// <para>
 /// <b>It fails closed.</b> Any error while asking the database which ids exist ends the run before anything is
-/// deleted — a query that failed must never read as "no rows". Each candidate is checked again immediately
-/// before it is deleted, so a row written while the listing ran keeps its bytes.
+/// deleted — a query that failed must never read as "no rows". Candidates are checked again immediately before
+/// they are deleted, so a row written while the listing ran keeps its bytes.
 /// </para>
 /// <para>
-/// <b>It refuses to delete a lot.</b> If more than a tenth of what it looked at (and more than 100 objects)
-/// would go, it deletes nothing and logs an error. That is the signature of an app pointed at the wrong or an
-/// empty database, or of two environments sharing one bucket and prefix — cases where "no row" means "wrong
-/// place", not "orphan".
+/// <b>It deletes nothing from a store it cannot be sure is its own.</b> Not against an empty table — an app
+/// pointed at a fresh database sees every object as an orphan. Not when more than a tenth of what it looked at
+/// (and more than 100 objects) would go. And not at all on S3 or Azure without a
+/// <see cref="StorageOptions.Prefix"/>, where it only reports what it found (<see cref="SweepPolicy"/>).
 /// </para>
 /// <para>
 /// It never writes to the database, and deleting is idempotent, so several instances sweeping one store is
@@ -39,11 +50,21 @@ internal sealed class OrphanSweeper<TContext>(
     internal const int MaxDeletesPerRun = 10_000;
     internal const int BreakerFloor = 100;
 
+    /// <summary>How long after start the first sweep waits, before its jitter.</summary>
+    internal static readonly TimeSpan InitialDelay = TimeSpan.FromMinutes(1);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(runtime.Options.SweepInterval, runtime.Time);
         try
         {
+            // Once shortly after start rather than a whole interval later: an app redeployed more often than the
+            // interval would otherwise never sweep at all. Jittered, so a fleet restarting together does not list
+            // the same bucket in the same second.
+            var jitter = TimeSpan.FromSeconds(Random.Shared.Next(0, 120));
+            await Task.Delay(InitialDelay + jitter, runtime.Time, stoppingToken).ConfigureAwait(false);
+            await RunOnceAsync(stoppingToken).ConfigureAwait(false);
+
+            using var timer = new PeriodicTimer(runtime.Options.SweepInterval, runtime.Time);
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
             {
                 await RunOnceAsync(stoppingToken).ConfigureAwait(false);
@@ -79,6 +100,9 @@ internal sealed class OrphanSweeper<TContext>(
         var backend = runtime.Backend;
         var cutoff = runtime.Time.GetUtcNow() - options.OrphanGracePeriod;
 
+        // First, whatever the listing below decides: a crashed save's spool file is this process's own.
+        await backend.DeleteStaleSpoolAsync(cutoff, cancellationToken).ConfigureAwait(false);
+
         var eligible = 0;
         var orphanCount = 0;
         var orphans = new List<(Guid Id, string Key)>();
@@ -105,6 +129,31 @@ internal sealed class OrphanSweeper<TContext>(
             orphanCount += await CollectOrphansAsync(batch, orphans, cancellationToken).ConfigureAwait(false);
         }
 
+        if (orphanCount == 0)
+        {
+            return new SweepResult(0, 0, Tripped: false);
+        }
+
+        if (!SweepPolicy.MayDelete(backend.Provider, options.Prefix))
+        {
+            logger.LogWarning(
+                "The storage orphan sweep found {Orphans} objects in {Provider} with no StoredFile row and deleted none: "
+                + "with no Storage__Prefix it cannot tell this app's orphans from another environment's files in the "
+                + "same bucket. Set Storage__Prefix to let it clean up.",
+                orphanCount, backend.Provider);
+            return new SweepResult(0, orphanCount, Tripped: true);
+        }
+
+        if (!await AnyRowAsync(cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogError(
+                "The storage orphan sweep found {Orphans} stored objects but the StoredFile table is empty, and deleted "
+                + "none of them: an empty table usually means the app is reading the wrong or a freshly created "
+                + "database. Check ConnectionStrings:App.",
+                orphanCount);
+            return new SweepResult(0, orphanCount, Tripped: true);
+        }
+
         if (orphanCount > Math.Max(BreakerFloor, eligible / 10))
         {
             logger.LogError(
@@ -116,18 +165,21 @@ internal sealed class OrphanSweeper<TContext>(
         }
 
         var deleted = 0;
-        foreach (var (id, key) in orphans)
+        foreach (var chunk in orphans.Chunk(BatchSize))
         {
-            if (await RowExistsAsync(id, cancellationToken).ConfigureAwait(false))
+            // Checked again just before deleting: a row written while the listing ran keeps its bytes.
+            var present = await ExistingIdsAsync([.. chunk.Select(o => o.Id)], cancellationToken).ConfigureAwait(false);
+            foreach (var (id, key) in chunk)
             {
-                continue;
+                if (present.Contains(id))
+                {
+                    continue;
+                }
+
+                await backend.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
+                deleted++;
             }
-
-            await backend.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
-            deleted++;
         }
-
-        await backend.DeleteStaleSpoolAsync(cutoff, cancellationToken).ConfigureAwait(false);
 
         if (deleted > 0)
         {
@@ -140,17 +192,7 @@ internal sealed class OrphanSweeper<TContext>(
     private async Task<int> CollectOrphansAsync(List<(Guid Id, string Key)> batch, List<(Guid Id, string Key)> orphans,
         CancellationToken cancellationToken)
     {
-        var ids = batch.ConvertAll(b => b.Id);
-        HashSet<Guid> existing;
-        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        await using (db.ConfigureAwait(false))
-        {
-            existing = (await db.Set<StoredFile>()
-                .Where(f => ids.Contains(f.Id))
-                .Select(f => f.Id)
-                .ToListAsync(cancellationToken)
-                .ConfigureAwait(false)).ToHashSet();
-        }
+        var existing = await ExistingIdsAsync(batch.ConvertAll(b => b.Id), cancellationToken).ConfigureAwait(false);
 
         var found = 0;
         foreach (var candidate in batch)
@@ -170,12 +212,25 @@ internal sealed class OrphanSweeper<TContext>(
         return found;
     }
 
-    private async Task<bool> RowExistsAsync(Guid id, CancellationToken cancellationToken)
+    private async Task<HashSet<Guid>> ExistingIdsAsync(List<Guid> ids, CancellationToken cancellationToken)
     {
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            return await db.Set<StoredFile>().AnyAsync(f => f.Id == id, cancellationToken).ConfigureAwait(false);
+            return (await db.Set<StoredFile>()
+                .Where(f => ids.Contains(f.Id))
+                .Select(f => f.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false)).ToHashSet();
+        }
+    }
+
+    private async Task<bool> AnyRowAsync(CancellationToken cancellationToken)
+    {
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            return await db.Set<StoredFile>().AnyAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

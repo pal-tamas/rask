@@ -67,7 +67,7 @@ public sealed class ProviderSmokeTests
     private static async Task RoundTripAsync(StorageHarness harness)
     {
         var bytes = Samples.Png(300_000);
-        var file = await harness.Files.SaveAsync(new MemoryStream(bytes), "smoke photo.png");
+        var file = await harness.Files.SaveAsync(new MemoryStream(bytes), "smoke  photo.png");
 
         // Read back through the store.
         await using (var stream = await harness.Files.OpenReadAsync(file.Id))

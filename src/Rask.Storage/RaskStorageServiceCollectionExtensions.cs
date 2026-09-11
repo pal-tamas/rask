@@ -47,7 +47,9 @@ public static class RaskStorageServiceCollectionExtensions
                 AllowAutoRedirect = false,
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             })
-            .ConfigureHttpClient(static client => client.Timeout = TimeSpan.FromMinutes(10))
+            // No client-wide timeout: one PUT may carry up to 5 GiB over a slow link, and a fixed ceiling would fail
+            // every large upload identically. Each call runs under the caller's cancellation token instead.
+            .ConfigureHttpClient(static client => client.Timeout = Timeout.InfiniteTimeSpan)
             .RemoveAllLoggers();
 
         services.TryAddSingleton(sp => BuildOptions(sp, configure));

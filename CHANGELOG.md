@@ -46,7 +46,9 @@ them until tagged releases begin.
   - **Bytes are written before the row, and a sweep removes what a failed save leaves behind.** It fails
     closed (a database error deletes nothing), re-checks each candidate just before deleting it, only ever
     touches keys in its own layout under `Storage__Prefix`, and refuses outright when it would remove more
-    than a tenth of what it looked at — the signature of an app pointed at the wrong database.
+    than a tenth of what it looked at — the signature of an app pointed at the wrong database. It deletes
+    nothing against an empty table, and on S3 or Azure nothing at all until `Storage__Prefix` is set: a bucket
+    is easily shared, and a key's shape cannot tell this app's orphans from another environment's files.
   - Configuration comes from `Storage__*` keys read inside `AddRaskStorage`, so an app `rask new` wrote
     honours them; code set in the delegate wins. A bad value fails the boot, and a storage directory inside
     `wwwroot` is refused because the static-file middleware would serve uploads with none of these checks.

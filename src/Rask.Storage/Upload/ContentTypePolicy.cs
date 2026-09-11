@@ -67,7 +67,9 @@ internal static class ContentTypePolicy
                 return true;
             }
 
+            // A family never admits a type that can run script: "image/*" is for photographs, and SVG must be named.
             if (slash > 0
+                && !ScriptCapable.Contains(contentType)
                 && pattern.EndsWith("/*", StringComparison.Ordinal)
                 && pattern.Length == slash + 2
                 && string.Compare(pattern, 0, contentType, 0, slash, StringComparison.OrdinalIgnoreCase) == 0)

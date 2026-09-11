@@ -136,7 +136,7 @@ internal static partial class ProjectGenerator
                 // or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
                 // which NO backup covers — until you point them at a bucket: rask deploy --env Storage__Provider=S3
                 // --env Storage__S3__Bucket=... (and the keys beside it), or Storage__Provider=Azure. The routes that
-                // serve the links are mapped after UseRask below.
+                // serve the links are mapped further down, by app.MapRaskStorage().
                 builder.Services.AddRaskStorage<AppDbContext>();
                 """);
         }

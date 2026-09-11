@@ -79,6 +79,10 @@ public sealed class ContentSnifferTests
     }
 
     [Fact]
+    public void Text_that_starts_like_a_bitmap_is_text() =>
+        Assert.Equal("text/plain", ContentSniffer.Sniff("BMW parts list, spring 2026"u8));
+
+    [Fact]
     public void Utf16_is_text_not_an_mpeg_frame() =>
         Assert.Equal("text/plain", ContentSniffer.Sniff([0xFF, 0xFE, 0x3C, 0x00]));
 
@@ -144,6 +148,14 @@ public sealed class ContentTypePolicyTests
         Assert.False(ContentTypePolicy.IsAllowed("text/html", ["image/*", "application/pdf"]));
         Assert.False(ContentTypePolicy.IsAllowed("imagery/png", ["image/*"]));
     }
+
+    [Fact]
+    public void A_family_never_admits_a_script_capable_type()
+    {
+        Assert.False(ContentTypePolicy.IsAllowed("image/svg+xml", ["image/*"]));
+        Assert.False(ContentTypePolicy.IsAllowed("text/html", ["text/*"]));
+        Assert.True(ContentTypePolicy.IsAllowed("image/svg+xml", ["image/svg+xml"]));
+    }
 }
 
 public sealed class SafeFileNameTests
@@ -159,6 +171,12 @@ public sealed class SafeFileNameTests
     [InlineData("..", "file")]
     [InlineData("dir/", "file")]
     public void A_name_is_reduced_to_a_safe_leaf(string? input, string expected) =>
+        Assert.Equal(expected, SafeFileName.Clean(input));
+
+    [Theory]
+    [InlineData("Q3  report.pdf", "Q3 report.pdf")]
+    [InlineData("a\u00A0\u00A0b.txt", "a b.txt")]
+    public void A_run_of_whitespace_becomes_one_space(string input, string expected) =>
         Assert.Equal(expected, SafeFileName.Clean(input));
 
     [Fact]

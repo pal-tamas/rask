@@ -213,9 +213,15 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
                     read = await content.ReadAsync(buffer.AsMemory(0, CopyBufferSize), cancellationToken).ConfigureAwait(false);
                 }
 
-                // On disk before the rename, so a power cut cannot leave a row pointing at an empty file.
                 await spoolStream.FlushAsync(cancellationToken).ConfigureAwait(false);
-                spoolStream.Flush(flushToDisk: true);
+
+                // For the disk store the spool file BECOMES the stored file, so it reaches the disk before the rename:
+                // a power cut must not leave a row pointing at an empty file. A remote store's spool is uploaded and
+                // deleted moments later, and syncing it would only block a thread.
+                if (backend.Provider == StorageProvider.Disk)
+                {
+                    spoolStream.Flush(flushToDisk: true);
+                }
             }
 
             var headers = new BlobHeaders(
