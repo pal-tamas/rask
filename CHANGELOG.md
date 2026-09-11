@@ -362,6 +362,17 @@ them until tagged releases begin.
   `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing
   reporting it. The guard now looks for the console's own mount.
 
+- **An island's callbacks no longer go dead when the page around it re-renders from cache.** An island
+  (`ReactComponent`, `VueComponent`, …) is serialized as an element, so it never told its enclosing
+  component that the subtree held a component, and a page of plain elements plus an island qualified for
+  the clean-subtree frame cache. A replay re-registers only the page's own handler slots, while an island's
+  callbacks sit on the island's, so the second render of a clean page still wrote `"$h":"h0"` into the
+  props while the handler map held nothing for it: the click reached the server and ran nothing, for the
+  rest of the session. The same replay also skipped the runtime `<script>` the island contributes to
+  `<head>`. A page holding an island now stays on the walk path, and `LiveRenderContext.RegisterHandlerFor`
+  keeps any subtree whose handler lands on another component's slots off the cache as well.
+  `HandlerIdentityTests` pins both, with a control proving the rig caches the same page without the island.
+
 - **Relative links in the guides no longer 404.** The guide renderer sent every `../x.md` link to
   `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51
   `../browser-capabilities.md` links on the browser-API pages and the tutorial's `../cli.md`, `../jobs.md`

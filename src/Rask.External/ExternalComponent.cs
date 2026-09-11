@@ -142,6 +142,13 @@ public abstract partial class ExternalComponent : Component
     /// <inheritdoc />
     protected sealed override void WriteAttributes(StringBuilder sb)
     {
+        // An island is serialized down the element branch, so on its own it never tells the enclosing
+        // component that its subtree holds a component. Left that way, a page of plain elements plus an
+        // island is frame-cached, and its replay skips everything below: the runtime script this call
+        // registers falls out of <head>, and the callbacks the props writer registers on the island's
+        // own slots resolve to nothing for the rest of the session.
+        LiveRenderContext.CurrentSync?.MarkSubtreeUncacheable();
+
         RegisterRuntimeScript();
 
         AppendAttr(sb, ExternalDefaults.NameAttribute, ComponentName);
