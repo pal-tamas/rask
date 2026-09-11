@@ -93,4 +93,14 @@ public sealed class MetaHostingOptions
     ///     container behind the same proxy. The forwarder does not care what is listening.
     /// </remarks>
     public bool SuperviseNode { get; set; } = true;
+
+    /// <summary>
+    ///     Whether the supervisor runs the framework's own dev server instead of the built server entry —
+    ///     true only for an app an editor launched as a dev session, where no <c>rask dev</c> starts it.
+    /// </summary>
+    /// <remarks>
+    ///     Decided by <c>AddRaskMeta</c>, never by the app: it follows from how the app was built and
+    ///     launched, and a deployed app must never be able to end up running a dev server.
+    /// </remarks>
+    internal bool RunDevServer { get; set; }
 }

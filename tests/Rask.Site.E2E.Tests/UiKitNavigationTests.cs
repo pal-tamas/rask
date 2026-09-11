@@ -107,6 +107,22 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         Assert.NotNull(await active.GetAttributeAsync("href"));
     });
 
+    [Fact]
+    public Task PagesWithAnAddressAreLinksAndTheCurrentPageIsNot() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var pager = Page.Locator("[data-testid='ui-pagination-links']");
+
+        // Four pages, the first current: three links and one marker that is not a link.
+        await Expect(pager.Locator("a.join-item")).ToHaveCountAsync(3);
+        await Expect(pager.Locator("[aria-current='page']")).ToHaveTextAsync("1");
+        await Expect(pager.Locator("button")).ToHaveCountAsync(0);
+
+        var href = await pager.Locator("a.join-item").First.GetAttributeAsync("href") ?? "";
+        Assert.EndsWith("/ui/navigation/?page=2", href, StringComparison.Ordinal);
+    });
+
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);

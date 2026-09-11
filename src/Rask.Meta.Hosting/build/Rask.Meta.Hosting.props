@@ -18,10 +18,12 @@
   <PropertyGroup>
     <!--
       Master switch. False skips the install, the build and the node probe entirely — the app still
-      compiles and its API still works. `rask dev` passes false, because the framework's own dev server
-      owns the build during a dev session; the repo's unit gate passes it too, so a machine with no
-      node can still build a solution containing one of these. Same shape as RaskSpaBuild.
+      compiles and its API still works. A dev session (RaskDevSession=true, passed by `rask dev` and by
+      the scaffolded VS Code build task) turns it off, because the framework's own dev server owns the
+      build then; the repo's unit gate passes false too, so a machine with no node can still build a
+      solution containing one of these. Same shape as RaskSpaBuild, and an explicit value still wins.
     -->
+    <RaskMetaBuild Condition="'$(RaskMetaBuild)' == '' AND '$(RaskDevSession)' == 'true'">false</RaskMetaBuild>
     <RaskMetaBuild Condition="'$(RaskMetaBuild)' == ''">true</RaskMetaBuild>
 
     <!--

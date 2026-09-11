@@ -3,7 +3,7 @@
   <PropertyGroup>
     <!-- Server-only: the files are kept by the server and their rows live in the application's database.
          Single-targeted (no net10.0-browser), so that constraint is enforced by the compiler. -->
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>

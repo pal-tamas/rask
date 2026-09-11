@@ -58,6 +58,28 @@
   </PropertyGroup>
 
   <!--
+    The .NET versions every shipped package builds for, stated once. A packable project reads them as
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>, adding $(RaskBrowserTargets) when it has a
+    browser face. RaskVerifyTargetFrameworks (Directory.Build.targets) fails a shipped project that writes
+    its frameworks out literally instead, because adding a version here would otherwise skip that project
+    without a word — its package would publish with no folder for the new version and nothing would fail.
+
+    The PRIMARY target is the single inner build that owns work producing one shared file, such as a bundle
+    written into the project directory: every framework's build would otherwise race to write it.
+
+    Applications (src/Rask.Site, the templates), test projects and build tooling (generators, tasks) keep
+    their own single framework — an app runs on one runtime, and tooling loads into the compiler or MSBuild.
+    A global property wins over these (-p:RaskNetTargets=...), which is how the cost of a second version is
+    measured before it is switched on.
+  -->
+  <PropertyGroup>
+    <RaskPrimaryNetTarget>net10.0</RaskPrimaryNetTarget>
+    <RaskPrimaryBrowserTarget>net10.0-browser</RaskPrimaryBrowserTarget>
+    <RaskNetTargets>$(RaskPrimaryNetTarget)</RaskNetTargets>
+    <RaskBrowserTargets>$(RaskPrimaryBrowserTarget)</RaskBrowserTargets>
+  </PropertyGroup>
+
+  <!--
     Code-quality gate (enforced by the rask-ship skill, codified here so a plain `dotnet build`
     enforces it too): .NET analyzers on, code-style run in-build, warnings are errors. The repo
     builds clean today — keep it that way. Only Roslyn compiler/analyzer warnings escalate;

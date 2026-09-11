@@ -1,23 +1,25 @@
 # Rask.Dashboard
 
 An operator dashboard for the [Rask](https://github.com/pal-tamas/rask) One Person Framework batteries.
-Mounts at `/_rask` and reads the outbox, background jobs, queued mail and cache **out of your application's
-own database** — the tables are already there, so there is nothing to run and nothing to export.
+Mounts at `/_rask` and reads the outbox, background jobs, queued mail, cache and stored files **out of your
+application's own database** — the tables are already there, so there is nothing to run and nothing to export.
 
 - **Dead letters, named as such.** Every queue is split into due / delayed / **failed** / processed, where
   failed means what the processors mean by giving up: out of attempts and still unprocessed. Processed
   climbing looks healthy while a queue retries itself to death, so the dead-letter count gets a banner of
   its own rather than a tile among tiles.
-- **The error behind the row.** Expand any row for its last failure message and its stored payload.
+- **The error behind the row.** Open any row's details for its last failure message and its stored payload.
 - **Only what you run.** A panel appears only when its battery is both registered *and* mapped into the
   `DbContext`, so the nav is an inventory of this deployment rather than a menu of dead links.
 - **Fix it from here.** Retry a dead letter (or all of them), purge processed rows, evict a cache key. The
   retry guard is the inverse of the processors' own drain query, so it can only match rows they've already
   given up on — a row in flight is untouchable, and no coordination with a running processor is needed.
-- **Cache, logs, system and schedule.** Cache keys with sizes and expiry; a bounded in-memory tail of the
+- **Cache, storage, logs, system and schedule.** Cache keys with sizes and expiry; stored files by provider; a bounded in-memory tail of the
   `ILogger` pipeline (the failures that leave no row anywhere — Litestream exiting, an unregistered job
   type, handler faults); SQLite pragmas read live, database size, and the recurring-job schedule joined to
   when each job last actually fired.
+- **Nothing to serve.** Drawn entirely with `Rask.Ui` components, with the kit's stylesheet inlined — no
+  static asset, no script and no endpoint for your host to map.
 - **Fail-closed by default.** See below — this matters more than any of the above.
 
 ## Use

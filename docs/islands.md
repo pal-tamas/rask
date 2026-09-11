@@ -674,6 +674,11 @@ listens on **5174** — not Vite's 5173, which belongs to the [SPA lane's](spa.m
 with both does not have two dev servers fighting for one port. Override it with
 `<RaskExternalDevServerPort>` if something else is already there.
 
+**Under VS Code's F5 the app starts it.** No `rask dev` runs beside an app the debugger launched, so a
+dev-session build starts the same Vite server itself once the build has written its config, and stops it with
+the app — see [debugging in VS Code](cli.md#debugging-in-vs-code). The page stays on localhost there, as it
+does under `rask dev`: an HTTPS page could not load modules from this plain-HTTP server.
+
 **It answers loopback origins only** — `localhost`, `127.0.0.1`, `[::1]`. Not a default worth
 loosening: the dev server also serves `/@fs/<path>`, so an allow-everything CORS policy would let any
 website open in your browser fetch files from under your workspace root while `rask dev` is running.

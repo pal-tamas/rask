@@ -14,6 +14,10 @@ namespace Rask.Site.Features.UiKit;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UiKitDataGridPage : Component
 {
+    /// <summary>The last demo grid's page, counted from one — its pager's links write it.</summary>
+    [QueryParam("page")]
+    public int? Page { get; set; }
+
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
@@ -50,6 +54,6 @@ public sealed partial class UiKitDataGridPage : Component
                 + "chain's key type; the last grid's sort and page are plain fields on the demo. Every "
                 + "interaction here is a C# handler, so this component — unlike most of the kit — needs "
                 + "the runtime.")
-            .Result(UiKitDataGridDemo)
+            .Result(UiKitDataGridDemo.UrlPage(Page))
     ];
 }

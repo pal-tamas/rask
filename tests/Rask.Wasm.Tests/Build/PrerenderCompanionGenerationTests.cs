@@ -155,6 +155,23 @@ public class PrerenderCompanionGenerationTests : IDisposable
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("net10.0-browser", "net10.0")]
+    [InlineData("net11.0-browser", "net11.0")]
+    public void TheCompanionIsTheAppsDesktopTwin(string app, string companion)
+    {
+        // The companion carries the app's own package references, so it must restore the same .NET
+        // version of every one of them the app was compiled against. It was a literal net10.0, which
+        // rendered a net11.0-browser app with a different build of each dependency than it ships.
+        var csproj = Path.Combine(_dir, "App.csproj");
+        File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
+            "<TargetFramework>net10.0</TargetFramework>",
+            $"<TargetFramework>{app}</TargetFramework>",
+            StringComparison.Ordinal));
+
+        Assert.Contains($"<TargetFramework>{companion}</TargetFramework>", Generate(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheCompanionDoesNotBuildTheAppsIslands()
     {

@@ -16,6 +16,7 @@ namespace Rask.DevTools.Tests;
 ///     <see cref="RaskDevToolsLoader.Attach" />, because the unit gate builds Release, where the switch is off
 ///     and <c>AddRask</c>'s own attach does nothing.
 /// </summary>
+[Collection(DevToolsHookCollection.Name)]
 public sealed class DevToolsServerEndpointTests
 {
     [Fact]
@@ -78,12 +79,13 @@ public sealed class DevToolsServerEndpointTests
         using var host = Host("Development");
 
         var html = await host.Http.GetStringAsync("/");
-        var tag = "<script src=\"" + DevToolsServerEndpoints.HostScriptPath + "\" data-rask-managed defer></script>";
+        var tag = "<script src=\"" + DevToolsServerEndpoints.HostScriptPath + "\" data-panel=\"";
         var at = html.IndexOf(tag, StringComparison.Ordinal);
 
         Assert.True(at >= 0, "the page does not load the devtools host script:" + Environment.NewLine + html);
         Assert.True(at < html.IndexOf("</head>", StringComparison.Ordinal), "the host script tag is not in <head>");
         Assert.Equal(at, html.LastIndexOf(tag, StringComparison.Ordinal));
+        Assert.Contains("data-rask-managed defer></script>", html[at..], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -104,11 +106,14 @@ public sealed class DevToolsServerEndpointTests
         using var host = Host("Development", pathBase: "/sub");
         var devTools = host.Services.GetRequiredService<IRaskServerDevTools>();
 
-        Assert.Equal("/sub" + DevToolsServerEndpoints.HostScriptPath, devTools.HostScriptUrl(Request("/sub/")));
-        Assert.Null(devTools.HostScriptUrl(Request("/sub/_rask-devtools/")));
-        Assert.Null(devTools.HostScriptUrl(Request("/sub/_rask-devtools/panel")));
+        var tag = devTools.PageTag(Request("/sub/"), "s1");
+        Assert.NotNull(tag);
+        Assert.Equal("/sub" + DevToolsServerEndpoints.HostScriptPath, tag.ScriptUrl);
+        Assert.StartsWith("/sub" + DevToolsServerEndpoints.Prefix + "/?inspect=s1&t=", tag.PanelUrl, StringComparison.Ordinal);
+        Assert.Null(devTools.PageTag(Request("/sub/_rask-devtools/"), "s1"));
+        Assert.Null(devTools.PageTag(Request("/sub/_rask-devtools/panel"), "s1"));
         // A segment boundary, not a string prefix: an app page that merely starts with the same letters is inspected.
-        Assert.NotNull(devTools.HostScriptUrl(Request("/sub/_rask-devtoolsx")));
+        Assert.NotNull(devTools.PageTag(Request("/sub/_rask-devtoolsx"), "s1"));
     }
 
     [Fact]
@@ -116,7 +121,7 @@ public sealed class DevToolsServerEndpointTests
     {
         using var host = Host("Production");
 
-        Assert.Null(host.Services.GetRequiredService<IRaskServerDevTools>().HostScriptUrl(Request("/")));
+        Assert.Null(host.Services.GetRequiredService<IRaskServerDevTools>().PageTag(Request("/"), "s1"));
     }
 
     private static RaskTestHost Host(

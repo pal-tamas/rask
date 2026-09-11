@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
 
@@ -16,7 +17,7 @@ internal sealed class DevHostStore(string root)
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
     /// <summary>Where certificates and keys live.</summary>
-    private string CertificateDirectory => Path.Combine(root, "certs");
+    private string CertificateDirectory => DevHostPaths.CertificateDirectory(root);
 
     /// <summary>The record of what this tool last asked the kernel for. See <see cref="ReadPfState" />.</summary>
     private string PfStatePath => Path.Combine(root, "pf-state.json");
@@ -25,9 +26,10 @@ internal sealed class DevHostStore(string root)
 
     private string AuthorityKeyPath => Path.Combine(CertificateDirectory, "rask-local-ca.key");
 
-    public string CertificatePath(string hostname) => Path.Combine(CertificateDirectory, hostname + ".pem");
+    // Through DevHostPaths, because an app launched by an editor reads the same files back (see there).
+    public string CertificatePath(string hostname) => DevHostPaths.CertificatePath(root, hostname);
 
-    public string KeyPath(string hostname) => Path.Combine(CertificateDirectory, hostname + ".key");
+    public string KeyPath(string hostname) => DevHostPaths.KeyPath(root, hostname);
 
     /// <summary>The stored authority, or null when this machine has never minted one.</summary>
     public DevCertificate? ReadAuthority() => Read(AuthorityCertificatePath, AuthorityKeyPath);
@@ -148,8 +150,7 @@ internal sealed class DevHostStore(string root)
     }
 
     /// <summary>The default root: <c>~/.rask</c>.</summary>
-    public static string DefaultRoot =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".rask");
+    public static string DefaultRoot => DevHostPaths.DefaultRoot;
 
     /// <summary>
     ///     A token that changes when the machine reboots, used to notice that pf has been reset.

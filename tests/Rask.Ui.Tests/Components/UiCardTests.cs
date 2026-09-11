@@ -1,7 +1,7 @@
 namespace Rask.Ui.Tests.Components;
 
 /// <summary>
-///     The panel, and the composition of its class attribute.
+///     The panel, the composition of its class attribute, and the linked form of it.
 /// </summary>
 public partial class UiCardTests : global::Rask.Core.RaskMarkup
 {
@@ -40,4 +40,42 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
         Assert.Contains("<h2", html, StringComparison.Ordinal);
         Assert.Contains("Orders", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void The_card_does_not_space_its_body()
+    {
+        // Every demo result on the site sits in a UiCard. Spacing the body would restyle all of them at once,
+        // so the card leaves its children's rhythm to them; only the header carries a margin.
+        var html = UiCard.Heading("Orders")[Span["one"], Span["two"]].ToHtml();
+
+        Assert.DoesNotContain("space-y-", html, StringComparison.Ordinal);
+        Assert.Contains("mb-4 flex", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_icon_sits_before_the_heading()
+    {
+        var html = UiCard.Heading("Jobs").Icon(UiIconName.Gear)[Span["body"]].ToHtml();
+
+        var icon = html.IndexOf("size-5 shrink-0 opacity-60", StringComparison.Ordinal);
+        Assert.True(icon >= 0, "the icon was not rendered");
+        Assert.True(icon < html.IndexOf("<h2", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_card_with_an_href_is_one_link_holding_everything()
+    {
+        // One link, not a link beside a card: the whole panel is the target, so it is one tab stop and one
+        // announcement, and "open in new tab" works anywhere on it.
+        var html = UiCard.Href("/_rask/queues/jobs").Heading("Jobs")[Span["body"]].ToHtml();
+
+        Assert.StartsWith("<a ", html, StringComparison.Ordinal);
+        Assert.EndsWith("</a>", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/_rask/queues/jobs\"", html, StringComparison.Ordinal);
+        Assert.Equal(1, html.Split("<a ").Length - 1);
+    }
+
+    [Fact]
+    public void A_card_without_an_href_is_not_a_link() =>
+        Assert.DoesNotContain("<a ", UiCard.Heading("Jobs")[Span["body"]].ToHtml(), StringComparison.Ordinal);
 }

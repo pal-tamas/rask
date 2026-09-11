@@ -74,6 +74,21 @@ public sealed class WasmRemoteDispatchTests
             $"--{flag} alone scaffolded a browser startup it has no use for.");
 
         Assert.DoesNotContain("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
+
+        // The endpoint half belongs to the browser rung too. Its package and using are written only with
+        // --wasm, so a call written without them is an app that does not compile: the database-free
+        // AddRaskCqrsServer once sat outside the wasm region, and --cqrs alone failed with CS1061.
+        Assert.DoesNotContain("AddRaskCqrsServer", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs.Server", files["App.csproj"], StringComparison.Ordinal);
+
+        // Nor its setting: an app with no endpoints has no sign-in for them to waive, and a note warning
+        // that every message would answer 401 describes endpoints this app does not have.
+        Assert.DoesNotContain("RequireAuthenticatedUser", files["appsettings.json"], StringComparison.Ordinal);
+
+        // Nor the bare comment line that joined that call's paragraph to the one before it, which was left
+        // dangling straight after the query cache's registration.
+        Assert.DoesNotContain(
+            "builder.Services.AddRaskQuery();\n//\n", files["Program.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
