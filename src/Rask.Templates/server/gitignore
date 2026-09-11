@@ -17,7 +17,6 @@ Styles/vendor/
 /.vscode/*
 !/.vscode/launch.json
 !/.vscode/tasks.json
-!/.vscode/settings.json
 !/.vscode/extensions.json
 .idea/
 *.user

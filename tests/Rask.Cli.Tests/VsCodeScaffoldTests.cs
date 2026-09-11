@@ -21,7 +21,7 @@ public sealed class VsCodeScaffoldTests
     private const string Version = "9.9.9";
 
     private static readonly string[] VsCodeFiles =
-        [".vscode/launch.json", ".vscode/tasks.json", ".vscode/settings.json", ".vscode/extensions.json"];
+        [".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json"];
 
     private static readonly JsonDocumentOptions Jsonc = new()
     {
@@ -100,7 +100,7 @@ public sealed class VsCodeScaffoldTests
     }
 
     [Fact]
-    public void F5_runs_the_dll_that_build_produces_with_edits_allowed()
+    public void F5_runs_the_dll_that_build_produces_with_just_my_code()
     {
         foreach (var (label, result) in HostScaffolds())
         {
@@ -115,10 +115,24 @@ public sealed class VsCodeScaffoldTests
             Assert.Equal("${workspaceFolder}/bin/Debug/net10.0/App.dll", config.GetProperty("program").GetString());
             Assert.Contains("<TargetFramework>net10.0</TargetFramework>", files["App.csproj"], StringComparison.Ordinal);
 
-            // Without it MetadataUpdater.IsSupported is false, and Rask never repaints an applied edit.
-            Assert.Equal("debug", config.GetProperty("env").GetProperty("DOTNET_MODIFIABLE_ASSEMBLIES").GetString());
+            // What makes a handler's exception stop on its throw line rather than inside Rask.
+            Assert.True(config.GetProperty("justMyCode").GetBoolean(), label);
             Assert.False(files[".vscode/launch.json"].Contains("Company.RaskServer", StringComparison.Ordinal), label);
         }
+    }
+
+    [Fact]
+    public void Nothing_promises_hot_reload_under_the_debugger()
+    {
+        // Tried under VS Code's F5: C# Dev Kit reports hot reload unavailable for this launch, and a saved
+        // edit never reached the running app. So the scaffold turns nothing on that would suggest otherwise;
+        // edits under the debugger need a restart, and `rask dev` is the live-edit loop.
+        var files = Index(ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
+
+        Assert.DoesNotContain(".vscode/settings.json", files.Keys);
+        Assert.DoesNotContain(files, f => f.Key.StartsWith(".vscode/", StringComparison.Ordinal)
+                                          && (f.Value.Contains("hotReload", StringComparison.OrdinalIgnoreCase)
+                                              || f.Value.Contains("DOTNET_MODIFIABLE_ASSEMBLIES", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -134,15 +148,6 @@ public sealed class VsCodeScaffoldTests
         Assert.True(match.Success, $"serverReadyAction.pattern '{pattern}' does not match what the app logs");
         Assert.Equal("https://app.test", match.Groups[1].Value);
         Assert.Equal("%s", ready.GetProperty("uriFormat").GetString());
-    }
-
-    [Fact]
-    public void Saves_apply_while_debugging()
-    {
-        var files = Index(ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
-        using var settings = JsonDocument.Parse(files[".vscode/settings.json"], Jsonc);
-
-        Assert.True(settings.RootElement.GetProperty("csharp.experimental.debug.hotReload").GetBoolean());
     }
 
     private static Dictionary<string, string> Index(ScaffoldResult result) =>

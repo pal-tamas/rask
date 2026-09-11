@@ -71,7 +71,6 @@ internal static partial class ProjectGenerator
         /.vscode/*
         !/.vscode/launch.json
         !/.vscode/tasks.json
-        !/.vscode/settings.json
         !/.vscode/extensions.json
         .idea/
         *.user

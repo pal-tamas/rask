@@ -16,8 +16,10 @@ namespace Rask.Cli.Scaffolding;
 ///     <para>
 ///         Why F5 rather than attaching to <c>rask dev</c>: the runtime refuses to apply a hot-reload update
 ///         while a debugger is attached, so <c>dotnet watch</c> and a debugger cannot share a process. Under
-///         F5 the editor's debugger launches the app and applies edits itself, and the build's
-///         <c>RaskDevSession=true</c> is what tells the app to start its own front-end dev servers.
+///         F5 the editor's debugger launches the app — edits need a restart there, and <c>rask dev</c> stays
+///         the live-edit loop — and the build's <c>RaskDevSession=true</c> is what tells the app to start its
+///         own front-end dev servers. (C# Dev Kit's debug hot reload was tried for this launch and reported
+///         unavailable, so nothing here promises it.)
 ///     </para>
 ///     <para>
 ///         Not for the <c>wasm</c> template. Its C# runs in the browser, which needs a debug proxy and a

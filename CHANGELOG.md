@@ -9,20 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
-- **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json`,
-  `settings.json`, `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a
-  dev session and runs it under the C# debugger, so breakpoints hit from startup, and with C# Dev Kit's debug
-  hot reload (which the workspace turns on) saves still apply while it runs. `rask dev` cannot be that loop:
-  the runtime refuses to apply a hot-reload update to a process a debugger is attached to, so the editor
-  launches the app instead — and the app does what `rask dev` would have done beside it. It starts its own
+- **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json` and
+  `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a dev session and
+  runs it under the C# debugger, so breakpoints hit from startup. Edits need a restart there (Ctrl+Shift+F5):
+  the runtime refuses to apply a hot-reload update to a process a debugger is attached to, and C# Dev Kit's
+  debug hot reload reports itself unavailable for this launch, so `rask dev` stays the live-edit loop. The
+  editor launches the app — and the app does what `rask dev` would have done beside it. It starts its own
   front-end dev server (the islands' Vite, a React/Vue/Angular client's bundler, or a meta framework's own
   dev server), and ends one a debugger's hard stop left holding its port; it serves on `https://<name>.test`
   when an earlier `rask dev` already set that name up on this machine, and on localhost otherwise, never
   prompting; and it prints `Rask dev: open <url>`, which `launch.json` opens. None of it runs under
-  `rask dev`, outside Development, or for a build that was not a dev session. The scaffold's `.gitignore` commits those four files and keeps the rest of
-  `.vscode/` personal. A handler or async lifecycle hook that throws now **stops the debugger** at the fault
-  (`Debugger.BreakForUserUnhandledException`, with Just My Code and "User-Unhandled Exceptions" on) rather
-  than being swallowed by its error boundary, and the dev error panel turns every stack frame and compiler
+  `rask dev`, outside Development, or for a build that was not a dev session. The scaffold's `.gitignore` commits those three files and keeps the rest of
+  `.vscode/` personal. A handler or async lifecycle hook that throws now **stops the debugger** once, on the line
+  that threw, rather than being swallowed by its error boundary (Just My Code and "User-Unhandled Exceptions"
+  on): a handler's exception is reported user-unhandled as it leaves your code, and for a lifecycle hook, whose
+  exception arrives through a faulted task no debugger sees, Rask calls `Debugger.BreakForUserUnhandledException`; and the dev error panel turns every stack frame and compiler
   error that names an absolute path into a `vscode://file` link to that line. One MSBuild switch,
   `RaskDevSession=true`, now drives both `rask dev` and the F5 build: each package expands it for itself (a
   WASM host serves its client's build output, SPA and meta lanes skip their production front-end build,

@@ -664,18 +664,17 @@ throws stops the debugger at the fault instead of only showing the panel above. 
 [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) extension, which the
 folder recommends.
 
-Why F5 rather than attaching to `rask dev`: **the runtime refuses to apply a hot-reload update to a process a
-debugger is attached to**, so `dotnet watch` and a debugger cannot share one. Under F5 the editor launches the
-app and applies your edits itself. The scaffolded `settings.json` turns on C# Dev Kit's debug hot reload
-(`csharp.experimental.debug.hotReload`, still marked experimental), so saving a `Render()` repaints the page
-as it does under `rask dev`; turn it off there if you would rather restart (Ctrl+Shift+F5).
+**Edits need a restart under the debugger** (Ctrl+Shift+F5). The runtime refuses to apply a hot-reload update
+to a process a debugger is attached to, so `dotnet watch` and a debugger cannot share one — and C# Dev Kit's
+own debug hot reload reports itself unavailable for this launch, so a saved edit does not reach the running
+app. Use F5 to find a bug and `rask dev` to work on the fix: that is the loop that applies edits live.
 
 What F5 does:
 
 | Step | What happens |
 | --- | --- |
 | Build | `dotnet build --property:RaskDevSession=true` — the same dev-session switch `rask dev` passes, so islands and the front end come from their dev servers instead of a production bundle. |
-| Launch | The C# debugger runs `bin/Debug/net10.0/<App>.dll` with the launch profile's settings, plus `DOTNET_MODIFIABLE_ASSEMBLIES=debug`, which is what lets it take edits. |
+| Launch | The C# debugger runs `bin/Debug/net10.0/<App>.dll` with the launch profile's settings and Just My Code on. |
 | Dev servers | The app starts what `rask dev` would have started beside it: the islands' Vite on 5174, a React, Vue or Angular client's dev server, or a meta framework's own. |
 | Address | `https://<name>.test` when an earlier `rask dev` already set that name up on this machine (with `:5001` on macOS, where the pf redirect cannot be checked without root); the launch profile's localhost otherwise. F5 never prompts and never changes the machine. |
 | Browser | The app prints `Rask dev: open <url>` once it is listening, and VS Code opens it. |
@@ -685,23 +684,24 @@ that was not a dev session — a plain `dotnet run` behaves exactly as it always
 kills the app outright, so a dev server it started can be left holding its port; the next F5 ends that
 leftover before starting its own, and only if it is still the same process it recorded.
 
-**Where the debugger stops on a throw.** Rask catches a handler's exception and routes it to its error
-boundary, which to a debugger is a handled exception. The framework marks that catch so it does not count as
-yours handling it: with Just My Code on (the default) and **User-Unhandled Exceptions** ticked in the
-Breakpoints view, the debugger stops there with the exception, and its original stack, in hand.
+**Where the debugger stops on a throw.** With Just My Code on (the default, and set in `launch.json`) and
+**User-Unhandled Exceptions** ticked in the Breakpoints view, it stops once, on the line that threw. A handler's
+exception leaves your code for Rask's, which the debugger reports as user-unhandled by itself. An async
+lifecycle hook's exception reaches Rask through its faulted task instead, where no debugger would notice it, so
+Rask asks the debugger to stop there (`Debugger.BreakForUserUnhandledException`); the stack it shows still names
+your throw line.
 
 **Stack frames open the file.** In development, every frame of the panel's stack and every compiler error that
 names a file on your machine is a `vscode://` link to that line.
 
 **An existing project** gets the same setup by copying `.vscode/` from a fresh `rask new` app of the same
 template and replacing the project name in `launch.json` and `tasks.json`. Add these lines to `.gitignore`, so
-the four files are committed and the rest of `.vscode/` stays yours:
+the three files are committed and the rest of `.vscode/` stays yours:
 
 ```gitignore
 /.vscode/*
 !/.vscode/launch.json
 !/.vscode/tasks.json
-!/.vscode/settings.json
 !/.vscode/extensions.json
 ```
 

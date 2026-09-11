@@ -1,8 +1,8 @@
 {
-  // F5 builds this app as a dev session and runs it under the C# debugger: breakpoints hit from startup,
-  // saves apply while it runs, and a handler that throws stops right here. `rask dev` in a terminal is
-  // the same loop without a debugger — the runtime cannot hot-reload a process a debugger is attached to,
-  // which is why the two are separate.
+  // F5 builds this app as a dev session and runs it under the C# debugger: breakpoints hit from startup, and
+  // a handler that throws stops on the throw line. Edits need a restart here (Ctrl+Shift+F5). `rask dev` in a
+  // terminal is the loop that applies edits live — the runtime cannot hot-reload a process a debugger is
+  // attached to, which is why the two are separate.
   "version": "0.2.0",
   "configurations": [
     {
@@ -12,10 +12,8 @@
       "preLaunchTask": "rask: build",
       "program": "${workspaceFolder}/bin/Debug/net10.0/Company.RaskServer.dll",
       "cwd": "${workspaceFolder}",
-      "env": {
-        // What lets a running app take edits at all, and what Rask checks before repainting the page.
-        "DOTNET_MODIFIABLE_ASSEMBLIES": "debug"
-      },
+      // Just My Code is what makes a handler's exception stop on its throw line: it leaves your code for
+      // Rask's, which the debugger reports as user-unhandled.
       "justMyCode": true,
       "console": "internalConsole",
       // The app names the address to open once it is listening: https://<name>.test when `rask dev` has

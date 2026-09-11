@@ -1,5 +1,0 @@
-{
-  // Apply C# edits to the app while it runs under the debugger (saves, not just the Hot Reload button).
-  // Still marked experimental by the C# extension, and off unless a workspace turns it on.
-  "csharp.experimental.debug.hotReload": true
-}

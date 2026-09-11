@@ -1197,8 +1197,12 @@ public abstract partial class Component : RaskMarkup
     private static ErrorBoundary? ResolveHandlerBoundary(Component owner) =>
         owner as ErrorBoundary ?? owner.Boundary;
 
-    // The async twin of the handler catch in TryInvokeHandlerAsync: a faulted lifecycle hook reaches its
-    // boundary through the task, so no debugger would ever stop for it. See that method for the API.
+    // A faulted async lifecycle hook reaches its boundary through the task, not through a catch around the user's
+    // code, so a debugger never reports it — unlike a handler's exception (see TryInvokeHandlerAsync), which it
+    // stops on by itself. The attribute says this method is not the user handling the exception, and the
+    // BreakForUserUnhandledException call asks the debugger to stop with it in hand; its stack still names the
+    // throw line. Verified under VS Code's F5: this is the only stop such a fault produces. Standard .NET API,
+    // doing nothing without a debugger attached.
     [System.Diagnostics.DebuggerDisableUserUnhandledExceptions]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ReportLifecycleFault(Component comp, AggregateException? ex)
@@ -2156,13 +2160,10 @@ public abstract partial class Component : RaskMarkup
     internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
         => TryInvokeHandlerAsync(id, payload, null);
 
-    // A handler that throws is caught below and routed to its boundary — so to a debugger it is a HANDLED
-    // exception, nothing stops, and the developer is left reading the error panel to find the line. The
-    // attribute tells the debugger that a catch in this method is not the user handling the exception, and
-    // the BreakForUserUnhandledException call in that catch asks it to stop there with the exception (and
-    // its original stack) in hand. Standard .NET API, the same pair ASP.NET Core's own middleware uses;
-    // neither costs anything, or does anything, without a debugger attached.
-    [System.Diagnostics.DebuggerDisableUserUnhandledExceptions]
+    // No explicit debugger break in the catch below, on purpose. A handler's exception leaves the user's code
+    // for Rask's, which a debugger with Just My Code already reports as user-unhandled: it stops on the throw
+    // line itself. An explicit Debugger.BreakForUserUnhandledException here made it stop a SECOND time at the
+    // same line — verified under VS Code's F5 — so the call only added a Continue press.
     internal async ValueTask<bool> TryInvokeHandlerAsync(
         string id, JsonElement payload, IServiceProvider? services, CancellationToken dispatchToken = default)
     {
@@ -2418,7 +2419,6 @@ public abstract partial class Component : RaskMarkup
             // higher. For non-boundary owners (regular components), fall back to their
             // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
             // catch-and-log still fires.
-            System.Diagnostics.Debugger.BreakForUserUnhandledException(ex);
             ResolveHandlerBoundary(owner)!.Trip(ex, ErrorSource.Action);
             return true;
         }

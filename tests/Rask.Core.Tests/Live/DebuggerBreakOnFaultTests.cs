@@ -4,35 +4,41 @@ using System.Reflection;
 namespace Rask.Core.Tests.Live;
 
 /// <summary>
-///     A handler or async lifecycle hook that throws stops an attached debugger, even though Rask catches
+///     A handler or async lifecycle hook that throws stops an attached debugger once, even though Rask catches
 ///     the exception and routes it to an error boundary.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Without this the debugger sees a HANDLED exception and never stops: F5 shows the dev error panel
-///         and leaves the developer to go and find the line. The fix is the standard .NET pair —
-///         <see cref="DebuggerDisableUserUnhandledExceptionsAttribute" /> on the method whose catch swallows
-///         the fault, and <see cref="Debugger.BreakForUserUnhandledException" /> inside that catch.
+///         Measured under VS Code's F5, not assumed. A click handler's exception leaves the user's code for
+///         Rask's, and a debugger with Just My Code reports that as user-unhandled on its own — it stops on the
+///         throw line. An explicit <see cref="Debugger.BreakForUserUnhandledException" /> in that catch made it
+///         stop a second time at the same line, so the handler path deliberately has none.
 ///     </para>
 ///     <para>
-///         What a unit test can hold is the wiring, not the stop itself — that needs a debugger attached,
-///         which is the by-hand check in the VS Code guide. Both halves are pinned because either alone does
-///         nothing: the attribute on a method that never calls the API, or the call in a method the debugger
-///         still treats as the user handling it.
+///         What a unit test can hold is the wiring, not the stop itself — that needs a debugger attached, which
+///         is the by-hand check in the VS Code guide.
 ///     </para>
 /// </remarks>
 public sealed class DebuggerBreakOnFaultTests
 {
     private static readonly string _repoRoot = LocateRepoRoot();
 
+    private static string ComponentSource =>
+        File.ReadAllText(Path.Combine(_repoRoot, "src", "Rask.Core", "Component.cs"));
+
     [Fact]
-    public void The_handler_dispatch_is_not_the_user_handling_the_exception()
+    public void The_handler_dispatch_leaves_the_stop_to_the_debugger()
     {
+        // The debugger already stops on the throw line; a break here is the second, redundant stop.
         var dispatch = typeof(Component)
             .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
             .Single(m => m.Name == "TryInvokeHandlerAsync" && m.GetParameters().Length == 4);
 
-        Assert.NotNull(dispatch.GetCustomAttribute<DebuggerDisableUserUnhandledExceptionsAttribute>());
+        Assert.Null(dispatch.GetCustomAttribute<DebuggerDisableUserUnhandledExceptionsAttribute>());
+        Assert.DoesNotContain(
+            "BreakForUserUnhandledException(ex)",
+            Before(ComponentSource, "Trip(ex, ErrorSource.Action)"),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -45,21 +51,23 @@ public sealed class DebuggerBreakOnFaultTests
     }
 
     [Fact]
-    public void Both_ask_the_debugger_to_stop_before_the_boundary_takes_the_fault()
+    public void A_faulted_lifecycle_hook_asks_the_debugger_to_stop_before_the_boundary_takes_it()
     {
-        var source = File.ReadAllText(Path.Combine(_repoRoot, "src", "Rask.Core", "Component.cs"));
-
-        AssertBreaksBefore(source, "Debugger.BreakForUserUnhandledException(ex);", "Trip(ex, ErrorSource.Action)");
-        AssertBreaksBefore(source, "Debugger.BreakForUserUnhandledException(actual);", "Trip(actual, ErrorSource.Lifecycle)");
+        // The opposite of the handler path, and measured the same way: an async hook's exception arrives through
+        // its faulted task, the debugger does not stop for it on its own, and this call was the only stop it made.
+        Assert.Contains(
+            "Debugger.BreakForUserUnhandledException(actual);",
+            Before(ComponentSource, "Trip(actual, ErrorSource.Lifecycle)"),
+            StringComparison.Ordinal);
     }
 
-    private static void AssertBreaksBefore(string source, string breakCall, string trip)
+    /// <summary>The 400 characters of <paramref name="source" /> before <paramref name="marker" />.</summary>
+    private static string Before(string source, string marker)
     {
-        var tripAt = source.IndexOf(trip, StringComparison.Ordinal);
-        Assert.True(tripAt > 0, $"'{trip}' is gone from Component.cs");
+        var at = source.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(at > 0, $"'{marker}' is gone from Component.cs");
 
-        var window = source[Math.Max(0, tripAt - 400)..tripAt];
-        Assert.Contains(breakCall, window, StringComparison.Ordinal);
+        return source[Math.Max(0, at - 400)..at];
     }
 
     private static string LocateRepoRoot()
