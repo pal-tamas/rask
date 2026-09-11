@@ -30,6 +30,7 @@ using Rask.Core.Authorization;
 using Rask.Core.Browser;
 using Rask.Core.Components;
 using Rask.Core.Diagnostics;
+using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Forms;
 using Rask.Core.Globalization;
 using Rask.Core.HotReload;
@@ -174,6 +175,11 @@ public static partial class RaskEndpointExtensions
         }
 
         services.AddSingleton(RaskServerLimits.From(serverOptions));
+
+        // The in-page devtools, when this is a Debug build that carries Rask.DevTools. Found by name, so the
+        // app writes nothing; inert without the package, folded away entirely in a trimmed Release publish.
+        // Whether they switch ON is still the environment's call (Development only), made where they run.
+        RaskDevToolsLoader.TryAttach(services);
 
         // Seals the record a client carries from one session to the next. Live only when the host has Data
         // Protection (WebApplication.CreateBuilder does; a hand-rolled host might not) AND resume is on —

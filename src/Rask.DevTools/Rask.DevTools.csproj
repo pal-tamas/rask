@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Both faces: the devtools attach to a Server host and to a browser-WASM host alike. -->
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <!--
+      Trimmable, so a trimmed browser publish that never roots this assembly drops it WHOLE. That is the
+      browser half of "a Release build carries no devtools": the feature switch folds the loader away, and
+      with nothing left referencing the assembly the trimmer removes it. A Debug build roots it instead
+      (see buildTransitive/Rask.DevTools.targets).
+    -->
+    <IsTrimmable Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsTrimmable>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
+
+    <PackageId>Rask.DevTools</PackageId>
+    <Title>Rask — DevTools</Title>
+    <Description>Debug-only developer tools for Rask apps on ASP.NET Core and .NET WebAssembly. Referencing it attaches the tools to both hosts in a Debug build with no code in the app, and a Release publish carries none of it: the build strips the assembly and its deps.json entry, then fails if either remains. The in-page tools themselves are in progress.</Description>
+    <PackageTags>dotnet csharp aspnetcore webassembly wasm net10 devtools debugging developer-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.DevTools.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all": Rask.Core is IsPackable=false and ships transitively inside the host
+         packages, so naming it as a nuspec dependency would reference a package on no feed. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Packed to BOTH folders. NuGet imports build/ for a direct PackageReference (the scaffolded apps) and
+      buildTransitive/ for a package that arrives through another one (the `Rask` meta-package). Named
+      literally rather than globbed: a glob that matches nothing packs nothing and still exits 0 (#852).
+
+      Each destination is a full FILE path, not a folder. `PackagePath="build\;buildTransitive\"` packs
+      `build//Rask.DevTools.targets` — a doubled separator NuGet does not match against the package id, so
+      pack fails NU5129 and a consumer's restore would not import the targets at all. In-repo nothing can
+      see that: Directory.Build.targets imports the file straight off disk. Only `dotnet pack` can.
+    -->
+    <None Include="buildTransitive\Rask.DevTools.targets" Pack="true"
+          PackagePath="build\Rask.DevTools.targets;buildTransitive\Rask.DevTools.targets"/>
+  </ItemGroup>
+
+</Project>

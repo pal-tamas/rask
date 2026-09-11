@@ -52,7 +52,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker, cultures.Length > 0))
         {
-            Packages = ["Rask.Wasm", "Rask.Ui"],
+            Packages = ["Rask.Wasm", "Rask.Ui", "Rask.DevTools"],
         };
     }
 
@@ -143,6 +143,8 @@ internal static partial class ProjectGenerator
           <ItemGroup>
             <PackageReference Include="Rask.Wasm" Version="{version}"/>
             <PackageReference Include="Rask.Ui" Version="{version}"/>
+            <!-- In-page devtools: present in a Debug build in Development, absent from a Release publish. -->
+            <PackageReference Include="Rask.DevTools" Version="{version}"/>
           </ItemGroup>
 
           <ItemGroup>
