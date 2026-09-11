@@ -65,15 +65,17 @@ public sealed class RaskServerOptions
     public TimeSpan UnconnectedSessionGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    ///     Which rungs of the render ladder this app uses — static documents, streaming, a live
-    ///     WebSocket, the browser runtime — and the budget the initial render waits under.
+    ///     How long the initial <c>GET</c> waits for a page's async lifecycle work to settle before
+    ///     serving its HTML. <see cref="TimeSpan.Zero" /> disables the wait. Default 5&#160;seconds.
     /// </summary>
     /// <remarks>
-    ///     Every rung is automatic; this is the ceiling, for an app that wants one it will never use
-    ///     turned off rather than merely unused. A combination that cannot serve a working page
-    ///     throws when the host is built.
+    ///     Without the wait, a page that loads its data in <c>OnMountAsync</c> serves its
+    ///     placeholder as the first paint and as the whole document a crawler sees. Blowing the
+    ///     budget is not an error: the page is served as it stands and finishes loading over its live
+    ///     connection. A slow page does hold a request open for up to this long, so size it together
+    ///     with the session cap — the two multiply.
     /// </remarks>
-    public RaskRenderModes RenderModes { get; } = new();
+    public TimeSpan QuiescenceTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
     ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
@@ -192,11 +194,6 @@ public sealed class RaskServerOptions
     /// </summary>
     internal void Validate()
     {
-        // First: a contradictory ladder means no page can work at all, which is worth saying before
-        // any cap detail. A host that refuses to start is far cheaper to diagnose than a page that
-        // silently does nothing in production.
-        RenderModes.Validate();
-
         if (MaxInboundFrameBytes <= 0)
         {
             throw new ArgumentOutOfRangeException(

@@ -3813,13 +3813,6 @@ Rask.Core.RaskVersion
 Rask.Core.RenderEngine
 Rask.Core.RenderEngine.Server = 0 -> Rask.Core.RenderEngine
 Rask.Core.RenderEngine.Wasm = 1 -> Rask.Core.RenderEngine
-Rask.Core.Rendering.RenderMode
-Rask.Core.Rendering.RenderMode.Auto = 0 -> Rask.Core.Rendering.RenderMode
-Rask.Core.Rendering.RenderMode.Interactive = 2 -> Rask.Core.Rendering.RenderMode
-Rask.Core.Rendering.RenderMode.Static = 1 -> Rask.Core.Rendering.RenderMode
-Rask.Core.Rendering.RenderModeAttribute
-Rask.Core.Rendering.RenderModeAttribute.Mode.get -> Rask.Core.Rendering.RenderMode
-Rask.Core.Rendering.RenderModeAttribute.RenderModeAttribute(Rask.Core.Rendering.RenderMode mode) -> void
 Rask.Core.Routing.IDownloadSink
 Rask.Core.Routing.IDownloadSink.Stage(string! filename, System.IO.Stream! stream, string? contentType) -> void
 Rask.Core.Routing.IDownloadSink.Stage(string! filename, byte[]! bytes, string? contentType) -> void
@@ -4641,7 +4634,6 @@ static Rask.Core.Live.LivePayload.ExtractBodyUtf8(System.ReadOnlySpan<byte> html
 static Rask.Core.Live.LivePayload.InjectIslandsDevAttr(string! html, bool dev, string? devServerUrl) -> string!
 static Rask.Core.Live.LivePayload.InjectRootAttr(string! html, string! sessionId, bool dev = false) -> string!
 static Rask.Core.Live.LivePayload.InjectRootAttr(string! html, string! sessionId, bool dev, string? devStatusUrl) -> string!
-static Rask.Core.Live.LivePayload.InjectWasmBundleAttr(string! html, string? bootModuleUrl) -> string!
 static Rask.Core.Live.LiveRenderContext.Begin(Rask.Core.Component! root) -> Rask.Core.Live.LiveRenderContext!
 static Rask.Core.Live.LiveRenderContext.Begin(Rask.Core.Component! root, System.IServiceProvider? services) -> Rask.Core.Live.LiveRenderContext!
 static Rask.Core.Live.LiveRenderContext.Current.get -> Rask.Core.Live.LiveRenderContext?

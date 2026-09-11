@@ -409,8 +409,6 @@ Rask.Wasm.Browser.UsbTransferResult.Status.init -> void
 Rask.Wasm.Browser.UsbTransferResult.UsbTransferResult(string! Status, byte[]! Data) -> void
 Rask.Wasm.RaskWasmBatteryRegistry
 Rask.Wasm.WasmHostBuilder
-Rask.Wasm.WasmHostBuilder.PaintAsync(string? url = null) -> System.Threading.Tasks.Task!
-Rask.Wasm.WasmHostBuilder.PrepareAsync<TApp>() -> System.Threading.Tasks.Task!
 Rask.Wasm.WasmHostBuilder.RunAsync<TApp>() -> System.Threading.Tasks.Task!
 Rask.Wasm.WasmHostBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Wasm.WasmHostBuilder.UseCulture(System.Action<Rask.Core.Globalization.RaskCultureOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!

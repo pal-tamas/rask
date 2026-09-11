@@ -34,20 +34,4 @@ public class SessionUserProviderTests
         Assert.False(provider.Current.Identity?.IsAuthenticated ?? false);
         Assert.Equal(0, changes);
     }
-
-    [Fact]
-    public void ReadCount_CountsReadsOfCurrent_NotTheFrameworkReplacingIt()
-    {
-        // The count answers "did this render ask who the user is". Seeding or clearing the principal is
-        // the framework changing it, and counting that would mark every page as depending on the user.
-        var provider = new SessionUserProvider();
-
-        provider.Set(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")));
-        provider.Clear();
-        Assert.Equal(0, provider.ReadCount);
-
-        _ = provider.Current;
-        _ = provider.Current;
-        Assert.Equal(2, provider.ReadCount);
-    }
 }

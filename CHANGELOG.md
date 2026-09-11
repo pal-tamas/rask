@@ -244,6 +244,24 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
+  from its own render whether it needs a session, there is no static page served without one, and a page never
+  hands itself over to a WebAssembly bundle. `AddRask()` has nothing to choose — the GET creates the session,
+  renders, and answers with the no-store headers every session-bearing page already carried. A page whose
+  buttons used to go silently inert under `RenderModes.Static` now works, at the cost of a session per page
+  load (bounded, as before, by the unconnected grace period and `MaxSessions`). The initial render's wait
+  budget moves from `o.RenderModes.QuiescenceTimeout` to `o.QuiescenceTimeout`:
+
+  ```csharp
+  // before
+  builder.Services.AddRask(configureServer: o => o.RenderModes.QuiescenceTimeout = TimeSpan.FromSeconds(2));
+  // after
+  builder.Services.AddRask(configureServer: o => o.QuiescenceTimeout = TimeSpan.FromSeconds(2));
+  ```
+
+  WebAssembly is a single-page app, never a render mode: a booting browser runtime always paints its own
+  document. Hosting a WASM app from a server, and `rask new server --wasm`, are reworked in follow-up changes.
+
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
   `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
@@ -420,6 +438,28 @@ them until tagged releases begin.
   sibling selector at all. Both are in place, and they are complementary rather than alternatives — the
   `for`/`id` association restores the sibling relationship for hand-placed daisyUI markup, and the marking
   makes the kit's own messages independent of it.
+
+### Removed
+
+- **The render ladder and the WebAssembly takeover** (pre-1.0, no `[Obsolete]`), replaced by "every page is
+  live" (see *Changed*):
+  - `RaskRenderModes` and `RaskServerOptions.RenderModes` — `Static`, `ServerInteractivity`, `Wasm`,
+    `WasmBundle` and the unimplemented `Streaming`. `QuiescenceTimeout` moved to `RaskServerOptions`.
+  - `[RenderMode]` / `RenderModeAttribute` and the `RenderMode` enum (`Auto`, `Static`, `Interactive`). A
+    component that pushes from a timer no longer needs to declare anything: its page always has a session.
+  - `LivePayload.InjectWasmBundleAttr` and the `data-rask-wasm` attribute; the server runtime no longer
+    fetches a bundle when idle or hands a page over on navigation.
+  - `WasmHostBuilder.PrepareAsync<TApp>()` and `WasmHostBuilder.PaintAsync(url)`. Call `RunAsync<TApp>()`,
+    which always renders.
+
+  ```csharp
+  // before — a page opting out of its session
+  [RenderMode(RenderMode.Static)]
+  public sealed partial class AboutPage : Component { … }
+
+  // after — nothing to declare; every page is live
+  public sealed partial class AboutPage : Component { … }
+  ```
 
 ### Fixed
 

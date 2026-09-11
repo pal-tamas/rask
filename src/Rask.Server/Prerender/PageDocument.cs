@@ -12,9 +12,8 @@ namespace Rask.Server.Prerender;
 internal static class PageDocument
 {
     /// <summary>
-    ///     A live document: <paramref name="html" /> carrying its session id, the browser bundle's boot
-    ///     module when the rung is on, the development attributes when <paramref name="dev" />, and the
-    ///     devtools host script when there is one.
+    ///     A live document: <paramref name="html" /> carrying its session id, the development attributes
+    ///     when <paramref name="dev" />, and the devtools host script when there is one.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -29,14 +28,11 @@ internal static class PageDocument
     ///         in Development.
     ///     </para>
     /// </remarks>
-    internal static string Live(
-        string html, string sessionId, RaskServerLimits limits, bool dev, string? devToolsHostUrl) =>
+    internal static string Live(string html, string sessionId, bool dev, string? devToolsHostUrl) =>
         LivePayload.InjectDevToolsScript(
             LivePayload.InjectIslandsDevAttr(
-                LivePayload.InjectWasmBundleAttr(
-                    LivePayload.InjectRootAttr(
-                        html, sessionId, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
-                    RaskEndpointExtensions.WasmBootModuleUrl(limits)),
+                LivePayload.InjectRootAttr(
+                    html, sessionId, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null),
                 dev,
                 dev ? Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") : null),
             devToolsHostUrl);

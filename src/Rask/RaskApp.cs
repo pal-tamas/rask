@@ -142,15 +142,7 @@ public sealed class RaskApp
         // The live runtime, now that Configure has had its say. One call, because a second is dropped.
         _builder.Services.AddRask(
             configure: _options.Live,
-            configureServer: o =>
-            {
-                if (_options.Wasm)
-                {
-                    o.RenderModes.Wasm = true;
-                }
-
-                _options.Server?.Invoke(o);
-            },
+            configureServer: o => _options.Server?.Invoke(o),
             configureCulture: _options.Cultures.Count == 0
                 ? null
                 : c =>
