@@ -69,7 +69,7 @@
     <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
     <!-- rask:if wasm -->
-    <!-- Serves the browser app in Client/: its build output under `rask dev`, its published bundle
+    <!-- Serves the browser app in Client/: its build output in Development, its published bundle
          otherwise. -->
     <PackageReference Include="Rask.Spa.Hosting" Version="{{RaskVersion}}"/>
     <!-- rask:if cqrs -->

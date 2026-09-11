@@ -1,6 +1,5 @@
 using System.Net;
 using System.Reflection;
-using System.Reflection.Metadata;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -239,15 +238,16 @@ public static class RaskSpaEndpointExtensions
     ///     The WebAssembly client's build-output manifest, when this process should serve it.
     /// </summary>
     /// <remarks>
-    ///     All three gates are needed: Development, hot reload being supported in this process, and a
-    ///     build that skipped the client's publish and baked the manifest. A published deployment, a
-    ///     Release run and a bundler's SPA all take the ordinary path. Serving the build output is what
-    ///     makes WebAssembly hot reload possible at all: a published bundle is trimmed, and trimming folds
-    ///     <c>MetadataUpdater.IsSupported</c> to false in the browser, so no delta could ever apply there.
+    ///     Two gates: Development, and a build that baked the manifest and wrote it. The one-project client
+    ///     bakes it on every build that is not a publish; a referenced client project, only when the build
+    ///     skipped its publish (<c>RaskSpaBuild=false</c>). A deployment runs outside Development and takes
+    ///     the ordinary path, and so does a bundler's SPA, which bakes none. Hot reload is deliberately not a
+    ///     gate: <c>dotnet run</c> and <c>rask dev --once</c> have none, and without the manifest they would
+    ///     serve a stale publish or nothing at all.
     /// </remarks>
     private static string? DevManifest(IHostEnvironment? environment, Assembly? entry)
     {
-        if (!MetadataUpdater.IsSupported || environment?.IsDevelopment() != true)
+        if (environment?.IsDevelopment() != true)
         {
             return null;
         }
@@ -357,8 +357,8 @@ public static class RaskSpaEndpointExtensions
         if (environment?.IsDevelopment() == true)
         {
             Console.WriteLine(wasmClient is not null
-                ? "Rask.Spa.Hosting: the WebAssembly client has no build output to serve. rask dev builds it "
-                  + $"and serves it with hot reload; to serve the published app from this host instead, {buildHint}."
+                ? "Rask.Spa.Hosting: the WebAssembly client has no build output to serve. Building this "
+                  + $"project builds the client too; to serve the published app from this host instead, {buildHint}."
                 : "Rask.Spa.Hosting: no built app to serve. In development the front end is served by the "
                   + $"bundler — open {devServer ?? "the bundler's dev server"} (rask dev starts it). To serve "
                   + $"the built app from this host instead, {buildHint}.");
@@ -393,7 +393,7 @@ public static class RaskSpaEndpointExtensions
         var where = wasm
             ? """
               <p>This host serves your WebAssembly app's <em>build output</em>, and there isn't any.
-              <code>rask dev</code> builds the client and serves it from here with hot reload.</p>
+              Build this project — <code>dotnet build</code> or <code>rask dev</code> — and it is served from here.</p>
               """
             : $"""
                <p>This host serves your app's <em>build output</em>, and there isn't any. In development the

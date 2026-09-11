@@ -27,9 +27,10 @@ internal static class SpaAppBundle
     internal const string WasmClientMetadataKey = "Rask.SpaWasmClient";
 
     /// <summary>
-    ///     The WebAssembly client's build-output static-web-assets manifest. Baked only when the build
-    ///     skipped the client's publish (<c>RaskSpaBuild=false</c>, which <c>rask dev</c> passes), so the
-    ///     build's decision and the runtime's cannot drift apart.
+    ///     The WebAssembly client's build-output static-web-assets manifest, served in Development. Baked by
+    ///     the one-project client build on every build that is not a publish, and for a referenced client
+    ///     project only when the build skipped its publish (<c>RaskSpaBuild=false</c>, which <c>rask dev</c>
+    ///     passes).
     /// </summary>
     internal const string DevManifestMetadataKey = "Rask.SpaDevManifest";
 

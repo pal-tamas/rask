@@ -195,14 +195,25 @@ public sealed class ClientPublishE2ETests
                  """);
             await File.WriteAllTextAsync(csproj, text);
 
+            // BUILD FIRST, then publish, and that order is the point. The publish's compile is then up to date
+            // and skipped, and a skipped compile writes no generated files — which is exactly when a cleanup
+            // hooked before CoreCompile used to delete the typed client and never put it back, so the
+            // companion compiled without it. A publish on a clean tree cannot see that; this sequence can.
+            var (buildExit, buildOutput) = await CliBuildE2E.RunDotnet(
+                $"build \"{csproj}\" -c Release -m:1 -nodeReuse:false");
+            Assert.True(
+                buildExit == 0,
+                "the build failed, so the browser app could not compile against the baked API client."
+                + CliBuildE2E.Diagnostics(buildOutput));
+
             var publishDir = Path.Combine(temp, "published");
             var (exit, output) = await CliBuildE2E.RunDotnet(
                 $"publish \"{csproj}\" -c Release -o \"{publishDir}\" -m:1 -nodeReuse:false");
 
             Assert.True(
                 exit == 0,
-                "the publish failed, so the browser app could not compile against the baked API client."
-                + CliBuildE2E.Diagnostics(output));
+                "the publish after an up-to-date build failed, so the typed API client was lost between the two "
+                + "and the browser app could not compile against it." + CliBuildE2E.Diagnostics(output));
 
             var framework = Path.Combine(publishDir, "wwwroot", "_framework");
             Assert.True(

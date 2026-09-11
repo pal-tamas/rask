@@ -22,7 +22,7 @@ public sealed partial class HomePage : Component
                         Div.Class("card bg-base-100 w-full max-w-md shadow-sm")[
                             Div.Class("card-body gap-4 text-left")[
                                 Ul.Class("space-y-2 text-sm")[
-                                    Li[Code.Class("kbd kbd-sm")["rask dev"], " — run with hot reload"],
+                                    Li[Code.Class("kbd kbd-sm")["rask dev"], " — run it, rebuilt on every save"],
                                     Li["Pages go in ", Code.Class("kbd kbd-sm")["Client/"], ", message records in ", Code.Class("kbd kbd-sm")["Shared/"]],
                                     Li["Edit ", Code.Class("kbd kbd-sm")["Client/Pages/HomePage.cs"], " — the sheet rebuilds from it"]
                                 ],

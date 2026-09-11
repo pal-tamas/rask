@@ -275,8 +275,9 @@ them until tagged releases begin.
   - **The server renders no pages.** Its `Program.cs` maps the API and CQRS endpoints and ends with
     `app.UseRaskSpa()`, plus `UseRaskServer<RaskDashboardShell>` when the dashboard is on.
   - **Detection.** `Client/Program.cs` switches the build on and `<RaskClient>false</RaskClient>` switches it
-    off; `dotnet publish` publishes the client into `wwwroot`, and `rask dev` builds it and serves the build
-    output.
+    off. `dotnet publish` publishes the client into `wwwroot`; every other build (`dotnet build`, `dotnet
+    run`, `rask dev`) builds it, and a Development run serves that build output. An edit in `Client/`
+    rebuilds and restarts the app rather than being hot-applied.
   - **Boot page.** The page the browser loads is a real `Client/wwwroot/index.html` whose import map the SDK
     fills, so the framework files are fingerprinted like any WebAssembly app's.
   - **Template markers.** A `template.json` owner can now be negated (`!wasm`), which is how the server's own

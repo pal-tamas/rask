@@ -23,10 +23,12 @@
     The bundle is a single-page app, and Rask.Spa.Hosting's UseRaskSpa() serves it:
       * `dotnet publish` publishes the client and copies its wwwroot into this app's wwwroot, where
         UseRaskSpa finds it first;
-      * with RaskSpaBuild=false — what `rask dev` passes — the client is BUILT rather than published, and
-        its build-output manifest is baked, so UseRaskSpa serves that in Development and hot reload can
-        reach the browser (a published bundle is trimmed, and trimming turns hot reload off);
-      * an ordinary `dotnet build` does neither, because linking a WebAssembly runtime takes minutes.
+      * every other build — `dotnet build`, `dotnet run`, `rask dev` — BUILDS the client and bakes its
+        build-output manifest, and in Development UseRaskSpa serves that, so a development run never shows
+        a stale publish or a "nothing built yet" page. It is a build, not a publish: no trimming and no
+        runtime link, which is what takes minutes;
+      * an edit in Client/ is rebuilt and the app restarted. `dotnet watch` cannot hot-apply it, because the
+        companion is not a project it knows about.
   -->
 
   <PropertyGroup>
@@ -77,13 +79,28 @@
 
     Rewritten by every CoreCompile but NOT deleted by one: when the last controller goes, the generator
     emits nothing and the previous file would stay behind, baking a client for endpoints that no longer
-    exist. This removes it before the compile that decides whether to write it again.
+    exist. So a file the compile did not rewrite is removed after it.
+
+    AFTER the compile, and only when it actually ran. Deleting before CoreCompile looks equivalent and is
+    not: a BeforeTargets hook runs even when CoreCompile is then skipped as up to date, and a skipped compile
+    writes nothing — so a build with no server edit deleted the client and never put it back.
+    _TimeStampBeforeCompile / _TimeStampAfterCompile are the SDK's own record of whether the compile ran.
   -->
-  <Target Name="RaskCleanApiClient"
+  <Target Name="_RaskMarkCompileStart"
           Condition=" '$(RaskClient)' == 'true' "
           BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_RaskCompileStartTicks>$([System.DateTime]::UtcNow.Ticks)</_RaskCompileStartTicks>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="RaskCleanApiClient"
+          Condition=" '$(RaskClient)' == 'true' AND '$(_RaskCompileStartTicks)' != '' AND '$(_AssemblyTimestampBeforeCompile)' != '$(_AssemblyTimestampAfterCompile)' "
+          AfterTargets="_TimeStampAfterCompile">
     <ItemGroup>
-      <_RaskStaleApiClient Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
+      <_RaskApiClientOutput Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
+      <_RaskStaleApiClient Include="@(_RaskApiClientOutput)"
+                           Condition=" $([System.IO.File]::GetLastWriteTimeUtc('%(_RaskApiClientOutput.FullPath)').Ticks) &lt; $(_RaskCompileStartTicks) "/>
     </ItemGroup>
 
     <Delete Files="@(_RaskStaleApiClient)"/>
@@ -294,12 +311,13 @@
   </Target>
 
   <!--
-    A development session: build the client rather than publish it. After Build, because the typed API
-    client the companion compiles is written by this project's own compile. Skipped in a design-time build,
-    which must never shell out.
+    Every build that is not a publish builds the client too, so `dotnet run`, `rask dev`, and rask dev's
+    run-once and no-hot-reload modes all serve the client's current code in Development. After Build, because the typed
+    API client the companion compiles is written by this project's own compile. Skipped for a publish, which
+    publishes the client instead, and in a design-time build, which must never shell out.
   -->
   <Target Name="RaskBuildClientCompanion"
-          Condition=" '$(RaskClient)' == 'true' AND '$(RaskSpaBuild)' == 'false' AND '$(DesignTimeBuild)' != 'true' "
+          Condition=" '$(RaskClient)' == 'true' AND '$(_IsPublishing)' != 'true' AND '$(DesignTimeBuild)' != 'true' "
           DependsOnTargets="RaskGenerateClientCompanion"
           AfterTargets="Build">
 
@@ -310,7 +328,7 @@
   <!--
     What UseRaskSpa reads to find the bundle with no arguments: the published bundle's directory, which
     publish also copies next to the app; the client folder, named in the page shown when nothing is built
-    yet; and — only when the build skipped the publish — the build output's static-web-assets manifest.
+    yet; and the build output's static-web-assets manifest, which it serves in Development.
   -->
   <Target Name="RaskSetClientMetadata"
           Condition=" '$(RaskClient)' == 'true' "
@@ -323,8 +341,7 @@
       <AssemblyMetadata Include="Rask.SpaDistDir" Value="$(_RaskClientOutDir)wwwroot"/>
       <AssemblyMetadata Include="Rask.SpaWasmClient" Value="$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', 'Client'))"/>
       <AssemblyMetadata Include="Rask.SpaDevManifest"
-                        Value="$(_RaskClientBinDir)$(RaskClientCompanionName).staticwebassets.runtime.json"
-                        Condition=" '$(RaskSpaBuild)' == 'false' "/>
+                        Value="$(_RaskClientBinDir)$(RaskClientCompanionName).staticwebassets.runtime.json"/>
     </ItemGroup>
   </Target>
 

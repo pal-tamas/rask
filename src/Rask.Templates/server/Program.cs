@@ -400,7 +400,7 @@ app.MapRaskCqrs();
 // browser app's.
 app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");
 // rask:end
-// The browser app in Client/: its build output under `rask dev`, its published bundle otherwise. Its
+// The browser app in Client/: its build output in Development, its published bundle otherwise. Its
 // fallback answers every route nothing above claims — which is what keeps a refresh or a deep link on a
 // client-side route working — so it goes last.
 app.UseRaskSpa();
