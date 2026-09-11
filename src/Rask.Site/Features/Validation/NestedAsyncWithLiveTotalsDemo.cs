@@ -6,9 +6,9 @@ namespace Rask.Site.Features;
 public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 {
     // Layers two things on top of the basic nested-binding showcase:
-    //   * Async inline Validate: on a nested field (Address.PostalCode) with ValidatingIndicator —
-    //     proves the latest-wins cancellation + pending-indicator path works for sub-objects, not
-    //     just root fields.
+    //   * Async inline Validate: on a nested field (Address.PostalCode), whose kit field shows
+    //     "Checking…" while the lookup runs — proves the latest-wins cancellation + pending-indicator
+    //     path works for sub-objects, not just root fields.
     //   * Live derived UI: the order totals are computed inside Render() from the current model
     //     state. Every event handler re-renders the owning component, so the figures update on
     //     each keystroke (string discount code, OnInput) and on each blur (int/decimal qty/price,
@@ -35,11 +35,6 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
-
-    private static Component Checking() =>
-        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking delivery zone…"
-        ];
 
     private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
         string code, CancellationToken ct)
@@ -92,16 +87,11 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                                 : Array.Empty<string>()).ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
-                Div[
-                    UiInput.Bind(() => _model.Address.PostalCode)
-                        .Label("Postal code")
-                        .Hint("Try 12345, 99999, or any 5-digit code.")
-                        .Id("v-nlive-postal")
-                        .Validate(ValidatePostalAsync)
-                        .ShowValidation(false),
-                    ValidatingIndicator.Template(Checking).For(() => _model.Address.PostalCode),
-                    ValidationMessage.Template(FieldError).For(() => _model.Address.PostalCode)
-                ],
+                UiInput.Bind(() => _model.Address.PostalCode)
+                    .Label("Postal code")
+                    .Hint("Try 12345, 99999, or any 5-digit code.")
+                    .Id("v-nlive-postal")
+                    .Validate(ValidatePostalAsync),
                 Div.Class("border rounded p-3")[
                     Div.Class("font-semibold text-sm mb-2")["Items"],
                     Div.Class("grid grid-cols-12 gap-4 mb-2 items-center")[

@@ -3112,6 +3112,7 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -3119,10 +3120,12 @@ fieldset .border .p-3 .rounded
 legend .font-semibold .text-base
 div .flex .flex-col .gap-2
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -3135,8 +3138,10 @@ th
 tbody
 tr
 td
+div .fieldset
 input .input .validator
 td
+div .fieldset
 input .input .validator
 td
 button .btn .btn-error .btn-outline .btn-square
@@ -3177,8 +3182,10 @@ th
 tbody
 tr
 td
+div .fieldset
 input .input .validator
 td
+div .fieldset
 input .input .validator
 td
 button .btn .btn-error .btn-outline .btn-square
@@ -3221,8 +3228,10 @@ tbody
 tr
 td .text-sm .text-ui-muted
 td
+div .fieldset
 input .input .validator
 td
+div .fieldset
 input .input .validator
 td
 button .btn .btn-outline .btn-square .me-1
@@ -3258,10 +3267,12 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -3269,14 +3280,17 @@ fieldset .border .mt-2 .p-3 .rounded
 legend .font-semibold .text-base
 div .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -3813,7 +3827,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
-div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -3874,14 +3888,17 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -3911,18 +3928,22 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 select .select .validator
@@ -3954,6 +3975,7 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -3983,10 +4005,12 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -4013,7 +4037,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
-div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -4043,6 +4067,7 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -4079,7 +4104,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
-div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -4107,10 +4132,10 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
-div
 div .fieldset
 label .floating-label
 span
@@ -4181,7 +4206,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
-div
+div .fieldset
 label .floating-label
 span
 input .input .validator
@@ -4212,18 +4237,22 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 select .select .validator
@@ -4255,14 +4284,17 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator
 div
+div .fieldset
 label .floating-label
 span
 input .input .validator

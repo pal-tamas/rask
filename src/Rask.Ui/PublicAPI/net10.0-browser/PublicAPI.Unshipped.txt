@@ -1089,6 +1089,8 @@ Rask.Ui.UiFormField<T>.Label.get -> string?
 Rask.Ui.UiFormField<T>.Label.set -> void
 Rask.Ui.UiFormField<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Ui.UiFormField<T>.OnChange.set -> void
+Rask.Ui.UiFormField<T>.ShowValidating.get -> bool?
+Rask.Ui.UiFormField<T>.ShowValidating.set -> void
 Rask.Ui.UiFormField<T>.ShowValidation.get -> bool?
 Rask.Ui.UiFormField<T>.ShowValidation.set -> void
 Rask.Ui.UiFormField<T>.Size.get -> Rask.Ui.UiSize?
@@ -1098,6 +1100,7 @@ Rask.Ui.UiFormField<T>.Tone.set -> void
 Rask.Ui.UiFormField<T>.UiFormField() -> void
 Rask.Ui.UiFormField<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Ui.UiFormField<T>.Validate.set -> void
+Rask.Ui.UiFormField<T>.ValidatingFor() -> Rask.Core.Component?
 Rask.Ui.UiFormField<T>.ValidationFor() -> Rask.Core.Component?
 Rask.Ui.UiFormField<T>.Value.get -> T?
 Rask.Ui.UiFormField<T>.Value.set -> void
@@ -2523,6 +2526,9 @@ static RaskBuilderSettersRask_Ui.Shape(this Rask.Ui.UiMask! __b, Rask.Ui.UiMaskS
 static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.ShowSystem(this Rask.Ui.UiThemeDropdown! __b, bool value) -> Rask.Ui.UiThemeDropdown!
 static RaskBuilderSettersRask_Ui.ShowSystem(this Rask.Ui.UiThemePicker! __b, bool value) -> Rask.Ui.UiThemePicker!
+static RaskBuilderSettersRask_Ui.ShowValidating<T>(this Rask.Ui.UiInput<T>! __b, bool? value) -> Rask.Ui.UiInput<T>!
+static RaskBuilderSettersRask_Ui.ShowValidating<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.ShowValidating<T>(this Rask.Ui.UiTextarea<T>! __b, bool? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.Ui.UiInput<T>! __b, bool? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.Ui.UiTextarea<T>! __b, bool? value) -> Rask.Ui.UiTextarea<T>!

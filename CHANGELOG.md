@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A bound kit field shows that its async validator is still checking.** `UiInput`, `UiTextarea` and
+  `UiSelect` render a small spinner and "Checking…" under the control while a validation is in flight. It
+  uses Core's `ValidatingIndicator`, sticky tail included, so a quick check is still on screen long enough
+  to read. A field whose validator goes to the network used to be silent for the whole round trip, and a
+  reader who tabbed away took the silence for a pass. The words are announced (`role="status"`); the
+  spinner is `aria-hidden`. `ShowValidating(false)` opts out, mirroring `ShowValidation`. The site's async
+  demos drop their hand-placed indicator and message, and the forms journey asserts the checking state by
+  the words on screen.
+
 - **Bearer tokens, opt-in and cookie-first.** `AuthOptions.Bearer` adds a JWT scheme **beside** the
   cookie — never instead of it — for the callers a cookie cannot serve: a native client, a CLI, a
   service-to-service call. A caller asks with `X-Rask-Auth-Mode: bearer` on login and gets the token in

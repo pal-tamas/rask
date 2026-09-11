@@ -15,24 +15,14 @@ public sealed partial class ProgrammaticValidateDemo : Component
         _ctx.AddValidator(new SlowTitleValidator());
     }
 
-    private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
-
-    private static Component Checking() =>
-        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking…"
-        ];
-
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
 
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
-            Div[
-                UiInput.Bind(() => _model.Title).Label("Title").Id("v6-title").ShowValidation(false),
-                ValidatingIndicator.Template(Checking).For(() => _model.Title),
-                ValidationMessage.Template(FieldError).For(() => _model.Title)
-            ],
+            // The kit field shows "Checking…" while SlowTitleValidator runs, whether a keystroke or the
+            // button below started it; IsValidatingAny is what holds Save back until it settles.
+            UiInput.Bind(() => _model.Title).Label("Title").Id("v6-title"),
             Div.Class("flex gap-2 flex-wrap items-center")[
                 UiButton.Variant(UiVariant.Outline).Id("v6-validate-now").OnClick(ValidateNowAsync)[UiIcon.Name(UiIconName.Search), "Validate now"],
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("v6-submit").Disabled(_ctx.IsValidatingAny)[UiIcon.Name(UiIconName.CheckCircle), "Save"]

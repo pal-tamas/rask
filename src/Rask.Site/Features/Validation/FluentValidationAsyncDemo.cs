@@ -4,29 +4,17 @@ namespace Rask.Site.Features;
 
 // FluentValidation async: a single RuleFor chain stacks NotEmpty → Matches → MustAsync.
 // FluentValidationValidator wraps the whole IValidator into an IAsyncFieldValidator, so
-// MustAsync awaits the network-shaped check and the ValidatingIndicator surfaces while
-// the await is in flight.
+// MustAsync awaits the network-shaped check, and the kit field shows "Checking…" while the
+// await is in flight and the rule's message once it settles.
 public sealed partial class FluentValidationAsyncDemo : Component
 {
     private readonly TicketModel _model = new();
     private string? _submission;
 
-    private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
-
-    private static Component Checking() =>
-        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking availability..."
-        ];
-
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
-            Div[
-                UiInput.Bind(() => _model.Code).Label("Ticket code").Id("v9-code").ShowValidation(false),
-                ValidatingIndicator.Template(Checking).For(() => _model.Code),
-                ValidationMessage.Template(FieldError).For(() => _model.Code)
-            ],
+            UiInput.Bind(() => _model.Code).Label("Ticket code").Id("v9-code"),
             Div[
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.Ticket), "Reserve"]
             ]
