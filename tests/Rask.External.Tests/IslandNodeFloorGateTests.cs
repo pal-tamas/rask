@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using static Rask.External.Tests.IslandBuild;
 
 namespace Rask.External.Tests;
 
@@ -150,14 +150,7 @@ public sealed class IslandNodeFloorGateTests
         }
         finally
         {
-            try
-            {
-                Directory.Delete(temp, recursive: true);
-            }
-            catch (IOException)
-            {
-                // A leftover temp directory is not worth failing a green test over.
-            }
+            DeleteQuietly(temp);
         }
     }
 
@@ -172,46 +165,5 @@ public sealed class IslandNodeFloorGateTests
         {
             return null;
         }
-    }
-
-    /// <remarks>
-    ///     Both pipes are drained CONCURRENTLY — the reads are started and only awaited after the process
-    ///     exits. Awaiting stdout to completion first deadlocks whenever the child fills the stderr pipe
-    ///     buffer (~64 KB) while the parent is still blocked on stdout: the child blocks writing, never
-    ///     exits, and stdout never closes. `dotnet msbuild` on a cold agent — NuGet output, first-run
-    ///     messages, and the failing-build path this class exists to exercise — is exactly the shape that
-    ///     produces that much stderr. <c>NodeFloorGateTests.Run</c> does it this way for the same reason.
-    /// </remarks>
-    private static async Task<(int Exit, string Output)> Run(string file, string arguments, string workingDirectory)
-    {
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo(file, arguments)
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                WorkingDirectory = workingDirectory,
-            },
-        };
-
-        process.Start();
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        return (process.ExitCode, await stdout + await stderr);
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Rask.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        Assert.NotNull(directory);
-        return directory!.FullName;
     }
 }

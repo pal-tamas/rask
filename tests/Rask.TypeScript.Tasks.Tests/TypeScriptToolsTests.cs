@@ -103,6 +103,8 @@ public class TypeScriptToolsTests
     [InlineData(TypeScriptTool.Esbuild, ToolOs.Windows, "esbuild.exe")]
     [InlineData(TypeScriptTool.Tsgo, ToolOs.MacOs, "lib/tsgo")]
     [InlineData(TypeScriptTool.Tsgo, ToolOs.Windows, "lib/tsgo.exe")]
+    [InlineData(TypeScriptTool.TypeScript, ToolOs.MacOs, "lib/typescript.js")]
+    [InlineData(TypeScriptTool.TypeScript, ToolOs.Windows, "lib/typescript.js")]
     public void ExecutablePath_MatchesThePublishedLayout(TypeScriptTool tool, ToolOs os, string expected) =>
         Assert.Equal(
             expected.Replace('/', Path.DirectorySeparatorChar),
@@ -120,7 +122,27 @@ public class TypeScriptToolsTests
     public void NeedsWholePackage_IsTrueForTheCompilerOnly()
     {
         Assert.True(TypeScriptTools.NeedsWholePackage(TypeScriptTool.Tsgo));
+        Assert.True(TypeScriptTools.NeedsWholePackage(TypeScriptTool.TypeScript));
         Assert.False(TypeScriptTools.NeedsWholePackage(TypeScriptTool.Esbuild));
+    }
+
+    /// <summary>
+    ///     The compiler library is one package for every platform, including ones no native tool publishes for.
+    /// </summary>
+    /// <remarks>
+    ///     A props snapshot is read under Node, so a machine with no native tsgo build can still read a package
+    ///     component's props — and must get the same package name everywhere, or two machines would pin two
+    ///     different compilers.
+    /// </remarks>
+    [Theory]
+    [InlineData(ToolOs.MacOs, Architecture.Arm64)]
+    [InlineData(ToolOs.Linux, Architecture.X86)]
+    [InlineData(ToolOs.Windows, Architecture.Arm)]
+    public void PackageName_TheCompilerLibraryIsTheSameEverywhere(ToolOs os, Architecture architecture)
+    {
+        Assert.Equal("typescript", TypeScriptTools.PackageName(TypeScriptTool.TypeScript, os, architecture));
+        Assert.False(TypeScriptTools.IsNative(TypeScriptTool.TypeScript));
+        Assert.True(TypeScriptTools.IsNative(TypeScriptTool.Tsgo));
     }
 
     /// <summary>

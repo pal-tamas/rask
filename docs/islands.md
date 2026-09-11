@@ -247,6 +247,43 @@ review as a diff of what the component accepts.
 The snapshot names the runtime and module it describes. When the class beside it names another — a different
 base class, a different export — nothing is generated ([RASK079](diagnostics.md#rask079)).
 
+### The build keeps it current
+
+You do not write the snapshot. `dotnet build` writes it the first time, and refreshes it whenever it can read the
+package — Node installed and the package in `node_modules`. It loads the TypeScript compiler Rask pins
+(`RaskExternalTypeScriptVersion`, fetched once into `~/.rask/typescript` like tsgo and esbuild), never the
+project's own copy, so two machines write the same file. A snapshot whose contents changed is rewritten and
+announced:
+
+```text
+Rask.External: refreshed MuiButton.props.json (7.3.1 → 7.4.0) — commit it.
+```
+
+A prop the package removed then fails where you set it, as a compile error. That is the loud half of the contract.
+
+A build told not to read the package — `RaskExternalBuild=false` or `RaskExternalPropsExtract=false` — compiles
+from the committed file as it is. (Without Node the build stops at `RASKISLAND001` instead: islands cannot be
+bundled without it either.) It fails only if there is no snapshot to compile from, and warns if the
+snapshot was taken from another version than `package-lock.json` pins.
+
+**A locked build never writes.** Under `ContinuousIntegrationBuild=true`, or with
+`-p:RaskExternalPropsLocked=true`, the build still reads the package but a snapshot that no longer matches fails
+the build instead of being refreshed, so CI proves the committed files are true rather than quietly fixing them.
+
+| Code | Severity | When |
+| --- | --- | --- |
+| `RASKISLAND005` | error | The class also has a front-end file beside it, or the export after `#` is not an identifier. |
+| `RASKISLAND006` | error | There is no snapshot, and this build cannot extract one; the message says why. |
+| `RASKISLAND007` | error | The package or the export could not be read, or it is not a component — reported at the `Module` line. |
+| `RASKISLAND008` | error | A locked build found an out-of-date snapshot. |
+| `RASKISLAND009` | warning | The compiler found a package island the build did not see before compiling, so its props were not read. Return `Module` as a constant from the class's own body. |
+| `RASKISLAND010` | warning | The snapshot was taken from a different package version than `package-lock.json` pins. |
+
+Props are read from **React, Preact and Solid** packages today. A Vue, Svelte, Lit or Angular package island is not
+sent to the extractor: it compiles from a snapshot you commit by hand (a missing one is `RASKISLAND006`), or declare
+its props in C#. A Solid package island cannot yet share a project with React or Preact islands — Solid's Vite
+plugin would have to be confined to folders a package does not have — and the build refuses that by name.
+
 ### How the TypeScript maps
 
 | TypeScript | C# step | Sent as |
@@ -630,6 +667,10 @@ through.
 without one runs no npm, probes for no node, and never learns this package has a build step. A Rask app
 with no islands is unaffected, which is most of them.
 
+A [package island](#using-a-package-component-directly) adds one step, before the compile: the build finds the
+classes whose `Module` names a package, installs, and reads their props into the snapshots the compile generates
+from. Its entry module imports the package itself — there is no file of yours to bundle.
+
 A project that *does* have both is checked before `npm` runs: too old a Node fails with
 **`RASKISLAND001`** naming the version it found, rather than failing later inside vite with an engines
 error nobody reads. The floor is `RaskExternalMinimumNode`, **22.12.0** — the same number as the SPA
@@ -667,7 +708,8 @@ npm install -D vite @analogjs/vite-plugin-angular @angular/compiler-cli @angular
 
 Install only what you use. A plugin is written into the generated Vite config **only** when an island
 of that runtime exists, so a Lit-only app is never asked for `@vitejs/plugin-react`, and a Vue-only
-app is not either.
+app is not either. Package islands of React or Preact need no plugin at all: the package is already compiled
+JavaScript, so `vite` and the runtime itself are enough.
 
 ### Why Vite, and only Vite
 

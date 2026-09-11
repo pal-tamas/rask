@@ -151,6 +151,8 @@ src/Rask.External/build/Rask.External.Tasks.dll
 # Written beside that DLL by CopyTaskAssemblyToRaskExternalBuild: the hash of the targets it was
 # built against, so a mismatched pair is detected instead of failing as MSB4064 (#965).
 src/Rask.External/build/Rask.External.Tasks.contract
+# The package-island props extractor, bundled from src/Rask.External/extractor by _RaskBundleExtractor.
+src/Rask.External/build/rask-extract-props.mjs
 src/Rask.Core/build/Rask.TypeScript.Tasks.dll
 
 # Ad-hoc SQLite load-harness runs (the committed reference lives in Baselines/).

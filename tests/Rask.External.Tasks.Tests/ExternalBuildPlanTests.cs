@@ -76,6 +76,92 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void A_package_island_imports_its_package_by_the_bare_specifier()
+    {
+        // The item a package island reaches the build with is its SNAPSHOT, which nothing imports. And the
+        // package is a bare specifier on purpose: made relative, the bundler would look for a file called
+        // '@mui/material/Button' beside the entry.
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry
+            {
+                Name = "MuiButton",
+                Source = "/app/Shop/MuiButton.props.json",
+                Runtime = "react",
+                Package = "@mui/material/Button",
+            },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import Component from '@mui/material/Button'", entry, StringComparison.Ordinal);
+        Assert.Contains("export default reactComponent(Component)", entry, StringComparison.Ordinal);
+        Assert.DoesNotContain("props.json", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_named_export_is_bound_to_the_name_the_adapter_wraps()
+    {
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry
+            {
+                Name = "MuiButton",
+                Source = "/app/MuiButton.props.json",
+                Runtime = "react",
+                Package = "@mui/material#Button",
+            },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import { Button as Component } from '@mui/material'", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_export_that_is_not_an_identifier_never_reaches_the_entry()
+    {
+        // The export is written into JavaScript unquoted, so anything but an identifier could end the import
+        // and start code of the Module string's choosing.
+        Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.EntryModule(
+            new ExternalEntry
+            {
+                Name = "MuiButton",
+                Source = "/app/MuiButton.props.json",
+                Runtime = "react",
+                Package = "pkg#x}from'y';alert(1)//",
+            },
+            "/obj/rask-external/rask"));
+    }
+
+    [Fact]
+    public void A_package_of_compiled_javascript_needs_no_plugin_but_a_solid_package_does()
+    {
+        // React packages ship compiled JavaScript, so an app whose React islands are all packages is not asked
+        // to install @vitejs/plugin-react. Solid packages publish JSX source, which still needs Solid's compiler.
+        var react = ExternalBuildPlan.ViteConfig(
+            [new ExternalEntry { Name = "Picker", Source = "/app/Picker.props.json", Runtime = "react", Package = "react-colorful#HexColorPicker" }],
+            "/obj/entries", "/app/wwwroot/_rask/external", "/app/wwwroot/_rask/external/manifest.json", "/_rask/external/");
+        var solid = ExternalBuildPlan.ViteConfig(
+            [new ExternalEntry { Name = "Picker", Source = "/app/Picker.props.json", Runtime = "solid", Package = "solid-picker" }],
+            "/obj/entries", "/app/wwwroot/_rask/external", "/app/wwwroot/_rask/external/manifest.json", "/_rask/external/");
+
+        Assert.DoesNotContain("@vitejs/plugin-react", react, StringComparison.Ordinal);
+        Assert.Contains("vite-plugin-solid", solid, StringComparison.Ordinal);
+        Assert.DoesNotContain("include:", solid, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_solid_package_beside_another_jsx_runtime_is_refused_by_name()
+    {
+        // Solid's plugin would have to be confined to folders a package does not have: unscoped it compiles the
+        // React island's .tsx, scoped it never compiles the package. Named here rather than shipped mounting nothing.
+        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.ViteConfig(
+            [
+                new ExternalEntry { Name = "Chart", Source = "/app/React/Chart.tsx", Runtime = "react" },
+                new ExternalEntry { Name = "Picker", Source = "/app/Picker.props.json", Runtime = "solid", Package = "solid-picker" },
+            ],
+            "/obj/entries", "/app/wwwroot/_rask/external", "/app/wwwroot/_rask/external/manifest.json", "/_rask/external/"));
+
+        Assert.Contains("Picker", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Chart", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_react_plugin_is_only_imported_when_a_react_island_exists()
     {
         var litOnly = Config([new ExternalEntry { Name = "Gauge", Source = "/a/g.ts", Runtime = "lit" }]);
