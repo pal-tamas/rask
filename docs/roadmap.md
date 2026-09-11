@@ -21,6 +21,7 @@ service to operate.
 | **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `GetOrAddAsync`, absolute/sliding expiry. |
+| **File storage** | ✅ | [`Rask.Storage`](file-storage.md) — uploads kept on disk, in an S3-compatible bucket or in Azure Blob, with a `StoredFile` row per file on the app's own database; content types sniffed from the bytes, public and temporary URLs, downloads behind your own check. Files on the disk provider are not yet backed up. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **The door out of one box** | ❌ | Not shipped — Rask wires SQLite only. Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — the cookie session, claims, authorization, and hardening guidance. |
@@ -69,14 +70,11 @@ provider-agnostic — but you give up everything that treats the database as a f
 `rask db backup`, the deploy volume) and you are off the framework's happy path. See
 [Scaling](scaling.md) for where the single-writer wall actually is.
 
-### Offline-first sync and object storage
-No CRDT replication, no op log, no `IObjectStore`. Several devices sharing one database with no server
-between them is not something Rask does.
-
-### File and blob storage
-No `IBlobStorage`. Rask can move bytes between the browser and the server
-([`http-and-files.md`](http-and-files.md)), but where an uploaded avatar is *kept* is your decision — the
-local disk, S3, or a provider SDK you reference directly.
+### Offline-first sync
+No CRDT replication, no op log. Several devices sharing one database with no server between them is not
+something Rask does. (Files uploaded *to* the server are a different matter and have
+[shipped](file-storage.md): kept on disk, in an S3-compatible bucket or in Azure Blob — though files on the
+disk provider are not yet covered by any backup.)
 
 ### Rate limiting
 Nothing in the framework. The docs point you at a reverse-proxy rate limit in several places, and

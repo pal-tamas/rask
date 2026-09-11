@@ -71,6 +71,9 @@ internal sealed record ServerBatteries
     /// <summary>A database-backed cache (<c>ICache</c> + <c>IDistributedCache</c>).</summary>
     public bool Cache { get; init; }
 
+    /// <summary>File storage for uploads (<c>IFiles</c>), with a <c>StoredFile</c> row per file on the app's database.</summary>
+    public bool Storage { get; init; }
+
     /// <summary>A transactional outbox for durable domain-event delivery.</summary>
     public bool Outbox { get; init; }
 
@@ -91,7 +94,7 @@ internal sealed record ServerBatteries
     public bool Ops { get; init; }
 
     /// <summary>True when any battery needs a <c>TContext</c> — i.e. a database-backed pillar is on.</summary>
-    public bool AnyDbPillar => Jobs || Mail || Cache || Outbox;
+    public bool AnyDbPillar => Jobs || Mail || Cache || Storage || Outbox;
 
     /// <summary>True when anything touches the SQLite file on disk beyond EF itself.</summary>
     /// <remarks>
@@ -153,7 +156,7 @@ internal sealed record ServerBatteries
     /// </summary>
     /// <remarks>
     /// The mirror of <see cref="Normalized"/>, and it exists because the batteries are on by default:
-    /// <c>--no-data</c> has to mean "and therefore no jobs, mail, cache, outbox, snapshots or dashboard",
+    /// <c>--no-data</c> has to mean "and therefore no jobs, mail, cache, storage, outbox, snapshots or dashboard",
     /// or the command would scaffold registrations naming a <c>DbContext</c> that isn't there.
     ///
     /// <para>
@@ -175,6 +178,7 @@ internal sealed record ServerBatteries
             Jobs = Jobs && data,
             Mail = Mail && data,
             Cache = Cache && data,
+            Storage = Storage && data,
             Outbox = Outbox && data,
             Snapshots = Snapshots && data,
             Ops = Ops && data,

@@ -17,7 +17,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → push → ops → deploy to one box. One chapter per pillar; you build the app as you go, starting from `rask new Shop`. |
 | [**Cheat sheet**](cheatsheet.md) | The one page to keep open — every CLI command, feature field token, wiring one-liner (`AddRask…`), and code idiom, dense and scannable. |
 | [**Recipes**](recipes.md) | Task-first "how do I do X?" — add a feature to an existing database, gate a page, run a job, cache a query, deploy an update — the command, the wiring line, and where to go deeper. |
-| [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache) and what's next (broadcast). |
+| [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache, file storage) and what's next (broadcast). |
 
 ## Guides
 
@@ -70,6 +70,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJob` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
 | [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMail` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |
 | [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrAddAsync`, absolute/sliding expiry. |
+| [File storage](file-storage.md) | Uploaded files kept on disk, in an S3-compatible bucket or in Azure Blob via `AddRaskStorage<Ctx>()` (standalone `Rask.Storage`) — a `StoredFile` row per file on the app's own database, content types sniffed from the bytes, public and temporary URLs, and downloads behind your own authorization check. |
 | [Outbox](outbox.md) | Durable, crash-safe domain-event delivery via `AddRaskOutbox<Ctx>()` (standalone `Rask.Outbox`) — events committed in the same transaction as your data, delivered post-commit with retries. |
 | [Web Push](webpush.md) | Server-sent Web Push from your backend via `AddRaskWebPush(...)` + `IWebPush` (standalone `Rask.WebPush`) — VAPID + aes128gcm, zero deps; pairs with the client `IWebPush`. |
 | [Secrets](secrets.md) | Where an app's passwords and API keys live, how they reach the server, and what Rask deliberately doesn't do with them. |

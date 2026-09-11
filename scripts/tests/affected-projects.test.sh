@@ -25,10 +25,14 @@ expect() {
   checks=$((checks + 1))
 
   out="$(printf '%s\n' "$changed" | python3 "$script" "$root" 2>&1)"
+  first="${out%%$'\n'*}"
 
+  # Every check reads a here-string, never a pipe from printf. Under pipefail, `printf | grep -q` fails
+  # whenever grep matches and exits before printf has written everything: printf dies of SIGPIPE, and a
+  # list that DOES name the project reports it missing. The Rask.Core case prints nearly the whole tree.
   case "$mode" in
     full)
-      if printf '%s' "$out" | head -1 | grep -q '^FULL'; then
+      if grep -q '^FULL' <<<"$first"; then
         echo "  ok   $label -> FULL"
       else
         echo "  FAIL $label: expected FULL, got:" >&2
@@ -37,10 +41,10 @@ expect() {
       fi
       ;;
     scoped)
-      if printf '%s' "$out" | head -1 | grep -q '^FULL'; then
+      if grep -q '^FULL' <<<"$first"; then
         echo "  FAIL $label: expected a scoped list naming $want, got FULL: $out" >&2
         failures=$((failures + 1))
-      elif printf '%s\n' "$out" | grep -q "$want"; then
+      elif grep -q -- "$want" <<<"$out"; then
         echo "  ok   $label -> scoped, includes $want"
       else
         echo "  FAIL $label: expected $want in the list, got:" >&2
@@ -49,7 +53,7 @@ expect() {
       fi
       ;;
     absent)
-      if printf '%s\n' "$out" | grep -q "$want"; then
+      if grep -q -- "$want" <<<"$out"; then
         echo "  FAIL $label: did NOT expect $want in the list, got:" >&2
         printf '%s\n' "$out" | sed 's/^/         /' >&2
         failures=$((failures + 1))
