@@ -27,6 +27,20 @@ them until tagged releases begin.
   succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
   (`docs/data.md#postgresql`).
 
+- **SQL Server is back too, as the opt-in `Rask.SqlServer`.** `UseRaskSqlServer(cs, o => …)` is a drop-in for
+  `UseSqlServer` that sends `SET XACT_ABORT ON` and `SET LOCK_TIMEOUT` (10s, validated below the command
+  timeout) as one batch on every connection EF opens — SQL Server takes no session settings in the connection
+  string, and SqlClient resets them on every pooled open — sets a client `CommandTimeout` (30s, rounded up to
+  whole seconds because 0 means "wait forever"), and turns on SQL Server's retrying strategy through `o.Retry`.
+  `Rask.Cache` keys its table at 512 characters, which SQL Server's 900-byte index key limit only admits with
+  a warning; `UseRaskSqlServer` caps that one key at 450 in the model through its own convention, so the table
+  is created cleanly, no other entity is resized, and SQLite apps get no migration. A key longer than 450
+  characters still cannot be stored on SQL Server — see the cache entry under Fixed for the error it now gets.
+  Calling `UseRaskSqlServer` twice on one configuration keeps one interceptor and the last call's settings. The provider suite gains the same
+  claim, cache, session-settings and bulk-insert scenarios against SQL Server 2022 — started on amd64 hosts
+  only, because Microsoft's image segfaults under emulation on Apple Silicon; elsewhere the gate says in its
+  summary that SQL Server was not proven rather than counting it as a pass.
+
 - **The templates are committed, and `rask new` scaffolds from them.** Every project was built from
   ~8,400 lines of C# string literals, and the front-end lanes shelled out to `npx create-vite@latest`,
   `nuxi@latest` and `create-next-app@latest` at scaffold time. That meant scaffolding needed a network
@@ -312,6 +326,12 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **A cache key too long for the database says so.** `ICache` over the database-backed cache keys its table at
+  512 characters (450 on SQL Server). PostgreSQL and SQL Server refuse a longer key, and the insert-then-update
+  upsert surfaced that as a `DbUpdateException` about a value too long for some column. It now throws an
+  `ArgumentException` naming the key's length and the table's limit, with the provider error as its inner
+  exception. SQLite does not enforce the length, so nothing changes there.
 
 - **Bulk insert's fast path runs the connection interceptors, and retries a failed batch.**
   `BulkInsertAsync(o => o.SkipChangeTracking = true)` opened the `DbConnection` itself, and EF only runs its

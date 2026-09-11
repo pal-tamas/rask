@@ -93,6 +93,23 @@ public sealed class PostgresCacheTests : IAsyncLifetime
         Assert.Contains(Encoding.UTF8.GetString(stored), values);
     }
 
+    [SkippableFact]
+    public async Task A_key_longer_than_the_column_is_rejected_with_the_limit_named()
+    {
+        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+
+        // PostgreSQL enforces varchar(512), so the insert fails on truncation and there is no row to update — the
+        // cache names the limit instead of surfacing that provider error.
+        var cache = _provider!.GetRequiredService<IDistributedCache>();
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => cache.SetAsync(
+            new string('k', 513),
+            Encoding.UTF8.GetBytes("stored"),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }));
+
+        Assert.StartsWith("The cache key is 513 characters long, and this database's cache table holds keys of at most 512.", error.Message);
+    }
+
     private Task<CacheDbContext> NewContextAsync() =>
         _provider!.GetRequiredService<IDbContextFactory<CacheDbContext>>().CreateDbContextAsync();
 }
