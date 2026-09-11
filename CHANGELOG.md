@@ -111,6 +111,16 @@ them until tagged releases begin.
   parameter is `argN`. A Svelte 4 component typed by svelte-package — a class and a function at once — has its
   `$$events` and `$$slots` read as events and content rather than listed as props.
 
+- **Lit and Angular package islands get their props from the package too, so every runtime's do.** A Lit element's
+  props are its public, writable fields; its tag comes from `HTMLElementTagNameMap`, or is named in `Module` for a
+  module that only registers an element (`"@spectrum-web-components/button/sp-button.js#sp-button"`), and the entry
+  imports that module for its side effect so the registration is never elided. Where the package ships a
+  `custom-elements.json`, it decides which fields are reactive and lists the element's events, which become `On…`
+  handler props that the Lit adapter now adds as event listeners — one per event, swapped when C# replaces the
+  handler. An Angular component's inputs and outputs are read from the declaration ng-packagr compiles: an input is set
+  by its public alias (signal inputs, `model()` and transformed inputs included), and an output is subscribed to, which
+  the Angular adapter now does. A directive or a component that is not standalone is refused with RASKISLAND007.
+
 - **The render runtime reports to Rask DevTools through an internal probe, with no allocation when none is
   attached.** Groundwork for the devtools' tree, render and wire views; nothing is visible to an app yet. One
   `RaskDevToolsHook.Active` read per site covers a component render and why it ran (props, state, a cache

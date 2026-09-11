@@ -55,7 +55,7 @@ public sealed class WriteExternalPropsRequestTask : Task
             var name = item.GetMetadata("IslandName");
             var (specifier, export) = ExternalPackageSpecifier.Split(item.GetMetadata("PackageModule"));
 
-            if (!ExternalPackageSpecifier.IsValidExport(export))
+            if (!ExternalPackageSpecifier.IsValidExport(export, item.GetMetadata("Runtime")))
             {
                 // Refused here as well as by the scan: the export is written into generated JavaScript, and an
                 // export that is not an identifier is how a Module string would end an import and start code.

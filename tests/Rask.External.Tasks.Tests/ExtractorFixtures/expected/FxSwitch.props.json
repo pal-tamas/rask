@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "runtime": "lit",
+  "module": "fixture-lit/fx-switch.js",
+  "export": "fx-switch",
+  "package": {
+    "name": "fixture-lit",
+    "version": "1.4.0"
+  },
+  "tag": "fx-switch",
+  "content": "none",
+  "props": [
+    {
+      "name": "checked",
+      "required": false,
+      "doc": "Whether the switch is on.",
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "helpText",
+      "required": false,
+      "doc": "Help shown under the switch.",
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "on-fx-change",
+      "wire": "@fx-change",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "CustomEvent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "on-fx-focus",
+      "wire": "@fx-focus",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "FocusEvent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "size",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "large",
+          "medium",
+          "small"
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "name": "input",
+      "reason": "unsupported",
+      "detail": "not a reactive property"
+    }
+  ]
+}

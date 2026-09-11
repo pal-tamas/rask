@@ -11,6 +11,9 @@
 
 import type { ExternalAdapter, ExternalProps } from './adapter'
 
+/** The listeners each element was given, so an update swaps a changed handler and an unmount removes them all. */
+const listeners = new WeakMap<HTMLElement, Map<string, EventListener>>()
+
 /**
  * Wraps a custom element as an island adapter.
  *
@@ -32,20 +35,60 @@ export function litComponent(tag: string): ExternalAdapter<HTMLElement> {
     },
 
     unmount(node) {
+      for (const [name, handler] of listeners.get(node) ?? []) {
+        node.removeEventListener(name, handler)
+      }
+
+      listeners.delete(node)
       node.remove()
     },
   }
 }
 
 /**
- * Assigns props as PROPERTIES, never attributes.
+ * Assigns props as PROPERTIES, never attributes — except a prop named `@event`, which is a listener.
  *
  * An attribute would stringify everything — an array of points would arrive as "[object Object]" —
  * and Lit only reflects the direction it was asked to. Properties also carry the revived callbacks,
  * which cannot survive an attribute at all.
+ *
+ * An element's events are not properties: `sl-change` is dispatched, and a handler has to be listening
+ * for it. The build names such a prop `@sl-change`, so it is added as a listener instead, swapped only
+ * when the handler itself changed — the runtime keeps a callback's identity across renders, so an
+ * unchanged one stays attached — and removed when the prop is gone.
  */
 function assign(node: HTMLElement, props: ExternalProps): void {
+  const bound = listeners.get(node) ?? new Map<string, EventListener>()
+  listeners.set(node, bound)
+
   for (const key of Object.keys(props)) {
-    ;(node as unknown as Record<string, unknown>)[key] = props[key]
+    if (!key.startsWith('@')) {
+      ;(node as unknown as Record<string, unknown>)[key] = props[key]
+      continue
+    }
+
+    const name = key.slice(1)
+    const handler = props[key]
+    const previous = bound.get(name)
+    if (previous === handler) {
+      continue
+    }
+
+    if (previous) {
+      node.removeEventListener(name, previous)
+      bound.delete(name)
+    }
+
+    if (typeof handler === 'function') {
+      node.addEventListener(name, handler as EventListener)
+      bound.set(name, handler as EventListener)
+    }
+  }
+
+  for (const [name, handler] of [...bound]) {
+    if (!Object.prototype.hasOwnProperty.call(props, `@${name}`)) {
+      node.removeEventListener(name, handler)
+      bound.delete(name)
+    }
   }
 }

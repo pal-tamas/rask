@@ -78,6 +78,36 @@ internal static class ExternalPackageSpecifier
         return true;
     }
 
+    /// <summary>
+    ///     Whether <paramref name="export" /> can be written into generated JavaScript for an island of
+    ///     <paramref name="runtime" />: anything <see cref="IsValidExport(string)" /> accepts, and — for Lit only — the tag
+    ///     an element registers (<c>sl-switch</c>), since a module that only registers an element exports nothing to name.
+    /// </summary>
+    public static bool IsValidExport(string export, string runtime) =>
+        IsValidExport(export) || (string.Equals(runtime, "lit", StringComparison.Ordinal) && IsTag(export));
+
+    /// <summary>
+    ///     Whether <paramref name="name" /> is a custom element name as Rask accepts one: a lowercase letter first, then
+    ///     lowercase letters, digits, <c>.</c>, <c>_</c> and <c>-</c>, with at least one <c>-</c>.
+    /// </summary>
+    public static bool IsTag(string? name)
+    {
+        if (string.IsNullOrEmpty(name) || name![0] < 'a' || name[0] > 'z' || name.IndexOf('-') < 0)
+        {
+            return false;
+        }
+
+        foreach (var c in name)
+        {
+            if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c is '.' or '_' or '-'))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static bool IsIdentifier(string name)
     {
         if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] is '_' or '$'))

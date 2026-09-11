@@ -132,6 +132,10 @@ public sealed class WriteExternalBuildInputsTask : Task
                 Source = source,
                 Runtime = runtime,
                 Package = string.IsNullOrEmpty(package) ? null : package,
+                // A Lit element named by its class mounts by the tag its snapshot recorded; the item IS the snapshot.
+                Tag = !string.IsNullOrEmpty(package) && runtime == ExternalRuntime.Lit.Key && File.Exists(source)
+                    ? ExternalBuildPlan.SnapshotTag(File.ReadAllText(source))
+                    : null,
             });
         }
 

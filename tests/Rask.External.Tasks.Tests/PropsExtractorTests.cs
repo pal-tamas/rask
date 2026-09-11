@@ -48,12 +48,16 @@ public sealed class PropsExtractorTests : IDisposable
             Island("LegacySelect", "fixture-svelte#LegacySelect", "svelte"),
             Island("Card", "fixture-vue#Card", "vue"),
             Island("Tabs", "fixture-vue#Tabs", "vue"),
-            Island("Dropdown", "fixture-svelte#Dropdown", "svelte"));
+            Island("Dropdown", "fixture-svelte#Dropdown", "svelte"),
+            Island("FxSwitch", "fixture-lit/fx-switch.js#fx-switch", "lit"),
+            Island("FxBadge", "fixture-lit/components/badge/badge.js", "lit"),
+            Island("FxToggle", "fixture-angular#FxToggle", "angular"),
+            Island("FxSlider", "fixture-angular#FxSlider", "angular"));
 
         foreach (var name in new[]
                  {
-                     "Badge", "Card", "Chip", "Dropdown", "FixtureButton", "LegacySelect", "Picker", "PrimeButton",
-                     "Switch", "SwitchRoot", "Tabs", "Toaster", "Toggle",
+                     "Badge", "Card", "Chip", "Dropdown", "FixtureButton", "FxBadge", "FxSlider", "FxSwitch", "FxToggle",
+                     "LegacySelect", "Picker", "PrimeButton", "Switch", "SwitchRoot", "Tabs", "Toaster", "Toggle",
                  })
         {
             var actual = File.ReadAllText(Path.Combine(output, name + ".props.json"));
@@ -85,6 +89,25 @@ public sealed class PropsExtractorTests : IDisposable
         Assert.Equal("module-not-found", results["Absent"].Code);
         Assert.Equal("export-not-found", results["Nameless"].Code);
         Assert.True(File.Exists(Path.Combine(output, "FixtureButton.props.json")));
+    }
+
+    [SkippableFact]
+    public void What_cannot_be_mounted_as_a_lit_or_angular_island_is_refused_by_name()
+    {
+        var typescript = Toolchain();
+        var output = Extract(
+            typescript,
+            Island("FxTooltip", "fixture-angular#FxTooltip", "angular"),
+            Island("FxLegacy", "fixture-angular#FxLegacy", "angular"),
+            Island("FxNothing", "fixture-lit/fx-switch.js#fx-nothing", "lit"));
+
+        var results = SyncExternalPropsSnapshotsTask.ReadResults(File.ReadAllText(Path.Combine(output, "result.json")));
+
+        // A directive is not a component, a non-standalone component cannot be mounted on its own, and a tag the module
+        // never registers has no element behind it.
+        Assert.Equal("not-a-component", results["FxTooltip"].Code);
+        Assert.Equal("not-standalone", results["FxLegacy"].Code);
+        Assert.Equal("lit-tag-unknown", results["FxNothing"].Code);
     }
 
     [SkippableFact]

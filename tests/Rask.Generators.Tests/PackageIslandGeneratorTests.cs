@@ -315,6 +315,56 @@ public class PackageIslandGeneratorTests
     }
 
     [Fact]
+    public void A_lit_element_named_by_its_tag_and_its_event_wire_pair_generate_and_compile()
+    {
+        // What the extractor writes for a Lit element whose define module is named by the tag it registers: the export is
+        // the tag, and the event prop travels under `@fx-change` — the adapter's cue to listen rather than assign.
+        const string island =
+            """
+            namespace Shop;
+
+            public sealed partial class MuiButton : Rask.External.LitComponent
+            {
+                protected override string Module => "fixture-lit/fx-switch.js#fx-switch";
+            }
+            """;
+
+        const string snapshot =
+            """
+            {
+              "schema": 1, "runtime": "lit", "module": "fixture-lit/fx-switch.js", "export": "fx-switch", "tag": "fx-switch",
+              "props": [
+                { "name": "checked", "required": false, "type": { "kind": "boolean" } },
+                { "name": "on-fx-change", "wire": "@fx-change", "required": false,
+                  "type": { "kind": "callback", "args": [ { "name": "event", "type": { "kind": "event", "name": "CustomEvent" } } ] } }
+              ]
+            }
+            """;
+
+        const string host =
+            """
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                private int _changes;
+
+                protected override Rask.Core.Component? Render() =>
+                    MuiButton
+                        .Checked(true)
+                        .OnFxChange(() => _changes++);
+            }
+            """;
+
+        var run = Run(island, snapshot, host);
+        var generated = run.GeneratedSource("MuiButton.External");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id is "RASK078" or "RASK079" or "RASK080");
+        Assert.Contains("writer.WritePropertyName(\"@fx-change\")", generated, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void A_prop_with_no_csharp_type_is_RASK080_and_the_rest_are_still_generated()
     {
         var snapshot = PropSnapshot("mixed", """{ "kind": "union", "of": [ { "kind": "boolean" }, { "kind": "string" } ] }""");
