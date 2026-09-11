@@ -27,10 +27,21 @@
          model to build its INSERT. Every relational provider already brings this in; the reference only makes
          the dependency this package actually has explicit. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+    <!-- AddRaskData<TContext> registers a startup check refusing a HasNonOverlappingRange rule the provider
+         would silently ignore; it runs as an IHostedService, like the batteries' model checks. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The provider packages implement IRangeExclusionEnforcer, an internal marker: it is how the startup
+         check tells a context that enforces HasNonOverlappingRange from one that would silently ignore it,
+         without a public name nobody but a provider would ever type. -->
+    <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore"/>
+    <InternalsVisibleTo Include="Rask.Data.Tests"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->

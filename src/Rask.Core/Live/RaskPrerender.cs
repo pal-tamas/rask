@@ -81,11 +81,17 @@ public static class RaskPrerender
     ///     happens once, at build time, and nobody is waiting on a socket.
     /// </param>
     /// <param name="maxWaves">Wave cap. Defaults to <see cref="QuiescentRender.DefaultMaxWaves" />.</param>
+    /// <param name="cancellationToken">
+    ///     Abandons the render; see <see cref="QuiescentRender.RunAsync" />. Nothing is returned for a
+    ///     cancelled render, because there is nothing about it a caller should write down.
+    /// </param>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken" /> was cancelled.</exception>
     public static async Task<PrerenderResult> RenderDocumentAsync(
         Component app,
         IServiceProvider services,
         TimeSpan budget,
-        int maxWaves = QuiescentRender.DefaultMaxWaves)
+        int maxWaves = QuiescentRender.DefaultMaxWaves,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(services);
@@ -98,7 +104,8 @@ public static class RaskPrerender
         var render = await QuiescentRender.RunAsync(
             publishOnly => root.RenderAsLiveRoot(services, publishOnly),
             budget,
-            maxWaves: maxWaves).ConfigureAwait(false);
+            maxWaves: maxWaves,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return new PrerenderResult(
             render.Html, render.TimedOut, root.RenderedFallback, render.Waves, root.FallbackError);

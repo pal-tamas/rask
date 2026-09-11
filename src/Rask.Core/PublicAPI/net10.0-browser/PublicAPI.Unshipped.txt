@@ -4657,12 +4657,12 @@ static Rask.Core.Live.PrerenderPlan.operator !=(Rask.Core.Live.PrerenderPlan? le
 static Rask.Core.Live.PrerenderPlan.operator ==(Rask.Core.Live.PrerenderPlan? left, Rask.Core.Live.PrerenderPlan? right) -> bool
 static Rask.Core.Live.PrerenderResult.operator !=(Rask.Core.Live.PrerenderResult left, Rask.Core.Live.PrerenderResult right) -> bool
 static Rask.Core.Live.PrerenderResult.operator ==(Rask.Core.Live.PrerenderResult left, Rask.Core.Live.PrerenderResult right) -> bool
-static Rask.Core.Live.QuiescentRender.RunAsync(System.Func<bool, string!>! renderWave, System.TimeSpan budget, System.Func<bool>? isBlocked = null, int maxWaves = 16) -> System.Threading.Tasks.Task<Rask.Core.Live.QuiescentRenderResult>!
+static Rask.Core.Live.QuiescentRender.RunAsync(System.Func<bool, string!>! renderWave, System.TimeSpan budget, System.Func<bool>? isBlocked = null, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.QuiescentRenderResult>!
 static Rask.Core.Live.QuiescentRenderResult.operator !=(Rask.Core.Live.QuiescentRenderResult left, Rask.Core.Live.QuiescentRenderResult right) -> bool
 static Rask.Core.Live.QuiescentRenderResult.operator ==(Rask.Core.Live.QuiescentRenderResult left, Rask.Core.Live.QuiescentRenderResult right) -> bool
 static Rask.Core.Live.RaskPath.Normalize(string? value) -> string!
 static Rask.Core.Live.RaskPrerender.PlanRoutes() -> Rask.Core.Live.PrerenderPlan!
-static Rask.Core.Live.RaskPrerender.RenderDocumentAsync(Rask.Core.Component! app, System.IServiceProvider! services, System.TimeSpan budget, int maxWaves = 16) -> System.Threading.Tasks.Task<Rask.Core.Live.PrerenderResult>!
+static Rask.Core.Live.RaskPrerender.RenderDocumentAsync(Rask.Core.Component! app, System.IServiceProvider! services, System.TimeSpan budget, int maxWaves = 16, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Core.Live.PrerenderResult>!
 static Rask.Core.Live.ScrollEvent.operator !=(Rask.Core.Live.ScrollEvent? left, Rask.Core.Live.ScrollEvent? right) -> bool
 static Rask.Core.Live.ScrollEvent.operator ==(Rask.Core.Live.ScrollEvent? left, Rask.Core.Live.ScrollEvent? right) -> bool
 static Rask.Core.Live.ToggleEventArgs.operator !=(Rask.Core.Live.ToggleEventArgs? left, Rask.Core.Live.ToggleEventArgs? right) -> bool

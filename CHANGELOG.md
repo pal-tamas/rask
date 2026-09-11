@@ -137,6 +137,19 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`QuiescentRender.RunAsync` and `RaskPrerender.RenderDocumentAsync` take a `CancellationToken`.** It is
+  the last parameter and defaulted, as the API style guide asks of every awaitable, so existing calls
+  compile unchanged. Cancelling abandons the render: a wait in progress stops at once and
+  `OperationCanceledException` is thrown, rather than placeholder markup returned as though it were a
+  result. A render nobody is waiting for any more — a page re-rendered in the background when the host
+  stops — no longer holds shutdown for the rest of its budget.
+
+  Behind it, the Server GET's page render moved out of the request handler into one internal function
+  that returns every decision a response is built from: whether the page redirected, its status, whether
+  it needs a live session, and whether its markup read the signed-in user. Responses are unchanged — the
+  existing endpoint suites pass as they were — and the two copies of the live-document composition in the
+  handler are now one. This is groundwork for caching public pages on the Server.
+
 - **`Tw.cs` is gone: every control on rask.sh is a `Rask.Ui` component.** The site's class-string
   vocabulary ends here. The last 180 uses of `Tw.Input`, `Tw.Label` and `Tw.Select` move onto kit
   fields, along with the checkbox, spinner, input-group, blockquote and figure-caption constants, and the
@@ -301,6 +314,28 @@ them until tagged releases begin.
 
 - **`rask new --help` advertised a command that fails.** The examples still showed `--auth --data`; both
   were retired, so the documented example exited non-zero.
+- **A `HasNonOverlappingRange` rule the provider would ignore now fails the boot.** The rule is model
+  metadata that a provider has to turn into DDL, and only `UseRaskSqlite` did. On a plain `UseSqlite` — or
+  any other provider — an app built, migrated and passed every test that didn't collide two ranges on
+  purpose, then accepted the double booking the rule existed to stop. `AddRaskData<TContext>` now registers
+  a startup check that reads the model and the context's migrations generator, needs no connection, and
+  names the entity, the provider and the call that enforces it.
+
+- **`BulkInsertAsync(o => o.SkipChangeTracking = true)` spells SQL the provider's way.** The writer
+  hard-coded `"…"` identifiers and `@p0` parameters, which is right on SQLite, PostgreSQL and SQL Server and
+  a string literal to MySQL. Table, column and parameter names now come from EF Core's
+  `ISqlGenerationHelper`. Rows still execute synchronously on SQLite, where the async call does the same
+  work on the same thread; a client-server provider now awaits each round trip instead of blocking a thread
+  for it.
+
+- **A failed first-admin claim is no longer mistaken for losing the race.** The claim relies on a
+  constant primary key, so a `DbUpdateException` meant "somebody else claimed it" — but a dropped connection
+  or a deadlock victim raises the same exception, and on a client-server database those are routine. The
+  first registrant then became an ordinary user of an instance nobody administered. The store now reads the
+  claim back: another account's row means the race was lost; its own row means the write committed and only
+  the acknowledgement failed (a dropped connection, or a retrying strategy re-running the insert), so it won;
+  no row rethrows.
+
 - **Mounting a second application no longer takes the operator console off the host.**
   `AddRaskDashboard` guarded against mounting itself twice by skipping when the container held *any*
   `RaskMountedApp` — so a host that mounted another application first lost `/_rask` entirely, with nothing

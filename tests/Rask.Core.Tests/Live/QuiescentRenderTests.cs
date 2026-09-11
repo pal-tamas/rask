@@ -123,6 +123,46 @@ public class QuiescentRenderTests
         Assert.Equal(4, waves); // the first render, then three capped waves
     }
 
+    [Fact]
+    public async Task CancellingAbandonsTheWaitRatherThanReturningMarkup()
+    {
+        // A render nobody is waiting for any more — a background refresh when the host stops — must not
+        // hold shutdown for the rest of its budget, and must not hand back a placeholder that reads like
+        // a result somebody could store.
+        QuiescenceScope.ResetSyncForTests();
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var started = DateTime.UtcNow;
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => QuiescentRender.RunAsync(
+            _ =>
+            {
+                QuiescenceScope.Current!.TrackExternal(new TaskCompletionSource().Task);
+                return "still-loading";
+            },
+            TimeSpan.FromSeconds(30),
+            cancellationToken: cancel.Token));
+
+        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(5), "cancellation waited out the budget");
+    }
+
+    [Fact]
+    public async Task AnAlreadyCancelledTokenRendersNothing()
+    {
+        QuiescenceScope.ResetSyncForTests();
+        var rendered = false;
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => QuiescentRender.RunAsync(
+            _ =>
+            {
+                rendered = true;
+                return "html";
+            },
+            TimeSpan.FromSeconds(5),
+            cancellationToken: new CancellationToken(canceled: true)));
+
+        Assert.False(rendered);
+    }
+
     private static async Task Settle(TaskCompletionSource gate, Action then)
     {
         gate.TrySetResult();
