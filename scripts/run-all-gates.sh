@@ -40,6 +40,7 @@ gates=(
   "watch hot reload|scripts/run-watch-e2e.sh|RASK_WATCH_E2E=1"
   "meta publish|scripts/run-meta-publish-e2e.sh|RASK_META_PUBLISH_E2E=1"
   "deploy|scripts/run-deploy-e2e-local.sh|RASK_DEPLOY_E2E=1"
+  "storage providers|scripts/run-storage-providers-local.sh|RASK_STORAGE_PROVIDERS=1"
   "installer|scripts/run-install-e2e-local.sh|RASK_INSTALL_E2E=1"
   "providers|scripts/run-providers-local.sh|"
 )

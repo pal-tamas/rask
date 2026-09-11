@@ -21,6 +21,7 @@ own ("blazor", "react"). Map every new page to one:
 | CQRS .NET source generator, mediator without reflection | `cqrs` |
 | SQLite in production .NET, WAL, Litestream | `sqlite`, `08-production-sqlite` |
 | background jobs / outbox / cache .NET without Redis | `jobs`, `outbox`, `cache` |
+| file uploads ASP.NET Core to disk / S3 / Azure Blob, presigned URLs without the AWS SDK | `file-storage` |
 | Tailwind CSS .NET without npm | `tailwind` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |

@@ -9,6 +9,7 @@ using Rask.Mail;
 using Rask.Outbox;
 using Rask.Server;
 using Rask.SQLite.Snapshots;
+using Rask.Storage;
 using Rask.WebPush;
 
 namespace Rask;
@@ -80,6 +81,17 @@ public sealed class RaskAppOptions
 
     /// <summary>A database-backed cache: the standard <c>IDistributedCache</c> plus a typed <c>ICache</c>.</summary>
     public Battery<CacheOptions> Cache { get; } = new();
+
+    /// <summary>
+    /// Uploaded files: bytes on disk or in an S3-compatible or Azure bucket, with a <c>StoredFile</c> row per file on
+    /// the app's own database, handed back as public URLs, temporary URLs or downloads. See <c>IFiles</c>.
+    /// </summary>
+    /// <remarks>
+    /// Where the bytes go is configuration — <c>Storage__Provider</c> and the keys beside it — so moving from the
+    /// deploy volume to a bucket changes no code. Turning it off leaves the table mapped, like every other
+    /// database-backed battery.
+    /// </remarks>
+    public Battery<StorageOptions> Storage { get; } = new();
 
     /// <summary>The transactional outbox for durable domain-event delivery.</summary>
     public Battery<OutboxOptions> Outbox { get; } = new();

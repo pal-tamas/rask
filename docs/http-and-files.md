@@ -7,6 +7,7 @@ wiring differs. This guide walks the three, each with a live demo.
 
 - [Fetching data with `HttpClient`](#fetching-data-with-httpclient) — register a DI'd client, fetch in `OnMountAsync`
 - [Uploading files](#uploading-files) — a typed file picker and `RaskFile` metadata
+- [Keeping an upload](#keeping-an-upload) — where the bytes go once the handler returns
 - [Downloading files](#downloading-files) — stage bytes with `Navigator.Download`
 
 For **server-side persistence** (EF Core + SQLite, `IDbContextFactory`, vertical slices), see the
@@ -54,11 +55,30 @@ Server, via JS chunked reads on WASM. The same component code runs unchanged on 
 
 ---
 
+## Keeping an upload
+
+Because a `RaskFile` stops being readable when its handler returns, a file you mean to keep has to be written
+somewhere before then. That is what [file storage](file-storage.md) is for, and in a `RaskApp` it is already
+on — inject `IFiles` and save from the handler, then keep the id on your own entity:
+
+```csharp
+var saved = await files.SaveAsync(picked[0], cancellationToken: CancellationToken);
+order.AttachReceipt(saved.Id);
+```
+
+`SaveAsync` writes the bytes to disk, an S3-compatible bucket or Azure Blob, records a row whose content type
+is sniffed from the bytes rather than taken from the browser, and refuses a file over the size limit or of a
+type you haven't allowed. The file comes back later as a public URL, a temporary URL, or a download behind
+your own authorization check. It runs on the server: a WebAssembly page uploads there first.
+
+---
+
 ## Downloading files
 
 `Navigator.Download` stages bytes (or a stream) on the active session: on the Server they're served from
-`/_rask/download/{sid}/{token}`; on WASM they're handed to JS as a base64 payload. The component code is the
-same. It must be called from an **event handler** — outside that scope it throws, because there's no live
+`/_rask/download/{sid}/{token}`; on WASM the bytes stay on the .NET side and the render carries only a short
+token, which the page trades for the bytes through a JS-to-.NET call when it starts the download. The
+component code is the same. It must be called from an **event handler** — outside that scope it throws, because there's no live
 render round-trip to attach the download to. The handler can make other state changes too (here it bumps a
 counter); both ship in the same render:
 

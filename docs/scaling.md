@@ -133,6 +133,12 @@ Cookie-based affinity in the proxy covers all three. Rask does not configure one
 SQLite, more than one host will fight over the same file. Move them to a shared database first, or don't
 run them on more than one host. What the processors themselves do about several instances is below.
 
+**And files kept on disk stay on the host that saved them.** [`Rask.Storage`](file-storage.md)'s default disk
+provider writes to the local filesystem, so a file saved on one host does not exist on the next. Affinity
+doesn't fix that — a file is read by people other than the one who uploaded it, from whichever host they
+land on. Point `Storage__Provider` at S3 or Azure before adding a second host; temporary links the app signs
+itself also need the shared key ring above.
+
 ## Running more than one instance
 
 The [jobs](jobs.md), [mail](mail.md) and [outbox](outbox.md) processors **lease** the work they claim, so a

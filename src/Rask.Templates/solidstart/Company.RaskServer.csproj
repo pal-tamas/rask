@@ -46,6 +46,9 @@
     <!-- rask:if cache -->
     <PackageReference Include="Rask.Cache" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
+    <!-- rask:if storage -->
+    <PackageReference Include="Rask.Storage" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
     <!-- rask:if snapshots -->
     <PackageReference Include="Rask.SQLite.Snapshots" Version="{{RaskVersion}}"/>
     <!-- rask:end -->

@@ -129,9 +129,10 @@ Run `rask` with no arguments for a wizard.
 
 ## Batteries included
 
-Auth, jobs, mail, cache and events are on by default, and every one of them rides the app's own
-SQLite database — no broker, no Redis, no second service to run. A fresh app can register somebody,
-sign them in, confirm their address and reset their password with no auth code written.
+Auth, jobs, mail, cache, events and file storage are on by default, and every one of them keeps its
+records in the app's own SQLite database (an upload's bytes go to disk or a bucket) — no broker, no
+Redis, no second service to run. A fresh app can register somebody, sign them in, confirm their address
+and reset their password with no auth code written.
 
 - **[Auth](docs/authentication.md)** — accounts out of the box: register, sign in, sign out, route
   guards, and the first account to register is the administrator.
@@ -153,6 +154,8 @@ sign them in, confirm their address and reset their password with no auth code w
   them, cache contents and a log tail, behind an authorization policy.
 - **[PWA](docs/pwa.md)** · **[Web Push](docs/webpush.md)** — installable, offline apps, and push sent
   from your backend on your own VAPID keys.
+- **[File storage](docs/file-storage.md)** — uploads on disk, in S3-compatible storage or in Azure
+  Blob, with a row per file on your database and public or expiring links.
 - **[Deploy](docs/deployment.md)** — `rask deploy` takes a bare VPS to a live HTTPS site with
   zero-downtime swaps.
 
@@ -168,7 +171,7 @@ box to operate.
 | **[Getting started](docs/getting-started.md)** · **[Tutorial](docs/tutorial/00-overview.md)** | The UI end to end; then a whole product, one pillar per chapter |
 | **[Building components](docs/building-components.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | How markup is written, the URLs it answers, and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |
-| **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[SQLite](docs/sqlite.md)** | The database-backed pillars |
+| **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[File storage](docs/file-storage.md)** · **[SQLite](docs/sqlite.md)** | The database-backed pillars |
 | **[HTTP APIs](docs/api-endpoints.md)** | API controllers and minimal APIs, hosted properly and called through a client generated from them |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | Day-to-day differences side by side; every RASK build error and its fix |
 
