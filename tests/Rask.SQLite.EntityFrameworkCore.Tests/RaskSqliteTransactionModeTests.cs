@@ -143,7 +143,7 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
     private DbContextOptions<ProbeDbContext> OptionsWith(IInterceptor? interceptor = null)
     {
         var builder = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}");
+            .UseRaskSqliteAt($"Data Source={_dbPath}");
 
         if (interceptor is not null)
         {

@@ -25,22 +25,38 @@ subscription is still good.
 
 ## Use
 
-**1. Generate a key pair once** and store it in configuration/secrets (rotating it invalidates every existing
-subscription):
+**1. Generate a key pair once** and keep it in user secrets or the environment — never in source, and never
+regenerated (rotating it invalidates every existing subscription):
 
 ```csharp
 var keys = VapidKeys.Generate();   // dotnet-run once; persist keys.PublicKey / keys.PrivateKey
 ```
 
-**2. Register the sender** at startup:
+```bash
+dotnet user-secrets set "Rask:WebPush:VapidKeys:PublicKey"  "<public>"
+dotnet user-secrets set "Rask:WebPush:VapidKeys:PrivateKey" "<private>"
+# deployed: Rask__WebPush__VapidKeys__PublicKey and Rask__WebPush__VapidKeys__PrivateKey
+```
+
+**2. Register the sender** at startup. It reads `Rask:WebPush`, so the call takes nothing:
 
 ```csharp
-builder.Services.AddRaskWebPush(o =>
-{
-    o.VapidKeys = new VapidKeys(config["WebPush:PublicKey"]!, config["WebPush:PrivateKey"]!);
-    o.Subject   = "mailto:admin@example.com";   // a contact the push service can reach; mailto: or https:
-});
+builder.Services.AddRaskWebPush();
 ```
+
+```jsonc
+// appsettings.json — the contact is not a secret
+{
+  "Rask": {
+    "WebPush": {
+      "Subject": "mailto:admin@example.com"   // a contact the push service can reach; mailto: or https:
+    }
+  }
+}
+```
+
+`DefaultTtl` lives in the same section. A callback — `AddRaskWebPush(o => …)` — runs after the section and
+wins.
 
 **3. Subscribe on the client** with the **same public key**, and store what it posts up. Hand
 `keys.PublicKey` to the browser's [`IWebPush.SubscribeAsync`](pwa.md#push-notifications-iwebpush); the client
@@ -93,8 +109,8 @@ public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
 - **Keep the keys stable.** Generate one pair per application and reuse it for the app's lifetime; rotating the
   VAPID keys invalidates every subscription the old public key produced.
 - **`Subject` is required** and must be a `mailto:` address or an `https:` URL — the push service uses it to
-  reach you if your traffic causes problems. `AddRaskWebPush` validates the options at startup, so a missing
-  key or subject fails fast rather than on the first send.
+  reach you if your traffic causes problems. The options are validated when the host starts, so a missing
+  key or subject stops the app starting rather than failing the first send.
 - **Prune expired subscriptions.** Act on `ShouldDelete` so your store doesn't accumulate dead endpoints, and
   consider running sends through [`Rask.Jobs`](jobs.md) so a `ShouldRetry` result is retried durably off the
   request thread.

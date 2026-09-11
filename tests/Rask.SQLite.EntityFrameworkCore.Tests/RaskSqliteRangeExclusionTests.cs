@@ -303,7 +303,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         where TContext : DbContext
     {
         var options = new DbContextOptionsBuilder<TContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}", o => o.StrictTables = strictTables)
+            .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = strictTables)
             .Options;
 
         return (TContext)Activator.CreateInstance(typeof(TContext), options)!;
@@ -315,7 +315,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
     private void Migrate<TFrom>(DbContext context)
         where TFrom : DbContext
     {
-        var options = new DbContextOptionsBuilder<TFrom>().UseRaskSqlite($"Data Source={_dbPath}").Options;
+        var options = new DbContextOptionsBuilder<TFrom>().UseRaskSqliteAt($"Data Source={_dbPath}").Options;
         using var from = (TFrom)Activator.CreateInstance(typeof(TFrom), options)!;
         Migrate(context, from);
     }

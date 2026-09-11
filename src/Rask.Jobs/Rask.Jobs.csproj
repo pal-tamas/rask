@@ -23,12 +23,30 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Options"/>
   </ItemGroup>
+
+  <!--
+    JobOptions binds Rask:Jobs. The configuration binding source generator writes that bind at compile time,
+    so no reflection binder runs; the SDK leaves it off unless a project asks.
+
+    SYSLIB1100/1101 are the generator saying it skips JobOptions' recurring schedule — a list of job
+    factories, which appsettings cannot express and AddRecurring alone fills. Suppressed here because the
+    generator's diagnostics do not honour #pragma, and this project makes exactly one Bind call, so nothing
+    else can hide behind it. RaskJobsOptionsBindingTests pins that every settable property still binds.
+  -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+  </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
 
   <ItemGroup>

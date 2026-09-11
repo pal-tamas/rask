@@ -11,10 +11,12 @@ public sealed class JobsDbCollectionGuardTests
         DbCollectionGuard.AssertEveryTestClassIsCollected(
             typeof(JobsDbCollectionGuardTests).Assembly,
             JobsDbCollection.Name,
-            // Pure unit tests: options validation and the process-global serializer registry, which
-            // takes a lock and installs its lookup in a single store, and is driven here through
-            // per-test group keys — so there is no context and nothing to serialise.
+            // Pure unit tests: options validation and binding (JobOptions resolved from a container that never
+            // builds the context it names), and the process-global serializer registry, which takes a lock and
+            // installs its lookup in a single store, and is driven here through per-test group keys — so there
+            // is no context and nothing to serialise.
             "JobOptionsTests",
+            "RaskJobsOptionsBindingTests",
             "JobSerializerRegistryTests",
             "JobSerializerRegistryReplaceTests");
 }

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cqrs.Server;
 
@@ -11,8 +13,19 @@ public static class RaskCqrsServerServiceCollectionExtensions
     ///     is the only Rask.Cqrs line a server project needs, and <c>AddRaskCqrs()</c> is called for you.
     /// </summary>
     /// <param name="services">The app's service collection.</param>
-    /// <param name="configure">Optional endpoint configuration — limits, route prefix, error detail.</param>
-    /// <param name="configureCqrs">Optional Rask.Cqrs configuration — handler lifetime, pipeline behaviors.</param>
+    /// <param name="configure">
+    ///     Optional endpoint configuration — limits, route prefix, error detail — applied after the
+    ///     <c>Rask:Cqrs:Server</c> configuration section.
+    /// </param>
+    /// <param name="configureCqrs">
+    ///     Optional Rask.Cqrs configuration — handler lifetime, pipeline behaviors — applied after the
+    ///     <c>Rask:Cqrs</c> configuration section.
+    /// </param>
+    /// <remarks>
+    ///     Code wins over configuration for both. <c>Rask:Cqrs:Server:RequireAuthenticatedUser</c> included: remote
+    ///     dispatch can be opened from the environment, which is what configuration is for and a reason to guard the
+    ///     deploy environment's variables as closely as its code.
+    /// </remarks>
     public static IServiceCollection AddRaskCqrsServer(
         this IServiceCollection services,
         Action<RaskCqrsServerOptions>? configure = null,
@@ -20,14 +33,11 @@ public static class RaskCqrsServerServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = new RaskCqrsServerOptions();
-        configure?.Invoke(options);
-        options.Validate();
+        services.AddRaskOptions<RaskCqrsServerOptions>(
+            "Rask:Cqrs:Server", static (section, o) => section.Bind(o), configure, static o => o.Validate());
 
         // The one line: a server project references Rask.Cqrs.Server and calls this, nothing else.
         services.AddRaskCqrs(configureCqrs);
-
-        services.TryAddSingleton(options);
 
         // The half of a chunked upload that outlives a single request: parts land here until the message
         // that carries them arrives. Singleton because a session spans requests by definition, and

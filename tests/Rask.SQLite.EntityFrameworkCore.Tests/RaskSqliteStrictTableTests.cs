@@ -106,7 +106,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using var context = new CustomTypeDbContext(
             new DbContextOptionsBuilder<CustomTypeDbContext>()
-                .UseRaskSqlite($"Data Source={_dbPath}", o => o.StrictTables = true)
+                .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = true)
                 .Options);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -136,7 +136,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
 
     private ProbeDbContext NewContext(bool strict) =>
         new(new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}", o => o.StrictTables = strict)
+            .UseRaskSqliteAt($"Data Source={_dbPath}", o => o.StrictTables = strict)
             .Options);
 
     private string ReadDdl()

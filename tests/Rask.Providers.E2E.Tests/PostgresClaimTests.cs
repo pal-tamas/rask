@@ -167,7 +167,7 @@ public sealed class PostgresClaimTests : IAsyncLifetime
     }
 
     private static ClaimDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<ClaimDbContext>().UseRaskPostgres(Postgres.Required).Options);
+        new(new DbContextOptionsBuilder<ClaimDbContext>().UseRaskPostgresAt(Postgres.Required).Options);
 
     /// <summary>A processor and its own context — two of these are two instances of the app.</summary>
     private (JobProcessor<ClaimDbContext> Processor, ClaimDbContext Context) NewInstance(int batchSize)
@@ -180,7 +180,7 @@ public sealed class PostgresClaimTests : IAsyncLifetime
             o.BatchSize = batchSize;
             o.LeaseDuration = TimeSpan.FromMinutes(5);
         });
-        services.AddDbContextFactory<ClaimDbContext>(o => o.UseRaskPostgres(Postgres.Required));
+        services.AddDbContextFactory<ClaimDbContext>(o => o.UseRaskPostgresAt(Postgres.Required));
 
         var provider = services.BuildServiceProvider();
         _providers.Add(provider);

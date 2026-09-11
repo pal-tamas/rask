@@ -150,7 +150,7 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
     }
 
     private static SqlClaimDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<SqlClaimDbContext>().UseRaskSqlServer(SqlServer.Database(DatabaseName)).Options);
+        new(new DbContextOptionsBuilder<SqlClaimDbContext>().UseRaskSqlServerAt(SqlServer.Database(DatabaseName)).Options);
 
     private (JobProcessor<SqlClaimDbContext> Processor, SqlClaimDbContext Context) NewInstance(int batchSize)
     {
@@ -162,7 +162,7 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
             o.BatchSize = batchSize;
             o.LeaseDuration = TimeSpan.FromMinutes(5);
         });
-        services.AddDbContextFactory<SqlClaimDbContext>(o => o.UseRaskSqlServer(SqlServer.Database(DatabaseName)));
+        services.AddDbContextFactory<SqlClaimDbContext>(o => o.UseRaskSqlServerAt(SqlServer.Database(DatabaseName)));
 
         var provider = services.BuildServiceProvider();
         _providers.Add(provider);
@@ -184,7 +184,7 @@ public sealed class SqlServerSessionSettingsTests
         Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
 
         var options = new DbContextOptionsBuilder<SqlClaimDbContext>()
-            .UseRaskSqlServer(SqlServer.ConnectionString!, o =>
+            .UseRaskSqlServerAt(SqlServer.ConnectionString!, o =>
             {
                 o.CommandTimeout = TimeSpan.FromSeconds(30);
                 o.LockTimeout = TimeSpan.FromSeconds(7);
@@ -235,7 +235,7 @@ public sealed class SqlServerCacheTests : IAsyncLifetime
 
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDbContextFactory<SqlCacheDbContext>(o => o.UseRaskSqlServer(SqlServer.Database(DatabaseName)));
+        services.AddDbContextFactory<SqlCacheDbContext>(o => o.UseRaskSqlServerAt(SqlServer.Database(DatabaseName)));
         services.AddRaskCache<SqlCacheDbContext>();
         _provider = services.BuildServiceProvider();
 
@@ -389,5 +389,5 @@ public sealed class SqlServerBulkInsertTests : IAsyncLifetime
     }
 
     private static SqlBulkDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<SqlBulkDbContext>().UseRaskSqlServer(SqlServer.Database(DatabaseName)).Options);
+        new(new DbContextOptionsBuilder<SqlBulkDbContext>().UseRaskSqlServerAt(SqlServer.Database(DatabaseName)).Options);
 }

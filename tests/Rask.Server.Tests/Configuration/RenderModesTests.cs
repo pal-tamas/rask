@@ -64,7 +64,7 @@ public class RenderModesTests
     [Fact]
     public void AHostConfiguredWithAContradiction_DoesNotStart()
     {
-        // The end-to-end half: validation runs when the host is built, not merely when someone calls
+        // The end-to-end half: validation runs when the host starts, not merely when someone calls
         // Validate by hand. Turning the browser rung on with nowhere to fetch the bundle from is the
         // contradiction now — no page could ever move into it, and nothing at runtime would say so.
         var ex = Record.Exception(() =>
@@ -75,7 +75,9 @@ public class RenderModesTests
                     o.RenderModes.WasmBundle = "  ";
                 }));
 
-        Assert.IsType<InvalidOperationException>(ex);
+        // Reported as a validation failure naming the section, the same as a bad value read from appsettings.
+        var validation = Assert.IsType<Microsoft.Extensions.Options.OptionsValidationException>(ex);
+        Assert.Contains("Rask:Server", validation.Message, StringComparison.Ordinal);
     }
 
     [Fact]

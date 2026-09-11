@@ -7,7 +7,7 @@ namespace Rask.SQLite;
 /// <summary>
 /// An Entity Framework Core connection interceptor that applies the configured
 /// <see cref="SqliteOptions"/> every time a SQLite connection is opened. Registered for you by
-/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqliteOptions}?)"/>.
+/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, IServiceProvider, Action{SqliteOptions}?)"/>.
 /// </summary>
 /// <remarks>
 /// The per-connection pragmas (<c>foreign_keys</c>, <c>busy_timeout</c>, <c>synchronous</c>, …) do not

@@ -105,4 +105,4 @@ static Rask.WebPush.WebPushMessage.operator !=(Rask.WebPush.WebPushMessage? left
 static Rask.WebPush.WebPushMessage.operator ==(Rask.WebPush.WebPushMessage? left, Rask.WebPush.WebPushMessage? right) -> bool
 static Rask.WebPush.WebPushResult.operator !=(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
 static Rask.WebPush.WebPushResult.operator ==(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
-static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

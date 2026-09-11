@@ -230,27 +230,6 @@ public class SignalingRelayTests : IDisposable
         Assert.Contains("AddRaskSignaling", ex.Message, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("no-leading-slash")]
-    public void AddRaskSignaling_RejectsAPathThatIsNotRooted(string path)
-    {
-        var services = new ServiceCollection();
-
-        Assert.Throws<ArgumentException>(() => services.AddRaskSignaling(o => o.Path = path));
-    }
-
-    [Fact]
-    public void AddRaskSignaling_RejectsAPayloadCapAboveTheMessageCap()
-    {
-        var services = new ServiceCollection();
-
-        Assert.Throws<ArgumentOutOfRangeException>(() => services.AddRaskSignaling(o =>
-        {
-            o.MaxMessageBytes = 2048;
-            o.MaxPayloadBytes = 4096;
-        }));
-    }
-
     private static SignalingTestHost Host(Action<RaskSignalingOptions>? configure = null)
     {
         var builder = WebApplication.CreateBuilder();

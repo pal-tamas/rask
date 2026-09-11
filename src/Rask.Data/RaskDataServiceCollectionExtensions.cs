@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Rask.Data;
 
@@ -10,7 +12,7 @@ namespace Rask.Data;
 public static class RaskDataServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the auditing, soft-delete, and (unless disabled) domain-event interceptors as
+    /// Registers the auditing, soft-delete, and domain-event interceptors as
     /// <see cref="ISaveChangesInterceptor"/> services, plus a <see cref="TimeProvider"/>. Add them to a
     /// context with
     /// <c>o.AddInterceptors(sp.GetServices&lt;ISaveChangesInterceptor&gt;())</c> in your
@@ -23,20 +25,16 @@ public static class RaskDataServiceCollectionExtensions
     /// <see cref="IDomainEventDeliveryOwner"/>, and this method needs no argument to match. The handover is
     /// resolved when the container is built, so it holds whichever order the two <c>Add</c> calls appear
     /// in. Override it in either direction with
-    /// <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
+    /// <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>, which reads the <c>Rask:Data</c>
+    /// configuration section first and then <paramref name="configure"/>.
     /// </remarks>
     public static IServiceCollection AddRaskData(this IServiceCollection services, Action<RaskDataOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = new RaskDataOptions();
-        configure?.Invoke(options);
+        AddOptions(services, configure);
 
         services.TryAddSingleton(TimeProvider.System);
-
-        // The interceptor reads this to honour an explicit DispatchDomainEventsInProcess. TryAdd keeps the
-        // first registration, matching the idempotence of the interceptor block below.
-        services.TryAddSingleton(options);
 
         // Registration order is the interception order: soft-delete rewrites Deleted -> Modified first, so
         // auditing then stamps + versions the resulting update.
@@ -45,14 +43,12 @@ public static class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 
-            // Registered unless the caller has explicitly said "never". WHETHER IT PUBLISHES is not decided
-            // here: DomainEventInterceptor asks the built container whether anything owns delivery. Deciding
-            // it at this line would freeze the answer before AddRaskOutbox has necessarily run, which is
-            // exactly the order-dependent silent failure this replaces.
-            if (options.DispatchDomainEventsInProcess is not false)
-            {
-                services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
-            }
+            // Registered unconditionally. WHETHER IT PUBLISHES is not decided here: DomainEventInterceptor reads
+            // DispatchDomainEventsInProcess — which can come from Rask:Data — and asks the built container whether
+            // anything owns delivery. Deciding either at this line would freeze the answer before the configuration
+            // is readable and before AddRaskOutbox has necessarily run, which is exactly the order-dependent silent
+            // failure this replaces.
+            services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
         }
 
         return services;
@@ -79,7 +75,7 @@ public static class RaskDataServiceCollectionExtensions
     ///     <code>
     /// builder.Services.AddRaskData&lt;AppDbContext&gt;();
     /// builder.Services.AddDbContextFactory&lt;AppDbContext&gt;((sp, o) =&gt; o
-    ///     .UseSqlite("Data Source=app.db")
+    ///     .UseRaskSqlite(sp)
     ///     .AddInterceptors(sp.GetServices&lt;ISaveChangesInterceptor&gt;()));
     ///
     /// var app = builder.Build();
@@ -108,5 +104,34 @@ public static class RaskDataServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, RangeExclusionCheck<TContext>>());
 
         return services;
+    }
+
+    // Rask:Data first, then configure — code wins; the first call's options win. Written out here rather than through
+    // the options helper every other battery source-links: Rask.SQLite.EntityFrameworkCore sees this assembly's
+    // internals AND Rask.SQLite's, and two copies of that helper in its sight would be ambiguous. One bool? is little
+    // enough to register by hand.
+    private static void AddOptions(IServiceCollection services, Action<RaskDataOptions>? configure)
+    {
+        if (services.Any(static d => d.ServiceType == typeof(RaskDataOptions)))
+        {
+            return;
+        }
+
+        services.AddOptions<RaskDataOptions>()
+            .Configure<IServiceProvider>(static (options, sp) =>
+            {
+                if (sp.GetService<IConfiguration>() is { } configuration)
+                {
+                    configuration.GetSection("Rask:Data").Bind(options);
+                }
+            });
+
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
+
+        // The interceptor takes the plain options type, as it always has.
+        services.AddSingleton(static sp => sp.GetRequiredService<IOptions<RaskDataOptions>>().Value);
     }
 }
