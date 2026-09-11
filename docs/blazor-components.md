@@ -279,8 +279,10 @@ Div.Class("rounded-xl border p-4")[
 The Rask markup stays Rask's — ordinary elements, ordinary handlers, an ordinary diff — and the island
 stays a leaf that owns exactly the DOM its hosted component wrote.
 
-> The `.tsx`/Lit island holds the same line for the same reason — see
-> [islands.md](islands.md#an-island-takes-no-children). One rule, both island families.
+> A JS island draws the line in a different place: it takes children of its own runtime — a React
+> island takes React islands and text — because those travel in its props and its framework renders
+> them. Rask markup stays out of both families, for the same reason — see
+> [islands.md](islands.md#children).
 
 ## Tailwind
 
