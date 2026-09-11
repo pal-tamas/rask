@@ -230,6 +230,15 @@ them until tagged releases begin.
   page" filter compared the canonical, which always ends in a slash, with the bare route path, which never
   does — so it skipped every page except `/` and asserted uniqueness over a set of one.
 
+- **`llms.txt` describes each package once, and describes it correctly.** Its index carried the dashboard,
+  UI kit, jobs, mail and cache entries two or three times each, and the copies disagreed (#1052). Two copies
+  of the jobs and mail entries still said "one processor per app", which the processor leases had made
+  false. The three UI kit versions each knew something the others did not: one listed `UiDataGrid`, one
+  described `UiMultiSelect`, and one covered the `rask new` wiring, the shipped daisyUI plugin bundle and
+  the `Rask.Auth` pages. The cache entry had its Redis paragraph glued in front of its own opening
+  sentence. An agent reading the index got contradictory accounts of one package and no way to tell which
+  was current. Each entry is now one line that keeps every fact still true.
+
 - **Three gate script tests no longer fail on a match.** `pre-push-ref-classes`, `e2e-await-slots` and
   `front-doors` checked output with `printf … | grep -q …` under `set -o pipefail`. `grep -q` exits on the
   first match; if `printf` was still writing it died of SIGPIPE, and `pipefail` reported the pipeline as
