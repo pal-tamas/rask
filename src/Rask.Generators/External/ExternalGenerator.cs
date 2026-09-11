@@ -981,6 +981,35 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine();
         }
 
+        // The children indexers, on every island whose component can render content: a hand-written island always — its
+        // front-end file decides where children go — and a package island when its snapshot says the component takes
+        // content. They return the island itself, so a nested island converts to its parent's child type. The three
+        // indexers ExternalComponent declares return NotAChildOfThisIsland instead, which RASK062 reports; a package
+        // island with no snapshot yet gets none until its first build writes one.
+        if (ExternalRuntimes.ChildTypeOf(island.Runtime) is { } child
+            && (!island.IsPackage || string.Equals(island.Snapshot?.Content, "node", StringComparison.Ordinal)))
+        {
+            var runtimeBase = "global::" + child.BaseName;
+            var childType = "global::" + child.ChildName;
+            const string enumerable = "global::System.Collections.Generic.IEnumerable";
+
+            sb.AppendLine($"    /// <summary>This island with children its framework renders: {child.Label} islands, text, numbers and dates.</summary>");
+            sb.AppendLine($"    public {island.Name} this[params {childType}[] children] {{ get {{ SetChildren(children); return this; }} }}");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>This island with a sequence of children, materialised while the page renders.</summary>");
+            sb.AppendLine($"    public {island.Name} this[{enumerable}<{childType}> children] {{ get {{ SetChildren(children); return this; }} }}");
+            sb.AppendLine();
+
+            // A user-defined conversion never lifts through IEnumerable<>, so a projection of islands —
+            // `items.Select(i => MuiListItem.Primary(i.Name))` — binds here, by covariance, rather than to the one above.
+            sb.AppendLine($"    /// <summary>This island with a sequence of {child.Label} islands as its children.</summary>");
+            sb.AppendLine($"    public {island.Name} this[{enumerable}<{runtimeBase}?> children] {{ get {{ SetChildren(children); return this; }} }}");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>This island with a sequence of text as its children.</summary>");
+            sb.AppendLine($"    public {island.Name} this[{enumerable}<string?> children] {{ get {{ SetTextChildren(children); return this; }} }}");
+            sb.AppendLine();
+        }
+
         sb.AppendLine("    /// <summary>The props, as members of the JSON object the client runtime hands to the adapter.</summary>");
         sb.AppendLine("    protected override void WriteProps(global::System.Text.Json.Utf8JsonWriter writer)");
         sb.AppendLine("    {");

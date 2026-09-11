@@ -70,6 +70,28 @@ public sealed class LitAdapterTests
         Assert.True(Run().GetProperty("islandEmptyAfterUnmount").GetBoolean(), "the island still had children after unmount");
     }
 
+    [SkippableFact]
+    public void Children_land_in_the_light_dom_and_a_keyed_child_keeps_its_identity_when_reordered()
+    {
+        // A Lit element projects its light DOM through <slot>, so that is where children go. Moving a keyed child rather
+        // than re-creating it keeps its state; re-creating it would also disconnect and reconnect every other child.
+        var doc = Run();
+
+        Assert.Equal(["text:Total ", "fx-demo:first", "fx-demo:second"], Ids(doc, "childrenOnMount"));
+        Assert.Equal(["text:Sum ", "fx-demo:second", "fx-demo:first!"], Ids(doc, "childrenAfterReorder"));
+        Assert.True(doc.GetProperty("keyedElementKept").GetBoolean(), "the keyed child was re-created rather than moved");
+        Assert.True(doc.GetProperty("textNodeKept").GetBoolean(), "the text child was re-created rather than updated");
+    }
+
+    [SkippableFact]
+    public void Children_csharp_removes_are_taken_out_and_the_element_stays()
+    {
+        var doc = Run();
+
+        Assert.Empty(Ids(doc, "childrenAfterRemoval"));
+        Assert.True(doc.GetProperty("cardKept").GetBoolean(), "removing the children removed the element with them");
+    }
+
     private static string[] Ids(JsonElement doc, string name) =>
         doc.GetProperty(name).EnumerateArray().Select(e => e.GetString()!).ToArray();
 

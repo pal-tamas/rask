@@ -100,6 +100,7 @@ internal static class ExternalBuildPlan
                     import { litComponent } from '{{adapter}}'
 
                     export default litComponent({{Literal(tag!)}})
+                    export const component = {{Literal(tag!)}}
 
                     """;
             }
@@ -120,6 +121,7 @@ internal static class ExternalBuildPlan
                 import { {{runtime.AdapterFactory}} } from '{{adapter}}'
 
                 export default {{runtime.AdapterFactory}}({{runtime.ImportName}})
+                export { {{runtime.ImportName}} as component }
 
                 """;
         }
@@ -132,6 +134,7 @@ internal static class ExternalBuildPlan
             import { {{runtime.AdapterFactory}} } from '{{adapter}}'
 
             export default {{runtime.AdapterFactory}}({{runtime.ImportName}})
+            export { {{runtime.ImportName}} as component }
 
             """;
     }
