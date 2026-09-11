@@ -14,7 +14,9 @@ them until tagged releases begin.
   anonymous, so an app with a fallback authorization policy still loads its own tools — and each interactive
   page gets a deferred, `data-rask-managed` `<script>` for it at the end of its `<head>`. Outside Development
   nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
-  it. The script is an entry point so far; the in-page tools arrive in the next slices.
+  it. The script carries the corner pill and the drawer it opens — docked to the bottom or the right, remembered,
+  toggled by Ctrl+Shift+D (Cmd+Shift+D on a Mac) without the keystroke reaching the app, and drawn in a shadow root
+  the app's stylesheets cannot reach — and shows them once the panel page they frame exists, in the next slice.
 
   The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
   load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
