@@ -56,7 +56,7 @@ public sealed class SqliteHardeningIntegrationTests : IDisposable
     private async Task<SqliteConnection> OpenThroughFactoryAsync()
     {
         var services = new ServiceCollection();
-        services.AddRaskSqlite($"Data Source={_dbPath}");
+        services.AddRaskSqliteAt($"Data Source={_dbPath}");
         var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISqlite>();
         return await factory.CreateOpenAsync();

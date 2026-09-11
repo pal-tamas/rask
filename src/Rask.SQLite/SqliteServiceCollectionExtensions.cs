@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Hosting.Shared;
 
 namespace Rask.SQLite;
 
@@ -7,42 +9,44 @@ namespace Rask.SQLite;
 public static class SqliteServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers an <see cref="ISqlite"/> that opens connections for
-    /// <paramref name="connectionString"/> with the production pragmas applied on every
-    /// open (overridable via <paramref name="configure"/>). For Entity Framework Core use
-    /// <c>UseRaskSqlite</c> on the <c>DbContextOptionsBuilder</c> instead — this is for code that uses
-    /// SQLite directly. Idempotent: a second call is a no-op.
+    /// Registers an <see cref="ISqlite"/> that opens connections for the <c>Rask:ConnectionStrings:App</c>
+    /// connection string with the production pragmas applied on every open. The pragmas read the
+    /// <c>Rask:Sqlite</c> configuration section first and then <paramref name="configure"/>, so code wins.
+    /// For Entity Framework Core use <c>UseRaskSqlite</c> on the <c>DbContextOptionsBuilder</c> instead — this is
+    /// for code that uses SQLite directly. Idempotent: a second call is a no-op.
     /// </summary>
     public static IServiceCollection AddRaskSqlite(
         this IServiceCollection services,
-        string connectionString,
         Action<SqliteOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ArgumentException.ThrowIfNullOrEmpty(connectionString);
 
         // Idempotent: a second registration (e.g. a shared library and the app host both call it) is a
-        // no-op, so the first call's connection string and options win consistently.
-        if (services.Any(static d => d.ServiceType == typeof(RaskSqliteMarker)))
+        // no-op, so the first call's options win consistently.
+        if (!services.AddRaskOptions<SqliteOptions>(
+                "Rask:Sqlite",
+                static (section, o) => section.Bind(o),
+                configure,
+                static o =>
+                {
+                    o.Validate();
+                    o.Retry.Validate();
+                }))
         {
             return services;
         }
 
-        services.AddSingleton(new RaskSqliteMarker());
+        services.TryAddSingleton(static sp => sp.GetRequiredService<SqliteOptions>().Retry);
 
-        var options = new SqliteOptions();
-        configure?.Invoke(options);
-        options.Validate();
-        options.Retry.Validate();
-
-        services.TryAddSingleton(options);
-        services.TryAddSingleton(options.Retry);
-        services.TryAddSingleton<ISqlite>(
-            new RaskSqliteConnectionFactory(connectionString, options, options.Retry));
+        // The connection string is read when the factory is first resolved — which is also where a missing one
+        // is reported, naming the key to set, rather than on the first query.
+        services.TryAddSingleton<ISqlite>(static sp =>
+        {
+            var options = sp.GetRequiredService<SqliteOptions>();
+            return new RaskSqliteConnectionFactory(
+                RaskOptionsRegistration.ConnectionString(sp, "App"), options, options.Retry);
+        });
 
         return services;
     }
-
-    // Sentinel marking that AddRaskSqlite already ran on this collection.
-    private sealed class RaskSqliteMarker;
 }

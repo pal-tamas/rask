@@ -194,7 +194,8 @@ public sealed class RaskAppOptions
     /// Litestream replica's source path and the snapshot source among them.
     /// </summary>
     /// <remarks>
-    /// Read from <c>ConnectionStrings:App</c> when unset, falling back to a local <c>app.db</c>.
+    /// Read from <c>Rask:ConnectionStrings:App</c> when unset, falling back to a local <c>app.db</c>.
+    /// When set, it wins over that key wherever it came from (appsettings, environment, user-secrets).
     /// <c>rask deploy</c> sets that key to a path on the mounted volume, so the database outlives the
     /// container the same way the key ring does.
     /// </remarks>

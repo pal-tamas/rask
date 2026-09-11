@@ -34,7 +34,7 @@ RUN apt-get update \
 COPY --from=build /app/publish .
 
 # rask:if cqrs data
-# The replicator binary Program.cs drives when Litestream__ReplicaUrl is set (see docs/sqlite.md).
+# The replicator binary Program.cs drives when Rask__Litestream__ReplicaUrl is set (see docs/sqlite.md).
 COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream
 
 # rask:end

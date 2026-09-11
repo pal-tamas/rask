@@ -22,16 +22,23 @@ dotnet add package Rask.SQLite
 ## Use
 
 ```csharp
-builder.Services.AddRaskSqlite($"Data Source={dbPath}");
+builder.Services.AddRaskSqlite();   // opens the Rask:ConnectionStrings:App connection string
 
 // then inject ISqlite:
 await using var connection = await factory.CreateOpenAsync(ct);   // pragmas already applied
 ```
 
-The production defaults are on out of the box; override any of them:
+A missing connection string is an error naming the key to set. The production defaults are on out of the
+box; override any of them in the `Rask:Sqlite` configuration section:
+
+```jsonc
+{ "Rask": { "Sqlite": { "BusyTimeout": "00:00:10", "CacheSize": -20000, "TempStore": "Memory" } } }
+```
+
+or in a callback, which runs after the section and wins:
 
 ```csharp
-builder.Services.AddRaskSqlite($"Data Source={dbPath}", p =>
+builder.Services.AddRaskSqlite(p =>
 {
     p.BusyTimeout = TimeSpan.FromSeconds(10);
     p.CacheSize = -20_000;              // negative ⇒ KiB, so 20 MB
@@ -56,7 +63,8 @@ await factory.InImmediateTransactionAsync(async (connection, ct) =>
 });
 ```
 
-Tune it with `AddRaskSqlite(cs, o => { o.Retry.Enabled = true; …; })` (defaults: 5 s timeout, 1 ms interval).
+Tune it in `Rask:Sqlite:Retry` (`Timeout`, `PollInterval`), or with
+`AddRaskSqlite(o => o.Retry.Timeout = TimeSpan.FromSeconds(10))` (defaults: 5 s timeout, 1 ms interval).
 
 Your callback **runs at least once, not exactly once**: SQLite can roll a transaction back on its own
 when a contended `COMMIT` is answered with `SQLITE_BUSY`, and the whole transaction is then re-run

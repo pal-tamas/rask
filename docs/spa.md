@@ -306,6 +306,21 @@ What it does beyond `UseStaticFiles` + a fallback:
 
 ### Options
 
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "Spa": {
+      "DevServerUrl": "http://localhost:5173",
+      "ImmutablePathPrefixes": [ "/static/" ]   // added to the defaults, not replacing them
+    }
+  }
+}
+```
+
+`Rask:Spa` is read when `UseRaskSpa` maps the app. The two delegates, `ExcludeFromFallback` and
+`OnPrepareResponse`, can only be set in code, on the callback — which runs after the section and wins:
+
 ```csharp
 app.UseRaskSpa(configure: options =>
 {

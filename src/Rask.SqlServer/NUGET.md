@@ -18,19 +18,34 @@ dotnet add package Rask.SqlServer
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlServer(builder.Configuration.GetConnectionString("App")!)
+    .UseRaskSqlServer(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
 
-Override any default through the optional configure delegate:
+`UseRaskSqlServer(sp)` reads the connection string from `Rask:ConnectionStrings:App` — a missing one is an error
+naming that key, never a guessed server — and every default below from the `Rask:SqlServer` section:
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "ConnectionStrings": {
+      "App": "Server=db;Database=app;User Id=app;TrustServerCertificate=true"
+    },
+    "SqlServer": {
+      "CommandTimeout": "00:00:10",
+      "LockTimeout": "00:00:03",
+      "Retry": { "MaxCount": 3 }
+    }
+  }
+}
+```
+
+In production set them as environment variables (`Rask__ConnectionStrings__App`, `Rask__SqlServer__LockTimeout`). A
+configure delegate runs after the section and wins:
 
 ```csharp
-o.UseRaskSqlServer(connectionString, s =>
-{
-    s.CommandTimeout = TimeSpan.FromSeconds(10);
-    s.LockTimeout = TimeSpan.FromSeconds(3);
-    s.Retry.MaxCount = 3;
-});
+o.UseRaskSqlServer(sp, s => s.Retry.Enabled = false);
 ```
 
 ## What the defaults do

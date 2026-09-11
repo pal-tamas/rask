@@ -15,6 +15,16 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
+  <!-- MetaHostingOptions binds Rask:Meta. The configuration binding source generator writes that bind at
+       compile time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+  </ItemGroup>
+
   <ItemGroup>
     <!--
       The one external dependency in this package, and a deliberate one. IHttpForwarder is YARP's

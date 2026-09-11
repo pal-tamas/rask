@@ -137,7 +137,7 @@ them until tagged releases begin.
 
 - **PostgreSQL is back, as the opt-in `Rask.Postgres`.** SQLite stays the default and the recommendation;
   this reverses only the part of the earlier removal that left a production app with no supported door out of
-  one box. `UseRaskPostgres(cs, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
+  one box. `UseRaskPostgres(sp, o => …)` is a drop-in for `UseNpgsql` that applies `StatementTimeout` (30s),
   `LockTimeout` (10s, validated below the statement timeout so lock contention is never reported as a slow
   query) and `IdleInTransactionSessionTimeout` (1m) to every session, and turns on Npgsql's retrying
   strategy through `o.Retry`. Compared with the package that shipped in v0.20.0, `RaskPostgresOptions` is now
@@ -153,7 +153,7 @@ them until tagged releases begin.
   succeed. `RaskApp` and `rask new` do not choose it yet — wire it where you build the context
   (`docs/data.md#postgresql`).
 
-- **SQL Server is back too, as the opt-in `Rask.SqlServer`.** `UseRaskSqlServer(cs, o => …)` is a drop-in for
+- **SQL Server is back too, as the opt-in `Rask.SqlServer`.** `UseRaskSqlServer(sp, o => …)` — connection string from `Rask:ConnectionStrings:App`, options from `Rask:SqlServer` — is a drop-in for
   `UseSqlServer` that sends `SET XACT_ABORT ON` and `SET LOCK_TIMEOUT` (10s, validated below the command
   timeout) as one batch on every connection EF opens — SQL Server takes no session settings in the connection
   string, and SqlClient resets them on every pooled open — sets a client `CommandTimeout` (30s, rounded up to
@@ -294,6 +294,54 @@ them until tagged releases begin.
   is it documented — and nothing asked whether a documented rule existed.
 
 ### Changed
+
+- **BREAKING — every Rask setting comes from `appsettings.json`, under `Rask`.** Each server-side package reads its
+  own section by itself — `Rask:Server`, `Rask:Live`, `Rask:Culture`, `Rask:Uploads`, `Rask:Auth`, `Rask:Api`,
+  `Rask:Signaling`, `Rask:Dashboard`, `Rask:Spa`, `Rask:Meta`, `Rask:Data`, `Rask:Sqlite`, `Rask:Postgres`, `Rask:SqlServer`,
+  `Rask:Litestream`, `Rask:Snapshots`, `Rask:Cache`, `Rask:Jobs`, `Rask:Logging`, `Rask:Mail`, `Rask:Outbox`,
+  `Rask:Cqrs`, `Rask:Cqrs:Server`, `Rask:WebPush` — and the connection strings are `Rask:ConnectionStrings:App` and
+  `Rask:ConnectionStrings:Logs`. Nothing is bound by hand any more (`GetSection("Rask").Bind(o)` is gone from the
+  docs), and a deployed app is tuned with environment variables alone: `Rask__Mail__Smtp__Host`,
+  `Rask__Server__SessionGracePeriod`. The order is the options' defaults, then configuration (appsettings, the
+  environment, user secrets), then the `AddRaskX(o => …)` callback — code still wins — then validation. That
+  validation now runs when the host STARTS and throws `OptionsValidationException` naming the section, where
+  `AddRaskX` used to throw at registration; a container that is not a host builds the options on first resolve.
+  `Rask:Cqrs` is the one section read while services are registered, because the handler lifetime decides which
+  services exist; browser apps keep their code-only configuration. `RaskApp` adds its development defaults
+  (`app.db`, `logs.db`, strict tables, a From address, a snapshot directory) as the LOWEST-precedence
+  configuration, so every one of them is overridable from appsettings; and `rask new` writes the values it used to
+  hard-code in `Program.cs` — the database file, `StrictTables`, the mail From and pickup directory, the snapshot
+  schedule, the Web Push subject, the culture list, `RenderModes.Wasm`, and `RequireAuthenticatedUser = false`
+  for an app without accounts — into the scaffolded `appsettings.json`, which now uses the template markers
+  (`// rask:if mail`) to carry only the sections its batteries need. Every key: `docs/configuration.md`.
+
+  **The old keys are no longer read, and nothing warns.** Rename them before upgrading:
+
+  | Before | Now |
+  |---|---|
+  | `ConnectionStrings:App` / `ConnectionStrings__App` | `Rask:ConnectionStrings:App` / `Rask__ConnectionStrings__App` |
+  | `ConnectionStrings:Logs` | `Rask:ConnectionStrings:Logs` |
+  | `Litestream:ReplicaUrl` | `Rask:Litestream:ReplicaUrl` |
+  | `Sqlite:SnapshotDirectory` | `Rask:Snapshots:DestinationDirectory` |
+  | `Mail:PickupDirectory` | `Rask:Mail:PickupDirectory` |
+  | `WebPush:PublicKey` / `WebPush:PrivateKey` | `Rask:WebPush:VapidKeys:PublicKey` / `…:PrivateKey` |
+  | `WebPush:Subject` | `Rask:WebPush:Subject` |
+  | `Rask:MaxPendingHandlers` (the flat shape the docs taught) | `Rask:Server:MaxPendingHandlers` |
+
+  `rask deploy` now injects `Rask__ConnectionStrings__App` and `Rask__ConnectionStrings__Logs`, and its backup
+  warning names `Rask__Litestream__ReplicaUrl`. **Upgrade the CLI and the packages together**: an app on the old
+  packages deployed by the new CLI — or the reverse — reads no connection string, falls back to a database inside
+  the container, and loses it on the next deploy.
+
+- **BREAKING — the connection-string overloads are gone; the connection string is configuration.**
+  `UseRaskSqlite(cs, …)` is `UseRaskSqlite(sp, …)` (`AddDbContextFactory<T>((sp, o) => o.UseRaskSqlite(sp))`),
+  `UseRaskPostgres(cs, …)` is `UseRaskPostgres(sp, …)` (and likewise `UseRaskSqlServer`), `AddRaskSqlite(cs, …)` is `AddRaskSqlite(…)` and
+  `AddRaskLogging(cs, …)` is `AddRaskLogging(…)`. Each reads `Rask:ConnectionStrings:App` (or `:Logs`) and,
+  when it is missing, stops with an error naming the key in both spellings rather than opening a file wherever the
+  process happens to be — which in a container is somewhere the next deploy deletes. A design-time factory builds
+  a service provider over its configuration and passes that. `AddRaskSqliteLitestream`, `AddRaskSqliteSnapshots`
+  and `AddRaskWebPush` no longer require a callback, and the first two default their database path to the file
+  behind `Rask:ConnectionStrings:App`.
 
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
@@ -473,6 +521,23 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **A `RaskApp` with its Web Push keys in configuration starts.** The keys were enough to switch the battery on
+  but were never copied into its options, so an app configured the documented way stopped at startup on a
+  missing key pair. The section is now bound like every other, so the keys reach the sender — and keys without a
+  subject are refused naming `Subject`.
+
+- **`rask db backup` backs up the database the app uses.** The locator parsed `appsettings.json` as strict JSON,
+  and every scaffolded one carries comments, so it failed quietly and copied `app.db` whatever the file named. It
+  now reads the file the way .NET does — comments and trailing commas allowed — and reads
+  `Rask:ConnectionStrings:App`.
+
+- **`UseRask<App>()` keeps a path base set in `AddRask`.** Its `pathBase` argument defaults to `""`, and it wrote
+  that over the configured value unconditionally, so `AddRask(o => o.PathBase = "/app")` served from the root.
+  An explicit argument still wins; an omitted one no longer resets `Rask:Live:PathBase`.
+
+- **A second `AddRaskWebPush` or `AddRaskSignaling` no longer registers everything twice.** Both appended their
+  options (and a second typed client or hub) where every other battery keeps the first call's.
 
 - **A prerendered publish no longer warns `RASKISLAND004` about the islands it just bundled.** Prerendering
   compiles the app's C# a second time, in a companion project under `obj/`. That project sees every island
