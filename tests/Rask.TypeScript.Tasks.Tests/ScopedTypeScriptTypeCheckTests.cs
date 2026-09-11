@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Xml.Linq;
 using Rask.External.Tasks;
 
@@ -31,8 +30,8 @@ public class ScopedTypeScriptTypeCheckTests
     [Fact]
     public void EveryScopedTypeScriptFile_TypeChecks()
     {
-        var root = RepositoryRoot();
-        var tsgo = ResolveTsgo();
+        var root = PinnedTools.RepositoryRoot();
+        var tsgo = PinnedTools.Resolve("tsgo");
         var globals = Path.Combine(root, "src", "Rask.Core", "build", "rask-globals.d.ts");
 
         Assert.True(File.Exists(globals), $"the framework's ambient declarations are missing at '{globals}'");
@@ -49,7 +48,7 @@ public class ScopedTypeScriptTypeCheckTests
             var arguments = string.Join(" ", files.Concat([globals]).Select(f => $"\"{f}\""))
                             + " --noEmit --strict --target es2020 --module esnext --lib es2020,dom";
 
-            var (exitCode, output) = Run(tsgo, arguments);
+            var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
             if (exitCode != 0)
             {
                 failures.Add($"{Path.GetFileName(project)}:{Environment.NewLine}{output}");
@@ -81,8 +80,8 @@ public class ScopedTypeScriptTypeCheckTests
     [Fact]
     public void TheFrameworksServiceWorkers_TypeCheck()
     {
-        var root = RepositoryRoot();
-        var tsgo = ResolveTsgo();
+        var root = PinnedTools.RepositoryRoot();
+        var tsgo = PinnedTools.Resolve("tsgo");
 
         string[] workers =
         [
@@ -100,7 +99,7 @@ public class ScopedTypeScriptTypeCheckTests
                         + " --noEmit --strict --target es2020 --module esnext --moduleResolution bundler"
                         + " --lib es2020,webworker";
 
-        var (exitCode, output) = Run(tsgo, arguments);
+        var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
 
         Assert.True(exitCode == 0, "The framework's service workers did not type-check:" + Environment.NewLine + output);
     }
@@ -133,8 +132,8 @@ public class ScopedTypeScriptTypeCheckTests
     [Fact]
     public void TheShippedBrowserModules_TypeCheckWithNothingButLibDom()
     {
-        var root = RepositoryRoot();
-        var tsgo = ResolveTsgo();
+        var root = PinnedTools.RepositoryRoot();
+        var tsgo = PinnedTools.Resolve("tsgo");
 
         var directory = Path.Combine(root, "src", "Rask.Core", "Resources", "browser");
         var modules = Directory.EnumerateFiles(directory, "*.ts")
@@ -159,7 +158,7 @@ public class ScopedTypeScriptTypeCheckTests
                         + " --isolatedModules --target es2022 --module esnext"
                         + " --moduleResolution bundler --lib es2022,dom";
 
-        var (exitCode, output) = Run(tsgo, arguments);
+        var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
 
         Assert.True(
             exitCode == 0,
@@ -195,8 +194,8 @@ public class ScopedTypeScriptTypeCheckTests
     [Fact]
     public void TheFrameworksClientRuntimes_TypeCheck()
     {
-        var root = RepositoryRoot();
-        var tsgo = ResolveTsgo();
+        var root = PinnedTools.RepositoryRoot();
+        var tsgo = PinnedTools.Resolve("tsgo");
 
         // The ambient declaration files, which are inputs to the check but never its subjects.
         string[] declarations =
@@ -223,6 +222,8 @@ public class ScopedTypeScriptTypeCheckTests
                 Path.Combine(root, "src", "Rask.Server", "Resources"),
                 Path.Combine(root, "src", "Rask.Wasm", "Resources"),
                 Path.Combine(root, "src", "Rask.Wasm", "Browser"),
+                // The devtools' page script: shipped only in a Debug build, and held to the same standard.
+                Path.Combine(root, "src", "Rask.DevTools", "Resources"),
             }
             .SelectMany(d => Directory.EnumerateFiles(d, "*.ts", SearchOption.AllDirectories))
             .Where(f => !f.EndsWith(".d.ts", StringComparison.Ordinal))
@@ -241,7 +242,7 @@ public class ScopedTypeScriptTypeCheckTests
                         + " --noEmit --strict --noUnusedLocals --target es2020 --module esnext"
                         + " --moduleResolution bundler --lib es2020,dom";
 
-        var (exitCode, output) = Run(tsgo, arguments);
+        var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
 
         Assert.True(
             exitCode == 0,
@@ -268,7 +269,7 @@ public class ScopedTypeScriptTypeCheckTests
     [Fact]
     public void NoCompiledJavaScriptSitsBesideTheFrameworkTypeScript()
     {
-        var root = RepositoryRoot();
+        var root = PinnedTools.RepositoryRoot();
 
         string[] directories =
         [
@@ -276,6 +277,7 @@ public class ScopedTypeScriptTypeCheckTests
             Path.Combine(root, "src", "Rask.Core", "build"),
             Path.Combine(root, "src", "Rask.Server", "Resources"),
             Path.Combine(root, "src", "Rask.Wasm", "Resources"),
+            Path.Combine(root, "src", "Rask.DevTools", "Resources"),
             Path.Combine(root, "tests", "Rask.Core.Tests", "Live"),
         ];
 
@@ -387,85 +389,4 @@ public class ScopedTypeScriptTypeCheckTests
             .Any(segment => ExcludedDirectories.Contains(segment, StringComparer.OrdinalIgnoreCase));
     }
 
-    private static string ResolveTsgo()
-    {
-        var engine = new SilentBuildEngine();
-        var targets = XDocument.Load(
-            Path.Combine(RepositoryRoot(), "src", "Rask.Core", "build", "Rask.Core.targets"));
-
-        var task = new ResolveTypeScriptToolTask
-        {
-            BuildEngine = engine,
-            Tool = "tsgo",
-            Version = targets.Descendants().Single(e => e.Name.LocalName == "RaskTsgoVersion").Value,
-            CacheRoot = TypeScriptTools.DefaultCacheRoot(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
-        };
-
-        Assert.True(task.Execute(), $"could not resolve tsgo: {string.Join("; ", engine.Errors)}");
-        return task.ToolPath;
-    }
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Rask.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        Assert.NotNull(directory);
-        return directory!.FullName;
-    }
-
-    private static (int ExitCode, string Output) Run(string executable, string arguments)
-    {
-        using var process = Process.Start(new ProcessStartInfo(executable, arguments)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        })!;
-
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        return (process.ExitCode, stdout + stderr);
-    }
-
-    /// <summary>A build engine that keeps errors and discards the rest.</summary>
-    private sealed class SilentBuildEngine : Microsoft.Build.Framework.IBuildEngine
-    {
-        public List<string> Errors { get; } = [];
-
-        public bool ContinueOnError => false;
-
-        public int LineNumberOfTaskNode => 0;
-
-        public int ColumnNumberOfTaskNode => 0;
-
-        public string ProjectFileOfTaskNode => "test.csproj";
-
-        public void LogErrorEvent(Microsoft.Build.Framework.BuildErrorEventArgs e) =>
-            Errors.Add(e.Message ?? string.Empty);
-
-        public void LogWarningEvent(Microsoft.Build.Framework.BuildWarningEventArgs e)
-        {
-        }
-
-        public void LogMessageEvent(Microsoft.Build.Framework.BuildMessageEventArgs e)
-        {
-        }
-
-        public void LogCustomEvent(Microsoft.Build.Framework.CustomBuildEventArgs e)
-        {
-        }
-
-        public bool BuildProjectFile(
-            string projectFileName,
-            string[] targetNames,
-            System.Collections.IDictionary globalProperties,
-            System.Collections.IDictionary targetOutputs) => false;
-    }
 }

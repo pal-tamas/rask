@@ -265,6 +265,45 @@ public class LivePayloadTests
     }
 
     [Fact]
+    public void InjectDevToolsScript_LoadsTheHostScriptAtTheEndOfTheHead()
+    {
+        var injected = LivePayload.InjectDevToolsScript(
+            "<html><head><title>t</title></head><body class=\"x\"></body></html>", "/_rask-devtools/host.js");
+
+        // Managed, so the head morph keeps it; deferred, so it never blocks the page it inspects; and nothing in
+        // the body, whose nodes the diff addresses by position.
+        Assert.Equal(
+            "<html><head><title>t</title><script src=\"/_rask-devtools/host.js\" data-rask-managed defer></script>"
+            + "</head><body class=\"x\"></body></html>",
+            injected);
+    }
+
+    [Fact]
+    public void InjectDevToolsScript_LeavesThePageAloneWithoutAHostScript()
+    {
+        const string page = "<html><head></head><body></body></html>";
+
+        Assert.Equal(page, LivePayload.InjectDevToolsScript(page, null));
+        Assert.Equal(page, LivePayload.InjectDevToolsScript(page, string.Empty));
+    }
+
+    [Fact]
+    public void InjectDevToolsScript_HtmlEncodesTheUrl()
+    {
+        var injected = LivePayload.InjectDevToolsScript("<html><head></head><body></body></html>", "/a\"b&c");
+
+        Assert.Contains("src=\"/a&quot;b&amp;c\"", injected, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InjectDevToolsScript_LeavesAPageWithNoHeadAlone()
+    {
+        const string fragment = "<div>no head here</div>";
+
+        Assert.Equal(fragment, LivePayload.InjectDevToolsScript(fragment, "/_rask-devtools/host.js"));
+    }
+
+    [Fact]
     public void InjectIslandsDevAttr_StampsWhereTheIslandDevServerIs()
     {
         var injected = LivePayload.InjectIslandsDevAttr(
