@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared.DbCollection\DbCollectionGuard.cs" Link="DbCollectionGuard.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one
+         Microsoft.Data.Sqlite / EF Core pin (CVE-2025-6965). See Directory.Packages.props. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Storage"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Storage\Rask.Storage.csproj"/>
+    <!-- TestFileBackend stages a real RaskFile, the type SaveAsync takes. -->
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <!-- Rask.Storage references Core with PrivateAssets="all", so the tests name it themselves to see
+         RaskFile and LiveOptions. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+  </ItemGroup>
+
+</Project>

@@ -28,6 +28,7 @@
         <Project Path="src/Rask.Server/Rask.Server.csproj" />
         <Project Path="src/Rask.Site/Rask.Site.csproj" />
         <Project Path="src/Rask.Signaling/Rask.Signaling.csproj" />
+        <Project Path="src/Rask.Storage/Rask.Storage.csproj" />
         <Project Path="src/Rask.Query/Rask.Query.csproj" />
         <Project Path="src/Rask.Meta.Hosting/Rask.Meta.Hosting.csproj" />
         <Project Path="src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj" />
@@ -86,6 +87,7 @@
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj" />
         <Project Path="tests/Rask.Site.Tests/Rask.Site.Tests.csproj" />
         <Project Path="tests/Rask.Signaling.Tests/Rask.Signaling.Tests.csproj" />
+        <Project Path="tests/Rask.Storage.Tests/Rask.Storage.Tests.csproj" />
         <Project Path="tests/Rask.Query.Tests/Rask.Query.Tests.csproj" />
         <Project Path="tests/Rask.Meta.Hosting.E2E.Tests/Rask.Meta.Hosting.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Meta.Hosting.Tests/Rask.Meta.Hosting.Tests.csproj" />

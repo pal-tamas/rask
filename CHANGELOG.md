@@ -9,6 +9,33 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
+  and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
+  `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own
+  database; the app keeps the `Guid` on its entity and gets a link back three ways — `files.Url(id)` for a
+  file saved as public (built from the id alone, so it costs nothing inside a render),
+  `files.TemporaryUrlAsync(id, lifetime)` for one that expires, and `files.Download(id)` for an endpoint
+  that has already checked the caller may see it. Files go to `/data/files` on the deploy volume by
+  default, `storage/` under the content root otherwise, and `app.MapRaskStorage()` serves the links.
+  - **The content type is sniffed from the bytes, never taken from the browser.** Only raster images, audio
+    and video are ever served `inline`; everything else downloads as an attachment, and HTML, SVG and XML
+    go out as `application/octet-stream`. Every response carries `nosniff`, a `sandbox` Content Security
+    Policy and `no-referrer`; ranges, `If-None-Match` and `HEAD` are ASP.NET's own handling, with the
+    file's SHA-256 as its entity tag.
+  - **Uploads are capped** at 50 MB by default, before a byte is read when the size is declared and while
+    copying when it is not; `AllowedTypes` narrows what is accepted, by what the bytes are. A refused file is
+    a `FileRejectedException` whose message names the setting to change and never repeats the file name.
+  - **A temporary URL on disk is a Data Protection token** under a purpose of its own, carrying only the
+    file id. Expired, tampered, unknown and deleted all answer one identical `404`, so a response never says
+    whether a file exists — and deleting the file revokes every link to it.
+  - **Bytes are written before the row, and a sweep removes what a failed save leaves behind.** It fails
+    closed (a database error deletes nothing), re-checks each candidate just before deleting it, only ever
+    touches keys in its own layout under `Storage__Prefix`, and refuses outright when it would remove more
+    than a tenth of what it looked at — the signature of an app pointed at the wrong database.
+  - Configuration comes from `Storage__*` keys read inside `AddRaskStorage`, so an app `rask new` wrote
+    honours them; code set in the delegate wins. A bad value fails the boot, and a storage directory inside
+    `wwwroot` is refused because the static-file middleware would serve uploads with none of these checks.
+
 - **rask.sh is built to be found — by search engines and by AI assistants.** Every guide carries search
   copy of its own (`GuideEntry.SearchTitle` and `Description`, both `required`, so a guide added without
   them does not compile): "IBattery — Guides — Rask" became "Battery Status API in C# and .NET (IBattery)
