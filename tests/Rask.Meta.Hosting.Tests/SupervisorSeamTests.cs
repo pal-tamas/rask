@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,11 @@ public class SupervisorSeamTests
     private static WebApplication BuildHost(Action<MetaHostingOptions> configure)
     {
         var builder = WebApplication.CreateSlimBuilder();
+
+        // An ephemeral port, as NodeForwarderTests and StaticAssetsTests already bind. With no URL, Kestrel
+        // takes localhost:5000, which anything else on the machine may hold: a scaffolded app from a
+        // concurrent template E2E did, and both tests here failed with "address already in use".
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddRaskMeta(configure);
         return builder.Build();
