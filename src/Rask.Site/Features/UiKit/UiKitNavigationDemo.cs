@@ -75,7 +75,15 @@ public sealed partial class UiKitNavigationDemo : Component
                 ],
                 // Already data-shaped: the crumbs are a list of (text, href), and the last one has no
                 // href because the page you are on is not a link to itself.
-                UiBreadcrumbs.Items([("Home", "#home"), ("Orders", "#orders"), ("ord_18f", null)])
+                UiBreadcrumbs.Items([("Home", "#home"), ("Orders", "#orders"), ("ord_18f", null)]),
+                // Pages as links: each is the address that page lives at, so it can be shared and answers
+                // the back button. The page you are on is not a link either — it says aria-current instead.
+                Div.Data(Testid("ui-pagination-links"))[
+                    UiPagination
+                        .Pages(4)
+                        .Current(1)
+                        .Href(page => Routes.UiKitNavigationPage() with { QueryString = $"?page={page}" })
+                ]
             ])
     ];
 

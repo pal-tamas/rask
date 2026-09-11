@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.DragAndDrop;
+using Rask.Core.Routing;
 
 namespace Rask.Ui;
 
@@ -156,6 +157,15 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     /// <summary>Called with the page the reader asked for.</summary>
     public Callback<int>? OnPageChange { get; set; }
 
+    /// <summary>Makes each page in the pager a link, from its page number counted from zero.</summary>
+    /// <remarks>
+    ///     For a grid whose page lives in the URL — <c>?page=2</c> — so a page can be shared, bookmarked and
+    ///     reached with the back button. The link does the navigating, so <see cref="OnPageChange" /> is not
+    ///     called: the new page arrives as <see cref="Page" /> on the render that follows. Counted from zero
+    ///     like <see cref="Page" />, whatever the URL itself counts from.
+    /// </remarks>
+    public Fn<int, RouteUrl>? PageHref { get; set; }
+
 
     /// <summary>
     ///     How many rows stand behind the ones given, when <see cref="Data" /> holds one already-sliced
@@ -206,6 +216,13 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     /// <summary>Extra classes for one row, from the row.</summary>
     public Fn<T, string?>? RowClass { get; set; }
+
+    /// <summary>Tints one row with a tone, from the row — a dead letter in <see cref="UiTone.Error" />.</summary>
+    /// <remarks>
+    ///     A typed tone rather than a <see cref="RowClass" />, because a class written in a consuming library is
+    ///     a class the kit's compiled sheet never saw. The tint here is a complete literal, so it is in the sheet.
+    /// </remarks>
+    public Fn<T, UiTone?>? RowTone { get; set; }
 
     /// <summary>Called with the row that was clicked.</summary>
     /// <remarks>
@@ -951,12 +968,17 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private string CellClass(UiColumn<T> column) =>
         UiClass.Compose(
+            // overflow-wrap:anywhere, because a cell holding one unbroken token — a type name, a request id, a
+            // path — otherwise sets the table's minimum width, and the table spills out of a phone or scrolls
+            // sideways on a desk. "anywhere" rather than "break-word" is the half that matters: only it lets the
+            // token break while the column widths are being worked out.
+            "wrap-anywhere",
             StackedCards
                 ? "max-sm:flex max-sm:items-baseline max-sm:justify-between max-sm:gap-3 "
                   + "max-sm:before:font-medium max-sm:before:text-base-content/60 "
                   + "max-sm:before:content-[attr(data-label)]"
                 : "",
-            column.Class);
+            column.CellClasses);
 
     // Shared and immutable, so the common case — a busy-free, unnamed grid — allocates nothing for its
     // aria bag. Only a grid that is both named and busy builds one.
@@ -1014,7 +1036,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             .Style(MaxHeight is { } max ? "max-height:" + max : null)[table];
 
         return Div.Class(UiClass.Compose("flex flex-col gap-3", Class))[
-            Toolbar,
+            ToolbarRow(),
             Chrome(columns, groups),
             scroller,
             Cards(rows.Rows),
@@ -1060,7 +1082,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         var head = Th
             .Key(column.FieldName ?? column.Title ?? "")
             .Scope("col")
-            .Class(column.Class);
+            .Class(column.HeaderClasses);
 
         // Only where there is a sort state to report. Passing null writes a BARE `aria-sort`, which is
         // not "no sort state" — it is an aria-sort with no value, on a header that cannot be sorted.
@@ -1165,6 +1187,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                     Hover ?? OnRowClick is not null
                         ? "hover:bg-base-200"
                         : "",
+                    RowTone?.Invoke(row) is { } tone ? UiClassNames.RowTone(tone) : "",
                     RowClass?.Invoke(row)))[
                 SelectionEnabled ? Td.Class("w-0")[SelectBox(row)] : null,
                 Expandable ? Td.Class("w-0")[Expander(row, key, open)] : null,
@@ -1560,7 +1583,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             Tr[
                 LeadingCells > 0 ? Td.Colspan(LeadingCells) : null,
                 visible.Select(column =>
-                    Td.Key(column.FieldName ?? column.Title ?? "").Class(column.Class)[column.Foot(all)])
+                    Td.Key(column.FieldName ?? column.Title ?? "").Class(column.CellClasses)[column.Foot(all)])
             ]
         ];
     }
@@ -1574,6 +1597,14 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                         .Class("rounded-xl border border-base-300 bg-base-100 p-3")[card.Invoke(row)])
             ];
 
+    // One row of controls from sm up, one control per line below it: three filters side by side at 360px
+    // leave each too narrow to show the value it is set to, which is the one thing a filter has to show.
+    // Stacked through max-sm: variants, for the same cross-sheet reason as the cells above.
+    private Component? ToolbarRow() =>
+        Toolbar is null
+            ? null
+            : Div.Class("flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-stretch")[Toolbar];
+
     private Component? Pager(Resolved rows)
     {
         if (Paging <= 0 || rows.Pages <= 1)
@@ -1581,14 +1612,22 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             return null;
         }
 
+        var current = Math.Clamp(CurrentPage, 0, rows.Pages - 1) + 1;
+
+        // The pager counts from one and the grid from zero; the conversion happens here, once, in both modes.
         return Div.Class("flex flex-wrap items-center justify-between gap-2")[
             Span.Class("text-sm text-base-content/60")[
                 rows.Total.ToString(CultureInfo.InvariantCulture) + " rows"
             ],
-            UiPagination
-                .Pages(rows.Pages)
-                .Current(Math.Clamp(CurrentPage, 0, rows.Pages - 1) + 1)
-                .OnSelect(page => _ = GoToPageAsync(page - 1, rows.Pages))
+            PageHref is { } href
+                ? UiPagination
+                    .Pages(rows.Pages)
+                    .Current(current)
+                    .Href(page => href.Invoke(page - 1))
+                : UiPagination
+                    .Pages(rows.Pages)
+                    .Current(current)
+                    .OnSelect(page => _ = GoToPageAsync(page - 1, rows.Pages))
         ];
     }
 }

@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Ui` grows the steps an operator screen needs, so a page drawn with the kit writes no class strings.**
+  `UiDataGrid` columns take `ShowFrom(UiBreakpoint.Md)` — a secondary column waits until the table has room for
+  it, while the phone's stacked lines still list it — and `Mono(true)` for ids, keys and paths. A row takes
+  `RowTone(r => …)`; `Toolbar` lays its controls out as one row that stacks on a phone; and
+  `PageHref(page => …)` makes the pager's pages links, so a page that lives in `?page=` can be shared and
+  answers the back button. `UiPagination.Href` does the same on its own, and the page you are on is not a
+  link but says `aria-current`. `UiCard` takes `Href` (the whole card is one link) and `Icon`; `UiMetricRow.Columns(2)`; `UiBadge.Mono(true)` wraps a long token instead of widening its
+  row; `UiCode.Label("Payload")` captions a block; and **`UiEmpty`** is the empty state —
+  `UiEmpty.Heading("Nothing stored matches").Detail("Retention drops entries by age and by count.")`.
+  `UiMain` spaces the sections it holds, `UiHeader` no longer carries a margin of its own, and a `UiModal` body
+  spaces its sections too. A grid cell now lets one long unbroken token — a type name, a request id — break
+  instead of widening the table past a phone. The kit's sheet
+  also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
+  the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
+
 - **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
   and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
   `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own

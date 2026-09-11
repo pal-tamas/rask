@@ -299,14 +299,14 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `UiButton` `UiDropdown` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
-| **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTextRotate` `UiTimeline` |
+| **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
 | **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiNotice` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
-| **Support** | `UiIcon` / `UiIconName`, `UiTheme` / `UiThemeName`, `UiStyles`, `UiStylesheet` |
+| **Support** | `UiIcon` / `UiIconName`, `UiTheme` / `UiThemeName`, `UiBreakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state
 

@@ -95,6 +95,40 @@ public sealed partial class UiKitDataDisplayDemo : Component
             ]),
 
         Section(
+            "Cards, figures and empty states",
+            "What an operator screen is made of. A card given an Href is one link, figures and all — so "
+            + "nothing inside it may be a button. A mono badge wraps a long token instead of widening its "
+            + "row, a code block can say what it holds, and an empty state gives the answer before the reason.",
+            Div.Data(Testid("ui-console-pieces"))[
+                UiGrid[
+                    UiCard
+                        .Key("queue")
+                        .Href(Routes.UiKitDataGridPage())
+                        .Icon(UiIconName.Gear)
+                        .Heading("Jobs")
+                        .Action(UiStatusDot.Label("2 failed").Tone(UiTone.Error))[
+                        UiMetricRow.Columns(2)[
+                            UiMetric.Key("outstanding").Label("Outstanding").Value("12"),
+                            UiMetric.Key("failed").Label("Failed").Value("2").Tone(UiTone.Error)
+                                .Caption("dead after 5 attempts")
+                        ]
+                    ],
+                    UiCard
+                        .Key("detail")
+                        .Heading("A failed job")
+                        .Action(UiBadge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"])[
+                        UiCode.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
+                            .Label("Last error")
+                            .Tone(UiTone.Error)
+                    ],
+                    UiCard.Key("empty")[
+                        UiEmpty.Heading("Nothing stored matches")
+                            .Detail("Retention drops entries by age and by count.")
+                    ]
+                ]
+            ]),
+
+        Section(
             "The rest of the category",
             "Static, and covered by unit tests for their class composition.",
             Div.Data(Testid("ui-display-rest")).Class("flex flex-wrap items-center gap-3")[

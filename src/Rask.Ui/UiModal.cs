@@ -139,7 +139,7 @@ public sealed partial class UiModal : Component
                     closeControl
                 ],
                 // The only scrolling region: the header and footer stay put while a stack trace moves.
-                Div.Class("min-h-0 grow overflow-y-auto px-4 py-4 sm:px-5")[Children ?? []],
+                Div.Class("min-h-0 grow space-y-4 overflow-y-auto px-4 py-4 sm:px-5")[Children ?? []],
                 Footer is null
                     ? null
                     : Div.Class(

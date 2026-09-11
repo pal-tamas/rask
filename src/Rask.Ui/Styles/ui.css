@@ -507,6 +507,162 @@
 }
 
 /*
+  THE CONSOLE FRAME'S RESET — and only the console frame's.
+
+  The header of this file says the kit ships no preflight, and for an application that is right: it owns its
+  document and runs its own reset. UiShell is the one exception. It is the frame of a mounted application
+  (Rask.Dashboard at /_rask) that owns a WHOLE document of its own, draws it with nothing but this kit, and so
+  has no other sheet to take a reset from — it used to compile a second Tailwind sheet for exactly that.
+
+  Everything below is Tailwind 4's preflight keyed to `.rask-ops`, the class UiShell writes and nothing else
+  does. A page that never renders UiShell is untouched, and an application that links this sheet keeps its own
+  reset exactly as it was:
+
+  - `:where()` around every selector, so each rule has ZERO specificity: daisyUI's components, the corrections
+    below and every utility still win, just as they do over a real preflight.
+  - In `base`, which the order statement at the top of this file ranks below everything else.
+  - `body:has(.rask-ops)` for the one thing a reset inside the frame cannot reach — the body's own 8px margin,
+    a white border round the console otherwise. `:has()` is what keeps even that rule off every other document.
+
+  UiStylesheetTests asserts that no html/body rule and no universal reset exists without `.rask-ops` in it.
+*/
+@layer base {
+  :where(.rask-ops, .rask-ops *),
+  :where(.rask-ops, .rask-ops *)::after,
+  :where(.rask-ops, .rask-ops *)::before,
+  :where(.rask-ops, .rask-ops *)::backdrop,
+  :where(.rask-ops, .rask-ops *)::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+
+  :where(.rask-ops) {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: --theme(
+      --default-font-family,
+      ui-sans-serif,
+      system-ui,
+      sans-serif,
+      "Apple Color Emoji",
+      "Segoe UI Emoji",
+      "Segoe UI Symbol",
+      "Noto Color Emoji"
+    );
+    font-feature-settings: --theme(--default-font-feature-settings, normal);
+    font-variation-settings: --theme(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body:has(.rask-ops) {
+    margin: 0;
+    background-color: var(--color-base-200);
+  }
+
+  :where(.rask-ops hr) {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+
+  :where(.rask-ops abbr[title]) {
+    text-decoration: underline dotted;
+  }
+
+  :where(.rask-ops h1, .rask-ops h2, .rask-ops h3, .rask-ops h4, .rask-ops h5, .rask-ops h6) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  :where(.rask-ops a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  :where(.rask-ops b, .rask-ops strong) {
+    font-weight: bolder;
+  }
+
+  :where(.rask-ops code, .rask-ops kbd, .rask-ops samp, .rask-ops pre) {
+    font-family: --theme(
+      --default-mono-font-family,
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      "Liberation Mono",
+      "Courier New",
+      monospace
+    );
+    font-size: 1em;
+  }
+
+  :where(.rask-ops small) {
+    font-size: 80%;
+  }
+
+  :where(.rask-ops table) {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+
+  :where(.rask-ops progress) {
+    vertical-align: baseline;
+  }
+
+  :where(.rask-ops summary) {
+    display: list-item;
+  }
+
+  :where(.rask-ops ol, .rask-ops ul, .rask-ops menu) {
+    list-style: none;
+  }
+
+  :where(.rask-ops img, .rask-ops svg, .rask-ops video, .rask-ops canvas, .rask-ops audio, .rask-ops iframe, .rask-ops embed, .rask-ops object) {
+    display: block;
+    vertical-align: middle;
+  }
+
+  :where(.rask-ops img, .rask-ops video) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  :where(.rask-ops button, .rask-ops input, .rask-ops select, .rask-ops optgroup, .rask-ops textarea),
+  :where(.rask-ops *)::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+
+  :where(.rask-ops *)::placeholder {
+    opacity: 1;
+  }
+
+  :where(.rask-ops textarea) {
+    resize: vertical;
+  }
+
+  :where(.rask-ops button, .rask-ops input[type="button"], .rask-ops input[type="reset"], .rask-ops input[type="submit"]) {
+    appearance: button;
+  }
+
+  :where(.rask-ops [hidden]:not([hidden="until-found"])) {
+    display: none !important;
+  }
+}
+
+/*
   THE PADDING OF A TABLE CELL AND A LIST ROW — the kit's default, and only a default.
 
   UiTable and UiList render the element itself and pass the call site's rows and cells straight through, so

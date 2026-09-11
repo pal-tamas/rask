@@ -35,6 +35,14 @@ public sealed partial class UiBadge : UiElement
 
     public UiSize? Size { get; set; }
 
+    /// <summary>Sets it in a monospace face and lets it wrap — for a request id, a <c>key=value</c> scope.</summary>
+    /// <remarks>
+    /// Wrapping is the half that matters. A badge is a fixed-height pill that never breaks, which is right for
+    /// "Live" and wrong for a 40-character token: one of those pushes a table wider than a phone. So a mono
+    /// badge gives up the fixed height and breaks anywhere.
+    /// </remarks>
+    public bool? Mono { get; set; }
+
     /// <inheritdoc />
     protected override string TagName => "span";
 
@@ -45,5 +53,6 @@ public sealed partial class UiBadge : UiElement
             Tone is { } tone ? UiClassNames.BadgeTone(tone) : "",
             Variant is { } variant ? UiClassNames.BadgeVariant(variant) : "",
             Size is { } size ? UiClassNames.BadgeSize(size) : "",
+            Mono is true ? "h-auto max-w-full break-all font-mono" : "",
             Class);
 }

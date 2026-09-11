@@ -16,11 +16,25 @@ public sealed partial class UiCode : Component
     /// <summary><see cref="UiTone.Error" /> to read it as a failure. Anything else is neutral machine output.</summary>
     public UiTone? Tone { get; set; }
 
+    /// <summary>What the block is — <c>"Payload"</c>, <c>"Last error"</c> — set small above it.</summary>
+    /// <remarks>Coloured with the block, so an error's caption reads as part of the error.</remarks>
+    public string? Label { get; set; }
+
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Pre.Class(
+    protected override Component? Render()
+    {
+        var failed = Tone == UiTone.Error;
+        Component block = Pre.Class(
             "max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-base-300 bg-base-200 "
-            + "p-3 font-mono text-xs " + (Tone == UiTone.Error ? "text-error" : "opacity-60"))[
+            + "p-3 font-mono text-xs " + (failed ? "text-error" : "opacity-60"))[
             Content
         ];
+
+        return Label is null
+            ? block
+            : Div[
+                Div.Class("mb-1.5 text-xs font-medium " + (failed ? "text-error" : "opacity-60"))[Label],
+                block
+            ];
+    }
 }
