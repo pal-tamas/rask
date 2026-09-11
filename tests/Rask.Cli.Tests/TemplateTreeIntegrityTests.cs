@@ -106,6 +106,27 @@ public sealed class TemplateTreeIntegrityTests
             + $"which files a battery owns:\n  {string.Join("\n  ", missing)}");
     }
 
+    [Fact]
+    public void Every_front_end_template_can_be_re_imported()
+    {
+        // A committed tree is a snapshot, and scripts/refresh-templates.sh is the whole answer to it
+        // going stale: it re-runs the framework's own creator and shows the diff. A template missing
+        // from that script has no way back to upstream, and nothing would say so — it would simply
+        // drift until someone noticed the starter no longer looked like the framework's own.
+        var script = File.ReadAllText(Path.Combine(RepoRoot, "scripts", "refresh-templates.sh"));
+
+        var missing = SpaFramework.All.Select(f => f.Key)
+            .Concat(MetaTemplate.All.Select(f => f.Key))
+            .Where(key => !script.Contains($"{key})", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.True(
+            missing.Length == 0,
+            "scripts/refresh-templates.sh names no creator for these templates, so there is no way to "
+            + $"pull a newer upstream into them:\n  {string.Join("\n  ", missing)}");
+    }
+
     private static string Vcs(string arguments)
     {
         using var process = Process.Start(new ProcessStartInfo("git", arguments)
