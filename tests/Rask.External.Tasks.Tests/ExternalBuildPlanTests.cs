@@ -113,6 +113,73 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void A_dotted_export_binds_the_export_and_reads_the_member_off_it()
+    {
+        // bits-ui exports namespaces of parts: `Switch.Root` is the component, a member of the `Switch` export.
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "SwitchRoot", Source = "/app/SwitchRoot.props.json", Runtime = "svelte", Package = "bits-ui#Switch.Root" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import { Switch as __raskExport } from 'bits-ui'", entry, StringComparison.Ordinal);
+        Assert.Contains("const Component = __raskExport.Root", entry, StringComparison.Ordinal);
+        Assert.Contains("export default svelteComponent(Component)", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_member_of_the_default_export_is_imported_by_the_name_default()
+    {
+        // `default` is an ordinary export name in an import clause, so the default export's members need no special case.
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "PartsItem", Source = "/app/PartsItem.props.json", Runtime = "react", Package = "parts#default.Item" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import { default as __raskExport } from 'parts'", entry, StringComparison.Ordinal);
+        Assert.Contains("const Component = __raskExport.Item", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_lit_package_element_named_by_its_tag_is_imported_for_its_side_effect()
+    {
+        // The define module registers the tag and exports nothing, and a binding the entry never used would be elided
+        // by the TypeScript transform — taking the registration with it.
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxSwitch", Source = "/app/FxSwitch.props.json", Runtime = "lit", Package = "fixture-lit/fx-switch.js#fx-switch" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import 'fixture-lit/fx-switch.js'", entry, StringComparison.Ordinal);
+        Assert.Contains("export default litComponent('fx-switch')", entry, StringComparison.Ordinal);
+        Assert.DoesNotContain(" from 'fixture-lit", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_lit_package_class_mounts_by_the_tag_its_snapshot_records()
+    {
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxBadge", Source = "/app/FxBadge.props.json", Runtime = "lit", Package = "fixture-lit/components/badge/badge.js", Tag = "fx-badge" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import 'fixture-lit/components/badge/badge.js'", entry, StringComparison.Ordinal);
+        Assert.Contains("export default litComponent('fx-badge')", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_lit_package_island_whose_tag_is_not_known_is_refused_with_the_fix()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxBadge", Source = "/app/FxBadge.props.json", Runtime = "lit", Package = "fixture-lit/components/badge/badge.js", Tag = "x'});alert(1)//" },
+            "/obj/rask-external/rask"));
+
+        Assert.Contains("\"fixture-lit/components/badge/badge.js#my-element\"", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("{ \"schema\": 1, \"tag\": \"fx-badge\", \"props\": [] }", "fx-badge")]
+    [InlineData("{ \"schema\": 1, \"tag\": null, \"props\": [] }", null)]
+    [InlineData("{ \"schema\": 1, \"props\": [ { \"name\": \"a\", \"doc\": \"the \\\"tag\\\": \\\"x-y\\\" key\" } ] }", null)]
+    public void The_tag_is_read_from_the_snapshot(string snapshot, string? tag) =>
+        Assert.Equal(tag, ExternalBuildPlan.SnapshotTag(snapshot));
+
+    [Fact]
     public void An_export_that_is_not_an_identifier_never_reaches_the_entry()
     {
         // The export is written into JavaScript unquoted, so anything but an identifier could end the import

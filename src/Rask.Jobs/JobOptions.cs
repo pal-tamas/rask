@@ -67,7 +67,7 @@ public sealed class JobOptions
     /// </summary>
     public IReadOnlyList<RecurringJobDefinition> RecurringJobs => Recurring;
 
-    /// <summary>Validates the option values (called at registration, so a bad value fails fast rather than tearing down the host later).</summary>
+    /// <summary>Validates the option values once <c>Rask:Jobs</c> and the callback have applied (checked at host start, so a bad value fails fast rather than tearing down the host later).</summary>
     internal void Validate()
     {
         if (PollInterval <= TimeSpan.Zero)

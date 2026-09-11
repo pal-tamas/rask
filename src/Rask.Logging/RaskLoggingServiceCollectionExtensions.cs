@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Rask.Hosting.Shared;
 
 namespace Rask.Logging;
 
@@ -8,41 +10,39 @@ namespace Rask.Logging;
 public static class RaskLoggingServiceCollectionExtensions
 {
     /// <summary>
-    /// Captures the application's log into a SQLite database of its own at
-    /// <paramref name="connectionString"/>, so what happened survives the restart that hid it.
+    /// Captures the application's log into a SQLite database of its own, at the <c>Rask:ConnectionStrings:Logs</c>
+    /// connection string, so what happened survives the restart that hid it.
     /// <code>
-    /// builder.Services.AddRaskLogging(
-    ///     builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+    /// builder.Services.AddRaskLogging();
     /// </code>
     /// <para>
-    /// Takes a connection string rather than a <c>TContext</c> like the other database-backed pillars: the
+    /// A connection string of its own rather than a <c>TContext</c> like the other database-backed pillars: the
     /// store deliberately owns its own file. See <see cref="ILogs"/> for why, and remember that the
     /// file is <b>not</b> covered by <c>rask db backup</c> or Litestream.
     /// </para>
     /// <para>
-    /// The schema is created on first use — there is no migration to add. Entries below
-    /// <see cref="RaskLoggingOptions.MinimumLevel"/> are skipped, and so is anything your
+    /// <see cref="RaskLoggingOptions"/> reads the <c>Rask:Logging</c> configuration section first and then
+    /// <paramref name="configure"/>, so code wins. The schema is created on first use — there is no migration to
+    /// add. Entries below <see cref="RaskLoggingOptions.MinimumLevel"/> are skipped, and so is anything your
     /// <c>Logging:LogLevel</c> configuration already filtered, since that runs first.
     /// </para>
     /// </summary>
     public static IServiceCollection AddRaskLogging(
         this IServiceCollection services,
-        string connectionString,
         Action<RaskLoggingOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ArgumentException.ThrowIfNullOrEmpty(connectionString);
 
-        var options = new RaskLoggingOptions();
-        configure?.Invoke(options);
-        options.Validate();
-
-        services.TryAddSingleton(options);
+        services.AddRaskOptions<RaskLoggingOptions>(
+            "Rask:Logging", static (section, o) => section.Bind(o), configure, static o => o.Validate());
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<LogMetrics>();
         services.TryAddSingleton<LogChannel>();
-        services.TryAddSingleton<ILogs>(sp => new SqliteLogStore(
-            connectionString,
+
+        // The connection string is read when the store is first resolved — which is also where a missing one is
+        // reported, naming the key to set.
+        services.TryAddSingleton<ILogs>(static sp => new SqliteLogStore(
+            RaskOptionsRegistration.ConnectionString(sp, "Logs"),
             sp.GetRequiredService<RaskLoggingOptions>(),
             sp.GetRequiredService<TimeProvider>()));
 

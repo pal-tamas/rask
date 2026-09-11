@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Spa.Hosting.Tests.Infrastructure;
@@ -42,7 +43,8 @@ internal sealed class SpaTestServer : IAsyncDisposable
         bool withCompression = false,
         bool withApi = false,
         Action<SpaHostingOptions>? configure = null,
-        string? contentRoot = null)
+        string? contentRoot = null,
+        Dictionary<string, string?>? settings = null)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -52,6 +54,12 @@ internal sealed class SpaTestServer : IAsyncDisposable
             ContentRootPath = contentRoot ?? Path.GetTempPath(),
         });
         builder.WebHost.UseTestServer();
+
+        if (settings is not null)
+        {
+            // What appsettings.json would carry; UseRaskSpa reads Rask:Spa from it while mapping.
+            builder.Configuration.AddInMemoryCollection(settings);
+        }
 
         if (withCompression)
         {

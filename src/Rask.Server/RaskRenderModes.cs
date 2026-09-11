@@ -17,7 +17,8 @@ namespace Rask.Server;
 ///         attribute; it cannot opt above it.
 ///     </para>
 ///     <para>
-///         A combination that cannot work throws when the host is built, naming what is off. A
+///         Set in code or from <c>Rask:Server:RenderModes</c> (<c>"Wasm": true</c> in appsettings.json).
+///         A combination that cannot work fails the host at start, naming what is off. A
 ///         contradiction here is a configuration mistake, and a host that refuses to start is far
 ///         cheaper to diagnose than a page that silently does nothing in production.
 ///     </para>

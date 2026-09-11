@@ -120,7 +120,8 @@ public sealed class AuthOptions
     /// <remarks>
     ///     Configuration and nowhere else — a key generated at startup does not survive a restart and is
     ///     not shared between instances, so every token would die on deploy and nothing would work behind
-    ///     two replicas. Keep it out of source: user-secrets in development, the environment or a secret
+    ///     two replicas. It is read from <c>Rask:Auth:BearerSigningKey</c>. Keep it out of source:
+    ///     user-secrets in development, the environment (<c>Rask__Auth__BearerSigningKey</c>) or a secret
     ///     store in production.
     /// </remarks>
     public string? BearerSigningKey { get; set; }
@@ -173,9 +174,10 @@ public sealed class AuthOptions
     /// The first-run token, when you would rather supply it than read the generated one from the log.
     /// </summary>
     /// <remarks>
-    /// Set this from configuration to make a deployment's token predictable — <c>rask deploy</c> does
-    /// exactly that so it can print the claim URL. Left <c>null</c>, a cryptographically random one is
-    /// generated at startup while the user table is empty.
+    /// Set this from configuration — <c>Rask:Auth:FirstRunToken</c>, or <c>Rask__Auth__FirstRunToken</c> in
+    /// the environment — to make a deployment's token predictable, so whoever deploys can hand out the
+    /// claim URL without reading the log. Left <c>null</c>, a cryptographically random one is generated
+    /// at startup while the user table is empty.
     /// </remarks>
     public string? FirstRunToken { get; set; }
 

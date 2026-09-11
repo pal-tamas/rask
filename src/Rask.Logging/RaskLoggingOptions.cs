@@ -133,7 +133,7 @@ public sealed class RaskLoggingOptions
         return false;
     }
 
-    /// <summary>Validates the option values at registration, so a bad value fails fast.</summary>
+    /// <summary>Validates the option values once <c>Rask:Logging</c> and the callback have applied, at host start, so a bad value fails fast.</summary>
     internal void Validate()
     {
         if (Retention < TimeSpan.Zero)

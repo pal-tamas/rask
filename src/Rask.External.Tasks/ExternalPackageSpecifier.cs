@@ -56,8 +56,9 @@ internal static class ExternalPackageSpecifier
     }
 
     /// <summary>
-    ///     Whether <paramref name="export" /> can be written in an <c>import { X as Component }</c> clause — an
-    ///     identifier, so nothing a <c>Module</c> string carries can end the import and start other code.
+    ///     Whether <paramref name="export" /> can be written into generated JavaScript — <c>default</c>, an
+    ///     identifier, or a dotted path of identifiers (<c>Switch.Root</c>, a member of the <c>Switch</c> export) — so
+    ///     nothing a <c>Module</c> string carries can end the import and start other code.
     /// </summary>
     public static bool IsValidExport(string export)
     {
@@ -66,12 +67,61 @@ internal static class ExternalPackageSpecifier
             return true;
         }
 
-        if (export.Length == 0 || !(char.IsLetter(export[0]) || export[0] is '_' or '$'))
+        foreach (var segment in export.Split('.'))
+        {
+            if (!IsIdentifier(segment))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="export" /> can be written into generated JavaScript for an island of
+    ///     <paramref name="runtime" />: anything <see cref="IsValidExport(string)" /> accepts, and — for Lit only — the tag
+    ///     an element registers (<c>sl-switch</c>), since a module that only registers an element exports nothing to name.
+    /// </summary>
+    /// <remarks>
+    ///     A Lit island never takes a member of an export (<c>Switch.Root</c>): its entry imports the module and mounts
+    ///     an element by tag, so the member would be dropped and the island would mount whatever the tag names instead.
+    /// </remarks>
+    public static bool IsValidExport(string export, string runtime) =>
+        string.Equals(runtime, "lit", StringComparison.Ordinal)
+            ? IsTag(export) || (IsValidExport(export) && export.IndexOf('.') < 0)
+            : IsValidExport(export);
+
+    /// <summary>
+    ///     Whether <paramref name="name" /> is a custom element name as Rask accepts one: a lowercase letter first, then
+    ///     lowercase letters, digits, <c>.</c>, <c>_</c> and <c>-</c>, with at least one <c>-</c>.
+    /// </summary>
+    public static bool IsTag(string? name)
+    {
+        if (string.IsNullOrEmpty(name) || name![0] < 'a' || name[0] > 'z' || name.IndexOf('-') < 0)
         {
             return false;
         }
 
-        foreach (var c in export)
+        foreach (var c in name)
+        {
+            if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c is '.' or '_' or '-'))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsIdentifier(string name)
+    {
+        if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] is '_' or '$'))
+        {
+            return false;
+        }
+
+        foreach (var c in name)
         {
             if (!(char.IsLetterOrDigit(c) || c is '_' or '$'))
             {

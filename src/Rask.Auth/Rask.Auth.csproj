@@ -82,6 +82,12 @@
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
   </ItemGroup>
 
+  <!-- AuthOptions binds Rask:Auth. The configuration binding source generator writes that bind at compile
+       time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Auth.Tests"/>
   </ItemGroup>

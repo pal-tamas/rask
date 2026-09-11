@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -56,6 +57,38 @@ public sealed class DashboardAuthorizationTests
         Assert.True(await AuthorizeAsync(h, Anonymous()));
         Assert.True(h.Get<DashboardSecurityState>().IsUnsecured);
     }
+
+    [Fact]
+    public async Task AllowAnonymousAccess_from_configuration_opens_it_the_same_way()
+    {
+        // Rask:Dashboard is read like every other section, so this switch is reachable from an environment variable
+        // (Rask__Dashboard__AllowAnonymousAccess) — which is exactly why the deploy environment is guarded like code.
+        await using var h = new DashboardHarness(
+            environment: Environments.Production,
+            extra: services => services.AddSingleton(Configuration("true")));
+
+        Assert.True(await AuthorizeAsync(h, Anonymous()));
+        Assert.True(h.Get<DashboardSecurityState>().IsUnsecured);
+    }
+
+    [Fact]
+    public async Task Code_that_keeps_it_closed_wins_over_configuration()
+    {
+        await using var h = new DashboardHarness(
+            environment: Environments.Production,
+            configure: o => o.AllowAnonymousAccess = false,
+            extra: services => services.AddSingleton(Configuration("true")));
+
+        Assert.False(await AuthorizeAsync(h, Anonymous()));
+    }
+
+    private static Microsoft.Extensions.Configuration.IConfiguration Configuration(string allowAnonymousAccess) =>
+        new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Rask:Dashboard:AllowAnonymousAccess"] = allowAnonymousAccess,
+            })
+            .Build();
 
     [Fact]
     public async Task The_layout_carries_the_policy_so_every_page_inherits_it()

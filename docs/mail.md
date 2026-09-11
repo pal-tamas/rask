@@ -36,15 +36,27 @@ public sealed partial class WelcomeEmail : Component
 }
 
 // Program.cs
-builder.Services.AddRaskMail<AppDbContext>(o =>
-{
-    o.From = "hello@example.com";
-    o.Smtp = new SmtpOptions { Host = "smtp.example.com", Port = 587, User = "…", Password = "…" };
-    o.MaxAttempts = 10;
-});
+builder.Services.AddRaskMail<AppDbContext>();
 
 builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=app.db"));
 ```
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "Mail": {
+      "From": "hello@example.com",
+      "MaxAttempts": 10,
+      "Smtp": { "Host": "smtp.example.com", "Port": 587, "User": "…" }
+    }
+  }
+}
+```
+
+The SMTP password does not belong in that committed file: set `Rask__Mail__Smtp__Password` in the
+environment (or `Rask:Mail:Smtp:Password` in user secrets). A callback — `AddRaskMail<AppDbContext>(o => …)` —
+runs after the section and wins.
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -73,11 +85,12 @@ await mail.ScheduleAsync(reminder, delay: TimeSpan.FromHours(24));  // send late
 
 You don't need an SMTP server to develop. If `Smtp` is not set, `Rask.Mail` falls back to:
 
-- **a pickup directory** — set `o.PickupDirectory = "sent-mail"` and each message is written as an `.eml` file
-  you can open in any mail client; or
+- **a pickup directory** — set `Rask:Mail:PickupDirectory` (say, `"sent-mail"`) and each message is written as
+  an `.eml` file you can open in any mail client; or
 - **logging** — with neither `Smtp` nor `PickupDirectory` set, each send is logged (`"would send email to …"`).
 
-Switch to real delivery in production by setting `o.Smtp`. Nothing else changes.
+Switch to real delivery in production by adding a `Rask:Mail:Smtp` section — any key under it turns SMTP on,
+so `Rask__Mail__Smtp__Host` in the environment is enough to start. Nothing else changes.
 
 ## How it works
 

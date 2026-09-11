@@ -1,6 +1,5 @@
 // rask:if cqrs data
 using Company.RaskServer.Features.Shared;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 // rask:if cache
@@ -37,14 +36,21 @@ using Rask.SQLite.Snapshots;
 // rask:end
 var builder = WebApplication.CreateBuilder(args);
 
+// EVERY SETTING LIVES IN appsettings.json, under "Rask". Each call below reads its own section —
+// AddRaskCqrsServer reads Rask:Cqrs:Server, AddRaskMeta reads Rask:Meta, AddRaskMail reads Rask:Mail —
+// so this file says WHAT the app is made of and appsettings.json says how it is tuned. An environment
+// variable overrides any key with double underscores (Rask__Mail__From), which is how `rask deploy`
+// points a deployed app at its volume. A callback here still wins over both, for the rare value that
+// has to be code. The full list of sections is in docs/configuration.md.
+//
 // AddRaskCqrsServer registers the mediator AND the endpoint pair the front end dispatches
 // through. The TypeScript the front end imports is generated from these same message records
 // at build time, so the two halves cannot disagree about a payload or a result.
 //
-// RequireAuthenticatedUser is OFF because this template has no authentication to require —
-// left on, every message would answer 401 and nothing would work. Add AddRaskAuth() and
-// DELETE this argument: the default is on for a reason.
-builder.Services.AddRaskCqrsServer(o => o.RequireAuthenticatedUser = false);
+// Dispatched messages do not require a signed-in caller in this template —
+// Rask:Cqrs:Server:RequireAuthenticatedUser is false in appsettings.json, beside a note on when to
+// turn it back on.
+builder.Services.AddRaskCqrsServer();
 
 builder.Services.AddSingleton<Company.RaskServer.Features.Hello.VisitCounter>();
 
@@ -56,16 +62,16 @@ builder.Services.AddHealthChecks();
 // the one the .csproj named — read from the assembly, so the build and the running host
 // cannot disagree about which one was built.
 //
-// Set o.BaseUrl to this host's own loopback address if you dispatch from a SERVER render: a
-// relative URL has no origin in Node, and the value is deliberately configured rather than
+// Set Rask:Meta:BaseUrl to this host's own loopback address if you dispatch from a SERVER render:
+// a relative URL has no origin in Node, and the value is deliberately configured rather than
 // derived from the incoming request.
 builder.Services.AddRaskMeta();
 // rask:if cqrs data
 // The app's database, on its own disk — no external server. AddRaskData registers the
 // auditing/soft-delete/concurrency/domain-event interceptors; UseRaskSqlite is a drop-in for
-// UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys). The
-// connection string defaults to a local app.db but honours a ConnectionStrings:App override —
-// `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
+// UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys), and reads
+// its connection string from Rask:ConnectionStrings:App — a local app.db in appsettings.json, which
+// `rask deploy` points at a mounted volume so the DB survives redeploys.
 // For each entity, declare a class deriving from Model<TId> anywhere in the project — no
 // DbSet property, no configuration class, no registration — then `rask db add <Name>` /
 // `rask db update` to create and apply the migration.
@@ -73,14 +79,7 @@ builder.Services.AddRaskMeta();
 // The generic overload is what names the context to the ambient database, so `Product.Add(…)`
 // and `Product.Where(…)` know which one to open. The non-generic AddRaskData() registers only
 // the interceptors, and Db.Configure below then has nothing to bind.
-//
-// strictTables makes SQLite enforce each column's declared type instead of coercing whatever
-// it is handed — without it the text "lots" stores happily in an INTEGER column and surfaces
-// as a cast error much later. It applies to tables as they are created, so it costs nothing
-// here and is awkward to adopt once there is data. Drop it if you need a column type outside
-// SQLite's INT/INTEGER/REAL/TEXT/BLOB/ANY.
 builder.Services.AddRaskData<AppDbContext>();
-var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
 // rask:if outbox
 // Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
 // the SAME transaction as the change that raised it, then relayed at-least-once by a
@@ -89,7 +88,7 @@ var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data
 builder.Services.AddRaskOutbox<AppDbContext>();
 // rask:end
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(connectionString, o => o.StrictTables = true)
+    .UseRaskSqlite(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
 // Continuous backup. Litestream streams the write-ahead log to object storage, which is what
@@ -98,17 +97,12 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 // one disk — the whole premise of running a real product on a single server.
 //
 // Inert until you point it somewhere. To turn it on:
-//   rask deploy --env "Litestream__ReplicaUrl=s3://your-bucket/app"
+//   rask deploy --env "Rask__Litestream__ReplicaUrl=s3://your-bucket/app"
 // plus whatever credentials your provider needs (e.g. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY).
 // s3://, gcs://, abs:// and file:// replicas are all supported — see docs/sqlite.md.
-var replicaUrl = builder.Configuration["Litestream:ReplicaUrl"];
-if (!string.IsNullOrWhiteSpace(replicaUrl))
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:Litestream:ReplicaUrl"]))
 {
-    builder.Services.AddRaskSqliteLitestream(o =>
-    {
-        o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
-        o.ReplicaUrl = replicaUrl;
-    });
+    builder.Services.AddRaskSqliteLitestream();
 }
 // Accounts: register, sign in, sign out. Backed by ASP.NET Core Identity, reached through
 // Rask's own IAuth so the same call works on the Server host, in WebAssembly and inside an
@@ -124,20 +118,17 @@ builder.Services.AddAuthorization();
 
 // Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJob;
 // a hosted worker polls, runs each job through its Rask.Cqrs handler, and retries with backoff.
-// Schedule recurring work here: o.AddRecurring<PurgeJob>("purge", TimeSpan.FromHours(1), () => new());
+// Schedule recurring work here — a schedule is code, not configuration:
+//   builder.Services.AddRaskJobs<AppDbContext>(o => o.AddRecurring<PurgeJob>("purge", TimeSpan.FromHours(1), () => new()));
 builder.Services.AddRaskJobs<AppDbContext>();
 // rask:end
 
 // rask:if mail
 // Transactional email queued on the app's own database and delivered off the request thread. The
-// body is a Rask component, so it uses the same component model as the UI. With no SMTP configured
-// the dev default writes each message to ./mail-pickup as an .eml file you can open — set o.Smtp
-// (host/port/credentials) to send for real.
-builder.Services.AddRaskMail<AppDbContext>(o =>
-{
-    o.From = "no-reply@example.com";
-    o.PickupDirectory = builder.Configuration["Mail:PickupDirectory"] ?? "mail-pickup";
-});
+// body is a Rask component, so it uses the same component model as the UI. Rask:Mail holds the From
+// address and, with no Rask:Mail:Smtp section, a pickup directory where each message lands as an
+// .eml file you can open — add Smtp (host/port/user, password in the environment) to send for real.
+builder.Services.AddRaskMail<AppDbContext>();
 
 // rask:end
 // rask:if cache
@@ -161,14 +152,9 @@ builder.Services.AddRaskStorage<AppDbContext>();
 // Scheduled point-in-time backups, a second line of defence alongside the continuous replication
 // above. Taken through SQLite's Online Backup API rather than a file copy — with WAL on, copying
 // the .db can capture a torn database, because the committed data is split across the file and
-// the -wal. Same connection string, so it follows a ConnectionStrings:App override.
-builder.Services.AddRaskSqliteSnapshots(o =>
-{
-    o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
-    o.DestinationDirectory = builder.Configuration["Sqlite:SnapshotDirectory"] ?? "snapshots";
-    o.Interval = TimeSpan.FromHours(6);
-    o.Retain = 7;
-});
+// the -wal. It snapshots the database behind Rask:ConnectionStrings:App; where to, how often and how
+// many to keep are Rask:Snapshots.
+builder.Services.AddRaskSqliteSnapshots();
 
 // rask:end
 // rask:end
@@ -183,12 +169,11 @@ builder.Services.AddRaskSqliteSnapshots(o =>
 // one written while a transaction is failing, which on the app's context would roll back with
 // it. The trade-off: this file is NOT covered by `rask db backup` or Litestream, and log lines
 // can contain secrets — treat it as sensitive and keep it on the same persistent volume as
-// your database (`rask deploy` sets ConnectionStrings:Logs to a path on that volume).
+// your database (`rask deploy` sets Rask__ConnectionStrings__Logs to a path on that volume).
 // Tip: an EF Core app logs every SQL command at Information, which will dominate the store
 // on the default settings. Either raise the floor for that category in Logging:LogLevel, or
-// skip it here:  o => o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database")
-builder.Services.AddRaskLogging(
-    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+// add "Microsoft.EntityFrameworkCore.Database" to Rask:Logging:ExcludedCategories.
+builder.Services.AddRaskLogging();
 
 // rask:end
 var app = builder.Build();

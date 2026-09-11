@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -62,15 +63,35 @@ public sealed class BearerTokenTests
         Assert.Equal(CookieAuthenticationDefaults.AuthenticationScheme, options.DefaultScheme);
     }
 
+    [Fact]
+    public void The_switch_and_the_key_can_come_from_the_Rask_Auth_section()
+    {
+        // What the key's documentation always promised: a deployed app sets Rask__Auth__BearerSigningKey in
+        // its environment and never writes the key into source.
+        using var provider = Build(settings: new()
+        {
+            ["Rask:Auth:Bearer"] = "true",
+            ["Rask:Auth:BearerSigningKey"] = GoodKey,
+        });
+
+        var schemes = provider.GetRequiredService<IOptions<AuthenticationOptions>>().Value.Schemes;
+
+        Assert.Contains(schemes, s => s.Name == JwtBearerDefaults.AuthenticationScheme);
+    }
+
     // ---------- decision 2: absence outside Development refuses to start ----------
 
+    // Refused when the options are built: at host start through ValidateOnStart, or — in the bare container
+    // these tests use — on the first resolve.
     [Fact]
     public void No_key_outside_development_refuses_to_start()
     {
         // The deliberate half. An operator who believes they enabled bearer, and whose app quietly did
         // not, is the more expensive failure — and a flag the framework accepts and disregards is this
         // repo's most costly bug class. Same reasoning as MailOptions.From throwing.
-        var error = Assert.Throws<InvalidOperationException>(() => Build(o => o.Bearer = true));
+        using var provider = Build(o => o.Bearer = true);
+
+        var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<AuthOptions>());
 
         Assert.Contains("BearerSigningKey", error.Message, StringComparison.Ordinal);
         Assert.Contains("configuration", error.Message, StringComparison.Ordinal);
@@ -81,11 +102,13 @@ public sealed class BearerTokenTests
     {
         // Rejected at startup rather than from inside the token handler on the first sign-in, which is
         // a far worse place to find out: the app is up, and one caller gets a 500.
-        var error = Assert.Throws<InvalidOperationException>(() => Build(o =>
+        using var provider = Build(o =>
         {
             o.Bearer = true;
             o.BearerSigningKey = "too-short";
-        }));
+        });
+
+        var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<AuthOptions>());
 
         Assert.Contains("32", error.Message, StringComparison.Ordinal);
     }
@@ -168,7 +191,10 @@ public sealed class BearerTokenTests
         Assert.Equal(TimeSpan.Zero, jwt.TokenValidationParameters.ClockSkew);
     }
 
-    private static ServiceProvider Build(Action<AuthOptions>? configure = null, string? environment = null)
+    private static ServiceProvider Build(
+        Action<AuthOptions>? configure = null,
+        string? environment = null,
+        Dictionary<string, string?>? settings = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -176,9 +202,13 @@ public sealed class BearerTokenTests
 
         if (environment is not null)
         {
-            // Registered as an INSTANCE, which is how a host registers it and how AddRaskAuth reads it
-            // back without building a second container.
+            // Resolved from the built container by the Development fallback, the way a host provides it.
             services.AddSingleton<IHostEnvironment>(new StubEnvironment(environment));
+        }
+
+        if (settings is not null)
+        {
+            services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
         }
 
         services.AddRaskAuth<AuthDbContext>(o => configure?.Invoke(o));

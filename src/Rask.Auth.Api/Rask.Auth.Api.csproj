@@ -63,6 +63,7 @@
 
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
 
     <!-- The first-run token is a cryptographically random string, and this is the one generator the
          framework uses for every such string (live-session ids, auth tickets). Source-linked rather

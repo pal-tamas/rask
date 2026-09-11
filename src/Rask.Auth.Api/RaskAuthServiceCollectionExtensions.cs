@@ -5,11 +5,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -23,7 +25,7 @@ public static class RaskAuthServiceCollectionExtensions
     /// </summary>
     /// <typeparam name="TContext">The application context that owns the account tables.</typeparam>
     /// <param name="services">The service collection.</param>
-    /// <param name="configure">Configures the options.</param>
+    /// <param name="configure">Configures the options, after the <c>Rask:Auth</c> configuration section.</param>
     /// <remarks>
     /// Map the tables with <c>modelBuilder.AddRaskAuth()</c> in <c>OnModelCreating</c>, then create the
     /// schema with <c>rask db add AddAuth &amp;&amp; rask db update</c>.
@@ -47,11 +49,13 @@ public static class RaskAuthServiceCollectionExtensions
     /// <typeparam name="TContext">The application context that owns the account tables.</typeparam>
     /// <typeparam name="TUser">The application's user entity.</typeparam>
     /// <param name="services">The service collection.</param>
-    /// <param name="configure">Configures the options.</param>
+    /// <param name="configure">Configures the options, after the <c>Rask:Auth</c> configuration section.</param>
     /// <remarks>
-    /// The options go in with <c>TryAddSingleton</c>, so in an app that calls this twice the
-    /// <b>first</b> call wins and the second one's configuration is discarded — the same shape, and the
-    /// same hazard, as <c>AddRask</c> (RASK056). Configure it once.
+    /// <see cref="AuthOptions"/> reads the <c>Rask:Auth</c> configuration section first and then
+    /// <paramref name="configure"/>, so code wins — and a deployed app takes its signing key and first-run
+    /// token from the environment (<c>Rask__Auth__BearerSigningKey</c>) without either appearing in source.
+    /// A value that is out of range, or a bearer key that cannot sign outside Development, stops the host
+    /// starting. A second call registers nothing: the first call's options win, so configure it once.
     /// </remarks>
     public static IServiceCollection AddRaskAuth<TContext, TUser>(
         this IServiceCollection services, Action<AuthOptions>? configure = null)
@@ -60,11 +64,28 @@ public static class RaskAuthServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = new AuthOptions();
-        configure?.Invoke(options);
-        options.Validate();
+        // A repeat call is a no-op rather than a second Identity registration beside the first.
+        if (!services.AddRaskOptions<AuthOptions>(
+                "Rask:Auth", static (section, o) => section.Bind(o), configure, Validate))
+        {
+            return services;
+        }
 
-        services.TryAddSingleton(options);
+        // A bearer key that cannot sign keeps a Development app on cookies rather than stopping it, so a first
+        // run needs no configuration; everywhere else Validate refuses to start. PostConfigure runs after the
+        // section and every callback and before validation, which is exactly where that decision belongs. An
+        // unknown environment counts as production: the safe default when we cannot tell is the one that refuses,
+        // not the one that silently serves cookies to a caller expecting a token.
+        services.AddOptions<AuthOptions>().PostConfigure<IServiceProvider>(static (options, sp) =>
+        {
+            if (options.Bearer
+                && BearerTokens.Reject(options) is not null
+                && sp.GetService<IHostEnvironment>()?.IsDevelopment() == true)
+            {
+                options.Bearer = false;
+            }
+        });
+
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<FirstRunToken>();
         services.TryAddSingleton<IInstanceClaimStore, InstanceClaimStore<TContext>>();
@@ -79,31 +100,36 @@ public static class RaskAuthServiceCollectionExtensions
         services.AddHttpContextAccessor();
 
         services
-            .AddIdentityCore<TUser>(o =>
-            {
-                o.User.RequireUniqueEmail = true;
-
-                o.Password.RequiredLength = options.MinimumPasswordLength;
-                o.Password.RequireDigit = options.RequireMixedCasePasswords;
-                o.Password.RequireLowercase = options.RequireMixedCasePasswords;
-                o.Password.RequireUppercase = options.RequireMixedCasePasswords;
-                // Length is what resists guessing; demanding punctuation mostly produces "Password1!".
-                o.Password.RequireNonAlphanumeric = false;
-
-                o.Lockout.MaxFailedAccessAttempts = options.MaxFailedAccessAttempts;
-                o.Lockout.DefaultLockoutTimeSpan = options.LockoutDuration;
-                o.Lockout.AllowedForNewUsers = true;
-            })
+            .AddIdentityCore<TUser>()
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<TContext>()
             .AddSignInManager()
             // What the confirmation and reset links are minted from.
             .AddDefaultTokenProviders();
 
+        // Every setting below is read off the BUILT AuthOptions rather than captured here: nothing is built
+        // until the container is, because the Rask:Auth section cannot be read any earlier.
+        services.AddOptions<IdentityOptions>().Configure<AuthOptions>(static (o, auth) =>
+        {
+            o.User.RequireUniqueEmail = true;
+
+            o.Password.RequiredLength = auth.MinimumPasswordLength;
+            o.Password.RequireDigit = auth.RequireMixedCasePasswords;
+            o.Password.RequireLowercase = auth.RequireMixedCasePasswords;
+            o.Password.RequireUppercase = auth.RequireMixedCasePasswords;
+            // Length is what resists guessing; demanding punctuation mostly produces "Password1!".
+            o.Password.RequireNonAlphanumeric = false;
+
+            o.Lockout.MaxFailedAccessAttempts = auth.MaxFailedAccessAttempts;
+            o.Lockout.DefaultLockoutTimeSpan = auth.LockoutDuration;
+            o.Lockout.AllowedForNewUsers = true;
+        });
+
         // One lifetime, set in one place. The email tells the reader how long the link lasts and the
         // provider decides when it stops working; read from separate settings they drift, and the
         // symptom is a message promising two hours about a token that expired in one.
-        services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = options.TokenLifetime);
+        services.AddOptions<DataProtectionTokenProviderOptions>()
+            .Configure<AuthOptions>(static (o, auth) => o.TokenLifespan = auth.TokenLifetime);
 
         services.TryAddScoped<AuthMail>();
 
@@ -172,31 +198,42 @@ public static class RaskAuthServiceCollectionExtensions
         services.TryAddTransient<CookieAuthenticationHandler>();
 
         // Named options, configured last, so these beat an app's own AddCookie(...) delegate.
-        services.Configure<CookieAuthenticationOptions>(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            o =>
+        services.AddOptions<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme)
+            .Configure<AuthOptions>(static (o, auth) =>
             {
-                o.Cookie.Name = options.CookieName;
+                o.Cookie.Name = auth.CookieName;
                 o.Cookie.HttpOnly = true;
                 o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 // Lax, not Strict: Strict withholds the cookie on the first navigation that arrives
                 // from another site, so a visitor following a link into a protected page would land
                 // signed-out and be bounced to /login despite having a valid session.
                 o.Cookie.SameSite = SameSiteMode.Lax;
-                o.LoginPath = options.LoginPath;
-                o.LogoutPath = options.LogoutPath;
-                o.AccessDeniedPath = options.AccessDeniedPath;
-                o.ExpireTimeSpan = options.ExpireTimeSpan;
-                o.SlidingExpiration = options.SlidingExpiration;
+                o.LoginPath = auth.LoginPath;
+                o.LogoutPath = auth.LogoutPath;
+                o.AccessDeniedPath = auth.AccessDeniedPath;
+                o.ExpireTimeSpan = auth.ExpireTimeSpan;
+                o.SlidingExpiration = auth.SlidingExpiration;
             });
 
         // AddRask() also calls this; it is idempotent, and Rask.Auth must not depend on being wired
         // after the host.
         services.AddAuthorization();
 
-        AddBearer(services, options);
+        AddBearer(services);
 
         return services;
+    }
+
+    // The values themselves, then the bearer key: a key that cannot sign is refused here — which is to say at
+    // host start — everywhere but Development, where the PostConfigure above has already switched bearer off.
+    private static void Validate(AuthOptions options)
+    {
+        options.Validate();
+
+        if (options.Bearer && BearerTokens.Reject(options) is { } reason)
+        {
+            throw new InvalidOperationException(reason);
+        }
     }
 
     /// <summary>
@@ -211,50 +248,22 @@ public static class RaskAuthServiceCollectionExtensions
     ///         is XSS-readable, which is the whole reason the cookie path exists.
     ///     </para>
     ///     <para>
-    ///         A misconfigured key REFUSES TO START outside Development. That is the deliberate half:
-    ///         an operator who believes they enabled bearer, and whose app quietly did not, is the more
-    ///         expensive failure — and a flag the framework accepts and disregards is this repo's most
-    ///         costly bug class. In Development it warns and leaves the app on cookies, so a first run
-    ///         needs no configuration at all.
+    ///         Whether it is on is read off the built options, so <c>Rask:Auth:Bearer</c> can turn it on. The
+    ///         handler and its post-configure are registered either way: both are inert until a Bearer scheme
+    ///         exists. A misconfigured key REFUSES TO START outside Development — an operator who believes they
+    ///         enabled bearer, and whose app quietly did not, is the more expensive failure, and a flag the
+    ///         framework accepts and disregards is this repo's most costly bug class.
     ///     </para>
     /// </remarks>
-    private static void AddBearer(IServiceCollection services, AuthOptions options)
+    private static void AddBearer(IServiceCollection services)
     {
-        if (!options.Bearer)
-        {
-            return;
-        }
-
-        if (BearerTokens.Reject(options) is { } reason)
-        {
-            // Read off the descriptor rather than through a built provider: BuildServiceProvider() here
-            // would create a second container and a second copy of every singleton in it. The host
-            // registers the environment as an instance, so it is simply there to be read.
-            var environment = services
-                .FirstOrDefault(d => d.ServiceType == typeof(IHostEnvironment))?
-                .ImplementationInstance as IHostEnvironment;
-
-            // Unknown environment is treated as production. The safe default when we cannot tell is the
-            // one that refuses, not the one that silently serves cookies to a caller expecting a token.
-            if (environment?.IsDevelopment() != true)
-            {
-                throw new InvalidOperationException(reason);
-            }
-
-            options.Bearer = false;
-            return;
-        }
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.BearerSigningKey!));
-
         // The guard is against AddScheme throwing "Scheme already exists" -- lazily, when the options
         // are first materialised, so the app would die on its first request naming no line to delete.
         // It is NOT a deferral: the settings below are configured last and win, the same way the cookie
-        // scheme's do. An app that wants its own JWT setup leaves AuthOptions.Bearer off, and then none
-        // of this runs at all.
-        services.Configure<AuthenticationOptions>(o =>
+        // scheme's do.
+        services.AddOptions<AuthenticationOptions>().Configure<AuthOptions>(static (o, auth) =>
         {
-            if (!o.SchemeMap.ContainsKey(JwtBearerDefaults.AuthenticationScheme))
+            if (auth.Bearer && !o.SchemeMap.ContainsKey(JwtBearerDefaults.AuthenticationScheme))
             {
                 o.AddScheme<JwtBearerHandler>(JwtBearerDefaults.AuthenticationScheme, displayName: null);
             }
@@ -264,19 +273,24 @@ public static class RaskAuthServiceCollectionExtensions
             IPostConfigureOptions<JwtBearerOptions>, JwtBearerPostConfigureOptions>());
         services.TryAddTransient<JwtBearerHandler>();
 
-        services.Configure<JwtBearerOptions>(
-            JwtBearerDefaults.AuthenticationScheme,
-            o =>
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<AuthOptions>(static (o, auth) =>
             {
+                // An app that wants its own JWT setup leaves AuthOptions.Bearer off, and then none of this applies.
+                if (!auth.Bearer)
+                {
+                    return;
+                }
+
                 o.MapInboundClaims = false;
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
-                    ValidIssuer = options.BearerIssuer,
+                    ValidIssuer = auth.BearerIssuer,
                     ValidateAudience = true,
-                    ValidAudience = options.BearerAudience,
+                    ValidAudience = auth.BearerAudience,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = key,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(auth.BearerSigningKey!)),
                     ValidateLifetime = true,
 
                     // No grace period. The default is five minutes, which quietly triples the life of a

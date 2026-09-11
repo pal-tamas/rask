@@ -27,6 +27,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
+  <!-- SpaHostingOptions binds Rask:Spa. The configuration binding source generator writes that bind at
+       compile time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
   <!--
     Deliberately no reference to Rask.Core or Rask.Wasm. A TypeScript SPA has no Component, no
     scoped assets and no live session, so there is nothing to depend on — and staying free of them is

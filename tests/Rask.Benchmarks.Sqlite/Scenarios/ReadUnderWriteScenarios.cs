@@ -60,7 +60,7 @@ internal sealed class ReadUnderWriteScenario : LoadScenario
         }
 
         var services = new ServiceCollection();
-        services.AddRaskSqlite(
+        services.AddRaskSqliteAt(
             _db.ConnectionString,
             o =>
             {

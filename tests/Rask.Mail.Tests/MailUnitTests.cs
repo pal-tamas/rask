@@ -22,10 +22,16 @@ public sealed class MailUnitTests
     }
 
     [Fact]
-    public void AddRaskMail_validates_options_eagerly()
+    public void AddRaskMail_validates_options_when_they_are_built()
     {
+        // At host start through ValidateOnStart, or on the first resolve in this bare container — naming the section.
         var services = new ServiceCollection();
-        Assert.Throws<ArgumentException>(() => services.AddRaskMail<MailDbContext>(o => o.From = ""));
+        services.AddRaskMail<MailDbContext>(o => o.From = "");
+        using var provider = services.BuildServiceProvider();
+
+        var ex = Assert.Throws<Microsoft.Extensions.Options.OptionsValidationException>(
+            () => provider.GetRequiredService<MailOptions>());
+        Assert.Contains("Rask:Mail", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

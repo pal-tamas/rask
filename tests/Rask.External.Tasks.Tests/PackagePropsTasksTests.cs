@@ -31,20 +31,35 @@ public sealed class PackagePropsTasksTests : IDisposable
         Assert.Equal("@mui/material/Button", island.GetMetadata("PackageModule"));
         Assert.Equal(source, island.GetMetadata("DeclaringFile"));
         Assert.Equal("4", island.GetMetadata("ModuleLine"));
-        Assert.Equal("true", island.GetMetadata("Extractable"));
     }
 
     [Fact]
-    public void A_runtime_whose_packages_are_not_read_yet_is_found_and_marked_so()
+    public void A_lit_island_may_name_the_tag_its_define_module_registers()
     {
-        // Sent to the extractor it would fail every build; marked, it is held to a committed snapshot instead.
-        var source = Write("Toggle.cs",
-            "public sealed partial class Toggle : VueComponent { protected override string Module => \"@acme/toggle\"; }");
+        // A define module often exports nothing at all: the tag is what mounts the element.
+        var source = Write("FxSwitch.cs",
+            "public sealed partial class FxSwitch : LitComponent { protected override string Module => \"fixture-lit/fx-switch.js#fx-switch\"; }");
 
-        var task = new FindExternalPackageIslandsTask { BuildEngine = new RecordingEngine(), Sources = [new TaskItem(source)] };
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
 
         Assert.True(task.Execute());
-        Assert.Equal("false", Assert.Single(task.PackageIslands).GetMetadata("Extractable"));
+        Assert.Empty(engine.Errors);
+        Assert.Equal("fixture-lit/fx-switch.js#fx-switch", Assert.Single(task.PackageIslands).GetMetadata("PackageModule"));
+    }
+
+    [Fact]
+    public void A_tag_is_no_export_for_any_runtime_but_lit()
+    {
+        // `#fx-switch` would be written into a React entry as `import { fx-switch as Component }`.
+        var source = Write("FxSwitch.cs",
+            "public sealed partial class FxSwitch : ReactComponent { protected override string Module => \"fixture-lit/fx-switch.js#fx-switch\"; }");
+
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
+
+        Assert.False(task.Execute());
+        Assert.Equal("RASKISLAND005", Assert.Single(engine.Errors).Code);
     }
 
     [Fact]
@@ -120,6 +135,28 @@ public sealed class PackagePropsTasksTests : IDisposable
         Assert.Equal("@mui/material", island.GetProperty("module").GetString());
         Assert.Equal("Button", island.GetProperty("export").GetString());
         Assert.Equal(Path.Combine(_root, "props", "MuiButton.props.json"), island.GetProperty("out").GetString());
+    }
+
+    [Fact]
+    public void A_dotted_export_with_an_empty_segment_is_refused_before_the_request_is_written()
+    {
+        // The request's export reaches the extractor's probe as generated TypeScript, so it is held to the same rule
+        // the entry module is: identifiers separated by dots, nothing empty.
+        var requestPath = Path.Combine(_root, "props", "request.json");
+        var engine = new RecordingEngine();
+        var task = new WriteExternalPropsRequestTask
+        {
+            BuildEngine = engine,
+            Islands = [Island("SwitchRoot", "bits-ui#Switch.")],
+            TypeScriptPath = "/cache/typescript/lib/typescript.js",
+            ProjectDirectory = _root,
+            OutputDirectory = Path.Combine(_root, "props"),
+            RequestPath = requestPath,
+        };
+
+        Assert.False(task.Execute());
+        Assert.Equal("RASKISLAND005", Assert.Single(engine.Errors).Code);
+        Assert.False(File.Exists(requestPath));
     }
 
     [Fact]

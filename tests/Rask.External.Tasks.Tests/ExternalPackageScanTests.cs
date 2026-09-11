@@ -204,6 +204,7 @@ public sealed class ExternalPackageScanTests
     [Theory]
     [InlineData("@mui/material#Button", "@mui/material", "Button")]
     [InlineData("@mui/material/Button", "@mui/material/Button", "default")]
+    [InlineData("bits-ui#Switch.Root", "bits-ui", "Switch.Root")]
     [InlineData("pkg#", "pkg#", "default")]
     public void A_specifier_splits_into_module_and_export(string module, string specifier, string export)
     {
@@ -226,9 +227,32 @@ public sealed class ExternalPackageScanTests
     [InlineData("a b", false)]
     [InlineData("x'};alert(1);//", false)]
     [InlineData("1st", false)]
-    public void Only_an_identifier_can_be_written_into_an_import(string export, bool valid)
+    [InlineData("Switch.Root", true)]
+    [InlineData("Menu.Item.Label", true)]
+    [InlineData("a..b", false)]
+    [InlineData(".Root", false)]
+    [InlineData("Switch.", false)]
+    [InlineData("default.Root", true)]
+    public void Only_an_identifier_or_a_dotted_path_of_them_can_be_written_into_an_import(string export, bool valid)
     {
         Assert.Equal(valid, ExternalPackageSpecifier.IsValidExport(export));
+    }
+
+    [Theory]
+    [InlineData("sl-switch", "lit", true)]
+    [InlineData("fx-switch", "react", false)]
+    [InlineData("Sl-switch", "lit", false)]
+    [InlineData("slswitch", "lit", true)]
+    [InlineData("sl-switch'", "lit", false)]
+    [InlineData("-switch", "lit", false)]
+    [InlineData("Switch.Root", "lit", false)]
+    [InlineData("Switch.Root", "svelte", true)]
+    [InlineData("sl.switch-x", "lit", true)]
+    public void Only_a_lit_island_may_name_the_tag_its_module_registers(string export, string runtime, bool valid)
+    {
+        // "slswitch" is valid for Lit as the identifier it is, not as a tag. A member of an export is not: a Lit entry mounts
+        // an element by tag, so "Switch.Root" would lose its ".Root" — while a tag may carry a dot.
+        Assert.Equal(valid, ExternalPackageSpecifier.IsValidExport(export, runtime));
     }
 
     private static List<ScannedPackageIsland> Scan(string text) =>

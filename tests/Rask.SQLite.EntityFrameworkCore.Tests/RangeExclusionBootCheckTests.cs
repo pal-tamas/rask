@@ -18,7 +18,7 @@ public sealed class RangeExclusionBootCheckTests
         var services = new ServiceCollection();
         services.AddRaskData<BookingContext>();
         services.AddDbContextFactory<BookingContext>(o =>
-            o.UseRaskSqlite("Data Source=:memory:", s => s.StrictTables = strictTables));
+            o.UseRaskSqliteAt("Data Source=:memory:", s => s.StrictTables = strictTables));
 
         await using var provider = services.BuildServiceProvider();
 
