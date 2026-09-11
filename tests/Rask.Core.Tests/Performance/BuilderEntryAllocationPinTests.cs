@@ -221,6 +221,9 @@ internal sealed partial class AllocLifecycleEntryProbe : Component
     ];
 }
 
+// Alone, not alongside the rest of the assembly: see AllocationPinCollection for what parallel classes
+// do to a per-thread allocation count through the shared StringBuilder pool (#1056).
+[Collection(AllocationPinCollection.Name)]
 public class BuilderEntryAllocationPinTests
 {
     [Fact]

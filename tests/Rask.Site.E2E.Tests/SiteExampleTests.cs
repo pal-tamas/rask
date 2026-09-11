@@ -473,5 +473,11 @@ public sealed class SiteExampleTests
         // from git. No <lastmod> here would mean the history target, the page or the pass lost it.
         var sitemap = await http.GetStringAsync("/sitemap.xml");
         Assert.Contains("<loc>https://rask.sh/docs/guides/cqrs/</loc><lastmod>", sitemap, StringComparison.Ordinal);
+
+        // The social card every page's og:image names is actually in the bundle, as a PNG.
+        using var card = await http.GetAsync("/img/og-card.png");
+        Assert.True(card.IsSuccessStatusCode, $"/img/og-card.png answered {(int)card.StatusCode}");
+        Assert.Equal("image/png", card.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("property=\"og:image\" content=\"https://rask.sh/img/og-card.png\"", guide, StringComparison.Ordinal);
     }
 }
