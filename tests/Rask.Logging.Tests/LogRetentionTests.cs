@@ -2,16 +2,21 @@ using Microsoft.Extensions.Logging;
 
 namespace Rask.Logging.Tests;
 
+public sealed class FileStoreLogRetentionTests() : LogRetentionContract(LogStoreKind.File);
+
+public sealed class DbContextStoreLogRetentionTests() : LogRetentionContract(LogStoreKind.DbContext);
+
 /// <summary>
 /// Retention. Both halves are on by default because either alone leaves the disk unbounded: age lets a log
-/// storm fill it inside the window, and a row cap alone can shrink the window to minutes on a busy app.
+/// storm fill it inside the window, and a row cap alone can shrink the window to minutes on a busy app. A contract,
+/// run against both stores.
 /// </summary>
-public sealed class LogRetentionTests
+public abstract class LogRetentionContract(LogStoreKind kind)
 {
     [Fact]
     public async Task PurgesEntriesOlderThanTheRetentionPeriod()
     {
-        await using var harness = new LoggingHarness(o =>
+        await using var harness = Harness(o =>
         {
             o.Retention = TimeSpan.FromDays(7);
             o.MaxRows = 0;
@@ -30,7 +35,7 @@ public sealed class LogRetentionTests
     [Fact]
     public async Task KeepsEntriesInsideTheRetentionPeriod()
     {
-        await using var harness = new LoggingHarness(o =>
+        await using var harness = Harness(o =>
         {
             o.Retention = TimeSpan.FromDays(7);
             o.MaxRows = 0;
@@ -49,7 +54,7 @@ public sealed class LogRetentionTests
     [Fact]
     public async Task TrimsToTheNewestMaxRows()
     {
-        await using var harness = new LoggingHarness(o =>
+        await using var harness = Harness(o =>
         {
             o.Retention = TimeSpan.Zero;
             o.MaxRows = 5;
@@ -74,7 +79,7 @@ public sealed class LogRetentionTests
     [Fact]
     public async Task KeepsEverythingWhenBothLimitsAreDisabled()
     {
-        await using var harness = new LoggingHarness(o =>
+        await using var harness = Harness(o =>
         {
             o.Retention = TimeSpan.Zero;
             o.MaxRows = 0;
@@ -97,7 +102,7 @@ public sealed class LogRetentionTests
     [Fact]
     public async Task PurgeDrainsABacklogLargerThanOnePage()
     {
-        await using var harness = new LoggingHarness();
+        await using var harness = Harness();
         var store = harness.Store;
 
         var now = harness.Clock.GetUtcNow();
@@ -117,7 +122,7 @@ public sealed class LogRetentionTests
     [Fact]
     public async Task PurgeTrimsABacklogLargerThanOnePageToTheRowCap()
     {
-        await using var harness = new LoggingHarness();
+        await using var harness = Harness();
         var store = harness.Store;
 
         var now = harness.Clock.GetUtcNow();
@@ -135,8 +140,10 @@ public sealed class LogRetentionTests
     [Fact]
     public async Task PurgeIsANoOpOnAnEmptyStore()
     {
-        await using var harness = new LoggingHarness();
+        await using var harness = Harness();
 
         Assert.Equal(0, await harness.Store.PurgeAsync(TimeSpan.FromDays(1), 10));
     }
+
+    private LoggingHarness Harness(Action<RaskLoggingOptions>? configure = null) => new(configure, kind: kind);
 }

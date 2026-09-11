@@ -40,6 +40,7 @@
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cache\Rask.Cache.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Logging\Rask.Logging.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
