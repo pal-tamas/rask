@@ -72,6 +72,29 @@ public sealed class JsLaneAuthWiringTests
     }
 
     [Fact]
+    public void Storage_is_mapped_before_the_fallback_that_would_swallow_it()
+    {
+        // The same pipeline, the same failure mode: a public file URL answered with index.html, or with a page
+        // the node process rendered, where the browser expected the file.
+        var spa = Program(ProjectGenerator.GenerateSpa(
+            Root, "App", SpaFramework.React, new ServerBatteries { Data = true, Storage = true }, "1.2.3"));
+        var spaStorage = spa.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal);
+
+        Assert.True(
+            spaStorage >= 0 && spaStorage < spa.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal),
+            "MapRaskStorage must come before UseRaskSpa's fallback.");
+
+        var meta = Program(ProjectGenerator.GenerateMeta(
+            Root, "App", MetaTemplate.Nuxt, new ServerBatteries { Data = true, Storage = true }, "1.2.3"));
+        var metaStorage = meta.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal);
+
+        Assert.True(
+            metaStorage >= 0 && metaStorage < meta.IndexOf("app.UseRaskMeta();", StringComparison.Ordinal),
+            "MapRaskStorage must come before UseRaskMeta's forward.");
+        Assert.Contains("using Rask.Storage;", meta, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_app_with_no_database_maps_nothing_it_cannot_answer()
     {
         // Accounts arrive with the database, because they are rows. Mapping the endpoints without one

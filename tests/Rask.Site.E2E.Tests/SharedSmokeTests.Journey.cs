@@ -1452,6 +1452,14 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
+        // The file-storage guide carries no live demo (Rask.Storage is server-only), so a hard navigation
+        // proves what can be proven here: the guide resolves by its slug — "storage" belongs to the
+        // IBrowserStorage reference — renders its heading, and trips no root error boundary.
+        await Page.GotoAsync(Docs + "/guides/file-storage");
+        await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("Rask.Storage",
+            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await AssertNoGlobalCrashAsync();
+
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)

@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Server-only: the files are kept by the server and their rows live in the application's database.
+         Single-targeted (no net10.0-browser), so that constraint is enforced by the compiler. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Storage</PackageId>
+    <Title>Rask.Storage — keep uploaded files, on disk or in a bucket</Title>
+    <Description>File upload storage for ASP.NET Core and .NET: keep user uploads on disk, in S3-compatible storage or in Azure Blob Storage, with a row per file in your database. Save an upload in one call and get back a StoredFile row on the application's own database; hand out a public URL, a temporary URL that expires, or a download behind your own authorization check. Files go to a directory on the deploy volume by default, or to S3-compatible storage (AWS, Cloudflare R2, Backblaze B2, MinIO) or Azure Blob Storage by configuration — with no cloud SDK behind it. Content types are sniffed from the bytes rather than trusted from the browser, and only images, audio and video are ever served inline. Server-side; pairs with EF Core and SQLite.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a server-side storage battery. -->
+    <PackageTags>file-storage object-storage blob-storage file-upload s3 azure-blob r2 minio presigned-url entity-framework-core sqlite dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <!-- IResult and endpoint routing (the file routes and Download), Data Protection (temporary URL tokens)
+       and HttpClient all come with the shared framework. The Microsoft.Extensions.* abstractions do too;
+       naming them here as well is what NU1510 rejects. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SaveAsync takes the RaskFile an upload handler receives, and URLs honour LiveOptions.PathBase.
+         PrivateAssets="all" mirrors Rask.Dashboard: Rask.Core is IsPackable=false and reaches an app
+         through its host package, so naming it as a nuspec dependency would make this one unrestorable.
+         Guarded by PackageDependencyTests. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!-- The boot-time "is this battery mapped?" check, source-linked: the batteries share no common assembly. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Storage.Tests"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Storage;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

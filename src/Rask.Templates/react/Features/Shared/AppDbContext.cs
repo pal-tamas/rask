@@ -12,6 +12,9 @@ using Rask.Mail;
 // rask:if cache
 using Rask.Cache;
 // rask:end
+// rask:if storage
+using Rask.Storage;
+// rask:end
 using Rask.Auth;
 
 namespace Company.RaskServer.Features.Shared;
@@ -43,6 +46,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskD
         // rask:end
         // rask:if cache
         modelBuilder.AddRaskCache();
+        // rask:end
+        // rask:if storage
+        modelBuilder.AddRaskStorage();
         // rask:end
         modelBuilder.AddRaskAuth();
         modelBuilder.ApplyRaskConventions();
