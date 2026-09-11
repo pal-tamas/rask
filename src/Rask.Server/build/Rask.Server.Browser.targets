@@ -4,10 +4,11 @@
     The one-project build.
 
     A .csproj carries exactly one SDK, and the two halves of a Rask app need different ones:
-    Microsoft.NET.Sdk.Web on net10.0 for the server, Microsoft.NET.Sdk.WebAssembly on
-    net10.0-browser/browser-wasm for the browser. One authored project therefore cannot be both — so
-    the build generates the second one and drives it, rather than asking the author to maintain a
-    parallel project whose only job is to compile the same files again.
+    Microsoft.NET.Sdk.Web on net10.0 (or a later version) for the server, and
+    Microsoft.NET.Sdk.WebAssembly on the matching -browser framework and browser-wasm for the browser.
+    One authored project therefore cannot be both — so the build generates the second one and drives
+    it, rather than asking the author to maintain a parallel project whose only job is to compile the
+    same files again.
 
     The companion lives in obj/, is never opened, and is rebuilt from scratch each publish. What it
     compiles is the app's own sources: the same App.cs, the same pages, minus the server's Program.cs
@@ -106,6 +107,14 @@
            Text="RaskBrowserRung is on but the app's root component could not be determined. Set &lt;RaskBrowserRootComponent&gt; to its full type name (e.g. MyApp.App)."/>
 
     <!--
+      The companion's framework is derived from this one, so it has to exist. A multi-targeted server
+      project publishes one framework at a time (-f), and a publish without one fails before this target
+      ever runs — so this only fires when the target is invoked outside a publish.
+    -->
+    <Error Condition=" '$(TargetFramework)' == '' "
+           Text="RaskBrowserRung needs the server half's TargetFramework to derive the browser bundle's from. Publish with -f &lt;framework&gt;."/>
+
+    <!--
       How the companion references Rask mirrors how the APP references it. An app consuming the
       packages gets a PackageReference at the same version; the framework's own repo and its tests
       wire by project path, and RaskBrowserCompanionSrc is how they say so. Guessing one form would
@@ -148,7 +157,13 @@
                           Include="  &lt;Import Project=&quot;$(RaskBrowserCompanionSrc)\Rask.Wasm\build\Rask.Wasm.props&quot; /&gt;"/>
 
       <_RaskCompanionLine Include="  &lt;PropertyGroup&gt;"/>
-      <_RaskCompanionLine Include="    &lt;TargetFramework&gt;net10.0-browser&lt;/TargetFramework&gt;"/>
+      <!--
+        The bundle's framework follows the SERVER half's, version for version: a net10.0 app ships a
+        net10.0-browser bundle and a net11.0 app a net11.0-browser one. It was a literal, which compiled
+        the app's own sources for a .NET version the app does not target — a compile error inside a
+        project the author never wrote, or a bundle quietly running an older runtime than its server.
+      -->
+      <_RaskCompanionLine Include="    &lt;TargetFramework&gt;net$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)', 2))-browser&lt;/TargetFramework&gt;"/>
       <_RaskCompanionLine Include="    &lt;RuntimeIdentifier&gt;browser-wasm&lt;/RuntimeIdentifier&gt;"/>
       <_RaskCompanionLine Include="    &lt;OutputType&gt;Exe&lt;/OutputType&gt;"/>
       <_RaskCompanionLine Include="    &lt;Nullable&gt;$(Nullable)&lt;/Nullable&gt;"/>

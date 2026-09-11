@@ -5,10 +5,10 @@
          panels read a DbContext and a browser app has no database — but this kit is markup and nothing
          else, and the apps that need it most (the landing site, the docs showcase) are browser-WASM.
          The browser face also carries the trim/AOT annotations those apps publish under. -->
-    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0-browser'">true</IsAotCompatible>
+    <IsAotCompatible Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsAotCompatible>
     <IsPackable>true</IsPackable>
     <!--
       This project has no scoped CSS. Rask.Core's auto-include globs every .css outside wwwroot as
@@ -52,8 +52,8 @@
 
     <!-- Build-order edge only: it puts Rask.Tailwind.Tasks.dll in Rask.Tailwind's build/ folder before
          the import loads it with <UsingTask>. Nothing is referenced and nothing flows. -->
-    <!-- UndefineProperties="TargetFramework", which Rask.Dashboard's copy of this reference does not
-         need: this project multi-targets, so each inner build carries TargetFramework as a GLOBAL
+    <!-- UndefineProperties="TargetFramework", like Rask.Dashboard's and Rask.Auth's copies of this
+         reference: this project multi-targets, so each inner build carries TargetFramework as a GLOBAL
          property and hands it to everything it references. Rask.Tailwind is netstandard2.0 and has no
          net10.0-browser target, so the inner builds asked it for a face it does not have (NETSDK1005)
          before a line of this kit compiled. -->
