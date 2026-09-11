@@ -25,6 +25,12 @@ internal sealed class ExternalEntry
     /// </summary>
     /// <remarks>A package island's <see cref="Source" /> is its snapshot, which nothing imports.</remarks>
     public string? Package { get; set; }
+
+    /// <summary>
+    ///     The tag a Lit package island's element registers, as its snapshot records it, or null. Unused when the
+    ///     <see cref="Package" /> names the tag itself.
+    /// </summary>
+    public string? Tag { get; set; }
 }
 
 /// <summary>
@@ -69,10 +75,33 @@ internal static class ExternalBuildPlan
             // A package is imported by its bare specifier as written, never through Specifier(), which would
             // prefix './' and send the bundler looking for a file of that name beside the entry.
             var (specifier, export) = ExternalPackageSpecifier.Split(package);
-            if (!ExternalPackageSpecifier.IsValidExport(export))
+            if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
             {
                 throw new InvalidOperationException(
                     $"Island '{island.Name}' names the export '{export}', which is not an identifier.");
+            }
+
+            if (ReferenceEquals(runtime, ExternalRuntime.Lit))
+            {
+                // A custom element registers itself when its module runs, and mounting it takes only its tag. So the
+                // module is imported for that side effect alone: a binding the entry never used would be elided by
+                // the TypeScript transform, and the registration with it.
+                var tag = ExternalPackageSpecifier.IsTag(export) ? export : island.Tag;
+                if (!ExternalPackageSpecifier.IsTag(tag))
+                {
+                    throw new InvalidOperationException(
+                        $"Island '{island.Name}' is a Lit package island whose tag is not known: name it after the '#' — "
+                        + $"\"{specifier}#my-element\" — or build once with the package installed so its snapshot records it.");
+                }
+
+                return $$"""
+                    {{Header}}
+                    import {{Literal(specifier)}}
+                    import { litComponent } from '{{adapter}}'
+
+                    export default litComponent({{Literal(tag!)}})
+
+                    """;
             }
 
             // A dotted export names a member of an export — bits-ui's `Switch.Root` — so the export is bound first
@@ -105,6 +134,18 @@ internal static class ExternalBuildPlan
             export default {{runtime.AdapterFactory}}({{runtime.ImportName}})
 
             """;
+    }
+
+    /// <summary>The top-level <c>tag</c> a props snapshot records, or null when it records none.</summary>
+    /// <remarks>
+    ///     Read by hand, like every other JSON this assembly reads. The snapshot writes <c>tag</c> before its props, so
+    ///     the first match is the top-level key; a <c>"tag"</c> inside a string is escaped and cannot match.
+    /// </remarks>
+    public static string? SnapshotTag(string snapshot)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            snapshot, "\"tag\"\\s*:\\s*\"(?<tag>[^\"\\\\]*)\"", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        return match.Success ? match.Groups["tag"].Value : null;
     }
 
     /// <summary>

@@ -93,7 +93,7 @@
   <ItemGroup>
     <!-- PreactAdapterFixture is excluded because it needs npm packages and therefore its own target
          below; everything else here bundles with nothing installed. -->
-    <_RaskNodeFixture Include="*Fixture.ts" Exclude="PreactAdapterFixture.ts"/>
+    <_RaskNodeFixture Include="*Fixture.ts" Exclude="PreactAdapterFixture.ts;LitAdapterFixture.ts"/>
   </ItemGroup>
 
   <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
@@ -204,6 +204,30 @@
     <MakeDir Directories="$(OutDir)node-fixtures"/>
 
     <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;PreactAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:preact=&quot;$(_PreactFixtureModules)/preact&quot; --alias:preact/hooks=&quot;$(_PreactFixtureModules)/preact/hooks&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; &quot;--banner:js=import{createRequire as __raskRequire}from 'node:module';const require=__raskRequire(import.meta.url);&quot; --outfile=&quot;$(OutDir)node-fixtures/PreactAdapterFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    The Lit adapter fixture: happy-dom and nothing else, so it borrows the Preact fixture's install rather than paying
+    for a second one, and is bundled exactly when that install arrived. The same `require` banner, for the same reason:
+    happy-dom requires `events` at load, and an ESM bundle has no `require` in scope.
+  -->
+  <Target Name="_RaskBundleLitFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_PreactFixtureStamp)')"
+          Inputs="LitAdapterFixture.ts;$(_PreactFixtureStamp);@(_RaskNodeFixtureDependency);..\..\src\Rask.External\client\lit.ts;..\..\src\Rask.External\client\adapter.ts"
+          Outputs="$(OutDir)node-fixtures/LitAdapterFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;LitAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; &quot;--banner:js=import{createRequire as __raskRequire}from 'node:module';const require=__raskRequire(import.meta.url);&quot; --outfile=&quot;$(OutDir)node-fixtures/LitAdapterFixture.mjs&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

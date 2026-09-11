@@ -31,34 +31,35 @@ public sealed class PackagePropsTasksTests : IDisposable
         Assert.Equal("@mui/material/Button", island.GetMetadata("PackageModule"));
         Assert.Equal(source, island.GetMetadata("DeclaringFile"));
         Assert.Equal("4", island.GetMetadata("ModuleLine"));
-        Assert.Equal("true", island.GetMetadata("Extractable"));
     }
 
     [Fact]
-    public void A_runtime_whose_packages_are_not_read_yet_is_found_and_marked_so()
+    public void A_lit_island_may_name_the_tag_its_define_module_registers()
     {
-        // Sent to the extractor it would fail every build; marked, it is held to a committed snapshot instead.
-        var source = Write("Gauge.cs",
-            "public sealed partial class Gauge : LitComponent { protected override string Module => \"@acme/gauge\"; }");
+        // A define module often exports nothing at all: the tag is what mounts the element.
+        var source = Write("FxSwitch.cs",
+            "public sealed partial class FxSwitch : LitComponent { protected override string Module => \"fixture-lit/fx-switch.js#fx-switch\"; }");
 
-        var task = new FindExternalPackageIslandsTask { BuildEngine = new RecordingEngine(), Sources = [new TaskItem(source)] };
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
 
         Assert.True(task.Execute());
-        Assert.Equal("false", Assert.Single(task.PackageIslands).GetMetadata("Extractable"));
+        Assert.Empty(engine.Errors);
+        Assert.Equal("fixture-lit/fx-switch.js#fx-switch", Assert.Single(task.PackageIslands).GetMetadata("PackageModule"));
     }
 
-    [Theory]
-    [InlineData("VueComponent")]
-    [InlineData("SvelteComponent")]
-    public void Vue_and_svelte_packages_are_read_by_the_extractor(string baseClass)
+    [Fact]
+    public void A_tag_is_no_export_for_any_runtime_but_lit()
     {
-        var source = Write("Toggle.cs",
-            $"public sealed partial class Toggle : {baseClass} {{ protected override string Module => \"@acme/toggle\"; }}");
+        // `#fx-switch` would be written into a React entry as `import { fx-switch as Component }`.
+        var source = Write("FxSwitch.cs",
+            "public sealed partial class FxSwitch : ReactComponent { protected override string Module => \"fixture-lit/fx-switch.js#fx-switch\"; }");
 
-        var task = new FindExternalPackageIslandsTask { BuildEngine = new RecordingEngine(), Sources = [new TaskItem(source)] };
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
 
-        Assert.True(task.Execute());
-        Assert.Equal("true", Assert.Single(task.PackageIslands).GetMetadata("Extractable"));
+        Assert.False(task.Execute());
+        Assert.Equal("RASKISLAND005", Assert.Single(engine.Errors).Code);
     }
 
     [Fact]
