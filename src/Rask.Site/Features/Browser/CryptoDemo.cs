@@ -19,10 +19,11 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
                 ],
                 Div.Class("text-sm text-ui-muted")["UUID: ", Code.Id("crypto-uuid-value")[_uuid ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted mb-2")["Bytes: ", Code.Id("crypto-bytes-value")[_bytes ?? "(none)"]],
-                Input
+                UiInput
                     .Value(_text)
+                    .Label("Text to hash")
                     .Id("crypto-text")
-                    .Class($"{Tw.Input} mb-2")
+                    .Class("mb-2")
                     .OnInput(v => _text = v),
                 UiButton.Tone(UiTone.Primary).Class("mb-2").Id("crypto-hash").OnClick(Hash)["SHA-256"],
                 Div.Class("text-sm text-ui-muted text-break")["Hash: ", Code.Id("crypto-hash-value")[_hash ?? "(none)"]],

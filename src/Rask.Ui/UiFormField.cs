@@ -83,6 +83,17 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     public bool? ShowValidation { get; set; }
 
     /// <summary>
+    ///     Whether to show that an async validator is still checking the value — a small spinner and
+    ///     "Checking…" under the control. On by default for a BOUND field.
+    /// </summary>
+    /// <remarks>
+    ///     A field whose validator goes to the network is otherwise silent for the length of the round trip,
+    ///     and a reader who tabs away takes the silence for a pass. Turn it off where the check is shown some
+    ///     other way. The words are what a screen reader announces; the spinner is decoration.
+    /// </remarks>
+    public bool? ShowValidating { get; set; }
+
+    /// <summary>
     ///     The message to show when what was typed is not acceptable, for a CONTROLLED field.
     /// </summary>
     /// <remarks>
@@ -209,6 +220,21 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
                 .For(bind);
 
     /// <summary>
+    ///     The field's "checking…" indicator, or null when there is nothing to show one for.
+    /// </summary>
+    /// <remarks>
+    ///     Core's <c>ValidatingIndicator</c> renders nothing unless the field has a validation in flight — plus a
+    ///     short sticky tail, so a quick check is on screen long enough to read — so an idle field pays an empty
+    ///     component, the same bargain <see cref="ValidationFor" /> makes.
+    /// </remarks>
+    protected Component? ValidatingFor() =>
+        ShowValidating == false || Bind is not { } bind
+            ? null
+            : ValidatingIndicator
+                .Template(() => UiLoading.Text("Checking…").Size(UiSize.Xs).Class("label"))
+                .For(bind);
+
+    /// <summary>
     ///     The id the label points at — the caller's, or one derived from what the field is.
     /// </summary>
     /// <remarks>
@@ -242,6 +268,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     {
         var control = Control();
         var validation = ValidationFor();
+        var validating = ValidatingFor();
         var floats = Label is not null && FloatsLabel;
 
         // RaskMarkup.Label, qualified: this type has a Label PROPERTY, which shadows the <label> chain entry
@@ -259,7 +286,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         // in a table cell or a toolbar wants — and means adding this base changed no rendered output for
         // any call site that had no label, no hint and nothing to validate. A floating label is already
         // its own wrapper, so it needs the fieldset only for what goes under it.
-        if (Hint is null && validation is null && Error is null && (Label is null || floats))
+        if (Hint is null && validation is null && validating is null && Error is null && (Label is null || floats))
         {
             return field;
         }
@@ -267,6 +294,9 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         return Div.Class("fieldset")[
             Label is null || floats ? null : RaskMarkup.Label.For(FieldId).Class("fieldset-legend")[Label],
             field,
+            // While an async validator runs. Ahead of the message, so the two occupy the same place in turn
+            // rather than the message jumping when the indicator gives way to it.
+            validating,
             // A SIBLING of the control, which is what daisyUI's `.validator ~ .validator-hint` requires.
             validation,
             // daisyUI's own class, so the reveal-on-invalid behaviour is the library's rather than a second

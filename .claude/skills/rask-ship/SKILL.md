@@ -89,6 +89,9 @@ If the change is visible to app authors (new/changed component, API, prop, defau
   `docs/diagnostics.md` if a RASK0xx changed. Keep the AI guides current too
   (`docs/ai-agents.md`, root `llms.txt`, and the `AGENTS.md` in the repo root).
 - Nothing user-facing ships without a runnable demo on the site + updated docs.
+- **Discoverability**: a change to `src/Rask.Site`, `docs/`, `README.md`/`NUGET.md` or a package's
+  `Description`/`PackageTags` → run the **`rask-seo`** skill. A new guide needs its `SearchTitle` and
+  `Description` (it will not compile without them); a new page needs `PageMeta.For`.
 
 ## 4. Benchmarks (framework/render-hotpath changes only)
 If you changed render/live-runtime code → run the **`run-benchmarks`** skill, capture the

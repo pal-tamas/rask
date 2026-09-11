@@ -748,6 +748,8 @@ Rask.Ui.UiCheckbox.Class.get -> string?
 Rask.Ui.UiCheckbox.Class.set -> void
 Rask.Ui.UiCheckbox.Disabled.get -> bool?
 Rask.Ui.UiCheckbox.Disabled.set -> void
+Rask.Ui.UiCheckbox.Id.get -> string?
+Rask.Ui.UiCheckbox.Id.set -> void
 Rask.Ui.UiCheckbox.OnChange.get -> Rask.Core.Callback<bool>?
 Rask.Ui.UiCheckbox.OnChange.set -> void
 Rask.Ui.UiCheckbox.Size.get -> Rask.Ui.UiSize?
@@ -1017,6 +1019,8 @@ Rask.Ui.UiFileInput.Class.get -> string?
 Rask.Ui.UiFileInput.Class.set -> void
 Rask.Ui.UiFileInput.Disabled.get -> bool?
 Rask.Ui.UiFileInput.Disabled.set -> void
+Rask.Ui.UiFileInput.Id.get -> string?
+Rask.Ui.UiFileInput.Id.set -> void
 Rask.Ui.UiFileInput.Label.get -> string!
 Rask.Ui.UiFileInput.Label.set -> void
 Rask.Ui.UiFileInput.Multiple.get -> bool?
@@ -1085,6 +1089,8 @@ Rask.Ui.UiFormField<T>.Label.get -> string?
 Rask.Ui.UiFormField<T>.Label.set -> void
 Rask.Ui.UiFormField<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Ui.UiFormField<T>.OnChange.set -> void
+Rask.Ui.UiFormField<T>.ShowValidating.get -> bool?
+Rask.Ui.UiFormField<T>.ShowValidating.set -> void
 Rask.Ui.UiFormField<T>.ShowValidation.get -> bool?
 Rask.Ui.UiFormField<T>.ShowValidation.set -> void
 Rask.Ui.UiFormField<T>.Size.get -> Rask.Ui.UiSize?
@@ -1094,6 +1100,7 @@ Rask.Ui.UiFormField<T>.Tone.set -> void
 Rask.Ui.UiFormField<T>.UiFormField() -> void
 Rask.Ui.UiFormField<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Ui.UiFormField<T>.Validate.set -> void
+Rask.Ui.UiFormField<T>.ValidatingFor() -> Rask.Core.Component?
 Rask.Ui.UiFormField<T>.ValidationFor() -> Rask.Core.Component?
 Rask.Ui.UiFormField<T>.Value.get -> T?
 Rask.Ui.UiFormField<T>.Value.set -> void
@@ -1257,6 +1264,8 @@ Rask.Ui.UiInput<T>.MaxLength.get -> int?
 Rask.Ui.UiInput<T>.MaxLength.set -> void
 Rask.Ui.UiInput<T>.Min.get -> string?
 Rask.Ui.UiInput<T>.Min.set -> void
+Rask.Ui.UiInput<T>.Name.get -> string?
+Rask.Ui.UiInput<T>.Name.set -> void
 Rask.Ui.UiInput<T>.OnInput.get -> Rask.Core.Callback<string!>?
 Rask.Ui.UiInput<T>.OnInput.set -> void
 Rask.Ui.UiInput<T>.Placeholder.get -> string?
@@ -1834,6 +1843,10 @@ Rask.Ui.UiTextRotate.Words.set -> void
 Rask.Ui.UiTextarea<T>
 Rask.Ui.UiTextarea<T>.Floating.get -> bool?
 Rask.Ui.UiTextarea<T>.Floating.set -> void
+Rask.Ui.UiTextarea<T>.Name.get -> string?
+Rask.Ui.UiTextarea<T>.Name.set -> void
+Rask.Ui.UiTextarea<T>.OnInput.get -> Rask.Core.Callback<string!>?
+Rask.Ui.UiTextarea<T>.OnInput.set -> void
 Rask.Ui.UiTextarea<T>.Placeholder.get -> string?
 Rask.Ui.UiTextarea<T>.Placeholder.set -> void
 Rask.Ui.UiTextarea<T>.Rows.get -> int?
@@ -2286,7 +2299,9 @@ static RaskBuilderSettersRask_Ui.Icon(this Rask.Ui.UiFab! __b, Rask.Ui.UiIconNam
 static RaskBuilderSettersRask_Ui.Icon(this Rask.Ui.UiHeader! __b, Rask.Ui.UiIconName? value) -> Rask.Ui.UiHeader!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.Ui.UiMenuItem! __b, Rask.Ui.UiIconName? value) -> Rask.Ui.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.Ui.UiStat! __b, Rask.Ui.UiIconName? value) -> Rask.Ui.UiStat!
+static RaskBuilderSettersRask_Ui.Id(this Rask.Ui.UiCheckbox! __b, string? value) -> Rask.Ui.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Id(this Rask.Ui.UiDrawer! __b, string! value) -> Rask.Ui.UiDrawer!
+static RaskBuilderSettersRask_Ui.Id(this Rask.Ui.UiFileInput! __b, string? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.Id(this Rask.Ui.UiMegamenuPanel! __b, string! value) -> Rask.Ui.UiMegamenuPanel!
 static RaskBuilderSettersRask_Ui.Id(this Rask.Ui.UiModal! __b, string? value) -> Rask.Ui.UiModal!
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
@@ -2343,8 +2358,10 @@ static RaskBuilderSettersRask_Ui.Mono(this Rask.Ui.UiDetailRow! __b, bool? value
 static RaskBuilderSettersRask_Ui.Month(this Rask.Ui.UiCalendar! __b, System.DateOnly? value) -> Rask.Ui.UiCalendar!
 static RaskBuilderSettersRask_Ui.Multiple(this Rask.Ui.UiFileInput! __b, bool? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.Name(this Rask.Ui.UiIcon! __b, Rask.Ui.UiIconName value) -> Rask.Ui.UiIcon!
+static RaskBuilderSettersRask_Ui.Name<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Name<T>(this Rask.Ui.UiMultiSelect<T>! __b, string? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Name<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Name<T>(this Rask.Ui.UiTextarea<T>! __b, string? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.Ui.UiMultiSelect<T>! __b, bool? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.NewTab(this Rask.Ui.UiButton! __b, bool? value) -> Rask.Ui.UiButton!
@@ -2416,6 +2433,9 @@ static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.Ui.UiD
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiInput<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiInput<T>! __b, System.Action<string!>? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiInput<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiInput<T>!
+static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiTextarea<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.Ui.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiTextarea<T>! __b, System.Action<string!>? value) -> Rask.Ui.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiTextarea<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnMonth(this Rask.Ui.UiCalendar! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.Ui.UiCalendar!
 static RaskBuilderSettersRask_Ui.OnMonth(this Rask.Ui.UiCalendar! __b, System.Action<System.DateOnly>? value) -> Rask.Ui.UiCalendar!
 static RaskBuilderSettersRask_Ui.OnMonth(this Rask.Ui.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiCalendar!
@@ -2506,6 +2526,9 @@ static RaskBuilderSettersRask_Ui.Shape(this Rask.Ui.UiMask! __b, Rask.Ui.UiMaskS
 static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.ShowSystem(this Rask.Ui.UiThemeDropdown! __b, bool value) -> Rask.Ui.UiThemeDropdown!
 static RaskBuilderSettersRask_Ui.ShowSystem(this Rask.Ui.UiThemePicker! __b, bool value) -> Rask.Ui.UiThemePicker!
+static RaskBuilderSettersRask_Ui.ShowValidating<T>(this Rask.Ui.UiInput<T>! __b, bool? value) -> Rask.Ui.UiInput<T>!
+static RaskBuilderSettersRask_Ui.ShowValidating<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.ShowValidating<T>(this Rask.Ui.UiTextarea<T>! __b, bool? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.Ui.UiInput<T>! __b, bool? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.Ui.UiTextarea<T>! __b, bool? value) -> Rask.Ui.UiTextarea<T>!

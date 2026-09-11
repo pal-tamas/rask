@@ -35,6 +35,10 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
 
     public string? Class { get; set; }
 
+    /// <inheritdoc cref="Element.Id" />
+    /// <remarks>On the box itself, which is what a test clicks and what a <c>&lt;label for&gt;</c> elsewhere would name.</remarks>
+    public string? Id { get; set; }
+
     /// <inheritdoc />
     /// <remarks>
     ///     <para>
@@ -79,6 +83,7 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
             // nothing here sets Checked — doing so would be a second source of truth for one field.
             return Input
                 .Bind(bind)
+                .Id(Id)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
                 .Disabled(Disabled == true)
@@ -89,6 +94,7 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
         // this control reports a bool. Checked is the state; Value on an <input> is the value attribute.
         return Input
             .Of<bool>()
+            .Id(Id)
             .Checked(Value)
             .OnChange(OnChange)
             .Disabled(Disabled == true)

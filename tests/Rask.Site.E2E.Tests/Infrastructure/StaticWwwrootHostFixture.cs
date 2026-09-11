@@ -43,7 +43,13 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
             [".svg"] = "image/svg+xml",
             [".png"] = "image/png",
             [".ico"] = "image/x-icon",
-            [".webmanifest"] = "application/manifest+json"
+            [".webmanifest"] = "application/manifest+json",
+            // The files the publish writes for crawlers and AI assistants — sitemap.xml and robots.txt from
+            // the prerender pass, llms.txt and the guides' Markdown twins from the site. GitHub Pages serves
+            // them as these types.
+            [".xml"] = "application/xml; charset=utf-8",
+            [".txt"] = "text/plain; charset=utf-8",
+            [".md"] = "text/markdown; charset=utf-8"
         };
 
     private CancellationTokenSource? _cts;

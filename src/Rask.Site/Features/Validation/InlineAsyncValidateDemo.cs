@@ -8,20 +8,12 @@ public sealed partial class InlineAsyncValidateDemo : Component
     // directly to Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> on the Input,
     // and a bare `async (m, ct) => …` lambda binds the same shape on Form — both with no cast.
     // The 250ms delay drives the latest-wins cancellation path (rapid typing supersedes the
-    // prior in-flight run) and ValidatingIndicator surfaces the pending state.
+    // prior in-flight run), and the kit field shows "Checking…" for the pending state on its own.
     private static readonly HashSet<string> TakenCodes =
         new(StringComparer.OrdinalIgnoreCase) { "BAD-001", "DEAD-BEEF", "RESERVED" };
 
     private readonly PromoModel _model = new();
     private string? _submission;
-
-    private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
-
-    private static Component Checking() =>
-        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking…"
-        ];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
@@ -55,15 +47,9 @@ public sealed partial class InlineAsyncValidateDemo : Component
                     ? new[] { "Code is required." }
                     : Array.Empty<string>();
             })[
-            Div[
-                Label.For("v10-code").Class($"{Tw.Label} text-sm mb-1")["Promo code"],
-                Input.Bind(() => _model.Code)
-                    .Id("v10-code")
-                    .Class(Tw.Input)
-                    .Validate(CheckCodeAsync),
-                ValidatingIndicator.Template(Checking).For(() => _model.Code),
-                ValidationMessage.Template(FieldError).For(() => _model.Code)
-            ],
+            UiInput.Bind(() => _model.Code).Label("Promo code")
+                .Id("v10-code")
+                .Validate(CheckCodeAsync),
             ValidationSummary.Template(SummaryAlert),
             Div[
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.Gift), "Redeem"]

@@ -207,6 +207,10 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!-- When each guide last changed, from git — shared with Rask.Site.Tests, which compiles these sources too.
+       See the file for why it is embedded, and why a shallow clone dates nothing. -->
+  <Import Project="GuideHistory.targets"/>
+
   <!-- The guides' own demo sources, alongside the Features/ ones already embedded above. -->
   <ItemGroup>
     <EmbeddedResource Include="Shared/**/*.cs;Shared/**/*.ts;Shared/**/*.css">

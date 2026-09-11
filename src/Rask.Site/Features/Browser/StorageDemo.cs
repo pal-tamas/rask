@@ -17,8 +17,7 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     protected override Component? Render() =>
         UiCard.Class("shadow-sm")[
                 Div.Class("mb-2 flex gap-2")[
-                    Input.Value(_input)
-                        .Class(Tw.Input)
+                    UiInput.Value(_input).AccessibleLabel("Value to persist")
                         .Id("storage-input")
                         .Placeholder("Value to persist")
                         .OnInput(v => _input = v),

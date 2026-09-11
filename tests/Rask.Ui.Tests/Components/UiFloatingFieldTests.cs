@@ -34,12 +34,28 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_placeholder_the_call_site_gave_is_kept()
+    public void A_floating_label_is_the_placeholder_even_when_the_call_site_gave_one()
     {
+        // A different placeholder would sit in the box in the label's place and hide the one thing saying what
+        // the field is for until somebody focused it. Guidance about the value belongs in Hint.
         var html = UiInput.Value("").Label("Email").Placeholder("you@example.com").ToHtml();
 
-        Assert.Contains("placeholder=\"you@example.com\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("placeholder=\"Email\"", html, StringComparison.Ordinal);
+        Assert.Contains("placeholder=\"Email\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("you@example.com", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_placeholder_still_applies_where_no_label_floats()
+    {
+        Assert.Contains(
+            "placeholder=\"you@example.com\"",
+            UiInput.Value("").Label("Email").Floating(false).Placeholder("you@example.com").ToHtml(),
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "placeholder=\"Search guides\"",
+            UiInput.Value("").AccessibleLabel("Search").Placeholder("Search guides").ToHtml(),
+            StringComparison.Ordinal);
     }
 
     [Fact]

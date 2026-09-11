@@ -391,8 +391,15 @@ UiInput.Bind(() => _account.Email).Label("Email")                   // floats
 UiInput.Bind(() => _account.Seats).Label("Seats").Floating(false)   // legend above the field
 ```
 
-A floating caption rises from a *shown* placeholder, so the placeholder falls back to the label text when
-you give none.
+While the label floats it is also the placeholder, and a `Placeholder` you set is ignored. A different
+placeholder would sit in the box in the label's place until someone focused the field. Put guidance about
+the value in `Hint`, under the field, where it stays visible while typing. `Placeholder` still applies to
+a field with no visible label and to one with `Floating(false)`.
+
+**A bound field says what it knows.** Under the control it shows its validation message and, while an async
+validator is still out, a small spinner with "Checking…". The words are announced; the spinner is
+decoration. Opt out of either with `ShowValidation(false)` or `ShowValidating(false)`, where the page shows
+those states some other way, such as a summary at the top of the form.
 
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two

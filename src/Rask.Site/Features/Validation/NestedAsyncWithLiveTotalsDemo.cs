@@ -6,9 +6,9 @@ namespace Rask.Site.Features;
 public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 {
     // Layers two things on top of the basic nested-binding showcase:
-    //   * Async inline Validate: on a nested field (Address.PostalCode) with ValidatingIndicator —
-    //     proves the latest-wins cancellation + pending-indicator path works for sub-objects, not
-    //     just root fields.
+    //   * Async inline Validate: on a nested field (Address.PostalCode), whose kit field shows
+    //     "Checking…" while the lookup runs — proves the latest-wins cancellation + pending-indicator
+    //     path works for sub-objects, not just root fields.
     //   * Live derived UI: the order totals are computed inside Render() from the current model
     //     state. Every event handler re-renders the owning component, so the figures update on
     //     each keystroke (string discount code, OnInput) and on each blur (int/decimal qty/price,
@@ -35,11 +35,6 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
-
-    private static Component Checking() =>
-        Span.Class("validating-indicator text-ui-muted text-sm mt-1")[
-            UiIcon.Name(UiIconName.Retry).Class("me-1"), "Checking delivery zone…"
-        ];
 
     private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
         string code, CancellationToken ct)
@@ -84,73 +79,65 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}")
                 .Class("flex flex-col gap-3")[
                 Div[
-                    Label.For("v-nlive-name").Class($"{Tw.Label} text-sm mb-1")["Customer name"],
-                    Input.Bind(() => _model.CustomerName)
+                    UiInput.Bind(() => _model.CustomerName).Label("Customer name")
                         .Id("v-nlive-name")
-                        .Class(Tw.Input)
                         .Validate(v =>
                             string.IsNullOrWhiteSpace(v)
                                 ? new[] { "Name is required." }
-                                : Array.Empty<string>()),
+                                : Array.Empty<string>()).ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
-                Div[
-                    Label.For("v-nlive-postal").Class($"{Tw.Label} text-sm mb-1")[
-                        "Postal code ", Span.Class("text-ui-muted")["(try 12345, 99999, or any 5-digit code)"]
-                    ],
-                    Input.Bind(() => _model.Address.PostalCode)
-                        .Id("v-nlive-postal")
-                        .Class(Tw.Input)
-                        .Validate(ValidatePostalAsync),
-                    ValidatingIndicator.Template(Checking).For(() => _model.Address.PostalCode),
-                    ValidationMessage.Template(FieldError).For(() => _model.Address.PostalCode)
-                ],
+                UiInput.Bind(() => _model.Address.PostalCode)
+                    .Label("Postal code")
+                    .Hint("Try 12345, 99999, or any 5-digit code.")
+                    .Id("v-nlive-postal")
+                    .Validate(ValidatePostalAsync),
                 Div.Class("border rounded p-3")[
                     Div.Class("font-semibold text-sm mb-2")["Items"],
                     Div.Class("grid grid-cols-12 gap-4 mb-2 items-center")[
                         Div.Class("col-span-6")[
-                            Input.Bind(() => _model.Items[0].Name)
+                            UiInput.Bind(() => _model.Items[0].Name)
+                                .AccessibleLabel("Item 1 name")
                                 .Id("v-nlive-item0-name")
-                                .Class(Tw.Input)
                         ],
                         Div.Class("col-span-3")[
-                            Input.Bind(() => _model.Items[0].Quantity)
+                            UiInput.Bind(() => _model.Items[0].Quantity)
+                                .AccessibleLabel("Item 1 quantity")
                                 .Id("v-nlive-item0-qty")
-                                .Class(Tw.Input)
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
-                            Input.Bind(() => _model.Items[0].UnitPrice)
+                            UiInput.Bind(() => _model.Items[0].UnitPrice)
+                                .AccessibleLabel("Item 1 unit price")
                                 .Id("v-nlive-item0-price")
-                                .Class(Tw.Input)
                                 .Step("0.01")
                         ]
                     ],
                     Div.Class("grid grid-cols-12 gap-4 items-center")[
                         Div.Class("col-span-6")[
-                            Input.Bind(() => _model.Items[1].Name)
+                            UiInput.Bind(() => _model.Items[1].Name)
+                                .AccessibleLabel("Item 2 name")
                                 .Id("v-nlive-item1-name")
-                                .Class(Tw.Input)
                         ],
                         Div.Class("col-span-3")[
-                            Input.Bind(() => _model.Items[1].Quantity)
+                            UiInput.Bind(() => _model.Items[1].Quantity)
+                                .AccessibleLabel("Item 2 quantity")
                                 .Id("v-nlive-item1-qty")
-                                .Class(Tw.Input)
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
-                            Input.Bind(() => _model.Items[1].UnitPrice)
+                            UiInput.Bind(() => _model.Items[1].UnitPrice)
+                                .AccessibleLabel("Item 2 unit price")
                                 .Id("v-nlive-item1-price")
-                                .Class(Tw.Input)
                                 .Step("0.01")
                         ]
                     ]
                 ],
                 Div[
-                    Label.For("v-nlive-promo").Class($"{Tw.Label} text-sm mb-1")[
-                        "Promo code ", Span.Class("text-ui-muted")["(try SAVE10 or SAVE25)"]
-                    ],
-                    Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class(Tw.Input)
+                    UiInput.Bind(() => _model.DiscountCode)
+                        .Label("Promo code")
+                        .Hint("Try SAVE10 or SAVE25.")
+                        .Id("v-nlive-promo")
                 ],
                 Div.Id("v-nlive-totals").Class("bg-ui-well rounded p-3 text-sm")[
                     Div.Class("flex justify-between flex-wrap items-center")[

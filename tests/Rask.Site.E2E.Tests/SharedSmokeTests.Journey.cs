@@ -1109,15 +1109,15 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
             .ToContainTextAsync("required",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        // The kit field draws both states itself now, so they are asserted by the words a reader sees rather
+        // than by classes the demo used to pick.
         var asyncForm = Page.Locator("form:has(#v3-username)");
         await asyncForm.Locator("#v3-username").FillAsync("admin");
         await asyncForm.Locator("#v3-username").BlurAsync();
-        await Expect(asyncForm.Locator(".validating-indicator"))
-            .ToContainTextAsync("Checking",
-                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
-        await Expect(asyncForm.Locator(".text-danger"))
-            .ToContainTextAsync("taken",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        await Expect(asyncForm.GetByRole(AriaRole.Status).Filter(new LocatorFilterOptions { HasText = "Checking" }))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        await Expect(asyncForm.GetByText("is already taken"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
     protected async Task WalkStylingDataAndAppPagesAsync(ShowcaseJourneyOptions opts)

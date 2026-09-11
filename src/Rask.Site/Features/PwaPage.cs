@@ -55,10 +55,9 @@ public sealed partial class PwaPage : Component
 
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "PWA & device APIs — Rask",
-            "Every browser capability Rask wraps in typed C#, live in one page: install prompt, notifications "
-            + "and push, the app badge, wake lock, orientation, fullscreen, Picture-in-Picture, EyeDropper, "
-            + "idle detection, camera and microphone, Web Serial, WebUSB, WebHID and Web Bluetooth.",
+            "PWA and device APIs in C# for WebAssembly — Rask",
+            "Typed C# wrappers for browser device APIs, each with a live WebAssembly demo: install prompt, "
+            + "push, wake lock, fullscreen, camera, Web Serial and WebUSB.",
             Routes.PwaPage());
 
     protected override Component? Render()

@@ -4,6 +4,8 @@ namespace Rask.Site.Features;
 
 public sealed partial class ValidationSummaryDemo : Component
 {
+    private static readonly (string? Value, string Text)[] Plans = [("free", "Free"), ("pro", "Pro"), ("team", "Team")];
+
     private readonly RegistrationModel _model = new();
     private string? _submission;
 
@@ -23,29 +25,27 @@ public sealed partial class ValidationSummaryDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
             ValidationSummary.Template(SummaryAlert),
+            // ShowValidation(false) on every field: the errors belong to the summary above, which is what this
+            // demo is showing, and a field that also said its own would say each one twice.
             Div[
-                Label.For("v2-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("v2-name").Class(Tw.Input)
+                UiInput.Bind(() => _model.Name).Label("Name").Id("v2-name").ShowValidation(false)
             ],
             Div[
-                Label.For("v2-email").Class($"{Tw.Label} text-sm mb-1")["Email"],
-                Input.Bind(() => _model.Email)
+                UiInput.Bind(() => _model.Email).Label("Email")
                     .Id("v2-email")
                     .Type(InputType.Email)
-                    .Class(Tw.Input)
+                    .ShowValidation(false)
             ],
             Div[
-                Label.For("v2-age").Class($"{Tw.Label} text-sm mb-1")["Age"],
-                Input.Bind(() => _model.Age).Id("v2-age").Class(Tw.Input)
+                UiInput.Bind(() => _model.Age).Label("Age").Id("v2-age").ShowValidation(false)
             ],
             Div[
-                Label.For("v2-plan").Class($"{Tw.Label} text-sm mb-1")["Plan"],
-                Select.Bind(() => _model.Plan).Id("v2-plan").Class(Tw.Select)[
-                    Option.Value("")["— choose —"],
-                    Option.Value("free")["Free"],
-                    Option.Value("pro")["Pro"],
-                    Option.Value("team")["Team"]
-                ]
+                UiSelect.Bind(() => _model.Plan)
+                    .Options(Plans)
+                    .Placeholder("— choose —")
+                    .Label("Plan")
+                    .Id("v2-plan")
+                    .ShowValidation(false)
             ],
             Div[
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), "Register"]

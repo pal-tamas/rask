@@ -32,18 +32,15 @@ public sealed partial class ValidatableObjectDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
             ValidationSummary.Template(SummaryAlert),
             Div[
-                Label.For("v11-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("v11-name").Class(Tw.Input),
+                UiInput.Bind(() => _model.Name).Label("Name").Id("v11-name").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Label.For("v11-departure").Class($"{Tw.Label} text-sm mb-1")["Departure"],
-                Input.Bind(() => _model.Departure).Id("v11-departure").Class(Tw.Input),
+                UiInput.Bind(() => _model.Departure).Label("Departure").Id("v11-departure").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Departure)
             ],
             Div[
-                Label.For("v11-arrival").Class($"{Tw.Label} text-sm mb-1")["Arrival"],
-                Input.Bind(() => _model.Arrival).Id("v11-arrival").Class(Tw.Input),
+                UiInput.Bind(() => _model.Arrival).Label("Arrival").Id("v11-arrival").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
