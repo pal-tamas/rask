@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Rask.Core.Diagnostics.DevTools;
+using Rask.DevTools.Browser;
 using Rask.DevTools.Probe;
 using Rask.Wasm;
 
@@ -24,5 +26,8 @@ internal sealed partial class DevToolsBootstrap
         services.AddSingleton(feeds);
         services.AddSingleton(probe);
         RaskDevToolsHook.Probe = probe;
+
+        // The pill and the panel, once the app has rendered: the host starts hosted services last.
+        services.AddSingleton<IHostedService>(new DevToolsWasmPanelHost(feeds));
     }
 }

@@ -358,6 +358,15 @@ them until tagged releases begin.
   RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
   is it documented — and nothing asked whether a documented rule existed.
 
+- **The Rask pill opens the devtools panel on WASM pages too.** A Debug build of a WASM app served from this machine
+  (`localhost` or a loopback address) gets the same pill and drawer as a Server app, and the Wire tab lists the page's
+  frames. With no server to run it on, the panel runs as a second live session inside the app's own .NET runtime, with
+  its own route state and services, and starts only when the drawer first opens. Its frames are posted into a `srcdoc`
+  frame whose small client applies them, so no second runtime boots. The scripts are embedded in `Rask.DevTools` and
+  imported from a `data:` URL, so a Release publish that strips the assembly strips them too; a development page whose
+  Content-Security-Policy forbids `data:` scripts logs one warning instead. A Debug bundle deployed to a real host keeps
+  the tools off for its visitors.
+
 ### Changed
 
 - **Every shipped package reads its .NET versions from one place** — the groundwork for building each package

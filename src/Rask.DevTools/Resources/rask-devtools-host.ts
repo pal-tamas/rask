@@ -6,14 +6,8 @@
 // overlays are its modules as they arrive. It is idempotent: whatever loads it, one document must never run the tools
 // twice.
 
-import {installDock, type DockHandle} from "./host/dock.js";
-
-declare global {
-    interface Window {
-        /** Present once the devtools host script has run in this document. */
-        __raskDevtoolsHost?: { readonly version: 1; readonly dock: DockHandle };
-    }
-}
+// `window.__raskDevtoolsHost` is declared beside the dock, which both hosts' entry points share.
+import {installDock} from "./host/dock.js";
 
 // The tag the server wrote names the panel page; read while this script is still the current one. No panel, no pill:
 // a corner button that opens an empty drawer is worse than none.

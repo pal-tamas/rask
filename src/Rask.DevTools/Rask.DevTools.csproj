@@ -14,6 +14,8 @@
     -->
     <IsTrimmable Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsTrimmable>
     <IsAotCompatible Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsAotCompatible>
+    <!-- The browser face's [JSImport] declarations: the generator marshals through unsafe code. -->
+    <AllowUnsafeBlocks Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</AllowUnsafeBlocks>
 
     <PackageId>Rask.DevTools</PackageId>
     <Title>Rask — DevTools</Title>
@@ -53,20 +55,25 @@
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     <ProjectReference Include="..\Rask.Server\Rask.Server.csproj" PrivateAssets="all"/>
-    <!-- No browser runtime here to read a page origin from. -->
-    <Compile Remove="DevToolsBootstrap.Browser.cs"/>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-host.js"
                       LogicalName="Rask.DevTools.Resources.rask-devtools-host.js"/>
+    <!-- No browser runtime here: no page origin to read, no module to import, no panel to run in the page. -->
+    <Compile Remove="DevToolsBootstrap.Browser.cs;Browser\**"/>
   </ItemGroup>
 
   <!--
     The browser face has no Server host to map endpoints on. It reads the page's origin from Rask.Wasm, which is
     PrivateAssets="all" for Rask.Server's reason: only a WASM host runs this half of the bootstrap, so every app in which
-    it runs already references Rask.Wasm.
+    it runs already references Rask.Wasm. Its scripts are embedded, like the Server face's, so a Release publish that
+    strips the assembly strips them with it.
   -->
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
     <Compile Remove="DevToolsBootstrap.Server.cs;Endpoints\**"/>
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj" PrivateAssets="all"/>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-wasm.js"
+                      LogicalName="Rask.DevTools.Resources.rask-devtools-wasm.js"/>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-frame.js"
+                      LogicalName="Rask.DevTools.Resources.rask-devtools-frame.js"/>
   </ItemGroup>
 
   <!--
@@ -77,6 +84,8 @@
   -->
   <ItemGroup>
     <_RaskDevToolsHostTs Include="Resources\**\*.ts" Exclude="Resources\**\*.d.ts"/>
+    <!-- The WASM panel frame bundles Rask.Core's DOM, morph and event modules, so their edits re-bundle it too. -->
+    <_RaskDevToolsFrameTs Include="@(_RaskDevToolsHostTs);..\Rask.Core\Resources\*.ts"/>
   </ItemGroup>
 
   <PropertyGroup>
@@ -103,6 +112,30 @@
     <MakeDir Directories="$(IntermediateOutputPath)"/>
 
     <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-devtools-host.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-devtools-host.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    The browser face's two scripts. The page module is an ES module, because [JSImport] calls its exports by name; the
+    panel frame's client is an iife, inlined into the frame's document.
+  -->
+  <Target Name="_RaskDevToolsBundleWasmJs" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
+          Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' "
+          Inputs="@(_RaskDevToolsFrameTs)"
+          Outputs="$(IntermediateOutputPath)rask-devtools-wasm.js;$(IntermediateOutputPath)rask-devtools-frame.js">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-devtools-wasm.ts&quot; --bundle --format=esm --target=es2020 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-devtools-wasm.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-devtools-frame.ts&quot; --bundle --format=iife --target=es2020 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-devtools-frame.js&quot; $(_RaskEsbuildMinify)"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

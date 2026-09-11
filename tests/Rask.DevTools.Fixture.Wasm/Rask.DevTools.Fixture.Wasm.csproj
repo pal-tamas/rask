@@ -34,4 +34,13 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <!--
+    Off by default: the fixture is the app WITHOUT Rask.Ui, which is what proves a Release publish carries none of it and
+    that a Debug run keeps the devtools off with a warning. The browser check of the panel turns it on
+    (-p:RaskDevToolsFixtureUi=true), because the panel is drawn with the app's own kit.
+  -->
+  <ItemGroup Condition=" '$(RaskDevToolsFixtureUi)' == 'true' ">
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
+  </ItemGroup>
+
 </Project>
