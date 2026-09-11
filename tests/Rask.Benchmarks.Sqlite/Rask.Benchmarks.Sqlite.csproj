@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <!-- ConfigurationBuilder: the SQLite registrations read Rask:ConnectionStrings:App, which TestConnectionStrings supplies. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
   </ItemGroup>
 
   <ItemGroup>

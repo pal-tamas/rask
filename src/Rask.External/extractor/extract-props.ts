@@ -97,6 +97,11 @@ const FrameworkPackages: Record<string, string[]> = {
     react: ["@types/react", "@types/react-dom", "csstype", "@types/prop-types"],
     preact: ["preact", "csstype"],
     solid: ["solid-js", "csstype"],
+    // @vue/reactivity so a `Ref` counts as the framework's; runtime-dom owns the DOM attributes a component spreads.
+    vue: ["vue", "@vue/runtime-core", "@vue/runtime-dom", "@vue/reactivity", "@vue/shared", "csstype"],
+    // svelte/elements.d.ts belongs to the svelte package, so its attributes are inherited — unless a component
+    // redeclares one in its own file, which is how ownership is decided: by declaration, not by where a type came from.
+    svelte: ["svelte", "csstype"],
 };
 
 /** Type names that are rendered content, not data — a child, a slot, an element. */
@@ -109,6 +114,9 @@ const NodeTypeNames = new Set([
 const RefTypeNames = new Set(["Ref", "RefObject", "RefCallback", "LegacyRef", "ForwardedRef", "MutableRefObject"]);
 
 const MaxDepth = 4;
+
+/** Past this many literals a union is a vocabulary to autocomplete from, not a choice to generate an enum for. */
+const MaxEnumValues = 64;
 
 // ----- entry --------------------------------------------------------------------------------------------------
 
@@ -155,7 +163,7 @@ function extractRuntime(ts: typeof TS, projectDirectory: string, runtime: string
     const probeText = islands
         .map((island, i) => island.export === "default"
             ? `import __island${i} from ${JSON.stringify(island.module)};\nexport { __island${i} };\n`
-            : `import { ${island.export} as __island${i} } from ${JSON.stringify(island.module)};\nexport { __island${i} };\n`)
+            : `import { ${island.export.split(".")[0]} as __island${i} } from ${JSON.stringify(island.module)};\nexport { __island${i} };\n`)
         .join("");
 
     const options: TS.CompilerOptions = {
@@ -171,7 +179,7 @@ function extractRuntime(ts: typeof TS, projectDirectory: string, runtime: string
         // No ambient @types: every one would load globally and pour its declarations into the checker.
         types: [],
         lib: ["lib.es2022.d.ts", "lib.dom.d.ts", "lib.dom.iterable.d.ts"],
-        customConditions: runtime === "solid" ? ["solid"] : undefined,
+        customConditions: runtime === "solid" ? ["solid"] : runtime === "svelte" ? ["svelte"] : undefined,
     };
 
     const host = ts.createCompilerHost(options, true);
@@ -236,8 +244,18 @@ function extractIsland(
                 `'${island.module}' could not be resolved from the project — install it (npm install ${packageOf(island.module)}).`);
     }
 
-    const componentType = checker.getTypeOfSymbolAtLocation(target, binding);
-    const propsType = propsOf(ts, checker, componentType);
+    // A dotted export (`Switch.Root`) names a member of the export: bits-ui and its kind export namespaces of parts.
+    let componentType = checker.getTypeOfSymbolAtLocation(target, binding);
+    for (const segment of island.export.split(".").slice(1)) {
+        const member = componentType.getProperty(segment);
+        if (!member) {
+            throw new IslandError("export-not-found", `'${island.module}#${island.export}' has no member '${segment}'.`);
+        }
+
+        componentType = checker.getTypeOfSymbol(member);
+    }
+
+    const propsType = propsOf(ts, checker, componentType, runtime);
     if (!propsType) {
         throw new IslandError("not-a-component",
             `'${island.module}${island.export === "default" ? "" : "#" + island.export}' is not a ${runtime} component: it has no call signature taking props.`);
@@ -247,9 +265,15 @@ function extractIsland(
     const props: SnapshotProp[] = [];
     const skipped: Skip[] = [];
 
-    for (const {symbol: property, required} of propertiesOf(ts, checker, propsType)) {
-        const name = property.getName();
+    for (const {name, symbols, required, type: propertyType} of propertiesOf(ts, checker, propsType)) {
+        const property = symbols[0];
         if (name === "key" || name === "ref") {
+            continue;
+        }
+
+        // svelte-package's Svelte 4 typings carry the component's events and slots in its props as `$$events` and
+        // `$$slots`: plumbing, read below for events and content, never props of their own.
+        if (runtime === "svelte" && name.startsWith("$$")) {
             continue;
         }
 
@@ -258,11 +282,11 @@ function extractIsland(
             continue;
         }
 
-        if (walker.isInherited(property)) {
+        // Inherited only when EVERY declaration of it — across a union's members too — is the framework's.
+        if (symbols.every((symbol) => walker.isInherited(symbol))) {
             continue;
         }
 
-        const propertyType = checker.getTypeOfSymbol(property);
         try {
             const type = walker.serialize(propertyType, 0, true);
             const doc = docOf(ts, checker, property);
@@ -279,12 +303,22 @@ function extractIsland(
             });
         } catch (error) {
             if (error instanceof Skipped) {
-                skipped.push(error.detail ? {name, reason: error.reason, detail: error.detail} : {name, reason: error.reason});
+                // A snippet passed as `children` is the component's content; any other snippet prop is a named part.
+                const reason = error.reason === "snippet" && name === "children" ? "node" : error.reason;
+                skipped.push(error.detail ? {name, reason, detail: error.detail} : {name, reason});
                 continue;
             }
 
             throw error;
         }
+    }
+
+    if (runtime === "vue") {
+        synthesizeEmits(ts, checker, componentType, walker, props, skipped);
+    }
+
+    if (runtime === "svelte") {
+        legacyEvents(ts, checker, componentType, propsType, skipped);
     }
 
     props.sort((a, b) => compare(a.name, b.name));
@@ -297,7 +331,7 @@ function extractIsland(
         export: island.export,
         package: packageInfo(island.module, target),
         tag: null,
-        content: skipped.some((s) => s.name === "children" && s.reason === "node") ? "node" : "none",
+        content: contentOf(ts, checker, runtime, componentType, propsType, skipped),
         props,
         skipped,
     };
@@ -313,18 +347,47 @@ function extractIsland(
 // ----- component → props --------------------------------------------------------------------------------------
 
 /**
- * The props type of a component value: the first parameter of its last non-generic call signature (covers plain
- * functions, memo, forwardRef, and MUI's OverridableComponent, whose default-props overload comes last), or the
- * instance `props` of a class component.
+ * The props type of a component value, where each runtime's declarations put it.
+ *
+ * - React, Preact, Solid: the first parameter of the last non-generic call signature (plain functions, memo,
+ *   forwardRef, MUI's OverridableComponent, whose default-props overload comes last), or a class's instance `props`.
+ * - Vue: the instance `$props` of a construct signature — what `defineComponent` and vue-tsc's `<script setup>` output
+ *   declare, emits already folded in as on* props — else the first parameter of a call signature, which is how a
+ *   generic `<script setup>` component and a FunctionalComponent are declared.
+ * - Svelte 5: `Component<Props>`'s call signature takes the internals FIRST and the props second. Svelte 4 typings
+ *   are a class whose instance carries `$$prop_def`.
  */
-function propsOf(ts: typeof TS, checker: TS.TypeChecker, component: TS.Type): TS.Type | undefined {
+function propsOf(ts: typeof TS, checker: TS.TypeChecker, component: TS.Type, runtime: string): TS.Type | undefined {
     const calls = checker.getSignaturesOfType(component, ts.SignatureKind.Call);
+    const constructs = checker.getSignaturesOfType(component, ts.SignatureKind.Construct);
+    const instanceProperty = (name: string) =>
+        constructs.map((c) => checker.getReturnTypeOfSignature(c).getProperty(name)).find((p) => p !== undefined);
+
+    if (runtime === "svelte") {
+        const call = calls.find((s) => s.parameters.length === 2);
+        if (call) {
+            return checker.getTypeOfSymbol(call.parameters[1]);
+        }
+
+        const legacy = instanceProperty("$$prop_def");
+        return legacy ? checker.getTypeOfSymbol(legacy) : undefined;
+    }
+
+    if (runtime === "vue") {
+        const $props = instanceProperty("$props");
+        if ($props) {
+            return checker.getTypeOfSymbol($props);
+        }
+
+        const call = calls[calls.length - 1];
+        return call && call.parameters.length > 0 ? checker.getTypeOfSymbol(call.parameters[0]) : undefined;
+    }
+
     const call = [...calls].reverse().find((s) => !s.typeParameters?.length) ?? calls[calls.length - 1];
     if (call && call.parameters.length > 0) {
         return checker.getTypeOfSymbol(call.parameters[0]);
     }
 
-    const constructs = checker.getSignaturesOfType(component, ts.SignatureKind.Construct);
     const construct = constructs[constructs.length - 1];
     if (construct) {
         const instance = checker.getReturnTypeOfSignature(construct);
@@ -342,26 +405,34 @@ function propsOf(ts: typeof TS, checker: TS.TypeChecker, component: TS.Type): TS
  * with whether it is required. Across a union a prop is required only when EVERY member requires it: in
  * `{value; onChange} | {defaultValue}` neither half's props are, or the chain would demand two that exclude each other.
  */
-function propertiesOf(ts: typeof TS, checker: TS.TypeChecker, props: TS.Type): {symbol: TS.Symbol; required: boolean}[] {
-    const seen = new Map<string, {symbol: TS.Symbol; required: boolean; members: number}>();
+function propertiesOf(
+    ts: typeof TS,
+    checker: TS.TypeChecker,
+    props: TS.Type,
+): {name: string; symbols: TS.Symbol[]; required: boolean; type: TS.Type}[] {
+    const seen = new Map<string, {symbols: TS.Symbol[]; required: boolean; types: TS.Type[]}>();
     const constituents = props.isUnion() ? props.types : [props];
     for (const type of constituents) {
         for (const property of checker.getPropertiesOfType(checker.getApparentType(type))) {
-            const required = (property.flags & ts.SymbolFlags.Optional) === 0
-                && !includesUndefined(ts, checker.getTypeOfSymbol(property));
+            const propertyType = checker.getTypeOfSymbol(property);
+            const required = (property.flags & ts.SymbolFlags.Optional) === 0 && !includesUndefined(ts, propertyType);
             const entry = seen.get(property.getName());
             if (entry) {
                 entry.required = entry.required && required;
-                entry.members++;
+                entry.symbols.push(property);
+                entry.types.push(propertyType);
             } else {
-                seen.set(property.getName(), {symbol: property, required, members: 1});
+                seen.set(property.getName(), {symbols: [property], required, types: [propertyType]});
             }
         }
     }
 
-    return [...seen.values()].map((entry) => ({
-        symbol: entry.symbol,
-        required: entry.required && entry.members === constituents.length,
+    return [...seen].map(([name, entry]) => ({
+        name,
+        symbols: entry.symbols,
+        required: entry.required && entry.symbols.length === constituents.length,
+        // Every member's type for it, not the first member's: one half of a union may declare it `never`.
+        type: entry.types.length === 1 ? entry.types[0] : checker.getUnionType(entry.types),
     }));
 }
 
@@ -412,9 +483,20 @@ class TypeWalker {
             throw new Skipped("any");
         }
 
+        // A type parameter nothing instantiated — vue-tsc's generic `<script setup>` component, a generic Svelte
+        // part — stands for its default, or its constraint; with neither, the prop is honestly generic.
+        if (type.flags & ts.TypeFlags.TypeParameter) {
+            const substitute = checker.getDefaultFromTypeParameter(type) ?? checker.getBaseConstraintOfType(type);
+            if (!substitute || substitute === type || substitute.flags & ts.TypeFlags.Unknown) {
+                throw new Skipped("generic", checker.typeToString(type));
+            }
+
+            return this.serialize(substitute, depth + 1, top);
+        }
+
         const alias = type.aliasSymbol?.getName() ?? type.getSymbol()?.getName();
         if (alias && NodeTypeNames.has(alias) && this.isFrameworkOwned(type)) {
-            throw new Skipped("node");
+            throw new Skipped(alias === "Snippet" ? "snippet" : "node");
         }
 
         if (alias && RefTypeNames.has(alias) && this.isFrameworkOwned(type)) {
@@ -522,50 +604,104 @@ class TypeWalker {
             return withNull({kind: "boolean"});
         }
 
-        const literals = rest.filter((t) => t.isStringLiteral() || t.isNumberLiteral() || t.flags & ts.TypeFlags.BooleanLiteral);
+        // `string | boolean` spells its boolean as `true | false` too. Beside an OPEN string those two literals would
+        // become an enum of "false" and "true"; it is a boolean beside a string. Beside other literals — MUI's
+        // `'auto' | true | false` — they stay values of one enum, which is exactly what the package accepts.
+        const booleans = rest.filter((t) => t.flags & ts.TypeFlags.BooleanLiteral);
+        const remaining = rest.filter((t) => !(t.flags & ts.TypeFlags.BooleanLiteral));
+        if (booleans.length === 2 && remaining.every((t) => this.isStringy(t) && !t.isStringLiteral())) {
+            const inner = remaining.length === 1
+                ? this.serialize(remaining[0], depth, top)
+                : this.serialize(this.checker.getUnionType(remaining), depth, top);
+            return withNull(this.unionOf([{kind: "boolean"}, inner]));
+        }
+
+        const literals = rest.filter((t) =>
+            t.isStringLiteral() || t.isNumberLiteral() || (t.flags & ts.TypeFlags.BooleanLiteral) !== 0);
         const others = rest.filter((t) => !literals.includes(t));
 
         if (literals.length > 0) {
-            // Literals plus an open `string` (or `string & {}`): still an enum, but one the package extends.
-            const opensWithString = others.length > 0 && others.every((t) => this.isStringLike(t));
+            // Literals plus an open string — `string`, `string & {}`, or a pattern such as `section-${string}` — are
+            // still an enum, but one the package extends.
+            const opensWithString = others.length > 0 && others.every((t) => this.isStringy(t));
             if (others.length === 0 || opensWithString) {
-                const values = literals.map((t) =>
-                    t.isStringLiteral() ? t.value : t.isNumberLiteral() ? t.value : this.checker.typeToString(t) === "true");
-                const base = values.every((v) => typeof v === "number") ? "number" : "string";
-                const sorted = [...new Set(values)].sort((a, b) =>
-                    typeof a === "number" && typeof b === "number" ? a - b : compare(String(a), String(b)));
-                const result: SnapshotType = {kind: "enum", base, values: sorted};
-                if (opensWithString) {
-                    result.open = true;
-                }
-
-                return withNull(result);
+                return withNull(this.enumOf(literals, opensWithString));
             }
+
+            // Literals beside other kinds (`"auto" | number`): the literals are ONE enum, beside the rest.
+            return withNull(this.unionOf([
+                this.enumOf(literals, false),
+                ...others.map((t) => this.serialize(t, depth, top)),
+            ]));
         }
 
-        const kinds = rest.map((t) => this.serialize(t, depth, top));
-        const distinct = [...new Map(kinds.map((k) => [JSON.stringify(k), k])).values()];
+        return withNull(this.unionOf(rest.map((t) => this.serialize(t, depth, top))));
+    }
+
+    /**
+     * Literal types as one enum. Past MaxEnumValues the union is a vocabulary rather than a choice — a generated C#
+     * enum of hundreds of members helps nobody — and it crosses as the string or number it is.
+     */
+    private enumOf(literals: TS.Type[], open: boolean): SnapshotType {
+        const values = [...new Set(literals.map((t) =>
+            t.isStringLiteral() ? t.value : t.isNumberLiteral() ? t.value : this.checker.typeToString(t) === "true"))];
+        if (values.every((v) => typeof v === "boolean")) {
+            return {kind: "boolean"};
+        }
+
+        const base = values.every((v) => typeof v === "number") ? "number" : "string";
+        if (values.length > MaxEnumValues) {
+            return {kind: base};
+        }
+
+        values.sort((a, b) => (typeof a === "number" && typeof b === "number" ? a - b : compare(String(a), String(b))));
+        return open ? {kind: "enum", base, values, open: true} : {kind: "enum", base, values};
+    }
+
+    /** Kinds as one kind, or one union of the distinct ones, in an order that depends on content alone. */
+    private unionOf(kinds: SnapshotType[]): SnapshotType {
+        const flat = kinds.flatMap((k) => (k.kind === "union" && !k.nullable ? k.of ?? [] : [k]));
+        const distinct = [...new Map(flat.map((k) => [JSON.stringify(k), k])).values()];
         if (distinct.length === 1) {
-            return withNull(distinct[0]);
+            return distinct[0];
         }
 
         // Ties broken by content: members of one kind otherwise stay in the checker's type-id order, which moves
         // with whatever else the shared program checked first — and a committed snapshot must not.
         distinct.sort((a, b) => compare(a.kind, b.kind) || compare(JSON.stringify(a), JSON.stringify(b)));
-        return withNull({kind: "union", of: distinct});
+        return {kind: "union", of: distinct};
     }
 
-    private serializeCallback(signature: TS.Signature, depth: number): SnapshotType {
+    /**
+     * A callback's arguments and whether it returns anything.
+     * @param skip Leading parameters that are not arguments — the event name of a Vue `$emit` overload.
+     */
+    serializeCallback(signature: TS.Signature, depth: number, skip = 0): SnapshotType {
         const {ts, checker} = this;
-        const args = signature.parameters.map((parameter) => {
+        const args = signature.parameters.slice(skip).flatMap((parameter, index) => {
             const declaration = parameter.valueDeclaration as TS.ParameterDeclaration | undefined;
-            const optional = !!declaration && (!!declaration.questionToken || !!declaration.initializer);
             const type = checker.getTypeOfSymbol(parameter);
-            return {
-                name: parameter.getName(),
+
+            // `(...args: [value: number, source: string]) => any` is how Vue types an emit handler: the tuple's
+            // elements are the arguments, named by their labels.
+            if (declaration?.dotDotDotToken && checker.isTupleType(type)) {
+                const tuple = (type as TS.TypeReference).target as TS.TupleType;
+                return checker.getTypeArguments(type as TS.TypeReference).map((element, k) => {
+                    const label = tuple.labeledElementDeclarations?.[k]?.name;
+                    return {
+                        name: argumentName(label && ts.isIdentifier(label) ? label.text : undefined, index + k),
+                        ...(tuple.elementFlags[k] & ts.ElementFlags.Optional ? {optional: true} : {}),
+                        type: this.argument(element, depth),
+                    };
+                });
+            }
+
+            const optional = !!declaration && (!!declaration.questionToken || !!declaration.initializer);
+            return [{
+                name: argumentName(parameter.getName(), index),
                 ...(optional ? {optional: true} : {}),
                 type: this.argument(type, depth),
-            };
+            }];
         });
 
         const result: SnapshotType = {kind: "callback", args};
@@ -679,6 +815,11 @@ class TypeWalker {
             && (type as TS.IntersectionType).types.some((t) => t.flags & ts.TypeFlags.String);
     }
 
+    /** A string, a string literal, a template literal type, or `string & {}`. */
+    private isStringy(type: TS.Type): boolean {
+        return this.isStringLike(type) || type.isStringLiteral() || (type.flags & this.ts.TypeFlags.TemplateLiteral) !== 0;
+    }
+
     private isFrameworkOwned(type: TS.Type): boolean {
         const symbol = type.aliasSymbol ?? type.getSymbol();
         const file = symbol?.declarations?.[0]?.getSourceFile().fileName;
@@ -699,7 +840,143 @@ class TypeWalker {
     }
 }
 
+// ----- events and content -------------------------------------------------------------------------------------
+
+/**
+ * Vue declares emits two ways. `defineComponent` and vue-tsc fold them into `$props` as on* handlers, which the prop
+ * walk has already found. PrimeVue-style declarations leave them only as `$emit` overloads —
+ * `(e: "update:pressed", ...args: [pressed: boolean]): void` — so a handler prop is synthesized for each event that is
+ * not a prop already. The name keeps the event as Vue matches it (`onUpdate:pressed`); the generator makes the C# name
+ * and sends this one.
+ */
+function synthesizeEmits(
+    ts: typeof TS,
+    checker: TS.TypeChecker,
+    component: TS.Type,
+    walker: TypeWalker,
+    props: SnapshotProp[],
+    skipped: Skip[],
+): void {
+    for (const signature of emitSignatures(ts, checker, component)) {
+        const event = signature.parameters[0] && checker.getTypeOfSymbol(signature.parameters[0]);
+        const names = !event ? [] : event.isUnion() ? event.types : [event];
+        for (const literal of names) {
+            if (!literal.isStringLiteral() || literal.value.length === 0) {
+                continue;
+            }
+
+            const name = "on" + literal.value[0].toUpperCase() + literal.value.slice(1);
+            if (props.some((p) => p.name === name) || skipped.some((s) => s.name === name)) {
+                continue;
+            }
+
+            props.push({name, required: false, type: walker.serializeCallback(signature, 0, 1)});
+        }
+    }
+}
+
+/** The call signatures of a Vue component's `$emit` (on its instance) or `emit` (on a call signature's context). */
+function emitSignatures(ts: typeof TS, checker: TS.TypeChecker, component: TS.Type): readonly TS.Signature[] {
+    for (const construct of checker.getSignaturesOfType(component, ts.SignatureKind.Construct)) {
+        const emit = checker.getReturnTypeOfSignature(construct).getProperty("$emit");
+        if (emit) {
+            return checker.getSignaturesOfType(checker.getTypeOfSymbol(emit), ts.SignatureKind.Call);
+        }
+    }
+
+    const calls = checker.getSignaturesOfType(component, ts.SignatureKind.Call);
+    const context = calls[calls.length - 1]?.parameters[1];
+    const emit = context && checker.getNonNullableType(checker.getTypeOfSymbol(context)).getProperty("emit");
+    return emit ? checker.getSignaturesOfType(checker.getTypeOfSymbol(emit), ts.SignatureKind.Call) : [];
+}
+
+/**
+ * Svelte 4 typings declare events only as `on:` directives, which a props object cannot carry. Each is recorded as a
+ * `legacy-event` skip, so the snapshot says why the component's events are missing rather than nothing at all.
+ */
+function legacyEvents(ts: typeof TS, checker: TS.TypeChecker, component: TS.Type, props: TS.Type, skipped: Skip[]): void {
+    const events = svelteLegacyMember(ts, checker, component, props, "$$events_def", "$$events");
+    if (!events) {
+        return;
+    }
+
+    for (const event of checker.getPropertiesOfType(events)) {
+        skipped.push({
+            name: `on:${event.getName()}`,
+            reason: "legacy-event",
+            detail: checker.typeToString(checker.getTypeOfSymbol(event)),
+        });
+    }
+}
+
+/**
+ * A Svelte 4 component's events or slots type: on its class instance (`$$events_def`, `$$slot_def`), or — as
+ * svelte-package writes typings that are a class and a function at once — inside its props (`$$events`, `$$slots`).
+ */
+function svelteLegacyMember(
+    ts: typeof TS,
+    checker: TS.TypeChecker,
+    component: TS.Type,
+    props: TS.Type,
+    instanceName: string,
+    propsName: string,
+): TS.Type | undefined {
+    for (const construct of checker.getSignaturesOfType(component, ts.SignatureKind.Construct)) {
+        const member = checker.getReturnTypeOfSignature(construct).getProperty(instanceName);
+        if (member) {
+            return checker.getNonNullableType(checker.getTypeOfSymbol(member));
+        }
+    }
+
+    const member = checker.getPropertyOfType(props, propsName);
+    return member ? checker.getNonNullableType(checker.getTypeOfSymbol(member)) : undefined;
+}
+
+/**
+ * Whether the component takes content: a `children` that was skipped as rendered content (React, Preact, Solid, and
+ * a Svelte snippet), or — where slots are declared apart from props — a `default` slot: a Svelte 4 component's, or a
+ * Vue component's on its instance or its context.
+ */
+function contentOf(
+    ts: typeof TS,
+    checker: TS.TypeChecker,
+    runtime: string,
+    component: TS.Type,
+    props: TS.Type,
+    skipped: Skip[],
+): string {
+    if (skipped.some((s) => s.name === "children" && s.reason === "node")) {
+        return "node";
+    }
+
+    if (runtime === "svelte") {
+        const slots = svelteLegacyMember(ts, checker, component, props, "$$slot_def", "$$slots");
+        return slots && checker.getPropertyOfType(slots, "default") ? "node" : "none";
+    }
+
+    if (runtime !== "vue") {
+        return "none";
+    }
+
+    for (const construct of checker.getSignaturesOfType(component, ts.SignatureKind.Construct)) {
+        const slots = checker.getReturnTypeOfSignature(construct).getProperty("$slots");
+        if (slots && checker.getTypeOfSymbol(slots).getProperty("default")) {
+            return "node";
+        }
+    }
+
+    const calls = checker.getSignaturesOfType(component, ts.SignatureKind.Call);
+    const context = calls[calls.length - 1]?.parameters[1];
+    const slots = context && checker.getNonNullableType(checker.getTypeOfSymbol(context)).getProperty("slots");
+    return slots && checker.getNonNullableType(checker.getTypeOfSymbol(slots)).getProperty("default") ? "node" : "none";
+}
+
 // ----- helpers ------------------------------------------------------------------------------------------------
+
+/** A callback argument's name: its own, or `argN` where the checker has only a placeholder (`({id}) => …` is `__0`). */
+function argumentName(name: string | undefined, index: number): string {
+    return name && !name.startsWith("__") ? name : `arg${index}`;
+}
 
 function importedName(ts: typeof TS, declaration: TS.ImportDeclaration | undefined): TS.Identifier | undefined {
     const clause = declaration?.importClause;

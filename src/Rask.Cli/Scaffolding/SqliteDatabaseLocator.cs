@@ -4,8 +4,8 @@ namespace Rask.Cli.Scaffolding;
 
 /// <summary>
 /// Finds the SQLite file an app actually writes to, by reading the same setting the app reads:
-/// <c>ConnectionStrings:App</c>, with the same <c>Data Source=app.db</c> fallback the scaffolded
-/// <c>Program.cs</c> uses.
+/// <c>Rask:ConnectionStrings:App</c>, falling back to the <c>Data Source=app.db</c> a scaffolded
+/// <c>appsettings.json</c> starts with.
 /// </summary>
 /// <remarks>
 /// Environment-specific files win over the base one, mirroring configuration's own precedence — a
@@ -16,8 +16,17 @@ namespace Rask.Cli.Scaffolding;
 /// </remarks>
 internal static class SqliteDatabaseLocator
 {
-    /// <summary>The value the scaffolder falls back to, so an app with no configured string still works.</summary>
+    /// <summary>The value a scaffolded app starts with, so an app with no configured string still works.</summary>
     internal const string DefaultDataSource = "app.db";
+
+    // The settings files are JSONC — a scaffolded appsettings.json carries comments — and .NET's own JSON
+    // configuration provider reads them with exactly these options. Parsing them strictly failed on every
+    // scaffolded file and quietly fell back to app.db, whatever the file said.
+    private static readonly JsonDocumentOptions SettingsOptions = new()
+    {
+        CommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+    };
 
     /// <summary>
     /// Resolve the database path for the app rooted at <paramref name="projectDirectory"/>, or explain why
@@ -113,21 +122,20 @@ internal static class SqliteDatabaseLocator
         return null;
     }
 
+    // Rask:ConnectionStrings:App. A top-level ConnectionStrings:App is not read — the app itself no longer reads it,
+    // so a backup taken from it would be of a database the app is not using.
     private static string? ReadAppConnectionString(IFileSystem fileSystem, string path)
     {
         try
         {
-            using var document = JsonDocument.Parse(fileSystem.ReadAllText(path));
-            if (document.RootElement.ValueKind != JsonValueKind.Object ||
-                !document.RootElement.TryGetProperty("ConnectionStrings", out var strings) ||
-                strings.ValueKind != JsonValueKind.Object ||
-                !strings.TryGetProperty("App", out var app) ||
-                app.ValueKind != JsonValueKind.String)
-            {
-                return null;
-            }
+            using var document = JsonDocument.Parse(fileSystem.ReadAllText(path), SettingsOptions);
 
-            return app.GetString();
+            // Configuration keys are case-insensitive, so the settings file may spell them any way round.
+            return Property(document.RootElement, "Rask") is { } rask
+                   && Property(rask, "ConnectionStrings") is { } strings
+                   && Property(strings, "App") is { ValueKind: JsonValueKind.String } app
+                ? app.GetString()
+                : null;
         }
         catch (JsonException)
         {
@@ -138,5 +146,23 @@ internal static class SqliteDatabaseLocator
         {
             return null;
         }
+    }
+
+    private static JsonElement? Property(JsonElement element, string name)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        foreach (var property in element.EnumerateObject())
+        {
+            if (property.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                return property.Value;
+            }
+        }
+
+        return null;
     }
 }

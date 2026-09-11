@@ -6,8 +6,9 @@ namespace Rask.SQLite.Litestream;
 /// <summary>
 /// Hosted service that verifies the backup is restorable every
 /// <see cref="LitestreamVerificationOptions.Interval"/> (and once at startup when
-/// <see cref="LitestreamVerificationOptions.VerifyOnStartup"/> is set). Registered only when
-/// <see cref="LitestreamVerificationOptions.Enabled"/> is set, because every pass costs a real restore.
+/// <see cref="LitestreamVerificationOptions.VerifyOnStartup"/> is set). Registered with the replication service, and
+/// does nothing unless <see cref="LitestreamVerificationOptions.Enabled"/> is set — decided when it starts, because
+/// the switch can come from <c>Rask:Litestream:Verification</c> — since every pass costs a real restore.
 /// <para>
 /// The verifier reports rather than throws, so this loop exists to schedule it and to make sure nothing
 /// escaping it can stop the schedule — a backup problem never takes down the app it protects.
@@ -34,6 +35,11 @@ internal sealed class LitestreamVerificationService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_options.Verification.Enabled)
+        {
+            return;
+        }
+
         if (_options.Verification.VerifyOnStartup)
         {
             await TryVerifyAsync(stoppingToken).ConfigureAwait(false);

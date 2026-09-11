@@ -45,7 +45,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
 
         var services = new ServiceCollection();
         // A generous per-writer timeout so a busy CI box under heavy contention never spuriously times out.
-        services.AddRaskSqlite($"Data Source={_dbPath}{PoolingOff}", o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); });
+        services.AddRaskSqliteAt($"Data Source={_dbPath}{PoolingOff}", o => { o.Retry.Enabled = true; o.Retry.Timeout = TimeSpan.FromSeconds(30); });
         _provider = services.BuildServiceProvider();
         _factory = _provider.GetRequiredService<ISqlite>();
     }

@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "runtime": "svelte",
+  "module": "fixture-svelte",
+  "export": "Switch.Root",
+  "package": {
+    "name": "fixture-svelte",
+    "version": "0.4.0"
+  },
+  "tag": null,
+  "content": "node",
+  "props": [
+    {
+      "name": "autocomplete",
+      "required": false,
+      "doc": "Declared here with the DOM's own alias as its type.",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "email",
+          "name",
+          "new-password",
+          "off",
+          "on",
+          "username"
+        ],
+        "open": true
+      }
+    },
+    {
+      "name": "checked",
+      "required": false,
+      "doc": "Whether the switch is on.",
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "fill",
+      "required": true,
+      "doc": "The same alias on a required prop, which must serialize exactly as the optional one does.",
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "email",
+          "name",
+          "new-password",
+          "off",
+          "on",
+          "username"
+        ],
+        "open": true
+      }
+    },
+    {
+      "name": "id",
+      "required": false,
+      "doc": "Redeclared here, so it is this package's prop even though the DOM declares one too.",
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onCheckedChange",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "checked",
+            "type": {
+              "kind": "boolean"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "name": "child",
+      "reason": "snippet"
+    },
+    {
+      "name": "children",
+      "reason": "node"
+    }
+  ]
+}

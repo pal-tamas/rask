@@ -169,7 +169,7 @@ catch
 again while copying — so a client that under-reports its size is still stopped at the limit. The transport
 has limits of its own that apply first, and raising one without the other just moves the refusal:
 
-- the server's upload limit, [`RaskUploadOptions.MaxFileSize`](configuration.md#file-uploads) — 50 MB;
+- the server's upload limit, [`RaskUploadOptions.MaxFileSize`](configuration.md#file-uploads--raskuploads) — 50 MB;
 - a remote CQRS upload's [`MaxUploadBytes`](cqrs.md#files-both-directions) — 32 MB.
 
 ## Handing a file back
@@ -479,7 +479,7 @@ files are on disk it says so, because that is the one state in which no backup c
 - [HTTP & files](http-and-files.md) — the file picker and `RaskFile`, and `Navigator.Download` for bytes you
   generate on the fly.
 - [Forms](forms.md#file-inputs) — file inputs inside a form.
-- [Configuration](configuration.md#file-uploads) — the server's own upload limits.
+- [Configuration](configuration.md#file-uploads--raskuploads) — the server's own upload limits.
 - [Deployment](deployment.md#uploaded-files) — the deploy volume, and passing storage settings.
 - [Scaling](scaling.md) — what else changes on more than one host.
 - [Dashboard](dashboard.md) — the Storage tab.

@@ -17,5 +17,5 @@ Rask.SqlServer.SqlServerRetryOptions.MaxCount.set -> void
 Rask.SqlServer.SqlServerRetryOptions.MaxDelay.get -> System.TimeSpan
 Rask.SqlServer.SqlServerRetryOptions.MaxDelay.set -> void
 Rask.SqlServer.SqlServerRetryOptions.SqlServerRetryOptions() -> void
-static Rask.SqlServer.RaskSqlServerDbContextOptionsExtensions.UseRaskSqlServer(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, string! connectionString, System.Action<Rask.SqlServer.SqlServerOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
-static Rask.SqlServer.RaskSqlServerDbContextOptionsExtensions.UseRaskSqlServer<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, string! connectionString, System.Action<Rask.SqlServer.SqlServerOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!
+static Rask.SqlServer.RaskSqlServerDbContextOptionsExtensions.UseRaskSqlServer(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, System.IServiceProvider! services, System.Action<Rask.SqlServer.SqlServerOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
+static Rask.SqlServer.RaskSqlServerDbContextOptionsExtensions.UseRaskSqlServer<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, System.IServiceProvider! services, System.Action<Rask.SqlServer.SqlServerOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!

@@ -17,12 +17,27 @@ dotnet add package Rask.WebPush
 
 ## Use
 
-```csharp
-builder.Services.AddRaskWebPush(o =>
+The key pair and the contact come from the `Rask:WebPush` configuration section. Generate the pair once with
+`VapidKeys.Generate()` and keep it in user secrets or the environment, never in source:
+
+```bash
+dotnet user-secrets set "Rask:WebPush:VapidKeys:PublicKey"  "<public>"
+dotnet user-secrets set "Rask:WebPush:VapidKeys:PrivateKey" "<private>"
+```
+
+```jsonc
+// appsettings.json
 {
-    o.VapidKeys = VapidKeys.Generate();          // generate once, then load from config/secrets
-    o.Subject   = "mailto:admin@example.com";    // a contact the push service can reach
-});
+  "Rask": {
+    "WebPush": {
+      "Subject": "mailto:admin@example.com"    // a contact the push service can reach
+    }
+  }
+}
+```
+
+```csharp
+builder.Services.AddRaskWebPush();   // reads Rask:WebPush; a callback here would run after it and win
 
 // ... inject IWebPush, then given a PushSubscription the browser sent you:
 var result = await sender.SendAsync(

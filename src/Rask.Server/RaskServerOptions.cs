@@ -9,12 +9,13 @@ namespace Rask.Server;
 ///         live   =&gt; live.DiffMode = LiveDiffMode.Auto,
 ///         server =&gt; server.MaxInboundFramesPerSecond = 500);
 ///     </code>
-///     Bind from configuration with
-///     <c>AddRask(configureServer: o =&gt; builder.Configuration.GetSection("Rask").Bind(o))</c>.
-///     Every default matches the framework's prior hardcoded value, so leaving this unconfigured
-///     changes nothing. <c>AddRask</c> validates the values and throws
-///     <see cref="ArgumentOutOfRangeException" /> on an out-of-range one (a negative grace period, a
-///     non-positive frame-size cap), so a misconfiguration fails fast at startup rather than at runtime.
+///     <c>AddRask</c> also binds the <c>Rask:Server</c> configuration section (appsettings, environment
+///     variables such as <c>Rask__Server__MaxInboundFramesPerSecond</c>, user-secrets) before that callback runs, so
+///     the callback wins over configuration. Every default matches the framework's prior hardcoded
+///     value, so leaving this unconfigured changes nothing. The values are validated when the host
+///     starts, and an out-of-range one (a negative grace period, a non-positive frame-size cap) fails
+///     it with an <c>OptionsValidationException</c> naming the <c>Rask:Server</c> key, so a
+///     misconfiguration fails fast at startup rather than at runtime.
 ///     <para>
 ///         Each host carries its own limits: <c>AddRask</c> projects these values into a per-host
 ///         <c>RaskServerLimits</c> singleton that the WebSocket endpoint resolves once per connection,
@@ -70,8 +71,8 @@ public sealed class RaskServerOptions
     /// </summary>
     /// <remarks>
     ///     Every rung is automatic; this is the ceiling, for an app that wants one it will never use
-    ///     turned off rather than merely unused. A combination that cannot serve a working page
-    ///     throws when the host is built.
+    ///     turned off rather than merely unused. Bound from <c>Rask:Server:RenderModes</c> like the rest
+    ///     of these options. A combination that cannot serve a working page fails the host at start.
     /// </remarks>
     public RaskRenderModes RenderModes { get; } = new();
 
@@ -185,8 +186,9 @@ public sealed class RaskServerOptions
     public TimeSpan ShutdownDrainTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Called by
-    ///     <c>AddRask</c> after the caller's <c>configureServer</c> runs, so a bad value (a negative
+    ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Run by the
+    ///     options validation <c>AddRask</c> registers — after <c>Rask:Server</c> is bound and the
+    ///     caller's <c>configureServer</c> runs, and validated on start — so a bad value (a negative
     ///     grace period that would crash <c>Task.Delay</c> and leak the session, a non-positive
     ///     frame-size cap that would abort every socket) surfaces at startup instead of at runtime.
     /// </summary>

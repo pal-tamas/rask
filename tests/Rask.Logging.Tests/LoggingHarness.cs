@@ -31,7 +31,7 @@ public sealed class LoggingHarness : IAsyncDisposable
 
         var services = new ServiceCollection();
         services.AddSingleton<TimeProvider>(Clock); // registered first so AddRaskLogging's TryAddSingleton keeps it
-        services.AddRaskLogging($"Data Source={DbPath}", o =>
+        services.AddRaskLoggingAt($"Data Source={DbPath}", o =>
         {
             o.FlushInterval = TimeSpan.FromMilliseconds(20);
             configure?.Invoke(o);

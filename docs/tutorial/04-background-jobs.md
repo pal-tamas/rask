@@ -59,11 +59,19 @@ the ones you'd have to get right by hand.
 In `Program.cs`:
 
 ```csharp
-builder.Services.AddRaskJobs<AppDbContext>(o =>
-{
-    o.PollInterval = TimeSpan.FromSeconds(5);   // how often the worker checks for due jobs
-    o.MaxAttempts  = 25;                        // retry a failing job up to N times
-});
+builder.Services.AddRaskJobs<AppDbContext>();
+```
+
+Its tuning has defaults, so there is nothing for it in `appsettings.json` yet. To change one, add a
+`Rask:Jobs` section:
+
+```jsonc
+"Rask": {
+  "Jobs": {
+    "PollInterval": "00:00:05",   // how often the worker checks for due jobs
+    "MaxAttempts": 25             // retry a failing job up to N times
+  }
+}
 ```
 
 `AddRaskJobs` needs `AddRaskCqrs()` to dispatch jobs to their handlers, and it resolves

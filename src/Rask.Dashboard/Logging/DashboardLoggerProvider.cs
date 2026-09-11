@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Rask.Dashboard.Logging;
 
@@ -8,10 +9,16 @@ namespace Rask.Dashboard.Logging;
 /// framework's own <c>Rask.Live</c>/<c>Rask.Diff</c>/<c>Rask.Lifecycle</c> categories, the processors'
 /// failure logs, and the application's own — with no extra wiring at the call sites.
 /// </summary>
+/// <remarks>
+/// Registered whether or not <see cref="RaskDashboardOptions.CaptureLogs" /> is on, because that setting can come
+/// from <c>Rask:Dashboard</c> and is not known until the options are built. With capture off, every logger it
+/// hands out is the null logger, which the logging pipeline skips before formatting anything.
+/// </remarks>
 [ProviderAlias("RaskDashboard")]
-internal sealed class DashboardLoggerProvider(DashboardLogBuffer buffer) : ILoggerProvider
+internal sealed class DashboardLoggerProvider(DashboardLogBuffer buffer, RaskDashboardOptions options) : ILoggerProvider
 {
-    public ILogger CreateLogger(string categoryName) => new BufferLogger(buffer, categoryName);
+    public ILogger CreateLogger(string categoryName) =>
+        options.CaptureLogs ? new BufferLogger(buffer, categoryName) : NullLogger.Instance;
 
     public void Dispose()
     {

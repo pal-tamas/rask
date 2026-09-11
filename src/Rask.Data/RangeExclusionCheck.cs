@@ -76,7 +76,7 @@ internal sealed class RangeExclusionCheck<TContext>(IServiceProvider services) :
         throw new InvalidOperationException(
             $"{subject} HasNonOverlappingRange, but {db.Database.ProviderName ?? "this provider"} does not "
             + "enforce it, so overlapping rows would be accepted without an error. Configure "
-            + $"{typeof(TContext).Name} with UseRaskSqlite(connectionString) from Rask.SQLite.EntityFrameworkCore, "
+            + $"{typeof(TContext).Name} with UseRaskSqlite(services) from Rask.SQLite.EntityFrameworkCore, "
             + "whose migrations emit the constraint, or remove the rule.");
     }
 
