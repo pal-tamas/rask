@@ -74,12 +74,7 @@ public sealed partial class HomePage : Component
     // most likely to be shared: without og:title and og:description a link to rask.sh unfurls as a bare
     // URL. The canonical also settles "/" against "/index.html", which a static host serves as both.
     protected override Component? HeadAssets =>
-        PageMeta.For(
-            "Rask — the .NET One Person Framework",
-            "Rask is the .NET One Person Framework: one developer builds, runs and ships a whole product "
-            + "— UI, data, auth, background work and deploy — from one C# codebase on one SQLite-backed "
-            + "server. The same components run on Server and WebAssembly.",
-            "/");
+        PageMeta.For(SiteIdentity.Title, SiteIdentity.Description, "/");
 
     protected override Component? Render() =>
     [

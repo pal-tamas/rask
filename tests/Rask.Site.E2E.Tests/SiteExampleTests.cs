@@ -439,4 +439,39 @@ public sealed class SiteExampleTests
             await context.CloseAsync();
         }
     }
+
+    [Fact]
+    public async Task ThePublishHandsCrawlersAndAssistantsTheFilesTheWebIsToldAbout()
+    {
+        // All of this is written by the PUBLISH, which is the one thing no unit test runs: llms.txt and the
+        // Markdown twins by Program.cs during the prerender run, the head and sitemap.xml by the prerender
+        // pass. Unit tests generate the same text and render the same head; only the published bundle proves
+        // the files exist at the URLs the index, the <link rel="alternate"> and the sitemap point at.
+        using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
+
+        var index = await http.GetStringAsync("/llms.txt");
+        Assert.StartsWith("# Rask\n", index, StringComparison.Ordinal);
+        Assert.Contains("(https://rask.sh/docs/guides/cqrs.md): ", index, StringComparison.Ordinal);
+
+        // The twin the index names is the doc itself, with its demo markers gone.
+        var twin = await http.GetStringAsync("/docs/guides/cqrs.md");
+        Assert.StartsWith("# CQRS", twin, StringComparison.Ordinal);
+        Assert.DoesNotContain("<!-- demo:", twin, StringComparison.Ordinal);
+
+        var full = await http.GetStringAsync("/llms-full.txt");
+        Assert.Contains("\nSource: https://rask.sh/docs/guides/getting-started/\n", full, StringComparison.Ordinal);
+
+        // The prerendered guide carries its graph and advertises its twin.
+        var guide = await http.GetStringAsync("/docs/guides/cqrs/index.html");
+        // Written as ld&#x2B;json — the encoder escapes '+' in an attribute, and a parser decodes it.
+        Assert.Matches("type=\"application/ld(\\+|&#x2B;)json\"", guide);
+        Assert.Contains("\"@type\":\"TechArticle\"", guide, StringComparison.Ordinal);
+        Assert.Contains("\"@type\":\"BreadcrumbList\"", guide, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://rask.sh/docs/guides/cqrs.md\"", guide, StringComparison.Ordinal);
+
+        // And the sitemap dates it — read back off the page's article:modified_time, which the build took
+        // from git. No <lastmod> here would mean the history target, the page or the pass lost it.
+        var sitemap = await http.GetStringAsync("/sitemap.xml");
+        Assert.Contains("<loc>https://rask.sh/docs/guides/cqrs/</loc><lastmod>", sitemap, StringComparison.Ordinal);
+    }
 }

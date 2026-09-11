@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Net;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Rask.Core.Live;
 using Rask.Site.Features;
@@ -79,9 +82,127 @@ public sealed class PageMetaTests
         // front door is the exception, and only it: the site's description IS that page's description.
         if (path != "/")
         {
-            Assert.DoesNotContain("the .NET One Person Framework: one developer", DescriptionOf(head),
-                StringComparison.Ordinal);
+            Assert.NotEqual(SiteIdentity.Description, WebUtility.HtmlDecode(DescriptionOf(head)));
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(PrerenderableRoutes))]
+    public async Task EveryIndexablePageFitsItsTitleAndDescriptionInASearchResult(string path)
+    {
+        // A result shows about 60 characters of title and 160 of description, and cuts the rest with an
+        // ellipsis. The front door's description was 250 — every result for it ended at "the same
+        // components run on…". Under 110 wastes the two lines a result has to say what the page is.
+        var head = await HeadAt(path);
+        if (!ClaimsToBeThePage(head, path))
+        {
+            return;
+        }
+
+        var title = WebUtility.HtmlDecode(TitleOf(head));
+        var description = WebUtility.HtmlDecode(DescriptionOf(head));
+
+        Assert.True(title.Length <= 60, $"{path}'s title is {title.Length} characters: \"{title}\"");
+        Assert.True(
+            description.Length is >= 110 and <= 160,
+            $"{path}'s description is {description.Length} characters (110–160): \"{description}\"");
+    }
+
+    [Theory]
+    [MemberData(nameof(PrerenderableRoutes))]
+    public async Task EveryIndexablePageSaysWhatItIsInOneStructuredDataGraph(string path)
+    {
+        var head = await HeadAt(path);
+        if (IsNoIndex(head))
+        {
+            return;
+        }
+
+        // The '+' arrives as &#x2B; — the serializer's encoder escapes it in an attribute value, and a
+        // parser decodes it back, which is what every crawler reading the DOM sees. Matching only the literal
+        // form found zero graphs on a page that had one.
+        var scripts = Regex.Matches(
+            head,
+            "<script[^>]*type=\"application/ld(?:\\+|&#x2B;)json\"[^>]*>(.*?)</script>",
+            RegexOptions.Singleline);
+        Assert.True(scripts.Count == 1, $"expected one JSON-LD graph at {path}, found {scripts.Count}");
+
+        // Parsed, not pattern-matched: a graph with one stray quote is not a graph, and a crawler drops it
+        // silently. JsonDocument is exactly as strict as the consumer.
+        using var json = JsonDocument.Parse(scripts[0].Groups[1].Value);
+        var graph = json.RootElement.GetProperty("@graph").EnumerateArray().ToList();
+        var types = graph.Select(node => node.GetProperty("@type").GetString()).ToList();
+        var canonical = CanonicalOf(head)!;
+
+        Assert.Contains("WebSite", types);
+        var page = Assert.Single(graph, node =>
+            node.GetProperty("@type").GetString() is "WebPage" or "TechArticle"
+            && node.GetProperty("url").GetString() == canonical);
+        Assert.Equal(WebUtility.HtmlDecode(DescriptionOf(head)), page.GetProperty("description").GetString());
+
+        if (canonical == PageMeta.Origin + "/")
+        {
+            // The one page that says what the software IS — and has no trail, being the start of it.
+            Assert.Contains("SoftwareApplication", types);
+            Assert.DoesNotContain("BreadcrumbList", types);
+            return;
+        }
+
+        // The breadcrumb is the part of this a result visibly uses. It starts at the site and ends at the
+        // page's own canonical, or it describes some other page.
+        var crumbs = Assert.Single(graph, node => node.GetProperty("@type").GetString() == "BreadcrumbList")
+            .GetProperty("itemListElement").EnumerateArray().ToList();
+        Assert.Equal(PageMeta.Origin + "/", crumbs[0].GetProperty("item").GetString());
+        Assert.Equal(canonical, crumbs[^1].GetProperty("item").GetString());
+    }
+
+    [Fact]
+    public async Task AHostileGuideSlugCannotCloseTheStructuredDataScript()
+    {
+        // The one visitor-controlled value that reaches the JSON-LD: an unknown slug in /docs/guides/{slug},
+        // which the router URL-decodes and the page uses as its name, breadcrumb and canonical. The graph is
+        // emitted through Raw, because a script's content is not HTML — so the ONLY thing standing between
+        // this URL and script execution is the JSON writer's encoder escaping '<'. Swap it for a relaxed one
+        // and every assertion below fails, which is the point of pinning it.
+        var head = await HeadAt("/docs/guides/%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E");
+
+        var script = Regex.Match(
+            head,
+            "<script[^>]*type=\"application/ld(?:\\+|&#x2B;)json\"[^>]*>(.*?)</script>",
+            RegexOptions.Singleline);
+        Assert.True(script.Success, "no JSON-LD graph rendered for the hostile slug");
+
+        var json = script.Groups[1].Value;
+        Assert.DoesNotContain("<", json, StringComparison.Ordinal);
+        Assert.DoesNotContain(">", json, StringComparison.Ordinal);
+
+        // Still a graph, and still saying what the visitor asked for — escaped, not dropped.
+        using var document = JsonDocument.Parse(json);
+        Assert.Contains(
+            document.RootElement.GetProperty("@graph").EnumerateArray(),
+            node => node.TryGetProperty("name", out var name) && name.GetString()!.Contains("</script>", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task AGuideIsAnArticleWithItsSectionItsDateAndItsMarkdownTwin()
+    {
+        var head = await HeadAt((string)Rask.Site.Features.Routes.GuidePage("cqrs"));
+        var guide = GuideCatalog.Find("cqrs")!;
+        var modified = GuideHistory.LastModified("cqrs");
+
+        Assert.Contains("property=\"og:type\" content=\"article\"", head, StringComparison.Ordinal);
+        Assert.Equal(guide.SearchTitle + PageMeta.TitleSuffix, WebUtility.HtmlDecode(TitleOf(head)));
+
+        // Where an assistant gets the same guide without the page around it.
+        var alternate = Regex.Match(head, "<link[^>]*type=\"text/markdown\"[^>]*>").Value;
+        Assert.Contains($"href=\"{LlmsText.MarkdownUrl("cqrs")}\"", alternate, StringComparison.Ordinal);
+        Assert.Contains("rel=\"alternate\"", alternate, StringComparison.Ordinal);
+
+        // One date, stated three times: the meta tag the sitemap reads, and the article's dateModified.
+        Assert.NotNull(modified);
+        var iso = modified.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        Assert.Matches($"property=\"article:modified_time\" content=\"{iso}\"", head);
+        Assert.Contains($"\"dateModified\":\"{iso}\"", head, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -150,7 +271,10 @@ public sealed class PageMetaTests
             // page whose canonical points elsewhere has said another URL is the real one — /docs/todos
             // and /docs/todos/new are one page with two addresses, so sharing a title is what they
             // should do. Same rule the prerender pass uses to decide what reaches sitemap.xml.
-            if (IsNoIndex(head) || CanonicalOf(head) is { } canonical && canonical != PageMeta.Origin + path)
+            //
+            // This compared the canonical against the BARE path, and every canonical ends in a slash — so
+            // it skipped every page on the site except "/" and asserted uniqueness over a set of one.
+            if (!ClaimsToBeThePage(head, path))
             {
                 continue;
             }
@@ -264,6 +388,13 @@ public sealed class PageMetaTests
 
     private static bool IsNoIndex(string head) =>
         Regex.IsMatch(head, "name=\"robots\"[^>]*noindex");
+
+    /// <summary>
+    ///     Whether the page at <paramref name="path" /> is indexable and names ITSELF as canonical — the pages
+    ///     the sitemap lists, and the only ones whose title and description reach a search result.
+    /// </summary>
+    private static bool ClaimsToBeThePage(string head, string path) =>
+        !IsNoIndex(head) && CanonicalOf(head) == PageMeta.Origin + PageMeta.CanonicalPath(path);
 
     private static string TitleOf(string head) =>
         Regex.Match(head, "<title[^>]*>(.*?)</title>", RegexOptions.Singleline).Groups[1].Value;

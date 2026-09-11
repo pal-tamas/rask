@@ -12,10 +12,9 @@ public sealed partial class UiKitFeedbackPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "UI kit — Feedback — Rask",
-            "daisyUI's Feedback components as typed Rask components: alert, loading, progress, radial "
-            + "progress, skeleton, toast and tooltip — each carrying its meaning in words, not only in "
-            + "colour.",
+            "daisyUI alerts, toasts and progress in C# — Rask",
+            "daisyUI feedback components in C#: alert, loading, progress, radial progress, skeleton, toast "
+            + "and tooltip, with status conveyed in words, not only color.",
             Routes.UiKitFeedbackPage());
 
     /// <inheritdoc />

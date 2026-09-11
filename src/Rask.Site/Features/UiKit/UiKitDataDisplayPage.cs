@@ -12,9 +12,9 @@ public sealed partial class UiKitDataDisplayPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "UI kit — Data display — Rask",
-            "daisyUI's Data display components as typed Rask components: accordion, collapse, aura, "
-            + "text rotate, hover 3D, hover gallery, badge, kbd, status, countdown and chat bubble.",
+            "daisyUI accordion, badge and card components in C# — Rask",
+            "daisyUI data display components in C#: accordion, collapse, card, badge, kbd, status, "
+            + "countdown, chat bubble, text rotate, aura and hover effects.",
             Routes.UiKitDataDisplayPage());
 
     /// <inheritdoc />

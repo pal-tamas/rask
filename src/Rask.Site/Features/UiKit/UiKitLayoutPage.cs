@@ -16,9 +16,9 @@ public sealed partial class UiKitLayoutPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "UI kit — Layout & mockups — Rask",
-            "daisyUI's Layout and Mockup components as typed Rask components: drawer, divider, footer, "
-            + "hero, indicator, join, stack, mask, and the browser, code, phone and window frames.",
+            "daisyUI drawer, layout and mockups in C# — Rask",
+            "daisyUI layout components in C#: a drawer whose open state C# reads and sets, divider, join, "
+            + "indicator, avatar, mask, and code, browser and window mockups.",
             Routes.UiKitLayoutPage());
 
     /// <inheritdoc />

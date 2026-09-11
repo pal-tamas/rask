@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **rask.sh is built to be found — by search engines and by AI assistants.** Every guide carries search
+  copy of its own (`GuideEntry.SearchTitle` and `Description`, both `required`, so a guide added without
+  them does not compile): "IBattery — Guides — Rask" became "Battery Status API in C# and .NET (IBattery)
+  — Rask", and fifty-two "Typed browser API: IX." descriptions became what each page teaches. Every page
+  carries one schema.org JSON-LD graph — the website, its author, a `TechArticle` or `WebPage`, a
+  `BreadcrumbList`, and on the front door a `SoftwareApplication` — and a guide is an Open Graph `article`
+  with its section, an `article:modified_time` taken from git, a visible "Updated" date and a
+  `rel="alternate" type="text/markdown"` link. The publish writes [`/llms.txt`](https://rask.sh/llms.txt),
+  [`/llms-full.txt`](https://rask.sh/llms-full.txt) and a Markdown twin beside every guide
+  (`/docs/guides/cqrs.md`), with the docs' relative links rewritten to resolve on the site. The front
+  door's description was 250 characters, so every result for it was cut mid-sentence; every indexable page
+  is now held to a 60-character title and a 110–160-character description by `PageMetaTests`. The NuGet
+  packages name rask.sh as their project website and carry searchable base tags, and the committed
+  `rask-seo` skill keeps all of it true as the site grows.
+
+- **A prerendered sitemap dates its pages.** The prerender pass writes each URL's `<lastmod>` from the
+  page's own `<meta property="article:modified_time">` — a W3C datetime (`2026-09-10`, or a timestamp),
+  parsed exactly — and nothing for a page that declares none or declares something that is not one.
+  Never the publish time: that marks every URL changed on every deploy, and a crawler that notices stops
+  trusting the field for the whole site. See `docs/prerendering.md`.
+
 - **A bound kit field shows that its async validator is still checking.** `UiInput`, `UiTextarea` and
   `UiSelect` render a small spinner and "Checking…" under the control while a validation is in flight. It
   uses Core's `ValidatingIndicator`, sticky tail included, so a quick check is still on screen long enough
@@ -206,6 +227,30 @@ them until tagged releases begin.
   makes the kit's own messages independent of it.
 
 ### Fixed
+
+- **Relative links in the guides no longer 404.** The guide renderer sent every `../x.md` link to
+  `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51
+  `../browser-capabilities.md` links on the browser-API pages and the tutorial's `../cli.md`, `../jobs.md`
+  and the rest. It kept only the file name, so `../tests/Rask.Benchmarks.Sqlite/Baselines/README.md` opened
+  the repository's README; and a link to anything that was not Markdown — `../tests/Rask.Cqrs.Tests`,
+  `../scripts/…` — stayed relative and 404ed on the site. Links now resolve against the folder of the doc
+  they are written in (`DocLinks`, shared by the pages and their Markdown twins): one that lands on a guide
+  routes to it, anything else opens that exact file on GitHub. `DocsLinkTests` had skipped every `../` link
+  on the renderer's own assumption, so it could not see this; it now checks every link that stays inside
+  `docs/`.
+
+- **`NoTwoPagesShareATitleOrADescription` checks the site rather than one page.** Its "claims to be this
+  page" filter compared the canonical, which always ends in a slash, with the bare route path, which never
+  does — so it skipped every page except `/` and asserted uniqueness over a set of one.
+
+- **`llms.txt` describes each package once, and describes it correctly.** Its index carried the dashboard,
+  UI kit, jobs, mail and cache entries two or three times each, and the copies disagreed (#1052). Two copies
+  of the jobs and mail entries still said "one processor per app", which the processor leases had made
+  false. The three UI kit versions each knew something the others did not: one listed `UiDataGrid`, one
+  described `UiMultiSelect`, and one covered the `rask new` wiring, the shipped daisyUI plugin bundle and
+  the `Rask.Auth` pages. The cache entry had its Redis paragraph glued in front of its own opening
+  sentence. An agent reading the index got contradictory accounts of one package and no way to tell which
+  was current. Each entry is now one line that keeps every fact still true.
 
 - **Three gate script tests no longer fail on a match.** `pre-push-ref-classes`, `e2e-await-slots` and
   `front-doors` checked output with `printf … | grep -q …` under `set -o pipefail`. `grep -q` exits on the

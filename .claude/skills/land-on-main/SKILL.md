@@ -52,9 +52,13 @@ git push origin HEAD:main
 ```
 Two rules, both learned the hard way:
 
-- **Background it.** `git push` here is not a network call, it is the full `pre-push` gate — the CLI
-  build E2E plus the browser E2E, which queues for the machine-wide lane and can take 90 minutes.
-  Run it with `run_in_background: true`; a foreground timeout kills the gate mid-run.
+- **Background it.** `git push` here is not a network call, it is the `pre-push` gate: the hook's own
+  self-tests, a Release build, and the unit gate scoped to `origin/main...HEAD` — minutes, not
+  seconds. Run it with `run_in_background: true`; a foreground timeout kills the gate mid-run.
+- **A green push is not an E2E run.** The push's test step is "Unit & integration tests (excludes the
+  browser E2E)". The browser and CLI build E2E run by hand — `bash scripts/run-e2e-local.sh` for any
+  `src/Rask.Site` change, `scripts/run-all-gates.sh` for the rest — so run them BEFORE pushing, and
+  don't report a pushed site change as E2E-verified on the strength of the push.
 - **Verify by remote SHA, never by exit code.** A pipe or a `tail` after the push reports *its* exit
   status, so a failed push looks green. Write `echo "PUSH_EXIT=$?" >> log` and confirm the artifact:
   ```bash

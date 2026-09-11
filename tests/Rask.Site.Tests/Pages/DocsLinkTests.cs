@@ -118,8 +118,13 @@ public sealed partial class DocsLinkTests
     /// <summary>
     /// Every in-repo markdown link in every doc, with its target split into a docs-relative path and an
     /// anchor. Skipped: external schemes (checking those needs the network, which buys flakiness), and
-    /// <c>../</c> paths — the renderer sends those to GitHub rather than routing them, so they aren't the
-    /// app's problem and they point outside <c>docs/</c>.
+    /// paths that climb OUT of <c>docs/</c> — <c>../README.md</c> from the top level is a repo file on
+    /// GitHub, not the app's problem.
+    ///
+    /// <para>It used to skip every <c>../</c> path, on the grounds that the renderer sent them all to GitHub.
+    /// So it never looked at the 51 <c>../browser-capabilities.md</c> links on the browser-API pages, which
+    /// climb one directory and stay inside <c>docs/</c> — and which the renderer duly sent to GitHub URLs
+    /// with no file behind them. They route to the guide now, and are checked like any other link.</para>
     /// </summary>
     private static IEnumerable<DocLink> AllLinks()
     {
@@ -134,8 +139,7 @@ public sealed partial class DocsLinkTests
                 var target = match.Groups[1].Value.Trim();
                 if (target.Length == 0
                     || target.Contains("://", StringComparison.Ordinal)
-                    || target.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)
-                    || target.Contains("../", StringComparison.Ordinal))
+                    || target.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -143,6 +147,11 @@ public sealed partial class DocsLinkTests
                 var hash = target.IndexOf('#', StringComparison.Ordinal);
                 var path = hash < 0 ? target : target[..hash];
                 var fragment = hash < 0 ? string.Empty : target[(hash + 1)..];
+
+                if (ClimbsOutOfDocs(folder, path))
+                {
+                    continue;
+                }
 
                 // Only .md targets route through the guide pages; an image or a code file linked relatively
                 // is a plain asset and out of scope here.
@@ -158,6 +167,34 @@ public sealed partial class DocsLinkTests
                 yield return new DocLink(sourcePath, sourcePath, target, resolved, fragment);
             }
         }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="path" />, followed from a doc in <paramref name="folder" />, leaves <c>docs/</c>.
+    /// </summary>
+    /// <remarks>
+    /// Counted by hand because <see cref="Normalize" /> cannot say: a URI clamps "../README.md" at the root and
+    /// hands back "README.md" — which is docs/README.md, a different file that happens to exist.
+    /// </remarks>
+    private static bool ClimbsOutOfDocs(string folder, string path)
+    {
+        var depth = folder.Length == 0 ? 0 : folder.Split('/').Length;
+        foreach (var segment in path.Split('/'))
+        {
+            if (segment == "..")
+            {
+                if (--depth < 0)
+                {
+                    return true;
+                }
+            }
+            else if (segment is not ("." or ""))
+            {
+                depth++;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Collapses "tutorial/../cli.md" and the like without touching the filesystem.</summary>
