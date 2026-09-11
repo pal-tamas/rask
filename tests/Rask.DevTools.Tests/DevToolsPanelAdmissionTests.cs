@@ -25,6 +25,7 @@ namespace Rask.DevTools.Tests;
 ///         marks them as a LAN address instead.
 ///     </para>
 /// </remarks>
+[Collection(DevToolsHookCollection.Name)]
 public sealed partial class DevToolsPanelAdmissionTests
 {
     [Fact]
