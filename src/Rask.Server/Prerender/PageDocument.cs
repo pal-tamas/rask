@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
+using Rask.Server.DevTools;
 
 namespace Rask.Server.Prerender;
 
@@ -27,14 +28,14 @@ internal static class PageDocument
     ///         F5 it is this app that started it.
     ///     </para>
     ///     <para>
-    ///         <paramref name="devToolsHostUrl" /> is a separate gate from <paramref name="dev" />: that one also
-    ///         needs <c>dotnet watch</c>, and the devtools switch on for a plain <c>dotnet run</c> of a Debug build
-    ///         in Development.
+    ///         <paramref name="devTools" /> is a separate gate from <paramref name="dev" />: that one also needs
+    ///         <c>dotnet watch</c>, and the devtools switch on for a plain <c>dotnet run</c> of a Debug build in
+    ///         Development.
     ///     </para>
     /// </remarks>
     internal static string Live(
         string html, string sessionId, RaskServerLimits limits, bool dev, string? islandsDevUrl,
-        string? devToolsHostUrl) =>
+        DevToolsPageTag? devTools) =>
         LivePayload.InjectDevToolsScript(
             LivePayload.InjectIslandsDevAttr(
                 LivePayload.InjectWasmBundleAttr(
@@ -43,7 +44,8 @@ internal static class PageDocument
                     RaskEndpointExtensions.WasmBootModuleUrl(limits)),
                 dev,
                 dev ? islandsDevUrl : null),
-            devToolsHostUrl);
+            devTools?.ScriptUrl,
+            devTools?.PanelUrl);
 
     /// <summary>
     ///     Where the islands' Vite dev server listens: <c>rask dev</c>'s <c>RASK_ISLANDS_DEV</c> when it

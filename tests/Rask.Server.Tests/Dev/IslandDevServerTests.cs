@@ -82,12 +82,12 @@ public sealed class IslandDevServerTests
 
         Assert.Contains(
             "data-rask-islands-dev=\"http://localhost:5174\"",
-            PageDocument.Live(html, "s1", limits, dev: true, "http://localhost:5174", devToolsHostUrl: null),
+            PageDocument.Live(html, "s1", limits, dev: true, "http://localhost:5174", devTools: null),
             StringComparison.Ordinal);
 
         Assert.DoesNotContain(
             "data-rask-islands-dev",
-            PageDocument.Live(html, "s1", limits, dev: false, "http://localhost:5174", devToolsHostUrl: null),
+            PageDocument.Live(html, "s1", limits, dev: false, "http://localhost:5174", devTools: null),
             StringComparison.Ordinal);
     }
 

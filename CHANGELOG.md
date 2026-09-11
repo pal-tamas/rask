@@ -30,6 +30,22 @@ them until tagged releases begin.
   islands come from Vite), replacing the four properties `rask dev` passed by hand; an explicit value still
   wins. Browser-side debugging — C# running in WASM, and scoped `.ts` — is not covered yet (#1073).
 
+- **The Rask pill opens a live panel in Debug Development builds, and only the developer who owns the page can open it.** Each
+  interactive page's devtools tag now names its panel, `/_rask-devtools/?inspect={session}&t={token}`. The panel is
+  a Rask application mounted beside the app with its own document and route table, drawn with Rask.Ui and following
+  the OS light or dark setting, so the corner pill now appears. The host admits a panel request only when all of these hold:
+  - it is running in Development;
+  - the request comes from this machine, unless `RASK_DEVTOOLS_ALLOW_REMOTE=1`;
+  - it carries that session's token, an HMAC of the session id under a per-process key, compared in constant time;
+  - it comes from the page's origin, with the identity that owns the inspected session.
+
+  A wrong token and an unknown session both answer 404, so neither can be probed for. The check runs after the app's
+  own authorization and before a session is reserved, so a refused request costs nothing. A panel session is never
+  rebuilt from a resume record, so a reconnect goes back through the same check. The panel's pages are internal; only
+  the generator's `Routes` and entry classes join `Rask.DevTools`' public surface. The panel uses the app's own
+  Rask.Ui rather than bringing one, so a Release publish carries nothing of either: every `rask new` app and the `Rask`
+  package reference Rask.Ui, and an app without it gets no devtools and one startup warning saying to add it.
+
 - **`Rask.Storage` — keep the files your users upload.** Rask could already move bytes between the browser
   and the server, but every one of those paths was transient: a staged upload lived as long as its handler.
   `files.SaveAsync(upload)` now stores the bytes and records a `StoredFile` row on the application's own
@@ -81,7 +97,7 @@ them until tagged releases begin.
   nothing is mapped or written, a host without the package does neither, and the devtools' own pages never load
   it. The script carries the corner pill and the drawer it opens — docked to the bottom or the right, remembered,
   toggled by Ctrl+Shift+D (Cmd+Shift+D on a Mac) without the keystroke reaching the app, and drawn in a shadow root
-  the app's stylesheets cannot reach — and shows them once the panel page they frame exists, in the next slice.
+  the app's stylesheets cannot reach — and shows them only when the page names a panel for them to frame.
 
   The server writes the tag, so `rask.js` and `rask.wasm.js`, which every Release page loads, carry no code to
   load the devtools. What they do carry, the probe's frame hooks, now has a budget: `ClientRuntimeSeamBudgetTests`
