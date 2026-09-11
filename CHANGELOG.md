@@ -49,6 +49,19 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`QuiescentRender.RunAsync` and `RaskPrerender.RenderDocumentAsync` take a `CancellationToken`.** It is
+  the last parameter and defaulted, as the API style guide asks of every awaitable, so existing calls
+  compile unchanged. Cancelling abandons the render: a wait in progress stops at once and
+  `OperationCanceledException` is thrown, rather than placeholder markup returned as though it were a
+  result. A render nobody is waiting for any more — a page re-rendered in the background when the host
+  stops — no longer holds shutdown for the rest of its budget.
+
+  Behind it, the Server GET's page render moved out of the request handler into one internal function
+  that returns every decision a response is built from: whether the page redirected, its status, whether
+  it needs a live session, and whether its markup read the signed-in user. Responses are unchanged — the
+  existing endpoint suites pass as they were — and the two copies of the live-document composition in the
+  handler are now one. This is groundwork for caching public pages on the Server.
+
 - **`Tw.cs` is gone: every control on rask.sh is a `Rask.Ui` component.** The site's class-string
   vocabulary ends here. The last 180 uses of `Tw.Input`, `Tw.Label` and `Tw.Select` move onto kit
   fields, along with the checkbox, spinner, input-group, blockquote and figure-caption constants, and the
