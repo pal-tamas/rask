@@ -3,20 +3,32 @@
 Ship your app in more than one language: dates and numbers in the visitor's format, text in their
 language, and `<html lang>` that tells the truth.
 
-Every scaffolded server app already ships one language, English, registered in `Program.cs`. Adding a
-second is a line in the block that is already there:
+Every scaffolded server app already ships one language, English, listed in `appsettings.json`. Adding a
+second is an entry in the list that is already there:
 
-```csharp
-builder.Services.AddRask(configureCulture: c =>
+```jsonc
 {
-    c.SupportedCultures.Add("en");   // the default
-    c.SupportedCultures.Add("hu");   // add another to ship another
-});
+  "Rask": {
+    "Culture": {
+      "SupportedCultures": [ "en", "hu" ]   // the first is the default; add one to ship another
+    }
+  }
+}
 ```
 
-The first entry is the default a visitor falls back to. **This is the only place languages are
-configured** — there is no CLI flag for it, because the file is where the answer lives and stays
-([#854](https://github.com/pal-tamas/rask/issues/854)).
+The first entry is the default a visitor falls back to. **That list is where languages are configured** —
+there is no CLI flag for it, because the file is where the answer lives and stays
+([#854](https://github.com/pal-tamas/rask/issues/854)). In the environment it is one variable per entry
+(`Rask__Culture__SupportedCultures__0=en`).
+
+A `configureCulture` callback on `AddRask` still works and runs after the section. The list is appended to
+rather than replaced, so a language added in code joins the configured ones:
+
+```csharp
+builder.Services.AddRask(configureCulture: c => c.SupportedCultures.Add("hu"));
+```
+
+A browser (WebAssembly) app has no `appsettings.json`, so it names its languages in code.
 
 Until you add a second, **nothing changes**: `<html lang="en">`, no `dir` attribute, and no cost on
 the render path.
@@ -197,8 +209,8 @@ public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 `SetAsync` switches the session, remembers the choice, and repaints. No reload.
 
 **No template scaffolds this, deliberately** ([#854](https://github.com/pal-tamas/rask/issues/854)).
-A new project starts with English and the registration above in `Program.cs`; adding a language is
-another `c.SupportedCultures.Add(...)` line there. That is the whole configuration surface — there is
+A new project starts with English in `Rask:Culture:SupportedCultures`; adding a language is another
+entry there. That is the whole configuration surface — there is
 no `--culture` flag, because a flag would only restate what the file already says, and it would say it
 once at scaffold time while the file goes on being the truth.
 

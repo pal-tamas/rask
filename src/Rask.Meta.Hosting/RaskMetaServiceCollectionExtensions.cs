@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -27,13 +28,20 @@ public static class RaskMetaServiceCollectionExtensions
     ///     Adds hosting for a meta framework front end running as a supervised Node process.
     /// </summary>
     /// <remarks>
-    ///     Registration is where the options live, rather than at
-    ///     <see cref="RaskMetaEndpointExtensions.UseRaskMeta" />, because the supervisor needs them
-    ///     before the pipeline is built — it has to start the process and wait for it to listen while
-    ///     the app is still coming up.
+    ///     <para>
+    ///         Registration is where the options live, rather than at
+    ///         <see cref="RaskMetaEndpointExtensions.UseRaskMeta" />, because the supervisor needs them
+    ///         before the pipeline is built — it has to start the process and wait for it to listen while
+    ///         the app is still coming up.
+    ///     </para>
+    ///     <para>
+    ///         Precedence, lowest first: what the build baked into the assembly, the <c>Rask:Meta</c>
+    ///         configuration section (<c>Framework</c> by name — <c>Nuxt</c>, <c>Next</c>, …), <paramref name="configure" />,
+    ///         and finally a <c>rask dev</c> session's dev server. Idempotent: the first call's options win.
+    ///     </para>
     /// </remarks>
     /// <param name="services">The app's service collection.</param>
-    /// <param name="configure">Adjusts <see cref="MetaHostingOptions" />.</param>
+    /// <param name="configure">Adjusts <see cref="MetaHostingOptions" />, after the <c>Rask:Meta</c> section.</param>
     /// <returns><paramref name="services" />, for chaining.</returns>
     public static IServiceCollection AddRaskMeta(
         this IServiceCollection services,
@@ -41,26 +49,35 @@ public static class RaskMetaServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var options = new MetaHostingOptions();
+        // What the build baked first, then Rask:Meta, then whatever the app says. That order is the contract:
+        // naming the framework in the .csproj is the ordinary way, because the build needs it there anyway to
+        // know what to publish — and configuration and configure() both stay able to override, for a framework
+        // this package has no preset for, or an app that resolves its front end some other way.
+        var registered = services.AddRaskOptions<MetaHostingOptions>(
+            "Rask:Meta",
+            BindSection,
+            configure,
+            validate: null,
+            defaults: static o => MetaMetadata.Apply(o, Assembly.GetEntryAssembly()));
 
-        // What the build baked first, then whatever the app says. That order is the contract: naming
-        // the framework in the .csproj is the ordinary way, because the build needs it there anyway to
-        // know what to publish — and configure() stays able to override for a framework this package
-        // has no preset for, or an app that resolves its front end some other way.
-        MetaMetadata.Apply(options, Assembly.GetEntryAssembly());
+        if (registered)
+        {
+            // PostConfigure, so a dev session's port lands after the section and every callback. `rask dev`'s dev
+            // server first: it turns supervision off, which is what makes an editor-launched session (VS Code's F5)
+            // step aside rather than start a second dev server.
+            services.AddOptions<MetaHostingOptions>()
+                .PostConfigure(static o =>
+                {
+                    ApplyDevServer(o, Environment.GetEnvironmentVariable);
+                    ApplyEditorDevServer(
+                        o,
+                        EditorDevSession.IsActive(
+                            Assembly.GetEntryAssembly(),
+                            IsDevelopment(Environment.GetEnvironmentVariable),
+                            Environment.GetEnvironmentVariable));
+                });
+        }
 
-        configure?.Invoke(options);
-
-        ApplyDevServer(options, Environment.GetEnvironmentVariable);
-
-        ApplyEditorDevServer(
-            options,
-            EditorDevSession.IsActive(
-                Assembly.GetEntryAssembly(),
-                IsDevelopment(Environment.GetEnvironmentVariable),
-                Environment.GetEnvironmentVariable));
-
-        services.TryAddSingleton(options);
         services.TryAddSingleton<MetaPaths>();
         services.TryAddSingleton<NodeReadiness>();
         services.TryAddSingleton<MetaDrain>();
@@ -74,6 +91,45 @@ public static class RaskMetaServiceCollectionExtensions
         services.AddHostedService<NodeSupervisor>();
 
         return services;
+    }
+
+    /// <summary>Reads the <c>Rask:Meta</c> section onto the options, key by key.</summary>
+    /// <remarks>
+    ///     Key by key rather than one <c>Bind</c>, because <see cref="MetaHostingOptions.Framework" /> is a preset
+    ///     object with required members, which the binder cannot construct. Configuration names the preset instead
+    ///     — the same names the build's <c>RaskMetaFramework</c> property uses. Every other value is converted by the
+    ///     binding source generator; <c>RaskMetaOptionsBindingTests</c> pins that each settable property is read.
+    /// </remarks>
+    internal static void BindSection(IConfigurationSection section, MetaHostingOptions options)
+    {
+        if (section[nameof(MetaHostingOptions.Framework)] is { Length: > 0 } name)
+        {
+            options.Framework = MetaFramework.ByName(name)
+                                ?? throw new InvalidOperationException(
+                                    $"Framework '{name}' is not a meta framework Rask hosts.");
+        }
+
+        options.AppDirectory = section.GetValue(nameof(MetaHostingOptions.AppDirectory), options.AppDirectory)!;
+        options.NodeExecutable = section.GetValue(nameof(MetaHostingOptions.NodeExecutable), options.NodeExecutable)!;
+        options.Port = section.GetValue(nameof(MetaHostingOptions.Port), options.Port);
+        options.StartupTimeout = section.GetValue(nameof(MetaHostingOptions.StartupTimeout), options.StartupTimeout);
+        options.ShutdownTimeout = section.GetValue(nameof(MetaHostingOptions.ShutdownTimeout), options.ShutdownTimeout);
+        options.MaxRestartAttempts =
+            section.GetValue(nameof(MetaHostingOptions.MaxRestartAttempts), options.MaxRestartAttempts);
+        options.HealthyRunThreshold =
+            section.GetValue(nameof(MetaHostingOptions.HealthyRunThreshold), options.HealthyRunThreshold);
+        options.BaseUrl = section.GetValue(nameof(MetaHostingOptions.BaseUrl), options.BaseUrl);
+        options.BaseUrlVariable =
+            section.GetValue(nameof(MetaHostingOptions.BaseUrlVariable), options.BaseUrlVariable)!;
+        options.SuperviseNode = section.GetValue(nameof(MetaHostingOptions.SuperviseNode), options.SuperviseNode);
+
+        foreach (var variable in section.GetSection(nameof(MetaHostingOptions.Environment)).GetChildren())
+        {
+            if (variable.Value is { } value)
+            {
+                options.Environment[variable.Key] = value;
+            }
+        }
     }
 
     /// <summary>
@@ -94,10 +150,10 @@ public static class RaskMetaServiceCollectionExtensions
     ///         by forwarding, so a link to <c>:5000</c> is not a dead end.
     ///     </para>
     ///     <para>
-    ///         Applied AFTER <c>configure</c>, which is the one place the ordinary precedence is inverted.
-    ///         An app that pins <c>o.Port</c> for production would otherwise silently defeat every dev
-    ///         session on a framework whose dev server listens somewhere else — and this variable is set
-    ///         by the dev tool for the life of one session, not configuration anyone deploys.
+    ///         Applied AFTER <c>configure</c> and the <c>Rask:Meta</c> section, which is the one place the
+    ///         ordinary precedence is inverted. An app that pins <c>Port</c> for production would otherwise
+    ///         silently defeat every dev session on a framework whose dev server listens somewhere else — and
+    ///         this variable is set by the dev tool for the life of one session, not configuration anyone deploys.
     ///     </para>
     /// </remarks>
     internal static void ApplyDevServer(MetaHostingOptions options, Func<string, string?> readEnv)

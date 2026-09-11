@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Rask.Hosting.Shared;
 
 namespace Rask.SQLite;
 
@@ -10,52 +13,77 @@ namespace Rask.SQLite;
 public static class RaskSqliteDbContextOptionsExtensions
 {
     /// <summary>
-    /// Configures the context to use SQLite with <paramref name="connectionString"/> and applies the
-    /// <see cref="SqliteOptions"/> (production defaults, overridable via
-    /// <paramref name="configure"/>) on every connection open. Swap your <c>UseSqlite(cs)</c> for
-    /// <c>UseRaskSqlite(cs)</c> and you are done.
+    /// Configures the context to use SQLite with the <c>Rask:ConnectionStrings:App</c> connection string and
+    /// applies the <see cref="SqliteOptions"/> — production defaults, then the <c>Rask:Sqlite</c> configuration
+    /// section, then <paramref name="configure"/> — on every connection open.
+    /// <code>
+    /// builder.Services.AddDbContextFactory&lt;AppDbContext&gt;((sp, o) =&gt; o.UseRaskSqlite(sp));
+    /// </code>
     /// </summary>
     /// <param name="optionsBuilder">The context options builder being configured.</param>
-    /// <param name="connectionString">The SQLite connection string.</param>
-    /// <param name="configure">Overrides for the production pragma defaults.</param>
+    /// <param name="services">The application's services, which carry its configuration.</param>
+    /// <param name="configure">Overrides for the pragma settings, applied after the <c>Rask:Sqlite</c> section.</param>
     /// <remarks>
-    /// Set <c>o.Retry.Enabled</c> to register the fair-interval <see cref="RaskSqliteExecutionStrategy"/>
+    /// <para>
+    /// A missing <c>Rask:ConnectionStrings:App</c> is an error that names the key rather than a fallback file: a
+    /// database opened wherever the process happens to be running is how a container loses its data on the next
+    /// deploy. A design-time factory (<c>dotnet ef</c>) builds a small service provider carrying its configuration
+    /// and passes that.
+    /// </para>
+    /// <para>
+    /// Set <c>Retry.Enabled</c> to register the fair-interval <see cref="RaskSqliteExecutionStrategy"/>
     /// so <c>SaveChanges</c> and queries retry on <c>SQLITE_BUSY</c>/<c>SQLITE_LOCKED</c>. That also turns
     /// SQLite's native busy handler off (<c>busy_timeout=0</c>) and lowers Microsoft.Data.Sqlite's own
     /// blocking command timeout, so the async strategy owns the waiting rather than a thread parked inside
     /// native code. The implicit <c>SaveChanges</c> transaction remains <c>DEFERRED</c> (a write-only batch
     /// already takes the write lock on its first statement); wrap a read-then-write transaction in
     /// <see cref="SqliteConnectionExtensions.BeginImmediate"/> to avoid the deferred-upgrade deadlock.
+    /// </para>
     /// <para>
-    /// Set <c>o.StrictTables</c> to create tables as SQLite <c>STRICT</c> tables, so the store enforces
+    /// Set <c>StrictTables</c> to create tables as SQLite <c>STRICT</c> tables, so the store enforces
     /// each column's declared type rather than coercing whatever it is handed. Strictness is a property of
     /// the table, so it affects newly created tables only, and a model with an explicit
     /// <c>HasColumnType(...)</c> outside SQLite's six allowed type names is rejected at creation time. See
     /// <see cref="RaskSqliteStrictMigrationsSqlGenerator"/>.
     /// </para>
+    /// <para>
+    /// The options are read each time EF builds the context options, which <c>AddDbContextFactory</c> does once;
+    /// <c>AddDbContext</c> does it per scope by default.
+    /// </para>
     /// </remarks>
     public static DbContextOptionsBuilder UseRaskSqlite(
         this DbContextOptionsBuilder optionsBuilder,
-        string connectionString,
+        IServiceProvider services,
         Action<SqliteOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionString);
+        ArgumentNullException.ThrowIfNull(services);
 
-        var options = new SqliteOptions();
-        configure?.Invoke(options);
+        var connectionString = RaskOptionsRegistration.ConnectionString(services, "App");
+        var options = RaskOptionsRegistration.BindNow<SqliteOptions>(
+            services, "Rask:Sqlite", static (section, o) => section.Bind(o), configure);
 
         var retry = options.Retry;
-        retry.Validate();
-
-        if (retry.Enabled)
+        try
         {
-            // The async execution strategy owns waiting: turn off SQLite's native busy handler so BUSY
-            // surfaces to the strategy instead of blocking a thread inside native code.
-            options.BusyTimeout = TimeSpan.Zero;
-        }
+            retry.Validate();
 
-        options.Validate();
+            if (retry.Enabled)
+            {
+                // The async execution strategy owns waiting: turn off SQLite's native busy handler so BUSY
+                // surfaces to the strategy instead of blocking a thread inside native code.
+                options.BusyTimeout = TimeSpan.Zero;
+            }
+
+            options.Validate();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            // Reported like every other bad setting — which section, and why — since the value may well have
+            // come from appsettings rather than the callback.
+            throw new OptionsValidationException(
+                Microsoft.Extensions.Options.Options.DefaultName, typeof(SqliteOptions), [$"Rask:Sqlite: {ex.Message}"]);
+        }
 
         // EF Core resolves exactly one IMigrationsSqlGenerator, so this is a single choice rather than two
         // replacements: registering a strict generator and a range-exclusion generator separately would keep
@@ -91,17 +119,17 @@ public static class RaskSqliteDbContextOptionsExtensions
 
     /// <summary>
     /// The strongly-typed overload of
-    /// <see cref="UseRaskSqlite(DbContextOptionsBuilder, string, Action{SqliteOptions}?)"/>, so
-    /// <c>new DbContextOptionsBuilder&lt;TContext&gt;().UseRaskSqlite(cs).Options</c> keeps its
+    /// <see cref="UseRaskSqlite(DbContextOptionsBuilder, IServiceProvider, Action{SqliteOptions}?)"/>, so
+    /// <c>new DbContextOptionsBuilder&lt;TContext&gt;().UseRaskSqlite(services).Options</c> keeps its
     /// <see cref="DbContextOptions{TContext}"/> type.
     /// </summary>
     public static DbContextOptionsBuilder<TContext> UseRaskSqlite<TContext>(
         this DbContextOptionsBuilder<TContext> optionsBuilder,
-        string connectionString,
+        IServiceProvider services,
         Action<SqliteOptions>? configure = null)
         where TContext : DbContext
     {
-        UseRaskSqlite((DbContextOptionsBuilder)optionsBuilder, connectionString, configure);
+        UseRaskSqlite((DbContextOptionsBuilder)optionsBuilder, services, configure);
         return optionsBuilder;
     }
 }

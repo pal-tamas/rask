@@ -18,14 +18,24 @@ dotnet add package Rask.Postgres
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskPostgres(builder.Configuration.GetConnectionString("App")!)
+    .UseRaskPostgres(sp)
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
 
-Override any default through the optional configure delegate:
+The connection string is `Rask:ConnectionStrings:App` in configuration — in production usually the whole
+string, password included, as `Rask__ConnectionStrings__App` in the environment — and a missing one is an
+error naming that key.
+
+Override any default in the `Rask:Postgres` section:
+
+```jsonc
+{ "Rask": { "Postgres": { "StatementTimeout": "00:00:10", "LockTimeout": "00:00:03", "Retry": { "MaxCount": 3 } } } }
+```
+
+or through the optional configure delegate, which runs after the section and wins:
 
 ```csharp
-o.UseRaskPostgres(connectionString, p =>
+o.UseRaskPostgres(sp, p =>
 {
     p.StatementTimeout = TimeSpan.FromSeconds(10);
     p.LockTimeout = TimeSpan.FromSeconds(3);
@@ -53,7 +63,7 @@ Behind PgBouncer in transaction mode, add `options` to its `ignore_startup_param
 
 Retrying is an execution strategy, and like every EF Core retrying strategy it refuses a transaction you
 opened yourself outside it: wrap a hand-written `BeginTransaction` in
-`context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `p.Retry.Enabled = false`.
+`context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `Rask:Postgres:Retry:Enabled` to `false`.
 `SaveChanges`, and Rask's jobs, mail, outbox and cache, need nothing.
 
 ## What stays behind

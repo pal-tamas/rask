@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "runtime": "vue",
+  "module": "fixture-vue",
+  "export": "Picker",
+  "package": {
+    "name": "fixture-vue",
+    "version": "2.0.1"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "modelValue",
+      "required": false,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onUpdate:modelValue",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "value",
+            "type": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "options",
+      "required": true,
+      "type": {
+        "kind": "array",
+        "element": {
+          "kind": "string"
+        }
+      }
+    }
+  ],
+  "skipped": []
+}

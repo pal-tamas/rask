@@ -56,8 +56,9 @@ internal static class ExternalPackageSpecifier
     }
 
     /// <summary>
-    ///     Whether <paramref name="export" /> can be written in an <c>import { X as Component }</c> clause — an
-    ///     identifier, so nothing a <c>Module</c> string carries can end the import and start other code.
+    ///     Whether <paramref name="export" /> can be written into generated JavaScript — <c>default</c>, an
+    ///     identifier, or a dotted path of identifiers (<c>Switch.Root</c>, a member of the <c>Switch</c> export) — so
+    ///     nothing a <c>Module</c> string carries can end the import and start other code.
     /// </summary>
     public static bool IsValidExport(string export)
     {
@@ -66,12 +67,25 @@ internal static class ExternalPackageSpecifier
             return true;
         }
 
-        if (export.Length == 0 || !(char.IsLetter(export[0]) || export[0] is '_' or '$'))
+        foreach (var segment in export.Split('.'))
+        {
+            if (!IsIdentifier(segment))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsIdentifier(string name)
+    {
+        if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] is '_' or '$'))
         {
             return false;
         }
 
-        foreach (var c in export)
+        foreach (var c in name)
         {
             if (!(char.IsLetterOrDigit(c) || c is '_' or '$'))
             {

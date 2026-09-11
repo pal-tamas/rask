@@ -15,17 +15,21 @@ Rask-specific is involved:
 
 ```csharp
 // A nested key uses a double underscore in the variable name:
-//   ConnectionStrings__App  →  Configuration["ConnectionStrings:App"]
-var smtpPassword = builder.Configuration["Smtp:Password"];
+//   Stripe__ApiKey  →  Configuration["Stripe:ApiKey"]
+var stripeKey = builder.Configuration["Stripe:ApiKey"];
 ```
 
 Environment variables override anything in `appsettings.json`, which is why the same key can hold a
 harmless default in the committed file and the real value in production.
 
+Rask's own settings need no reading at all. Every one lives under `Rask` and is read by the registration
+that owns it, so `Rask__Auth__BearerSigningKey` in the environment reaches `AuthOptions.BearerSigningKey`
+with no code — see [Configuration](configuration.md#every-section) for every section.
+
 ## Getting them onto the server
 
 ```bash
-rask deploy --env "Smtp__Password=…" --env "Stripe__ApiKey=…"   # one-offs
+rask deploy --env "Rask__Mail__Smtp__Password=…" --env "Stripe__ApiKey=…"   # one-offs
 rask deploy --env-file .env.production                          # a file of KEY=VALUE lines
 ```
 
@@ -45,7 +49,7 @@ ever written to it. What *is* recorded is the list of variable names the app was
 {
   "host": "deploy@box.example.com",
   "domain": "app.example.com",
-  "envKeys": ["Smtp__Password", "Stripe__ApiKey"]   // names only
+  "envKeys": ["Rask__Mail__Smtp__Password", "Stripe__ApiKey"]   // names only
 }
 ```
 
@@ -55,10 +59,10 @@ answers its health check, takes traffic, and is quietly misconfigured. So a depl
 remembered variable **fails**:
 
 ```
-This app was last deployed with Smtp__Password, which isn't set now.
+This app was last deployed with Rask__Mail__Smtp__Password, which isn't set now.
 
 Deploying without it would start the app misconfigured, so this is a refusal rather than a warning.
-  • pass it again:      rask deploy --env Smtp__Password=…
+  • pass it again:      rask deploy --env Rask__Mail__Smtp__Password=…
   • or from a file:     rask deploy --env-file .env.production
   • deploying from CI?  add it to the deploy step in .github/workflows/deploy.yml
   • no longer needed?   remove it from "envKeys" in .rask/deploy.json
@@ -71,7 +75,7 @@ and the host's fingerprint). Your **app's** secrets are separate — add them to
 
 ```yaml
 - name: Deploy
-  run: rask deploy --no-setup-host --env "Smtp__Password=${{ secrets.SMTP_PASSWORD }}"
+  run: rask deploy --no-setup-host --env "Rask__Mail__Smtp__Password=${{ secrets.SMTP_PASSWORD }}"
 ```
 
 If that job starts failing after you deploy a new variable from your own machine, that's the check above

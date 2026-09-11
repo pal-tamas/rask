@@ -37,13 +37,24 @@ public sealed class SendWelcomeEmailHandler(IMail mail) : ICommandHandler<SendWe
 // Program.cs
 builder.Services.AddRaskCqrs();
 builder.Services.AddRaskJobs<AppDbContext>(o =>
-{
-    o.PollInterval = TimeSpan.FromSeconds(5);
-    o.MaxAttempts = 25;
-    o.AddRecurring<PurgeStaleCarts>("purge-carts", every: TimeSpan.FromHours(1), () => new PurgeStaleCarts());
-});
+    o.AddRecurring<PurgeStaleCarts>("purge-carts", every: TimeSpan.FromHours(1), () => new PurgeStaleCarts()));
 
 builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=app.db"));
+```
+
+A schedule is code, so `AddRecurring` stays in the callback. The plain values live in `Rask:Jobs`, which the
+callback runs after:
+
+```jsonc
+// appsettings.json
+{
+  "Rask": {
+    "Jobs": {
+      "PollInterval": "00:00:05",
+      "MaxAttempts": 25
+    }
+  }
+}
 ```
 
 ```csharp

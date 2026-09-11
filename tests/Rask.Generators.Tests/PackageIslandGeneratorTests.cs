@@ -258,6 +258,63 @@ public class PackageIslandGeneratorTests
     }
 
     [Fact]
+    public void A_member_of_an_export_and_vue_event_names_pair_generate_and_compile()
+    {
+        // What the extractor writes for a Vue component reached through a namespace export: the export keeps its dot,
+        // and Vue's event props keep the names Vue matches them by, while C# gets names it can compile.
+        const string island =
+            """
+            namespace Shop;
+
+            public sealed partial class MuiButton : Rask.External.VueComponent
+            {
+                protected override string Module => "fixture-vue#Parts.Toggle";
+            }
+            """;
+
+        const string snapshot =
+            """
+            {
+              "schema": 1, "runtime": "vue", "module": "fixture-vue", "export": "Parts.Toggle",
+              "props": [
+                { "name": "modelValue", "required": false, "type": { "kind": "boolean" } },
+                { "name": "onUpdate:modelValue", "required": false,
+                  "type": { "kind": "callback", "args": [ { "name": "value", "type": { "kind": "boolean" } } ] } },
+                { "name": "onValue-change", "required": false,
+                  "type": { "kind": "callback", "args": [
+                    { "name": "value", "type": { "kind": "number" } },
+                    { "name": "source", "type": { "kind": "string" } } ] } }
+              ]
+            }
+            """;
+
+        const string host =
+            """
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                private bool _on;
+                private double _value;
+
+                protected override Rask.Core.Component? Render() =>
+                    MuiButton
+                        .ModelValue(true)
+                        .OnUpdateModelValue(v => _on = v)
+                        .OnValueChange(v => _value = v);
+            }
+            """;
+
+        var run = Run(island, snapshot, host);
+        var generated = run.GeneratedSource("MuiButton.External");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id is "RASK078" or "RASK079" or "RASK080");
+        Assert.Contains("writer.WritePropertyName(\"onUpdate:modelValue\")", generated, StringComparison.Ordinal);
+        Assert.Contains("writer.WritePropertyName(\"onValue-change\")", generated, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void A_prop_with_no_csharp_type_is_RASK080_and_the_rest_are_still_generated()
     {
         var snapshot = PropSnapshot("mixed", """{ "kind": "union", "of": [ { "kind": "boolean" }, { "kind": "string" } ] }""");

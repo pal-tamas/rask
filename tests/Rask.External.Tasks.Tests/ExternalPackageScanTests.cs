@@ -204,6 +204,7 @@ public sealed class ExternalPackageScanTests
     [Theory]
     [InlineData("@mui/material#Button", "@mui/material", "Button")]
     [InlineData("@mui/material/Button", "@mui/material/Button", "default")]
+    [InlineData("bits-ui#Switch.Root", "bits-ui", "Switch.Root")]
     [InlineData("pkg#", "pkg#", "default")]
     public void A_specifier_splits_into_module_and_export(string module, string specifier, string export)
     {
@@ -226,7 +227,13 @@ public sealed class ExternalPackageScanTests
     [InlineData("a b", false)]
     [InlineData("x'};alert(1);//", false)]
     [InlineData("1st", false)]
-    public void Only_an_identifier_can_be_written_into_an_import(string export, bool valid)
+    [InlineData("Switch.Root", true)]
+    [InlineData("Menu.Item.Label", true)]
+    [InlineData("a..b", false)]
+    [InlineData(".Root", false)]
+    [InlineData("Switch.", false)]
+    [InlineData("default.Root", true)]
+    public void Only_an_identifier_or_a_dotted_path_of_them_can_be_written_into_an_import(string export, bool valid)
     {
         Assert.Equal(valid, ExternalPackageSpecifier.IsValidExport(export));
     }

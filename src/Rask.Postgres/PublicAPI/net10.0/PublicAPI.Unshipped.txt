@@ -17,5 +17,5 @@ Rask.Postgres.PostgresRetryOptions.MaxDelay.get -> System.TimeSpan
 Rask.Postgres.PostgresRetryOptions.MaxDelay.set -> void
 Rask.Postgres.PostgresRetryOptions.PostgresRetryOptions() -> void
 Rask.Postgres.RaskPostgresDbContextOptionsExtensions
-static Rask.Postgres.RaskPostgresDbContextOptionsExtensions.UseRaskPostgres(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, string! connectionString, System.Action<Rask.Postgres.PostgresOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
-static Rask.Postgres.RaskPostgresDbContextOptionsExtensions.UseRaskPostgres<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, string! connectionString, System.Action<Rask.Postgres.PostgresOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!
+static Rask.Postgres.RaskPostgresDbContextOptionsExtensions.UseRaskPostgres(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, System.IServiceProvider! services, System.Action<Rask.Postgres.PostgresOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
+static Rask.Postgres.RaskPostgresDbContextOptionsExtensions.UseRaskPostgres<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, System.IServiceProvider! services, System.Action<Rask.Postgres.PostgresOptions!>? configure = null) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!

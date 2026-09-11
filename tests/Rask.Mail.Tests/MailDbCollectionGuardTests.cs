@@ -14,6 +14,9 @@ public sealed class MailDbCollectionGuardTests
             // Names MailDbContext only as the type argument to AddRaskMail while asserting option
             // validation; never builds a context.
             "MailUnitTests",
+            // Resolves the bound options and the sender they choose; names MailDbContext only as the type
+            // argument, and never builds a context.
+            "RaskMailOptionsBindingTests",
             // Reads the metrics counters the processor emits — no context of its own.
             "MailMetricsTests");
 }

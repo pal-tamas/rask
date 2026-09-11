@@ -49,7 +49,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     protected virtual bool RunPublished => false;
 
     // Extra environment variables for the spawned host process (e.g. config that production-mode
-    // hosts now fail-fast without). Keys use the ASP.NET `__` config delimiter (e.g. "ConnectionStrings__App").
+    // hosts now fail-fast without). Keys use the ASP.NET `__` config delimiter (e.g. "Rask__ConnectionStrings__App").
     protected virtual IReadOnlyDictionary<string, string>? ExtraEnvironment => null;
 
     public string BaseUrl => $"http://localhost:{Port}";

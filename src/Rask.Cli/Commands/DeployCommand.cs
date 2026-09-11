@@ -94,7 +94,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     [
         "rask deploy --host root@box.example.com --domain app.example.com",
         "rask deploy --host deploy@box.example.com --port 8080",
-        "rask deploy --env ConnectionStrings__App=... --env-file .env.production",
+        "rask deploy --env Rask__Mail__Smtp__Password=... --env-file .env.production",
         "rask deploy --github-actions",
         "rask deploy --dry-run",
         "rask deploy status",
@@ -360,12 +360,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // budget below exists so a replicator can flush before the container dies. Say plainly when there
         // is no replicator: the database is then a single copy on one disk, and the "the box is
         // disposable" story the docs tell is not true of this deployment.
-        if (!env.Any(e => e.StartsWith("Litestream__ReplicaUrl=", StringComparison.Ordinal)))
+        if (!env.Any(e => e.StartsWith("Rask__Litestream__ReplicaUrl=", StringComparison.Ordinal)))
         {
             Console.WriteErrorLine(
                 "  ! No Litestream replica configured — this app's database exists only on this box's disk.",
                 ConsoleStyle.Warning);
-            Console.Error.WriteLine("    Turn on continuous backup:  rask deploy --env \"Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)");
+            Console.Error.WriteLine("    Turn on continuous backup:  rask deploy --env \"Rask__Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)");
         }
 
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
@@ -940,20 +940,20 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         // Persist the SQLite database on a per-app named volume so it survives container replacement — every
         // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
-        // destroyed on every redeploy. Point the app at it via ConnectionStrings:App, which Rask-scaffolded
-        // apps honour; the volume is shared by both blue/green colors so the swap keeps the same database. A
+        // destroyed on every redeploy. Point the app at it via Rask:ConnectionStrings:App, which every Rask
+        // database battery reads; the volume is shared by both blue/green colors so the swap keeps the same database. A
         // user-supplied --env / --env-file value is appended after, so an explicit override still wins.
         // ASPNETCORE_ENVIRONMENT is what selects appsettings.Production.json and turns off the developer
         // exception page; relying on the base image's default left a deployed app in whatever environment
         // the image happened to assume. Set before the user's own --env, so an explicit override still wins.
         args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
 
-        args.AddRange(["-v", $"{slug}-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db"]);
+        args.AddRange(["-v", $"{slug}-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db"]);
 
         // The log store keeps a file of its own, so it needs its own pointer onto the same volume — without
         // this it would land in the container's writable layer and be destroyed by the very restart it
         // exists to survive. Harmless on an app that doesn't use Rask.Logging: nothing reads the value.
-        args.AddRange(["-e", "ConnectionStrings__Logs=Data Source=/data/logs.db"]);
+        args.AddRange(["-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db"]);
 
         if (envFilePath is not null)
         {

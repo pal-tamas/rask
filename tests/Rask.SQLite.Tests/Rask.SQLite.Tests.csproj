@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <!-- ConfigurationBuilder: AddRaskSqlite reads Rask:ConnectionStrings:App, which the tests supply. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
     <PackageReference Include="Microsoft.Data.Sqlite"/>
     <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one
          Microsoft.Data.Sqlite / EF Core pin (CVE-2025-6965). A direct reference is the only
