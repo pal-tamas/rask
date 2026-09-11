@@ -106,7 +106,7 @@ public static partial class LlmsText
         foreach (var (guide, markdown) in guides)
         {
             sb.Append("\n---\n\nSource: ").Append(PageUrl(guide.Slug)).Append("\n\n");
-            sb.Append(Twin(markdown!).Trim()).Append('\n');
+            sb.Append(Twin(markdown!, GuideCatalog.SourcePath(guide.Slug)).Trim()).Append('\n');
         }
 
         return sb.ToString();
@@ -115,19 +115,19 @@ public static partial class LlmsText
     /// <summary>
     ///     A guide's Markdown as it is published: links that resolve off the repository, and no demo markers.
     /// </summary>
+    /// <param name="markdown">The doc's source.</param>
+    /// <param name="sourcePath">The doc's path under <c>docs/</c>, which its relative links are relative to.</param>
     /// <remarks>
     ///     <para>
-    ///         The docs link to each other RELATIVELY — <c>routing.md</c>, <c>../README.md</c> — because they
-    ///         are written to be read on GitHub. Served from <c>/docs/guides/cqrs.md</c>, every one of those
-    ///         resolves to a URL that does not exist. A link to another guide becomes that guide's page on the
-    ///         site; anything else becomes the file on GitHub, which is where it lives.
+    ///         Every relative link goes through <see cref="DocLinks" />, the same resolver the guide pages use,
+    ///         so a page and its twin cannot send a reader to two different places.
     ///     </para>
     ///     <para>
-    ///         Links inside a code fence are left alone: a fence showing Markdown is showing text, and
-    ///         "correcting" it changes the example.
+    ///         A code fence and an inline code span are left alone: they show text, and "correcting"
+    ///         <c>handlers[0](context)</c> into a GitHub URL changes the example.
     ///     </para>
     /// </remarks>
-    public static string Twin(string markdown)
+    public static string Twin(string markdown, string sourcePath)
     {
         var sb = new StringBuilder(markdown.Length);
         var fenced = false;
@@ -155,9 +155,7 @@ public static partial class LlmsText
                 continue;
             }
 
-            var rewritten = InlineLink().Replace(line, m => $"]({Target(m.Groups["path"].Value)}{m.Groups["frag"].Value})");
-            rewritten = ReferenceLink().Replace(rewritten, m => $"{m.Groups["lead"].Value}{Target(m.Groups["path"].Value)}{m.Groups["frag"].Value}");
-            sb.Append(rewritten).Append('\n');
+            sb.Append(RewriteLine(line, sourcePath)).Append('\n');
         }
 
         return sb.ToString().TrimEnd('\n') + "\n";
@@ -182,7 +180,7 @@ public static partial class LlmsText
 
             var file = Path.Combine(root, Path.Combine(MarkdownPath(guide.Slug).TrimStart('/').Split('/')));
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-            File.WriteAllText(file, Twin(markdown));
+            File.WriteAllText(file, Twin(markdown, GuideCatalog.SourcePath(guide.Slug)));
             written++;
         }
 
@@ -192,29 +190,46 @@ public static partial class LlmsText
         return written;
     }
 
-    private static string Target(string path)
+    // The line with its links rewritten everywhere but inside `code spans`: splitting on the backtick leaves
+    // prose at the even indexes and code at the odd ones. A reference definition can only open the line.
+    private static string RewriteLine(string line, string sourcePath)
     {
-        var slug = Path.GetFileNameWithoutExtension(path);
-        if (GuideCatalog.Find(slug) is not null)
+        var parts = line.Split('`');
+        for (var i = 0; i < parts.Length; i += 2)
         {
-            return PageUrl(slug);
+            parts[i] = InlineLink().Replace(parts[i], m =>
+                $"]({Url(sourcePath, m.Groups["path"].Value)}{m.Groups["frag"].Value}{m.Groups["title"].Value})");
+
+            // Site-rooted — "/docs/ui/actions". It resolves on rask.sh, but llms-full.txt is read out of context,
+            // where a path with no host resolves against nothing.
+            parts[i] = RootedLink().Replace(parts[i], m => $"]({Root}{m.Groups["path"].Value})");
         }
 
-        // Not a guide: a repo file. "../X.md" climbs out of docs/; a bare "X.md" is a sibling inside it.
-        var repoPath = path.Contains("../", StringComparison.Ordinal)
-            ? path.Replace("../", "", StringComparison.Ordinal)
-            : "docs/" + path.TrimStart('.', '/');
-        return $"{SiteIdentity.Repository}/blob/main/{repoPath}";
+        parts[0] = ReferenceLink().Replace(parts[0], m =>
+            $"{m.Groups["lead"].Value}{Url(sourcePath, m.Groups["path"].Value)}{m.Groups["frag"].Value}");
+
+        return string.Join('`', parts);
     }
+
+    private static string Url(string sourcePath, string link)
+    {
+        var target = DocLinks.Resolve(sourcePath, link);
+        return target.GuideSlug is { } slug ? PageUrl(slug) : target.GitHubUrl;
+    }
+
+    // ](/path) — rooted on the site, but not protocol-relative (//host).
+    [GeneratedRegex(@"\]\((?<path>/(?!/)[^)\s]*)\)")]
+    private static partial Regex RootedLink();
 
     [GeneratedRegex(@"<!--\s*demo:\s*[a-z0-9][a-z0-9-]*\s*-->")]
     private static partial Regex DemoMarker();
 
-    // ](path.md#frag) — relative only: not a scheme, not rooted, not a bare fragment.
-    [GeneratedRegex(@"\]\((?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^)\s#]+\.md)(?<frag>#[^)\s]*)?\)")]
+    // ](path#frag "title") — relative only: not a scheme, not rooted, not a bare fragment. Any target, not just
+    // Markdown: ../tests/Rask.Cqrs.Tests is as dead on the site as ../cli.md was.
+    [GeneratedRegex("""\]\((?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^)\s#]+)(?<frag>#[^)\s]*)?(?<title>\s+"[^"]*")?\)""")]
     private static partial Regex InlineLink();
 
-    // [label]: path.md#frag — a reference-style link definition.
-    [GeneratedRegex(@"^(?<lead>\s*\[[^\]]+\]:\s*)(?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)\S+\.md)(?<frag>#\S*)?")]
+    // [label]: path#frag — a reference-style link definition.
+    [GeneratedRegex(@"^(?<lead>\s*\[[^\]]+\]:\s*)(?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^\s#]+)(?<frag>#\S*)?")]
     private static partial Regex ReferenceLink();
 }

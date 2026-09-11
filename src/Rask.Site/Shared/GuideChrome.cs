@@ -103,7 +103,8 @@ public sealed partial class GuideChrome : Component
             BackLink(),
             Chapters(headings),
             Div.Class("guide-layout")[
-                Div.Class("guide-content")[Markdown.Source(source)],
+                // The doc's own path, which its relative links are relative to.
+                Div.Class("guide-content")[Markdown.Source(source).SourcePath(GuideCatalog.SourcePath(Slug))],
                 OnThisPage(headings)
             ],
             PrevNext(prev, next)

@@ -59,15 +59,23 @@ public sealed class GuideHistoryTests
     [Fact]
     public void TheBuildEmbeddedAHistoryThatDatesTheGuides()
     {
-        // The seam, not the parser: the csproj target ran, found the repository, and embedded what git said.
-        // Every part of this can fail silently — a wrong -C path, a shallow clone, a resource name that does
-        // not match — and each looks identical from the page: no date. These tests run from a full checkout,
-        // where a guide that has existed since the docs did must have one.
+        // The seam, not the parser: the target ran, found the repository, and embedded what git said. Every
+        // part of this can fail silently — a wrong -C path, a shallow clone, a resource name that does not
+        // match, a '%' eaten by cmd.exe — and each looks identical from the page: no date.
+        using (var stream = typeof(GuideHistory).Assembly.GetManifestResourceStream(GuideHistory.ResourceName))
+        {
+            Assert.NotNull(stream);
+        }
+
+        // MOST guides, not every one. A guide being added has no commit yet, and the pre-commit gate runs this
+        // before that commit exists — while GuidesTests forces a doc and its catalog entry into the same
+        // commit. Requiring every guide made a new guide uncommittable without --no-verify. Nine in ten
+        // still tells "the history reached the assembly" apart from "it did not", which dates none.
         var dated = GuideCatalog.All.Count(guide => GuideHistory.LastModified(guide.Slug) is not null);
 
         Assert.True(
-            dated == GuideCatalog.All.Length,
+            dated * 10 >= GuideCatalog.All.Length * 9,
             $"only {dated} of {GuideCatalog.All.Length} guides have a git date. Either the RaskSiteGuideHistory "
-            + "target did not run, this is a shallow clone, or a guide's file is not committed yet.");
+            + "target did not run, git printed no dates, or this is a shallow clone.");
     }
 }

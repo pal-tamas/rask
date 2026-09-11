@@ -717,15 +717,43 @@ public static class WasmPrerender
         }
 
         // Decoded: the serializer writes an offset's '+' as an entity, and "&#x2B;01:00" is not a date.
-        var value = System.Net.WebUtility.HtmlDecode(tag[content..end]).Trim();
+        return W3cDateTime(System.Net.WebUtility.HtmlDecode(tag[content..end]).Trim());
+    }
 
-        if (DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+    // The profiles of the W3C datetime a sitemap's lastmod takes that carry a time: minutes, seconds, or
+    // fractional seconds, each with or without a zone (none is read as UTC).
+    private static readonly string[] Timestamps =
+        ["yyyy-MM-dd'T'HH:mmK", "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"];
+
+    /// <summary>
+    ///     <paramref name="value" /> as a W3C datetime — <c>YYYY</c>, <c>YYYY-MM</c>, <c>YYYY-MM-DD</c> or a
+    ///     timestamp — or <c>null</c> when it is none of them.
+    /// </summary>
+    /// <remarks>
+    ///     Parsed EXACTLY. A culture-aware parse reads "01/02/2026" and "Sep 10, 2026" as dates and publishes
+    ///     its guess about which day was meant; the whole point of the field is that it is not a guess.
+    /// </remarks>
+    private static string? W3cDateTime(string value)
+    {
+        if (value.Length == 4 && value.All(char.IsAsciiDigit))
         {
-            return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            return value;
         }
 
-        return value.Length >= 10
-               && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var moment)
+        if (value.Length == 7
+            && value[4] == '-'
+            && DateOnly.TryParseExact(value + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+        {
+            return value;
+        }
+
+        if (DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+        {
+            return value;
+        }
+
+        return DateTimeOffset.TryParseExact(
+            value, Timestamps, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var moment)
             ? moment.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture)
             : null;
     }

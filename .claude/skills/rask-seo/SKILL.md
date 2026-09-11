@@ -34,7 +34,7 @@ Fix the code, never the test. Each of these failed silently at least once before
 | --- | --- | --- |
 | Every page: `PageMeta.For(title, description, Routes.X())` — title ≤ 60 ending ` — Rask`, description 110–160, unique, trailing-slash canonical | `src/Rask.Site/Shared/PageMeta.cs` | `PageMetaTests` |
 | Every page: ONE JSON-LD `@graph` (WebSite, author, WebPage/TechArticle, BreadcrumbList; SoftwareApplication on `/`) | `Shared/StructuredData.cs` | `PageMetaTests` |
-| Every guide: `SearchTitle` (≤ 52, no "Rask") + `Description` — `required`, so a new guide does not compile without them | `Features/Guides/GuideCatalog.cs` | `GuideSearchCopyTests` |
+| Every guide: `SearchTitle` (≤ 53 — 60 with the ` — Rask` suffix — and no "Rask") + `Description` — `required`, so a new guide does not compile without them | `Features/Guides/GuideCatalog.cs` | `GuideSearchCopyTests` |
 | Guides are articles: `og:type=article`, `article:section`, `article:modified_time` from git, `rel=alternate type=text/markdown` | `GuidePage.cs`, `GuideHistory.cs` | `PageMetaTests`, `GuideHistoryTests` |
 | Sitemap `<lastmod>` = the page's `article:modified_time`, never the build time | `src/Rask.Wasm/WasmPrerender.cs` | `WasmPrerenderTests` |
 | `/llms.txt`, `/llms-full.txt`, `/docs/guides/{slug}.md` generated at publish, links rewritten to resolve on the site | `Features/Guides/LlmsText.cs`, `Program.cs` | `LlmsTextTests`, `SiteExampleTests` (E2E) |

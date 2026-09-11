@@ -250,8 +250,10 @@ protected override Component? HeadAssets =>
 ];
 ```
 
-A date or a full ISO 8601 timestamp is accepted and written as a W3C datetime; anything else is ignored
-rather than published malformed, since one bad `lastmod` is reported against the whole sitemap. A page
+The value must be a W3C datetime — `2026`, `2026-09`, `2026-09-10`, or a timestamp such as
+`2026-09-10T08:30:00+02:00` (one with no zone is read as UTC) — and is parsed exactly: anything else,
+`01/02/2026` included, is ignored rather than published as a guess or malformed, since one bad `lastmod`
+is reported against the whole sitemap. A page
 that declares no date gets no `lastmod`. The pass never fills one in with the publish time: that marks
 every URL as changed on every deploy, and a crawler that notices stops trusting the field for the whole
 site. The Open Graph tag rather than a Rask-specific one, because a page that wants a `lastmod` usually

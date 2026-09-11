@@ -61,7 +61,34 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
         // the repo root sent all 51 of those to a GitHub URL with no file behind it — a dead link on every
         // browser-API page, and the one internal link a crawler would follow between them sent off-site.
         Assert.Contains($"href=\"{Features.Routes.GuidePage("browser-capabilities")}\" data-rask-nav",
-            Markdown.Source("[matrix](../browser-capabilities.md)").ToHtml());
+            Markdown.Source("[matrix](../browser-capabilities.md)").SourcePath("apis/geolocation.md").ToHtml());
+
+    [Fact]
+    public void Markdown_RewritesARepositoryLink_ToTheFileOnGitHub_ResolvedFromItsOwnFolder()
+    {
+        // Two ways a link out of docs/ went wrong. A target that was not Markdown was left RELATIVE, so on
+        // /docs/guides/cqrs it pointed at /docs/tests/…, which does not exist. And a "../" link kept only its
+        // file NAME, so a benchmark's own README became the repository's README.
+        var html = Markdown
+            .Source("[tests](../tests/Rask.Cqrs.Tests) and [baselines](../tests/Rask.Benchmarks.Sqlite/Baselines/README.md)")
+            .ToHtml();
+
+        Assert.Contains("href=\"https://github.com/pal-tamas/rask/blob/main/tests/Rask.Cqrs.Tests\"", html);
+        Assert.Contains(
+            "href=\"https://github.com/pal-tamas/rask/blob/main/tests/Rask.Benchmarks.Sqlite/Baselines/README.md\"",
+            html);
+    }
+
+    [Fact]
+    public void Markdown_ADocOutsideDocsThatSharesAGuidesName_IsThatFileAndNotTheGuide()
+    {
+        // Resolved by WHERE the link lands, not by its leaf alone: sqlite.md in a benchmark folder is not the
+        // SQLite guide, however convenient the name.
+        var html = Markdown.Source("[notes](../tests/Bench/sqlite.md)").ToHtml();
+
+        Assert.Contains("href=\"https://github.com/pal-tamas/rask/blob/main/tests/Bench/sqlite.md\"", html);
+        Assert.DoesNotContain("data-rask-nav", html);
+    }
 
     [Fact]
     public void Markdown_RewritesRepoRootLink_ToGitHub() =>

@@ -350,9 +350,18 @@ public class WasmPrerenderTests
         "2026-09-10T08:30:00+02:00")]
     [InlineData("<head><meta property=\"article:modified_time\" content=\"2026-09-10T06:30:00Z\"></head>",
         "2026-09-10T06:30:00+00:00")]
+    // The coarser W3C profiles are dates too, and are passed through as written.
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"2026-09\"></head>", "2026-09")]
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"2026\"></head>", "2026")]
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"2026-09-10T08:30\"></head>",
+        "2026-09-10T08:30:00+00:00")]
     // Not a date. No lastmod beats a malformed one, which is reported against the whole sitemap.
     [InlineData("<head><meta property=\"article:modified_time\" content=\"last Tuesday\"></head>", null)]
     [InlineData("<head><meta property=\"article:modified_time\" content=\"10\"></head>", null)]
+    // Dates only a culture can read. Which day "01/02/2026" is depends on who wrote it, so it is not one.
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"01/02/2026\"></head>", null)]
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"Sep 10, 2026\"></head>", null)]
+    [InlineData("<head><meta property=\"article:modified_time\" content=\"2026-13\"></head>", null)]
     // A different property, and no date at all: nothing to say, so nothing said.
     [InlineData("<head><meta property=\"og:updated_time\" content=\"2026-09-10\"></head>", null)]
     [InlineData("<head><title>x</title></head>", null)]

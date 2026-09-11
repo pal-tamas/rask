@@ -25,8 +25,8 @@ them until tagged releases begin.
   `rask-seo` skill keeps all of it true as the site grows.
 
 - **A prerendered sitemap dates its pages.** The prerender pass writes each URL's `<lastmod>` from the
-  page's own `<meta property="article:modified_time">` — a date or an ISO 8601 timestamp, normalised to a
-  W3C datetime — and nothing for a page that declares none or declares something that is not a date.
+  page's own `<meta property="article:modified_time">` — a W3C datetime (`2026-09-10`, or a timestamp),
+  parsed exactly — and nothing for a page that declares none or declares something that is not one.
   Never the publish time: that marks every URL changed on every deploy, and a crawler that notices stops
   trusting the field for the whole site. See `docs/prerendering.md`.
 
@@ -141,12 +141,16 @@ them until tagged releases begin.
 
 ### Fixed
 
-- **Links between guides in subfolders no longer 404.** The guide renderer sent every `../x.md` link to
+- **Relative links in the guides no longer 404.** The guide renderer sent every `../x.md` link to
   `github.com/…/blob/main/x.md` — right for `../README.md`, and a dead link for the 51
   `../browser-capabilities.md` links on the browser-API pages and the tutorial's `../cli.md`, `../jobs.md`
-  and the rest. A link that names a guide now routes to it however it climbs. `DocsLinkTests` had skipped
-  every `../` link on the renderer's own assumption, so it could not see this; it now checks every link
-  that stays inside `docs/`.
+  and the rest. It kept only the file name, so `../tests/Rask.Benchmarks.Sqlite/Baselines/README.md` opened
+  the repository's README; and a link to anything that was not Markdown — `../tests/Rask.Cqrs.Tests`,
+  `../scripts/…` — stayed relative and 404ed on the site. Links now resolve against the folder of the doc
+  they are written in (`DocLinks`, shared by the pages and their Markdown twins): one that lands on a guide
+  routes to it, anything else opens that exact file on GitHub. `DocsLinkTests` had skipped every `../` link
+  on the renderer's own assumption, so it could not see this; it now checks every link that stays inside
+  `docs/`.
 
 - **`NoTwoPagesShareATitleOrADescription` checks the site rather than one page.** Its "claims to be this
   page" filter compared the canonical, which always ends in a slash, with the bare route path, which never

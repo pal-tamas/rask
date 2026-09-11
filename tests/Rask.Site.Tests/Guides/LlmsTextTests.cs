@@ -40,22 +40,29 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void ATwinsLinksLeaveTheRepositoryForThePlacesTheyPointAt()
+    public void ATopLevelDocsLinksLeaveTheRepositoryForThePlacesTheyPointAt()
     {
         var twin = LlmsText.Twin(
-            "See [routing](routing.md#route-parameters), [the matrix](../browser-capabilities.md), "
-            + "[the readme](../README.md), [the index](README.md) and [elsewhere](https://example.com/x.md).\n"
-            + "\n[ref]: cqrs.md#behaviors\n");
+            "See [routing](routing.md#route-parameters), [the readme](../README.md), [the index](README.md), "
+            + "[the tests](../tests/Rask.Cqrs.Tests \"the suite\"), [the kit](/docs/ui/actions) and "
+            + "[elsewhere](https://example.com/x.md).\n"
+            + "\n[ref]: cqrs.md#behaviors\n",
+            "sqlite.md");
 
         // A guide becomes its page on the site — fragment kept, slash on, so it is the canonical URL.
         Assert.Contains("](https://rask.sh/docs/guides/routing/#route-parameters)", twin, StringComparison.Ordinal);
 
-        // Climbing a directory to reach a guide still reaches the guide.
-        Assert.Contains("](https://rask.sh/docs/guides/browser-capabilities/)", twin, StringComparison.Ordinal);
-
-        // Anything that is not a guide is a file in the repository, where it lives.
+        // Anything that is not a guide is a file in the repository, where it lives — Markdown or not, with
+        // its title kept.
         Assert.Contains("](https://github.com/pal-tamas/rask/blob/main/README.md)", twin, StringComparison.Ordinal);
         Assert.Contains("](https://github.com/pal-tamas/rask/blob/main/docs/README.md)", twin, StringComparison.Ordinal);
+        Assert.Contains(
+            "](https://github.com/pal-tamas/rask/blob/main/tests/Rask.Cqrs.Tests \"the suite\")",
+            twin,
+            StringComparison.Ordinal);
+
+        // A site-rooted path gains the site, since llms-full.txt is read out of context.
+        Assert.Contains("](https://rask.sh/docs/ui/actions)", twin, StringComparison.Ordinal);
 
         // Absolute links are the author's and stay as written; reference definitions are links too.
         Assert.Contains("](https://example.com/x.md)", twin, StringComparison.Ordinal);
@@ -63,18 +70,39 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void AFenceIsLeftExactlyAsWritten()
+    public void ANestedDocsLinksResolveAgainstItsOwnFolder()
     {
-        // A fence showing Markdown is showing TEXT. Rewriting the link inside it changes the example.
-        const string Markdown = "```md\n[routing](routing.md)\n<!-- demo:counter -->\n```\n";
+        var twin = LlmsText.Twin(
+            "[the matrix](../browser-capabilities.md), [a sibling](notes.md) and [a benchmark](../../tests/Bench/sqlite.md)\n",
+            "apis/geolocation.md");
 
-        Assert.Equal(Markdown, LlmsText.Twin(Markdown));
+        // Climbing a directory to reach a guide still reaches the guide.
+        Assert.Contains("](https://rask.sh/docs/guides/browser-capabilities/)", twin, StringComparison.Ordinal);
+
+        // A sibling is a sibling — docs/apis/notes.md, not docs/notes.md.
+        Assert.Contains("](https://github.com/pal-tamas/rask/blob/main/docs/apis/notes.md)", twin, StringComparison.Ordinal);
+
+        // Where a link lands decides, not its file name: a benchmark's sqlite.md is not the SQLite guide.
+        Assert.Contains("](https://github.com/pal-tamas/rask/blob/main/tests/Bench/sqlite.md)", twin, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CodeIsLeftExactlyAsWritten()
+    {
+        // A fence or a code span showing Markdown or C# is showing TEXT. Rewriting a link inside it — or
+        // mistaking `handlers[0](context)` for one — changes the example.
+        const string Fenced = "```md\n[routing](routing.md)\n<!-- demo:counter -->\n```\n";
+        Assert.Equal(Fenced, LlmsText.Twin(Fenced, "cqrs.md"));
+
+        var inline = LlmsText.Twin("Call `handlers[0](context)`, then read [the CLI](cli.md).\n", "cqrs.md");
+        Assert.Contains("`handlers[0](context)`", inline, StringComparison.Ordinal);
+        Assert.Contains("[the CLI](https://rask.sh/docs/guides/cli/)", inline, StringComparison.Ordinal);
     }
 
     [Fact]
     public void ADemoMarkerLineIsDropped()
     {
-        var twin = LlmsText.Twin("Before.\n\n<!-- demo:binding-typed -->\n\nAfter.\n");
+        var twin = LlmsText.Twin("Before.\n\n<!-- demo:binding-typed -->\n\nAfter.\n", "forms.md");
 
         Assert.DoesNotContain("demo:", twin, StringComparison.Ordinal);
         Assert.Contains("Before.", twin, StringComparison.Ordinal);
@@ -82,24 +110,26 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void NoPublishedTwinKeepsARelativeLink()
+    public void NoPublishedTwinKeepsALinkThatOnlyResolvesInTheRepository()
     {
         // Over the real docs rather than a sample, because the docs are where the link shapes nobody thought
-        // of live. A relative .md link left in a served file resolves against /docs/guides/ and 404s.
+        // of live. It checked ".md" targets only, and so could not see ../tests/Rask.Cqrs.Tests and a dozen
+        // links like it — served from /docs/guides/, every one of them 404s. Any relative or site-rooted link
+        // left in prose is a failure; code is exempt, for the reason the twin leaves it alone.
         var leftovers = new List<string>();
         foreach (var guide in GuideCatalog.All)
         {
-            var twin = LlmsText.Twin(GuideCatalog.ReadMarkdown(guide.Slug)!);
-            foreach (var line in OutsideFences(twin))
+            var twin = LlmsText.Twin(GuideCatalog.ReadMarkdown(guide.Slug)!, GuideCatalog.SourcePath(guide.Slug));
+            foreach (var prose in Prose(twin))
             {
-                if (RelativeMarkdownLink().Match(line) is { Success: true } match)
+                foreach (Match match in UnresolvedLink().Matches(prose))
                 {
                     leftovers.Add($"{guide.Slug}: {match.Value}");
                 }
             }
         }
 
-        Assert.True(leftovers.Count == 0, "relative links survived: " + string.Join("; ", leftovers.Take(10)));
+        Assert.True(leftovers.Count == 0, "links that do not resolve off the repository: " + string.Join("; ", leftovers.Take(10)));
     }
 
     [Fact]
@@ -144,7 +174,8 @@ public sealed partial class LlmsTextTests
         }
     }
 
-    private static IEnumerable<string> OutsideFences(string markdown)
+    /// <summary>The prose of a Markdown document: outside fences, and outside inline code spans.</summary>
+    private static IEnumerable<string> Prose(string markdown)
     {
         var fenced = false;
         foreach (var line in markdown.Split('\n'))
@@ -156,13 +187,21 @@ public sealed partial class LlmsTextTests
                 continue;
             }
 
-            if (!fenced)
+            if (fenced)
             {
-                yield return line;
+                continue;
+            }
+
+            var parts = line.Split('`');
+            for (var i = 0; i < parts.Length; i += 2)
+            {
+                yield return parts[i];
             }
         }
     }
 
-    [GeneratedRegex(@"\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:|#)[^)\s]*\.md(#[^)\s]*)?\)")]
-    private static partial Regex RelativeMarkdownLink();
+    // ](target) where target has no scheme and is not a bare fragment — relative or rooted, either way a path
+    // that means nothing to a reader holding only this file.
+    [GeneratedRegex(@"\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:|#)[^)\s]+(\s+""[^""]*"")?\)")]
+    private static partial Regex UnresolvedLink();
 }

@@ -23,6 +23,13 @@
     <PropertyGroup>
       <_RaskGuideHistoryFile>$(IntermediateOutputPath)raskdoc-history.txt</_RaskGuideHistoryFile>
       <_RaskGuideHistoryRepo>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../..'))</_RaskGuideHistoryRepo>
+      <!--
+        '%' is a variable marker in the .cmd file Exec writes on Windows, where a lone one is stripped: git
+        would receive "@cs", print that literally on every date line, and date nothing — on a green build.
+        Doubled there, single everywhere else.
+      -->
+      <_RaskGuideHistoryFormat>@%cs</_RaskGuideHistoryFormat>
+      <_RaskGuideHistoryFormat Condition=" '$(OS)' == 'Windows_NT' ">@%%cs</_RaskGuideHistoryFormat>
     </PropertyGroup>
 
     <Exec Command="git -C &quot;$(_RaskGuideHistoryRepo)&quot; rev-parse --is-shallow-repository"
@@ -33,14 +40,25 @@
     </Exec>
 
     <Exec Condition=" '$(_RaskGuideHistoryExit)' == '0' and '$(_RaskGuideHistoryShallow)' == 'false' "
-          Command="git -C &quot;$(_RaskGuideHistoryRepo)&quot; log --no-merges --format=@%cs --name-only -- docs"
+          Command="git -C &quot;$(_RaskGuideHistoryRepo)&quot; log --no-merges --format=$(_RaskGuideHistoryFormat) --name-only -- docs"
           ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true"
           StandardOutputImportance="low" StandardErrorImportance="low" EchoOff="true">
       <Output TaskParameter="ConsoleOutput" ItemName="_RaskGuideHistoryLine"/>
     </Exec>
 
+    <!--
+      Always at least one line, so "no history" is an empty FILE and not a missing one. WriteLinesToFile
+      removes its target when Overwrite is on and there is nothing to write, and the EmbeddedResource below
+      would then fail the compile with CS1566 — turning "a shallow clone has no dates" into "a shallow clone
+      does not build". GuideHistory.Parse ignores the line.
+    -->
+    <ItemGroup>
+      <_RaskGuideHistoryOut Include="# rask-guide-history"/>
+      <_RaskGuideHistoryOut Include="@(_RaskGuideHistoryLine)"/>
+    </ItemGroup>
+
     <MakeDir Directories="$(IntermediateOutputPath)"/>
-    <WriteLinesToFile File="$(_RaskGuideHistoryFile)" Lines="@(_RaskGuideHistoryLine)"
+    <WriteLinesToFile File="$(_RaskGuideHistoryFile)" Lines="@(_RaskGuideHistoryOut)"
                       Overwrite="true" WriteOnlyWhenDifferent="true"/>
 
     <ItemGroup>
