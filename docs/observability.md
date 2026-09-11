@@ -61,7 +61,8 @@ builder.Services.AddRaskLogging(
 ```
 
 It registers an `ILoggerProvider`, so it captures exactly what every other sink sees — the categories above
-included — into a SQLite file of its own, with retention by age and row count and a searchable view in the
+included — into a SQLite file of its own (or, on PostgreSQL or SQL Server, into the app's own database with
+`AddRaskLogging<AppDbContext>()`), with retention by age and row count and a searchable view in the
 [dashboard](dashboard.md). Its `rask.logs.dropped` counter is the one metric that tells you the stored log is
 incomplete.
 
