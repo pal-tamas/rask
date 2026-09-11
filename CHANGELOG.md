@@ -378,6 +378,21 @@ them until tagged releases begin.
   real severity must have a descriptor in `src/`. Retired ids carry an em dash instead, which is how
   RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
   is it documented — and nothing asked whether a documented rule existed.
+- **`Rask.Ui` grows the steps an operator screen needs, so a page drawn with the kit writes no class strings.**
+  `UiDataGrid` columns take `ShowFrom(UiBreakpoint.Md)` — a secondary column waits until the table has room for
+  it, while the phone's stacked lines still list it — and `Mono(true)` for ids, keys and paths. A row takes
+  `RowTone(r => …)`; `Toolbar` lays its controls out as one row that stacks on a phone; and
+  `PageHref(page => …)` makes the pager's pages links, so a page that lives in `?page=` can be shared and
+  answers the back button. `UiPagination.Href` does the same on its own, and the page you are on is not a
+  link but says `aria-current`. `UiCard` takes `Href` (the whole card is one link) and `Icon`; `UiMetricRow.Columns(2)`; `UiBadge.Mono(true)` wraps a long token instead of widening its
+  row; `UiCode.Label("Payload")` captions a block; and **`UiEmpty`** is the empty state —
+  `UiEmpty.Heading("Nothing stored matches").Detail("Retention drops entries by age and by count.")`.
+  `UiMain` spaces the sections it holds, `UiHeader` no longer carries a margin of its own, and a `UiModal` body
+  spaces its sections too. A grid cell now lets one long unbroken token — a type name, a request id — break
+  instead of widening the table past a phone. The kit's sheet
+  also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
+  the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
+
 
 ### Changed
 
@@ -648,6 +663,26 @@ them until tagged releases begin.
   islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
   ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
   gate are unchanged.
+- **The `/_rask` console is drawn with `Rask.Ui` and nothing else.** Every table is a `UiDataGrid`: a dead letter
+  carries the error tone, a secondary column waits until the table has room for it, a phone lists every column
+  as its own labelled line, and the Logs history pages are links you can share. The banners are `UiAlert`s, the
+  empty states `UiEmpty`, and each queue card on the overview is one link. `Rask.Dashboard` no longer compiles or
+  embeds a stylesheet of its own — the document inlines only the kit's, whose `.rask-ops` reset is the console's
+  page base — and `DashboardIsKitOnlyTests` fails on any class string written in the package. The System page's
+  snapshots moved to a card of their own.
+- **A long `UiPagination` draws a window of pages instead of every one.** A join is one unbreakable row, so
+  a pager over forty pages was wider than a phone and dragged the whole document sideways. Past seven pages
+  it now draws the first, the last, and the current page with its neighbours, with a gap marker between —
+  never more than seven items. The console's screenshot pass caught it on the Logs history.
+- **Breaking: `UiNotice` and `UiStyles.Button`, `UiStyles.Danger` and `UiStyles.Quiet` are removed.** Nothing
+  in the framework drew with them once the operator console moved onto kit components, and each duplicated one
+  that already exists. Use `UiAlert.Tone(…)` for a notice, and `UiButton` for an action — `.Tone(UiTone.Error).Variant(UiVariant.Outline)`
+  for one that destroys or re-runs work, `.Variant(UiVariant.Ghost)` for a quiet dismiss — rather than a class
+  string on a raw `<button>`.
+- **Breaking: `UiStat.Tone` is a `UiTone?`.** It was a string matched against `"danger"` and `"warn"` — names
+  nothing else in the kit uses — so the natural `"error"` compiled and rendered a neutral tile without a word.
+  Write `.Tone(UiTone.Error)` or `.Tone(UiTone.Warning)`.
+
 
 ### Fixed
 

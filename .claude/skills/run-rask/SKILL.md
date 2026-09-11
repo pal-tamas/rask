@@ -219,7 +219,7 @@ for the four traps that recipe walks into.
 
 The console is behind a policy — the scaffold gates it on the **Admin** role, which only the FIRST
 account gets — so the driver registers that account with the one-time first-run token, signs in, and
-then shoots all five console pages at **1280 and 390** into `screenshots/` (gitignored). The console is
+then shoots all six console pages at **1280 and 390** into `screenshots/` (gitignored). The console is
 built mobile-first, and the two widths are genuinely different markup — columns collapse, the leader
 rules disappear — so one width proves nothing about the other.
 
@@ -234,7 +234,7 @@ Each shot is checked for two kinds of overflow, and the second is the one that m
 
 Both must read `ok` on every mobile row.
 
-The run ends with `10 screenshots in …`, and that line is a **count the driver verified**: every file is
+The run ends with `12 screenshots in …`, and that line is a **count the driver verified**: every file is
 checked for a plausible size as it is written, and the tally is asserted at the end. Anything short of
 the full set throws. That guard exists because the driver spent a release shooting *nothing* — it waited
 for the host app's sign-out control (`#logout-submit`), which the scaffold has never rendered on the page
@@ -310,6 +310,6 @@ which is what it is here to look at and does not move when the scaffold's home p
   reason when there is one ("that email is already taken", "must be at least 8 characters").
 - `A first-run token was passed but /register shows no #first-run-token field` → the app is already
   claimed; drop the token argument, or re-run `ops-app.sh` for a fresh app.
-- `Expected 10 screenshots … but wrote N` / `Screenshot of … is missing or empty` → the run produced
+- `Expected 12 screenshots … but wrote N` / `Screenshot of … is missing or empty` → the run produced
   less than the full set. Do not read this as "the console is slow"; read it as the driver refusing to
   report a green run over an empty directory.
