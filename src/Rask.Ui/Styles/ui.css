@@ -9,13 +9,17 @@
   The output is embedded and inlined by the consuming surface (UiStylesheet.Css), so there is no
   stylesheet to serve, no static web assets, and nothing for a host to map.
 
-  NO PREFLIGHT, and no html/body rules — the one place this deliberately differs from Rask.Dashboard's
-  sheet. The console may ship a global reset because it is a mounted application that owns its own
-  document (RaskMountedApp); it learned that the hard way, when the reset landed on the host application's
-  own pages for as long as an operator had the console open. An app consuming this kit owns its document,
-  and usually runs its own Tailwind besides. A second reset arriving from a library is that same bug with
-  a wider blast radius, and re-creates the multi-sheet stack where cascade ORDER decides the outcome that
-  #914 removed. Utilities only: the app keeps its own reset and its own base layer.
+  NO PREFLIGHT FOR AN APPLICATION, and no html/body rule an application could match. An app consuming this
+  kit owns its document, and usually runs its own Tailwind besides. A second reset arriving from a library
+  restyles pages that never asked for it — the console learned that the hard way, when a reset landed on the
+  host application's own pages for as long as an operator had it open — and re-creates the multi-sheet stack
+  where cascade ORDER decides the outcome that #914 removed. Utilities only: the app keeps its own reset and
+  its own base layer.
+
+  The one exception is keyed so that no application can match it: the console frame's reset further down
+  applies only under `.rask-ops`, the class UiShell writes. Rask.Dashboard is a mounted application that
+  owns its whole document (RaskMountedApp) and draws it with nothing but this kit, so that reset is the only
+  one its page gets.
 
   THE PALETTE IS INLINE BELOW, and it has to be. Moving it to a sibling ui.tokens.css and pulling it back
   with `@import` compiled without error and emitted a sheet of the right size — with ZERO ui-* utilities
@@ -683,6 +687,28 @@
 
   .ui-list > li:not(.list-row) {
     padding: 0.5rem 1rem;
+  }
+}
+
+/*
+  A GRID CELL MAY BREAK A LONG TOKEN; THE CONTROLS INSIDE IT MAY NOT.
+
+  "anywhere" rather than "break-word", because only "anywhere" counts while the table's column widths are worked
+  out: one unbroken type name or request id otherwise sets the table's minimum width and pushes it out of a phone.
+
+  But overflow-wrap inherits, and a badge or a button is a fixed-height pill with a label that must stay whole. The
+  console shipped a level badge reading "mati": "Information", broken letter by letter under the cell's rule, with
+  its middle line centred in the pill. So controls inside a cell take the normal behaviour back — except a mono
+  badge, which exists to wrap a long token and says so with its own utilities.
+*/
+@layer rask {
+  .ui-grid-cell {
+    overflow-wrap: anywhere;
+  }
+
+  .ui-grid-cell :where(.badge:not(.font-mono), .btn, .tab, .status, .loading) {
+    overflow-wrap: normal;
+    white-space: nowrap;
   }
 }
 

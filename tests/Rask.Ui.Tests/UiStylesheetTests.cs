@@ -83,6 +83,18 @@ public sealed class UiStylesheetTests
     }
 
     [Fact]
+    public void A_grid_cell_breaks_long_tokens_but_keeps_the_labels_of_its_controls_whole()
+    {
+        // The cell's overflow-wrap inherits, and a badge label broken letter by letter inside its fixed height is
+        // what the console shipped ("mati" for "Information"). Both halves have to be in the compiled sheet.
+        var css = UiStylesheet.Css.Replace(" ", "", StringComparison.Ordinal);
+
+        Assert.Contains(".ui-grid-cell{overflow-wrap:anywhere", css, StringComparison.Ordinal);
+        Assert.Contains(".ui-grid-cell:where(.badge:not(.font-mono)", css, StringComparison.Ordinal);
+        Assert.Contains("white-space:nowrap", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_theme_can_be_switched_without_javascript()
     {
         // daisyUI matches a checked input and an explicit attribute, which is what lets a surface offer a

@@ -57,8 +57,11 @@ public sealed partial class CachePage(
 
         if (!cache.IsAvailable)
         {
-            return DashboardEmpty.Heading("Cache isn't registered")
-                .Detail("Call AddRaskCache<TContext>() and modelBuilder.AddRaskCache() to see cache entries here.");
+            return UiCard[
+                UiEmpty
+                    .Heading("Cache isn't registered")
+                    .Detail("Call AddRaskCache<TContext>() and modelBuilder.AddRaskCache() to see cache entries here.")
+            ];
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -66,32 +69,16 @@ public sealed partial class CachePage(
             UiHeader.Heading("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
-            Div.Class("mb-4 sm:mb-5")[
-                UiMetricRow.Columns(3)[
-                    UiMetric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
-                    UiMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
-                    UiMetric
-                        .Key("expired")
-                        .Label("Expired, not swept")
-                        .Value(_stats.Expired.ToString())
-                        .Caption("removed by the purge sweep")
-                ]
+            UiMetricRow.Columns(3)[
+                UiMetric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
+                UiMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                UiMetric
+                    .Key("expired")
+                    .Label("Expired, not swept")
+                    .Value(_stats.Expired.ToString())
+                    .Caption("removed by the purge sweep")
             ],
-            // The q filter has always been here — the empty state below has named it since this page
-            // shipped — but nothing ever rendered a box to type it into, so it was reachable only by
-            // hand-editing the URL.
-            Div.Class("mb-4")[
-                UiSearch
-                    .Placeholder("Search keys")
-                    .AccessibleLabel("Search cache keys")
-                    .Value(Search)
-                    .OnSearch(SearchAsync)
-            ],
-            _rows.Count == 0
-                ? DashboardEmpty.Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
-                    .Detail("Entries appear here as soon as something is cached.")
-                : KeyTable(now),
-            Pager(),
+            KeyGrid(now),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
             ResultToast(),
         ];
@@ -112,83 +99,41 @@ public sealed partial class CachePage(
         return Task.CompletedTask;
     }
 
-    private Component KeyTable(DateTime now) =>
-        UiTable.Scroll(true)[
-            Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
-                Tr[
-                    Th.Class("px-3 py-2 font-medium")["Key"],
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Size"],
-                    Th.Class("hidden px-3 py-2 font-medium md:table-cell")["Written"],
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Expires"],
-                    Th.Class("hidden px-3 py-2 font-medium lg:table-cell")["Sliding"],
-                    Th.Class("px-3 py-2")
-                ]
-            ],
-            Tbody[_rows.Select(r => Tr.Key(r.Key).Class(r.ExpiresAt <= now
-                ? "border-b border-ui-line/60 text-ui-muted last:border-0"
-                : "border-b border-ui-line/60 last:border-0")[
-                Td.Class("w-full max-w-0 px-3 py-2 align-top")[
-                    Div.Class("min-w-0")[
-                        Div.Class($"truncate sm:max-w-[28rem] {UiStyles.Mono}").Title(r.Key)[r.Key],
-                        // Size and expiry follow the key down when their own columns are gone.
-                        Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
-                            Span.Class("tabular-nums")[DashboardParts.Bytes(r.Bytes)],
-                            r.ExpiresAt <= now
-                                ? UiBadge["expired"]
-                                : Span.Title(r.ExpiresAt.ToString("u"))[
-                                    $"expires {DashboardParts.Ago(r.ExpiresAt, now)}"
-                                ]
-                        ]
-                    ]
-                ],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums sm:table-cell")[DashboardParts.Bytes(r.Bytes)],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted md:table-cell")
-                    .Title(r.CreatedAt.ToString("u"))[
-                    DashboardParts.Ago(r.CreatedAt, now)
-                ],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs sm:table-cell").Title(r.ExpiresAt.ToString("u"))[
+    // The search lives in the grid's toolbar so it survives an empty result — a search that matched nothing
+    // must leave the box that typed it on the screen. The key is the column every width keeps.
+    private Component KeyGrid(DateTime now) =>
+        UiDataGrid.Data(_rows)
+            .RowKey(r => r.Key)
+            .Label("Cache keys")
+            .PageSize(options.PageSize)
+            .Page(_page)
+            .TotalCount(_total)
+            .OnPageChange(GoAsync)
+            .Toolbar(UiSearch
+                .Placeholder("Search keys")
+                .AccessibleLabel("Search cache keys")
+                .Value(Search)
+                .OnSearch(SearchAsync))
+            .Empty(UiEmpty
+                .Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
+                .Detail("Entries appear here as soon as something is cached."))[c => [
+                c.Field(r => r.Key).Title("Key").Mono(true),
+                c.Field(r => r.Bytes).Title("Size").Value(r => DashboardParts.Bytes(r.Bytes)),
+                c.Field(r => r.CreatedAt).Title("Written").ShowFrom(UiBreakpoint.Md).Cell(r =>
+                    Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
+                c.Field(r => r.ExpiresAt).Title("Expires").Cell(r =>
                     r.ExpiresAt <= now
                         ? UiBadge["expired"]
-                        : Span.Class("text-ui-muted")[DashboardParts.Ago(r.ExpiresAt, now)]
-                ],
-                Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted lg:table-cell")[
-                    r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"
-                ],
-                Td.Class("px-3 py-2 align-top text-right")[EvictButton(r.Key)]
-            ])]
-        ];
-
-    private Component? Pager()
-    {
-        var pages = (int)Math.Ceiling(_total / (double)options.PageSize);
-        if (pages <= 1)
-        {
-            return null;
-        }
-
-        // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
-        // which is where thumbs are.
-        return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            UiButton.Key("prev")
-                .Disabled(_page == 0)
-                .OnClick(() => GoAsync(_page - 1))["Previous"],
-            Span.Class("text-center text-xs text-ui-muted")[
-                Span[$"Page {_page + 1} of {pages}"],
-                Span.Class("hidden sm:inline")[$" — {_total} keys"]
-            ],
-            UiButton.Key("next")
-                .Disabled(_page >= pages - 1)
-                .OnClick(() => GoAsync(_page + 1))["Next"]
-        ];
-    }
-
-    // Evicting one key is a recompute, not a lost fact, so it sits in the Safe tier and needs no
-    // confirmation. Flushing everything is correctness-safe too, but a cold cache on a busy app means a
-    // stampede — hence the Destructive tier and a confirmation.
-    private Component? EvictButton(string key) =>
-        options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? UiButton.OnClick(() => EvictAsync(key))["Evict"]
-            : null;
+                        : Span.Title(r.ExpiresAt.ToString("u"))[DashboardParts.Ago(r.ExpiresAt, now)]),
+                c.Field(r => r.SlidingSeconds).Title("Sliding").ShowFrom(UiBreakpoint.Lg).Value(r =>
+                    r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"),
+                // Evicting one key is a recompute, not a lost fact, so it sits in the Safe tier and needs no
+                // confirmation. Flushing everything is correctness-safe too, but a cold cache on a busy app
+                // means a stampede — hence the Destructive tier and a confirmation.
+                options.Actions.HasFlag(RaskDashboardActions.Safe)
+                    ? c.Column().Cell(r => UiButton.Size(UiSize.Sm).OnClick(() => EvictAsync(r.Key))["Evict"])
+                    : null,
+            ]];
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
@@ -197,12 +142,15 @@ public sealed partial class CachePage(
 
     private Component? ConfirmPrompt() =>
         _confirmFlush
-            ? UiNotice.Tone("warn")[
-                Span.Class("min-w-0 grow break-words")[
+            ? UiAlert.Tone(UiTone.Warning)[
+                Span[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                UiButton.Key("confirm").Tone(UiTone.Error).OnClick(FlushAsync)["Confirm"],
-                UiButton.Key("cancel").OnClick(() => Confirm(false))["Cancel"]
+                Div[
+                    UiButton.Key("confirm").Tone(UiTone.Error).Size(UiSize.Sm).OnClick(FlushAsync)["Confirm"],
+                    " ",
+                    UiButton.Key("cancel").Size(UiSize.Sm).OnClick(() => Confirm(false))["Cancel"]
+                ]
             ]
             : null;
 

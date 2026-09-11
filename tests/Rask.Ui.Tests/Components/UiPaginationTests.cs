@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Rask.Ui.Tests.Components;
 
 /// <summary>
@@ -53,6 +55,50 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
         Assert.Equal(2, Count(html, "<a "));
+    }
+
+    [Fact]
+    public void A_long_pager_draws_a_window_that_fits_a_phone()
+    {
+        // A join is one unbreakable row. Forty numbered buttons in it made the console's log history wider than a
+        // phone; the window keeps the first, the last and the neighbours of the current page.
+        var html = UiPagination.Pages(20).Current(10).OnSelect(_ => { }).ToHtml();
+
+        Assert.Equal(7, Count(html, "join-item btn"));
+        // The encoder writes the ellipsis as a character reference, so that is what is counted.
+        Assert.Equal(2, Count(html, "&#x2026;"));
+        foreach (var page in new[] { ">1<", ">9<", ">10<", ">11<", ">20<" })
+        {
+            Assert.Contains(page, html, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain(">5<", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(1, "1 2 3 4 … 20")]
+    [InlineData(3, "1 2 3 4 … 20")]
+    [InlineData(4, "1 … 3 4 5 … 20")]
+    [InlineData(17, "1 … 16 17 18 … 20")]
+    [InlineData(18, "1 … 17 18 19 20")]
+    [InlineData(20, "1 … 17 18 19 20")]
+    public void The_window_slides_against_either_end(int current, string expected)
+    {
+        var html = UiPagination.Pages(20).Current(current).OnSelect(_ => { }).ToHtml();
+        var drawn = Regex.Matches(html, ">([0-9]+|&#x2026;|…)<")
+            .Select(m => m.Groups[1].Value == "&#x2026;" ? "…" : m.Groups[1].Value);
+
+        Assert.Equal(expected, string.Join(' ', drawn));
+    }
+
+    [Fact]
+    public void Seven_pages_or_fewer_draw_every_page()
+    {
+        var html = UiPagination.Pages(7).Current(4).OnSelect(_ => { }).ToHtml();
+
+        Assert.Equal(7, Count(html, "join-item btn"));
+        Assert.DoesNotContain("&#x2026;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("…", html, StringComparison.Ordinal);
     }
 
     private static int Count(string haystack, string needle) => haystack.Split(needle).Length - 1;

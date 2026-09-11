@@ -73,22 +73,24 @@ public sealed partial class QueuePage(
 
         if (_panel is null)
         {
-            return DashboardEmpty.Heading($"No queue called \"{Queue}\"")
-                .Detail("Either that battery isn't registered, or its table isn't mapped into the DbContext.");
+            return UiCard[
+                UiEmpty
+                    .Heading($"No queue called \"{Queue}\"")
+                    .Detail("Either that battery isn't registered, or its table isn't mapped into the DbContext.")
+            ];
         }
 
         return [
             UiHeader
                 .Heading(_panel.Title)
                 .Icon(_panel.Icon)
-                .Actions(Div.Class("flex flex-wrap gap-2")[QueueActionButtons()]),
+                .Actions([.. QueueActionButtons()]),
             DashboardError.Message(LoadError),
             // A question stays in the flow: it has to be answered before anything else means anything, and
             // a toast is the wrong shape for something you must respond to.
             ConfirmPrompt(),
             CountTiles(),
-            _rows.Count == 0 ? EmptyForFilter() : RowsTable(),
-            Pager(),
+            RowsGrid(),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
             DetailSheet(),
             ResultToast(),
@@ -104,14 +106,12 @@ public sealed partial class QueuePage(
     /// tile is a real link carrying <c>?show=</c>, the selection is still shareable and keyboard-reachable.
     /// </remarks>
     private Component CountTiles() =>
-        Div.Class("mb-4 sm:mb-5")[
-            UiMetricRow.Columns(5)[
-                Tile(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, tone: null),
-                Tile(QueueFilter.Due, "Due", _counts.Due, tone: null),
-                Tile(QueueFilter.Delayed, "Delayed", _counts.Delayed, tone: null),
-                Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? UiTone.Error : null),
-                Tile(QueueFilter.Processed, "Processed", _counts.Processed, tone: null)
-            ]
+        UiMetricRow.Columns(5)[
+            Tile(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, tone: null),
+            Tile(QueueFilter.Due, "Due", _counts.Due, tone: null),
+            Tile(QueueFilter.Delayed, "Delayed", _counts.Delayed, tone: null),
+            Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? UiTone.Error : null),
+            Tile(QueueFilter.Processed, "Processed", _counts.Processed, tone: null)
         ];
 
     private Component Tile(QueueFilter filter, string label, int count, UiTone? tone) =>
@@ -123,87 +123,87 @@ public sealed partial class QueuePage(
             .Href(Routes.QueuePage(_panel!.Slug, Show: filter.ToString().ToLowerInvariant()))
             .Active(Filter == filter);
 
-    private Component EmptyForFilter() => DashboardEmpty.Heading($"Nothing {Filter.ToString().ToLowerInvariant()}")
-        .Detail(Filter == QueueFilter.Failed
-            ? "No dead letters. This is the number you want at zero."
-            : "Nothing in this slice right now.");
+    private bool IsDead(QueueRow row) => row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
 
-    private Component RowsTable()
+    /// <summary>
+    /// The rows behind the selected tile.
+    /// </summary>
+    /// <remarks>
+    /// The type is the column that survives every width. The attempt count waits until the table has room
+    /// for it, and below <c>sm</c> every column is its own labelled line rather than a column an operator has
+    /// to swipe sideways to find. A dead letter carries the error tone as well as its badge: it is the row
+    /// this page exists for.
+    /// </remarks>
+    private Component RowsGrid()
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        return UiTable.Scroll(true)[
-            // The secondary columns are dropped below sm rather than scrolled to. A table an operator has to
-            // swipe sideways has hidden the column they came for; the primary cell carries the same facts
-            // stacked underneath instead, so nothing is lost — see the remarks on UiTable.
-            Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
-                Tr[
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["#"],
-                    Th.Class("px-3 py-2 font-medium")[TypeColumnLabel()],
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["When"],
-                    Th.Class("hidden px-3 py-2 font-medium md:table-cell")["Attempts"],
-                    Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Status"],
-                    Th.Class("px-3 py-2")
-                ]
-            ],
-            Tbody[_rows.Select(r => Row(r, now))]
-        ];
+        var slice = Filter.ToString().ToLowerInvariant();
+
+        return UiDataGrid.Data(_rows)
+            .RowKey(r => r.Id)
+            .Label($"{_panel!.Title}, {slice}")
+            .PageSize(options.PageSize)
+            .Page(_page)
+            .TotalCount(_total)
+            .OnPageChange(GoAsync)
+            .RowTone(r => IsDead(r) ? UiTone.Error : null)
+            .Empty(UiEmpty
+                .Heading($"Nothing {slice}")
+                .Detail(Filter == QueueFilter.Failed
+                    ? "No dead letters. This is the number you want at zero."
+                    : "Nothing in this slice right now."))[c => [
+                c.Field(r => r.Id).Title("#").Mono(true),
+                c.Field(r => r.Type).Title(TypeColumnLabel()),
+                c.Field(r => r.CreatedAt).Title("When").Cell(r =>
+                    Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
+                c.Field(r => r.Attempts).Title("Attempts").ShowFrom(UiBreakpoint.Md),
+                c.Column().Title("Status").Cell(r => StatusBadge(r, IsDead(r), now)),
+                c.Column().Cell(r => [.. RowButtons(r, IsDead(r))]),
+            ]];
     }
 
     // Mail's "type" column is really its subject; calling it Type on that page would be a small lie.
     private string TypeColumnLabel() => _panel!.Slug == "mail" ? "Subject" : "Type";
 
-    private Component Row(QueueRow row, DateTime now)
-    {
-        var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
-
-        return Tr.Key(row.Id).Class(isDead
-            ? "border-b border-ui-line/60 bg-ui-danger/5 last:border-0"
-            : "border-b border-ui-line/60 last:border-0")[
-            Td.Class($"hidden whitespace-nowrap px-3 py-2 align-top text-ui-muted sm:table-cell {UiStyles.Mono}")[row.Id.ToString()],
-            Td.Class("w-full max-w-0 px-3 py-2 align-top")[
-                Div.Class("min-w-0")[
-                    Div.Class("truncate sm:max-w-[28rem]").Title(row.Type)[row.Type],
-                    // What the hidden columns were carrying, folded under the one cell that survives.
-                    Div.Class("mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ui-muted sm:hidden")[
-                        Span.Class(UiStyles.Mono)[$"#{row.Id}"],
-                        Span.Title(row.CreatedAt.ToString("u"))[DashboardParts.Ago(row.CreatedAt, now)],
-                        StatusBadge(row, isDead, now)
-                    ]
-                ]
-            ],
-            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted sm:table-cell")
-                .Title(row.CreatedAt.ToString("u"))[
-                DashboardParts.Ago(row.CreatedAt, now)
-            ],
-            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums md:table-cell")[row.Attempts.ToString()],
-            Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[StatusBadge(row, isDead, now)],
-            Td.Class("px-3 py-2 align-top text-right")[
-                Div.Class("flex justify-end gap-1")[RowButtons(row, isDead)]
-            ]
-        ];
-    }
-
+    // A space between the buttons rather than a class: a text node is the gap every inline control already
+    // gets in a line of prose, and the console writes no class strings.
     private IEnumerable<Component> RowButtons(QueueRow row, bool isDead)
     {
-        foreach (var button in RowActionButtons(row, isDead))
-        {
-            yield return button;
-        }
+        var first = true;
 
         // Opens the detail sheet. A button rather than a clickable row: a <tr> is not focusable, and the
         // console has no script to make one behave like a control.
-        yield return UiButton.Key("details")
+        var details = UiButton.Key("details").Size(UiSize.Sm)
             .OnClick(() => Open(row.Id))[UiIcon.Name(UiIconName.ChevronRight), "Details"];
+
+        foreach (var button in RowActionButtons(row, isDead).Append(details))
+        {
+            if (!first)
+            {
+                yield return " ";
+            }
+
+            first = false;
+            yield return button;
+        }
     }
 
-    private Component StatusBadge(QueueRow row, bool isDead, DateTime now) => row switch
+    private static string StatusText(QueueRow row, bool isDead, DateTime now) => row switch
     {
-        { ProcessedAt: not null } => UiBadge.Tone(UiTone.Success)["done"],
-        _ when isDead => UiBadge.Tone(UiTone.Error)["dead letter"],
-        _ when row.RunAt > now =>
-            UiBadge[$"retries in {DashboardParts.Duration(row.RunAt - now)}"],
-        _ => UiBadge.Tone(UiTone.Info)["due"],
+        { ProcessedAt: not null } => "done",
+        _ when isDead => "dead letter",
+        _ when row.RunAt > now => $"retries in {DashboardParts.Duration(row.RunAt - now)}",
+        _ => "due",
     };
+
+    private static Component StatusBadge(QueueRow row, bool isDead, DateTime now) =>
+        UiBadge.Tone(row switch
+        {
+            { ProcessedAt: not null } => UiTone.Success,
+            _ when isDead => UiTone.Error,
+            _ when row.RunAt > now => (UiTone?)null,
+            _ => UiTone.Info,
+        })[StatusText(row, isDead, now)];
 
     /// <summary>
     /// Everything known about one row, over the list it came from.
@@ -222,7 +222,7 @@ public sealed partial class QueuePage(
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
+        var isDead = IsDead(row);
 
         // Rendered only while a row is selected, and Close flips that back — which is the whole of the
         // dialog's open state. UiModal.Open is for a sheet kept mounted while hidden; this one has
@@ -230,13 +230,12 @@ public sealed partial class QueuePage(
         return UiModal
             .Title(row.Type)
             .Close(Close)
-            .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
-                RowActionButtons(row, isDead),
-                UiButton.Key("close").OnClick(Close)["Close"]
-            ])[
+            .Footer([.. RowActionButtons(row, isDead), UiButton.Key("close").OnClick(Close)["Close"]])[
             UiDetailList[
                 UiDetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
                 UiDetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
+                UiDetailRow.Key("status").Label("Status").Value(StatusText(row, isDead, now))
+                    .Tone(isDead ? UiTone.Error : null),
                 UiDetailRow.Key("attempts").Label("Total attempts")
                     .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(true),
                 UiDetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(true),
@@ -247,20 +246,8 @@ public sealed partial class QueuePage(
                     : null,
                 UiDetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
             ],
-            Div.Class("mt-4 flex items-center gap-2")[
-                Span.Class("text-xs font-medium text-ui-muted")["Status"],
-                StatusBadge(row, isDead, now)
-            ],
-            row.Error is { } error
-                ? Div.Class("mt-4")[
-                    Div.Class("mb-1.5 text-xs font-medium text-ui-danger")["Last error"],
-                    UiCode.Content(error).Tone(UiTone.Error)
-                ]
-                : null,
-            Div.Class("mt-4")[
-                Div.Class("mb-1.5 text-xs font-medium text-ui-muted")["Payload"],
-                UiCode.Content(row.Payload)
-            ]
+            row.Error is { } error ? UiCode.Content(error).Label("Last error").Tone(UiTone.Error) : null,
+            UiCode.Content(row.Payload).Label("Payload")
         ];
     }
 
@@ -289,24 +276,22 @@ public sealed partial class QueuePage(
 
         if (_counts.Failed > 0)
         {
-            yield return Button
+            yield return UiButton
                 .Key("retry-all")
-                .Type("button")
-                .Class(UiStyles.Danger)
+                .Tone(UiTone.Error)
+                .Variant(UiVariant.Outline)
                 .OnClick(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
                     async ct => $"Re-queued {await _panel!.RetryAllAsync(ct).ConfigureAwait(false)}."))[
-                UiIcon.Name(UiIconName.Retry).Class("size-4"),
-                Span["Retry all failed"]
+                UiIcon.Name(UiIconName.Retry),
+                "Retry all failed"
             ];
         }
 
         if (_counts.Processed > 0)
         {
-            yield return Button
+            yield return UiButton
                 .Key("purge")
-                .Type("button")
-                .Class(UiStyles.Button)
                 .OnClick(() => RunAsync(
                     "Delete processed rows older than 7 days? Outstanding work and dead letters are kept.",
                     async ct => $"Purged {await _panel!.PurgeProcessedAsync(TimeSpan.FromDays(7), ct).ConfigureAwait(false)}."))[
@@ -319,10 +304,11 @@ public sealed partial class QueuePage(
     {
         if (isDead && options.Actions.HasFlag(RaskDashboardActions.Safe))
         {
-            yield return Button
+            yield return UiButton
                 .Key("retry")
-                .Type("button")
-                .Class(UiStyles.Danger)
+                .Tone(UiTone.Error)
+                .Variant(UiVariant.Outline)
+                .Size(UiSize.Sm)
                 .OnClick(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
                     async ct => await _panel!.RetryAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -332,10 +318,11 @@ public sealed partial class QueuePage(
 
         if (row.ProcessedAt is null && options.Actions.HasFlag(RaskDashboardActions.Destructive))
         {
-            yield return Button
+            yield return UiButton
                 .Key("delete")
-                .Type("button")
-                .Class(UiStyles.Danger)
+                .Tone(UiTone.Error)
+                .Variant(UiVariant.Outline)
+                .Size(UiSize.Sm)
                 .OnClick(() => RunAsync(
                     $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
                     async ct => await _panel!.DeleteAsync(row.Id, ct).ConfigureAwait(false) > 0
@@ -353,10 +340,10 @@ public sealed partial class QueuePage(
             _pending = (confirm, action);
 
             // Close the sheet, or the question is invisible. The prompt renders in the page's normal flow
-            // while the sheet is `fixed inset-0 z-50` over a backdrop — so an action raised FROM the sheet
-            // would put its own confirmation underneath it, and Delete would look like a button that does
-            // nothing. Retry never hit this: it passes confirm: null and goes straight to ExecuteAsync,
-            // which clears _expanded itself.
+            // while the sheet is a modal over a backdrop — so an action raised FROM the sheet would put its
+            // own confirmation underneath it, and Delete would look like a button that does nothing. Retry
+            // never hit this: it passes confirm: null and goes straight to ExecuteAsync, which clears
+            // _expanded itself.
             _expanded = null;
             StateHasChanged();
             return Task.CompletedTask;
@@ -385,14 +372,18 @@ public sealed partial class QueuePage(
         StateHasChanged();
     }
 
-    // The question, in the flow, where it cannot be missed.
+    // The question, in the flow, where it cannot be missed. The two answers share one cell of the alert, so
+    // on a phone the question keeps the width and the buttons sit together beneath it.
     private Component? ConfirmPrompt() =>
         _pending is { } pending
-            ? UiNotice.Tone("warn")[
-                Span.Class("min-w-0 grow break-words")[pending.Prompt],
-                UiButton.Key("confirm").Tone(UiTone.Error)
-                    .OnClick(() => ExecuteAsync(pending.Action))["Confirm"],
-                UiButton.Key("cancel").OnClick(Cancel)["Cancel"]
+            ? UiAlert.Tone(UiTone.Warning)[
+                Span[pending.Prompt],
+                Div[
+                    UiButton.Key("confirm").Tone(UiTone.Error).Size(UiSize.Sm)
+                        .OnClick(() => ExecuteAsync(pending.Action))["Confirm"],
+                    " ",
+                    UiButton.Key("cancel").Size(UiSize.Sm).OnClick(Cancel)["Cancel"]
+                ]
             ]
             : null;
 
@@ -417,31 +408,6 @@ public sealed partial class QueuePage(
     {
         _message = null;
         StateHasChanged();
-    }
-
-    private Component? Pager()
-    {
-        var pages = (int)Math.Ceiling(_total / (double)options.PageSize);
-        if (pages <= 1)
-        {
-            return null;
-        }
-
-        // justify-between rather than a centred group: on a phone this puts the two controls at the edges,
-        // which is where thumbs are.
-        return Div.Class("mt-4 flex items-center justify-between gap-3")[
-            UiButton.Key("prev")
-                .Disabled(_page == 0)
-                .OnClick(() => GoAsync(_page - 1))["Previous"],
-            Span.Class("text-center text-xs text-ui-muted")[
-                Span[$"Page {_page + 1} of {pages}"],
-                // The total is the first thing to go when there is no room for it.
-                Span.Class("hidden sm:inline")[$" — {_total} rows"]
-            ],
-            UiButton.Key("next")
-                .Disabled(_page >= pages - 1)
-                .OnClick(() => GoAsync(_page + 1))["Next"]
-        ];
     }
 
     private async Task GoAsync(int page)

@@ -723,10 +723,11 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Every_body_cell_lets_a_long_token_break_instead_of_widening_the_table() =>
+    public void Every_body_cell_carries_the_marker_that_lets_a_long_token_break() =>
         // Four rows, two columns. A type name or a request id with nowhere to break would otherwise set the
-        // table's minimum width and push it out of a phone.
-        Assert.Equal(Catalog.Length * 2, Occurrences(Grid(), "wrap-anywhere"));
+        // table's minimum width and push it out of a phone. A marker, not the wrap-anywhere utility: the property
+        // inherits, and the rule keyed to the marker is what keeps a badge's label whole inside the same cell.
+        Assert.Equal(Catalog.Length * 2, Occurrences(Grid(), "ui-grid-cell"));
 
     [Fact]
     public void A_toolbar_is_one_row_that_stacks_on_a_phone()

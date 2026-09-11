@@ -1781,7 +1781,7 @@ Rask.Ui.UiStat.Icon.get -> Rask.Ui.UiIconName?
 Rask.Ui.UiStat.Icon.set -> void
 Rask.Ui.UiStat.Label.get -> string!
 Rask.Ui.UiStat.Label.set -> void
-Rask.Ui.UiStat.Tone.get -> string?
+Rask.Ui.UiStat.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiStat.Tone.set -> void
 Rask.Ui.UiStat.UiStat() -> void
 Rask.Ui.UiStat.Value.get -> string!
@@ -2661,7 +2661,7 @@ static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiOtp! __b, Rask.Ui.UiTone? v
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiProgress! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiProgress!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiRadio! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiRadio!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiRange! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiRange!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiStat! __b, string? value) -> Rask.Ui.UiStat!
+static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiStat! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiStat!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiStatusDot! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiStatusDot!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiStep! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiStep!
 static RaskBuilderSettersRask_Ui.Tone(this Rask.Ui.UiToast! __b, Rask.Ui.UiTone? value) -> Rask.Ui.UiToast!

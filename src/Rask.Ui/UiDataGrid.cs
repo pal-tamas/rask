@@ -968,11 +968,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private string CellClass(UiColumn<T> column) =>
         UiClass.Compose(
-            // overflow-wrap:anywhere, because a cell holding one unbroken token — a type name, a request id, a
-            // path — otherwise sets the table's minimum width, and the table spills out of a phone or scrolls
-            // sideways on a desk. "anywhere" rather than "break-word" is the half that matters: only it lets the
-            // token break while the column widths are being worked out.
-            "wrap-anywhere",
+            // The kit's marker for a body cell, which ui.css gives overflow-wrap:anywhere: a cell holding one
+            // unbroken token — a type name, a request id, a path — otherwise sets the table's minimum width, and
+            // the table spills out of a phone. A rule rather than the wrap-anywhere utility because the property
+            // INHERITS: a badge or a button in the cell then broke its own label letter by letter inside its
+            // fixed height — a level badge reading "mati" for "Information" — and only a rule can put those back.
+            "ui-grid-cell",
             StackedCards
                 ? "max-sm:flex max-sm:items-baseline max-sm:justify-between max-sm:gap-3 "
                   + "max-sm:before:font-medium max-sm:before:text-base-content/60 "

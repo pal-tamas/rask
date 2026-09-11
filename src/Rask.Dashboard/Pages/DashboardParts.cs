@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Core.Routing;
 
 namespace Rask.Dashboard.Pages;
 
@@ -43,43 +42,12 @@ internal static class DashboardParts
     };
 }
 
-/// <summary>
-/// The console's shared class strings, named once so a panel does not spell a card out again.
-/// </summary>
-/// <remarks>
-/// Strings rather than components where the shape varies: a card is a <c>div</c> with a border, and
-/// wrapping every one of those in a type would buy indirection rather than meaning. What DOES get a
-/// component is anything with behaviour or a fixed internal structure — see <c>Ui/</c>.
-/// </remarks>
-
-
 /// <summary>The placeholder a panel shows while its first read is in flight.</summary>
+/// <remarks>One place for the words, so every panel waits in the same voice.</remarks>
 internal sealed partial class DashboardLoading : Component
 {
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class("flex items-center gap-2 py-8 text-sm text-ui-muted")[
-            // A pure-CSS spinner: one more reason this package ships no assets.
-            Span.Class("size-4 animate-spin rounded-full border-2 border-ui-line border-t-ui-muted")
-                .Attributes(("aria-hidden", "true")),
-            Span["Reading…"]
-        ];
-}
-
-/// <summary>The empty state a panel shows when a read came back with nothing to display.</summary>
-internal sealed partial class DashboardEmpty : Component
-{
-    // Not `Title`: that name is the <title> tag's builder entry, inherited from Component.
-    public required string Heading { get; set; }
-
-    public required string Detail { get; set; }
-
-    /// <inheritdoc />
-    protected override Component? Render() =>
-        Div.Class($"{UiStyles.Card} text-center")[
-            Div.Class("text-base font-medium text-ui-ink")[Heading],
-            Div.Class("mt-1 text-sm text-ui-muted")[Detail]
-        ];
+    protected override Component? Render() => UiLoading.Text("Reading…");
 }
 
 /// <summary>
@@ -95,12 +63,9 @@ internal sealed partial class DashboardError : Component
     protected override Component? Render() =>
         Message is null
             ? null
-            : Div.Role("alert")
-                .Class(
-                    "mb-4 flex items-start gap-3 rounded-xl border border-ui-danger/30 bg-ui-danger/5 px-4 py-3 "
-                    + "text-sm text-ui-danger")[
-                UiIcon.Name(UiIconName.Warning).Class("mt-0.5 size-5 shrink-0"),
-                Span.Class("min-w-0 break-words")["Couldn't read: ", Message]
+            : UiAlert.Tone(UiTone.Error)[
+                UiIcon.Name(UiIconName.Warning),
+                Span["Couldn't read: ", Message]
             ];
 }
 
@@ -117,9 +82,9 @@ internal sealed partial class DashboardParked : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Parked
-            ? Div.Class("mt-4 flex flex-wrap items-center gap-3 text-xs text-ui-muted")[
+            ? UiAlert[
                 Span["Live updates paused to keep the database free."],
-                Button.Type("button").Class(UiStyles.Button).OnClick(ResumeAsync)["Resume"]
+                UiButton.Size(UiSize.Sm).OnClick(ResumeAsync)["Resume"]
             ]
             : null;
 

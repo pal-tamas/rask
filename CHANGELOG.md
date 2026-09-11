@@ -296,6 +296,21 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The `/_rask` console is drawn with `Rask.Ui` and nothing else.** Every table is a `UiDataGrid`: a dead letter
+  carries the error tone, a secondary column waits until the table has room for it, a phone lists every column
+  as its own labelled line, and the Logs history pages are links you can share. The banners are `UiAlert`s, the
+  empty states `UiEmpty`, and each queue card on the overview is one link. `Rask.Dashboard` no longer compiles or
+  embeds a stylesheet of its own — the document inlines only the kit's, whose `.rask-ops` reset is the console's
+  page base — and `DashboardIsKitOnlyTests` fails on any class string written in the package. The System page's
+  snapshots moved to a card of their own.
+- **A long `UiPagination` draws a window of pages instead of every one.** A join is one unbreakable row, so
+  a pager over forty pages was wider than a phone and dragged the whole document sideways. Past seven pages
+  it now draws the first, the last, and the current page with its neighbours, with a gap marker between —
+  never more than seven items. The console's screenshot pass caught it on the Logs history.
+- **Breaking: `UiStat.Tone` is a `UiTone?`.** It was a string matched against `"danger"` and `"warn"` — names
+  nothing else in the kit uses — so the natural `"error"` compiled and rendered a neutral tile without a word.
+  Write `.Tone(UiTone.Error)` or `.Tone(UiTone.Warning)`.
+
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
   `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather

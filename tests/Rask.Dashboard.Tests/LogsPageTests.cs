@@ -116,6 +116,25 @@ public sealed class LogsPageTests
         Assert.Contains("0 stored entries", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task HistoryPagesAreLinksThatCarryThePage()
+    {
+        // Paging is navigation: each page is the address it lives at, so a page can be shared and the back
+        // button walks back through them — and the page you are on is not a link, it says aria-current.
+        await using var store = new LogStoreFixture();
+        await using var harness = store.Dashboard(o => o.PageSize = 2);
+        for (var i = 0; i < 5; i++)
+        {
+            await store.AppendAsync($"entry {i}");
+        }
+
+        var html = await RenderHistoryAsync(harness);
+
+        Assert.Contains("page=2", html, StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("join-item btn\" disabled", html, StringComparison.Ordinal);
+    }
+
     // ── The query-string → store-query mapping ──────────────────────────────────────────────────────
     // Where a filter would actually go missing. The store's own filtering is covered in Rask.Logging.Tests.
 
