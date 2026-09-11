@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "runtime": "lit",
+  "module": "fixture-lit/components/badge/badge.js",
+  "export": "default",
+  "package": {
+    "name": "fixture-lit",
+    "version": "1.4.0"
+  },
+  "tag": "fx-badge",
+  "content": "none",
+  "props": [
+    {
+      "name": "pill",
+      "required": false,
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "variant",
+      "required": false,
+      "type": {
+        "kind": "enum",
+        "base": "string",
+        "values": [
+          "danger",
+          "neutral",
+          "primary"
+        ]
+      }
+    }
+  ],
+  "skipped": []
+}

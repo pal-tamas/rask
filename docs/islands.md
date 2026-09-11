@@ -280,9 +280,7 @@ the build instead of being refreshed, so CI proves the committed files are true 
 | `RASKISLAND009` | warning | The compiler found a package island the build did not see before compiling, so its props were not read. Return `Module` as a constant from the class's own body. |
 | `RASKISLAND010` | warning | The snapshot was taken from a different package version than `package-lock.json` pins. |
 
-Props are read from **React, Preact, Solid, Vue and Svelte** packages today. A Lit or Angular package island is not
-sent to the extractor: it compiles from a snapshot you commit by hand (a missing one is `RASKISLAND006`), or declare
-its props in C#.
+Props are read from packages of **all seven runtimes**.
 
 Each runtime's declarations are read where they put the props:
 
@@ -292,7 +290,19 @@ Each runtime's declarations are read where they put the props:
   A default slot makes the island take content.
 - **Svelte 5** — `Component<Props>`'s props. A snippet prop is skipped, and a `children` snippet makes the island
   take content. **Svelte 4** typings give their props from `$$prop_def`; their `on:` events cannot be passed as props,
-  and the snapshot lists them as `legacy-event` skips. A Solid package island cannot yet share a project with React or Preact islands — Solid's Vite
+  and the snapshot lists them as `legacy-event` skips.
+- **Lit** — a custom element's public, writable fields, all optional. Its tag is the one `HTMLElementTagNameMap` gives
+  the class; a module that only registers an element exports nothing to name, so name its tag instead:
+  `"@spectrum-web-components/button/sp-button.js#sp-button"`. The entry imports the module for its side effect, so the
+  tag has to be registered by that module or a file it imports directly — a class module that registers nothing is
+  refused rather than mounted under a tag some other module defines. Where the package ships a `custom-elements.json`,
+  the events it lists become handler props — `sl-change` is `OnSlChange` — which the adapter adds as event listeners.
+  A prop C# stops sending goes back to the element's own default.
+- **Angular** — a standalone component's inputs and outputs, including those inherited from a base class, read from
+  the declarations ng-packagr writes. An input travels under its public alias (`aria-label`), signal inputs, `model()`
+  and transformed inputs included; an output becomes `On<Alias>` and the adapter subscribes to it. A directive, or a
+  component that is not standalone, is refused.
+  The build links Angular's partially compiled packages, so nothing is compiled in the browser. A Solid package island cannot yet share a project with React or Preact islands — Solid's Vite
 plugin would have to be confined to folders a package does not have — and the build refuses that by name.
 
 ### How the TypeScript maps
