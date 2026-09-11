@@ -24,8 +24,7 @@ public sealed partial class AsyncValidationDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("flex flex-col gap-3")[
             Div[
-                Label.For("v3-username").Class($"{Tw.Label} text-sm mb-1")["Username"],
-                Input.Bind(() => _model.Username).Id("v3-username").Class(Tw.Input),
+                UiInput.Bind(() => _model.Username).Label("Username").Id("v3-username").ShowValidation(false),
                 ValidatingIndicator.Template(Checking).For(() => _model.Username),
                 ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])])
                     .For(() => _model.Username)

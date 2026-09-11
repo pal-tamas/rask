@@ -61,10 +61,9 @@ public sealed partial class KeyedListsReorderDemo : Component
     [
         UiBadge.Tone(UiTone.Neutral).Variant(UiVariant.Soft)[(index + 1).ToString()],
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
-        Input.Value<string>(null)
+        UiInput.Value<string>(null).AccessibleLabel("type here, then reorder…")
             .Type(InputType.Text)
-            .Class($"{Tw.Input} kl-note")
-            .Placeholder("type here, then reorder…")
+            .Placeholder("type here, then reorder…").Class("kl-note")
     ];
 
     private void Rotate()

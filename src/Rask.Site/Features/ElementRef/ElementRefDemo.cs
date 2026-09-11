@@ -16,11 +16,10 @@ public sealed partial class ElementRefDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Input.Value<string>(null)
+            UiInput.Value<string>(null).AccessibleLabel("Focus me from C#")
                 .Type(InputType.Text)
-                .Class($"{Tw.Input} mb-2")
                 .Placeholder("Focus me from C#")
-                .Ref(_input),
+                .Ref(_input).Class("mb-2"),
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 UiButton.Tone(UiTone.Primary).OnClick(FocusInput)["Focus the input"],
                 UiButton.Variant(UiVariant.Outline).OnClick(MeasureBox)["Measure the box"]

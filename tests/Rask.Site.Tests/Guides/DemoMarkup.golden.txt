@@ -164,14 +164,18 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+select .select .validator
 option
 option
 option
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+select .select .validator
 option
 option
 option
@@ -196,15 +200,19 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+select .select .validator
 option
 option
 option
 option
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+select .select .validator
 option
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
@@ -227,11 +235,15 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -254,7 +266,7 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .mb-2 .validator
 p .mb-0 .text-sm
 code
 
@@ -277,18 +289,25 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-div .flex .gap-2 .items-center .mb-3
-input .border-ui-line .rounded .size-4 .text-ui-brand-ink
-label .ms-1 .text-sm .text-ui-ink
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .cursor-pointer .gap-2 .label
+input .checkbox
+span
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
+div .mb-3
+div .fieldset
+label .floating-label
+span
+select .select .validator
 option
 option
 option
@@ -313,21 +332,29 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+select .select .validator
 option
 option
 option
 option
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -350,7 +377,8 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+textarea .mb-2 .textarea .validator
 pre .bg-ui-well .border .mb-0 .p-3 .rounded .text-sm
 code
 
@@ -373,7 +401,8 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+input .input .mb-2 .validator
 p .mb-0 .text-sm
 strong
 
@@ -518,7 +547,7 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .gap-2 .mb-2
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
 div .text-sm .text-ui-muted
@@ -545,7 +574,7 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .gap-2 .items-stretch .mb-2
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
 button .btn .btn-error .btn-outline
@@ -579,7 +608,9 @@ div .text-sm .text-ui-muted
 code
 div .mb-2 .text-sm .text-ui-muted
 code
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .mb-2 .validator
 button .btn .btn-primary .mb-2
 div .text-break .text-sm .text-ui-muted
 code
@@ -649,7 +680,9 @@ path
 button .btn .btn-outline .btn-primary
 div .mb-2 .text-sm .text-ui-muted
 code
-textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+textarea .mb-2 .textarea .validator
 div .text-sm .text-ui-muted
 code
 
@@ -784,9 +817,13 @@ div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .gap-4 .grid .grid-cols-12 .mb-2
 div .col-span-12 .sm:col-span-4
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div .col-span-12 .sm:col-span-8
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
@@ -1203,7 +1240,9 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .mb-2 .validator
 div .flex .flex-wrap .gap-2 .items-center .mb-2
 button .btn .btn-primary
 button .btn .btn-error .btn-outline
@@ -1255,7 +1294,7 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .flex .gap-2 .mb-2
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 button .btn .btn-primary
 button .btn .btn-outline .btn-primary
 button .btn .btn-error .btn-outline
@@ -1667,8 +1706,9 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-div .flex .items-center .text-ui-muted
-span .animate-spin .border-2 .border-current .border-r-transparent .inline-block .me-2 .rounded-full .size-4 .size-5
+span .gap-2 .inline-flex .items-center .text-ui-muted
+span .loading .loading-sm .loading-spinner
+span
 
 === data-http-register ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -1714,7 +1754,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-3 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .file-input .mb-3 .validator
 div .text-sm .text-ui-muted
 
 === disposal-async ===
@@ -1926,33 +1966,33 @@ form .flex .flex-col .gap-3
 fieldset .border .p-3 .rounded
 legend .float-none .px-2 .text-base .w-auto
 div .mb-2
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .label .mb-1
+input .input
 datalist
 option
 option
 div .mb-2
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .label .mb-1
+select .select
 optgroup
 option
 option
 optgroup
 option
 div .mb-0
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .label .mb-1
+textarea .textarea
 div .gap-4 .grid .grid-cols-12 .items-center
 div .col-auto
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
+label .label .mb-1
 br
 progress
 div .col-auto
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
+label .label .mb-1
 br
 meter
 div .col-auto
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
+label .label .mb-1
 br
 output
 div
@@ -1980,7 +2020,7 @@ div .flex .flex-col .gap-3
 p
 code
 pre .bg-ui-well .border .mb-0 .p-2 .rounded
-blockquote .border-l .border-l-4 .border-ui-line .italic .pl-4 .ps-3 .text-base .text-ui-muted
+blockquote .border-l-4 .border-ui-line .italic .ps-3 .text-base .text-ui-muted
 hr
 div .gap-4 .grid .grid-cols-12
 div .col-span-12
@@ -2148,7 +2188,7 @@ nav .text-sm
 a .me-2
 a
 search .my-2
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input
 div .gap-4 .grid .grid-cols-12
 main .col-span-8
 section
@@ -2342,7 +2382,7 @@ div .sample-result-label
 div .sample-result-body
 form .mb-2
 div .flex .gap-2 .items-stretch
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 button .btn .btn-primary
 svg .shrink-0 .size-5
 path
@@ -2366,7 +2406,7 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .mb-2 .validator
 p .mb-0 .text-sm
 code
 
@@ -2387,7 +2427,7 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+select .mb-2 .select .validator
 option
 option
 option
@@ -2460,14 +2500,17 @@ div .sample-result-label
 div .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
-label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .mb-2 .validator
 p .mb-0 .text-sm .text-ui-muted
 strong
 div .col-span-12 .md:col-span-6
-label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 form
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .mb-2 .validator
 p .mb-0 .text-sm .text-ui-muted
 strong
 
@@ -2490,17 +2533,20 @@ div .sample-result-label
 div .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
-label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+select .mb-2 .select .validator
 option
 option
 option
 p .mb-0 .text-sm .text-ui-muted
 strong
 div .col-span-12 .md:col-span-6
-label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 form
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+select .mb-2 .select .validator
 option
 option
 option
@@ -2526,14 +2572,17 @@ div .sample-result-label
 div .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-6
-label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
-textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+textarea .mb-2 .textarea .validator
 p .mb-0 .text-sm .text-ui-muted
 strong
 div .col-span-12 .md:col-span-6
-label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
 form
-textarea .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+textarea .mb-2 .textarea .validator
 p .mb-0 .text-sm .text-ui-muted
 strong
 
@@ -2557,8 +2606,10 @@ div .sample-result-body
 div .gap-4 .grid .grid-cols-12
 div .col-span-12 .md:col-span-7
 form
-label .block .font-medium .font-semibold .mb-1 .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .mb-2 .validator
 button .btn .btn-primary
 div .col-span-12 .md:col-span-5
 p .dark:text-slate-400 .mb-0 .text-slate-500 .text-sm
@@ -2584,7 +2635,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
 div
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .mb-2 .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .mb-2 .validator
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-outline
@@ -2609,8 +2660,9 @@ div .sample-result-label
 div .sample-result-body
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .mb-3
-label .block .font-medium .mb-1 .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -2696,23 +2748,23 @@ ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overf
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .kl-note .validator
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .kl-note .validator
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .kl-note .validator
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .kl-note .validator
 li .flex .gap-3 .items-center
 span .badge .badge-neutral .badge-soft
 span .font-semibold
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .kl-note .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .kl-note .validator
 
 === lifecycle-cycle ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3060,15 +3112,20 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 fieldset .border .p-3 .rounded
 legend .font-semibold .text-base
 div .flex .flex-col .gap-2
 div
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 table .align-middle .border-collapse .mb-0 .mt-2 .text-left .text-sm .ui-table .w-full
 thead
 tr
@@ -3078,9 +3135,9 @@ th
 tbody
 tr
 td
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 td
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 td
 button .btn .btn-error .btn-outline .btn-square
 svg .shrink-0 .size-5
@@ -3120,9 +3177,9 @@ th
 tbody
 tr
 td
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 td
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 td
 button .btn .btn-error .btn-outline .btn-square
 svg .shrink-0 .size-5
@@ -3164,9 +3221,9 @@ tbody
 tr
 td .text-sm .text-ui-muted
 td
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 td
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+input .input .validator
 td
 button .btn .btn-outline .btn-square .me-1
 svg .shrink-0 .size-5
@@ -3201,23 +3258,28 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 fieldset .border .mt-2 .p-3 .rounded
 legend .font-semibold .text-base
 div .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3632,8 +3694,9 @@ div .sample-result-label
 div .sample-result-body
 form
 div .mb-2
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 button .btn .btn-primary
 
 === tags-media ===
@@ -3751,8 +3814,9 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3777,11 +3841,15 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3806,14 +3874,17 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3840,17 +3911,21 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+select .select .validator
 option
 option
 option
@@ -3879,8 +3954,9 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3907,11 +3983,13 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3936,8 +4014,9 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3964,14 +4043,19 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -3996,8 +4080,9 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5
@@ -4022,32 +4107,43 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-span .text-ui-muted
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
+p .label
 div .border .p-3 .rounded
 div .font-semibold .mb-2 .text-sm
 div .gap-4 .grid .grid-cols-12 .items-center .mb-2
 div .col-span-6
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+input .input .validator
 div .col-span-3
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+input .input .validator
 div .col-span-3
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+input .input .validator
 div .gap-4 .grid .grid-cols-12 .items-center
 div .col-span-6
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+input .input .validator
 div .col-span-3
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+input .input .validator
 div .col-span-3
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-span .text-ui-muted
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+div .fieldset
+label .floating-label
+span
+input .input .validator
+p .label
 div .bg-ui-well .p-3 .rounded .text-sm
 div .flex .flex-wrap .items-center .justify-between
 span
@@ -4086,8 +4182,9 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div .flex .flex-wrap .gap-2 .items-center
 button .btn .btn-outline
 svg .shrink-0 .size-5
@@ -4115,17 +4212,21 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-select .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+select .select .validator
 option
 option
 option
@@ -4154,14 +4255,17 @@ div .sample-result-label
 div .sample-result-body
 form .flex .flex-col .gap-3
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
-label .block .font-medium .mb-1 .mb-1 .text-sm .text-sm .text-ui-ink
-input .bg-ui-bg .border .border-ui-line .focus:border-ui-brand .focus:outline-none .min-h-11 .placeholder:text-ui-muted .px-3 .rounded-md .sm:min-h-0 .sm:py-1.5 .text-sm .text-ui-ink .w-full
+label .floating-label
+span
+input .input .validator
 div
 button .btn .btn-primary
 svg .shrink-0 .size-5

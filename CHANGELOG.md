@@ -40,6 +40,29 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Tw.cs` is gone: every control on rask.sh is a `Rask.Ui` component.** The site's class-string
+  vocabulary ends here. The last 180 uses of `Tw.Input`, `Tw.Label` and `Tw.Select` move onto kit
+  fields, along with the checkbox, spinner, input-group, blockquote and figure-caption constants, and the
+  file is deleted.
+
+  - **Fields.** A `Label[…]` beside its `Input`/`Textarea`/`Select` becomes one `UiInput`/`UiTextarea`/
+    `UiSelect` with `.Label(…)`, which floats by default. Every id a browser test selects on is kept. Where
+    a demo renders its own `ValidationMessage` or a `ValidationSummary` (the thing it is teaching), the
+    field gets `.ShowValidation(false)`, so an error is never said twice.
+  - **Unlabelled controls.** Table-row inputs, toolbar rows and search boxes are named with
+    `AccessibleLabel`. A standalone field gets a visible label instead of the bare placeholder it had.
+  - **Selects.** Selects take a typed `Options` list instead of `Option` children, the enum demos
+    included. `RegistrationModel.Plan` and the async-binding demo's model become nullable, so an unpicked
+    select shows its placeholder rather than the first option while the model holds nothing.
+    `BindingNullableDemo` keeps a real "— none —" option, because clearing to null is what it shows.
+  - **Elements pages.** These pages' subject is the raw tag, so their inputs, selects, textareas and
+    labels stay raw, styled with daisyUI's own `input`/`select`/`textarea`/`label` classes.
+
+  **Kit gaps the migration found, filled:** `UiInput.Name` and `UiTextarea.Name` (the post name, as
+  `UiSelect` already had); `UiTextarea.OnInput` (as `UiInput` already had); and `Id` on `UiCheckbox` and
+  `UiFileInput`, the two controls that draw their own markup and had none, which left a browser test
+  nothing to click.
+
 - **A labelled `UiInput`, `UiTextarea` or native `UiSelect` floats its label by default.** It uses
   daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
   way. It is still the field's real `<label>`, linked by `for`/`id` as well as by holding the control.

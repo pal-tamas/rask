@@ -4,6 +4,8 @@ namespace Rask.Site.Features;
 
 public sealed partial class ValidationFieldsDemo : Component
 {
+    private static readonly (string? Value, string Text)[] Plans = [("free", "Free"), ("pro", "Pro"), ("team", "Team")];
+
     private readonly RegistrationModel _model = new();
     private string? _submission;
 
@@ -14,31 +16,26 @@ public sealed partial class ValidationFieldsDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
             Div[
-                Label.For("v1-name").Class($"{Tw.Label} text-sm mb-1")["Name"],
-                Input.Bind(() => _model.Name).Id("v1-name").Class(Tw.Input),
+                UiInput.Bind(() => _model.Name).Label("Name").Id("v1-name").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Label.For("v1-email").Class($"{Tw.Label} text-sm mb-1")["Email"],
-                Input.Bind(() => _model.Email)
+                UiInput.Bind(() => _model.Email).Label("Email")
                     .Id("v1-email")
-                    .Type(InputType.Email)
-                    .Class(Tw.Input),
+                    .Type(InputType.Email).ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Div[
-                Label.For("v1-age").Class($"{Tw.Label} text-sm mb-1")["Age"],
-                Input.Bind(() => _model.Age).Id("v1-age").Class(Tw.Input),
+                UiInput.Bind(() => _model.Age).Label("Age").Id("v1-age").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Age)
             ],
             Div[
-                Label.For("v1-plan").Class($"{Tw.Label} text-sm mb-1")["Plan"],
-                Select.Bind(() => _model.Plan).Id("v1-plan").Class(Tw.Select)[
-                    Option.Value("")["— choose —"],
-                    Option.Value("free")["Free"],
-                    Option.Value("pro")["Pro"],
-                    Option.Value("team")["Team"]
-                ],
+                UiSelect.Bind(() => _model.Plan)
+                    .Options(Plans)
+                    .Placeholder("— choose —")
+                    .Label("Plan")
+                    .Id("v1-plan")
+                    .ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Plan)
             ],
             Div[

@@ -29,8 +29,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
             Div[
-                Label.For("v6-title").Class($"{Tw.Label} text-sm mb-1")["Title"],
-                Input.Bind(() => _model.Title).Id("v6-title").Class(Tw.Input),
+                UiInput.Bind(() => _model.Title).Label("Title").Id("v6-title").ShowValidation(false),
                 ValidatingIndicator.Template(Checking).For(() => _model.Title),
                 ValidationMessage.Template(FieldError).For(() => _model.Title)
             ],

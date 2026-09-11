@@ -101,6 +101,15 @@ public sealed partial class UiInput<T> : UiFormField<T>
     /// </remarks>
     public ElementRef? Ref { get; set; }
 
+    /// <summary>
+    ///     The <c>name</c> the value posts under from a plain HTML form. Defaults to the bound member's name.
+    /// </summary>
+    /// <remarks>
+    ///     Without it a kit field inside a <c>&lt;form&gt;</c> that posts its data — rather than handing a
+    ///     model to C# — contributes nothing to the submission. The same prop <c>UiSelect</c> has.
+    /// </remarks>
+    public string? Name { get; set; }
+
     /// <inheritdoc />
     /// <inheritdoc />
     protected override Component Control()
@@ -114,6 +123,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
                 .Validate(Validate)
                 .AfterBind(AfterBind)
                 .Id(FieldId)
+            .Name(Name)
             .Ref(Ref)
             .OnInput(OnInput)
             .Min(Min)
@@ -133,6 +143,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
             .Value(Value)
             .OnChange(OnChange)
             .Id(FieldId)
+            .Name(Name)
             .Ref(Ref)
             .OnInput(OnInput)
             .Min(Min)

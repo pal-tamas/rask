@@ -28,6 +28,12 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
 
     public int? Rows { get; set; }
 
+    /// <inheritdoc cref="UiInput{T}.OnInput" />
+    public Callback<string>? OnInput { get; set; }
+
+    /// <inheritdoc cref="UiInput{T}.Name" />
+    public string? Name { get; set; }
+
     /// <summary>
     ///     daisyUI defines only <see cref="UiVariant.Ghost" /> for a text control — the borderless form
     ///     that shows its edges on focus. The rest draw the default rather than a class that does nothing.
@@ -42,6 +48,8 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
             return Textarea
                 .Bind(bind)
                 .Id(FieldId)
+                .Name(Name)
+                .OnInput(OnInput)
                 .Validate(Validate)
                 .AfterBind(AfterBind)
                 .Placeholder(PlaceholderText)
@@ -54,6 +62,8 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
         return Textarea
             .Value(Value)
             .Id(FieldId)
+            .Name(Name)
+            .OnInput(OnInput)
             .OnChange(OnChange)
             .Placeholder(PlaceholderText)
             .Rows(Rows ?? 3)

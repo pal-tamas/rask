@@ -21,12 +21,12 @@ public sealed partial class ElementsMediaDemo : Component
                         .Height(96)
                         .Class("rounded border")
                 ],
-                Figcaption.Class(Tw.FigureCaption)["picture / source / img"]
+                Figcaption.Class("mt-2 text-sm text-ui-muted")["picture / source / img"]
             ],
             Figure.Class("m-0")[
                 // <canvas> is a JS drawing surface; shown here as the (empty) element.
                 Canvas.Width(96).Height(96).Class("border rounded"),
-                Figcaption.Class(Tw.FigureCaption)["canvas"]
+                Figcaption.Class("mt-2 text-sm text-ui-muted")["canvas"]
             ],
             Figure.Class("m-0")[
                 Iframe
@@ -34,17 +34,17 @@ public sealed partial class ElementsMediaDemo : Component
                     .Width(180)
                     .Height(96)
                     .Class("border rounded"),
-                Figcaption.Class(Tw.FigureCaption)["iframe (srcdoc)"]
+                Figcaption.Class("mt-2 text-sm text-ui-muted")["iframe (srcdoc)"]
             ]
         ],
         Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("m-0")[
                 Embed.Src(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
-                Figcaption.Class(Tw.FigureCaption)["embed"]
+                Figcaption.Class("mt-2 text-sm text-ui-muted")["embed"]
             ],
             Figure.Class("m-0")[
                 HtmlObject.DataUrl(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
-                Figcaption.Class(Tw.FigureCaption)["object"]
+                Figcaption.Class("mt-2 text-sm text-ui-muted")["object"]
             ],
             Figure.Class("m-0")[
                 // <img usemap> + <map>/<area>: a clickable region.
@@ -56,7 +56,7 @@ public sealed partial class ElementsMediaDemo : Component
                     .UseMap("#regions")
                     .Class("border rounded"),
                 Map.Name("regions")[Area.Shape("rect").Coords("0,0,48,96").Href("#").Alt("left half")],
-                Figcaption.Class(Tw.FigureCaption)["img usemap / map / area"]
+                Figcaption.Class("mt-2 text-sm text-ui-muted")["img usemap / map / area"]
             ]
         ],
         Div.Class("grid grid-cols-12 gap-4")[

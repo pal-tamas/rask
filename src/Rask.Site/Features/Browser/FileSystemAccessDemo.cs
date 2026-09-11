@@ -24,10 +24,11 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                     UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("fs-saveas").OnClick(SaveAs)["Save as…"]
                 ],
                 Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
-                Textarea
+                UiTextarea
                     .Value(_text)
+                    .Label("File contents")
                     .Id("fs-text")
-                    .Class($"{Tw.Input} mb-2")
+                    .Class("mb-2")
                     .Rows(8)
                     .Placeholder("Open a text file, or type here and Save as…")
                     .OnInput(v => _text = v),

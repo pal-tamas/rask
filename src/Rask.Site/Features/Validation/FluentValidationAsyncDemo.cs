@@ -23,8 +23,7 @@ public sealed partial class FluentValidationAsyncDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
             Div[
-                Label.For("v9-code").Class($"{Tw.Label} text-sm mb-1")["Ticket code"],
-                Input.Bind(() => _model.Code).Id("v9-code").Class(Tw.Input),
+                UiInput.Bind(() => _model.Code).Label("Ticket code").Id("v9-code").ShowValidation(false),
                 ValidatingIndicator.Template(Checking).For(() => _model.Code),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],

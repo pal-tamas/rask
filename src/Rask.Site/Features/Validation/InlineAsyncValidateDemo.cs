@@ -56,11 +56,10 @@ public sealed partial class InlineAsyncValidateDemo : Component
                     : Array.Empty<string>();
             })[
             Div[
-                Label.For("v10-code").Class($"{Tw.Label} text-sm mb-1")["Promo code"],
-                Input.Bind(() => _model.Code)
+                UiInput.Bind(() => _model.Code).Label("Promo code")
                     .Id("v10-code")
-                    .Class(Tw.Input)
-                    .Validate(CheckCodeAsync),
+                    .Validate(CheckCodeAsync)
+                    .ShowValidation(false),
                 ValidatingIndicator.Template(Checking).For(() => _model.Code),
                 ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],

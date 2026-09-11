@@ -203,6 +203,18 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
             "id=\"country\"",
             UiSelect.Value("hu").Options([("hu", "Hungary")]).Label("Country").Id("country").ToHtml(),
             StringComparison.Ordinal);
+
+        // The two controls that are not UiFormFields and draw their own markup had no Id at all, which
+        // left a browser test that clicks a checkbox or picks a file nothing to select on.
+        Assert.Contains(
+            "id=\"agree\"",
+            UiCheckbox.Value(false).Text("Agree").Id("agree").ToHtml(),
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "id=\"avatar\"",
+            UiFileInput.Value("").Label("Avatar").Id("avatar").ToHtml(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
