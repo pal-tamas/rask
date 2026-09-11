@@ -7,6 +7,7 @@ using Rask.Core.Routing;
 using Rask.Jobs;
 using Rask.Mail;
 using Rask.Outbox;
+using Rask.Storage;
 
 namespace Rask.Dashboard.Tests;
 
@@ -19,7 +20,8 @@ public enum Batteries
     Outbox = 2,
     Mail = 4,
     Cache = 8,
-    All = Jobs | Outbox | Mail | Cache,
+    Storage = 16,
+    All = Jobs | Outbox | Mail | Cache | Storage,
 }
 
 /// <summary>
@@ -55,6 +57,11 @@ public sealed class HarnessDbContext(DbContextOptions<HarnessDbContext> options)
         if (Mapped.HasFlag(Batteries.Cache))
         {
             modelBuilder.AddRaskCache();
+        }
+
+        if (Mapped.HasFlag(Batteries.Storage))
+        {
+            modelBuilder.AddRaskStorage();
         }
     }
 }
@@ -109,6 +116,11 @@ public sealed class DashboardHarness : IAsyncDisposable
             services.AddRaskCache<HarnessDbContext>();
         }
 
+        if (registered.HasFlag(Batteries.Storage))
+        {
+            services.AddRaskStorage<HarnessDbContext>(o => o.Disk.Root = StorageRoot);
+        }
+
         extra?.Invoke(services);
         services.AddRaskDashboard<HarnessDbContext>(configure);
         services.AddDbContextFactory<HarnessDbContext>(o => o
@@ -124,6 +136,9 @@ public sealed class DashboardHarness : IAsyncDisposable
     }
 
     public string DbPath { get; }
+
+    /// <summary>A directory of its own for the storage battery's files, removed on dispose.</summary>
+    public string StorageRoot { get; } = Path.Combine(Path.GetTempPath(), $"rask-dash-files-{Guid.NewGuid():N}");
 
     public FakeClock Clock { get; } = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
@@ -143,6 +158,11 @@ public sealed class DashboardHarness : IAsyncDisposable
         if (File.Exists(DbPath))
         {
             File.Delete(DbPath);
+        }
+
+        if (Directory.Exists(StorageRoot))
+        {
+            Directory.Delete(StorageRoot, recursive: true);
         }
     }
 }

@@ -436,7 +436,7 @@ public sealed partial class HomePage : Component
                     Feature(UiIconName.Rocket, "One-command deploy", "deployment", Code["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps."),
                     Feature(UiIconName.Bell, "Web Push", "webpush", "Send Web Push from your backend on your own VAPID keys (RFC 8292/8291) — zero external dependencies."),
                     Feature(UiIconName.Globe, "WebRTC signaling", "browser-apis", Code["Rask.Signaling"], " hosts the relay that ", Code["IWebRtc"], " connects to, so peer-to-peer works without a third-party service."),
-                    Feature(UiIconName.Storage, "Object storage", "http-and-files", Code["Rask.ObjectStore"], " puts uploads behind one typed abstraction — the local disk in development, S3-compatible storage in production.")
+                    Feature(UiIconName.Storage, "File storage", "file-storage", Code["Rask.Storage"], " keeps uploads on disk, in S3-compatible storage or in Azure Blob, with a row per file on your database — public or expiring links, and the content type sniffed from the bytes rather than taken from the browser.")
                 ]
             ]
         ];

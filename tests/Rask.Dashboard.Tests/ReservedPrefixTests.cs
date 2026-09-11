@@ -27,7 +27,7 @@ public class ReservedPrefixTests
     ///     <c>Rask.Server.RaskEndpointExtensions</c> and <c>Rask.Wasm.Hosting.RaskAssetEndpoint</c>, which
     ///     this assembly cannot reference — the dashboard deliberately takes no host dependency.
     /// </summary>
-    private static readonly string[] _frameworkOwned = ["a", "auth", "upload", "download"];
+    private static readonly string[] _frameworkOwned = ["a", "auth", "upload", "download", "files"];
 
     [Fact]
     public void No_dashboard_page_shadows_a_framework_owned_segment()
