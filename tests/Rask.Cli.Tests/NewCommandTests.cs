@@ -547,6 +547,8 @@ public sealed class NewCommandTests
         Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskMail<AppDbContext>", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskCache<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskStorage<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("app.MapRaskStorage();", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskOutbox<AppDbContext>", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskDashboard<AppDbContext>", program, StringComparison.Ordinal);
         Assert.Contains("AddRaskLogging", program, StringComparison.Ordinal);

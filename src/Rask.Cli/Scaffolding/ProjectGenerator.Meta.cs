@@ -806,6 +806,15 @@ internal static partial class ProjectGenerator
                 """);
         }
 
+        if (batteries.Storage)
+        {
+            Block(sb, """
+                // The routes behind files.Url(id) and files.TemporaryUrlAsync(id, lifetime). Before UseRaskMeta for
+                // the same reason MapRaskAuth is: it forwards everything it has not answered to the node process.
+                app.MapRaskStorage();
+                """);
+        }
+
         Block(sb, """
             // Serves the framework's built client assets from Kestrel (one hop less per asset, and the
             // immutable cache headers written for you) and forwards everything else to the node process.

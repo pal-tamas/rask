@@ -834,6 +834,15 @@ internal static partial class ProjectGenerator
                 """);
         }
 
+        if (batteries.Storage)
+        {
+            Block(sb, """
+                // The routes behind files.Url(id) and files.TemporaryUrlAsync(id, lifetime). Before UseRaskSpa for
+                // the same reason MapRaskAuth is: its fallback to index.html would otherwise answer them.
+                app.MapRaskStorage();
+                """);
+        }
+
         if (batteries.Push)
         {
             Block(sb, """

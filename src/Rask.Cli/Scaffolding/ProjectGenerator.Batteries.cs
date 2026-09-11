@@ -128,6 +128,19 @@ internal static partial class ProjectGenerator
                 """);
         }
 
+        if (batteries.Storage)
+        {
+            Block(sb, """
+                // The files your users upload, kept by id: save a RaskFile with IFiles.SaveAsync, keep the returned
+                // Id on your entity, and hand the file back with files.Url(id), files.TemporaryUrlAsync(id, lifetime)
+                // or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
+                // which NO backup covers — until you point them at a bucket: rask deploy --env Storage__Provider=S3
+                // --env Storage__S3__Bucket=... (and the keys beside it), or Storage__Provider=Azure. The routes that
+                // serve the links are mapped after UseRask below.
+                builder.Services.AddRaskStorage<AppDbContext>();
+                """);
+        }
+
         if (batteries.AnySqliteOps)
         {
             Block(sb, """
@@ -257,6 +270,11 @@ internal static partial class ProjectGenerator
         if (batteries.Cache)
         {
             sb.Append("using Rask.Cache;\n");
+        }
+
+        if (batteries.Storage)
+        {
+            sb.Append("using Rask.Storage;\n");
         }
 
         if (batteries.Outbox)
