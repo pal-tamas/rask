@@ -362,6 +362,12 @@ The port is derived from the framework — 3000 for Nuxt, Next, TanStack Start a
 SvelteKit and Analog. A front end told to listen elsewhere still runs; `rask dev` will point the
 browser at the default, and `--urls` overrides outright.
 
+**Under VS Code's F5** there is no `rask dev` to start that dev server, so the host does: a dev-session build
+runs the framework's own dev script under the supervisor, on the same port, forwards to it once it answers,
+and VS Code opens its address. It never does so when `rask dev` has already handed the host a dev server in
+`RASK_META_DEV`, and a dev server that exits is reported rather than taking the C# half — the half you are
+debugging — down with it. See [debugging in VS Code](cli.md#debugging-in-vs-code).
+
 In production neither half of that exists: Kestrel owns the port and forwards to the supervised
 process on loopback, and `RASK_META_DEV` is unset.
 

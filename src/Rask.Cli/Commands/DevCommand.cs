@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Rask.Cli.Dev;
 using Rask.Cli.Scaffolding;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Commands;
 
@@ -295,9 +295,9 @@ internal sealed class DevCommand(
             return;
         }
 
-        var pointer = Path.Combine(target.ProjectDirectory, "obj", "rask-external", "dev.json");
-
-        var config = await WaitForIslandConfig(pointer, cancellationToken).ConfigureAwait(false);
+        var config = await IslandDevPointer
+            .WaitAsync(target.ProjectDirectory, TimeSpan.FromMinutes(3), cancellationToken)
+            .ConfigureAwait(false);
         if (config is null)
         {
             return;
@@ -326,60 +326,6 @@ internal sealed class DevCommand(
                 + "but islands will not hot-reload. Install Node.js from https://nodejs.org.",
                 ConsoleStyle.Error);
         }
-    }
-
-    /// <summary>
-    ///     Waits for the build to drop the island dev-server pointer, or gives up.
-    /// </summary>
-    /// <remarks>
-    ///     Polled rather than watched: the file appears exactly once per session, within the first build,
-    ///     and a FileSystemWatcher for that is more moving parts than the thing it replaces. The timeout
-    ///     is generous because the first build of a clean clone restores and compiles first — and giving
-    ///     up quietly is right, since the app itself is running by then and the only thing lost is hot
-    ///     reload the user can still get by restarting.
-    /// </remarks>
-    private static async Task<(string Url, string Config)?> WaitForIslandConfig(
-        string pointer, CancellationToken cancellationToken)
-    {
-        var deadline = DateTimeOffset.UtcNow.AddMinutes(3);
-
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return null;
-            }
-
-            if (File.Exists(pointer))
-            {
-                try
-                {
-                    using var document = JsonDocument.Parse(File.ReadAllText(pointer));
-                    var url = document.RootElement.GetProperty("url").GetString();
-                    var config = document.RootElement.GetProperty("config").GetString();
-
-                    if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(config) && File.Exists(config))
-                    {
-                        return (url!, config!);
-                    }
-                }
-                catch (Exception ex) when (ex is IOException or JsonException or KeyNotFoundException)
-                {
-                    // Half-written, or written by an older Rask. Fall through and look again.
-                }
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return null;
-            }
-        }
-
-        return null;
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,11 @@ public class SupervisorSeamTests
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
+
+        // An ephemeral port. With no URL Kestrel binds 127.0.0.1:5000, and anything else on the machine holding
+        // that exact address — another session's scaffolded app, say — fails this test with "address already
+        // in use", for a reason that has nothing to do with the supervisor.
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddRaskMeta(configure);
         return builder.Build();
     }

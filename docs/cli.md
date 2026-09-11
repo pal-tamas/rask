@@ -446,15 +446,16 @@ and the browser only ever sees one origin, which is why there is no CORS to conf
 the bundler's URL rather than the host's, and the dev server is killed with the host so a stale one
 cannot be picked up by the next session.
 
-The production bundle is skipped for that session (`-p:RaskSpaBuild=false`): the dev server owns the
-client, and paying for a full bundle on every save would make watch unusable. The **generated
+The production bundle is skipped for that session — `rask dev` builds with `RaskDevSession=true`, which
+turns `RaskSpaBuild` off: the dev server owns the client, and paying for a full bundle on every save would
+make watch unusable. The **generated
 contracts are still written**, because a dev server compiling the previous build's contracts is exactly
 the failure that pipeline exists to prevent.
 
 A [**meta framework**](meta.md) solution — Nuxt, Next, SvelteKit and the rest — runs the same two
 processes, with the framework's own dev server in the bundler's place and its own port (3000, or 5173
-for SvelteKit and Analog). `-p:RaskMetaBuild=false` there skips a full *production* front-end build on
-every save, and because that leaves no server entry to supervise, the host is told where the dev server
+for SvelteKit and Analog). The same dev session turns `RaskMetaBuild` off there, skipping a full
+*production* front-end build on every save, and because that leaves no server entry to supervise, the host is told where the dev server
 is instead and forwards to it — so both its port and the dev server's answer for the session.
 
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
@@ -654,6 +655,58 @@ and no stack ever reaches the browser.
 > silently, reporting success at every step — when the project path traverses a symlink. `rask dev`
 > resolves the path for you, so this only bites if you drive `dotnet watch` yourself; run it against the
 > resolved path (on macOS, `/private/var/…` rather than `/var/…`) and edits apply again.
+
+### Debugging in VS Code
+
+Every template with an ASP.NET host ships a `.vscode/` folder, so **F5** in VS Code runs the app under the C#
+debugger: breakpoints hit from the first line of `Program.cs`, and a handler or async lifecycle hook that
+throws stops the debugger at the fault instead of only showing the panel above. It needs the
+[C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) extension, which the
+folder recommends.
+
+Why F5 rather than attaching to `rask dev`: **the runtime refuses to apply a hot-reload update to a process a
+debugger is attached to**, so `dotnet watch` and a debugger cannot share one. Under F5 the editor launches the
+app and applies your edits itself. The scaffolded `settings.json` turns on C# Dev Kit's debug hot reload
+(`csharp.experimental.debug.hotReload`, still marked experimental), so saving a `Render()` repaints the page
+as it does under `rask dev`; turn it off there if you would rather restart (Ctrl+Shift+F5).
+
+What F5 does:
+
+| Step | What happens |
+| --- | --- |
+| Build | `dotnet build --property:RaskDevSession=true` — the same dev-session switch `rask dev` passes, so islands and the front end come from their dev servers instead of a production bundle. |
+| Launch | The C# debugger runs `bin/Debug/net10.0/<App>.dll` with the launch profile's settings, plus `DOTNET_MODIFIABLE_ASSEMBLIES=debug`, which is what lets it take edits. |
+| Dev servers | The app starts what `rask dev` would have started beside it: the islands' Vite on 5174, a React, Vue or Angular client's dev server, or a meta framework's own. |
+| Address | `https://<name>.test` when an earlier `rask dev` already set that name up on this machine (with `:5001` on macOS, where the pf redirect cannot be checked without root); the launch profile's localhost otherwise. F5 never prompts and never changes the machine. |
+| Browser | The app prints `Rask dev: open <url>` once it is listening, and VS Code opens it. |
+
+None of that runs under `rask dev`, which starts its dev servers itself, outside Development, or for a build
+that was not a dev session — a plain `dotnet run` behaves exactly as it always has. Stopping the debugger
+kills the app outright, so a dev server it started can be left holding its port; the next F5 ends that
+leftover before starting its own, and only if it is still the same process it recorded.
+
+**Where the debugger stops on a throw.** Rask catches a handler's exception and routes it to its error
+boundary, which to a debugger is a handled exception. The framework marks that catch so it does not count as
+yours handling it: with Just My Code on (the default) and **User-Unhandled Exceptions** ticked in the
+Breakpoints view, the debugger stops there with the exception, and its original stack, in hand.
+
+**Stack frames open the file.** In development, every frame of the panel's stack and every compiler error that
+names a file on your machine is a `vscode://` link to that line.
+
+**An existing project** gets the same setup by copying `.vscode/` from a fresh `rask new` app of the same
+template and replacing the project name in `launch.json` and `tasks.json`. Add these lines to `.gitignore`, so
+the four files are committed and the rest of `.vscode/` stays yours:
+
+```gitignore
+/.vscode/*
+!/.vscode/launch.json
+!/.vscode/tasks.json
+!/.vscode/settings.json
+!/.vscode/extensions.json
+```
+
+Browser-side debugging — C# running in WebAssembly, and scoped `.ts` — is not covered yet, and the `wasm`
+template ships no `.vscode/`.
 
 ## `rask db` — migrations, and getting the database in and out
 

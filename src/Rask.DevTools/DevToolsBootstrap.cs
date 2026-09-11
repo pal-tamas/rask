@@ -15,6 +15,12 @@ internal sealed class DevToolsBootstrap : IRaskDevToolsBootstrap
     {
         ArgumentNullException.ThrowIfNull(services);
         services.TryAddSingleton<DevToolsRegistration>();
+
+#if !BROWSER
+        // An app VS Code's F5 launched: the .test address when `rask dev` has set it up, and where to point the
+        // browser. Registers nothing unless the build was a dev session. The browser face has no Kestrel.
+        Server.EditorDevSessionServices.Add(services);
+#endif
     }
 }
 

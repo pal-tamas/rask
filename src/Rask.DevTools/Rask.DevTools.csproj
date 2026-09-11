@@ -31,6 +31,22 @@
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!--
+    The server face also carries the editor-launched dev session (Server/): an app VS Code's F5 started under
+    its debugger is served on https://<name>.test when `rask dev` has already set that name up, and says where
+    the browser should go. It binds Kestrel, so it needs ASP.NET — on this face only; the browser face has no
+    Kestrel to bind. The dev-host layout is source-linked from the one place `rask dev` also compiles it from,
+    so the name and the certificate this finds are exactly the ones `rask dev` made.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\*.cs" Link="Shared\Dev\%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
+    <Compile Remove="Server\**"/>
+  </ItemGroup>
+
   <ItemGroup>
     <!--
       Packed to BOTH folders. NuGet imports build/ for a direct PackageReference (the scaffolded apps) and
