@@ -582,6 +582,21 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask new --wasm` scaffolded an app that could not start.** `Rask.Wasm.Hosting` and `Rask.Server`
+  both exported `AddRask(this IServiceCollection)`. Referencing both packages — which the `--wasm`
+  server lane does — did **not** make a bare `AddRask()` ambiguous: C# prefers the candidate with no
+  omitted optional parameters, so the WASM host's parameterless overload won the tie-break silently
+  over `Rask.Server`'s all-optional one. The app compiled, started without the live runtime registered,
+  and died at `UseRask<TApp>()` with `No service for type 'RaskLiveMarker'` — naming a type the author
+  had never heard of.
+
+  `Rask.Wasm.Hosting.AddRask()` is now **`AddRaskWasmHost()`**, which the package already shipped as an
+  alias for exactly this hazard, with the trap written down beside it. Documenting it held only while
+  every call site remembered: the configuration refactor that moved `RenderModes.Wasm` into
+  `appsettings.json` dropped the named argument that had been disambiguating the scaffolded app by
+  accident, and every `--wasm` app stopped booting. One name per behaviour is what removes the failure
+  (#1095). A standalone WASM-hosted app changes `AddRask()` to `AddRaskWasmHost()`.
+
 - **A `RaskApp` with its Web Push keys in configuration starts.** The keys were enough to switch the battery on
   but were never copied into its options, so an app configured the documented way stopped at startup on a
   missing key pair. The section is now bound like every other, so the keys reach the sender — and keys without a

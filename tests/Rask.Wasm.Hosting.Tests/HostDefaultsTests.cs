@@ -71,7 +71,7 @@ public class HostDefaultsTests : IDisposable
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
         services.AddSingleton<IHostEnvironment>(new TestEnvironment());
         services.AddDataProtection();
-        services.AddRask();
+        services.AddRaskWasmHost();
         return services.BuildServiceProvider();
     }
 
@@ -124,8 +124,8 @@ public class HostDefaultsTests : IDisposable
         // The double call is the subject of the test, so RASK060 — which reports exactly this shape, and
         // did report it here — is suppressed for the two lines that mean to do it.
 #pragma warning disable RASK060
-        services.AddRask();
-        services.AddRask();
+        services.AddRaskWasmHost();
+        services.AddRaskWasmHost();
 #pragma warning restore RASK060
 
         Assert.Single(
