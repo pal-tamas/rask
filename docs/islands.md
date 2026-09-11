@@ -555,22 +555,48 @@ Chart.Series(_points).Hydration(ExternalHydration.Visible)
 | `Visible` | On `IntersectionObserver` — the chunk is not even **fetched** until the component is scrolled to. |
 | `None` | Never. Server markup only, and no JavaScript is requested at all. |
 
-## An island takes no children
+## Children
 
-An island is a leaf. Writing children into one is a **compile error** —
-[RASK062](diagnostics.md#rask062) — rather than something that binds, compiles and then quietly stops
-tracking what you gave it:
+An island takes children **of its own runtime**: a React island accepts React islands, text, numbers
+and dates; a Vue island accepts Vue islands and text; and so on. They travel inside the island's props
+and its framework renders them, so a card from one package can hold a button from another:
 
 ```csharp
-Panel.Heading("Sales")[ Table.Rows(_rows) ]   // RASK062
+MuiCard[
+    "Revenue ",
+    _total,
+    MuiButton.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"],
+]
+
+MuiList[_people.Select(p => MuiListItem.Key(p.Id)[p.Name])]
+MuiList[_names]                     // a list of text works too
 ```
 
-Children would have to be handed across the diff boundary below, and once a front-end framework has
-moved those nodes into its own tree every path Rask holds into them is wrong — the diff addresses DOM
-nodes by `childNodes` index from the document. Content placed that way is placed once and then goes
-dead, which looks like composition and is not.
+Every hand-written island accepts children, and its front-end file decides where they go: `children`
+in React, Preact and Solid, the default slot in Vue, the `children` snippet in Svelte, a `<slot>` in
+Lit, `<ng-content>` in Angular. A package island accepts them when its component takes content, which
+its snapshot records; one that takes none has no children indexer at all.
 
-Compose the other way round instead. It costs nothing, and everything on the Rask side stays live:
+**Anything else is a compile error** — [RASK062](diagnostics.md#rask062), reported at the brackets:
+
+```csharp
+MuiCard[ Span["Revenue"] ]          // RASK062: Rask markup
+MuiCard[ VueChip.Label("new") ]     // RASK062: another runtime's island
+MuiIcon[ "label" ]                  // RASK062: this component takes no children
+```
+
+Rask markup cannot go inside an island. It would have to be handed across the diff boundary below, and
+once a front-end framework has moved those nodes into its own tree every path Rask holds into them is
+wrong — the diff addresses DOM nodes by `childNodes` index from the document. An island's own children
+are never Rask DOM: the whole tree ships in the host's one `props` attribute, a change anywhere in it
+is one attribute update, and the framework reconciles.
+
+A child island's callbacks reach C# like the host's. Give it a `.Key(...)` in a projected list so its
+framework matches it across updates rather than by position. Its `.Hydration(...)` is ignored: it
+mounts with the host that renders it.
+
+When the markup is Rask's, compose the other way round. It costs nothing, and everything on the Rask
+side stays live:
 
 ```csharp
 BsCard[
@@ -916,15 +942,9 @@ Two things worth knowing:
 
 ## What is not here yet
 
-- **Children inside an island.** An island is a leaf ([RASK062](diagnostics.md#rask062)). Handing
-  Rask-owned nodes to a framework that then owns them needs updates addressed by MARKER rather than by
-  DOM path, since `EditOp` paths are positional `childNodes` indices — see
-  [children](#an-island-takes-no-children).
-- **Angular.** The adapter seam is three functions wide and the client runtime imports no framework, so
-  it is additive the way Vue and Svelte were. Angular is viable through standalone components plus
-  `createApplication()`, which needs no root component and no NgModule; its build is the real cost,
-  since Angular components need the Angular compiler rather than plain Vite.
-- **Blazor.** `.razor` components, with props staying C# and never becoming JSON — and static prerender
-  needing no bundler at all.
+- **Rask markup inside an island.** An island takes children of its own runtime, never Rask elements
+  ([RASK062](diagnostics.md#rask062)). Handing Rask-owned nodes to a framework that then owns them
+  needs updates addressed by MARKER rather than by DOM path, since `EditOp` paths are positional
+  `childNodes` indices — see [children](#children).
 - **Server-side rendering** for the bundler-backed runtimes, which is what would make `Hydration.None`
   broadly useful.

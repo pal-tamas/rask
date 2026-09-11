@@ -5,13 +5,15 @@
 //
 // You own this file. It is refreshed on build only while the header line above is intact.
 
-import { createApp, h, reactive, type App, type Component } from 'vue'
-import type { ExternalAdapter, ExternalProps } from './adapter'
+import { createApp, h, markRaw, reactive, shallowRef, type App, type Component, type ShallowRef, type VNodeChild } from 'vue'
+import type { ExternalAdapter, ExternalNode, ExternalProps } from './adapter'
 
-/** What `mount` hands back: the app to unmount, and the reactive object updates are written into. */
+/** What `mount` hands back: the app to unmount, and the reactive state updates are written into. */
 interface VueHandle {
   app: App<Element>
   state: ExternalProps
+  /** Replaced whole on every update: C# sends the whole tree, and a shallow ref re-renders on the swap alone. */
+  children: ShallowRef<readonly ExternalNode[] | null>
 }
 
 /**
@@ -22,25 +24,27 @@ interface VueHandle {
  */
 export function vueComponent(component: Component): ExternalAdapter<VueHandle> {
   return {
-    mount(element, props) {
+    mount(element, props, children) {
       // Props live in ONE reactive object for the life of the island, and updates mutate it in place.
       // Re-creating it per update would give Vue a new object identity to diff against instead of a
       // tracked change, which reads as a remount to anything watching.
       const state = reactive({ ...props }) as ExternalProps
+      const kids = shallowRef<readonly ExternalNode[] | null>(children ?? null)
 
       // A wrapper whose render() READS the reactive object is what ties the two together. Spreading
       // it here is what makes the read happen during THIS render, so Vue tracks every prop and
       // re-renders the wrapper when one changes — which patches the real component's props. A
-      // reconcile, never a remount.
+      // reconcile, never a remount. Children are the DEFAULT SLOT, as a function — Vue's own shape for
+      // them — so the component decides when to render them.
       const app = createApp({
-        render: () => h(component, { ...state }),
+        render: () => h(component, { ...state }, slots(kids.value)),
       })
 
       app.mount(element)
-      return { app, state }
+      return { app, state, children: kids }
     },
 
-    update(handle, props) {
+    update(handle, props, children) {
       // Deleted first, then assigned. Vue reacts to a key being removed as well as to one changing,
       // and an unwired callback omits its key entirely — so without the delete a callback that was
       // cleared in C# would keep firing the stale one.
@@ -51,6 +55,7 @@ export function vueComponent(component: Component): ExternalAdapter<VueHandle> {
       }
 
       Object.assign(handle.state, props)
+      handle.children.value = children ?? null
       return handle
     },
 
@@ -58,4 +63,19 @@ export function vueComponent(component: Component): ExternalAdapter<VueHandle> {
       handle.app.unmount()
     },
   }
+}
+
+/** A default slot rendering the children, or none — a component given no children sees no slot, as in a template. */
+function slots(children: readonly ExternalNode[] | null): { default: () => VNodeChild[] } | undefined {
+  return children === null ? undefined : { default: () => children.map(vnode) }
+}
+
+function vnode(node: ExternalNode): VNodeChild {
+  if (typeof node === 'string') {
+    return node
+  }
+
+  // markRaw: a component definition is static, and letting Vue proxy it would warn and cost a proxy per render.
+  const child = markRaw(node.component as object) as Component
+  return h(child, node.key === null ? node.props : { ...node.props, key: node.key }, slots(node.children))
 }

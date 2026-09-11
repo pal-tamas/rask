@@ -12,6 +12,8 @@
 //   * a handler C# replaced must stop firing, and one C# cleared must be removed;
 //   * a prop C# stops sending must fall back to the element's own default — C# omits an unset prop rather than
 //     sending null, and an element only re-renders from what is assigned to it;
+//   * children must land in the element's light DOM, a keyed child must keep its identity when C# reorders the list,
+//     and a removed child must be taken out;
 //   * unmount must remove the element and everything listening on it.
 //
 // The C# test (LitAdapterTests) runs this and asserts the JSON on stdout.
@@ -26,8 +28,9 @@ const document = window.document
 
 globalThis.document = document as never
 globalThis.MutationObserver = window.MutationObserver as never
+globalThis.Node = window.Node as never
 
-// ----- the element, as a package would register it -----
+// ----- the elements, as a package would register them -----
 
 class FxDemo extends (window.HTMLElement as unknown as typeof HTMLElement) {
     /** A property with a default of its own, as a Lit element declares one. */
@@ -42,17 +45,28 @@ class FxDemo extends (window.HTMLElement as unknown as typeof HTMLElement) {
     }
 }
 
-window.customElements.define('fx-demo', FxDemo as never)
+// A container element: it renders nothing of its own, so its light DOM is exactly the children it was given.
+class FxCard extends (window.HTMLElement as unknown as typeof HTMLElement) {
+    heading = ''
+}
 
-// What the generated entry module does for a package element named by its tag.
+window.customElements.define('fx-demo', FxDemo as never)
+window.customElements.define('fx-card', FxCard as never)
+
+// What the generated entry modules do for a package element named by its tag: the adapter as the default export, the
+// tag as the component a parent renders it by.
 const adapter = litComponent('fx-demo')
+const chunks: Record<string, unknown> = {
+    FxDemo: {default: adapter, component: 'fx-demo'},
+    FxCard: {default: litComponent('fx-card'), component: 'fx-card'},
+}
 
 // ----- the host the runtime expects -----
 
 const dispatched: string[] = []
 const globals = globalThis as unknown as Record<string, unknown>
 
-globals.__raskExternal = {resolve: () => Promise.resolve({default: adapter})}
+globals.__raskExternal = {resolve: (name: string) => Promise.resolve(chunks[name])}
 globals.__raskHost = {send: (payload: {id: string}) => dispatched.push(payload.id)}
 globals.__raskExternalManual = true
 
@@ -120,6 +134,48 @@ const afterClear = [...dispatched]
 
 runtime.__internals.unmount(island)
 await settle()
+const islandEmptyAfterUnmount = island.childNodes.length === 0
+
+// ----- children -----
+
+const cardIsland = document.createElement('rask-external')
+cardIsland.setAttribute('name', 'FxCard')
+cardIsland.setAttribute('props', JSON.stringify({
+    heading: 'Totals',
+    $c: ['Total ', {n: 'FxDemo', k: 'd1', p: {label: 'first'}}, {n: 'FxDemo', k: 'd2', p: {label: 'second'}}],
+}))
+document.body.appendChild(cardIsland)
+runtime.__internals.hydrate(cardIsland)
+await settle()
+
+const card = () => cardIsland.querySelector('fx-card') as unknown as HTMLElement
+const describe = () =>
+    [...card().childNodes].map((node) =>
+        node.nodeType === 3 ? `text:${node.textContent}` : `${(node as HTMLElement).localName}:${(node as HTMLElement).textContent}`)
+
+const childrenOnMount = describe()
+const firstElement = card().querySelectorAll('fx-demo')[0]
+const textNode = card().firstChild
+
+// C# reorders the keyed children and changes the text: the element keyed d1 is the SAME element, moved, and the text
+// node is reused.
+cardIsland.setAttribute('props', JSON.stringify({
+    heading: 'Totals',
+    $c: ['Sum ', {n: 'FxDemo', k: 'd2', p: {label: 'second'}}, {n: 'FxDemo', k: 'd1', p: {label: 'first!'}}],
+}))
+await settle()
+const childrenAfterReorder = describe()
+const keyedElementKept = card().querySelectorAll('fx-demo')[1] === firstElement
+const textNodeKept = card().firstChild === textNode
+
+// C# removes the children: they are taken out, and the card stays.
+cardIsland.setAttribute('props', JSON.stringify({heading: 'Totals'}))
+await settle()
+const childrenAfterRemoval = describe()
+const cardKept = card() !== null
+
+runtime.__internals.unmount(cardIsland)
+await settle()
 
 process.stdout.write(JSON.stringify({
     labelOnMount,
@@ -131,5 +187,11 @@ process.stdout.write(JSON.stringify({
     afterSameHandler,
     afterNewHandler,
     afterClear,
-    islandEmptyAfterUnmount: island.childNodes.length === 0,
+    islandEmptyAfterUnmount,
+    childrenOnMount,
+    childrenAfterReorder,
+    keyedElementKept,
+    textNodeKept,
+    childrenAfterRemoval,
+    cardKept,
 }) + '\n')

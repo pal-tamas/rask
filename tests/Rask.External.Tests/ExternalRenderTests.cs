@@ -307,11 +307,71 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_island_renders_no_children_of_its_own()
     {
-        // P0 islands are leaves: the subtree is created in the browser. The server emitting content
-        // here would be content the morph then has to be told not to delete.
-        var html = Render(Chart.Series([]));
+        // Its children travel in its props and its framework renders them: the server writes nothing inside the host,
+        // so there is no Rask content for the morph to be told not to delete — with children or without.
+        Assert.EndsWith("></rask-external>", Render(Chart.Series([])), StringComparison.Ordinal);
+        Assert.EndsWith("></rask-external>", Render(Chart.Series([])["Revenue", Chart.Series([])]), StringComparison.Ordinal);
+    }
 
-        Assert.EndsWith("></rask-external>", html, StringComparison.Ordinal);
+    [Fact]
+    public void Children_travel_in_the_props_as_text_and_child_islands()
+    {
+        var html = Render(Chart.Series([])["Revenue ", 3.5, Chart.Key("c1").Series([]).Heading("inner")]);
+
+        using var props = JsonDocument.Parse(ReadProps(html));
+        var children = props.RootElement.GetProperty("$c");
+
+        Assert.Equal(3, children.GetArrayLength());
+        Assert.Equal("Revenue ", children[0].GetString());
+
+        // Invariant, exactly as a Rask child renders it: "3.5" under every culture, never "3,5".
+        Assert.Equal("3.5", children[1].GetString());
+        Assert.Equal("Chart", children[2].GetProperty("n").GetString());
+        Assert.Equal("c1", children[2].GetProperty("k").GetString());
+        Assert.Equal("inner", children[2].GetProperty("p").GetProperty("heading").GetString());
+    }
+
+    [Fact]
+    public void An_island_given_no_children_writes_no_children_key()
+    {
+        // Exactly what it wrote before islands could take children, so an adapter a user vendored and edited sees the
+        // props it always did.
+        using var props = JsonDocument.Parse(ReadProps(Render(Chart.Series([]))));
+
+        Assert.False(props.RootElement.TryGetProperty("$c", out _));
+    }
+
+    [Fact]
+    public void A_child_islands_own_children_nest_inside_its_props()
+    {
+        var html = Render(Chart.Series([])[Chart.Series([])["inner"]]);
+
+        using var props = JsonDocument.Parse(ReadProps(html));
+        var inner = props.RootElement.GetProperty("$c")[0].GetProperty("p");
+
+        Assert.Equal("inner", inner.GetProperty("$c")[0].GetString());
+        Assert.True(inner.TryGetProperty("series", out _), "the child island's own props were not written");
+    }
+
+    [Fact]
+    public void A_null_child_renders_nothing()
+    {
+        var hidden = false;
+        var html = Render(Chart.Series([])[hidden ? Chart.Series([]) : null, "shown"]);
+
+        using var props = JsonDocument.Parse(ReadProps(html));
+        Assert.Equal("shown", Assert.Single(props.RootElement.GetProperty("$c").EnumerateArray()).GetString());
+    }
+
+    [Fact]
+    public void An_island_among_its_own_children_is_refused_by_name()
+    {
+        // Reached again inside its own props, an island would recurse until the stack overflowed and took the process.
+        var chart = Chart.Series([]);
+        chart = chart[chart];
+
+        var error = Assert.Throws<InvalidOperationException>(() => Render(chart));
+        Assert.Contains("'Chart'", error.Message, StringComparison.Ordinal);
     }
 
     private static string Render(Component component) => IslandHtml.Render(component);
