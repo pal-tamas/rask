@@ -149,10 +149,21 @@ public sealed class WriteExternalBuildInputsTask : Task
         var written = 0;
         foreach (var island in islands)
         {
+            string module;
+            try
+            {
+                module = ExternalBuildPlan.EntryModule(island, AdapterDirectory);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // A declaration no entry can be written for — a Lit element named by its class whose snapshot records no
+                // tag. Reported as the build error it is, naming the fix, rather than as MSB4018 and a stack trace.
+                Log.LogError(ex.Message);
+                return false;
+            }
+
             var entry = Path.Combine(entryDirectory, island.Name + ".entry.ts");
-            written += ExternalBuildPlan.WriteIfDifferent(entry, ExternalBuildPlan.EntryModule(island, AdapterDirectory))
-                ? 1
-                : 0;
+            written += ExternalBuildPlan.WriteIfDifferent(entry, module) ? 1 : 0;
         }
 
         // The Angular plugin has to be told which tsconfig to compile against, and it has to be one

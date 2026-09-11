@@ -30,6 +30,8 @@ interface AngularHandle {
   node: HTMLElement
   props: ExternalProps
   outputs: Map<string, BoundOutput>
+  /** Each input's value before this adapter first set it, keyed by alias, to restore when C# stops sending it. */
+  originals: Map<string, unknown>
   disposed: boolean
 }
 
@@ -51,7 +53,7 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
       const node = document.createElement('div')
       element.appendChild(node)
 
-      const handle: AngularHandle = { node, props: { ...props }, outputs: new Map(), disposed: false }
+      const handle: AngularHandle = { node, props: { ...props }, outputs: new Map(), originals: new Map(), disposed: false }
 
       void createApplication()
         .then((app) => {
@@ -119,14 +121,21 @@ export function angularComponent(component: Type<unknown>): ExternalAdapter<Angu
  * development build and ignores it silently in a production one.
  */
 function apply(ref: ComponentRef<unknown>, component: Type<unknown>, handle: AngularHandle): void {
-  const outputs = reflectComponentType(component)?.outputs ?? []
+  const mirror = reflectComponentType(component)
+  const outputs = mirror?.outputs ?? []
+  const inputs = mirror?.inputs ?? []
 
   for (const key of Object.keys(handle.props)) {
     if (key.startsWith('@')) {
       bindOutput(ref, outputs, key.slice(1), handle.props[key], handle.outputs)
-    } else {
-      ref.setInput(key, handle.props[key])
+      continue
     }
+
+    if (!handle.originals.has(key)) {
+      handle.originals.set(key, currentInput(ref, inputs, key))
+    }
+
+    ref.setInput(key, handle.props[key])
   }
 
   for (const [alias, bound] of [...handle.outputs]) {
@@ -136,9 +145,33 @@ function apply(ref: ComponentRef<unknown>, component: Type<unknown>, handle: Ang
     }
   }
 
+  // C# leaves an unset prop out rather than sending null, so an input that is no longer sent goes back to the value the
+  // component held before Rask first set it — its own default, as the other runtimes get by re-rendering from all props.
+  for (const [alias, original] of [...handle.originals]) {
+    if (!Object.prototype.hasOwnProperty.call(handle.props, alias)) {
+      ref.setInput(alias, original)
+      handle.originals.delete(alias)
+    }
+  }
+
   // Explicit, because the island is driven from outside Angular: the props were written by Rask's
   // runtime, not by an Angular event handler, so nothing has scheduled a tick for them.
   ref.changeDetectorRef.detectChanges()
+}
+
+/** The value the input published as `alias` holds now — a signal input's value, not the signal. */
+function currentInput(
+  ref: ComponentRef<unknown>,
+  inputs: ReadonlyArray<{ readonly propName: string; readonly templateName: string; readonly isSignal?: boolean }>,
+  alias: string,
+): unknown {
+  const input = inputs.find((i) => i.templateName === alias)
+  if (!input) {
+    return undefined
+  }
+
+  const value = (ref.instance as Record<string, unknown>)[input.propName]
+  return input.isSignal && typeof value === 'function' ? (value as () => unknown)() : value
 }
 
 /** Subscribes `handler` to the output published as `alias`, replacing a different handler bound before it. */

@@ -205,7 +205,7 @@ function extractRuntime(ts: typeof TS, projectDirectory: string, runtime: string
     return islands.map((island, i) => {
         try {
             const snapshot = runtime === "lit"
-                ? extractLit(ts, program, checker, island, probeNode(ts, probe, i), tagMap)
+                ? extractLit(ts, program, checker, island, probeNode(ts, probe, i), tagMap, probe)
                 : runtime === "angular"
                     ? extractAngular(ts, program, checker, island, importOf(ts, probe, i))
                     : extractIsland(ts, program, checker, runtime, island, importOf(ts, probe, i));
@@ -935,8 +935,8 @@ function notFound(ts: typeof TS, program: TS.Program, island: IslandRequest, wha
 /**
  * A Lit element. It is a class, so its props are its public, writable instance fields — never its methods, a getter
  * alone, or a private, protected, static or readonly member — and all of them are optional. Its tag is the one the
- * global tag map gives it. Nothing in a `.d.ts` says which fields are reactive, since decorators are erased, so the
- * package's custom-elements manifest decides that where it ships one, and lists the events the element dispatches.
+ * global tag map gives it, as registered by the island's own module. Its events appear nowhere in its declarations; the
+ * package's custom-elements manifest lists them where it ships one.
  */
 function extractLit(
     ts: typeof TS,
@@ -945,6 +945,7 @@ function extractLit(
     island: IslandRequest,
     node: TS.ImportDeclaration | TS.TypeAliasDeclaration | undefined,
     tagMap: TS.TypeAliasDeclaration | undefined,
+    probe: TS.SourceFile,
 ): string {
     const byTag = isTag(island.export);
     const walker = new TypeWalker(ts, checker, "lit");
@@ -978,24 +979,28 @@ function extractLit(
         throw new IslandError("not-a-component", `'${label}' is not a custom element class.`);
     }
 
-    const tag = byTag ? island.export : tagOf(checker, tagMap, element);
+    // Every Lit island shares one program, and so one global tag map. Only a registration the island's OWN module makes
+    // counts — otherwise a class module that registers nothing would borrow the tag another island's module registers,
+    // and render only when that island's chunk happened to load first.
+    const files = moduleFiles(ts, checker, probe, island.module);
+    if (byTag && !registers(checker, tagMap, island.export, files)) {
+        throw new IslandError("lit-tag-unknown",
+            `'${island.module}' does not register '${island.export}' — name the module that defines the element.`);
+    }
+
+    const tag = byTag ? island.export : tagOf(checker, tagMap, element, files);
     if (!tag) {
         throw new IslandError("lit-tag-unknown",
             `Rask cannot tell which tag '${element.getName()}' registers — name it after the '#': "${island.module}#my-element".`);
     }
 
-    const manifest = manifestFor(island.module, element, tag);
+    const events = manifestEvents(island.module, element, tag);
     const props: SnapshotProp[] = [];
     const skipped: Skip[] = [];
 
     for (const property of checker.getPropertiesOfType(instance)) {
         const name = property.getName();
         if (walker.isInherited(property) || !isPublicField(ts, property) || /^(?:[_#]|__@)/.test(name)) {
-            continue;
-        }
-
-        if (manifest && !manifest.reactive.has(name)) {
-            skipped.push({name, reason: "unsupported", detail: "not a reactive property"});
             continue;
         }
 
@@ -1013,7 +1018,7 @@ function extractLit(
         }
     }
 
-    for (const event of manifest?.events ?? []) {
+    for (const event of events) {
         props.push({
             name: `on-${event.name}`,
             wire: `@${event.name}`,
@@ -1044,71 +1049,101 @@ function isPublicField(ts: typeof TS, symbol: TS.Symbol): boolean {
         && (ts.getCombinedModifierFlags(d) & hidden) === 0);
 }
 
-/** The one tag the global HTMLElementTagNameMap gives a class, or undefined for none or several. */
-function tagOf(checker: TS.TypeChecker, tagMap: TS.TypeAliasDeclaration | undefined, element: TS.Symbol): string | undefined {
+/** The one tag an island's own module registers for a class in HTMLElementTagNameMap, or undefined for none or several. */
+function tagOf(
+    checker: TS.TypeChecker,
+    tagMap: TS.TypeAliasDeclaration | undefined,
+    element: TS.Symbol,
+    files: Set<TS.SourceFile>,
+): string | undefined {
     if (!tagMap) {
         return undefined;
     }
 
-    const tags = checker.getPropertiesOfType(checker.getTypeFromTypeNode(tagMap.type)).filter((entry) => {
-        const file = entry.declarations?.[0]?.getSourceFile().fileName ?? "";
-        return !/[\\/]lib\.[^\\/]*\.d\.ts$/.test(file) && checker.getTypeOfSymbol(entry).getSymbol() === element;
-    });
+    const tags = checker.getPropertiesOfType(checker.getTypeFromTypeNode(tagMap.type))
+        .filter((entry) => declaredIn(entry, files) && checker.getTypeOfSymbol(entry).getSymbol() === element);
 
     return tags.length === 1 ? tags[0].getName() : undefined;
 }
 
-/**
- * What a package's custom-elements manifest says about one element: which fields are reactive — they carry an
- * attribute — and which events it dispatches, following the superclass chain as far as this manifest records it.
- * Undefined when the package ships no manifest or it does not list the element; then every public field counts, since
- * the declarations alone cannot tell them apart.
- */
-function manifestFor(
-    module: string,
-    element: TS.Symbol,
+/** Whether the island's own module registers `tag` in HTMLElementTagNameMap. */
+function registers(
+    checker: TS.TypeChecker,
+    tagMap: TS.TypeAliasDeclaration | undefined,
     tag: string,
-): {reactive: Set<string>; events: {name: string; type: string}[]} | undefined {
+    files: Set<TS.SourceFile>,
+): boolean {
+    const entry = tagMap && checker.getPropertyOfType(checker.getTypeFromTypeNode(tagMap.type), tag);
+    return !!entry && declaredIn(entry, files);
+}
+
+function declaredIn(symbol: TS.Symbol, files: Set<TS.SourceFile>): boolean {
+    return (symbol.declarations ?? []).some((d) => files.has(d.getSourceFile()));
+}
+
+/**
+ * The declaration files an island's module contributes: the file its specifier resolves to, and the files that file
+ * imports or re-exports directly — one step, which is how a package entry commonly pulls in the module that registers
+ * its element.
+ */
+function moduleFiles(ts: typeof TS, checker: TS.TypeChecker, probe: TS.SourceFile, module: string): Set<TS.SourceFile> {
+    const files = new Set<TS.SourceFile>();
+    const fileOf = (specifier: TS.Expression | undefined) =>
+        specifier ? checker.getSymbolAtLocation(specifier)?.declarations?.[0]?.getSourceFile() : undefined;
+
+    const declaration = probe.statements.find((s): s is TS.ImportDeclaration =>
+        ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && s.moduleSpecifier.text === module);
+    const root = fileOf(declaration?.moduleSpecifier);
+    if (!root) {
+        return files;
+    }
+
+    files.add(root);
+    for (const statement of root.statements) {
+        const referenced = ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)
+            ? fileOf(statement.moduleSpecifier)
+            : undefined;
+        if (referenced) {
+            files.add(referenced);
+        }
+    }
+
+    return files;
+}
+
+/**
+ * The events a package's custom-elements manifest lists for one element, following the superclass chain as far as this
+ * manifest records it. Empty when the package ships no manifest or it does not list the element.
+ *
+ * Only events: the manifest never takes a prop away. A field Lit declares with `attribute: false` — the recommended
+ * shape for arrays and objects — has no attribute in it, and a field inherited from a class in another package is not
+ * in it at all; both are still properties the element reacts to.
+ */
+function manifestEvents(module: string, element: TS.Symbol, tag: string): {name: string; type: string}[] {
     const root = packageRoot(module, element);
     if (!root) {
-        return undefined;
+        return [];
     }
 
     let manifest: {modules?: {declarations?: ManifestDeclaration[]}[]};
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
         if (typeof pkg.customElements !== "string") {
-            return undefined;
+            return [];
         }
 
         manifest = JSON.parse(fs.readFileSync(path.join(root, pkg.customElements), "utf8"));
     } catch {
-        return undefined;
+        return [];
     }
 
     const declarations = (manifest.modules ?? []).flatMap((m) => m.declarations ?? []);
-    const reactive = new Set<string>();
     const events: {name: string; type: string}[] = [];
     let declaration = declarations.find((d) => d.tagName === tag);
-    if (!declaration) {
-        return undefined;
-    }
-
     for (let depth = 0; declaration && depth < 16; depth++) {
-        for (const member of declaration.members ?? []) {
-            if (member.kind === "field" && typeof member.name === "string" && member.attribute) {
-                reactive.add(member.name);
-            }
-        }
-
-        for (const attribute of declaration.attributes ?? []) {
-            if (typeof attribute.fieldName === "string") {
-                reactive.add(attribute.fieldName);
-            }
-        }
-
         for (const event of declaration.events ?? []) {
-            if (typeof event.name === "string" && isTag(`x-${event.name}`) && !events.some((e) => e.name === event.name)) {
+            // Any name addEventListener takes, `valueChanged` included; a `$` would collide with the wire's reserved keys.
+            if (typeof event.name === "string" && /^[^\s$]+$/.test(event.name) && !events.some((e) => e.name === event.name)) {
                 events.push({name: event.name, type: eventTypeName(event.type?.text)});
             }
         }
@@ -1119,15 +1154,13 @@ function manifestFor(
     }
 
     events.sort((a, b) => compare(a.name, b.name));
-    return {reactive, events};
+    return events;
 }
 
 interface ManifestDeclaration {
     name?: string;
     tagName?: string;
     superclass?: {name?: string};
-    members?: {kind?: string; name?: string; attribute?: string}[];
-    attributes?: {fieldName?: string}[];
     events?: {name?: string; type?: {text?: string}}[];
 }
 
@@ -1187,7 +1220,7 @@ function extractAngular(
     const props: SnapshotProp[] = [];
     const skipped: Skip[] = [];
 
-    const inputs = isRecord(args[3]) ? args[3] : {};
+    const {inputs, outputs} = inheritedMaps(ts, checker, target);
     for (const name of Object.keys(inputs).sort(compare)) {
         const input = inputs[name];
         const alias = typeof input === "string" ? input : isRecord(input) && typeof input.alias === "string" ? input.alias : name;
@@ -1216,7 +1249,6 @@ function extractAngular(
         }
     }
 
-    const outputs = isRecord(args[4]) ? args[4] : {};
     for (const name of Object.keys(outputs).sort(compare)) {
         const alias = typeof outputs[name] === "string" && (outputs[name] as string).length > 0 ? outputs[name] as string : name;
         const member = checker.getPropertyOfType(instance, name);
@@ -1232,6 +1264,43 @@ function extractAngular(
 
     const content = Array.isArray(args[6]) && args[6].length > 0 ? "node" : "none";
     return snapshotText("angular", island, packageInfo(island.module, target), null, content, props, skipped, walker);
+}
+
+/**
+ * The input and output maps of a component and of every class it extends, merged so the subclass wins. A compiled
+ * definition lists only what its own class declares; Angular folds a base class's `ɵdir` or `ɵcmp` in at runtime
+ * (`ɵɵInheritDefinitionFeature`), so an input a component inherits is settable even though its own `ɵcmp` omits it.
+ */
+function inheritedMaps(
+    ts: typeof TS,
+    checker: TS.TypeChecker,
+    target: TS.Symbol,
+): {inputs: Record<string, unknown>; outputs: Record<string, unknown>} {
+    const chain: TS.Symbol[] = [];
+    for (let symbol: TS.Symbol | undefined = target; symbol && chain.length < 16 && !chain.includes(symbol);) {
+        chain.push(symbol);
+        const type = checker.getDeclaredTypeOfSymbol(symbol);
+        symbol = type.isClassOrInterface() ? checker.getBaseTypes(type)[0]?.getSymbol() : undefined;
+    }
+
+    // Prototype-less, like the maps they are merged from, so a "__proto__" input stays an input.
+    const inputs: Record<string, unknown> = Object.create(null);
+    const outputs: Record<string, unknown> = Object.create(null);
+    for (const symbol of chain.reverse()) {
+        // `exports` holds a class's OWN statics; a property lookup on its type would find the base's definition again.
+        const own = symbol.exports?.get(ts.escapeLeadingUnderscores("ɵcmp"))
+            ?? symbol.exports?.get(ts.escapeLeadingUnderscores("ɵdir"));
+        const args = own && definitionArguments(ts, own);
+        if (args && isRecord(args[3])) {
+            Object.assign(inputs, args[3]);
+        }
+
+        if (args && isRecord(args[4])) {
+            Object.assign(outputs, args[4]);
+        }
+    }
+
+    return {inputs, outputs};
 }
 
 /**

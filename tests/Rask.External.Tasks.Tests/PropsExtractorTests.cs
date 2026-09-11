@@ -52,11 +52,12 @@ public sealed class PropsExtractorTests : IDisposable
             Island("FxSwitch", "fixture-lit/fx-switch.js#fx-switch", "lit"),
             Island("FxBadge", "fixture-lit/components/badge/badge.js", "lit"),
             Island("FxToggle", "fixture-angular#FxToggle", "angular"),
-            Island("FxSlider", "fixture-angular#FxSlider", "angular"));
+            Island("FxSlider", "fixture-angular#FxSlider", "angular"),
+            Island("FxField", "fixture-angular#FxField", "angular"));
 
         foreach (var name in new[]
                  {
-                     "Badge", "Card", "Chip", "Dropdown", "FixtureButton", "FxBadge", "FxSlider", "FxSwitch", "FxToggle",
+                     "Badge", "Card", "Chip", "Dropdown", "FixtureButton", "FxBadge", "FxField", "FxSlider", "FxSwitch", "FxToggle",
                      "LegacySelect", "Picker", "PrimeButton", "Switch", "SwitchRoot", "Tabs", "Toaster", "Toggle",
                  })
         {
@@ -99,7 +100,10 @@ public sealed class PropsExtractorTests : IDisposable
             typescript,
             Island("FxTooltip", "fixture-angular#FxTooltip", "angular"),
             Island("FxLegacy", "fixture-angular#FxLegacy", "angular"),
-            Island("FxNothing", "fixture-lit/fx-switch.js#fx-nothing", "lit"));
+            Island("FxNothing", "fixture-lit/fx-switch.js#fx-nothing", "lit"),
+            Island("FxSwitch", "fixture-lit/fx-switch.js#fx-switch", "lit"),
+            Island("FxSwitchClass", "fixture-lit/components/switch/switch.js#FxSwitch", "lit"),
+            Island("FxBorrowed", "fixture-lit/components/badge/badge.js#fx-switch", "lit"));
 
         var results = SyncExternalPropsSnapshotsTask.ReadResults(File.ReadAllText(Path.Combine(output, "result.json")));
 
@@ -108,6 +112,13 @@ public sealed class PropsExtractorTests : IDisposable
         Assert.Equal("not-a-component", results["FxTooltip"].Code);
         Assert.Equal("not-standalone", results["FxLegacy"].Code);
         Assert.Equal("lit-tag-unknown", results["FxNothing"].Code);
+
+        // Every Lit island shares one program, and so one tag map. FxSwitch's define module registering fx-switch must not
+        // lend that tag to a class module that registers nothing, nor to another module named by it: importing either
+        // one alone would load no element, and the island would render only when FxSwitch's chunk happened to load first.
+        Assert.True(results["FxSwitch"].Ok);
+        Assert.Equal("lit-tag-unknown", results["FxSwitchClass"].Code);
+        Assert.Equal("lit-tag-unknown", results["FxBorrowed"].Code);
     }
 
     [SkippableFact]

@@ -83,8 +83,14 @@ internal static class ExternalPackageSpecifier
     ///     <paramref name="runtime" />: anything <see cref="IsValidExport(string)" /> accepts, and — for Lit only — the tag
     ///     an element registers (<c>sl-switch</c>), since a module that only registers an element exports nothing to name.
     /// </summary>
+    /// <remarks>
+    ///     A Lit island never takes a member of an export (<c>Switch.Root</c>): its entry imports the module and mounts
+    ///     an element by tag, so the member would be dropped and the island would mount whatever the tag names instead.
+    /// </remarks>
     public static bool IsValidExport(string export, string runtime) =>
-        IsValidExport(export) || (string.Equals(runtime, "lit", StringComparison.Ordinal) && IsTag(export));
+        string.Equals(runtime, "lit", StringComparison.Ordinal)
+            ? IsTag(export) || (IsValidExport(export) && export.IndexOf('.') < 0)
+            : IsValidExport(export);
 
     /// <summary>
     ///     Whether <paramref name="name" /> is a custom element name as Rask accepts one: a lowercase letter first, then

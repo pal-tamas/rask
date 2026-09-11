@@ -14,6 +14,9 @@ import type { ExternalAdapter, ExternalProps } from './adapter'
 /** The listeners each element was given, so an update swaps a changed handler and an unmount removes them all. */
 const listeners = new WeakMap<HTMLElement, Map<string, EventListener>>()
 
+/** The value each property had before this adapter first wrote it, so a prop C# stops sending can fall back to it. */
+const originals = new WeakMap<HTMLElement, Map<string, unknown>>()
+
 /**
  * Wraps a custom element as an island adapter.
  *
@@ -40,6 +43,7 @@ export function litComponent(tag: string): ExternalAdapter<HTMLElement> {
       }
 
       listeners.delete(node)
+      originals.delete(node)
       node.remove()
     },
   }
@@ -60,10 +64,17 @@ export function litComponent(tag: string): ExternalAdapter<HTMLElement> {
 function assign(node: HTMLElement, props: ExternalProps): void {
   const bound = listeners.get(node) ?? new Map<string, EventListener>()
   listeners.set(node, bound)
+  const written = originals.get(node) ?? new Map<string, unknown>()
+  originals.set(node, written)
+  const fields = node as unknown as Record<string, unknown>
 
   for (const key of Object.keys(props)) {
     if (!key.startsWith('@')) {
-      ;(node as unknown as Record<string, unknown>)[key] = props[key]
+      if (!written.has(key)) {
+        written.set(key, fields[key])
+      }
+
+      fields[key] = props[key]
       continue
     }
 
@@ -89,6 +100,16 @@ function assign(node: HTMLElement, props: ExternalProps): void {
     if (!Object.prototype.hasOwnProperty.call(props, `@${name}`)) {
       node.removeEventListener(name, handler)
       bound.delete(name)
+    }
+  }
+
+  // C# leaves an unset prop out rather than sending null, so a prop that is no longer sent has to be undone here: it
+  // goes back to what the element held before Rask first set it — the same fallback to the component's own default
+  // that React, Vue and Svelte get by rendering from the whole props object.
+  for (const [key, original] of [...written]) {
+    if (!Object.prototype.hasOwnProperty.call(props, key)) {
+      fields[key] = original
+      written.delete(key)
     }
   }
 }

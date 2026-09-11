@@ -33,6 +33,18 @@ public sealed class LitAdapterTests
     }
 
     [SkippableFact]
+    public void A_prop_csharp_stops_sending_falls_back_to_the_elements_own_default()
+    {
+        var doc = Run();
+
+        // C# leaves an unset prop out rather than sending null. Assignment is all an element re-renders from, so without
+        // the adapter restoring it the island would keep showing the last value C# ever set.
+        Assert.Equal("danger", doc.GetProperty("toneOnMount").GetString());
+        Assert.Equal("neutral", doc.GetProperty("toneAfterOmitted").GetString());
+        Assert.Equal("danger", doc.GetProperty("toneAfterResent").GetString());
+    }
+
+    [SkippableFact]
     public void An_event_reaches_csharp_once_and_a_rerender_keeping_the_handler_adds_no_second_listener()
     {
         var doc = Run();

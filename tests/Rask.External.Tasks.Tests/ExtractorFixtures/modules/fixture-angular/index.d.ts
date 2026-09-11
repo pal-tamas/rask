@@ -63,6 +63,44 @@ export declare class FxSlider {
     >;
 }
 
+/** A base class from a library older than Angular 16: its own `ɵdir`, with inputs as a plain alias map. */
+export declare class FxControlBase {
+    size: "sm" | "lg";
+    /** The base's tone, published as `color`. */
+    tone: string;
+    readonly focused: EventEmitter<void>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<
+        FxControlBase,
+        never,
+        never,
+        {"size": "size"; "tone": "color"},
+        {"focused": "focused"},
+        never,
+        never,
+        false,
+        never
+    >;
+}
+
+/** A component that extends it: its definition lists only what it declares itself, and re-publishes `tone`. */
+export declare class FxField extends FxControlBase {
+    value: string;
+    static ɵcmp: i0.ɵɵComponentDeclaration<
+        FxField,
+        "fx-field",
+        never,
+        {
+            "value": {"alias": "value"; "required": true};
+            "tone": {"alias": "tone"; "required": false};
+        },
+        {},
+        never,
+        never,
+        true,
+        never
+    >;
+}
+
 /** A directive, which is not a component. */
 export declare class FxTooltip {
     static ɵdir: i0.ɵɵDirectiveDeclaration<FxTooltip, "[fxTooltip]", never, {}, {}, never, never, true, never>;

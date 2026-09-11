@@ -8,8 +8,8 @@ export declare class FxSwitch extends LitElement {
     size: "small" | "medium" | "large";
     /** Help shown under the switch. */
     helpText: string;
-    /** A public field that is not reactive: the manifest gives it no attribute. */
-    input: HTMLInputElement;
+    /** Declared `attribute: false`, as Lit recommends for arrays: the manifest gives it no attribute, and it is still reactive. */
+    labels: string[];
     readonly form: string;
     private _pressed;
     protected handleClick(): void;

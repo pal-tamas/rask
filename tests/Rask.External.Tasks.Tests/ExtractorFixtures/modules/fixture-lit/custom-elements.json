@@ -14,7 +14,7 @@
             { "kind": "field", "name": "checked", "type": { "text": "boolean" }, "attribute": "checked" },
             { "kind": "field", "name": "size", "type": { "text": "'small' | 'medium' | 'large'" }, "attribute": "size" },
             { "kind": "field", "name": "helpText", "type": { "text": "string" }, "attribute": "help-text" },
-            { "kind": "field", "name": "input", "type": { "text": "HTMLInputElement" } },
+            { "kind": "field", "name": "labels", "type": { "text": "string[]" } },
             { "kind": "method", "name": "focus" }
           ],
           "attributes": [
@@ -24,7 +24,9 @@
           ],
           "events": [
             { "name": "fx-change", "type": { "text": "CustomEvent<{ checked: boolean }>" } },
-            { "name": "fx-focus", "type": { "text": "FocusEvent" } }
+            { "name": "fx-focus", "type": { "text": "FocusEvent" } },
+            { "name": "valueChanged", "type": { "text": "Event" } },
+            { "name": "$internal" }
           ]
         }
       ]

@@ -293,12 +293,15 @@ Each runtime's declarations are read where they put the props:
   and the snapshot lists them as `legacy-event` skips.
 - **Lit** — a custom element's public, writable fields, all optional. Its tag is the one `HTMLElementTagNameMap` gives
   the class; a module that only registers an element exports nothing to name, so name its tag instead:
-  `"@spectrum-web-components/button/sp-button.js#sp-button"`. The entry imports the module for its side effect. Where
-  the package ships a `custom-elements.json`, only the fields with an attribute count as reactive, and the events it
-  lists become handler props — `sl-change` is `OnSlChange` — which the adapter adds as event listeners.
-- **Angular** — a standalone component's inputs and outputs, read from the declarations ng-packagr writes. An input
-  travels under its public alias (`aria-label`), signal inputs, `model()` and transformed inputs included; an output
-  becomes `On<Alias>` and the adapter subscribes to it. A directive, or a component that is not standalone, is refused.
+  `"@spectrum-web-components/button/sp-button.js#sp-button"`. The entry imports the module for its side effect, so the
+  tag has to be registered by that module or a file it imports directly — a class module that registers nothing is
+  refused rather than mounted under a tag some other module defines. Where the package ships a `custom-elements.json`,
+  the events it lists become handler props — `sl-change` is `OnSlChange` — which the adapter adds as event listeners.
+  A prop C# stops sending goes back to the element's own default.
+- **Angular** — a standalone component's inputs and outputs, including those inherited from a base class, read from
+  the declarations ng-packagr writes. An input travels under its public alias (`aria-label`), signal inputs, `model()`
+  and transformed inputs included; an output becomes `On<Alias>` and the adapter subscribes to it. A directive, or a
+  component that is not standalone, is refused.
   The build links Angular's partially compiled packages, so nothing is compiled in the browser. A Solid package island cannot yet share a project with React or Preact islands — Solid's Vite
 plugin would have to be confined to folders a package does not have — and the build refuses that by name.
 

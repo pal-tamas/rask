@@ -27,6 +27,17 @@
       }
     },
     {
+      "name": "labels",
+      "required": false,
+      "doc": "Declared `attribute: false`, as Lit recommends for arrays: the manifest gives it no attribute, and it is still reactive.",
+      "type": {
+        "kind": "array",
+        "element": {
+          "kind": "string"
+        }
+      }
+    },
+    {
       "name": "on-fx-change",
       "wire": "@fx-change",
       "required": false,
@@ -61,6 +72,23 @@
       }
     },
     {
+      "name": "on-valueChanged",
+      "wire": "@valueChanged",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "event",
+            "type": {
+              "kind": "event",
+              "name": "Event"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "size",
       "required": false,
       "type": {
@@ -74,11 +102,5 @@
       }
     }
   ],
-  "skipped": [
-    {
-      "name": "input",
-      "reason": "unsupported",
-      "detail": "not a reactive property"
-    }
-  ]
+  "skipped": []
 }
