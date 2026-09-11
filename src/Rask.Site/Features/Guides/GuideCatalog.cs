@@ -66,7 +66,9 @@ public static class GuideCatalog
         new("11-deploy", "Ch 11 · Deploy", "Ship to one box with rask deploy.", "Tutorial", "tutorial/11-deploy.md"),
 
         // ---- One Person Framework (the batteries) ----
-        new("cli", "The rask CLI", "Scaffold, run, generate, db, deploy — the front door.",
+        // No "generate": that command was removed, and a card naming a verb the CLI does not have is
+        // the first thing a reader types. The list is the commands `rask --help` prints.
+        new("cli", "The rask CLI", "Scaffold, run, dev, db, deploy — the front door.",
             "One Person Framework"),
         new("data", "Rask.Data", "Base entity + EF Core interceptors: audit, soft-delete, domain events.", "One Person Framework"),
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework"),
