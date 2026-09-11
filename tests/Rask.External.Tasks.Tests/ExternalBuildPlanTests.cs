@@ -25,6 +25,29 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
+    public void Every_entry_also_exports_its_component_for_a_parent_island_to_render()
+    {
+        // The default export is the adapter the host mounts with. A parent island rendering this one as a CHILD loads the
+        // same chunk and reads `component` instead — the framework component itself, or for Lit the tag it registers.
+        const string adapters = "/obj/rask-external/rask";
+        var file = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "Chart", Source = "/app/Features/Chart.tsx", Runtime = "react" }, adapters);
+        var package = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "MuiButton", Source = "/app/MuiButton.props.json", Runtime = "react", Package = "@mui/material/Button" },
+            adapters);
+        var litFile = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "Gauge", Source = "/app/widgets/gauge.ts", Runtime = "lit" }, adapters);
+        var litPackage = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxSwitch", Source = "/app/FxSwitch.props.json", Runtime = "lit", Package = "fixture-lit/fx-switch.js#fx-switch" },
+            adapters);
+
+        Assert.Contains("export { Component as component }", file, StringComparison.Ordinal);
+        Assert.Contains("export { Component as component }", package, StringComparison.Ordinal);
+        Assert.Contains("export { tag as component }", litFile, StringComparison.Ordinal);
+        Assert.Contains("export const component = 'fx-switch'", litPackage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_lit_entry_takes_the_tag_name_from_the_module()
     {
         var entry = ExternalBuildPlan.EntryModule(
@@ -136,6 +159,48 @@ public class ExternalBuildPlanTests
         Assert.Contains("import { default as __raskExport } from 'parts'", entry, StringComparison.Ordinal);
         Assert.Contains("const Component = __raskExport.Item", entry, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_lit_package_element_named_by_its_tag_is_imported_for_its_side_effect()
+    {
+        // The define module registers the tag and exports nothing, and a binding the entry never used would be elided
+        // by the TypeScript transform — taking the registration with it.
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxSwitch", Source = "/app/FxSwitch.props.json", Runtime = "lit", Package = "fixture-lit/fx-switch.js#fx-switch" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import 'fixture-lit/fx-switch.js'", entry, StringComparison.Ordinal);
+        Assert.Contains("export default litComponent('fx-switch')", entry, StringComparison.Ordinal);
+        Assert.DoesNotContain(" from 'fixture-lit", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_lit_package_class_mounts_by_the_tag_its_snapshot_records()
+    {
+        var entry = ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxBadge", Source = "/app/FxBadge.props.json", Runtime = "lit", Package = "fixture-lit/components/badge/badge.js", Tag = "fx-badge" },
+            "/obj/rask-external/rask");
+
+        Assert.Contains("import 'fixture-lit/components/badge/badge.js'", entry, StringComparison.Ordinal);
+        Assert.Contains("export default litComponent('fx-badge')", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_lit_package_island_whose_tag_is_not_known_is_refused_with_the_fix()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => ExternalBuildPlan.EntryModule(
+            new ExternalEntry { Name = "FxBadge", Source = "/app/FxBadge.props.json", Runtime = "lit", Package = "fixture-lit/components/badge/badge.js", Tag = "x'});alert(1)//" },
+            "/obj/rask-external/rask"));
+
+        Assert.Contains("\"fixture-lit/components/badge/badge.js#my-element\"", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("{ \"schema\": 1, \"tag\": \"fx-badge\", \"props\": [] }", "fx-badge")]
+    [InlineData("{ \"schema\": 1, \"tag\": null, \"props\": [] }", null)]
+    [InlineData("{ \"schema\": 1, \"props\": [ { \"name\": \"a\", \"doc\": \"the \\\"tag\\\": \\\"x-y\\\" key\" } ] }", null)]
+    public void The_tag_is_read_from_the_snapshot(string snapshot, string? tag) =>
+        Assert.Equal(tag, ExternalBuildPlan.SnapshotTag(snapshot));
 
     [Fact]
     public void An_export_that_is_not_an_identifier_never_reaches_the_entry()

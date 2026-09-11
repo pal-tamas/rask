@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "components/switch/switch.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "FxSwitch",
+          "tagName": "fx-switch",
+          "customElement": true,
+          "members": [
+            { "kind": "field", "name": "checked", "type": { "text": "boolean" }, "attribute": "checked" },
+            { "kind": "field", "name": "size", "type": { "text": "'small' | 'medium' | 'large'" }, "attribute": "size" },
+            { "kind": "field", "name": "helpText", "type": { "text": "string" }, "attribute": "help-text" },
+            { "kind": "field", "name": "labels", "type": { "text": "string[]" } },
+            { "kind": "method", "name": "focus" }
+          ],
+          "attributes": [
+            { "name": "checked", "fieldName": "checked" },
+            { "name": "size", "fieldName": "size" },
+            { "name": "help-text", "fieldName": "helpText" }
+          ],
+          "events": [
+            { "name": "fx-change", "type": { "text": "CustomEvent<{ checked: boolean }>" } },
+            { "name": "fx-focus", "type": { "text": "FocusEvent" } },
+            { "name": "valueChanged", "type": { "text": "Event" } },
+            { "name": "$internal" }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "components/badge/badge.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "FxBadge",
+          "tagName": "fx-badge",
+          "customElement": true,
+          "members": [
+            { "kind": "field", "name": "variant", "attribute": "variant" },
+            { "kind": "field", "name": "pill", "attribute": "pill" }
+          ],
+          "attributes": [
+            { "name": "variant", "fieldName": "variant" },
+            { "name": "pill", "fieldName": "pill" }
+          ]
+        }
+      ]
+    }
+  ]
+}

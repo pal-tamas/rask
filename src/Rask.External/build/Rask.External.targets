@@ -173,7 +173,9 @@
       <Runtime Condition="'%(RaskExternal.Runtime)' == ''">lit</Runtime>
     </_RaskExternalFile>
 
-    <_RaskExternalAdapterSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
+    <!-- The .svelte files are the Svelte adapter's host components: a child island has to become a real
+         `children` snippet, which only Svelte markup can express. -->
+    <_RaskExternalAdapterSource Include="$(MSBuildThisFileDirectory)../client/*.ts;$(MSBuildThisFileDirectory)../client/*.svelte"/>
 
     <!--
       Committed props snapshots, as additional files the island and factory generators read. Globbed at
@@ -614,10 +616,6 @@
     <!-- Joined to the island list, so the probe, the install, the entries and the bundle all include them. -->
     <ItemGroup>
       <_RaskExternalFile Include="@(_RaskExternalPackageIsland)"/>
-
-      <!-- Split by whether the extractor reads the runtime's packages yet; the rest are only checked. -->
-      <_RaskExternalExtractIsland Include="@(_RaskExternalPackageIsland)" Condition="'%(_RaskExternalPackageIsland.Extractable)' == 'true'"/>
-      <_RaskExternalUnreadIsland Include="@(_RaskExternalPackageIsland)" Condition="'%(_RaskExternalPackageIsland.Extractable)' != 'true'"/>
     </ItemGroup>
 
     <!-- Decided here, once, where every property it reads is known: RaskTsgoVersion is empty at evaluation. -->
@@ -626,27 +624,17 @@
     </PropertyGroup>
   </Target>
 
-  <!--
-    A package island whose props this build will not read still needs a snapshot to generate from, so it says
-    which one is missing: every island when nothing can extract, and otherwise the islands of runtimes whose
-    packages the extractor does not read yet.
-  -->
+  <!-- A build that cannot extract still needs a snapshot to generate from, so it says which one is missing. -->
   <Target Name="_RaskExternalCheckSnapshots"
           DependsOnTargets="ResolveProjectReferences"
-          Condition="'@(_RaskExternalPackageIsland)' != ''
-                     AND ('$(_RaskExternalCanExtract)' != 'true' OR '@(_RaskExternalUnreadIsland)' != '')">
+          Condition="'@(_RaskExternalPackageIsland)' != '' AND '$(_RaskExternalCanExtract)' != 'true'">
     <PropertyGroup>
       <_RaskExternalNoExtract Condition="'$(RaskExternalBuild)' == 'false'">RaskExternalBuild=false</_RaskExternalNoExtract>
       <_RaskExternalNoExtract Condition="'$(_RaskExternalNoExtract)' == '' AND '$(RaskExternalPropsExtract)' == 'false'">RaskExternalPropsExtract=false</_RaskExternalNoExtract>
       <_RaskExternalNoExtract Condition="'$(_RaskExternalNoExtract)' == ''">Rask.Core's TypeScript toolchain is not imported</_RaskExternalNoExtract>
     </PropertyGroup>
-    <CheckExternalPropsSnapshotsTask Condition="'$(_RaskExternalCanExtract)' != 'true'"
-                                     Islands="@(_RaskExternalPackageIsland)"
+    <CheckExternalPropsSnapshotsTask Islands="@(_RaskExternalPackageIsland)"
                                      Reason="$(_RaskExternalNoExtract)"
-                                     LockFile="$(MSBuildProjectDirectory)/package-lock.json"/>
-    <CheckExternalPropsSnapshotsTask Condition="'$(_RaskExternalCanExtract)' == 'true' AND '@(_RaskExternalUnreadIsland)' != ''"
-                                     Islands="@(_RaskExternalUnreadIsland)"
-                                     Reason="props are read from React, Preact, Solid, Vue and Svelte packages so far"
                                      LockFile="$(MSBuildProjectDirectory)/package-lock.json"/>
   </Target>
 
@@ -665,8 +653,8 @@
   -->
   <Target Name="_RaskExternalExtractProps"
           DependsOnTargets="ResolveProjectReferences;_RaskExternalProbeNode;_RaskExternalInstallCore"
-          Condition="'@(_RaskExternalExtractIsland)' != '' AND '$(_RaskExternalCanExtract)' == 'true'"
-          Inputs="@(_RaskExternalExtractIsland->'%(DeclaringFile)');@(_RaskExternalExtractIsland);$(MSBuildProjectDirectory)/package.json;$(_RaskExternalPropsInstallReceipt);$(MSBuildThisFileDirectory)rask-extract-props.mjs"
+          Condition="'@(_RaskExternalPackageIsland)' != '' AND '$(_RaskExternalCanExtract)' == 'true'"
+          Inputs="@(_RaskExternalPackageIsland->'%(DeclaringFile)');@(_RaskExternalPackageIsland);$(MSBuildProjectDirectory)/package.json;$(_RaskExternalPropsInstallReceipt);$(MSBuildThisFileDirectory)rask-extract-props.mjs"
           Outputs="$(_RaskExternalPropsStamp)">
     <ResolveTypeScriptToolTask Tool="typescript"
                                Version="$(RaskExternalTypeScriptVersion)"
@@ -677,18 +665,18 @@
     </ResolveTypeScriptToolTask>
 
     <Delete Files="$(_RaskExternalObj)props/result.json"/>
-    <WriteExternalPropsRequestTask Islands="@(_RaskExternalExtractIsland)"
+    <WriteExternalPropsRequestTask Islands="@(_RaskExternalPackageIsland)"
                                    TypeScriptPath="$(_RaskExternalTypeScriptPath)"
                                    ProjectDirectory="$(MSBuildProjectDirectory)"
                                    OutputDirectory="$(_RaskExternalObj)props"
                                    RequestPath="$(_RaskExternalObj)props/request.json"/>
 
-    <Message Importance="high" Text="Rask.External: reading the props of @(_RaskExternalExtractIsland->Count()) package island(s)"/>
+    <Message Importance="high" Text="Rask.External: reading the props of @(_RaskExternalPackageIsland->Count()) package island(s)"/>
     <Exec Command="node &quot;$(MSBuildThisFileDirectory)rask-extract-props.mjs&quot; &quot;$(_RaskExternalObj)props/request.json&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"/>
 
-    <SyncExternalPropsSnapshotsTask Islands="@(_RaskExternalExtractIsland)"
+    <SyncExternalPropsSnapshotsTask Islands="@(_RaskExternalPackageIsland)"
                                     OutputDirectory="$(_RaskExternalObj)props"
                                     Locked="$(RaskExternalPropsLocked)"/>
 

@@ -315,6 +315,172 @@ public class PackageIslandGeneratorTests
     }
 
     [Fact]
+    public void A_lit_element_named_by_its_tag_and_its_event_wire_pair_generate_and_compile()
+    {
+        // What the extractor writes for a Lit element whose define module is named by the tag it registers: the export is
+        // the tag, and the event prop travels under `@fx-change` — the adapter's cue to listen rather than assign.
+        const string island =
+            """
+            namespace Shop;
+
+            public sealed partial class MuiButton : Rask.External.LitComponent
+            {
+                protected override string Module => "fixture-lit/fx-switch.js#fx-switch";
+            }
+            """;
+
+        const string snapshot =
+            """
+            {
+              "schema": 1, "runtime": "lit", "module": "fixture-lit/fx-switch.js", "export": "fx-switch", "tag": "fx-switch",
+              "props": [
+                { "name": "checked", "required": false, "type": { "kind": "boolean" } },
+                { "name": "on-fx-change", "wire": "@fx-change", "required": false,
+                  "type": { "kind": "callback", "args": [ { "name": "event", "type": { "kind": "event", "name": "CustomEvent" } } ] } }
+              ]
+            }
+            """;
+
+        const string host =
+            """
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                private int _changes;
+
+                protected override Rask.Core.Component? Render() =>
+                    MuiButton
+                        .Checked(true)
+                        .OnFxChange(() => _changes++);
+            }
+            """;
+
+        var run = Run(island, snapshot, host);
+        var generated = run.GeneratedSource("MuiButton.External");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id is "RASK078" or "RASK079" or "RASK080");
+        Assert.Contains("writer.WritePropertyName(\"@fx-change\")", generated, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void An_angular_component_with_a_required_aliased_input_and_an_output_generates_and_compiles()
+    {
+        // What the extractor writes for a signal-based Angular component: `label` is published as `for` and required, so
+        // it is a step the chain takes first and travels under the alias Angular sets it by; the `valueChange` output
+        // travels as `@valueChange` — the adapter's cue to subscribe rather than set — carrying the number it emits.
+        const string island =
+            """
+            namespace Shop;
+
+            public sealed partial class MuiButton : Rask.External.AngularComponent
+            {
+                protected override string Module => "fixture-angular#FxSlider";
+            }
+            """;
+
+        const string snapshot =
+            """
+            {
+              "schema": 1, "runtime": "angular", "module": "fixture-angular", "export": "FxSlider", "tag": null,
+              "props": [
+                { "name": "label", "wire": "for", "required": true, "type": { "kind": "string" } },
+                { "name": "onValueChange", "wire": "@valueChange", "required": false,
+                  "type": { "kind": "callback", "args": [ { "name": "value", "type": { "kind": "number" } } ] } }
+              ]
+            }
+            """;
+
+        const string host =
+            """
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                private double _value;
+
+                protected override Rask.Core.Component? Render() =>
+                    MuiButton
+                        .Label("Volume")
+                        .OnValueChange(value => _value = value);
+            }
+            """;
+
+        var run = Run(island, snapshot, host);
+        var generated = run.GeneratedSource("MuiButton.External");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id is "RASK078" or "RASK079" or "RASK080");
+        Assert.Contains("writer.WritePropertyName(\"for\")", generated, StringComparison.Ordinal);
+        Assert.Contains("writer.WritePropertyName(\"@valueChange\")", generated, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void An_island_whose_component_takes_content_takes_children_of_its_own_runtime()
+    {
+        // Every spelling the chain teaches for a React island's children: literals, a nested island, a conditional one, a
+        // projection of islands (which binds by covariance, since a conversion never lifts through IEnumerable<>), and a
+        // list of text.
+        const string host =
+            """
+            using System.Linq;
+
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                private readonly string[] _names = ["Ada", "Grace"];
+                private bool _saving;
+
+                protected override Rask.Core.Component? Render() =>
+                    Div[
+                        MuiButton["Save ", 3, " items"],
+                        MuiButton[MuiButton.Disabled(true)["nested"]],
+                        MuiButton[_saving ? MuiButton["busy"] : null],
+                        MuiButton[_names.Select(n => MuiButton[n])],
+                        MuiButton[_names]];
+            }
+            """;
+
+        var run = Run(IslandSource, Snapshot, host);
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void An_island_whose_component_takes_no_content_gets_no_children_indexer()
+    {
+        var snapshot = Snapshot.Replace("\"content\": \"node\"", "\"content\": \"none\"", StringComparison.Ordinal);
+
+        var generated = Run(IslandSource, snapshot).GeneratedSource("MuiButton.External");
+
+        // Only ExternalComponent's refusing indexers remain, which RASK062 reports at the call.
+        Assert.DoesNotContain("this[", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rask_markup_as_an_islands_child_does_not_compile()
+    {
+        // The compile error by construction: the refusing indexer's ref struct cannot become a Component. RASK062's own
+        // report at the brackets is pinned in IslandChildrenAnalyzerTests; this pins that the TYPES alone refuse it.
+        const string host =
+            """
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                protected override Rask.Core.Component? Render() => Div[MuiButton[Span["x"]]];
+            }
+            """;
+
+        var run = Run(IslandSource, Snapshot, host);
+
+        Assert.Contains(run.GeneratedCompileErrors(), e => e.Id is "CS1503" or "CS0029");
+    }
+
+    [Fact]
     public void A_prop_with_no_csharp_type_is_RASK080_and_the_rest_are_still_generated()
     {
         var snapshot = PropSnapshot("mixed", """{ "kind": "union", "of": [ { "kind": "boolean" }, { "kind": "string" } ] }""");

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Server.DevTools;
 
 namespace Rask.Server;
 
@@ -28,17 +29,28 @@ internal sealed class RaskRootSelector
     private readonly Func<IServiceProvider, Component> _hostFactory;
     private readonly (RaskMountedApp Mount, Func<IServiceProvider, Component> Factory)[] _mounts;
     private readonly IReadOnlyList<System.Reflection.Assembly> _mountedAssemblies;
+    private readonly IRaskServerDevTools? _devTools;
 
     public RaskRootSelector(
         Func<IServiceProvider, Component> hostFactory,
-        IReadOnlyList<RaskMountedApp> mounts)
+        IReadOnlyList<RaskMountedApp> mounts,
+        IRaskServerDevTools? devTools = null)
     {
         _hostFactory = hostFactory;
         _mounts = mounts
             .Select(m => (m, Factory(m)))
             .ToArray();
         _mountedAssemblies = mounts.Select(m => m.RoutesFrom).Distinct().ToArray();
+        _devTools = devTools;
     }
+
+    /// <summary>Whether a session last seen at <paramref name="path" /> may be rebuilt from a resume record.</summary>
+    /// <remarks>
+    ///     Asked here because resume already comes here to learn which root to build, and a resume record is a way in
+    ///     that skips the GET: a devtools panel decides per request who may open it, and a record carries none of what
+    ///     that decision reads. Refusing makes the client reload, and the reload is a GET that is asked.
+    /// </remarks>
+    public bool CanResume(string path) => _devTools?.CanResume(path) ?? true;
 
     /// <summary>The mounts this host serves, for mapping their patterns as endpoints of their own.</summary>
     public IReadOnlyList<RaskMountedApp> Mounts => Array.ConvertAll(_mounts, m => m.Mount);

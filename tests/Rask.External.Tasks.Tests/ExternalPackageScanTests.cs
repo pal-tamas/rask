@@ -238,6 +238,23 @@ public sealed class ExternalPackageScanTests
         Assert.Equal(valid, ExternalPackageSpecifier.IsValidExport(export));
     }
 
+    [Theory]
+    [InlineData("sl-switch", "lit", true)]
+    [InlineData("fx-switch", "react", false)]
+    [InlineData("Sl-switch", "lit", false)]
+    [InlineData("slswitch", "lit", true)]
+    [InlineData("sl-switch'", "lit", false)]
+    [InlineData("-switch", "lit", false)]
+    [InlineData("Switch.Root", "lit", false)]
+    [InlineData("Switch.Root", "svelte", true)]
+    [InlineData("sl.switch-x", "lit", true)]
+    public void Only_a_lit_island_may_name_the_tag_its_module_registers(string export, string runtime, bool valid)
+    {
+        // "slswitch" is valid for Lit as the identifier it is, not as a tag. A member of an export is not: a Lit entry mounts
+        // an element by tag, so "Switch.Root" would lose its ".Root" — while a tag may carry a dot.
+        Assert.Equal(valid, ExternalPackageSpecifier.IsValidExport(export, runtime));
+    }
+
     private static List<ScannedPackageIsland> Scan(string text) =>
         ExternalPackageScan.Scan(text, "/src/MuiButton.cs", Islands).ToList();
 }

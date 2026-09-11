@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Hosting.Shared;
 
 namespace Rask.Meta.Hosting;
 
@@ -75,7 +76,8 @@ internal sealed partial class NodeSupervisor : BackgroundService
     /// </remarks>
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (_options.SuperviseNode && !File.Exists(ServerEntryPath))
+        // A dev server needs no built entry: a dev-session build skipped the production build on purpose.
+        if (_options.SuperviseNode && !_options.RunDevServer && !File.Exists(ServerEntryPath))
         {
             throw new InvalidOperationException(
                 $"Rask.Meta.Hosting: no {_options.Framework.Name} server entry at '{ServerEntryPath}'. "
@@ -130,6 +132,12 @@ internal sealed partial class NodeSupervisor : BackgroundService
             return;
         }
 
+        if (_options.RunDevServer)
+        {
+            await RunDevServerAsync(stoppingToken).ConfigureAwait(false);
+            return;
+        }
+
         var entry = ServerEntryPath;
         if (!File.Exists(entry))
         {
@@ -177,6 +185,85 @@ internal sealed partial class NodeSupervisor : BackgroundService
         // degraded process that still answers health checks is not.
         LogGivingUp(_options.Framework.Name, _options.MaxRestartAttempts);
         _lifetime.StopApplication();
+    }
+
+    /// <summary>
+    ///     Runs the framework's own dev server for an app an editor launched, and forwards to it.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The same script <c>rask dev</c> would run beside the app (<see cref="DevScript" />), in the app
+    ///         directory, on the framework's own port. Once it answers, forwarding opens and the editor is told
+    ///         to open that address — where the framework's hot replacement lives.
+    ///     </para>
+    ///     <para>
+    ///         No restart budget and no stopping the host when it exits: this is a developer's session, and a
+    ///         dev server that died over a syntax error in a page is reported, not a reason to take the C#
+    ///         half — the half being debugged — down with it.
+    ///     </para>
+    /// </remarks>
+    private async Task RunDevServerAsync(CancellationToken stoppingToken)
+    {
+        var script = DevScript.FromManifest(ReadOrNull(Path.Combine(_paths.AppDirectory, "package.json")));
+
+        DevServerProcess process;
+        try
+        {
+            process = DevServerProcess.Start(
+                "meta-dev",
+                "npm",
+                ["run", script],
+                _paths.AppDirectory,
+                Path.Combine(_paths.ContentRoot, "obj", "rask"),
+                LogNodeOutput);
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            LogDevServerUnavailable(_options.Framework.Name);
+            return;
+        }
+
+        try
+        {
+            LogStarted(_options.Framework.Name, process.Id, _options.Port);
+
+            if (await DevServerProcess
+                    .WaitForPortAsync("localhost", _options.Port, () => process.HasExited, _options.StartupTimeout, stoppingToken)
+                    .ConfigureAwait(false))
+            {
+                _readiness.MarkReady();
+                LogReady(_options.Framework.Name, _options.Port);
+
+                // Standard output, not the log: the editor watches the debug console for this exact line.
+                Console.Out.WriteLine(
+                    EditorDevSession.OpenLinePrefix
+                    + string.Create(CultureInfo.InvariantCulture, $"http://localhost:{_options.Port}"));
+            }
+
+            await process.WaitForExitAsync(stoppingToken).ConfigureAwait(false);
+            LogExited(_options.Framework.Name, process.ExitCode);
+        }
+        catch (OperationCanceledException)
+        {
+            // The app is stopping.
+        }
+        finally
+        {
+            _readiness.MarkNotReady();
+            await process.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private static string? ReadOrNull(string path)
+    {
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -470,4 +557,8 @@ internal sealed partial class NodeSupervisor : BackgroundService
     [LoggerMessage(EventId = 12, Level = LogLevel.Warning,
         Message = "{Framework}: {InFlight} request(s) still in flight after {Seconds}s; stopping anyway.")]
     private partial void LogDrainTimedOut(string framework, int inFlight, double seconds);
+
+    [LoggerMessage(EventId = 13, Level = LogLevel.Warning,
+        Message = "npm is not available, so the {Framework} dev server did not start. The app is still running. Install Node.js from https://nodejs.org.")]
+    private partial void LogDevServerUnavailable(string framework);
 }

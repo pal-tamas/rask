@@ -97,7 +97,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK059](#rask059) | Error | Module override must be a constant string |
 | [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
 | [RASK061](#rask061) | Error | Blazor island must be partial |
-| [RASK062](#rask062) | Error | An island takes no children |
+| [RASK062](#rask062) | Error | An island cannot render these children |
 | [RASK064](#rask064) | Error | Blazor island name collision |
 | [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
 | [RASK067](#rask067) | Error | Endpoint shape has no wire encoding |
@@ -1377,32 +1377,53 @@ missing `WriteParameters` the author never wrote and should not have to know abo
 
 ## RASK062
 
-**An island takes no children** · Error
+**An island cannot render these children** · Error
 
-An island renders markup a foreign renderer owns — a hosted Blazor component, a React tree, a Lit
-element — and nothing else. It is a leaf.
+An island renders what a foreign renderer owns, so what it can take as children depends on the
+renderer.
+
+**A Blazor island takes none.** It is a leaf:
 
 ```csharp
-// ✗ RASK062 — the children would compile and never render
+// ✗ RASK062 — 'Chart' is a Blazor island and cannot take Rask children
 Chart.Series(_series)[ H2["Revenue"] ]
 
 // ✓ compose the other way round
 Div.Class("rounded-xl border p-4")[ H2["Revenue"], Chart.Series(_series) ]
 ```
 
-Rask children would have to cross the diff boundary, and no crossing is right for every component. A
-hosted Blazor component may have no `RenderFragment` parameter at all, one under a name only it knows
-(`Content`, `Body`), or several (`HeaderContent`, `RowTemplate`); a `.tsx` or Lit component takes the
-nodes and then owns them, so once its framework has moved them every DOM path Rask holds is wrong and
-the content goes dead after its first paint.
+Rask children would have to cross the diff boundary, and no crossing is right for every hosted
+component: it may have no `RenderFragment` parameter at all, one under a name only it knows (`Content`,
+`Body`), or several (`HeaderContent`, `RowTemplate`).
 
-This is an error rather than a convention because it cannot be one. The children indexer lives on
-`Component` and `Build<T>`, so it is available on every chain and cannot be withheld from a single
-type — without the diagnostic the children bind, compile, and silently render nothing.
+**A JS island takes children of its own runtime** — a React island accepts React islands, text,
+numbers and dates — because they travel inside its props and React renders them. Rask markup, or
+another runtime's island, cannot: once a front-end framework has moved Rask's nodes into its own tree,
+every DOM path Rask holds into them is wrong and the content goes dead after its first paint.
 
-Applies to both island families: `BlazorComponent<T>` (see [Blazor
-components](blazor-components.md#an-island-takes-no-children)) and `ReactComponent`/`LitComponent`
-(see [islands](islands.md#an-island-takes-no-children)).
+```csharp
+// ✗ RASK062 — 'MuiCard' is a React island; its children are React islands, text, numbers and dates
+MuiCard[ Span["Revenue"] ]
+MuiCard[ VueChip.Label("new") ]
+
+// ✓
+MuiCard[ "Revenue ", MuiChip.Label("new") ]
+Div[ MuiCard["Revenue"], Span["updated today"] ]
+```
+
+A package island whose component takes no content accepts nothing:
+`'MuiIcon' is a React island that takes no children`.
+
+The compiler refuses these on its own — an island's children indexers are typed to its runtime, and
+the ones it inherits return a type that cannot become a component — but it says so late, where the
+result fails to convert, and not at all for `var x = MuiCard[Span["x"]]`. RASK062 reports the call at
+its brackets instead.
+
+**Assigning `Children`** is reported on both families: an island never renders it, so the children
+would compile and silently never appear. Pass them through the indexer.
+
+See [islands](islands.md#children) and [Blazor
+components](blazor-components.md#an-island-takes-no-children).
 
 ## RASK064
 

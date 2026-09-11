@@ -1,3 +1,5 @@
+using Rask.Hosting.Shared;
+
 namespace Rask.Cli.Dev;
 
 /// <summary>
@@ -15,7 +17,7 @@ internal sealed class MacDevHostPlatform(IProcessRunner process, IConsole consol
     ///     A high port, redirected. macOS reserves everything below 1024 for root, and running the whole
     ///     dev loop as root to get one port would leave every file it builds owned by root.
     /// </summary>
-    public override int HttpsPort => 5001;
+    public override int HttpsPort => DevHostPaths.RedirectedHttpsPort;
 
     public override string TrustChange =>
         $"trust '{DevCertificates.AuthorityName}' as a local certificate authority (System keychain)";

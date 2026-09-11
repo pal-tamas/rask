@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
 
@@ -27,7 +28,7 @@ internal sealed class WindowsDevHostPlatform(IProcessRunner process, IConsole co
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "drivers", "etc", "hosts");
 
     /// <summary>443 directly: Windows lets an ordinary process bind it.</summary>
-    public override int HttpsPort => 443;
+    public override int HttpsPort => DevHostPaths.DirectHttpsPort;
 
     public override string TrustChange =>
         $"trust '{DevCertificates.AuthorityName}' as a local certificate authority (your user's Trusted Roots)";

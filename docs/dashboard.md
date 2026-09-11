@@ -71,9 +71,10 @@ a switcher between them — so a deployment running all three does not spend hal
 The switcher is a plain `<select>`: the console ships no JavaScript, so it is keyboard-navigable for free
 and opens the platform's own picker on a phone.
 
-It is built mobile-first. Below `sm` the secondary table columns collapse and fold under the primary cell
-rather than scrolling sideways — a table you have to swipe has hidden the column you came for — and every
-control takes a 44px touch target.
+It is built mobile-first. Below `sm` every table stacks each row into labelled lines rather than scrolling
+sideways — a table you have to swipe has hidden the column you came for — and from `sm` up a secondary
+column waits until the table has room for it. A long list pages through a window of page numbers, so nothing
+on a phone is wider than the screen.
 
 ### Failed is the number that matters
 
@@ -259,18 +260,23 @@ a dashboard left open on a wall display is a real cost, not a free convenience.
 
 ## How it looks, and why you cannot change it
 
-The console draws with [the UI kit](ui-kit.md) and its own compiled stylesheet, and that stylesheet's
-palette is daisyUI's: every `--color-ui-*` token it declares is an alias for a semantic variable
-(`--color-base-100`, `--color-base-content`, `--color-warning`) rather than a colour of its own. The
-console renders kit components beside its own utilities, so a second palette would not be a re-skin —
-it would be two designs on one page.
+The console is drawn with [the UI kit](ui-kit.md) and nothing else. Every page is `Rask.Ui` components,
+and the only stylesheet in its document is the kit's, inlined by the layout. It writes no class strings
+at all, for a reason that applies to any library: Tailwind emits a utility only where it can see the class
+name in the source it scans, and the kit's sheet is compiled from the kit's source — so a `.Class("mt-4")`
+written in `Rask.Dashboard` would render as nothing. `DashboardIsKitOnlyTests` fails on any `.Class(…)`,
+`.Style(…)` or `UiStyles.` in the package. Where a page needs something the kit cannot draw, the kit grows
+a typed step instead: that is where `UiDataGrid`'s `ShowFrom`, `RowTone` and `PageHref`, `UiCard.Href`
+and `UiEmpty` came from.
+
+The console owns its whole document, so it needs a page reset the way any application does. That travels
+in the kit's sheet as well, keyed to the class `UiShell` writes (`.rask-ops`), so an application that links
+the kit is untouched by it.
 
 **It is pinned to daisyUI's `light` theme, and that is not configurable.** The theme scope goes on
-`<html>` with an explicit `data-theme`, so the console ignores both the host application's theme and
-the reader's `prefers-color-scheme`. An operator surface is a set of contrast ratios measured against
-a white ground: daisyUI's `warning` and `error` are *surface* colours that fail AA read as text on one
-(1.76:1 and 2.87:1), which is why the sheet derives darkened `-ink` twins for the text roles. Letting
-the palette follow the OS would invalidate every one of those measurements silently.
+`<html>` with an explicit `data-theme`, and `UiShell` names the same theme, so the console ignores both the
+host application's theme and the reader's `prefers-color-scheme`. An operator surface is a set of contrast
+ratios checked against one ground; letting it follow the OS would move every one of them silently.
 
 It is not a hypothetical, either — it is what the console did before this was enforced. Its own
 palette was a fixed light one while `UiShell` painted with daisyUI's, so on a machine set to dark mode

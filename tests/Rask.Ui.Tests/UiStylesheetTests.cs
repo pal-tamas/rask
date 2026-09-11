@@ -45,14 +45,56 @@ public sealed class UiStylesheetTests
     }
 
     [Fact]
-    public void The_sheet_carries_no_preflight_and_no_document_rules()
+    public void No_reset_or_document_rule_reaches_a_page_without_the_console_frame()
     {
-        // The kit ships utilities and components, never a reset: an app owns its own document, and a
-        // second reset arriving from a library restyles pages that never asked for it.
+        // The kit ships utilities and components, never a reset for an application: an app owns its own
+        // document, and a second reset arriving from a library restyles pages that never asked for it. The
+        // one reset it does carry is the console frame's, and every rule of it names `.rask-ops` — the class
+        // only UiShell writes — so a document that never renders the frame matches none of it.
         foreach (var rule in Rules(UiStylesheet.Css))
         {
-            Assert.DoesNotMatch(new Regex(@"(^|,)\s*(html|body)\s*(,|$)"), rule.Selector);
+            var body = rule.Body.Replace(" ", "", StringComparison.Ordinal);
+            var touchesDocument = Regex.IsMatch(rule.Selector, @"(^|,)\s*(html|body)\b");
+            var isReset = body.Contains("box-sizing:border-box", StringComparison.Ordinal)
+                          && body.Contains("margin:0", StringComparison.Ordinal);
+
+            if (touchesDocument || isReset)
+            {
+                Assert.Contains("rask-ops", rule.Selector, StringComparison.Ordinal);
+            }
         }
+    }
+
+    [Fact]
+    public void The_console_frame_brings_its_own_reset_and_drops_the_body_margin()
+    {
+        // Rask.Dashboard owns a whole document and draws it with nothing but this kit, so the frame's reset
+        // is the only one that page gets. Absent, the console renders with the browser's default margins
+        // on every heading, list and paragraph, and an 8px white border round the frame.
+        var rules = Rules(UiStylesheet.Css)
+            .Select(r => (r.Selector, Body: r.Body.Replace(" ", "", StringComparison.Ordinal)))
+            .ToList();
+
+        Assert.Contains(rules, r => r.Selector.Contains("rask-ops", StringComparison.Ordinal)
+                                    && r.Body.Contains("box-sizing:border-box", StringComparison.Ordinal));
+        Assert.Contains(rules, r => r.Selector.StartsWith("body:has(", StringComparison.Ordinal)
+                                    && r.Selector.Contains("rask-ops", StringComparison.Ordinal)
+                                    && r.Body.Contains("margin:0", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_grid_cell_breaks_long_tokens_but_keeps_the_labels_of_its_controls_whole()
+    {
+        // The cell's overflow-wrap inherits, and a badge label broken letter by letter inside its fixed height is
+        // what the console shipped ("mati" for "Information"). Both halves have to be in the compiled sheet.
+        var css = UiStylesheet.Css.Replace(" ", "", StringComparison.Ordinal);
+
+        Assert.Contains(".ui-grid-cell{overflow-wrap:anywhere", css, StringComparison.Ordinal);
+        Assert.Contains(".ui-grid-cell:where(.badge:not(.font-mono)", css, StringComparison.Ordinal);
+        Assert.Contains("white-space:nowrap", css, StringComparison.Ordinal);
+
+        // …and buttons side by side in a cell are spaced by the kit, so a page puts no text node between them.
+        Assert.Contains(".ui-grid-cell:where(.btn+.btn)", css, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -66,7 +108,14 @@ public sealed class UiStylesheetTests
 
     private static IEnumerable<(string Selector, string Body)> Rules(string css)
     {
-        foreach (Match m in Regex.Matches(css, @"(?:^|[}\s;])([^{}@]+)\{([^{}]*)\}"))
+        // A selector starts at the top of the sheet or after a brace or a semicolon — never after whitespace.
+        // Whitespace IS a selector's descendant combinator: starting there read `.rask-ops *)::file-selector-button`
+        // as the selector `*)::file-selector-button`, dropping the very scope the assertions look for.
+        //
+        // A LOOKBEHIND, not a consumed character. Minified CSS puts rules edge to edge (`…}body:has(…){…}`), and
+        // a boundary the previous match's closing brace had already consumed could not start the next rule — so
+        // every rule sitting directly after another was skipped, and these assertions read half the sheet.
+        foreach (Match m in Regex.Matches(css, @"(?:^|(?<=[{};]))([^{}@;]+)\{([^{}]*)\}"))
         {
             yield return (m.Groups[1].Value.Trim(), m.Groups[2].Value);
         }

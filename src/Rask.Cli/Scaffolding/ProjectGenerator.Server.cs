@@ -22,7 +22,9 @@ internal static partial class ProjectGenerator
         batteries = batteries.Normalized();
 
         return new ScaffoldResult(
-            TemplateMaterializer.Files(targetDirectory, "server", name, batteries, version, islands),
+            VsCodeAssembly.Apply(
+                targetDirectory, name,
+                TemplateMaterializer.Files(targetDirectory, "server", name, batteries, version, islands)),
             ServerNextSteps(name, batteries))
         {
             Packages = ServerPackages(batteries),

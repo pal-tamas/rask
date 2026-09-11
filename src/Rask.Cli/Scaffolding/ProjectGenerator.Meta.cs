@@ -42,7 +42,9 @@ internal static partial class ProjectGenerator
         // running, and whose every front-end dependency is a committed manifest this repository can
         // review and Dependabot can bump.
         return new ScaffoldResult(
-            TemplateMaterializer.Files(targetDirectory, framework.Key, name, batteries, version),
+            VsCodeAssembly.Apply(
+                targetDirectory, name,
+                TemplateMaterializer.Files(targetDirectory, framework.Key, name, batteries, version)),
             MetaNextSteps(name, framework, batteries.Docker))
         {
             Packages = ["Rask.Cqrs", "Rask.Cqrs.Server", "Rask.Meta.Hosting"],

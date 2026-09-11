@@ -93,6 +93,22 @@ only when the request actually changes.
 counts in what it was told. A grid whose parent pages for it but leaves `TotalCount` unset renders a
 pager that always claims to be one page long.
 
+**A page that lives in the URL.** `PageHref` turns the pager's pages into links, so a page can be shared,
+bookmarked and reached with the back button. The link does the navigating, so `OnPageChange` is not
+called — the page arrives back as `Page`, read from the query string:
+
+```csharp
+[QueryParam("page")] public int? UrlPage { get; set; }   // counted from one in the address
+
+UiDataGrid.Data(_rows).RowKey(r => r.Id)
+    .PageSize(25).TotalCount(_total).Page((UrlPage ?? 1) - 1)
+    .PageHref(page => Routes.LogsPage(Page: page + 1))    // the grid's page, counted from zero
+    [c => [ … ]]
+```
+
+`PageHref` counts from zero like `Page`, whatever the address counts from. The page you are on is not a
+link: it says `aria-current="page"` instead. `UiPagination.Href` does the same for a pager on its own.
+
 ## Controlled and uncontrolled, one axis at a time
 
 Say nothing and the grid holds its own sort, page, selection, grouping and column layout in fields and
@@ -162,6 +178,18 @@ base class to overrule: above `sm` the element keeps the display a table gives i
 cards and the table both render, the table hidden below `sm` and the cards above it. Reach for it when a
 phone wants genuinely different content, not merely the same cells stacked.
 
+**Between the phone and the desktop** a table can have more columns than it has room for. `ShowFrom`
+holds a secondary column back until the table is wide enough:
+
+```csharp
+c.Field(r => r.Attempts).Title("Attempts").ShowFrom(UiBreakpoint.Md)
+```
+
+It hides the header, the cells and the footer cell in **table mode only** — below `sm` the stacked lines
+still list the column, because one line per fact has room for every one. `UiBreakpoint.Sm` is therefore
+no change at all: the table starts there. The class it writes (`sm:max-md:hidden`) is a variant, for the
+same cross-sheet reason as above.
+
 ## Grouping, and the chrome above the table
 
 `Groupable(true)` on a column puts a group button in its header. `GroupPanel(true)` shows the panel that
@@ -177,10 +205,29 @@ A grouped column leaves the table by default — it holds the same value for eve
 that value is already the band's heading. `ShowGroupedColumns(true)` keeps it. `GroupSubtotals(true)`
 repeats the column footers per band; `GroupCollapsible(false)` stops a band folding shut.
 
+`Toolbar(…)` is the markup above the table — filters, a search box, a count. The grid lays whatever it is
+given out as **one row from `sm` up and one control per line below it**, because three filters side by
+side at 360px leave each too narrow to show the value it is set to. Hand it a fragment and write no
+wrapper of your own:
+
+```csharp
+.Toolbar([
+    UiTabs[ … ],
+    UiSelect.Value(_category).Options(_categories).Label("Category").OnChange(FilterAsync),
+    UiSearch.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(SearchAsync),
+])
+```
+
 ## Cells, clicks, and the rule behind them
 
 `Cell(p => …)` gives a column custom markup; `Footer` and `FooterCell` give it a summary computed over
-every row, not merely the page.
+every row, not merely the page. `Mono(true)` sets a column's cells in a monospace face — ids, keys,
+hashes, paths — and leaves its title in the body face.
+
+`RowTone(r => …)` tints one row from the row, with a `UiTone`: `r.Attempts >= max ? UiTone.Error : null`
+marks a dead letter. It is a typed tone rather than a class for a reason that matters to a library: a
+class written in *your* assembly is one the kit's compiled stylesheet never saw, so it would render as no
+tint at all. `RowClass` is still there for an app whose own Tailwind build can see what it writes.
 
 `OnRowClick` fires from a column's cells rather than from the row, so a column can carve itself out —
 and by default a **custom cell does not fire it**. That asymmetry is a safety rule. The client cancels

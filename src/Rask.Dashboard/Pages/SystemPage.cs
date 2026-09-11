@@ -54,7 +54,7 @@ public sealed partial class SystemPage(
             UiHeader.Heading("System"),
             DashboardError.Message(LoadError),
             DatabaseCard(),
-            BackupCard(now),
+            BackupCards(now),
             RecurringCard(now),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
@@ -70,7 +70,7 @@ public sealed partial class SystemPage(
         // A leader list rather than four tiles. These are four short scalars an operator reads once to
         // confirm the deployment is configured the way they think — a headline number's worth of weight
         // each was three times the space and none of the extra meaning.
-        return UiCard.Heading("Database").Class("mb-4 sm:mb-6")[
+        return UiCard.Heading("Database")[
             UiDetailList[
                 UiDetailRow
                     .Key("size")
@@ -102,95 +102,86 @@ public sealed partial class SystemPage(
         ];
     }
 
-    private Component? BackupCard(DateTime now)
+    // One grid of every backup fact, then the snapshots as a card of their own. A card does not space the
+    // sections inside it, and the column the cards sit in does — so two sections are two cards.
+    private Component? BackupCards(DateTime now)
     {
         // No probe registered means the app didn't say how it backs up — showing "no backups" would be a
-        // claim the dashboard can't support, so the card stays away entirely.
+        // claim the dashboard can't support, so the cards stay away entirely.
         if (!system.HasBackupProbe)
         {
             return null;
         }
 
-        return UiCard.Heading("Backup").Class("mb-6")[
-            _replication is { } r
-                ? Div.Class("mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    UiStat
-                        .Key("replication")
-                        .Value(r.IsReplicating ? "running" : "stopped")
-                        .Label("Continuous replication")
-                        .Tone(r.IsReplicating ? null : "danger")
-                        .Caption(r.LastStartedAt is { } started
-                            ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
-                            : "never started")
-                        .Icon(UiIconName.Retry),
-                    UiStat
-                        .Key("restarts")
-                        .Value(r.RestartCount.ToString())
-                        .Label("Restarts")
-                        .Tone(r.RestartCount > 0 ? "warn" : null)
-                        .Caption(r.LastError ?? "no failures recorded")
-                        .Icon(UiIconName.Warning)
-                ]
-                : null,
-            // Restorability is its own row, and its own fact: "the replicator is running" above says
-            // nothing about whether what it wrote can be read back.
-            _verification is { } v
-                ? Div.Class("mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    UiStat
-                        .Key("verification")
-                        .Value(v.Level == BackupVerificationLevel.Verified
-                            ? "restorable"
-                            : v.Outcome.ToLowerInvariant())
-                        .Label("Last verified restore")
-                        // Broken is red; Unknown is amber. A check that races replication must not
-                        // paint the tile red, or the tile stops being read.
-                        .Tone(v.Level switch
-                        {
-                            BackupVerificationLevel.Verified => null,
-                            BackupVerificationLevel.Broken => "danger",
-                            _ => "warn",
-                        })
-                        .Caption(v.LastVerifiedAt is { } verified
-                            ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
-                            : v.LastError ?? "never verified")
-                        .Icon(v.Level == BackupVerificationLevel.Broken
-                            ? UiIconName.ShieldWarning
-                            : UiIconName.ShieldOk)
-                ]
-                : null,
-            SnapshotList(now)
+        // A probe that only takes snapshots has no replication or verification to report, and a Backup card with a
+        // heading and nothing under it reads as a broken panel rather than as "not applicable".
+        var stats = BackupStats(now).ToList();
+
+        return [
+            stats.Count == 0 ? null : UiCard.Key("backup").Heading("Backup")[UiGrid[stats]],
+            UiCard.Key("snapshots").Heading("Snapshots")[SnapshotList(now)]
         ];
+    }
+
+    private IEnumerable<Component> BackupStats(DateTime now)
+    {
+        if (_replication is { } r)
+        {
+            yield return UiStat
+                .Key("replication")
+                .Value(r.IsReplicating ? "running" : "stopped")
+                .Label("Continuous replication")
+                .Tone(r.IsReplicating ? null : UiTone.Error)
+                .Caption(r.LastStartedAt is { } started
+                    ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
+                    : "never started")
+                .Icon(UiIconName.Retry);
+
+            yield return UiStat
+                .Key("restarts")
+                .Value(r.RestartCount.ToString())
+                .Label("Restarts")
+                .Tone(r.RestartCount > 0 ? UiTone.Warning : null)
+                .Caption(r.LastError ?? "no failures recorded")
+                .Icon(UiIconName.Warning);
+        }
+
+        // Restorability is its own fact: "the replicator is running" says nothing about whether what it
+        // wrote can be read back.
+        if (_verification is { } v)
+        {
+            yield return UiStat
+                .Key("verification")
+                .Value(v.Level == BackupVerificationLevel.Verified
+                    ? "restorable"
+                    : v.Outcome.ToLowerInvariant())
+                .Label("Last verified restore")
+                // Broken is red; Unknown is amber. A check that races replication must not paint the tile
+                // red, or the tile stops being read.
+                .Tone(v.Level switch
+                {
+                    BackupVerificationLevel.Verified => null,
+                    BackupVerificationLevel.Broken => UiTone.Error,
+                    _ => UiTone.Warning,
+                })
+                .Caption(v.LastVerifiedAt is { } verified
+                    ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
+                    : v.LastError ?? "never verified")
+                .Icon(v.Level == BackupVerificationLevel.Broken
+                    ? UiIconName.ShieldWarning
+                    : UiIconName.ShieldOk);
+        }
     }
 
     private Component SnapshotList(DateTime now) =>
         _snapshots.Count == 0
-            ? Div.Class("text-xs text-ui-muted")["No snapshots stored."]
-            : UiTable.Scroll(true)[
-                Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
-                    Tr[
-                        Th.Class("px-3 py-2 font-medium")["Snapshot"],
-                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Size"],
-                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Taken"]
-                    ]
-                ],
-                Tbody[_snapshots.Take(10).Select(s => Tr.Key(s.Name)
-                    .Class("border-b border-ui-line/60 last:border-0")[
-                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {UiStyles.Mono}")[
-                        Div.Class("break-all")[s.Name],
-                        Div.Class("mt-1 flex flex-wrap gap-x-2 font-sans text-xs text-ui-muted sm:hidden")[
-                            Span.Class("tabular-nums")[DashboardParts.Bytes(s.SizeBytes)],
-                            Span.Title(s.CreatedAt.ToString("u"))[DashboardParts.Ago(s.CreatedAt, now)]
-                        ]
-                    ],
-                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top tabular-nums sm:table-cell")[
-                        DashboardParts.Bytes(s.SizeBytes)
-                    ],
-                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top text-xs text-ui-muted sm:table-cell")
-                        .Title(s.CreatedAt.ToString("u"))[
-                        DashboardParts.Ago(s.CreatedAt, now)
-                    ]
-                ])]
-            ];
+            ? UiEmpty.Heading("No snapshots stored")
+            : UiDataGrid.Data(_snapshots.Take(10).ToList()).RowKey(s => s.Name).Label("Newest snapshots")[c => [
+                c.Field(s => s.Name).Title("Snapshot").Mono(true),
+                c.Field(s => s.SizeBytes).Title("Size").Value(s => DashboardParts.Bytes(s.SizeBytes)),
+                c.Field(s => s.CreatedAt).Title("Taken").Cell(s =>
+                    Span.Title(s.CreatedAt.ToString("u"))[DashboardParts.Ago(s.CreatedAt, now)]),
+            ]];
 
     private Component? RecurringCard(DateTime now)
     {
@@ -200,36 +191,15 @@ public sealed partial class SystemPage(
         }
 
         return UiCard.Heading("Recurring jobs")[
-            UiTable.Scroll(true)[
-                Thead.Class("border-b border-ui-line text-xs text-ui-muted")[
-                    Tr[
-                        Th.Class("px-3 py-2 font-medium")["Name"],
-                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Every"],
-                        Th.Class("hidden px-3 py-2 font-medium sm:table-cell")["Last enqueued"]
-                    ]
-                ],
-                Tbody[_recurring.Select(r => Tr.Key(r.Name)
-                    .Class("border-b border-ui-line/60 last:border-0")[
-                    Td.Class($"w-full max-w-0 px-3 py-2 align-top {UiStyles.Mono}")[
-                        Div.Class("break-all")[r.Name],
-                        Div.Class("mt-1 flex flex-wrap items-center gap-x-2 font-sans text-xs text-ui-muted sm:hidden")[
-                            Span[$"every {DashboardParts.Duration(r.Interval)}"],
-                            r.LastEnqueuedAt is { } lastSmall
-                                ? Span.Title(lastSmall.ToString("u"))[DashboardParts.Ago(lastSmall, now)]
-                                : UiBadge["never"]
-                        ]
-                    ],
-                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[DashboardParts.Duration(r.Interval)],
-                    Td.Class("hidden whitespace-nowrap px-3 py-2 align-top sm:table-cell")[
-                        r.LastEnqueuedAt is { } last
-                            ? Span.Class("text-xs text-ui-muted").Title(last.ToString("u"))[
-                                DashboardParts.Ago(last, now)
-                            ]
-                            // Declared but never fired: either the app just started, or this one is stuck.
-                            : UiBadge["never"]
-                    ]
-                ])]
-            ]
+            UiDataGrid.Data(_recurring).RowKey(r => r.Name).Label("Recurring jobs")[c => [
+                c.Field(r => r.Name).Title("Name").Mono(true),
+                c.Field(r => r.Interval).Title("Every").Value(r => DashboardParts.Duration(r.Interval)),
+                c.Field(r => r.LastEnqueuedAt).Title("Last enqueued").Cell(r =>
+                    r.LastEnqueuedAt is { } last
+                        ? Span.Title(last.ToString("u"))[DashboardParts.Ago(last, now)]
+                        // Declared but never fired: either the app just started, or this one is stuck.
+                        : UiBadge["never"]),
+            ]]
         ];
     }
 

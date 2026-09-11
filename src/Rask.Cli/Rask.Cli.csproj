@@ -11,6 +11,12 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>rask</ToolCommandName>
     <RollForward>Major</RollForward>
+    <!--
+      One framework on purpose, unlike the libraries: a tool is an application, and RollForward=Major already
+      runs it on any newer runtime, so a second build would only double the package. See
+      RaskVerifyTargetFrameworks in Directory.Build.targets.
+    -->
+    <RaskTargetFrameworksExempt>true</RaskTargetFrameworksExempt>
 
     <PackageId>Rask.Cli</PackageId>
     <Title>Rask.Cli — the `rask` command-line tool</Title>
@@ -72,6 +78,14 @@
            template file is an opaque blob to us, never a culture resource. -->
       <WithCulture>false</WithCulture>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- The dev-session conventions, source-linked from the one place the hosts that act on them also read:
+       what marks a dev-session build and the line an editor-launched app logs (both carried by the scaffolded
+       .vscode/ files), and the https://<name>.test layout — the hostname, where its certificate lives, the
+       port — which an app launched by F5 has to find exactly where `rask dev` put it. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\*.cs" Link="Shared\Dev\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
