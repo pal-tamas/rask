@@ -5,12 +5,13 @@ using System.Runtime.InteropServices;
 
 namespace Rask.TypeScript.Tasks;
 
-/// <summary>The two binaries Rask needs to turn TypeScript into something a browser runs.</summary>
+/// <summary>The tools Rask fetches to work with TypeScript without npm.</summary>
 /// <remarks>
-///     They are deliberately separate tools rather than one. esbuild strips types and bundles but does
-///     not type-check; tsgo type-checks but does not bundle. Using esbuild alone would mean TypeScript
+///     esbuild and tsgo are deliberately separate tools rather than one. esbuild strips types and bundles but
+///     does not type-check; tsgo type-checks but does not bundle. Using esbuild alone would mean TypeScript
 ///     with none of the guarantee that makes it worth writing, and using tsgo alone would mean shipping
-///     unbundled, unminified modules.
+///     unbundled, unminified modules. The compiler's JavaScript API is a third thing again: the one stable way
+///     to ask the checker what a type IS, which is how a package island reads a component's props.
 /// </remarks>
 public enum TypeScriptTool
 {
@@ -19,6 +20,16 @@ public enum TypeScriptTool
 
     /// <summary>The type checker — the native Go build of the TypeScript compiler.</summary>
     Tsgo,
+
+    /// <summary>
+    ///     The TypeScript compiler as a JavaScript library, for its programmatic checker API.
+    /// </summary>
+    /// <remarks>
+    ///     Not a binary: it runs under Node, and only where a project already has Node because it builds
+    ///     islands. tsgo has no stable programmatic API yet, and a props snapshot needs the checker's own
+    ///     answer about a type rather than a reading of the declaration text.
+    /// </remarks>
+    TypeScript,
 }
 
 /// <summary>The operating systems these tools publish native builds for.</summary>
@@ -31,7 +42,7 @@ public enum ToolOs
 }
 
 /// <summary>
-///     Which native binary this machine needs, where it comes from, and where it is cached.
+///     Which package this machine needs for a tool, where it comes from, and where it is cached.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -40,12 +51,11 @@ public enum ToolOs
 ///         build, and the message npm's registry returns names neither Rask nor TypeScript.
 ///     </para>
 ///     <para>
-///         Both tools are distributed as npm packages, but nothing here needs npm or Node. An npm
-///         package is a gzipped tarball at a predictable URL with a published checksum, and these two
-///         packages contain a native executable and nothing that needs a JavaScript runtime to run. So
-///         Rask fetches and verifies them directly, exactly as <c>Rask.Tailwind.Tasks</c> fetches the
-///         Tailwind standalone CLI — which is what keeps "no npm required" true for the framework's own
-///         build and for every consumer of it.
+///         Every tool is distributed as an npm package, but nothing here needs npm. An npm package is a
+///         gzipped tarball at a predictable URL with a published checksum, so Rask fetches and verifies it
+///         directly, exactly as <c>Rask.Tailwind.Tasks</c> fetches the Tailwind standalone CLI. The native
+///         tools then need no JavaScript runtime at all; the compiler library needs Node, which a project
+///         building islands has by definition.
 ///     </para>
 /// </remarks>
 internal static class TypeScriptTools
@@ -53,8 +63,11 @@ internal static class TypeScriptTools
     /// <summary>The npm registry. Overridable so a build behind a mirror is not a build that fails.</summary>
     public const string DefaultRegistry = "https://registry.npmjs.org";
 
+    /// <summary>Whether a tool is a native executable, published per platform.</summary>
+    public static bool IsNative(TypeScriptTool tool) => tool != TypeScriptTool.TypeScript;
+
     /// <summary>
-    ///     The package holding this tool's binary for a platform, or null when none is published.
+    ///     The package holding this tool for a platform, or null when none is published.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -68,9 +81,18 @@ internal static class TypeScriptTools
     ///         <c>-musl</c> variants and a loader probe to pick between them; copying that here would be
     ///         cargo cult, and a wrong guess would fail on the distro least able to explain why.
     ///     </para>
+    ///     <para>
+    ///         The compiler library is one package for every platform, so it is answered before the platform
+    ///         is looked at — a 32-bit or unknown machine can still read a component's props.
+    ///     </para>
     /// </remarks>
     public static string? PackageName(TypeScriptTool tool, ToolOs os, Architecture architecture)
     {
+        if (tool == TypeScriptTool.TypeScript)
+        {
+            return "typescript";
+        }
+
         var slug = PlatformSlug(tool, os, architecture);
         if (slug is null)
         {
@@ -85,7 +107,7 @@ internal static class TypeScriptTools
         };
     }
 
-    /// <summary>The <c>{os}-{arch}</c> half of the package name, shared by both tools' naming schemes.</summary>
+    /// <summary>The <c>{os}-{arch}</c> half of the package name, shared by both native tools' naming schemes.</summary>
     private static string? PlatformSlug(TypeScriptTool tool, ToolOs os, Architecture architecture)
     {
         var arch = architecture switch
@@ -116,13 +138,14 @@ internal static class TypeScriptTools
     }
 
     /// <summary>
-    ///     Where the executable sits inside the extracted package, relative to its root.
+    ///     Where the entry point sits inside the extracted package, relative to its root.
     /// </summary>
     /// <remarks>
-    ///     The two tools disagree, and so does esbuild with itself: esbuild is <c>bin/esbuild</c> on Unix
+    ///     The tools disagree, and so does esbuild with itself: esbuild is <c>bin/esbuild</c> on Unix
     ///     but <c>esbuild.exe</c> at the package root on Windows, with no <c>bin</c> directory at all.
     ///     Assuming one layout works on a developer's machine and fails on somebody else's, which is the
-    ///     worst time to find out — so both are stated here and both are covered by a test.
+    ///     worst time to find out — so every layout is stated here and covered by a test. The compiler
+    ///     library is the same file everywhere.
     /// </remarks>
     public static string ExecutablePath(TypeScriptTool tool, ToolOs os)
     {
@@ -131,20 +154,22 @@ internal static class TypeScriptTools
         {
             TypeScriptTool.Esbuild => windows ? "esbuild.exe" : Path.Combine("bin", "esbuild"),
             TypeScriptTool.Tsgo => windows ? Path.Combine("lib", "tsgo.exe") : Path.Combine("lib", "tsgo"),
+            TypeScriptTool.TypeScript => Path.Combine("lib", "typescript.js"),
             _ => throw new ArgumentOutOfRangeException(nameof(tool)),
         };
     }
 
     /// <summary>
-    ///     Whether the whole extracted tree matters, or only the one executable.
+    ///     Whether the whole extracted tree matters, or only the one entry point.
     /// </summary>
     /// <remarks>
     ///     tsgo ships <c>lib/lib.dom.d.ts</c> and its ~110 siblings beside the binary and resolves
     ///     <c>"lib"</c> from its own location, so extracting only <c>lib/tsgo</c> yields a compiler that
-    ///     reports every DOM type as undefined. esbuild genuinely is one file. Both are extracted whole;
-    ///     this exists to say why that is not incidental.
+    ///     reports every DOM type as undefined. The compiler library resolves the same <c>lib.*.d.ts</c> files
+    ///     from beside <c>typescript.js</c>, for the same reason. esbuild genuinely is one file. All are
+    ///     extracted whole; this exists to say why that is not incidental.
     /// </remarks>
-    public static bool NeedsWholePackage(TypeScriptTool tool) => tool == TypeScriptTool.Tsgo;
+    public static bool NeedsWholePackage(TypeScriptTool tool) => tool != TypeScriptTool.Esbuild;
 
     /// <summary>The metadata document for one version — ~2 KB, versus a megabyte for the full packument.</summary>
     public static string VersionDocumentUrl(string registry, string packageName, string version) =>

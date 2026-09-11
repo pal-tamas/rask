@@ -168,6 +168,61 @@ public sealed class CheckConfigCoverageTests : IDisposable
     }
 
     [Fact]
+    public void A_package_island_the_scan_found_is_not_reported()
+    {
+        // A package island has no front-end file; the build finds its snapshot instead. Asking for a file named
+        // after the package would report every package island as unbuilt.
+        var engine = new StubEngine();
+        var task = NewTask(Front("MuiButton.props.json"));
+        task.BuildEngine = engine;
+        task.PackageIslandsScanned = true;
+
+        task.ReportUnbuiltIslands(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["MuiButton"] = "@mui/material/Button",
+        });
+
+        Assert.Empty(engine.Warnings);
+    }
+
+    [Fact]
+    public void A_package_island_the_scan_missed_is_named_with_its_own_code()
+    {
+        // Roslyn found a package island the source scan did not, so its props were never extracted. That is a
+        // different failure from a front-end file left out of the bundle, and it says so under its own code.
+        var engine = new StubEngine();
+        var task = NewTask(Front("Panel.tsx"));
+        task.BuildEngine = engine;
+        task.PackageIslandsScanned = true;
+
+        task.ReportUnbuiltIslands(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["MuiButton"] = "@mui/material#Button",
+        });
+
+        var warning = Assert.Single(engine.Warnings);
+        Assert.Equal(ExternalDiagnosticCodes.UnscannedPackageIsland, warning.Code);
+        Assert.Contains("MuiButton", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_project_that_never_scanned_for_package_islands_reports_none_of_them()
+    {
+        // No package.json: the scan does not run, the island compiles from its committed snapshot, and there is
+        // nothing to bundle. A warning that the scan "missed" it would be about a scan that never happened.
+        var engine = new StubEngine();
+        var task = NewTask(Front("Panel.tsx"));
+        task.BuildEngine = engine;
+
+        task.ReportUnbuiltIslands(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["MuiButton"] = "@mui/material/Button",
+        });
+
+        Assert.Empty(engine.Warnings);
+    }
+
+    [Fact]
     public void The_fixture_project_demotes_exactly_the_code_the_task_logs()
     {
         // The drift this repository keeps paying for: a suppression naming a code, and a code free to
