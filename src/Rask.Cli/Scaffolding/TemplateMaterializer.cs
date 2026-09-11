@@ -74,7 +74,8 @@ internal static class TemplateMaterializer
         string templateKey,
         string name,
         ServerBatteries batteries,
-        string version)
+        string version,
+        IReadOnlyList<string>? islands = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(targetDirectory);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -82,7 +83,12 @@ internal static class TemplateMaterializer
 
         var assets = TemplateAssets.Load(templateKey);
         var owners = ReadOwners(assets, templateKey);
-        var on = FlagsOn(batteries);
+
+        // The island flags are conditions like any other, so the templates can mark their package
+        // references with them rather than having those spliced in afterwards.
+        var on = islands is { Count: > 0 }
+            ? FlagsOn(batteries).Concat(IslandAssembly.Flags(islands)).ToFrozenSet(StringComparer.Ordinal)
+            : FlagsOn(batteries);
 
         var files = new List<ScaffoldFile>(assets.Count);
         foreach (var asset in assets)
@@ -118,7 +124,9 @@ internal static class TemplateMaterializer
             files.Add(new ScaffoldFile(destination, text));
         }
 
-        return files;
+        return islands is { Count: > 0 }
+            ? IslandAssembly.Apply(targetDirectory, islands, name, files)
+            : files;
     }
 
     /// <summary>Whether a committed tree exists for <paramref name="templateKey"/>.</summary>

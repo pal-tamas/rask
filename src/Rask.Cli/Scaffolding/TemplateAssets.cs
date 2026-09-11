@@ -56,7 +56,19 @@ internal static class TemplateAssets
     ];
 
     /// <summary>Whether <paramref name="templateKey"/> has a committed tree.</summary>
-    public static bool Has(string templateKey) => Keys.Contains(templateKey, StringComparer.Ordinal);
+    /// <remarks>
+    ///     Matches on the resource PREFIX rather than against <see cref="Keys"/>, which holds only the
+    ///     first path segment: the island fragments are addressed as <c>_islands/&lt;runtime&gt;</c>, and
+    ///     comparing that to a list of top-level names would say no to every one of them.
+    /// </remarks>
+    public static bool Has(string templateKey)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(templateKey);
+
+        var root = Prefix + templateKey + "/";
+        return typeof(TemplateAssets).Assembly.GetManifestResourceNames()
+            .Any(n => Normalize(n).StartsWith(root, StringComparison.Ordinal));
+    }
 
     /// <summary>
     ///     Every file in <paramref name="templateKey"/>'s tree, with paths relative to the template root.

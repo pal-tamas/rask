@@ -28,6 +28,16 @@
   <ItemGroup>
     <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
+    <!-- rask:if islands -->
+    <!-- Islands: the base classes a .tsx/.vue/.svelte/.ts component derives from, plus the MSBuild
+         layer that discovers each pair, generates its prop types and bundles it with Vite. -->
+    <PackageReference Include="Rask.External" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
+    <!-- rask:if islands-blazor -->
+    <!-- A real Blazor component hosted as an ordinary Rask component. No npm side: the Razor SDK
+         compiles the .razor and Rask renders it into the first response. -->
+    <PackageReference Include="Rask.Blazor" Version="{{RaskVersion}}"/>
+    <!-- rask:end -->
     <!-- rask:if cqrs -->
     <PackageReference Include="Rask.Cqrs" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.Query" Version="{{RaskVersion}}"/>

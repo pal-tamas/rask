@@ -6,7 +6,12 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>server</c> template into <paramref name="targetDirectory"/>.</summary>
-    public static ScaffoldResult GenerateServer(string targetDirectory, string name, ServerBatteries batteries, string version)
+    public static ScaffoldResult GenerateServer(
+        string targetDirectory,
+        string name,
+        ServerBatteries batteries,
+        string version,
+        IReadOnlyList<string>? islands = null)
     {
         ArgumentNullException.ThrowIfNull(batteries);
 
@@ -17,7 +22,7 @@ internal static partial class ProjectGenerator
         batteries = batteries.Normalized();
 
         return new ScaffoldResult(
-            TemplateMaterializer.Files(targetDirectory, "server", name, batteries, version),
+            TemplateMaterializer.Files(targetDirectory, "server", name, batteries, version, islands),
             ServerNextSteps(name, batteries))
         {
             Packages = ServerPackages(batteries),

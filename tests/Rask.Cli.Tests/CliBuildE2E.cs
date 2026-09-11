@@ -55,6 +55,8 @@ internal static class CliBuildE2E
         "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_rask pages
         "Rask.Ui",                          // the component kit Rask.Dashboard is drawn with, and depends on
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
+        "Rask.External",                    // --islands: the island base classes and the build layer
+        "Rask.Blazor",                      // --islands blazor: a Razor component as a Rask component
     ];
 
     // Packed once and shared across every case (packing the projects is the expensive part of these gates).

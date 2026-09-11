@@ -91,6 +91,10 @@ public sealed class TemplateTreeIntegrityTests
     {
         var missing = Directory
             .EnumerateDirectories(TemplateRoot)
+            // _islands is not a template: it holds the per-runtime FRAGMENTS that --islands merges into
+            // a host template, so it has no battery conditionals of its own to record. Each fragment
+            // carries an island.json instead, which is asserted separately.
+            .Where(d => !Path.GetFileName(d).StartsWith('_'))
             .Where(d => !File.Exists(Path.Combine(d, TemplateMaterializer.ManifestFile)))
             .Select(d => Path.GetFileName(d))
             .Order(StringComparer.Ordinal)
