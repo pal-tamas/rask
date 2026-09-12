@@ -30,7 +30,8 @@ internal static partial class ProjectGenerator
         string name,
         MetaTemplate framework,
         ServerBatteries requested,
-        string version)
+        string version,
+        DotnetTarget? dotnet = null)
     {
         var batteries = requested.Normalized() with { Cqrs = true };
 
@@ -42,9 +43,9 @@ internal static partial class ProjectGenerator
         // running, and whose every front-end dependency is a committed manifest this repository can
         // review and Dependabot can bump.
         return new ScaffoldResult(
-            VsCodeAssembly.Apply(
-                targetDirectory, name,
-                TemplateMaterializer.Files(targetDirectory, framework.Key, name, batteries, version)),
+            TemplateMaterializer.Files(
+                targetDirectory, framework.Key, name, batteries, version, dotnet ?? DotnetTarget.Default,
+                vsCode: true),
             MetaNextSteps(name, framework, batteries.Docker))
         {
             Packages = ["Rask.Cqrs", "Rask.Cqrs.Server", "Rask.Meta.Hosting"],

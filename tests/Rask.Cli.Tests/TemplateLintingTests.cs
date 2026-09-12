@@ -91,7 +91,8 @@ public sealed class TemplateLintingTests
         // An island written in React and a React client linting under different rules is a framework
         // arguing with itself. The island assembly and the templates declare the same base set.
         var files = TemplateMaterializer.Files(
-            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9", ["react"]);
+            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9", DotnetTarget.Default,
+            ["react"]);
 
         Assert.Contains(files, f => Path.GetFileName(f.Path) == "eslint.config.mjs");
         Assert.Contains(files, f => Path.GetFileName(f.Path) == ".prettierrc");
@@ -121,7 +122,8 @@ public sealed class TemplateLintingTests
         // Blazor has no npm side, so there is no package.json — and therefore nothing that would tell
         // `dotnet build` to probe for node and install a linter for a project with no JavaScript.
         var files = TemplateMaterializer.Files(
-            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9", ["blazor"]);
+            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9", DotnetTarget.Default,
+            ["blazor"]);
 
         Assert.DoesNotContain(files, f => Path.GetFileName(f.Path) == "package.json");
         Assert.DoesNotContain(files, f => Path.GetFileName(f.Path) == "eslint.config.mjs");

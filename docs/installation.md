@@ -78,8 +78,22 @@ Every path is overridable from the environment, on both scripts:
 | `RASK_INSTALL_DOTNET_ROOT` | `$DOTNET_ROOT`, else `~/.dotnet` | `%USERPROFILE%\.dotnet` |
 | `RASK_INSTALL_PREFIX` | `~/.local/share/rask` | `%LOCALAPPDATA%\rask` |
 | `RASK_INSTALL_DOTNET_CHANNEL` | `10.0` | `10.0` |
+| `RASK_INSTALL_DOTNET_MAJOR` | `10` | `10` |
+| `RASK_INSTALL_DOTNET_QUALITY` | *(unset)* | *(unset)* |
 | `RASK_INSTALL_NODE_MIN` | `24.15.0` | `24.15.0` |
 | `RASK_INSTALL_PACKAGE` | `Rask.Cli` | `Rask.Cli` |
+
+`RASK_INSTALL_DOTNET_QUALITY` is passed to Microsoft's `dotnet-install` only when you set it, because a
+released channel needs no quality and an empty one is an argument error. It is how you install an SDK
+whose channel has not shipped yet — before .NET 11 is generally available, that is:
+
+```bash
+RASK_INSTALL_DOTNET_CHANNEL=11.0 RASK_INSTALL_DOTNET_MAJOR=11 RASK_INSTALL_DOTNET_QUALITY=preview \
+  sh rask.sh
+```
+
+Rask itself ships for .NET 10 and .NET 11, so this only decides which SDK the installer fetches — and
+`rask new` still scaffolds for .NET 10 unless you pass `--framework net11.0`.
 
 ## Upgrading
 

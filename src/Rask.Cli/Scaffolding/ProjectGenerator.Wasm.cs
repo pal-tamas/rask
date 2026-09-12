@@ -7,7 +7,8 @@ internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>wasm</c> template (a standalone browser-WASM SPA) into <paramref name="targetDirectory"/>.</summary>
     public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool pwa,
-        bool docker, string version, ServerBatteries? batteries = null, IReadOnlyList<string>? islands = null)
+        bool docker, string version, ServerBatteries? batteries = null, IReadOnlyList<string>? islands = null,
+        DotnetTarget? dotnet = null)
     {
         // Both read off the batteries rather than taken as parameters beside them. Styling is one axis
         // with three answers; a bool alongside a ServerBatteries that already carries Styling is two
@@ -19,7 +20,8 @@ internal static partial class ProjectGenerator
         var resolved = (batteries ?? new ServerBatteries()) with { Pwa = pwa, Docker = docker };
 
         return new ScaffoldResult(
-            TemplateMaterializer.Files(targetDirectory, "wasm", name, resolved, version, islands),
+            TemplateMaterializer.Files(
+                targetDirectory, "wasm", name, resolved, version, dotnet ?? DotnetTarget.Default, islands),
             WasmNextSteps(name, docker, cultures.Length > 0))
         {
             // Rask.DevTools is named directly, like Rask.Ui: its build/ hooks are what keep the

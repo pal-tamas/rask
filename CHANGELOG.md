@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new --framework net11.0` scaffolds an app on .NET 11.** The csproj takes the version asked for
+  (`net11.0`, or `net11.0-browser` on the WASM template), the Dockerfile takes the matching `sdk:11.0` /
+  `aspnet:11.0` images, and `.vscode/launch.json` points at the build output that version actually produces,
+  so the project, the container and F5 all agree. `net10.0` stays the default — it is the LTS
+  release, and an app inherits its support window from the runtime it names — and every Rask package ships
+  for both, so the flag decides only what your app targets.
+  - **Refused before a file is written** when the SDK for that version is not installed, naming what to
+    install: a scaffold that cannot compile is worse than not scaffolding, and the SDK's own NETSDK1045
+    names a framework the author chose deliberately rather than the SDK they lack.
+  - **The committed template trees are unchanged.** They are written for the default, so a plain `rask new`
+    still writes them byte for byte; the rewrite runs only when another version is asked for, and it fails
+    the scaffold if a csproj or Dockerfile it should have reached still names the default.
+  - **`rask doctor` and the installers tell the two wasm workloads apart.** `wasm-tools-net10` starts with
+    `wasm-tools`, so the old prefix match reported a machine carrying only the net10 toolchain as fully
+    equipped, and the browser build then failed with the NETSDK1147 these checks exist to prevent. They now
+    match the workload id exactly, and on a .NET 11 SDK they also expect `wasm-tools-net10`, which is what
+    relinks a `net10.0-browser` app there.
+  - **`RASK_INSTALL_DOTNET_QUALITY` installs an SDK from a channel that has not shipped yet.** Unset by
+    default and handed to `dotnet-install` only when set, so `RASK_INSTALL_DOTNET_CHANNEL=11.0
+    RASK_INSTALL_DOTNET_MAJOR=11 RASK_INSTALL_DOTNET_QUALITY=preview` installs the .NET 11 SDK before it is
+    generally available. No new flag on either installer — this is the same environment seam every other
+    install location already uses ([installation](docs/installation.md)).
+
 - **`Rask.Auth.Api` — the accounts battery for a host that renders nothing.** Identity, the
   `/api/auth` endpoints, the cookie, bearer tokens and the account lifecycle, with no `Rask.Core`.
   `Rask.Auth` is now this package plus the two things that need a renderer: the built-in `/login`,
