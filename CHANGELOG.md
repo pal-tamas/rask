@@ -593,6 +593,12 @@ them until tagged releases begin.
   while a tree has focus, and scrolls the cursor back into view when it moves out of sight — including to an unrendered
   row's place in a virtualized tree. Documented in [docs/tree.md](docs/tree.md), live at `/docs/ui/tree`.
 
+- **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
+  drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
+  components costs the rows on screen. Each component keeps an id for as long as it lives, so the branches a developer
+  opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
+  open — a page nobody is inspecting walks its tree exactly as before.
+
 ### Changed
 
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
