@@ -68,6 +68,7 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataDisplayPage(), "Data display", UiIconName.Overview, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataGridPage(), "Data grid", UiIconName.Stack, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitNavigationPage(), "Navigation", UiIconName.Menu, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitTreePage(), "Tree", UiIconName.Folder, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitFeedbackPage(), "Feedback", UiIconName.Warning, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataInputPage(), "Data input", UiIconName.Pencil, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitLayoutPage(), "Layout & mockups", UiIconName.Desktop, "UI kit"));

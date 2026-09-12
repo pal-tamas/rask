@@ -290,6 +290,39 @@ Rask.Ui.RaskPending_UiTopLink_Label
 Rask.Ui.RaskPending_UiTopLink_Label.Href(string! Href) -> Rask.Ui.UiTopLink!
 Rask.Ui.RaskPending_UiTopLink_Label.Key(object? key) -> Rask.Ui.RaskPending_UiTopLink_Label
 Rask.Ui.RaskPending_UiTopLink_Label.RaskPending_UiTopLink_Label() -> void
+Rask.Ui.RaskPending_UiTree<T, TKey>
+Rask.Ui.RaskPending_UiTree<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.Ui.RaskPending_UiTree_Item<T, TKey>
+Rask.Ui.RaskPending_UiTree<T, TKey>.Key(object? key) -> Rask.Ui.RaskPending_UiTree<T, TKey>
+Rask.Ui.RaskPending_UiTree<T, TKey>.Label(string! Label) -> Rask.Ui.RaskPending_UiTree_Label<T, TKey>
+Rask.Ui.RaskPending_UiTree<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree<T, TKey>.RaskPending_UiTree() -> void
+Rask.Ui.RaskPending_UiTree_Item<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item<T, TKey>.Key(object? key) -> Rask.Ui.RaskPending_UiTree_Item<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item<T, TKey>.Label(string! Label) -> Rask.Ui.RaskPending_UiTree_Item_Label<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.Ui.RaskPending_UiTree_Item_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item<T, TKey>.RaskPending_UiTree_Item() -> void
+Rask.Ui.RaskPending_UiTree_Item_Label<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item_Label<T, TKey>.Key(object? key) -> Rask.Ui.RaskPending_UiTree_Item_Label<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item_Label<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.Ui.UiTree<T, TKey>!
+Rask.Ui.RaskPending_UiTree_Item_Label<T, TKey>.RaskPending_UiTree_Item_Label() -> void
+Rask.Ui.RaskPending_UiTree_Item_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item_NodeKey<T, TKey>.Key(object? key) -> Rask.Ui.RaskPending_UiTree_Item_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_Item_NodeKey<T, TKey>.Label(string! Label) -> Rask.Ui.UiTree<T, TKey>!
+Rask.Ui.RaskPending_UiTree_Item_NodeKey<T, TKey>.RaskPending_UiTree_Item_NodeKey() -> void
+Rask.Ui.RaskPending_UiTree_Label<T, TKey>
+Rask.Ui.RaskPending_UiTree_Label<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.Ui.RaskPending_UiTree_Item_Label<T, TKey>
+Rask.Ui.RaskPending_UiTree_Label<T, TKey>.Key(object? key) -> Rask.Ui.RaskPending_UiTree_Label<T, TKey>
+Rask.Ui.RaskPending_UiTree_Label<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.Ui.RaskPending_UiTree_Label_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_Label<T, TKey>.RaskPending_UiTree_Label() -> void
+Rask.Ui.RaskPending_UiTree_Label_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_Label_NodeKey<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.Ui.UiTree<T, TKey>!
+Rask.Ui.RaskPending_UiTree_Label_NodeKey<T, TKey>.Key(object? key) -> Rask.Ui.RaskPending_UiTree_Label_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_Label_NodeKey<T, TKey>.RaskPending_UiTree_Label_NodeKey() -> void
+Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.Ui.RaskPending_UiTree_Item_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>.Key(object? key) -> Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>.Label(string! Label) -> Rask.Ui.RaskPending_UiTree_Label_NodeKey<T, TKey>
+Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>.RaskPending_UiTree_NodeKey() -> void
 Rask.Ui.RaskSeed_UiAccordionSection
 Rask.Ui.RaskSeed_UiAccordionSection.Key(object? key) -> Rask.Ui.RaskSeed_UiAccordionSection
 Rask.Ui.RaskSeed_UiAccordionSection.RaskSeed_UiAccordionSection() -> void
@@ -563,6 +596,12 @@ Rask.Ui.RaskSeed_UiTopLink.Href(string! Href) -> Rask.Ui.RaskPending_UiTopLink_H
 Rask.Ui.RaskSeed_UiTopLink.Key(object? key) -> Rask.Ui.RaskSeed_UiTopLink
 Rask.Ui.RaskSeed_UiTopLink.Label(string! Label) -> Rask.Ui.RaskPending_UiTopLink_Label
 Rask.Ui.RaskSeed_UiTopLink.RaskSeed_UiTopLink() -> void
+Rask.Ui.RaskSeed_UiTree
+Rask.Ui.RaskSeed_UiTree.Expanded<TKey>(System.Collections.Generic.IReadOnlyList<TKey>? Expanded) -> Rask.Ui.RaskStage_UiTree_Expanded<TKey>
+Rask.Ui.RaskSeed_UiTree.Of<T, TKey>() -> Rask.Ui.RaskPending_UiTree<T, TKey>
+Rask.Ui.RaskSeed_UiTree.RaskSeed_UiTree() -> void
+Rask.Ui.RaskSeed_UiTree.Roots<T>(System.Collections.Generic.IEnumerable<T>? Roots) -> Rask.Ui.RaskStage_UiTree_Roots<T>
+Rask.Ui.RaskSeed_UiTree.Selected<TKey>(System.Collections.Generic.IReadOnlyList<TKey>? Selected) -> Rask.Ui.RaskStage_UiTree_Selected<TKey>
 Rask.Ui.RaskSeed_UiValidator
 Rask.Ui.RaskSeed_UiValidator.Key(object? key) -> Rask.Ui.RaskSeed_UiValidator
 Rask.Ui.RaskSeed_UiValidator.Message(string! Message) -> Rask.Ui.UiValidator!
@@ -574,6 +613,15 @@ Rask.Ui.RaskStage_UiDataGrid_Selected<TKey>
 Rask.Ui.RaskStage_UiDataGrid_Selected<TKey>.Data(System.Collections.Generic.IEnumerable<TKey>? Data) -> Rask.Ui.UiDataGrid<TKey, TKey>!
 Rask.Ui.RaskStage_UiDataGrid_Selected<TKey>.Data<T>(System.Collections.Generic.IEnumerable<T>? Data) -> Rask.Ui.RaskPending_UiDataGrid<T, TKey>
 Rask.Ui.RaskStage_UiDataGrid_Selected<TKey>.RaskStage_UiDataGrid_Selected() -> void
+Rask.Ui.RaskStage_UiTree_Expanded<TKey>
+Rask.Ui.RaskStage_UiTree_Expanded<TKey>.RaskStage_UiTree_Expanded() -> void
+Rask.Ui.RaskStage_UiTree_Expanded<TKey>.Roots<T>(System.Collections.Generic.IEnumerable<T>? Roots) -> Rask.Ui.RaskPending_UiTree<T, TKey>
+Rask.Ui.RaskStage_UiTree_Roots<T>
+Rask.Ui.RaskStage_UiTree_Roots<T>.NodeKey<TKey>(System.Func<T, TKey>! NodeKey) -> Rask.Ui.RaskPending_UiTree_NodeKey<T, TKey>
+Rask.Ui.RaskStage_UiTree_Roots<T>.RaskStage_UiTree_Roots() -> void
+Rask.Ui.RaskStage_UiTree_Selected<TKey>
+Rask.Ui.RaskStage_UiTree_Selected<TKey>.RaskStage_UiTree_Selected() -> void
+Rask.Ui.RaskStage_UiTree_Selected<TKey>.Roots<T>(System.Collections.Generic.IEnumerable<T>? Roots) -> Rask.Ui.RaskPending_UiTree<T, TKey>
 Rask.Ui.UiAccordion
 Rask.Ui.UiAccordion.Class.get -> string?
 Rask.Ui.UiAccordion.Class.set -> void
@@ -2034,6 +2082,45 @@ Rask.Ui.UiTopLink.Href.set -> void
 Rask.Ui.UiTopLink.Label.get -> string!
 Rask.Ui.UiTopLink.Label.set -> void
 Rask.Ui.UiTopLink.UiTopLink() -> void
+Rask.Ui.UiTree<T, TKey>
+Rask.Ui.UiTree<T, TKey>.Class.get -> string?
+Rask.Ui.UiTree<T, TKey>.Class.set -> void
+Rask.Ui.UiTree<T, TKey>.ExpandDepth.get -> int?
+Rask.Ui.UiTree<T, TKey>.ExpandDepth.set -> void
+Rask.Ui.UiTree<T, TKey>.Expanded.get -> System.Collections.Generic.IReadOnlyList<TKey>?
+Rask.Ui.UiTree<T, TKey>.Expanded.set -> void
+Rask.Ui.UiTree<T, TKey>.Height.get -> int?
+Rask.Ui.UiTree<T, TKey>.Height.set -> void
+Rask.Ui.UiTree<T, TKey>.Item.get -> System.Func<T, Rask.Core.Component!>!
+Rask.Ui.UiTree<T, TKey>.Item.set -> void
+Rask.Ui.UiTree<T, TKey>.ItemSize.get -> int?
+Rask.Ui.UiTree<T, TKey>.ItemSize.set -> void
+Rask.Ui.UiTree<T, TKey>.Label.get -> string!
+Rask.Ui.UiTree<T, TKey>.Label.set -> void
+Rask.Ui.UiTree<T, TKey>.NodeKey.get -> System.Func<T, TKey>!
+Rask.Ui.UiTree<T, TKey>.NodeKey.set -> void
+Rask.Ui.UiTree<T, TKey>.NodeText.get -> Rask.Core.Fn<T, string!>?
+Rask.Ui.UiTree<T, TKey>.NodeText.set -> void
+Rask.Ui.UiTree<T, TKey>.OnExpandedChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>?
+Rask.Ui.UiTree<T, TKey>.OnExpandedChange.set -> void
+Rask.Ui.UiTree<T, TKey>.OnHover.get -> Rask.Core.Callback<T?>?
+Rask.Ui.UiTree<T, TKey>.OnHover.set -> void
+Rask.Ui.UiTree<T, TKey>.OnSelectionChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>?
+Rask.Ui.UiTree<T, TKey>.OnSelectionChange.set -> void
+Rask.Ui.UiTree<T, TKey>.Roots.get -> System.Collections.Generic.IEnumerable<T>?
+Rask.Ui.UiTree<T, TKey>.Roots.set -> void
+Rask.Ui.UiTree<T, TKey>.Selected.get -> System.Collections.Generic.IReadOnlyList<TKey>?
+Rask.Ui.UiTree<T, TKey>.Selected.set -> void
+Rask.Ui.UiTree<T, TKey>.Selection.get -> Rask.Ui.UiTreeSelection?
+Rask.Ui.UiTree<T, TKey>.Selection.set -> void
+Rask.Ui.UiTree<T, TKey>.Size.get -> Rask.Ui.UiSize?
+Rask.Ui.UiTree<T, TKey>.Size.set -> void
+Rask.Ui.UiTree<T, TKey>.UiTree() -> void
+Rask.Ui.UiTree<T, TKey>.this[System.Func<T, System.Collections.Generic.IEnumerable<T>?>! children].get -> Rask.Core.Component!
+Rask.Ui.UiTreeSelection
+Rask.Ui.UiTreeSelection.Multiple = 2 -> Rask.Ui.UiTreeSelection
+Rask.Ui.UiTreeSelection.None = 0 -> Rask.Ui.UiTreeSelection
+Rask.Ui.UiTreeSelection.Single = 1 -> Rask.Ui.UiTreeSelection
 Rask.Ui.UiValidator
 Rask.Ui.UiValidator.Class.get -> string?
 Rask.Ui.UiValidator.Class.set -> void
@@ -2228,6 +2315,7 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiToggle! __b, string? value
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiTooltip! __b, string? value) -> Rask.Ui.UiTooltip!
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiValidator! __b, string? value) -> Rask.Ui.UiValidator!
 static RaskBuilderSettersRask_Ui.Class<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, string? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.Class<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, string? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.Ui.UiColumn<T>! __b, string? value) -> Rask.Ui.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.Ui.UiFilter<T>! __b, string? value) -> Rask.Ui.UiFilter<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
@@ -2269,6 +2357,8 @@ static RaskBuilderSettersRask_Ui.End(this Rask.Ui.UiNavbar! __b, Rask.Core.Compo
 static RaskBuilderSettersRask_Ui.Error<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Error<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Error<T>(this Rask.Ui.UiTextarea<T>! __b, string? value) -> Rask.Ui.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.ExpandDepth<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, int? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.Expanded<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Field<T>(this Rask.Ui.UiColumn<T>! __b, System.Linq.Expressions.Expression<System.Func<T, object?>!>? value) -> Rask.Ui.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.Ui.UiMultiSelect<T>! __b, Rask.Core.Fn<T, string!, bool>? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.Ui.UiMultiSelect<T>! __b, System.Func<T, string!, bool>? value) -> Rask.Ui.UiMultiSelect<T>!
@@ -2302,6 +2392,7 @@ static RaskBuilderSettersRask_Ui.HandleLabel(this Rask.Ui.UiDiff! __b, string? v
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiCard! __b, string? value) -> Rask.Ui.UiCard!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiEmpty! __b, string! value) -> Rask.Ui.UiEmpty!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiHeader! __b, string! value) -> Rask.Ui.UiHeader!
+static RaskBuilderSettersRask_Ui.Height<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, int? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Help(this Rask.Ui.UiFieldset! __b, string? value) -> Rask.Ui.UiFieldset!
 static RaskBuilderSettersRask_Ui.HiddenColumns<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<string!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Hideable<T>(this Rask.Ui.UiColumn<T>! __b, bool? value) -> Rask.Ui.UiColumn<T>!
@@ -2339,6 +2430,8 @@ static RaskBuilderSettersRask_Ui.Id(this Rask.Ui.UiModal! __b, string? value) ->
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.Ui.UiTextarea<T>! __b, string? value) -> Rask.Ui.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Item<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Func<T, Rask.Core.Component!>! value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.ItemSize<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, int? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Items(this Rask.Ui.UiBreadcrumbs! __b, System.Collections.Generic.IReadOnlyList<(string! Text, string? Href)>! value) -> Rask.Ui.UiBreadcrumbs!
 static RaskBuilderSettersRask_Ui.Joined(this Rask.Ui.UiOtp! __b, bool? value) -> Rask.Ui.UiOtp!
 static RaskBuilderSettersRask_Ui.Label(this Rask.Ui.UiBrand! __b, string! value) -> Rask.Ui.UiBrand!
@@ -2361,6 +2454,7 @@ static RaskBuilderSettersRask_Ui.Label(this Rask.Ui.UiTab! __b, string! value) -
 static RaskBuilderSettersRask_Ui.Label(this Rask.Ui.UiThemeController! __b, string! value) -> Rask.Ui.UiThemeController!
 static RaskBuilderSettersRask_Ui.Label(this Rask.Ui.UiTopLink! __b, string! value) -> Rask.Ui.UiTopLink!
 static RaskBuilderSettersRask_Ui.Label<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, string? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.Label<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, string! value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.Ui.UiMultiSelect<T>! __b, string! value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
@@ -2400,6 +2494,9 @@ static RaskBuilderSettersRask_Ui.Name<T>(this Rask.Ui.UiTextarea<T>! __b, string
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.Ui.UiMultiSelect<T>! __b, bool? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Native<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.NewTab(this Rask.Ui.UiButton! __b, bool? value) -> Rask.Ui.UiButton!
+static RaskBuilderSettersRask_Ui.NodeKey<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Func<T, TKey>! value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.NodeText<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, Rask.Core.Fn<T, string!>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.NodeText<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Func<T, string!>? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Off(this Rask.Ui.UiSwap! __b, Rask.Core.Component! value) -> Rask.Ui.UiSwap!
 static RaskBuilderSettersRask_Ui.On(this Rask.Ui.UiSwap! __b, Rask.Core.Component! value) -> Rask.Ui.UiSwap!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.Ui.UiCalendar! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.Ui.UiCalendar!
@@ -2456,6 +2553,9 @@ static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.Ui.UiDat
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.Ui.UiOtp! __b, Rask.Core.Callback<string!>? value) -> Rask.Ui.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.Ui.UiOtp! __b, System.Action<string!>? value) -> Rask.Ui.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.Ui.UiOtp! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiOtp!
+static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.Ui.UiFileInput! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.Ui.UiFileInput! __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.Ui.UiFileInput! __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiFileInput!
@@ -2465,6 +2565,9 @@ static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.Ui.UiDataGri
 static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, Rask.Core.Callback<T?>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Action<T?>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Func<T?, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiInput<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiInput<T>! __b, System.Action<string!>? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.Ui.UiInput<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiInput<T>!
@@ -2495,6 +2598,9 @@ static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Ui.UiPagination! __b, System
 static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<Rask.Ui.UiGridSort>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Action<Rask.Ui.UiGridSort>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Func<Rask.Ui.UiGridSort, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
@@ -2549,6 +2655,7 @@ static RaskBuilderSettersRask_Ui.Placement(this Rask.Ui.UiTooltip! __b, Rask.Ui.
 static RaskBuilderSettersRask_Ui.Ref<T>(this Rask.Ui.UiInput<T>! __b, Rask.Core.ElementRef? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Reorderable<T>(this Rask.Ui.UiColumn<T>! __b, bool? value) -> Rask.Ui.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.ResetLabel<T>(this Rask.Ui.UiFilter<T>! __b, string? value) -> Rask.Ui.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.Roots<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Collections.Generic.IEnumerable<T>? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Round(this Rask.Ui.UiAvatar! __b, bool? value) -> Rask.Ui.UiAvatar!
 static RaskBuilderSettersRask_Ui.RowClass<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<T, string?>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.RowClass<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Func<T, string?>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
@@ -2560,6 +2667,8 @@ static RaskBuilderSettersRask_Ui.Rows<T>(this Rask.Ui.UiTextarea<T>! __b, int? v
 static RaskBuilderSettersRask_Ui.Scroll(this Rask.Ui.UiTable! __b, bool? value) -> Rask.Ui.UiTable!
 static RaskBuilderSettersRask_Ui.SelectAll<T>(this Rask.Ui.UiMultiSelect<T>! __b, bool? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Selected<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.Selected<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.Ui.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.Selection<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, Rask.Ui.UiTreeSelection? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Shape(this Rask.Ui.UiLoading! __b, Rask.Ui.UiLoadingShape? value) -> Rask.Ui.UiLoading!
 static RaskBuilderSettersRask_Ui.Shape(this Rask.Ui.UiMask! __b, Rask.Ui.UiMaskShape value) -> Rask.Ui.UiMask!
 static RaskBuilderSettersRask_Ui.ShowFrom<T>(this Rask.Ui.UiColumn<T>! __b, Rask.Ui.UiBreakpoint? value) -> Rask.Ui.UiColumn<T>!
@@ -2594,6 +2703,7 @@ static RaskBuilderSettersRask_Ui.Size(this Rask.Ui.UiTabs! __b, Rask.Ui.UiSize? 
 static RaskBuilderSettersRask_Ui.Size(this Rask.Ui.UiThemeController! __b, Rask.Ui.UiSize? value) -> Rask.Ui.UiThemeController!
 static RaskBuilderSettersRask_Ui.Size(this Rask.Ui.UiToggle! __b, Rask.Ui.UiSize? value) -> Rask.Ui.UiToggle!
 static RaskBuilderSettersRask_Ui.Size<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, Rask.Ui.UiSize? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.Size<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, Rask.Ui.UiSize? value) -> Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.Ui.UiInput<T>! __b, Rask.Ui.UiSize? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.Ui.UiMultiSelect<T>! __b, Rask.Ui.UiSize? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Size<T>(this Rask.Ui.UiSelect<T>! __b, Rask.Ui.UiSize? value) -> Rask.Ui.UiSelect<T>!
@@ -2836,6 +2946,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiToggle(Rask.Core.Com
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTooltip(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTopBar(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTopLink(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiTree_2<T, TKey>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiValidator(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiAccordion(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiAccordionSection(Rask.Core.Component! __c0, ulong __p) -> void
@@ -2930,6 +3041,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiToggle(Rask.Core.C
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTooltip(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTopBar(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTopLink(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiTree_2<T, TKey>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiValidator(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskEntriesRask_Ui.UiAccordion.get -> Rask.Ui.UiAccordion!
 static RaskEntriesRask_Ui.UiAccordionSection.get -> Rask.Ui.RaskSeed_UiAccordionSection
@@ -3029,6 +3141,7 @@ static RaskEntriesRask_Ui.UiToggle.get -> Rask.Ui.RaskSeed_UiToggle
 static RaskEntriesRask_Ui.UiTooltip.get -> Rask.Ui.RaskSeed_UiTooltip
 static RaskEntriesRask_Ui.UiTopBar.get -> Rask.Ui.UiTopBar!
 static RaskEntriesRask_Ui.UiTopLink.get -> Rask.Ui.RaskSeed_UiTopLink
+static RaskEntriesRask_Ui.UiTree.get -> Rask.Ui.RaskSeed_UiTree
 static RaskEntriesRask_Ui.UiValidator.get -> Rask.Ui.RaskSeed_UiValidator
 virtual Rask.Ui.UiElement.ResolveAria() -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>?
 ~override Rask.Ui.UiGridRequest.Equals(object obj) -> bool
