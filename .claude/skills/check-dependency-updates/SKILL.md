@@ -28,6 +28,7 @@ dotnet list Rask.slnx package --deprecated
 | --- | --- |
 | `SQLitePCLRaw.*` | Held at 3.x **ahead** of what `Microsoft.Data.Sqlite` asks for, to escape CVE-2025-6965. Never "resolve" it down to the 2.1.x family the graph requests. Both halves move together. |
 | `Microsoft.CodeAnalysis.CSharp{,.Features,.Workspaces}` | Must not exceed the Roslyn in the build SDK — a newer analyzer than the running `csc` is CS9057, and it raises the compiler floor for every downstream consumer. Dependabot ignores these; bump by hand with an SDK-band change. |
+| `Microsoft.Build.Utilities.Core` (+ `Microsoft.Build.Framework`, which it pins exactly) | Held at **18.9.x**. 18.10 is the .NET 11 SDK line and ships `lib/net11.0` + `lib/net472` only, where 18.9.6 ships `lib/net10.0`. A `net10.0` project still COMPILES — it binds `ref/netstandard2.0` — so the build is green and only the tests that load a task fail, with `FileNotFoundException` on `Microsoft.Build.{Utilities.Core,Framework}, Version=15.1.0.0`: 70 failures across the four `*.Tasks.Tests` projects (PR #1064, closed for this). Dependabot ignores `>=18.10`; lift that with the `net11.0` move and bump both halves together. |
 | `Spectre.Console` / `.Testing` | One version, always — the testing package is built against the exact matching library. |
 | `RaskTsgoVersion` | A deliberately **dated** dev build. `@typescript/native-preview` publishes to `latest` daily, so `latest` there means "whatever was built this morning". |
 
