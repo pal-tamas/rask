@@ -35,7 +35,7 @@ public sealed partial class InstallTabs : Component
             // wrapper it used to sit on drew a second frame around a component that has its own.
             Terminal(),
             P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
-                "Nothing preinstalled — it adds the .NET 10 SDK too, under ", Code["$HOME"],
+                "Nothing preinstalled — it adds the .NET SDK too, under ", Code["$HOME"],
                 ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
             ],
             P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[

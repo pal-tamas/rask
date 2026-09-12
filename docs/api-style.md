@@ -183,7 +183,7 @@ cleanly: path-scoped `.editorconfig` severity does not reach generator-produced 
 would have to be a project-wide `NoWarn`, which is a hole rather than a rule.
 
 The files are per target framework because `Rask.Core`, `Rask.Wasm`, `Rask.SQLite.Browser`
-and `Rask` build for `net10.0` and `net10.0-browser` with genuinely different surfaces. Every project
+and `Rask` build for the server and browser targets with genuinely different surfaces. Every project
 uses the same layout, including the ones with a single framework today — so a project that gains a
 second one gets an empty baseline to fill rather than a gate that quietly starts contradicting itself.
 

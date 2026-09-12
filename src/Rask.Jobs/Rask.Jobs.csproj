@@ -10,7 +10,7 @@
     <Title>Rask.Jobs — durable background jobs on your database</Title>
     <Description>Durable background jobs for a Rask app, stored in its own database — no broker, no Redis. Enqueue a job (an `IJob`, dispatched to its Rask.Cqrs `ICommandHandler`) and a background `JobProcessor` polls the table and runs it — at-least-once, with exponential-backoff retries. Supports delayed (run-at) jobs and durable interval-recurring jobs. A source generator registers each job type for reflection-free lookup. Server-side; pairs with Rask.Cqrs and EF Core.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone server-side job queue. -->
-    <PackageTags>background-jobs jobs queue scheduler recurring retry entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
+    <PackageTags>background-jobs jobs queue scheduler recurring retry entity-framework-core efcore background-service sqlite dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

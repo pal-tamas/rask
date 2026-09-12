@@ -9,7 +9,7 @@
     <PackageId>Rask.Auth.Client</PackageId>
     <Title>Rask.Auth.Client — accounts for a browser host</Title>
     <Description>The browser half of Rask.Auth. Register it and a WebAssembly app gets the same IAuth and IUserProvider a server-rendered one has — register, sign in and sign out are the identical calls, and reading the current user is the identical property. It talks to the app's own /api/auth endpoints over a same-origin cookie, so no token is ever held in JavaScript. Deliberately free of ASP.NET Core Identity and Entity Framework: neither belongs in a trimmed browser publish.</Description>
-    <PackageTags>authentication wasm webassembly browser identity claims cookie-auth spa dotnet net10</PackageTags>
+    <PackageTags>authentication wasm webassembly browser identity claims cookie-auth spa dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

@@ -10,7 +10,7 @@
     <Title>Rask.Mail — durable transactional email on your database</Title>
     <Description>Durable transactional email for a Rask app, queued on its own database — no broker, no Redis. Compose an email (a Rask component rendered to HTML is the body), call `IMailQueue.SendAsync`, and a background `MailProcessor` delivers it over SMTP (MailKit) — at-least-once, with exponential-backoff retries and dead-lettering. Zero-config in development: logs or writes `.eml` files when no SMTP server is set. Server-side; pairs with EF Core.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone server-side mail queue. -->
-    <PackageTags>email mail smtp mailkit transactional-email queue outbox retry entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
+    <PackageTags>email mail smtp mailkit transactional-email queue outbox retry entity-framework-core efcore background-service sqlite dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
 

@@ -22,7 +22,7 @@
     <PackageId>Rask.Ui</PackageId>
     <Title>Rask — UI Kit</Title>
     <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and ships no JavaScript. The stylesheet is compiled here and embedded, so a consuming app needs no Tailwind configuration to render it.</Description>
-    <PackageTags>web component framework net10 ui kit components tailwind design-system mobile-first</PackageTags>
+    <PackageTags>web component framework net10 net11 ui kit components tailwind design-system mobile-first</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README instead of the shared framework overview Directory.Build.props

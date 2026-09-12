@@ -68,5 +68,5 @@ body:
       options:
         - label: I searched existing issues and didn't find a duplicate.
           required: true
-        - label: I'm on a supported .NET 10 SDK.
+        - label: I'm on a supported .NET SDK (10 or 11).
           required: true

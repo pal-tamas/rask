@@ -124,7 +124,7 @@ public static class StructuredData
         json.WriteString("applicationCategory", "DeveloperApplication");
         json.WriteString("applicationSubCategory", "Web framework");
         json.WriteString("operatingSystem", "Windows, macOS, Linux");
-        json.WriteString("softwareRequirements", ".NET 10 SDK");
+        json.WriteString("softwareRequirements", ".NET 10 SDK or newer");
         json.WriteString("license", SiteIdentity.License);
         json.WriteBoolean("isAccessibleForFree", true);
         json.WriteString("downloadUrl", SiteIdentity.Package);

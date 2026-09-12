@@ -17,7 +17,7 @@
     <Title>Rask.Auth — accounts, sign-in, and the account lifecycle</Title>
     <Description>Register, sign in and sign out for a Rask app, on by default. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed through Rask's own host-neutral surface — the same IUserProvider, Authorize component and [Authorize] routes work unchanged on the Server, WebAssembly, island, SPA and meta-framework hosts. Ships built-in overridable /login, /register and /logout pages plus the matching /api/auth endpoints, so a TypeScript front end gets the same flows. Email confirmation and password reset go out through the app's own mail queue, with /confirm-email, /forgot-password and /reset-password pages to match. The first account to register becomes the admin.</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is the accounts/sign-in half. -->
-    <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims dotnet net10</PackageTags>
+    <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

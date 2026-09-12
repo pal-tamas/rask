@@ -10,7 +10,7 @@
     <Title>Rask.SqlServer — production SQL Server for EF Core</Title>
     <Description>SQL Server for .NET apps on Entity Framework Core: `UseRaskSqlServer(...)` is a drop-in replacement for `UseSqlServer` that applies `SET XACT_ABORT ON` and a `LOCK_TIMEOUT` on every connection the context opens, sets a client command timeout, turns on transient-failure retrying, and fits Rask's cache key inside SQL Server's index key limit. SQLite stays Rask's default; this is for when SQL Server is the house database.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone data-layer helper. -->
-    <PackageTags>sqlserver mssql azure-sql database entity-framework-core efcore interceptor dotnet net10</PackageTags>
+    <PackageTags>sqlserver mssql azure-sql database entity-framework-core efcore interceptor dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

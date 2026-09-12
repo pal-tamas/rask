@@ -10,7 +10,7 @@
     <Title>Rask.SQLite.Snapshots — scheduled consistent SQLite backups</Title>
     <Description>Takes consistent, point-in-time file snapshots of a live SQLite database on a schedule using SQLite's Online Backup API (never an unsafe file copy), keeps the newest N, and writes them to a directory (or a pluggable store for object storage). A companion to streaming replication: use it when you want simple periodic full backups without an external binary or object-storage sidecar, or alongside `Rask.SQLite.Litestream` for a second line of defence. Register with `services.AddRaskSqliteSnapshots(...)`, or inject `ISqliteSnapshotter` to snapshot on demand. Standalone: depends only on Microsoft.Data.Sqlite and the Microsoft.Extensions hosting/DI abstractions.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone, host-agnostic backup helper. -->
-    <PackageTags>sqlite backup snapshot online-backup vacuum retention hosted-service dotnet net10</PackageTags>
+    <PackageTags>sqlite backup snapshot online-backup vacuum retention hosted-service dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

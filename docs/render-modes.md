@@ -85,7 +85,7 @@ stays server-live, and [RASK054](diagnostics.md#rask054) says so at the call sit
 
 ### One project
 
-The two halves need different SDKs — `Microsoft.NET.Sdk.Web` on `net10.0` for the server,
+The two halves need different SDKs — `Microsoft.NET.Sdk.Web` on `net10.0` (or `net11.0`) for the server,
 `Microsoft.NET.Sdk.WebAssembly` on `net10.0-browser` for the browser — and a `.csproj` carries exactly
 one. So the build generates the second project and drives it, rather than asking you to maintain a
 parallel project whose only job is to compile the same files again:

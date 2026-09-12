@@ -35,7 +35,7 @@ curl -sSL https://rask.sh/rask.sh | sh
 
 On Windows, in PowerShell: `irm https://rask.sh/rask.ps1 | iex`.
 
-**Prerequisites: none.** The installer adds whatever is missing — the .NET 10 SDK, the `wasm-tools`
+**Prerequisites: none.** The installer adds whatever is missing — the .NET SDK, the `wasm-tools`
 workload, Node — all under `$HOME`, no `sudo`. Already have the SDK and want only the tool?
 `dotnet tool install -g Rask.Cli`. See [installation](docs/installation.md).
 
@@ -192,8 +192,9 @@ guides and every live demo — built from [`src/Rask.Site`](src/Rask.Site).
 
 ## Status
 
-Rask is pre-1.0; APIs may change between minor versions. It targets **.NET 10** (`net10.0` for ASP.NET
-hosts, `net10.0-browser` for WASM). Production use at your own discretion — issues and PRs welcome.
+Rask is pre-1.0; APIs may change between minor versions. Every package ships for **.NET 10 and .NET 11** (`net10.0` / `net11.0` for
+ASP.NET hosts, `net10.0-browser` / `net11.0-browser` for WASM); .NET 10 is the LTS release and the
+default `rask new` scaffolds, and `--framework net11.0` opts a new app into .NET 11. Production use at your own discretion — issues and PRs welcome.
 
 ## License
 

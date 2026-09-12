@@ -10,7 +10,7 @@
     <Title>Rask.Logging — a durable log store on your database</Title>
     <Description>A durable, queryable log store for ASP.NET Core apps built with Rask — kept in a SQLite file of its own, or in the application's PostgreSQL or SQL Server database through EF Core, with no agent and no hosted log service. Registers a standard `ILoggerProvider`, so it captures exactly what every other sink sees, buffers entries through a bounded channel that never blocks the caller, and writes them in batches on a background service. Retention is enforced by age and by row count, swept in short pages so locks are never held for long. Pairs with Rask.Dashboard, whose Logs page reads the store. Server-side.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone server-side log store. -->
-    <PackageTags>logging log-store ilogger structured-logging sqlite postgresql sql-server entity-framework-core efcore background-service observability dotnet net10</PackageTags>
+    <PackageTags>logging log-store ilogger structured-logging sqlite postgresql sql-server entity-framework-core efcore background-service observability dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

@@ -46,7 +46,7 @@
     <PackageId>Rask.Blazor</PackageId>
     <Title>Rask — Blazor components</Title>
     <Description>Hosts a real Blazor component inside a Rask page. Derive a component from BlazorComponent&lt;T&gt; and the Razor SDK's own output — your Razor Class Library, MudBlazor, Radzen — renders server-side into the first HTTP response, with its parameters passed as live C# objects rather than serialized. The hosted component's own click and bind events fire over Rask's existing channel with no Blazor circuit. Works on the ASP.NET host and on WebAssembly, trimmed publish included.</Description>
-    <PackageTags>web component framework net10 blazor razor interop islands</PackageTags>
+    <PackageTags>web component framework net10 net11 blazor razor interop islands</PackageTags>
   </PropertyGroup>
 
   <!--

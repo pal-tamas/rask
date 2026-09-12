@@ -26,6 +26,12 @@ them until tagged releases begin.
     equipped, and the browser build then failed with the NETSDK1147 these checks exist to prevent. They now
     match the workload id exactly, and on a .NET 11 SDK they also expect `wasm-tools-net10`, which is what
     relinks a `net10.0-browser` app there.
+  - **The site, the docs and the package metadata say both versions.** The landing page's badge and
+    prerequisite line, the installation guide's search title and description, the JSON-LD
+    `softwareRequirements`, README, both `NUGET.md` files, `llms.txt` and every package's `PackageTags`
+    now name .NET 10 and .NET 11 rather than .NET 10 alone — and the bug report's "supported .NET SDK"
+    checkbox, which is `required`, is one a .NET 11 user can tick honestly. Copy about what the
+    *installer fetches* says ".NET SDK" without a number, so it stays true when .NET 11 goes GA.
   - **`RASK_INSTALL_DOTNET_QUALITY` installs an SDK from a channel that has not shipped yet.** Unset by
     default and handed to `dotnet-install` only when set, so `RASK_INSTALL_DOTNET_CHANNEL=11.0
     RASK_INSTALL_DOTNET_MAJOR=11 RASK_INSTALL_DOTNET_QUALITY=preview` installs the .NET 11 SDK before it is

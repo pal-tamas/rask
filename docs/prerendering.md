@@ -333,7 +333,7 @@ inputs, `robots.txt` included, so a second publish reproduces the first byte for
 ## How it runs
 
 A browser-wasm assembly cannot execute on the desktop, so the app's own sources are compiled a
-**second time for `net10.0`** into a companion project under `obj/rask-prerender/`, and that is
+**second time for the app's own server target** into a companion project under `obj/rask-prerender/`, and that is
 what renders. The companion carries the app's own `ProjectReference`s, `PackageReference`s, `<Using>` items and
 `EmbeddedResource` items, so it reaches the framework exactly the way the app does and reads the same
 resources at render time.
@@ -347,8 +347,8 @@ keep registrations in sync.
 Generated files under `obj/` are rewritten on every publish; edit the app, never the companion.
 
 The companion builds with **warnings-as-errors off**, for the same reason its analyzers are off and
-one stronger one: *its reference closure is not the app's*. Targeting `net10.0` makes a multi-targeted
-dependency resolve its non-browser face — the `Rask` metapackage's `net10.0` face carries the
+one stronger one: *its reference closure is not the app's*. Targeting the app's server framework makes a multi-targeted
+dependency resolve its non-browser face — the `Rask` metapackage's server face carries the
 server-only pieces a browser app never saw — so two components that never met in the app can meet
 here. That is a fact about the companion, not about your code, and the real build is what judges your
 code.

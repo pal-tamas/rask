@@ -10,7 +10,7 @@
     <Title>Rask.Postgres — production PostgreSQL for EF Core</Title>
     <Description>PostgreSQL for .NET apps on Entity Framework Core: `UseRaskPostgres(...)` is a drop-in replacement for `UseNpgsql` that applies the production session settings (`statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout`) to every connection the context opens and turns on Npgsql's transient-failure retrying. SQLite stays Rask's default; this is the door out when one box is no longer enough.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone data-layer helper. -->
-    <PackageTags>postgres postgresql npgsql database entity-framework-core efcore interceptor dotnet net10</PackageTags>
+    <PackageTags>postgres postgresql npgsql database entity-framework-core efcore interceptor dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
