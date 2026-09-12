@@ -6,7 +6,7 @@ to a **deployed, database-backed product that one person runs on one server**. T
 [the .NET One Person Framework](../one-person-framework.md), and this is the walk-through that proves it.
 
 We build a small online shop — **Shop** — and grow it one chapter at a time. Every step is a real command
-you type and real code the `rask` CLI writes for you. Nothing here is pseudo-code.
+you type and real code you write. Nothing here is pseudo-code.
 
 ## What you'll build
 
@@ -33,12 +33,12 @@ whole product.
 | # | Chapter | Pillar | You'll build |
 |---|---------|--------|-----------|
 | 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop` |
-| 2 | [Your first feature](02-first-feature.md) | Data · CQRS · SQLite | a `Product` slice · `rask db` |
+| 2 | [Your first feature](02-first-feature.md) | Data · SQLite | a `Product` slice · `rask db` |
 | 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | an `Order` slice on the same database |
 | 4 | [Background jobs](04-background-jobs.md) | Jobs | an `IBackgroundJob` + handler |
 | 5 | [Transactional email](05-email.md) | Mail | an email component + `IMail` |
 | 6 | [Caching the catalog](06-cache.md) | Cache | a cached read accessor |
-| 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | `IOutboxEvent`s + a handler |
+| 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | an `IOutboxEvent` + a handler |
 | 8 | [Production SQLite](08-production-sqlite.md) | SQLite | `UseRaskSqlite()` · snapshots · Litestream |
 | 9 | [Push notifications](09-web-push.md) | Web Push · PWA | `VapidKeys.Generate()` · `IWebPush` |
 | 10 | [Watching it run](10-ops.md) | Observability | an `/ops` page over every pillar's table |
@@ -67,8 +67,8 @@ Already set up? `dotnet --version` should print `10.0` or newer, and
 `dotnet tool install -g Rask.Cli` (or `dotnet tool update -g Rask.Cli`) is all you need. Full
 detail: [Installing Rask](../installation.md).
 
-This tutorial assumes you're comfortable with C#. It does **not** assume you know EF Core, CQRS, or Rask —
-each idea is introduced where it first appears. If you've never built a Rask UI, skim
+This tutorial assumes you're comfortable with C#. It does **not** assume you know EF Core or Rask — each
+idea is introduced where it first appears. If you've never built a Rask UI, skim
 [Getting started](../getting-started.md) first; we won't re-teach components here.
 
 Ready? → **[Chapter 1: Scaffold the app](01-scaffold.md)**

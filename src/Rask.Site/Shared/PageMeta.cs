@@ -135,7 +135,11 @@ public static partial class PageMeta
     {
         string url = route;
         var tail = url.AsSpan().IndexOfAny('?', '#');
-        return tail < 0 ? CanonicalPath(url) : CanonicalPath(url[..tail]) + url[tail..];
+        RouteUrl linked = tail < 0 ? CanonicalPath(url) : CanonicalPath(url[..tail]) + url[tail..];
+
+        // The page type travels with it: it is what tells a kit button or link that this URL is a route of
+        // the app, to navigate in place, rather than a string to hand to the browser.
+        return linked with { PageType = route.PageType };
     }
 
     /// <summary>

@@ -1,4 +1,6 @@
 using System.Text;
+using Rask.Core.Live;
+using Rask.Core.Routing;
 
 namespace Rask.Ui;
 
@@ -89,6 +91,14 @@ public sealed partial class UiButton : UiElement
     ///     guide", an install link — and daisyUI documents <c>btn</c> on an anchor for exactly it.
     ///     </para>
     ///     <para>
+    ///     Given a generated route — <c>Routes.Orders()</c> — it navigates INSIDE the app, as a
+    ///     <c>NavLink</c> does: the anchor carries <c>data-rask-nav</c>, which the runtime intercepts and
+    ///     routes without reloading the page, and the deploy's path base, so a new tab, a copied link or a
+    ///     crawler reaches the same page. A plain string is an ordinary link the browser follows itself, which
+    ///     is what a URL that leaves the app wants. With <see cref="NewTab" /> nothing is intercepted: the
+    ///     reader asked for another browsing context.
+    ///     </para>
+    ///     <para>
     ///     It stays ONE component because the tone, fill and size axes are identical either way; a sibling
     ///     would duplicate all of them to change one tag. What does change is what the element means: an
     ///     anchor navigates, so it takes no <c>type</c>, and <see cref="Disabled" /> cannot apply to it —
@@ -100,7 +110,7 @@ public sealed partial class UiButton : UiElement
     ///     a kit button from data is refused the same way.
     ///     </para>
     /// </remarks>
-    public string? Href { get; set; }
+    public RouteUrl? Href { get; set; }
 
     /// <summary>
     ///     What it does when pressed. Defaults to <see cref="UiButtonType.Button" /> — nothing on its own.
@@ -129,7 +139,13 @@ public sealed partial class UiButton : UiElement
     public bool? Disabled { get; set; }
 
     /// <inheritdoc />
-    protected override string TagName => Href is null ? "button" : "a";
+    protected override string TagName => Link is null ? "button" : "a";
+
+    // A null string reaching Href converts to a RouteUrl with no path rather than to no RouteUrl at all, and a
+    // button with a null string for a destination is a button, as it was when Href was a string.
+    // Href itself rather than `href : null`: that null would take the same string conversion and come out as a
+    // RouteUrl with no path, which is the case this exists to catch.
+    private RouteUrl? Link => Href is { Path: not null } ? Href : null;
 
     /// <inheritdoc />
     protected override string? ResolveClass() =>
@@ -170,15 +186,25 @@ public sealed partial class UiButton : UiElement
     {
         base.WriteAttributes(sb);
 
-        if (Href is { } href)
+        if (Link is { } href)
         {
-            AppendUrlAttr(sb, "href", href);
+            // A generated route carries its page type; a string converted to a RouteUrl does not. Only the
+            // first is this app's to route, so only it is intercepted, and only it is prefixed with the
+            // deploy's PathBase — a route's own path is prefix-less, exactly as NavLink's is (#975).
+            var inApp = href.PageType is not null;
+            AppendUrlAttr(sb, "href", inApp ? LiveOptions.PathBase + href.ToString() : href.ToString());
 
             if (NewTab == true)
             {
                 // noopener with it, always — see the remarks on NewTab.
                 AppendAttr(sb, "target", "_blank");
                 AppendAttr(sb, "rel", "noopener");
+            }
+            else if (inApp)
+            {
+                // The runtime's click interception selects on this attribute. Without it the anchor is a full
+                // document load, booting the whole app again to reach a page it already has.
+                AppendAttr(sb, "data-rask-nav", null);
             }
 
             // No `type`, no `disabled` and no invoker: none of them means anything on an anchor, and a

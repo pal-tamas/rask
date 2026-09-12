@@ -143,9 +143,9 @@ builder.Services.AddRaskCqrsServer();
 // rask:end
 // rask:end
 // rask:if data
-// The generic overload is what names the context to the ambient database, so `Product.Add(…)`
-// and `Product.Where(…)` know which one to open. The non-generic AddRaskData() registers only
-// the interceptors, and Db.Configure below then has nothing to bind.
+// The generic overload is what names the context to the model surface, so `Product.Where(…)`
+// and the generated `Product.CreateAsync(model)` know which one to open. The non-generic
+// AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
 builder.Services.AddRaskData<AppDbContext>();
 // rask:if outbox
 // Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
@@ -293,8 +293,9 @@ builder.Services.AddRaskPwa(new WebAppManifest
 
 var app = builder.Build();
 // rask:if cqrs data
-// Point the ambient database at the context registered above. This is what lets a model be
-// used from anywhere — Product.Where(…), Product.FindAsync(id) — with no DbContext injected.
+// Point the model surface at the context registered above. This is what lets a model be read
+// and saved from anywhere — Product.Where(…), Product.CreateAsync(model) — with no DbContext
+// injected.
 Db.Configure(app.Services);
 // rask:end
 // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below

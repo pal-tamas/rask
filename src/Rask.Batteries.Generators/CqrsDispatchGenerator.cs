@@ -104,22 +104,23 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             }
 
             var args = iface.TypeArguments;
-            var requestFqn = Fqn(args[0]);
+            var compilation = ctx.SemanticModel.Compilation;
+            var requestFqn = Fqn(args[0], compilation);
             var resultFqn = kind switch
             {
-                HandlerKind.Query => Fqn(args[1]),
-                HandlerKind.CommandResult => Fqn(args[1]),
+                HandlerKind.Query => Fqn(args[1], compilation),
+                HandlerKind.CommandResult => Fqn(args[1], compilation),
                 HandlerKind.CommandVoid => "global::Rask.Cqrs.Unit",
                 _ => string.Empty,
             };
 
-            var registerability = DescribeRegisterability(symbol, args);
+            var registerability = DescribeRegisterability(symbol, args, compilation);
             handlers.Add(new HandlerModel(
                 kind.Value,
-                Fqn(symbol),
+                Fqn(symbol, compilation),
                 requestFqn,
                 resultFqn,
-                Fqn(iface),
+                Fqn(iface, compilation),
                 registerability?.Problem,
                 registerability?.Remedy));
         }
@@ -149,7 +150,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     // has (#608).
     private static (string Problem, string Remedy)? DescribeRegisterability(
         INamedTypeSymbol symbol,
-        ImmutableArray<ITypeSymbol> typeArguments)
+        ImmutableArray<ITypeSymbol> typeArguments,
+        Compilation compilation)
     {
         if (symbol.IsGenericType)
         {
@@ -170,7 +172,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         foreach (var argument in typeArguments)
         {
-            if (SymbolRegistration.DescribeUnnameableWithRemedy(argument) is { } argumentProblem)
+            if (SymbolRegistration.DescribeUnnameableWithRemedy(argument, compilation) is { } argumentProblem)
             {
                 return ($"handles '{argument.ToDisplayString()}', which {argumentProblem.Problem}",
                     $"for '{argument.ToDisplayString()}', {argumentProblem.Remedy}");
@@ -437,8 +439,11 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
             | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
-    private static string Fqn(ITypeSymbol symbol) =>
-        symbol.ToDisplayString(FqnFormat);
+    // Through GeneratedModelShape so a handler answering with a Rask.Data entity's generated model names it
+    // in full. This generator cannot see that model — it is generated in the same compilation — so it is an
+    // error type here, whose display string is the bare name that does not bind from the generated file.
+    private static string Fqn(ITypeSymbol symbol, Compilation compilation) =>
+        GeneratedModelShape.DisplayName(symbol, FqnFormat, compilation);
 
     private enum HandlerKind
     {

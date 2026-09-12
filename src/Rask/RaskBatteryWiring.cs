@@ -363,8 +363,9 @@ internal static class RaskBatteryWiring
         RaskDatabaseProvider provider)
         where TContext : DbContext
     {
-        // Bind the ambient database to this context, so `Product.Where(…)` and `Db.Begin()` reach it
-        // without anything being injected. AddRaskData is idempotent, so this only adds the binding.
+        // Bind the model surface to this context, so `Product.Where(…)` and the generated
+        // `Product.CreateAsync(model)` reach it without anything being injected. AddRaskData is idempotent,
+        // so this only adds the binding.
         services.AddRaskData<TContext>();
 
         // Unless the app wired a log store itself, which wins here as it does for every battery. Calling

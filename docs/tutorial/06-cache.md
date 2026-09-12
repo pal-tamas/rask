@@ -31,11 +31,9 @@ public sealed class CatalogCache(ICache cache)
 }
 ```
 
-If you scaffolded with `--cache` in [Chapter 1](01-scaffold.md), the package, the
-`AddRaskCache<AppDbContext>()` registration and the `modelBuilder.AddRaskCache()` schema call are already
-there. If not, the command prints exactly what to add — then `rask db add AddCache && rask db update`.
-
-Register the accessor and you can inject it anywhere:
+Chapter 1's `rask new` already wrote `builder.Services.AddRaskCache<AppDbContext>()` and mapped the cache
+table, which the first migration created — so this class is the only thing to write. Register it next to
+that line in `Program.cs` and you can inject it anywhere:
 
 ```csharp
 builder.Services.AddScoped<CatalogCache>();
@@ -43,43 +41,61 @@ builder.Services.AddScoped<CatalogCache>();
 
 ## 2. Cache the product list
 
-Fill in the generated `GetAsync` with the read you actually want to avoid. Two notes on the shape:
+Fill in `GetAsync` with the read you actually want to avoid. Two notes on the shape:
 
 - **Project to a record.** Cache values round-trip as JSON, and the `Product` entity's private setters don't
-  survive that. A lightweight `ProductListItem` does.
+  survive that. A lightweight `ProductListItem` does — and `Select` reads only the columns it names.
 - **Return the cached value or compute it.** That's the whole of `GetOrAddAsync`: hit, or run your
   factory, store the result, and return it.
 
 ```csharp
-public sealed record ProductListItem(Guid Id, string Name, decimal Price, bool InStock);
+public sealed record ProductListItem(Guid Id, string Name, decimal Price, bool InStock, int Version);
 
 public Task<IReadOnlyList<ProductListItem>> GetAsync(CancellationToken cancellationToken = default) =>
-    cache.GetOrAddAsync(
+    cache.GetOrAddAsync<IReadOnlyList<ProductListItem>>(
         Key,
-        async token =>
-        {
-            await using var db = await dbContextFactory.CreateDbContextAsync(token);
-            return (IReadOnlyList<ProductListItem>)await db.Products
-                .AsNoTracking()
-                .OrderBy(p => p.Id)
-                .Select(p => new ProductListItem(p.Id, p.Name.Value, p.Price, p.InStock))
-                .ToListAsync(token);
-        },
+        async token => await Product
+            .OrderBy(p => p.Name)
+            .Select(p => new ProductListItem(p.Id, p.Name, p.Price, p.InStock, p.Version))
+            .ToListAsync(token),
         Lifetime,
         cancellationToken);
 ```
 
-Then have `ListProductsQueryHandler` call `catalogCache.GetAsync(ct)` instead of querying directly, and
-change the page's field to `private IReadOnlyList<ProductListItem> _items = [];`. The rest of
-`ProductsPage` already reads `x.Id`, `x.Name`, `x.Price`, `x.InStock`, so nothing else changes.
+`Version` rides along because the list's delete button sends it back (Chapter 2).
+
+Then have `ProductsPage` read through the accessor instead of handing the grid a query. The page takes the
+cache in its constructor, loads the list when it mounts, and reloads it after a delete:
+
+```csharp
+[Route("/products")]
+public sealed partial class ProductsPage(CatalogCache catalog) : Component
+{
+    private IReadOnlyList<ProductListItem> _items = [];
+
+    protected override async Task OnMountAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => _items = await catalog.GetAsync(CancellationToken);
+
+    // … and in Render(), the grid takes the list, and a delete reloads it:
+    //     UiDataGrid.Data(_items).RowKey(p => p.Id) …
+    //     DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(LoadAsync)
+}
+```
+
+The columns read `p.Name`, `p.Price` and `p.InStock` either way, so nothing else in `Render()` changes. What
+does change is where the grid does its work: handed a list rather than a query, it sorts and pages **in
+memory**. That's the right trade for a set small enough to cache — and being small enough to cache is the
+reason you're here.
 
 ## 3. Invalidate when the catalog changes
 
-A cache is only correct if you clear it when the underlying data changes. In the create / update / delete
-handlers (`CreateProduct.cs`, `UpdateProduct.cs`, `DeleteProduct.cs`), after saving:
+A cache is only correct if you clear it when the underlying data changes. In the three components that write
+(`CreateProduct.cs`, `UpdateProduct.cs`, `DeleteProduct.cs`), inject `CatalogCache` as `catalog` and, right
+after the write succeeds — before navigating away:
 
 ```csharp
-await catalogCache.InvalidateAsync(ct);
+await catalog.InvalidateAsync(CancellationToken);
 ```
 
 Invalidating at the point of the **write** — not on a timer, not on read — is what keeps the cache from
@@ -98,6 +114,6 @@ Now the list is served from cache until it expires *or* someone edits the catalo
 - Create or delete a product and reload — the list reflects the change immediately (the `InvalidateAsync`
   dropped the key), then is served from cache again.
 
-**Learn more:** [cache](../cache.md)
+**Learn more:** [cache](../cache.md) · [data grid](../data-grid.md)
 
 Next → **[Chapter 7: Domain events + the outbox](07-outbox-events.md)**

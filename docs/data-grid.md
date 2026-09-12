@@ -63,6 +63,10 @@ UiDataGrid.Data(db.Products).RowKey(p => p.Id).PageSize(25)[c => [
 ]]
 ```
 
+A [`Rask.Data`](data.md) model hands one over with no context held open. `UiDataGrid.Data(Product.AsQueryable())`
+opens a context for each execution and disposes it, so the queryable can live in a page's field — see
+[handing a query to a component](data.md#handing-a-query-to-a-component-asqueryable).
+
 A column sorted this way needs a `Field` or a `SortBy` its provider can translate — both are
 `Expression`s for exactly that reason, where `SortKey` is the in-memory equivalent and is ignored here.
 This mode enumerates **synchronously**, which is why the third exists.

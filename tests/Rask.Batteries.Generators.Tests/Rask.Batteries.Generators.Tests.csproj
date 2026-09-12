@@ -40,6 +40,15 @@
     -->
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- For its [assembly: RaskCqrsTransport]: the codec generator emits nothing for a compilation that
+         references no transport, so a codec test without it passes against an empty run. -->
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <!-- The component and routes generators, as a plain assembly, with the Rask.Core they generate against:
+         a component prop typed as a generated model can only be checked by compiling the model generator's
+         output together with theirs, and the model generator lives here. -->
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Outbox\Rask.Outbox.csproj"/>
   </ItemGroup>

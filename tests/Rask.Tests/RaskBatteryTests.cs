@@ -265,6 +265,22 @@ public sealed class RaskBatteryTests
     }
 
     [Fact]
+    public void Rask_s_own_context_is_injectable_into_a_scope_as_well_as_through_its_factory()
+    {
+        // The data guide sends domain operations to plain EF Core: a live page takes the factory, because it
+        // outlives any scope, while a CQRS handler or an endpoint takes the context itself. Both have to come
+        // out of the one AddDbContextFactory registration the Data battery makes.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+
+        var built = app.Build<TestApp>();
+
+        Assert.NotNull(built.Services.GetService<IDbContextFactory<RaskAppDbContext>>());
+
+        using var scope = built.Services.CreateScope();
+        Assert.NotNull(scope.ServiceProvider.GetService<RaskAppDbContext>());
+    }
+
+    [Fact]
     public void A_battery_is_configured_where_it_is_turned_off()
     {
         // The other half of the block: Off() and setup live together, so there is one place to read how
