@@ -217,7 +217,7 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
             if (!rooted || !File.Exists(path))
             {
                 // DIRECTORY INDEX FIRST: the prerender pass writes a rendered page per route as
-                // <route>/index.html, and production serves it (Rask.Wasm.Hosting uses UseDefaultFiles
+                // <route>/index.html, and production serves it (Rask.Spa.Hosting uses UseDefaultFiles
                 // with DefaultFileNames = ["index.html"]). Skipping straight to the SPA fallback served
                 // the BOOT SHELL instead, which made every journey a cold-WASM-boot race and left the
                 // prerendered output with no browser coverage at all (#1034).

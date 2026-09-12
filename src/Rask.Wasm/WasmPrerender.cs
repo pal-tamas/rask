@@ -271,7 +271,7 @@ public static class WasmPrerender
     ///     <para>
     ///         <b>That is not cosmetic drift, it is prerendering not happening.</b> Any host that prefers
     ///         a precompressed sibling — nginx <c>brotli_static</c>, Netlify, Cloudflare Pages, S3 behind
-    ///         a CDN, and Rask's own <c>Rask.Wasm.Hosting</c> — serves the spinner to every visitor and
+    ///         a CDN, and Rask's own <c>UseRaskSpa</c> — serves the spinner to every visitor and
     ///         every crawler while a perfectly good prerendered page sits on disk beside it. Measured
     ///         here: a 76 KB rendered <c>index.html</c> next to a 2.3 KB <c>.br</c> of the shell, and a
     ///         manifest promising <c>Content-Length: 7292</c> for a 76,579-byte file, which is a wrong

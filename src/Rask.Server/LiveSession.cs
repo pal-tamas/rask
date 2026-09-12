@@ -73,16 +73,6 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private volatile WebSocket? _socket;
     private CancellationToken _socketCt;
 
-    // Set when the host tore this session down because it judged the page static — i.e. nothing in
-    // the render needed a live connection. Distinct from ordinary disposal, because the two want
-    // opposite things from a late StateHasChanged: after a normal teardown it is noise, and after
-    // this it is the one symptom of the failure mode static rendering cannot detect.
-    private volatile bool _discardedAsStatic;
-
-    // Guards the report below to one per session. A polling loop pushes on a timer, so an unguarded
-    // warning would repeat for as long as the loop survives its own page.
-    private int _staticPushReported;
-
     // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
     // from a component's Unmount/Dispose callback can't re-enter the render path and deadlock on
     // the _renderLock that DisposeAsync/Dispose hold while tearing the tree down. Volatile because
@@ -292,38 +282,6 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
     }
 
-    /// <summary>
-    ///     Records that the host served this page without a live session, so a later re-render
-    ///     request can say so instead of vanishing.
-    /// </summary>
-    internal void MarkDiscardedAsStatic() => _discardedAsStatic = true;
-
-    protected override void OnLatePush() => ReportPushToAStaticPage();
-
-    // The audit for the one thing detection cannot see. Interactivity is judged from what the render
-    // DID: a handler, a form, a ref, a JS call, unsettled async work. A component that pushes from a
-    // timer or an event subscription does none of those during the walk, so its page is judged static
-    // and its updates then go nowhere — silently, and only in production.
-    //
-    // This is that silence made audible. It fires when something asks a discarded-as-static session to
-    // re-render, which is exactly the moment the page would have updated and cannot.
-    private void ReportPushToAStaticPage()
-    {
-        if (!_discardedAsStatic || Interlocked.Exchange(ref _staticPushReported, 1) != 0)
-        {
-            return;
-        }
-
-        RaskDiagnostics.Report(
-            RaskLogLevel.Warning,
-            "Rask.Ssr",
-            $"A page served without a live session (RaskServerOptions.StaticPages) asked to re-render " +
-            $"after its response had gone, so the update reached nobody. Session {Id}. This is what a " +
-            "component pushing from a timer or an event subscription looks like: the render itself " +
-            "showed no need for a connection, so the page was served as a document. Give that " +
-            "component something the render can see, or turn StaticPages off for this app.");
-    }
-
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
         // _disposed short-circuits a StateHasChanged raised from an Unmount/Dispose callback during
@@ -332,7 +290,6 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         if (_disposed || _socket is null || _socket.State != WebSocketState.Open)
         {
             _renderRequestedWhileDetached = true;
-            ReportPushToAStaticPage();
             return;
         }
 
@@ -437,14 +394,12 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     ///     </para>
     ///     <para>
     ///         The budget is one deadline for the whole response, not one per wave — otherwise ten
-    ///         waves of five seconds is a fifty-second page. On expiry the caller is told through
-    ///         <see cref="LastRenderTimedOut" />; the pending work is deliberately NOT cancelled,
-    ///         because the page is about to be handed a live session that will finish the load.
+    ///         waves of five seconds is a fifty-second page. On expiry the pending work is deliberately
+    ///         NOT cancelled, because the page's live session finishes the load.
     ///     </para>
     /// </remarks>
     internal async Task<string> RenderInitialRootAsync(TimeSpan budget, CancellationToken cancellationToken = default)
     {
-        LastRenderBlockedOnJs = false;
         if (budget <= TimeSpan.Zero)
         {
             return RenderInitialRoot();
@@ -457,58 +412,18 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             budget,
             // Work blocked on JavaScript cannot finish here, so waiting for it only burns the
             // budget. A JS call made during a render queues onto a frame, and during the GET there
-            // is no client to send that frame to — the awaiting task completes once the socket is
+            // is no client to send that frame to — the awaiting task completes once the connection is
             // up, never before. A hook that reads browser storage to restore a session is exactly
             // this shape, and it is idiomatic enough to appear in the framework's own auth sample.
-            //
-            // Stopping there costs nothing that waiting would have bought: the same page is already
-            // marked interactive by the interop itself, so it keeps its session and finishes over
-            // the socket precisely as it did before any of this existed.
-            isBlocked: () =>
-            {
-                if (!JsInvokes.HasPending)
-                {
-                    return false;
-                }
-
-                LastRenderBlockedOnJs = true;
-                return true;
-            },
+            // Stopping there costs nothing: the page's live session finishes the load.
+            isBlocked: () => JsInvokes.HasPending,
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var html = result.Html;
 
-        LastRenderTimedOut = result.TimedOut;
-        if (result.TimedOut)
-        {
-            // The page is going out with work still in flight, so it MUST keep a live session:
-            // served as a plain document it would sit on its placeholder for ever, with nothing
-            // left running that could ever replace it.
-            MarkRequiresLiveSession(InteractivityReason.QuiescenceTimeout);
-        }
-
         CommitInitialRoot(html);
         return html;
     }
-
-    /// <summary>
-    ///     Whether the initial render was served before its async work settled. The host must keep a
-    ///     live session for such a page: served as a static document it would sit on its placeholder
-    ///     for ever, because nothing would be left running to replace it.
-    /// </summary>
-    internal bool LastRenderTimedOut { get; private set; }
-
-    /// <summary>
-    ///     Whether the initial render stopped waiting because the work it had started was blocked on
-    ///     JavaScript.
-    /// </summary>
-    /// <remarks>
-    ///     Not a timeout — nothing ran out — but the markup is the same kind of thing: a placeholder that
-    ///     only a connected browser can ever replace. A live page is fine with that, because its session
-    ///     finishes the load. A copy of the page kept to be served later is not, since nothing attached
-    ///     to it would.
-    /// </remarks>
-    internal bool LastRenderBlockedOnJs { get; private set; }
 
     // A single render into the frame sink, WITHOUT promoting anything. Intermediate waves must not
     // touch either baseline: only the HTML actually served is what the browser will hold, so

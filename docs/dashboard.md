@@ -23,32 +23,32 @@ builder.Services.AddAuthorization(o =>
 ## Where it can run
 
 The dashboard is server-rendered and reads your database directly, so it lives wherever your ASP.NET host
-does — the `server` template, and the `.Server` project of a client-plus-host solution.
+does — the `server` template, and a host that serves a single-page app (a Rask WebAssembly app or a
+TypeScript front end) through [`UseRaskSpa`](spa.md#a-rask-webassembly-app).
 
-In that shape the host normally runs no components at all: it serves a WASM bundle and an API. Mounting
-the dashboard gives it exactly one server-rendered route chain, scoped so the client keeps everything else:
+A SPA host normally runs no components at all: it serves the app and an API. Mounting the dashboard gives
+it exactly one server-rendered route chain, scoped so the client keeps everything else:
 
 ```csharp
 builder.Services.AddRaskServer();       // the live runtime, for the dashboard's pages
-builder.Services.AddRaskWasmHost();     // compression for the published bundle
+builder.Services.AddRaskSpaHost();      // compression for the app's files
 
 // …
 
 app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, server-rendered
-app.UseRaskWasmHost();                                      // the SPA, everywhere else
+app.UseRaskSpa();                                           // the app, everywhere else
 ```
 
 `rask new --ops` writes all of it on a server app, including the database the panels read.
 
-Two details are worth knowing if you assemble this by hand. The calls are spelled `AddRaskServer` /
-`AddRaskWasmHost` rather than `AddRask` because **both** packages declare an `AddRask` on
-`IServiceCollection`, and C# does not report an ambiguity — the WASM host's takes no optional parameters
-and the server's takes two, so the tie-break silently picks the WASM one and the app starts with no live
-runtime, failing on its first request. And the SPA is a `MapFallback`, the lowest precedence there is, so
-mounting the dashboard above it claims the dashboard's routes without taking any of the client's.
+Two details are worth knowing if you assemble this by hand. The SPA's fallback is the lowest precedence
+there is, so mounting the dashboard above it claims the dashboard's routes without taking any of the
+client's. And both halves want `/_rask/a/{hash}` — the dashboard's scoped styles and a WebAssembly app's
+baked ones — so the dashboard's endpoint answers a hash its own process never registered from the web
+root, where `UseRaskSpa` puts the app's.
 
-`RaskDashboardShell` is the root the pages render through: a host serving a WASM bundle has no component
-of its own for `UseRaskServer<TApp>` to name.
+`RaskDashboardShell` is the root the pages render through: a host serving a SPA has no component of its
+own for `UseRaskServer<TApp>` to name.
 
 ## What it shows
 

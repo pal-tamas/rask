@@ -24,8 +24,8 @@ public class ReservedPrefixTests
 {
     /// <summary>
     ///     The first segment under <c>/_rask</c> that each framework endpoint claims. Mirrored from
-    ///     <c>Rask.Server.RaskEndpointExtensions</c> and <c>Rask.Wasm.Hosting.RaskAssetEndpoint</c>, which
-    ///     this assembly cannot reference — the dashboard deliberately takes no host dependency.
+    ///     <c>Rask.Server.RaskEndpointExtensions</c>, which this assembly cannot reference — the dashboard
+    ///     deliberately takes no host dependency.
     /// </summary>
     private static readonly string[] _frameworkOwned = ["a", "auth", "upload", "download", "files"];
 

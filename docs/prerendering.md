@@ -80,7 +80,7 @@ by then the SDK has already compressed the boot shell and written a manifest des
 
 - **`.br` / `.gz` siblings are regenerated** from the new page. Left stale, they still hold the SHELL —
   and any host that prefers a precompressed sibling (nginx `brotli_static`, Netlify, Cloudflare Pages,
-  S3 behind a CDN, Rask's own `Rask.Wasm.Hosting`) serves the spinner to every visitor and every
+  S3 behind a CDN, Rask's own `UseRaskSpa`) serves the spinner to every visitor and every
   crawler while a perfectly good prerendered page sits on disk beside it. A file with no sibling gains
   none: which assets are worth compressing is the SDK's decision.
 - **The endpoint manifest's `Content-Length`, `ETag`, `Last-Modified` and `integrity` are corrected.**
@@ -398,14 +398,15 @@ Two things worth repeating as shapes, both found here:
 
 ## Limits
 
-- WASM only. A Server app already renders every request, and `RenderModes` covers serving a page
-  that needs nothing live as a cacheable document — see [Render modes](render-modes.md).
+- WASM only. A Server app already renders every request, and every one of its pages is live, so none of
+  them is a cacheable document — see [Live pages](render-modes.md).
 - Parameterised and catch-all routes are never covered; there is no hook yet for supplying the
   values to enumerate them.
 - The per-page budget is 30 seconds.
 
 ## See also
 
-- [Render modes](render-modes.md) — the Server-side equivalents, and moving a page into WebAssembly
+- [Live pages](render-modes.md) — how a Server page renders, waits for its data and sets its status
+- [Single-page apps](spa.md#a-rask-webassembly-app) — serving a WebAssembly app from an ASP.NET host
 - [Mobile & PWA](pwa.md) — the rest of the standalone-WASM deployment story
 - [Deployment](deployment.md) — publishing the bundle

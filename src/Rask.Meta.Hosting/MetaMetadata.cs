@@ -9,7 +9,7 @@ namespace Rask.Meta.Hosting;
 ///     The framework's name is decided in the <c>.csproj</c>, because the build needs it there anyway
 ///     — to know which output directory to publish. Baking it means <c>AddRaskMeta()</c> can take no
 ///     argument at all and still be certain it is fronting the framework that was actually built. The
-///     same arrangement <c>Rask.Wasm.Hosting</c> uses for its bundle directory.
+///     same arrangement <c>Rask.Spa.Hosting</c> uses for its bundle directory.
 /// </remarks>
 internal static class MetaMetadata
 {

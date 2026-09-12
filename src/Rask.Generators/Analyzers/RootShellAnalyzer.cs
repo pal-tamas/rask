@@ -35,7 +35,6 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
     private const string RaskCoreAssembly = "Rask.Core";
 
     private const string ServerExtensions = "Rask.Server.RaskEndpointExtensions";
-    private const string WasmHostingExtensions = "Rask.Wasm.Hosting.RaskWasmEndpointExtensions";
     private const string WasmHostBuilder = "Rask.Wasm.WasmHostBuilder";
 
     // Shell factory names the framework now owns, in canonical document order. Matched by the invoked
@@ -146,7 +145,7 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         var containing = method.ContainingType?.ToDisplayString();
         return method.Name switch
         {
-            "UseRask" => containing is ServerExtensions or WasmHostingExtensions,
+            "UseRask" => containing == ServerExtensions,
             "RunAsync" => containing == WasmHostBuilder,
             _ => false
         };

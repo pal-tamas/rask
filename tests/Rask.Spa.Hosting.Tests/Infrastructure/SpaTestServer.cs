@@ -11,11 +11,9 @@ namespace Rask.Spa.Hosting.Tests.Infrastructure;
 ///     A host running <see cref="RaskSpaEndpointExtensions.UseRaskSpa" />.
 /// </summary>
 /// <remarks>
-///     Deliberately not in a shared xUnit collection, unlike the WASM hosting tests. That package has
-///     to serialise its host tests because <c>UseRask</c> writes two process-wide statics
-///     (<c>ScopedAssetBundle.BakedDirectory</c> and <c>LiveOptions.PathBase</c>) that one test can
-///     re-point out from under another. This package writes none, which is a consequence of it taking
-///     no dependency on <c>Rask.Core</c> — so these tests can run in parallel.
+///     Deliberately not in a shared xUnit collection. This package writes no process-wide state — a
+///     consequence of it taking no dependency on <c>Rask.Core</c> — and what it does change on the host
+///     (the web root's file provider) belongs to that host alone, so these tests run in parallel.
 /// </remarks>
 internal sealed class SpaTestServer : IAsyncDisposable
 {
@@ -28,6 +26,8 @@ internal sealed class SpaTestServer : IAsyncDisposable
     }
 
     public HttpClient Http { get; }
+
+    public IServiceProvider Services => _app.Services;
 
     public async ValueTask DisposeAsync()
     {

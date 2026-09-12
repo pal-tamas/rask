@@ -98,7 +98,7 @@ end-to-end scaffolding.
   Run it from inside the project dir. From a dir with no project it exits 1 (`Couldn't find a single
   .csproj …`); worse, from a dir that happens to have a *stray* `.csproj` above it, it silently
   scaffolds into that project's namespace — running `generate page Foo` from `/tmp` here produced a
-  `namespace Rask.Wasm.Hosting.Features.Foo` because it found a csproj up the tree. Always `cd` into
+  `namespace Rask.Spa.Hosting.Features.Foo` because it found a csproj up the tree. Always `cd` into
   the project first.
 - **Validation order: project first, fields second.** `generate feature Bad Name:wobble` reports
   `Couldn't find a single .csproj` (not the bad type) when run outside a project — the type error

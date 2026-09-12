@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
-using Rask.Core.Rendering;
 using Rask.Core.ScopedAssets;
 using ErrorBoundary = Rask.Core.Components.ErrorBoundary;
 using RouteRenderState = Rask.Core.Routing.RouteRenderState;
@@ -206,15 +205,6 @@ public sealed class LiveRenderContext : IDisposable
         // every user component (with or without assets), so it can't be short-circuited.
         MountedTypes.Add(type);
 
-        // A component may declare that it needs a live connection even though nothing in its render
-        // shows one — the shape of anything driven by a timer or an event subscription. Honoured from
-        // anywhere in the tree on purpose: that is what lets a base component say it once and every
-        // page built on it inherit the need without its author knowing to.
-        if (DeclaredRenderModes.Of(type) == RenderMode.Interactive)
-        {
-            _handle?.ReportRequiresLiveSession(InteractivityReason.Declared);
-        }
-
         // The by-type scope lookup, however, always misses when no component has registered scoped CSS
         // (the common case), so skip the ConcurrentDictionary probe behind a cheap IsEmpty check.
         if (!ScopedAssetRegistry.HasAnyScopedCss || !ScopedAssetRegistry.TryGetScopeId(type, out var scopeId))
@@ -262,14 +252,8 @@ public sealed class LiveRenderContext : IDisposable
         HashSet<Type> mountedTypes) =>
         new(root, previousEditContexts, currentEditContexts, services, headAssets, mountedTypes);
 
-    // Every data-rask-on-* attribute in the document is minted through here, which is what makes
-    // this the one place a page's interactivity has to be observed. An element with a handler is
-    // inert without a socket to send to.
-    public string RegisterHandler(Delegate handler)
-    {
-        _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
-        return RegisterHandlerCore(handler);
-    }
+    // Every data-rask-on-* attribute in the document is minted through here.
+    public string RegisterHandler(Delegate handler) => RegisterHandlerCore(handler);
 
     private string RegisterHandlerCore(Delegate handler) =>
         // Owner = the component currently rendering (top of parent stack). The root stores
@@ -308,8 +292,6 @@ public sealed class LiveRenderContext : IDisposable
     /// </remarks>
     internal string RegisterHandlerFor(Component owner, Delegate handler)
     {
-        _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
-
         // The slot belongs to OWNER, but the clean-subtree cache snapshots only the component being
         // walked. An owner that is not that component (an island, serialized down the element branch
         // inside some page) would have its registration skipped by the page's replay, leaving an id in
@@ -328,29 +310,9 @@ public sealed class LiveRenderContext : IDisposable
     /// </summary>
     internal void MarkSubtreeUncacheable() => HtmlSerializer.MarkNestedComponent();
 
-    /// <summary>
-    ///     Record that something in this render needs a live connection. Forwarded to the handle,
-    ///     which outlives the walk; see <c>IRenderHandle.ReportRequiresLiveSession</c>.
-    /// </summary>
-    internal void MarkRequiresLiveSession(InteractivityReason reason) =>
-        _handle?.ReportRequiresLiveSession(reason);
-
     /// <summary>Re-register a captured run under its component's own slot ids, as the skipped walk would.</summary>
-    /// <remarks>
-    ///     The clean-subtree cache re-establishes a skipped walk's registrations through here rather
-    ///     than through <see cref="RegisterHandler" />, so without marking here a page whose only
-    ///     handler-bearing subtree went clean on a later wave would be judged static — and lose the
-    ///     handler, silently, in production.
-    /// </remarks>
-    internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run)
-    {
-        if (run.Length > 0)
-        {
-            _handle?.ReportRequiresLiveSession(InteractivityReason.Handler);
-        }
-
+    internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run) =>
         component.ReplayHandlerRun(_root, run);
-    }
 
     public T GetOrCreate<T>(Func<IServiceProvider, T> factory) where T : Component
     {
@@ -472,9 +434,6 @@ public sealed class LiveRenderContext : IDisposable
 
     public EditContext GetOrCreateEditContext(object model, Func<EditContext>? factory = null)
     {
-        // A form with no connection is a form whose submit goes nowhere. Every bound control
-        // resolves through here, so this covers the whole forms surface in one place.
-        _handle?.ReportRequiresLiveSession(InteractivityReason.Form);
         var key = new ObjectKey(model);
         if (_currentEditContexts.TryGetValue(key, out var current))
         {

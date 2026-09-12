@@ -47,13 +47,10 @@
   <!--
     In-repo auto-import for Rask build integration.
     Imports unconditionally; each targets file gates its own work
-    (Rask.Wasm.Hosting checks @(ProjectReference); Rask.Wasm gates
+    (Rask.Spa.Hosting checks for a client folder and @(ProjectReference); Rask.Wasm gates
     on $(RaskWasm)). Downstream NuGet consumers get the
     same auto-import via build/ in each .nupkg.
   -->
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets') "/>
-
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.targets') "/>
 
@@ -114,8 +111,8 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.DevTools\buildTransitive\Rask.DevTools.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.DevTools\buildTransitive\Rask.DevTools.targets') "/>
 
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Browser.targets') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Client.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.Client.targets') "/>
 
   <!--
     Auto-enable the repo's git hooks (pre-commit: dotnet format + unit; pre-push: browser E2E) so a fresh

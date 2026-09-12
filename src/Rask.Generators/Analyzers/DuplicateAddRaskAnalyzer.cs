@@ -24,9 +24,9 @@ public sealed class DuplicateAddRaskAnalyzer : DiagnosticAnalyzer
 {
     private const string AddRaskMethod = "AddRask";
 
-    // Both hosts define AddRask, and both funnel culture options through the same TryAddSingleton.
+    // The host that defines AddRask and funnels culture options through TryAddSingleton.
     private static readonly ImmutableHashSet<string> HostAssemblies =
-        ImmutableHashSet.Create(StringComparer.Ordinal, "Rask.Server", "Rask.Wasm.Hosting");
+        ImmutableHashSet.Create(StringComparer.Ordinal, "Rask.Server");
 
     private static readonly DiagnosticDescriptor Rask056 = new(
         "RASK060",

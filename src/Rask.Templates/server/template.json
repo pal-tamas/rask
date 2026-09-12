@@ -3,20 +3,37 @@
     ".dockerignore": [
       "docker"
     ],
-    "Browser/BrowserStartup.cs": [
-      "cqrs",
+    "Client/App.cs": [
+      "wasm"
+    ],
+    "Client/Pages/HomePage.cs": [
+      "wasm"
+    ],
+    "Client/Program.cs": [
+      "wasm"
+    ],
+    "Client/wwwroot/index.html": [
       "wasm"
     ],
     "Dockerfile": [
       "docker"
     ],
+    "Features/Home/HomePage.cs": [
+      "!wasm"
+    ],
     "Features/Push/PushSubscriptions.cs": [
       "push",
       "pwa"
     ],
+    "Features/Shared/App.cs": [
+      "!wasm"
+    ],
     "Features/Shared/AppDbContext.cs": [
       "cqrs",
       "data"
+    ],
+    "Features/Shared/ErrorPage.cs": [
+      "!wasm"
     ],
     "Features/Shared/User.cs": [
       "cqrs",
@@ -29,7 +46,8 @@
       "pwa"
     ],
     "wwwroot/offline.html": [
-      "pwa"
+      "pwa",
+      "!wasm"
     ]
   },
   "template": "server"

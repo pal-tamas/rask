@@ -15,9 +15,9 @@ namespace Rask.Benchmarks;
 // If no path is given, looks in the standard publish locations.
 internal static class BundleSizeReport
 {
-    // Mirrors Rask.Wasm.Hosting.RaskWasmEndpointExtensions.IsFingerprintedAsset — kept
+    // Mirrors the SDK fingerprint rule in Rask.Spa.Hosting's SpaCacheClassification — kept
     // duplicated rather than pulled in via InternalsVisibleTo to keep the report's
-    // dependency surface small (no Rask.Wasm.Hosting reference).
+    // dependency surface small (no Rask.Spa.Hosting reference).
     private static readonly Regex _fingerprintRegex = new(
         @"\.[0-9a-z]{10,}\.[^.]+$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);

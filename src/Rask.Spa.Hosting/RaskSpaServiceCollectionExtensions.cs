@@ -17,15 +17,14 @@ namespace Rask.Spa.Hosting;
 public static class RaskSpaServiceCollectionExtensions
 {
     /// <summary>
-    ///     Adds brotli and gzip response compression covering the types a bundler emits.
+    ///     Adds brotli and gzip response compression covering the types a bundler or a Rask WebAssembly
+    ///     publish emits.
     /// </summary>
     /// <remarks>
     ///     Optional: <c>UseRaskSpa</c> works without it, just uncompressed for any file with no
     ///     precompressed sibling on disk. Named <c>AddRaskSpaHost</c> rather than <c>AddRask</c>
-    ///     deliberately — <c>Rask.Server</c> and <c>Rask.Wasm.Hosting</c> both declare an
-    ///     <c>AddRask(this IServiceCollection)</c>, and in an app referencing two of them a bare call is
-    ///     resolved silently by the fewest-defaulted-arguments tie-break rather than reported as
-    ///     ambiguous. Every host here names the host it means.
+    ///     deliberately — <c>Rask.Server</c> declares an <c>AddRask</c>, and an app serving a SPA beside
+    ///     the server-rendered operator dashboard calls both. Each call names the host it means.
     /// </remarks>
     /// <param name="services">The app's service collection.</param>
     /// <returns><paramref name="services" />, for chaining.</returns>
@@ -42,15 +41,19 @@ public static class RaskSpaServiceCollectionExtensions
             options.Providers.Add<BrotliCompressionProvider>();
             options.Providers.Add<GzipCompressionProvider>();
 
-            // The framework's default list predates these three. text/javascript is the one that
-            // matters: it is what a modern bundler serves ES modules as, and leaving it out means the
-            // largest file in the app ships uncompressed while application/javascript, the type
-            // nothing emits any more, is covered.
+            // The framework's default list predates these. text/javascript is the one that matters for
+            // a bundler: it is what ES modules are served as, and leaving it out means the largest file
+            // in the app ships uncompressed while application/javascript, the type nothing emits any
+            // more, is covered. The last two are a WebAssembly bundle's: dotnet.native.wasm and
+            // System.Private.CoreLib.wasm are the largest files it has, and ICU data and anything else
+            // without a registered type go out as octet-stream.
             options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
             [
                 "text/javascript",
                 "image/svg+xml",
                 "application/manifest+json",
+                "application/wasm",
+                "application/octet-stream",
             ]);
         });
 

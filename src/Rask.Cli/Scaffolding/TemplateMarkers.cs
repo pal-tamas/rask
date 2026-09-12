@@ -21,9 +21,11 @@ namespace Rask.Cli.Scaffolding;
 ///     </code>
 ///     <para>
 ///         A condition is a CONJUNCTION — <c>rask:if wasm cqrs</c> keeps its lines only when both are on.
-///         That is not generality for its own sake: <c>Browser/BrowserStartup.cs</c> is absent without
-///         <c>--wasm</c> and absent without <c>--cqrs</c>, and both wasm-on/cqrs-off and wasm-off/cqrs-on
-///         are reachable, so no single flag describes it. <c>rask:ifnot</c> is the negation, for the
+///         That is not generality for its own sake: the dashboard's server-rendered mount in a
+///         <c>--wasm</c> app's Program.cs needs <c>--wasm</c>, the database and the dashboard at once, and
+///         each of those is reachable without the others, so no single flag describes it. Whole files carry
+///         their conditions in <c>template.json</c> instead, where <c>!flag</c> is the negation.
+///         <c>rask:ifnot</c> is the negation here, for the
 ///         handful of places where turning a battery off SUBSTITUTES text rather than removing it (the
 ///         home page's nav links to the docs when there are no accounts to sign into).
 ///     </para>

@@ -595,6 +595,84 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
+  from its own render whether it needs a session, there is no static page served without one, and a page never
+  hands itself over to a WebAssembly bundle. `AddRask()` has nothing to choose — the GET creates the session,
+  renders, and answers with the no-store headers every session-bearing page already carried. A page whose
+  buttons used to go silently inert under `RenderModes.Static` now works, at the cost of a session per page
+  load (bounded, as before, by the unconnected grace period and `MaxSessions`). The initial render's wait
+  budget moves from `RenderModes.QuiescenceTimeout` to `QuiescenceTimeout`, one level up in `Rask:Server`:
+
+  ```jsonc
+  // before
+  { "Rask": { "Server": { "RenderModes": { "QuiescenceTimeout": "00:00:02" } } } }
+  // after — or Rask__Server__QuiescenceTimeout, or AddRask(configureServer: o => o.QuiescenceTimeout = …)
+  { "Rask": { "Server": { "QuiescenceTimeout": "00:00:02" } } }
+  ```
+
+  WebAssembly is a single-page app, never a render mode: a booting browser runtime always paints its own
+  document.
+
+- **BREAKING: `rask new --wasm` writes the browser app into `Client/`, and the server serves it.** The server
+  used to render every page and hand eligible ones over to a bundle built from the same sources. Now the
+  project has three parts:
+
+  | Folder | Compiled into |
+  |---|---|
+  | `Client/**` | the browser app only: `Client/Program.cs` (its entry point), `App`, pages, `Client/wwwroot/index.html` |
+  | `Shared/**` | both: message records and the shapes an API returns |
+  | everything else | the server only: `Program.cs`, handlers, the database |
+
+  - **The server renders no pages.** Its `Program.cs` maps the API and CQRS endpoints and ends with
+    `app.UseRaskSpa()`, plus `UseRaskServer<RaskDashboardShell>` when the dashboard is on.
+  - **Detection.** `Client/Program.cs` switches the build on and `<RaskClient>false</RaskClient>` switches it
+    off. `dotnet publish` publishes the client into `wwwroot`; every other build (`dotnet build`, `dotnet
+    run`, `rask dev`) builds it, and a Development run serves that build output. An edit in `Client/`
+    rebuilds and restarts the app rather than being hot-applied.
+  - **Boot page.** The page the browser loads is a real `Client/wwwroot/index.html` whose import map the SDK
+    fills, so the framework files are fingerprinted like any WebAssembly app's.
+  - **Template markers.** A `template.json` owner can now be negated (`!wasm`), which is how the server's own
+    pages drop out.
+
+  ```xml
+  <!-- before -->
+  <RaskBrowserRung>true</RaskBrowserRung>
+  <RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>
+  <RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="..."/>
+
+  <!-- after: Client/Program.cs is the switch and the startup -->
+  <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="..."/>
+  ```
+
+  Two gaps are known and open: Rask.Auth's sign-in pages are server-rendered, so the browser app has none of
+  its own yet, and `Client/` is compiled only by the generated project, so an IDE does not see those files as
+  part of a loaded project.
+
+- **BREAKING: a server hosts a Rask WebAssembly app through `UseRaskSpa()`.** `Rask.Wasm.Hosting` is gone and
+  `Rask.Spa.Hosting` serves both kinds of single-page app. It recognises a WebAssembly bundle from its files and
+  applies what that publish guarantees:
+  - `/_rask/a/` is cached for ever;
+  - a `/_framework/` file is cached for ever only when the SDK fingerprinted its name;
+  - a missing file under either is a 404, never the index document;
+  - an `assets` folder the app keeps in `wwwroot` revalidates, since Vite's hashed-directory default does not
+    describe it.
+
+  A referenced WebAssembly project is published by the host's build and copied into its publish output, which
+  `Rask.Wasm.Hosting` never did. `AddRaskSpaHost()` compresses `application/wasm`. Under a dev session (`RaskDevSession=true`, passed by `rask dev` and the
+  scaffolded VS Code build task) the host serves the client's build output, so hot reload reaches the browser;
+  the session turns `RaskSpaBuild` off for this, where `rask dev` used to pass `RaskWasmDevBundle=true`. An app mounting the operator dashboard beside the
+  bundle still gets the bundle's scoped styles: `Rask.Server` answers a hash its own process never registered
+  from the web root, where `UseRaskSpa()` places them.
+
+  ```csharp
+  // before
+  builder.Services.AddRaskWasmHost();
+  app.UseRaskWasmHost<App>();
+
+  // after
+  builder.Services.AddRaskSpaHost();
+  app.UseRaskSpa();
+  ```
 - **BREAKING: `Rask.Data` has no unit of work and no tracked writes on the model.** Removed outright, with
   no `[Obsolete]` step: the tracker verbs
   `Product.Add`/`AddRange`/`Update`/`UpdateRange`/`Remove`/`RemoveRange`/`Attach`/`Entry`/`Set`; the
@@ -637,15 +715,15 @@ them until tagged releases begin.
     build reads. `PackageDependencyTests` now follows the imports the bundling moved into, and fails if it
     stops seeing Rask.Server and Rask.Wasm bundle Core rather than passing on nothing.
 - **The build targets shipped to apps follow the app's .NET version instead of assuming .NET 10.** The browser
-  companion generated for `RaskBrowserRung` now targets the server half's framework as `-browser` (`net11.0` →
-  `net11.0-browser`), and the prerender companion the browser app's desktop twin (`net11.0-browser` →
+  companion generated for a `Client/` app now targets the server half's framework as `-browser` (`net11.0` →
+  `net11.0-browser`), each in a folder of its own under `obj/rask-client/`, and the prerender companion the browser app's desktop twin (`net11.0-browser` →
   `net11.0`); both were literal `net10.0` names.
-  - **`Rask.Wasm.Hosting` asks MSBuild for the WASM client's framework** (`GetTargetFrameworks`) rather than
+  - **`Rask.Spa.Hosting` asks MSBuild for a referenced WASM client's framework** (`GetTargetFrameworks`) rather than
     reading a literal `<TargetFramework>` element off its csproj and assuming `net10.0-browser` otherwise. A
     client whose framework comes from a `Directory.Build.props` or a property now gets the right bundle path
     baked in, where on any other .NET version the host would have served its whole app as 404s from a green
     build.
-  - **A WASM client that targets several frameworks is now a build error on the host** ("must build for
+  - **A WASM client that targets several frameworks is now a build error on the host** (`RASKSPA009`, "must build for
     exactly one framework"), where the probe used to guess `net10.0-browser`. A bundle is published for one
     framework; give the client a single `<TargetFramework>`. One framework written as a one-entry
     `<TargetFrameworks>` list still counts as one and is served.
@@ -666,7 +744,7 @@ them until tagged releases begin.
   (`app.db`, `logs.db`, strict tables, a From address, a snapshot directory) as the LOWEST-precedence
   configuration, so every one of them is overridable from appsettings; and `rask new` writes the values it used to
   hard-code in `Program.cs` — the database file, `StrictTables`, the mail From and pickup directory, the snapshot
-  schedule, the Web Push subject, the culture list, `RenderModes.Wasm`, and `RequireAuthenticatedUser = false`
+  schedule, the Web Push subject, the culture list, and `RequireAuthenticatedUser = false`
   for an app without accounts — into the scaffolded `appsettings.json`, which now uses the template markers
   (`// rask:if mail`) to carry only the sections its batteries need. Every key: `docs/configuration.md`.
 
@@ -903,6 +981,43 @@ them until tagged releases begin.
   nothing else in the kit uses — so the natural `"error"` compiled and rendered a neutral tile without a word.
   Write `.Tone(UiTone.Error)` or `.Tone(UiTone.Warning)`.
 
+
+### Removed
+
+- **The render ladder and the WebAssembly takeover** (pre-1.0, no `[Obsolete]`), replaced by "every page is
+  live" (see *Changed*):
+  - `RaskRenderModes` and `RaskServerOptions.RenderModes` — `Static`, `ServerInteractivity`, `Wasm`,
+    `WasmBundle` and the unimplemented `Streaming`. `QuiescenceTimeout` moved to `RaskServerOptions`.
+  - `[RenderMode]` / `RenderModeAttribute` and the `RenderMode` enum (`Auto`, `Static`, `Interactive`). A
+    component that pushes from a timer no longer needs to declare anything: its page always has a session.
+  - `LivePayload.InjectWasmBundleAttr` and the `data-rask-wasm` attribute; the server runtime no longer
+    fetches a bundle when idle or hands a page over on navigation.
+  - `WasmHostBuilder.PrepareAsync<TApp>()` and `WasmHostBuilder.PaintAsync(url)`. Call `RunAsync<TApp>()`,
+    which always renders.
+  - `RaskAppOptions.Wasm`. `RaskApp` always renders its pages on the server; serve a WebAssembly app with
+    `UseRaskSpa()`.
+- **`Rask.Wasm.Hosting`**, folded into `Rask.Spa.Hosting` (see *Changed*): `UseRask`, `UseRask<TApp>`,
+  `UseRaskWasmHost`, `UseRaskWasmHost<TApp>`, `UseRaskWasmAssets`, `AddRask` and `AddRaskWasmHost`, the
+  `Rask.WasmAppBundleDir` / `Rask.WasmDevManifest` build metadata and the `RaskWasmDevBundle` property. The
+  published package is unlisted and deprecated at the next release, naming `Rask.Spa.Hosting` as its
+  replacement.
+- The one-project build's `RaskBrowserRung`, `RaskBrowserStartup`, `RaskBrowserRootComponent`,
+  `RaskBrowserPackageReference`, `RaskBrowserUsing` and `RaskBrowserProjectReference`, the generated
+  `Program.g.cs`, and the `Browser/`/`Server/` folder convention — replaced by `Client/`, `Shared/`,
+  `RaskClientPackageReference`, `RaskClientUsing` and `RaskClientProjectReference` (see *Changed*).
+- **RASK054** (*Page cannot run in the browser*), retired rather than reused. Pages no longer move into
+  WebAssembly, so there is nothing left for it to explain.
+- `ScopedAssetBundle.BakedDirectory`, `FindBakedFile` and `FindPrecompressedSibling`. Nothing sets a
+  process-wide bundle directory any more; `Rask.Server` reads a baked scoped asset from the web root.
+
+  ```csharp
+  // before — a page opting out of its session
+  [RenderMode(RenderMode.Static)]
+  public sealed partial class AboutPage : Component { … }
+
+  // after — nothing to declare; every page is live
+  public sealed partial class AboutPage : Component { … }
+  ```
 
 ### Fixed
 

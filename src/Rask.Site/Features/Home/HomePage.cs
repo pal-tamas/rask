@@ -252,8 +252,8 @@ public sealed partial class HomePage : Component
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
                     LaneCard(UiIconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
-                    LaneCard(UiIconName.Storage, "Rask.Wasm.Hosting", "Static host", "deployment", "AddRaskWasmHosting()",
-                        "Serves a published WASM bundle from an ASP.NET host, with the right content types and pre-compressed variants.")
+                    LaneCard(UiIconName.Storage, "Rask.Spa.Hosting", "Single-page host", "spa", "AddRaskSpaHost() · UseRaskSpa()",
+                        "Serves a WebAssembly app or a TypeScript bundle from an ASP.NET host, cached by what its build guarantees, with pre-compressed variants.")
                 ]
             ]
         ];
@@ -347,7 +347,7 @@ public sealed partial class HomePage : Component
                     Feature(UiIconName.Cube, "50 typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
                     Feature(UiIconName.ShieldOk, "Secure by default", "best-practices", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code["javascript:"], " → ", Code["about:blank"], "). Safe output is the default, not a flag."),
                     Feature(UiIconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
-                    Feature(UiIconName.Sparkles, "Prerendering & render modes", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, ", Code["RenderModes"], " decides per page whether it needs a live session at all."),
+                    Feature(UiIconName.Sparkles, "Prerendering", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, every page is live, and ", Code["QuiescenceTimeout"], " holds its first response until its data has loaded."),
                     Feature(UiIconName.Terminal, "One CLI", "cli", Code["rask new"], ", ", Code["rask dev"], ", ", Code["rask db"], ", ", Code["rask deploy"], " — scaffold, run, migrate and ship without leaving the terminal.")
                 ]
             ]

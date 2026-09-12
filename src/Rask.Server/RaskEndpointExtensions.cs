@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -38,7 +39,6 @@ using Rask.Core.HotReload;
 using Rask.Core.Http;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
-using Rask.Core.Rendering;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
 using Rask.Hosting.Shared;
@@ -196,9 +196,9 @@ public static partial class RaskEndpointExtensions
         // closes at 20s, so whichever one stops last is killed mid-write, decided by the order of the
         // AddRaskX calls above. See RaskShutdownDefaults; override by configuring HostOptions after AddRask.
         //
-        // Rask.Wasm.Hosting and Rask.Spa.Hosting register the same pair from the same source-linked types,
-        // because their hosts face the same two failures. A wasm-hosted app with the dashboard on calls
-        // both and gets one setup per assembly — they compute identical values, so it is idempotent.
+        // Rask.Spa.Hosting registers the same pair from the same source-linked types, because its host
+        // faces the same two failures. An app serving a SPA with the dashboard on calls both and gets one
+        // setup per assembly — they compute identical values, so it is idempotent.
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<HostOptions>, RaskShutdownDefaults>());
 
@@ -365,16 +365,8 @@ public static partial class RaskEndpointExtensions
 
     /// <summary>
     ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions}, Action{RaskCultureOptions})" />
-    ///     under a name only this package defines — for an app that references <b>both</b> hosts.
-    ///     <para>
-    ///         <c>Rask.Wasm.Hosting</c> declares an <c>AddRask(this IServiceCollection)</c> as well, and
-    ///         with both namespaces imported a bare <c>AddRask()</c> is <em>not</em> reported as
-    ///         ambiguous: that overload takes no optional parameters and this one takes two, so C#'s
-    ///         "fewer defaulted arguments" tie-break silently selects the other package's. The app
-    ///         compiles, starts with no live runtime registered, and fails on the first request with a
-    ///         missing-service error naming an internal type. Spelling the host out avoids relying on a
-    ///         tie-break to express intent.
-    ///     </para>
+    ///     under a name that says which host it registers — for an app whose own UI is served by another
+    ///     host, such as a single-page app with the operator dashboard mounted beside it.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Per-app live runtime options; see the <c>AddRask</c> it forwards to.</param>
@@ -387,12 +379,11 @@ public static partial class RaskEndpointExtensions
 
     /// <summary>
     ///     <see cref="UseRask{TApp}(WebApplication, string, string)" /> under a name only this package
-    ///     defines — for an app that references both hosts.
+    ///     defines — for an app whose own UI is served by another host.
     ///     <para>
-    ///         The two <c>UseRask&lt;TApp&gt;</c> overloads differ only in what their second string
-    ///         means: a route <em>pattern</em> here, a bundle <em>path</em> in <c>Rask.Wasm.Hosting</c>.
-    ///         A wasm-hosted app that mounts the operator dashboard calls both, and at the call site
-    ///         nothing distinguishes them.
+    ///         A single-page app that mounts the operator dashboard serves the app with
+    ///         <c>UseRaskSpa</c> and the dashboard's server-rendered chain with this, under its own
+    ///         prefix; the name says at the call site which of the two a line is.
     ///     </para>
     /// </summary>
     /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
@@ -564,18 +555,7 @@ public static partial class RaskEndpointExtensions
             // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
             // race past the cap). Checked after the auth guard above so challenge/forbid
             // redirects (which create no session) still work.
-            //
-            // With static pages on, the slot cannot be reserved up front: whether this page needs a
-            // session at all is a property of the render that has not happened yet. The tree is
-            // built detached and admitted afterwards, so a page that turns out to need nothing live
-            // costs no slot. The cheap AtCapacity probe keeps a saturated host from doing the work
-            // anyway; the authoritative check is still the atomic one, at TryRegister below.
-            // With server interactivity off, every page is a document whether or not the walk found
-            // a reason to keep one — there is nothing for a session to be for.
-            var staticPages = limits.StaticPages || !limits.ServerInteractivity;
-            var session = staticPages
-                ? (store.IsDraining || store.AtCapacity ? null : store.CreateDetached(appFactoryForPath))
-                : store.TryCreate(appFactoryForPath);
+            var session = store.TryCreate(appFactoryForPath);
             if (session is null)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
@@ -641,26 +621,6 @@ public static partial class RaskEndpointExtensions
                 return;
             }
 
-            // The verdict. Everything the walk saw has been accumulated by now; a page that recorded no
-            // reason at all needs no connection, so it can be served as a plain document. Development
-            // keeps the session either way, so `rask dev` still repaints on an edit and the audit warning
-            // below has a socket to have been worth checking.
-            var interactive = render.NeedsSession;
-
-            // A page that asked to be static and turned out to need a connection keeps the connection —
-            // a request, not a command. Reported, because the two facts contradict each other and the
-            // author asked for the one that would have broken the page.
-            if (render.DeclaredStatic && session.RequiresLiveSession)
-            {
-                RaskDiagnostics.Report(
-                    RaskLogLevel.Warning,
-                    "Rask.Ssr",
-                    $"{chain[^1].Name} declares [RenderMode(RenderMode.Static)] but its render needs a "
-                    + $"live connection ({session.InteractivityReasons}), so it kept one. Serving it static "
-                    + "would have left that part of the page inert. Remove the attribute, or remove what "
-                    + "needs the connection.");
-            }
-
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
@@ -668,51 +628,13 @@ public static partial class RaskEndpointExtensions
             // The devtools host script and the panel it frames, when AddRask attached the devtools and they switched on
             // (Development).
             var devTools = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.PageTag(httpContext, session.Id);
-            string content;
-            if (interactive)
-            {
-                // Admit the session now. Under static pages it was built detached, so this is where
-                // the cap is actually enforced — and a refusal here means the work is already done,
-                // which is the honest cost of not knowing the answer until the render was over.
-                if (staticPages && !store.TryRegister(session))
-                {
-                    await RefuseAdmissionAsync(httpContext, store, session).ConfigureAwait(false);
-                    return;
-                }
-
-                content = Prerender.PageDocument.Live(
-                    render.Html, session.Id, limits, dev,
-                    dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
-            }
-            else
-            {
-                // No session, so no data-rask-root to stamp and no runtime to load. If the tag is
-                // not exactly where it should be, TryRemove declines and the page is treated as
-                // interactive — serving a document that might still carry a session-bearing script
-                // as a cacheable static page is the one outcome worth refusing outright.
-                var stripped = RuntimeScriptSplice.TryRemove(render.Html, LiveOptions.PathBase);
-                if (stripped is null)
-                {
-                    interactive = true;
-                    if (staticPages && !store.TryRegister(session))
-                    {
-                        await RefuseAdmissionAsync(httpContext, store, session).ConfigureAwait(false);
-                        return;
-                    }
-
-                    content = Prerender.PageDocument.Live(
-                        render.Html, session.Id, limits, dev,
-                        dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
-                }
-                else
-                {
-                    content = stripped;
-                }
-            }
+            var content = Prerender.PageDocument.Live(
+                render.Html, session.Id, dev,
+                dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
 
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             // A page that crashed is not a 200, a page may set its own status, and the not-found page
-            // answers 404 once it was actually mounted — PageVerdict.Status says why each wins where it
+            // answers 404 once it was actually mounted — PageStatus.Of says why each wins where it
             // does (#607). The body is unchanged whatever the status, and a live session still attaches,
             // so "Try again", the reload button and navigation off a missing page all keep working.
             if (render.StatusCode != StatusCodes.Status200OK)
@@ -724,60 +646,10 @@ public static partial class RaskEndpointExtensions
             // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
             // history caching so an authenticated user's session id can't be persisted and
             // replayed by another principal.
-            var cache = ShellCachePolicy.For(
-                interactive,
-                render.Authenticated,
-                render.Faulted,
-                httpContext.Response.StatusCode);
-            httpContext.Response.Headers.CacheControl = cache.CacheControl;
-            if (cache.Pragma is { } pragma)
-            {
-                httpContext.Response.Headers.Pragma = pragma;
-            }
-
-            if (cache.Vary is { } vary)
-            {
-                // APPENDED, never assigned. Culture negotiation runs earlier in this same handler and
-                // may already have set `Vary: Accept-Language` — overwriting it would let a cache
-                // serve one language's page to a visitor who asked for another. Neither change has
-                // that bug alone, which is exactly why it is worth stating here.
-                var existing = httpContext.Response.Headers.Vary.ToString();
-                httpContext.Response.Headers.Vary = existing.Length == 0
-                    ? vary
-                    : existing.Contains(vary, StringComparison.OrdinalIgnoreCase)
-                        ? existing
-                        : existing + ", " + vary;
-            }
-
-            // Discarded BEFORE the write, not after: WriteAsync to a slow client can take seconds,
-            // and everything below reads only the string. Holding a DI scope and a component tree
-            // open for the duration of someone's bad connection is pure waste.
-            if (!interactive)
-            {
-                // Marked before the teardown so a later push — the one symptom of the failure mode
-                // detection cannot see — is reported rather than swallowed by the ordinary
-                // disposed-session early-return.
-                session.MarkDiscardedAsStatic();
-                if (staticPages)
-                {
-                    // Built detached, so it was never registered and owns no capacity slot.
-                    await store.DiscardAsync(session).ConfigureAwait(false);
-                }
-                else
-                {
-                    // A page can declare itself static even where the app has not turned static pages
-                    // on, and then the session came from TryCreate — registered, holding a slot. It has
-                    // to be removed rather than discarded: discarding leaves it in the store, which
-                    // disposes it a second time when its grace elapses.
-                    store.Remove(session.Id);
-                }
-            }
+            httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
+            httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
 
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
-            if (!interactive)
-            {
-                return;
-            }
 
             // Schedule cleanup in case no WS ever connects for this session.
             // Browsers / probes can hit the catch-all for resources that don't
@@ -840,25 +712,6 @@ public static partial class RaskEndpointExtensions
     private static Task ForbidAsync(HttpContext ctx, string? scheme) =>
         scheme is null ? ctx.ForbidAsync() : ctx.ForbidAsync(scheme);
 
-    /// <summary>
-    ///     Answers a page whose session could not be admitted once its render was over.
-    /// </summary>
-    /// <remarks>
-    ///     Under static pages the tree is built detached and admitted only after the render has said it
-    ///     needs a session, so a refusal here comes after the work is done — the honest cost of not knowing
-    ///     the answer sooner. The session was never registered, so it is discarded rather than removed.
-    /// </remarks>
-    private static async Task RefuseAdmissionAsync(HttpContext httpContext, LiveSessionStore store, LiveSession session)
-    {
-        await store.DiscardAsync(session).ConfigureAwait(false);
-        httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-        httpContext.Response.Headers.RetryAfter = "5";
-        httpContext.Response.Headers.CacheControl = "no-store";
-        await httpContext.Response
-            .WriteAsync("Server is at session capacity; please retry shortly.")
-            .ConfigureAwait(false);
-    }
-
     private static QueryCollection AdaptQuery(IQueryCollection source)
     {
         if (source.Count == 0)
@@ -896,17 +749,6 @@ public static partial class RaskEndpointExtensions
                 // Resolve the per-host safety limits once per connection (not per frame) — the receive
                 // loop reads them via instance fields on the hot path.
                 var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
-
-                // Server interactivity off means no page may become live, so this endpoint has nothing
-                // to serve. Answered as 404 rather than 400 or 426: to anything probing, an app that
-                // cannot go live should be indistinguishable from one that never had a socket. Refused
-                // here rather than left unmapped so the mapping stays one shape — the marker below and
-                // the other framework endpoints are registered together.
-                if (!limits.ServerInteractivity)
-                {
-                    ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-                    return;
-                }
 
                 if (!ctx.WebSockets.IsWebSocketRequest)
                 {
@@ -988,11 +830,10 @@ public static partial class RaskEndpointExtensions
         // methods). Marked `.AllowAnonymous()` so a host with a fallback authorization
         // policy still serves assets — content-addressed URLs carry no PII, and an unknown
         // hash returns 404 instead of leaking the registered set.
-        // Mapped at most once per app. A wasm-hosted app that also mounts the server-rendered dashboard
-        // runs both hosts, and Rask.Wasm.Hosting wants this same route; two endpoints with an identical
-        // template and precedence are accepted at startup and then throw AmbiguousMatchException on the
-        // first request for a scoped stylesheet — an app that boots clean and serves an unstyled 500.
-        // Skipping when it is already mapped costs nothing when only one host is present.
+        // Mapped at most once per app. Two chains in one app (UseRask under two prefixes) would each map
+        // this route, and two endpoints with an identical template and precedence are accepted at startup
+        // and then throw AmbiguousMatchException on the first request for a scoped stylesheet — an app
+        // that boots clean and serves an unstyled 500. Skipping when it is already mapped costs nothing.
         if (!IsEndpointMapped(endpoints, pathBase + "/_rask/a/{hash}.css"))
         {
             endpoints.MapMethods(pathBase + "/_rask/a/{hash}.css", _assetMethods,
@@ -2180,13 +2021,12 @@ public static partial class RaskEndpointExtensions
         var bytes = ScopedAssetRegistry.GetByHash(hash, kind);
         if (bytes is null)
         {
-            // A plain server app has no baked bundle, so this resolves to null and the miss is a 404
-            // exactly as before. It is non-null only in a wasm-hosted app that ALSO mounts a
-            // server-rendered chain (the operator dashboard): there this endpoint may be the one that
-            // won the shared /_rask/a/{hash} route, and the SPA's own assets live in the published
-            // bundle rather than in this process's registry. Answering them here is what makes the two
-            // hosts' handlers interchangeable, and therefore the order of their UseRask calls irrelevant.
-            return ServeBakedBundleFileAsync(ctx, hash, kind);
+            // A plain server app has nothing under _rask/a in its web root, so the miss is a 404. The
+            // file is there when this process shares a host with a WebAssembly app — the operator
+            // dashboard beside a bundle UseRaskSpa serves — because routing gives this endpoint the
+            // bundle's /_rask/a/{hash} requests before static files run, and the bundle's hashes were
+            // registered in the browser's runtime, never in this one.
+            return ServeWebRootAssetAsync(ctx, hash, kind);
         }
 
         // Set headers before invoking Results.Bytes so they are present on the response.
@@ -2222,14 +2062,20 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>
-    ///     Serves the baked <c>/_rask/a/{hash}.{ext}</c> file from a published WASM bundle when this
-    ///     process's registry doesn't carry the hash. Mirrors <c>Rask.Wasm.Hosting</c>'s copy — both
-    ///     resolve through <see cref="ScopedAssetBundle" />, which is the whole point: the two handlers
-    ///     answer identically, so only one of them needs to own the route.
+    ///     Serves a baked <c>_rask/a/{hash}.{ext}</c> file from the app's web root when this process's
+    ///     registry doesn't carry the hash, with the same headers a registry hit gets.
     /// </summary>
-    private static async Task ServeBakedBundleFileAsync(HttpContext ctx, string hash, AssetKind kind)
+    /// <remarks>
+    ///     Read through <see cref="IWebHostEnvironment.WebRootFileProvider" /> rather than a directory, so
+    ///     it finds the file wherever the web root is composed from — a published <c>wwwroot</c>, or a
+    ///     bundle <c>UseRaskSpa</c> serves from elsewhere. The hash was validated as fixed-length hex
+    ///     before it got here, so the path cannot leave <c>_rask/a/</c>.
+    /// </remarks>
+    private static async Task ServeWebRootAssetAsync(HttpContext ctx, string hash, AssetKind kind)
     {
-        if (ScopedAssetBundle.FindBakedFile(hash, kind) is not { } path)
+        var files = ctx.RequestServices.GetService<IWebHostEnvironment>()?.WebRootFileProvider;
+        var relative = "_rask/a/" + hash + ScopedAssetBundle.Extension(kind);
+        if (files?.GetFileInfo(relative) is not { Exists: true } file)
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
@@ -2241,21 +2087,28 @@ public static partial class RaskEndpointExtensions
         ctx.Response.Headers.ETag = "\"" + hash + "\"";
         ctx.Response.ContentType = ScopedAssetBundle.ContentType(kind);
 
+        // The publish bakes .br/.gz siblings next to each asset; one that matches the negotiated
+        // encoding goes out verbatim, with no request-time CPU.
         var encoding = ScopedAssetCompression.Negotiate(ctx.Request.Headers.AcceptEncoding.ToString());
-        if (ScopedAssetBundle.FindPrecompressedSibling(path, encoding) is { } sibling)
+        var suffix = encoding switch
+        {
+            "br" => ".br",
+            "gzip" => ".gz",
+            _ => null,
+        };
+
+        if (suffix is not null && files.GetFileInfo(relative + suffix) is { Exists: true } sibling)
         {
             ctx.Response.Headers.ContentEncoding = encoding;
             await ctx.Response.SendFileAsync(sibling).ConfigureAwait(false);
             return;
         }
 
-        await ctx.Response.SendFileAsync(path).ConfigureAwait(false);
+        await ctx.Response.SendFileAsync(file).ConfigureAwait(false);
     }
 
     /// <summary>
-    ///     Whether a route template is already on this <see cref="IEndpointRouteBuilder" />. See the
-    ///     twin in <c>Rask.Wasm.Hosting</c> — duplicated rather than shared because the check needs
-    ///     <c>RoutePattern</c> and Core takes no ASP.NET routing dependency.
+    ///     Whether a route template is already on this <see cref="IEndpointRouteBuilder" />.
     /// </summary>
     private static bool IsEndpointMapped(IEndpointRouteBuilder endpoints, string rawTemplate)
     {
@@ -2479,20 +2332,6 @@ public static partial class RaskEndpointExtensions
             downloads.Release(entry);
         }
     }
-
-    /// <summary>The runtime script tag's exact bytes, for the static-response splice.</summary>
-    internal static string RuntimeScriptTag(string pathBase) => ServerRuntimeScript.Tag(pathBase);
-
-    /// <summary>
-    ///     The browser bundle's boot module URL for this app, or <c>null</c> when the browser rung is
-    ///     off — which is every app that has not asked for it.
-    /// </summary>
-    /// <remarks>
-    ///     Path-based like every other framework asset, so an app hosted under a sub-path fetches its
-    ///     own bundle rather than one at the origin root.
-    /// </remarks>
-    internal static string? WasmBootModuleUrl(RaskServerLimits limits) =>
-        limits.WasmBundleUrl is { } bundle ? LiveOptions.PathBase + bundle : null;
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
