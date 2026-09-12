@@ -10,6 +10,10 @@
       "cqrs",
       "data"
     ],
+    "Features/Shared/User.cs": [
+      "cqrs",
+      "data"
+    ],
     "client/src/lib/AuthForm.svelte": [
       "cqrs",
       "data"

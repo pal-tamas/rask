@@ -22,19 +22,12 @@ jobs:
         with:
           fetch-depth: 0 # MinVer needs full history + tags to resolve the version
 
-      - uses: actions/setup-dotnet@v6
+      # The shared setup — both SDKs, the workloads and the NuGet cache — so this workflow cannot drift from
+      # release and nightly again. wasm-tools-net10 because the .NET 11 SDK relinks net10.0-browser (the site)
+      # only with the net10 toolchain.
+      - uses: ./.github/actions/setup
         with:
-          dotnet-version: 10.0.x
-
-      - name: Install wasm-tools workload
-        run: dotnet workload install wasm-tools
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
-          restore-keys: nuget-${{ runner.os }}-
+          workloads: wasm-tools wasm-tools-net10
 
       # The Pages site is ONE Rask WASM app served from the apex custom domain https://rask.sh: the
       # landing page at /, the showcase and guides at /docs. It used to be three separately-published

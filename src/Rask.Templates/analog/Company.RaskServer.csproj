@@ -28,12 +28,14 @@
       -p:RaskMetaBuild=false skips node entirely — the app still compiles and its API still works.
     -->
     <PackageReference Include="Rask.Meta.Hosting" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
     <!-- rask:if cqrs data -->
     <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.Litestream" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Auth" Version="{{RaskVersion}}"/>
+    <!-- Accounts as JSON only. Rask.Auth is the same battery plus the built-in sign-in PAGES,
+         which are Rask components — and this host renders none, so it carries no Rask.Core for
+         them to render with. -->
+    <PackageReference Include="Rask.Auth.Api" Version="{{RaskVersion}}"/>
     <!-- rask:if outbox -->
     <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
@@ -55,9 +57,6 @@
     <!-- rask:end -->
     <!-- rask:if logs -->
     <PackageReference Include="Rask.Logging" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if cqrs data ops -->
-    <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
   </ItemGroup>
 

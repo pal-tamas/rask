@@ -7,7 +7,7 @@ description: >-
 inputs:
   workloads:
     description: >-
-      Space-separated workloads to install (e.g. "wasm-tools"). Empty installs none —
+      Space-separated workloads to install (e.g. "wasm-tools wasm-tools-net10"). Empty installs none —
       pass it only for jobs that actually build/evaluate a project graph needing the workload.
     required: false
     default: ''
@@ -23,9 +23,22 @@ inputs:
 runs:
   using: composite
   steps:
+    # Both SDKs, the newer one LAST so it is the one on PATH. Every shipped package builds for net10.0 AND
+    # net11.0 (Directory.Build.props), which needs the .NET 11 SDK — RaskRequireSdk11 fails the build without
+    # it — while the test suites run on the .NET 10 runtime the first install brings.
+    # dotnet-quality: preview until .NET 11 is GA (November 2026); drop it then.
     - uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
+
+    # An EXACT version, not 11.0.x + dotnet-quality: preview. That floats onto whatever preview Microsoft published
+    # most recently, so release.yml could pack the shipped lib/net11.0 assemblies with a different compiler between
+    # two tags with no commit of ours, and a regression in a fresh RC would surface as a CI break on a random day.
+    # Bump this line deliberately; at GA it becomes 11.0.100. (The repo has no global.json — this file and rask.sh
+    # are where the SDK band is stated, as .github/dependabot.yml records.)
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 11.0.100-rc.1.26425.128
 
     - name: Cache NuGet packages
       if: inputs.nuget-cache == 'true'

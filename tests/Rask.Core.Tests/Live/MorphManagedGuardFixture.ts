@@ -78,7 +78,8 @@ function makeEl(nodeName: string, attrs?: Record<string, string>): StubParent {
 
 function child(parent: StubParent, node: StubParent): StubParent { parent.appendChild(node); return node; }
 
-installStubGlobals({activeElement: null, head: makeEl("HEAD"), createElement: (n) => makeEl(String(n).toUpperCase())});
+const stubHead = makeEl("HEAD");
+installStubGlobals({activeElement: null, head: stubHead, createElement: (n) => makeEl(String(n).toUpperCase())});
 
 
 // ---- Scenario A: the MISUSE (marker on the host the .NET side renders) fails safe ----
@@ -112,9 +113,32 @@ morph(asDom(editorFrom2), asDom(editorTo2));
 const correctHostCount = editorFrom2._kids.filter((k: StubNode) => asStubParent(k).getAttribute("class") === "pg-code-host").length;
 const correctMonacoKept = hostFrom2._kids.some((k: StubNode) => k.nodeName === "CANVAS");
 
+// ---- Scenario C: arming the head watch takes it over from the island runtime ----
+// On a prerendered page the island runtime (rask-external.js) mounts islands before this module watches <head>, so it
+// watches <head> itself and registers a handoff. Arming here must set the flag an island runtime loading later reads,
+// and call a waiting handoff exactly once — a second head morph on the same head arms nothing new.
+let handoffCalls = 0;
+const g = globalThis as unknown as {
+    MutationObserver?: unknown;
+    __raskExternalHeadHandoff?: () => void;
+    __raskHeadObserverArmed?: boolean;
+};
+g.MutationObserver = class {
+    observe() {}
+    disconnect() {}
+    takeRecords() { return []; }
+};
+g.__raskExternalHeadHandoff = () => { handoffCalls++; };
+
+morph(asDom(stubHead), asDom(makeEl("HEAD")));
+morph(asDom(stubHead), asDom(makeEl("HEAD")));
+const headWatchArmed = g.__raskHeadObserverArmed === true;
+
 process.stdout.write(JSON.stringify({
     misuseHostCount,     // 1 — no duplicate empty host appended (was 3 after two frames pre-guard)
     misuseMonacoKept,    // true — the original host and its Monaco DOM untouched
     correctHostCount,    // 1 — single host
-    correctMonacoKept    // true — marked child survives a childless incoming host
+    correctMonacoKept,   // true — marked child survives a childless incoming host
+    headWatchArmed,      // true — arming set the flag an island runtime loading later reads
+    handoffCalls         // 1 — the island runtime's watch was handed over once, not per head morph
 }) + "\n");

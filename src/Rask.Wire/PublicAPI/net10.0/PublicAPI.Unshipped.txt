@@ -1,22 +1,187 @@
 #nullable enable
+Rask.Wire.AuthApi
+Rask.Wire.AuthError
+Rask.Wire.AuthError.DuplicateAccount = 3 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.EmailAlreadyConfirmed = 11 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.EmailNotConfirmed = 9 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.FirstRunTokenRequired = 5 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.InvalidCredentials = 1 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.InvalidEmail = 7 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.InvalidToken = 8 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.LockedOut = 2 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.MailNotConfigured = 10 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.None = 0 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.NotAllowed = 6 -> Rask.Wire.AuthError
+Rask.Wire.AuthError.WeakPassword = 4 -> Rask.Wire.AuthError
+Rask.Wire.AuthFailure
+Rask.Wire.AuthFailure.<Clone>$() -> Rask.Wire.AuthFailure!
+Rask.Wire.AuthFailure.AuthFailure(string! Error, string? Message) -> void
+Rask.Wire.AuthFailure.Deconstruct(out string! Error, out string? Message) -> void
+Rask.Wire.AuthFailure.Equals(Rask.Wire.AuthFailure? other) -> bool
+Rask.Wire.AuthFailure.Error.get -> string!
+Rask.Wire.AuthFailure.Error.init -> void
+Rask.Wire.AuthFailure.Message.get -> string?
+Rask.Wire.AuthFailure.Message.init -> void
+Rask.Wire.AuthResult
+Rask.Wire.AuthResult.<Clone>$() -> Rask.Wire.AuthResult!
+Rask.Wire.AuthResult.AuthResult(bool Succeeded, Rask.Wire.AuthError Error = Rask.Wire.AuthError.None, string? Message = null) -> void
+Rask.Wire.AuthResult.Deconstruct(out bool Succeeded, out Rask.Wire.AuthError Error, out string? Message) -> void
+Rask.Wire.AuthResult.Equals(Rask.Wire.AuthResult? other) -> bool
+Rask.Wire.AuthResult.Error.get -> Rask.Wire.AuthError
+Rask.Wire.AuthResult.Error.init -> void
+Rask.Wire.AuthResult.Message.get -> string?
+Rask.Wire.AuthResult.Message.init -> void
+Rask.Wire.AuthResult.Succeeded.get -> bool
+Rask.Wire.AuthResult.Succeeded.init -> void
+Rask.Wire.BearerSession
+Rask.Wire.BearerSession.<Clone>$() -> Rask.Wire.BearerSession!
+Rask.Wire.BearerSession.AccessToken.get -> string!
+Rask.Wire.BearerSession.AccessToken.init -> void
+Rask.Wire.BearerSession.BearerSession(string! AccessToken, string! TokenType, int ExpiresIn, Rask.Wire.CurrentUser! User) -> void
+Rask.Wire.BearerSession.Deconstruct(out string! AccessToken, out string! TokenType, out int ExpiresIn, out Rask.Wire.CurrentUser! User) -> void
+Rask.Wire.BearerSession.Equals(Rask.Wire.BearerSession? other) -> bool
+Rask.Wire.BearerSession.ExpiresIn.get -> int
+Rask.Wire.BearerSession.ExpiresIn.init -> void
+Rask.Wire.BearerSession.TokenType.get -> string!
+Rask.Wire.BearerSession.TokenType.init -> void
+Rask.Wire.BearerSession.User.get -> Rask.Wire.CurrentUser!
+Rask.Wire.BearerSession.User.init -> void
+Rask.Wire.ConfirmEmailRequest
+Rask.Wire.ConfirmEmailRequest.<Clone>$() -> Rask.Wire.ConfirmEmailRequest!
+Rask.Wire.ConfirmEmailRequest.ConfirmEmailRequest(string! UserId, string! Token) -> void
+Rask.Wire.ConfirmEmailRequest.Deconstruct(out string! UserId, out string! Token) -> void
+Rask.Wire.ConfirmEmailRequest.Equals(Rask.Wire.ConfirmEmailRequest? other) -> bool
+Rask.Wire.ConfirmEmailRequest.Token.get -> string!
+Rask.Wire.ConfirmEmailRequest.Token.init -> void
+Rask.Wire.ConfirmEmailRequest.UserId.get -> string!
+Rask.Wire.ConfirmEmailRequest.UserId.init -> void
+Rask.Wire.CurrentUser
+Rask.Wire.CurrentUser.<Clone>$() -> Rask.Wire.CurrentUser!
+Rask.Wire.CurrentUser.CurrentUser(string? Id, string? Email, System.Collections.Generic.IReadOnlyList<string!>! Roles) -> void
+Rask.Wire.CurrentUser.Deconstruct(out string? Id, out string? Email, out System.Collections.Generic.IReadOnlyList<string!>! Roles) -> void
+Rask.Wire.CurrentUser.Email.get -> string?
+Rask.Wire.CurrentUser.Email.init -> void
+Rask.Wire.CurrentUser.Equals(Rask.Wire.CurrentUser? other) -> bool
+Rask.Wire.CurrentUser.Id.get -> string?
+Rask.Wire.CurrentUser.Id.init -> void
+Rask.Wire.CurrentUser.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Wire.CurrentUser.Roles.init -> void
 Rask.Wire.FileDownload
 Rask.Wire.FileDownload.ContentType.get -> string!
 Rask.Wire.FileDownload.FileName.get -> string!
 Rask.Wire.FileDownload.Length.get -> long?
 Rask.Wire.FileDownload.OpenReadStream() -> System.IO.Stream!
 Rask.Wire.FileDownload.WriteToAsync(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Wire.ForgotPasswordRequest
+Rask.Wire.ForgotPasswordRequest.<Clone>$() -> Rask.Wire.ForgotPasswordRequest!
+Rask.Wire.ForgotPasswordRequest.Deconstruct(out string! Email) -> void
+Rask.Wire.ForgotPasswordRequest.Email.get -> string!
+Rask.Wire.ForgotPasswordRequest.Email.init -> void
+Rask.Wire.ForgotPasswordRequest.Equals(Rask.Wire.ForgotPasswordRequest? other) -> bool
+Rask.Wire.ForgotPasswordRequest.ForgotPasswordRequest(string! Email) -> void
+Rask.Wire.LoginRequest
+Rask.Wire.LoginRequest.<Clone>$() -> Rask.Wire.LoginRequest!
+Rask.Wire.LoginRequest.Deconstruct(out string! Email, out string! Password, out bool Remember) -> void
+Rask.Wire.LoginRequest.Email.get -> string!
+Rask.Wire.LoginRequest.Email.init -> void
+Rask.Wire.LoginRequest.Equals(Rask.Wire.LoginRequest? other) -> bool
+Rask.Wire.LoginRequest.LoginRequest(string! Email, string! Password, bool Remember = false) -> void
+Rask.Wire.LoginRequest.Password.get -> string!
+Rask.Wire.LoginRequest.Password.init -> void
+Rask.Wire.LoginRequest.Remember.get -> bool
+Rask.Wire.LoginRequest.Remember.init -> void
+Rask.Wire.RegisterRequest
+Rask.Wire.RegisterRequest.<Clone>$() -> Rask.Wire.RegisterRequest!
+Rask.Wire.RegisterRequest.Deconstruct(out string! Email, out string! Password, out string? FirstRunToken) -> void
+Rask.Wire.RegisterRequest.Email.get -> string!
+Rask.Wire.RegisterRequest.Email.init -> void
+Rask.Wire.RegisterRequest.Equals(Rask.Wire.RegisterRequest? other) -> bool
+Rask.Wire.RegisterRequest.FirstRunToken.get -> string?
+Rask.Wire.RegisterRequest.FirstRunToken.init -> void
+Rask.Wire.RegisterRequest.Password.get -> string!
+Rask.Wire.RegisterRequest.Password.init -> void
+Rask.Wire.RegisterRequest.RegisterRequest(string! Email, string! Password, string? FirstRunToken = null) -> void
 Rask.Wire.RemoteFile
 Rask.Wire.RemoteFile.RemoteFile() -> void
+Rask.Wire.ResetPasswordRequest
+Rask.Wire.ResetPasswordRequest.<Clone>$() -> Rask.Wire.ResetPasswordRequest!
+Rask.Wire.ResetPasswordRequest.Deconstruct(out string! UserId, out string! Token, out string! Password) -> void
+Rask.Wire.ResetPasswordRequest.Equals(Rask.Wire.ResetPasswordRequest? other) -> bool
+Rask.Wire.ResetPasswordRequest.Password.get -> string!
+Rask.Wire.ResetPasswordRequest.Password.init -> void
+Rask.Wire.ResetPasswordRequest.ResetPasswordRequest(string! UserId, string! Token, string! Password) -> void
+Rask.Wire.ResetPasswordRequest.Token.get -> string!
+Rask.Wire.ResetPasswordRequest.Token.init -> void
+Rask.Wire.ResetPasswordRequest.UserId.get -> string!
+Rask.Wire.ResetPasswordRequest.UserId.init -> void
 Rask.Wire.WireJson
 abstract Rask.Wire.RemoteFile.ContentType.get -> string!
 abstract Rask.Wire.RemoteFile.Name.get -> string!
 abstract Rask.Wire.RemoteFile.OpenReadStream(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
 abstract Rask.Wire.RemoteFile.Size.get -> long
+const Rask.Wire.AuthApi.AuthModeHeader = "X-Rask-Auth-Mode" -> string!
+const Rask.Wire.AuthApi.BearerMode = "bearer" -> string!
+const Rask.Wire.AuthApi.ConfirmEmail = "/confirm-email" -> string!
+const Rask.Wire.AuthApi.DefaultPrefix = "/api/auth" -> string!
+const Rask.Wire.AuthApi.ForgotPassword = "/forgot-password" -> string!
+const Rask.Wire.AuthApi.Login = "/login" -> string!
+const Rask.Wire.AuthApi.Logout = "/logout" -> string!
+const Rask.Wire.AuthApi.Me = "/me" -> string!
+const Rask.Wire.AuthApi.Register = "/register" -> string!
+const Rask.Wire.AuthApi.RequestHeader = "X-Rask-Auth" -> string!
+const Rask.Wire.AuthApi.ResetPassword = "/reset-password" -> string!
 const Rask.Wire.RemoteFile.UnknownSize = -1 -> long
+override Rask.Wire.AuthFailure.Equals(object? obj) -> bool
+override Rask.Wire.AuthFailure.GetHashCode() -> int
+override Rask.Wire.AuthFailure.ToString() -> string!
+override Rask.Wire.AuthResult.Equals(object? obj) -> bool
+override Rask.Wire.AuthResult.GetHashCode() -> int
+override Rask.Wire.AuthResult.ToString() -> string!
+override Rask.Wire.BearerSession.Equals(object? obj) -> bool
+override Rask.Wire.BearerSession.GetHashCode() -> int
+override Rask.Wire.BearerSession.ToString() -> string!
+override Rask.Wire.ConfirmEmailRequest.Equals(object? obj) -> bool
+override Rask.Wire.ConfirmEmailRequest.GetHashCode() -> int
+override Rask.Wire.ConfirmEmailRequest.ToString() -> string!
+override Rask.Wire.CurrentUser.Equals(object? obj) -> bool
+override Rask.Wire.CurrentUser.GetHashCode() -> int
+override Rask.Wire.CurrentUser.ToString() -> string!
+override Rask.Wire.ForgotPasswordRequest.Equals(object? obj) -> bool
+override Rask.Wire.ForgotPasswordRequest.GetHashCode() -> int
+override Rask.Wire.ForgotPasswordRequest.ToString() -> string!
+override Rask.Wire.LoginRequest.Equals(object? obj) -> bool
+override Rask.Wire.LoginRequest.GetHashCode() -> int
+override Rask.Wire.LoginRequest.ToString() -> string!
+override Rask.Wire.RegisterRequest.Equals(object? obj) -> bool
+override Rask.Wire.RegisterRequest.GetHashCode() -> int
+override Rask.Wire.RegisterRequest.ToString() -> string!
+override Rask.Wire.ResetPasswordRequest.Equals(object? obj) -> bool
+override Rask.Wire.ResetPasswordRequest.GetHashCode() -> int
+override Rask.Wire.ResetPasswordRequest.ToString() -> string!
+static Rask.Wire.AuthFailure.operator !=(Rask.Wire.AuthFailure? left, Rask.Wire.AuthFailure? right) -> bool
+static Rask.Wire.AuthFailure.operator ==(Rask.Wire.AuthFailure? left, Rask.Wire.AuthFailure? right) -> bool
+static Rask.Wire.AuthResult.Fail(Rask.Wire.AuthError error, string? message = null) -> Rask.Wire.AuthResult!
+static Rask.Wire.AuthResult.Success.get -> Rask.Wire.AuthResult!
+static Rask.Wire.AuthResult.operator !=(Rask.Wire.AuthResult? left, Rask.Wire.AuthResult? right) -> bool
+static Rask.Wire.AuthResult.operator ==(Rask.Wire.AuthResult? left, Rask.Wire.AuthResult? right) -> bool
+static Rask.Wire.BearerSession.operator !=(Rask.Wire.BearerSession? left, Rask.Wire.BearerSession? right) -> bool
+static Rask.Wire.BearerSession.operator ==(Rask.Wire.BearerSession? left, Rask.Wire.BearerSession? right) -> bool
+static Rask.Wire.ConfirmEmailRequest.operator !=(Rask.Wire.ConfirmEmailRequest? left, Rask.Wire.ConfirmEmailRequest? right) -> bool
+static Rask.Wire.ConfirmEmailRequest.operator ==(Rask.Wire.ConfirmEmailRequest? left, Rask.Wire.ConfirmEmailRequest? right) -> bool
+static Rask.Wire.CurrentUser.operator !=(Rask.Wire.CurrentUser? left, Rask.Wire.CurrentUser? right) -> bool
+static Rask.Wire.CurrentUser.operator ==(Rask.Wire.CurrentUser? left, Rask.Wire.CurrentUser? right) -> bool
 static Rask.Wire.FileDownload.FromBytes(string! fileName, string? contentType, byte[]! bytes) -> Rask.Wire.FileDownload!
 static Rask.Wire.FileDownload.FromStream(string! fileName, string? contentType, System.IO.Stream! stream, long? length = null) -> Rask.Wire.FileDownload!
+static Rask.Wire.ForgotPasswordRequest.operator !=(Rask.Wire.ForgotPasswordRequest? left, Rask.Wire.ForgotPasswordRequest? right) -> bool
+static Rask.Wire.ForgotPasswordRequest.operator ==(Rask.Wire.ForgotPasswordRequest? left, Rask.Wire.ForgotPasswordRequest? right) -> bool
+static Rask.Wire.LoginRequest.operator !=(Rask.Wire.LoginRequest? left, Rask.Wire.LoginRequest? right) -> bool
+static Rask.Wire.LoginRequest.operator ==(Rask.Wire.LoginRequest? left, Rask.Wire.LoginRequest? right) -> bool
+static Rask.Wire.RegisterRequest.operator !=(Rask.Wire.RegisterRequest? left, Rask.Wire.RegisterRequest? right) -> bool
+static Rask.Wire.RegisterRequest.operator ==(Rask.Wire.RegisterRequest? left, Rask.Wire.RegisterRequest? right) -> bool
 static Rask.Wire.RemoteFile.FromBytes(string! name, string? contentType, byte[]! bytes, System.DateTimeOffset? lastModified = null) -> Rask.Wire.RemoteFile!
 static Rask.Wire.RemoteFile.FromStream(string! name, string? contentType, long size, System.Func<System.Threading.CancellationToken, System.IO.Stream!>! openReadStream, System.DateTimeOffset? lastModified = null) -> Rask.Wire.RemoteFile!
+static Rask.Wire.ResetPasswordRequest.operator !=(Rask.Wire.ResetPasswordRequest? left, Rask.Wire.ResetPasswordRequest? right) -> bool
+static Rask.Wire.ResetPasswordRequest.operator ==(Rask.Wire.ResetPasswordRequest? left, Rask.Wire.ResetPasswordRequest? right) -> bool
 static Rask.Wire.WireJson.ExpectStartArray(ref System.Text.Json.Utf8JsonReader reader, string! property) -> void
 static Rask.Wire.WireJson.ExpectStartObject(ref System.Text.Json.Utf8JsonReader reader, string! property) -> void
 static Rask.Wire.WireJson.ReadBoolean(ref System.Text.Json.Utf8JsonReader reader, string! property) -> bool

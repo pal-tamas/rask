@@ -142,6 +142,19 @@
       <_RaskPrerenderLine Include="    &lt;Compile Include=&quot;$(MSBuildProjectDirectory)\%2A%2A\%2A.cs&quot; /&gt;"/>
       <_RaskPrerenderLine Include="    &lt;Compile Remove=&quot;$(MSBuildProjectDirectory)\obj\%2A%2A&quot; /&gt;"/>
       <_RaskPrerenderLine Include="    &lt;Compile Remove=&quot;$(MSBuildProjectDirectory)\bin\%2A%2A&quot; /&gt;"/>
+      <!--
+        A package island's committed props snapshot, carried with the sources for the reason everything else in this
+        file is: the companion compiles the app's C#, and a package island's chain steps are generated FROM the
+        `{Island}.props.json` beside its class. Rask.External globs those from the companion's own directory, inside
+        obj\, where none lives — so without these lines the island compiled with no steps and the publish failed on the
+        first `.Color(…)` as CS1929, naming the app's page rather than the file that was missing. Remove rather than
+        Exclude, for the semicolons.
+      -->
+      <_RaskPrerenderLine Include="    &lt;AdditionalFiles Include=&quot;$(MSBuildProjectDirectory)\%2A%2A\%2A.props.json&quot; /&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\obj\%2A%2A&quot; /&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\bin\%2A%2A&quot; /&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\node_modules\%2A%2A&quot; /&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\wwwroot\%2A%2A&quot; /&gt;"/>
       <_RaskPrerenderLine Include="  &lt;/ItemGroup&gt;"/>
 
       <!--

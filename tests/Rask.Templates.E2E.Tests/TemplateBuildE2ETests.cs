@@ -28,7 +28,8 @@ public sealed class TemplateBuildE2ETests
 
     internal static bool Enabled => Environment.GetEnvironmentVariable("RASK_TEMPLATE_E2E") == "1";
 
-    public static TheoryData<string> Templates() => [.. TemplateCatalog.Keys];
+    public static TheoryData<string> Templates() =>
+        [.. TemplateSelection.Apply(TemplateCatalog.Keys)];
 
     [SkippableTheory]
     [MemberData(nameof(Templates))]

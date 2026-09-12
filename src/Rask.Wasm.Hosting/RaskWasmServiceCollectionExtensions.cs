@@ -29,15 +29,24 @@ public static class RaskWasmServiceCollectionExtensions
     ///     </para>
     /// </summary>
     /// <remarks>
-    ///     In an app that references <b>both</b> hosts — a wasm-hosted app that also mounts the
-    ///     server-rendered operator dashboard — call <see cref="AddRaskWasmHost" /> instead. Both
-    ///     packages define an <c>AddRask(this IServiceCollection)</c>, and with both namespaces imported
-    ///     C# does not report an ambiguity: this overload takes no optional parameters and
-    ///     <c>Rask.Server</c>'s takes two, so the "fewer defaulted arguments" tie-break silently
-    ///     selects this one. The app then compiles, starts without the live runtime registered, and
-    ///     fails on the first request with a missing-service error naming a type the author never used.
+    ///     <para>
+    ///         Named for the host it sets up rather than <c>AddRask</c>, and that is load-bearing.
+    ///         <c>Rask.Server</c> also defines an <c>AddRask(this IServiceCollection)</c> — with every
+    ///         parameter optional — so in an app that references both packages a bare <c>AddRask()</c>
+    ///         was NOT reported as ambiguous: C# prefers the candidate with no omitted optional
+    ///         parameters, so this one won the tie-break silently. The app compiled, started without the
+    ///         live runtime registered, and died at <c>UseRask&lt;TApp&gt;()</c> with a missing-service
+    ///         error naming a type the author had never heard of.
+    ///     </para>
+    ///     <para>
+    ///         The two names used to coexist, with this hazard written down beside them and an alias to
+    ///         reach for instead. That held exactly as long as every call site remembered — until #1095,
+    ///         when a configuration refactor dropped the named argument that had been disambiguating the
+    ///         scaffolded <c>--wasm</c> app by accident, and every one of those apps stopped starting.
+    ///         One name per behaviour is what actually removes the failure.
+    ///     </para>
     /// </remarks>
-    public static IServiceCollection AddRask(this IServiceCollection services)
+    public static IServiceCollection AddRaskWasmHost(this IServiceCollection services)
     {
         services.AddResponseCompression(options =>
         {
@@ -81,16 +90,4 @@ public static class RaskWasmServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    ///     <see cref="AddRask" /> under a name only this package defines — for an app that references
-    ///     both hosts and therefore cannot say <c>AddRask()</c> and mean it.
-    ///     <para>
-    ///         Identical behaviour; the point is the name. A wasm-hosted app that mounts the operator
-    ///         dashboard registers <c>Rask.Server</c>'s runtime with <c>AddRask(…)</c> and this host's
-    ///         compression with <c>AddRaskWasmHost()</c>, and each call says which host it means
-    ///         instead of depending on an overload-resolution tie-break to guess right.
-    ///     </para>
-    /// </summary>
-    public static IServiceCollection AddRaskWasmHost(this IServiceCollection services) =>
-        services.AddRask();
 }

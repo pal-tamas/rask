@@ -82,6 +82,12 @@ still applies. A model that never mapped the table fails the boot with the line 
 
 On SQLite, keep the file store: there every writer shares one lock, and a file of its own is the point.
 
+An app built with `RaskApp` gets this without writing it: when `Rask:Database:Provider` is `postgres` or
+`sqlserver`, the log store moves into the application database and `RaskAppDbContext` maps the table. On SQLite it
+stays in `logs.db`. A context of the app's own maps the table itself with `modelBuilder.AddRaskLogging()`, and is told
+the line at start if it does not; an app that calls `AddRaskLogging()` itself keeps its file store. See
+[choosing the database](data.md#choosing-the-database).
+
 ### Options
 
 Every option is `Rask:Logging` in `appsettings.json`:

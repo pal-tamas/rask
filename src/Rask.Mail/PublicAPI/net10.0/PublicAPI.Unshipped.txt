@@ -4,9 +4,9 @@ Rask.Mail.Email.AndTo(string! address, string? name = null) -> Rask.Mail.Email!
 Rask.Mail.Email.Attach(string! fileName, string! contentType, byte[]! content) -> Rask.Mail.Email!
 Rask.Mail.Email.Bcc(string! address, string? name = null) -> Rask.Mail.Email!
 Rask.Mail.Email.Body(Rask.Core.Component! component) -> Rask.Mail.Email!
-Rask.Mail.Email.Body(string! html) -> Rask.Mail.Email!
 Rask.Mail.Email.Cc(string! address, string? name = null) -> Rask.Mail.Email!
 Rask.Mail.Email.From(string! address, string? name = null) -> Rask.Mail.Email!
+Rask.Mail.Email.Html(string! html) -> Rask.Mail.Email!
 Rask.Mail.Email.PlainText(string! text) -> Rask.Mail.Email!
 Rask.Mail.Email.ReplyTo(string! address, string? name = null) -> Rask.Mail.Email!
 Rask.Mail.Email.Subject(string! subject) -> Rask.Mail.Email!

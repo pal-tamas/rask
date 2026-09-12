@@ -77,10 +77,19 @@ in C#, callbacks re-enter C# over the channel every handler already uses, and th
 subtree alone because its own renderer owns it. This is the one pillar `Rask` does not bring on its
 own: add `Rask.External`, and Node, because your React does.
 
+A component from npm needs no front-end file at all: name the package export in `Module`, and its chain
+steps are generated from the package's own TypeScript into a committed `ColorPicker.props.json`. An
+island takes children of its own runtime, so a React island can hold another.
+
 ```csharp
 public sealed partial class Chart : ReactComponent
 {
     public required IReadOnlyList<Point> Series { get; set; }
+}
+
+public sealed partial class ColorPicker : ReactComponent
+{
+    protected override string Module => "react-colorful#HexColorPicker";   // .Color(…), .OnChange(…)
 }
 ```
 

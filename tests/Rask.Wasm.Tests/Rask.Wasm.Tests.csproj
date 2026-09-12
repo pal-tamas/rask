@@ -10,7 +10,7 @@
       imports Rask.Core.targets, so there is no item to remove yet.
     -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

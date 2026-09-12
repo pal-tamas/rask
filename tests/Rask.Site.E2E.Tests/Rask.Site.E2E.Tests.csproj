@@ -7,7 +7,7 @@
       are not paired with.
     -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

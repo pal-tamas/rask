@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Rask.Auth.Pages;
 using Rask.Mail;
 
 namespace Rask.Auth;
@@ -24,7 +23,11 @@ namespace Rask.Auth;
 /// looks exactly like one that worked, and the person waiting for the email has no way to tell.
 /// </para>
 /// </remarks>
-internal sealed class AuthMail(IServiceProvider services, AuthOptions options, ILogger<AuthMail> logger)
+internal sealed class AuthMail(
+    IServiceProvider services,
+    AuthOptions options,
+    IAuthEmailBodies bodies,
+    ILogger<AuthMail> logger)
 {
     /// <summary>Whether this app can send at all.</summary>
     public bool IsConfigured => services.GetService<IMail>() is not null;
@@ -38,7 +41,7 @@ internal sealed class AuthMail(IServiceProvider services, AuthOptions options, I
         return SendAsync(
             email,
             options.ConfirmEmailSubject,
-            AuthEmails.Confirm(link, options.ConfirmEmailSubject),
+            bodies.Confirm(link, options.ConfirmEmailSubject),
             cancellationToken);
     }
 
@@ -51,12 +54,12 @@ internal sealed class AuthMail(IServiceProvider services, AuthOptions options, I
         return SendAsync(
             email,
             options.ResetPasswordSubject,
-            AuthEmails.Reset(link, options.ResetPasswordSubject, options.TokenLifetime),
+            bodies.Reset(link, options.ResetPasswordSubject, options.TokenLifetime),
             cancellationToken);
     }
 
     private async Task<bool> SendAsync(
-        string address, string subject, Component body, CancellationToken cancellationToken)
+        string address, string subject, string body, CancellationToken cancellationToken)
     {
         if (services.GetService<IMail>() is not { } mail)
         {
@@ -69,7 +72,7 @@ internal sealed class AuthMail(IServiceProvider services, AuthOptions options, I
             // and "the email went out" — which matters here more than anywhere: a lost confirmation is
             // an account nobody can use.
             await mail
-                .SendAsync(Email.To(address).Subject(subject).Body(body), cancellationToken)
+                .SendAsync(Email.To(address).Subject(subject).Html(body), cancellationToken)
                 .ConfigureAwait(false);
 
             return true;

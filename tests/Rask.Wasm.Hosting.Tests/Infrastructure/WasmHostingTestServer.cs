@@ -42,7 +42,7 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
 
         if (withCompression)
         {
-            builder.Services.AddRask();
+            builder.Services.AddRaskWasmHost();
         }
 
         var app = builder.Build();

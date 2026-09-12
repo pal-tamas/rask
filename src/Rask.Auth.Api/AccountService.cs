@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Rask.Core.Authentication;
-
-using Rask.Core.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Rask.Wire;
 
 namespace Rask.Auth;
 
@@ -40,7 +39,7 @@ internal interface IAccounts
 /// It deliberately stops at producing a <see cref="ClaimsPrincipal"/> and never issues a session,
 /// because the two callers issue one differently and both are correct: a component handler on the
 /// Server host has no <c>HttpContext</c> to write a cookie on and must go through
-/// <see cref="IAuthSignIn"/>'s ticket relay, while the <c>/api/auth</c> endpoints are ordinary HTTP and
+/// the host's <c>IAuthSignIn</c> ticket relay, while the <c>/api/auth</c> endpoints are ordinary HTTP and
 /// call <c>HttpContext.SignInAsync</c> directly. Keeping the store logic here means the two paths cannot
 /// drift in what they consider a valid registration.
 /// </remarks>
@@ -52,7 +51,8 @@ internal sealed class AccountService<TUser>(
     IInstanceClaimStore claims,
     FirstRunToken firstRun,
     AuthMail mail,
-    AuthOptions options) : IAccounts
+    AuthOptions options,
+    ILogger<AccountService<TUser>> logger) : IAccounts
     where TUser : IdentityUser, new()
 {
     public async Task<AccountOutcome> RegisterAsync(
@@ -201,9 +201,7 @@ internal sealed class AccountService<TUser>(
             // uniform across addresses while an app with no mail battery is still told plainly.
             if (!sent)
             {
-                RaskDiagnostics.Report(
-                    RaskLogLevel.Error,
-                    "Rask.Auth",
+                logger.LogError(
                     "A password reset could not be queued for a registered address. The caller was told "
                     + "the same thing every caller is told, so this line is the only place it appears. "
                     + "The usual cause is a mail battery whose tables are not in the DbContext model.");

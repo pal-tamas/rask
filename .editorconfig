@@ -288,3 +288,29 @@ dotnet_diagnostic.RS0027.severity = none
 # source is the smaller price, and it is paid only by us.
 [*.cs]
 dotnet_diagnostic.CS0108.severity = none
+
+# BL0016 ("JS interop call is not guarded with a try/catch block") is off for Rask's own IJSRuntime
+# implementations, and ONLY for those two files.
+#
+# The rule arrived with ASP.NET Core 11's Blazor analyzers, so it fires on the net11.0 build and never did on
+# net10.0. It exists for application code, where an unguarded JS call can take a circuit down. These files ARE
+# the interop runtime: RaskBlazorJSRuntime's InvokeAsync throws on purpose — a server-rendered island has no
+# browser-side renderer, and failing loudly with the reason is the point (its remarks explain why a no-op
+# would be worse) — and RaskJSRuntime.EndInvokeDotNet packages a [JSInvokable] result for the wire, where a
+# failure has to reach the base JSRuntime rather than be swallowed. The analyzer's own guidance for runtime and
+# wrapper code that must let JS exceptions propagate is to suppress with a justification instead of adding a
+# try/catch; a catch here would hide exactly the failures these methods exist to surface. File-scoped so an
+# unguarded call anywhere else in Rask.Blazor or Rask.Server still fails the build.
+[src/Rask.Blazor/RaskBlazorJSRuntime.cs]
+dotnet_diagnostic.BL0016.severity = none
+
+[src/Rask.Server/JSInterop/RaskJSRuntime.cs]
+dotnet_diagnostic.BL0016.severity = none
+
+# BL0016 is off for the test suites as well, on the same terms. The analyzer only runs in a test project's
+# .NET 11 build (scripts/run-unit-net11-local.sh), and there it flagged 42 files across Rask.Core.Tests,
+# Rask.Server.Tests and Rask.Blazor.Tests: every call on the fake IJSRuntime (SetResponse, ArgsFor, CallCount)
+# and the InvokeAsync calls whose exceptions the tests exist to assert on. A try/catch in a test would swallow
+# exactly the failure it is written to observe.
+[tests/**.cs]
+dotnet_diagnostic.BL0016.severity = none
