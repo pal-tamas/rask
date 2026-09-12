@@ -27,9 +27,16 @@ namespace Rask.Site.Features.Islands;
 ///         Vite plugins are each scoped to their own island directory. Sharing one — or nesting one
 ///         inside the other — is refused by the build rather than mis-compiled.
 ///     </para>
+///     <para>
+///         <see cref="ColorPicker" /> is a React component straight from npm, with no <c>.tsx</c> of its own, and it is
+///         a CHILD of <see cref="ReactCounter" />: it travels inside the counter's props and React renders both in one
+///         tree, so it has no host element of its own and its callback still reaches C#.
+///     </para>
 /// </remarks>
 public sealed partial class IslandsDemo : Component
 {
+    private const string StartColor = "#c026d3";
+
     private readonly List<ChartBar> _series =
     [
         new("Jan", 38),
@@ -47,6 +54,7 @@ public sealed partial class IslandsDemo : Component
     private int _reactTotal;
     private int _hoveredPoint = -1;
     private int _badgeNudges;
+    private string _color = StartColor;
 
     protected override Component? Render() =>
     [
@@ -74,10 +82,15 @@ public sealed partial class IslandsDemo : Component
                 P.Class("text-sm text-ui-muted")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
                     "the counters below have to survive it — a remount would reset them, and nothing ",
-                    "else on the page would look any different."
+                    "else on the page would look any different. Inside the React counter is a colour ",
+                    "picker straight from npm, nested as a child island: no ", Code[".tsx"], " of its own, ",
+                    "its steps generated from the package's TypeScript."
                 ],
 
-                ReactCounter.Caption("Clicks since mount").Step(_step).OnTotalChanged(TotalChanged),
+                ReactCounter.Caption("Clicks since mount").Step(_step).OnTotalChanged(TotalChanged)[
+                    "Pick a colour: ",
+                    ColorPicker.Color(_color).OnChange(ColorChanged)
+                ],
 
                 Div.Class("mt-3")[
                     SvelteMeter.Value(_reading).Label("Capacity")
@@ -91,7 +104,9 @@ public sealed partial class IslandsDemo : Component
                 P.Class("text-sm mt-3 mb-0")[
                     "React reported a total of ",
                     Code.Id("island-react-total")[_reactTotal.ToString()],
-                    Span[" back to C#."]
+                    Span[" back to C#, and the picker the colour "],
+                    Code.Id("island-color")[_color],
+                    Span["."]
                 ]
             ],
 
@@ -138,6 +153,8 @@ public sealed partial class IslandsDemo : Component
 
     private void TotalChanged(int total) => _reactTotal = total;
 
+    private void ColorChanged(string color) => _color = color;
+
     private void PointHovered(int index) => _hoveredPoint = index;
 
     private void BadgeNudged(int nudges) => _badgeNudges = nudges;
@@ -167,6 +184,7 @@ public sealed partial class IslandsDemo : Component
         _reactTotal = 0;
         _hoveredPoint = -1;
         _badgeNudges = 0;
+        _color = StartColor;
 
         _readings.Clear();
         _readings.AddRange([12, 30, 22, 48, 35, 61]);

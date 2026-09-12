@@ -155,7 +155,8 @@
        raksrc/{leaf}; Program.cs registers this app assembly with EmbeddedSource so the lookup
        finds them. A .cs stays compiled too; this only adds its text as a manifest resource. -->
   <ItemGroup>
-    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.ts;Features/**/*.js;Features/**/*.css;Features/**/*.tsx;Features/**/*.vue;Features/**/*.svelte">
+    <!-- *.props.json is a package island's committed snapshot, shown beside the class it generates steps for. -->
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.ts;Features/**/*.js;Features/**/*.css;Features/**/*.tsx;Features/**/*.vue;Features/**/*.svelte;Features/**/*.props.json">
       <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>

@@ -72,6 +72,36 @@ globals.__raskExternalManual = true
 
 const runtime = await import('../../src/Rask.External/wwwroot/rask-external.js')
 
+// ----- <head> nodes a library injects before the page runtime arms its own watch -----
+//
+// A prerendered page runs this runtime first, so an island's library can style itself into <head> before the page
+// runtime watches it. What is added now must be tagged data-rask-managed, or the takeover morph deletes it; a keyed node
+// is the framework's and must not be; and after the handoff this runtime must stop tagging, or it would tag the page
+// runtime's own head morphs.
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
+const libraryStyle = document.createElement('style')
+libraryStyle.textContent = '.library{}'
+document.head.appendChild(libraryStyle)
+const keyedLink = document.createElement('link')
+keyedLink.setAttribute('data-rask-key', 'h-framework')
+document.head.appendChild(keyedLink)
+await tick()
+const headLibraryTagged = libraryStyle.hasAttribute('data-rask-managed')
+const headKeyedUntagged = !keyedLink.hasAttribute('data-rask-managed')
+
+const handoff = (globalThis as unknown as {__raskExternalHeadHandoff?: () => void}).__raskExternalHeadHandoff
+const headHandoffInstalled = typeof handoff === 'function'
+// A node still pending when the page runtime arms is tagged by the handoff itself, before the watch stops.
+const pendingStyle = document.createElement('style')
+document.head.appendChild(pendingStyle)
+handoff?.()
+const headPendingTaggedAtHandoff = pendingStyle.hasAttribute('data-rask-managed')
+const afterHandoff = document.createElement('style')
+document.head.appendChild(afterHandoff)
+await tick()
+const headAfterHandoffUntagged = !afterHandoff.hasAttribute('data-rask-managed')
+const headHandoffCleared = (globalThis as unknown as {__raskExternalHeadHandoff?: unknown}).__raskExternalHeadHandoff === undefined
+
 // ----- the run -----
 
 // The props exactly as the generator writes them: an unset prop is left out, and an event prop is a handler id with
@@ -194,4 +224,10 @@ process.stdout.write(JSON.stringify({
     textNodeKept,
     childrenAfterRemoval,
     cardKept,
+    headHandoffInstalled,
+    headLibraryTagged,
+    headKeyedUntagged,
+    headPendingTaggedAtHandoff,
+    headAfterHandoffUntagged,
+    headHandoffCleared,
 }) + '\n')

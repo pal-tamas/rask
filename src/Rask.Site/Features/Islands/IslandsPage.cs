@@ -20,8 +20,8 @@ public sealed partial class IslandsPage : Component
     protected override Component? HeadAssets =>
         PageMeta.For(
             "Islands demo: React, Vue, Svelte and Lit in C# — Rask",
-            "Vue, React, Svelte, Solid and Lit components as ordinary C# components in a WebAssembly app, "
-            + "with props declared in C# and callbacks that reach C#.",
+            "Vue, React, Svelte, Solid and Lit components — and an npm React component used directly — "
+            + "as ordinary C# components in a WebAssembly app.",
             Routes.IslandsPage());
 
     protected override Component? Render() =>
@@ -32,19 +32,23 @@ public sealed partial class IslandsPage : Component
             "These are the same files the Server showcase builds — C# owns the props, the generated ",
             "types cross back into the ", Code[".vue"], ", the two ", Code[".tsx"], " and the ",
             Code[".svelte"], ", and the subtree is a diff boundary Rask never patches into. Only the ",
-            "transport differs."
+            "transport differs. The colour picker has no front-end file at all: it is react-colorful ",
+            "from npm, its chain steps generated from the package's own TypeScript into ",
+            Code["ColorPicker.props.json"], "."
         ],
         CodeSample
             .Files([
                 "IslandsDemo.cs",
                 "VueChart.cs", "VueChart.vue",
                 "ReactCounter.cs", "ReactCounter.tsx",
+                "ColorPicker.cs", "ColorPicker.props.json",
                 "SvelteMeter.cs", "SvelteMeter.svelte",
                 "SolidSpark.cs", "SolidSpark.tsx",
             ])
-            .Notes("Four runtimes in one tree, running client-side. The callback that reaches C# here "
-                + "does so through a [JSExport] call into this tab's own runtime; the front-end files "
-                + "are byte-identical to the Server showcase's.")
+            .Notes("Four runtimes in one tree, running client-side, and a package component nested inside "
+                + "the React island as a child. The callback that reaches C# here does so through a "
+                + "[JSExport] call into this tab's own runtime; the front-end files are byte-identical to "
+                + "the Server showcase's.")
             .Result(IslandsDemo)
     ];
 }
