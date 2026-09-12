@@ -6,6 +6,7 @@ using Rask.Core;
 using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.DevTools.Panel;
 
 namespace Rask.DevTools.Probe;
 
@@ -21,11 +22,27 @@ internal sealed class DevToolsFeeds
 {
     private readonly ConditionalWeakTable<LiveSessionBase, DevToolsFeed> _feeds = new();
 
+    // Weak for the same reason as the table. Written on every record; a torn read between two sessions is harmless,
+    // because the browser host that reads it has one app session.
+    private readonly WeakReference<LiveSessionBase?> _latest = new(null);
+
     /// <summary>The feed for <paramref name="session" />, created on first use.</summary>
-    internal DevToolsFeed For(LiveSessionBase session) => _feeds.GetOrCreateValue(session);
+    internal DevToolsFeed For(LiveSessionBase session)
+    {
+        _latest.SetTarget(session);
+        return _feeds.GetOrCreateValue(session);
+    }
 
     /// <summary>The feed for <paramref name="session" /> if the devtools have seen it.</summary>
     internal bool TryGet(LiveSessionBase session, out DevToolsFeed feed) => _feeds.TryGetValue(session, out feed!);
+
+    /// <summary>
+    ///     The feed of the session recorded most recently, or null before any. A WASM page has one app session, so this is
+    ///     the one its panel inspects; a Server host names the session instead.
+    /// </summary>
+    internal DevToolsFeed? Latest => _latest.TryGetTarget(out var session) && session is not null
+        ? _feeds.GetOrCreateValue(session)
+        : null;
 }
 
 /// <summary>
@@ -33,8 +50,9 @@ internal sealed class DevToolsFeeds
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Installed into <see cref="RaskDevToolsHook.Probe" /> only where the devtools switch on — Development, with the
-///         kit the panel is drawn with present — so every other process keeps the null the hook sites branch on.
+///         Installed into <see cref="RaskDevToolsHook.Probe" /> only where the devtools switch on — Development on a Server
+///         host, a page served from this machine on a WASM one, and the kit the panel is drawn with present — so every
+///         other process keeps the null the hook sites branch on.
 ///     </para>
 ///     <para>
 ///         The panel is a Rask page with sessions of its own. Those are never recorded: a panel that measured itself
@@ -116,8 +134,15 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         feeds.For(session).RecordWire(DevToolsWireDirection.Out, kind, bytes, Stopwatch.GetTimestamp());
     }
 
+    // By type first: a WASM panel session shares the page's runtime, and its route state is its own container's, so the
+    // type is what says it is the panel. A Server panel is an ordinary session, known by the path its page was served at.
     private static bool IsPanel(LiveSessionBase session)
     {
+        if (session is DevToolsPanelSession)
+        {
+            return true;
+        }
+
         var path = session.Services.GetService<RouteState>()?.Path;
         return path is not null
                && path.StartsWith(PanelPrefix, StringComparison.OrdinalIgnoreCase)

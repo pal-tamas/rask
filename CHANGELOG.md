@@ -447,7 +447,6 @@ them until tagged releases begin.
   also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
   the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
 
-
 - **An island takes children of its own runtime.** A React island accepts React islands, text, numbers
   and dates — `MuiCard["Revenue ", _total, MuiButton.OnClick(Save)["Save"]]` — a Vue island Vue islands,
   and so on across all seven runtimes, and a list of islands or of text binds directly
@@ -526,6 +525,14 @@ them until tagged releases begin.
   field. `Product.Where(…).AsQueryable()` works the same way. EF Core's own operators (`Include`,
   `IgnoreQueryFilters`) go on before it, because EF ignores them on any other query provider.
 
+- **The Rask pill opens the devtools panel on WASM pages too.** A Debug build of a WASM app served from this machine
+  (`localhost` or a loopback address) gets the same pill and drawer as a Server app, and the Wire tab lists the page's
+  frames. With no server to run it on, the panel runs as a second live session inside the app's own .NET runtime, with
+  its own route state and services, and starts only when the drawer first opens. Its frames are posted into a `srcdoc`
+  frame whose small client applies them, so no second runtime boots. The scripts are embedded in `Rask.DevTools` and
+  imported from a `data:` URL, so a Release publish that strips the assembly strips them too; a development page whose
+  Content-Security-Policy forbids `data:` scripts logs one warning instead. A Debug bundle deployed to a real host keeps
+  the tools off for its visitors.
 - **Every Rask package ships for .NET 11 as well as .NET 10.** Each package now carries a `lib/net11.0` build
   (and `lib/net11.0-browser1.0` where it has a browser face) beside its .NET 10 one, so an app on the .NET 11
   release candidate references Rask exactly as it does today. .NET 10 stays the primary, LTS target: `rask new`
@@ -730,8 +737,7 @@ them until tagged releases begin.
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
   `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
-  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
-  not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all.
 
 - **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
   writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
@@ -972,6 +978,14 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **A state change made while its component is rendering is no longer lost.** A component's render cleared
+  its dirty flags only after `Render()` had read its state, so a `StateHasChanged()` from another thread in
+  that window was erased. That thread is typically an async lifecycle hook resuming on the thread pool, which
+  is the Server host's normal case. The stale output was cached and every later render replayed it, so the
+  page stopped updating until something else changed. The flags are now cleared before `Render()` runs, and
+  restored if it throws. This is what made `HttpPageTests` time out under a busy gate (#1067). WebAssembly
+  is single-threaded and never hit it.
 
 - **`rask new --wasm` scaffolded an app that could not start.** `Rask.Wasm.Hosting` and `Rask.Server`
   both exported `AddRask(this IServiceCollection)`. Referencing both packages — which the `--wasm`

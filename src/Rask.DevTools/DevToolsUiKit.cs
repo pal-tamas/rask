@@ -1,4 +1,6 @@
-namespace Rask.DevTools.Endpoints;
+using Rask.Core.Diagnostics;
+
+namespace Rask.DevTools;
 
 /// <summary>
 ///     Whether the component kit the panel is drawn with is in the app.
@@ -6,7 +8,8 @@ namespace Rask.DevTools.Endpoints;
 /// <remarks>
 ///     Rask.DevTools references Rask.Ui privately: the package declares no dependency on it, so a Release publish of an
 ///     app that never referenced Rask.Ui carries none of it. The app brings its own copy — every <c>rask new</c> template
-///     and the <c>Rask</c> meta-package do — and without one the panel cannot render, so the devtools stay off.
+///     and the <c>Rask</c> meta-package do — and without one the panel cannot render, so the devtools stay off on either
+///     host.
 /// </remarks>
 internal static class DevToolsUiKit
 {
@@ -29,4 +32,13 @@ internal static class DevToolsUiKit
             return false;
         }
     }
+
+    /// <summary>Says once, at startup, why the devtools are off — instead of a pill that opens a broken frame.</summary>
+    internal static void ReportMissing() =>
+        RaskDiagnostics.Report(
+            RaskLogLevel.Warning,
+            "Rask.DevTools",
+            "Rask DevTools are off: their panel is drawn with Rask.Ui, which this app does not reference. Add a "
+            + "PackageReference to Rask.Ui to turn them on — apps created with `rask new` and the Rask package already "
+            + "have one.");
 }
