@@ -9,6 +9,51 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Auth.Api` — the accounts battery for a host that renders nothing.** Identity, the
+  `/api/auth` endpoints, the cookie, bearer tokens and the account lifecycle, with no `Rask.Core`.
+  `Rask.Auth` is now this package plus the two things that need a renderer: the built-in `/login`,
+  `/register` and recovery pages, and `IAuth` for components. Same `Rask.Auth` namespace, same
+  `AddRaskAuth`/`MapRaskAuth`, so moving between lanes changes a `PackageReference` and nothing else —
+  reference one or the other, never both.
+
+  It exists because `Rask.Core` is not a package: it travels inside the host packages that render
+  components, so `Rask.Spa.Hosting` and `Rask.Meta.Hosting` ship no copy. The accounts battery reached
+  for it on every lane anyway, which is why a scaffolded SPA or meta app could not start (#1069) —
+  and why the thirteen front-end templates now reference `Rask.Auth.Api`.
+
+  The wire contract moved with it. `AuthApi`, the request and response records, and the
+  `AuthResult`/`AuthError` pair are now in **`Rask.Wire`** rather than `Rask.Core`: both halves have to
+  agree on them and neither can reference the other, and Rask.Wire is the zero-dependency,
+  trimming-clean package both can take. Core used none of it. `Rask.Mail`'s raw-HTML body setter is
+  `Email.Html(string)` rather than a second `Body` overload, because overload resolution against
+  `Body(Component)` makes the compiler load `Rask.Core` at the call site — which is exactly what a
+  Core-free package cannot do.
+
+
+- **The database is a setting: `Rask:Database:Provider` picks SQLite, PostgreSQL or SQL Server.** The `Rask`
+  package now brings `Rask.Postgres` and `Rask.SqlServer` beside SQLite. `RaskApp` opens whichever database the key
+  names — `sqlite` (the default), `postgres` or `sqlserver` — at `Rask:ConnectionStrings:App`. An app with its own
+  context registers it with the new `UseRaskDatabase(sp)`, which does the same.
+  - **The batteries follow the database.** On PostgreSQL or SQL Server:
+    - the durable log moves into the application database (`RaskAppDbContext` maps `RaskLog` there and nowhere
+      else)
+    - the `app.db` and snapshot-directory defaults are not added, so a missing connection string fails naming the
+      key
+  - **SQLite-only backups are skipped or refused.** On a server database:
+    - Snapshots, on by default, is left out.
+    - Snapshots the app configured (a `Rask:Snapshots` value, `Configure` or `On`) refuse the start, naming what to
+      remove.
+    - A `Rask:Litestream:ReplicaUrl` refuses the start the same way.
+  - **A context on the wrong provider fails at start.** An app's own context that opens a different database than
+    the setting names fails the boot, naming `UseRaskDatabase(sp)`. The check runs before the batteries'
+    validation, so a battery failing on the wrong database cannot hide it.
+  - **An app's own log store wins.** An app that wires `AddRaskLogging()` itself keeps it on a server database, and
+    is not asked to map the log table.
+  - **Moving an existing app takes more than the setting.**
+    - An app's own context maps `modelBuilder.AddRaskLogging()` on a server database.
+    - Migrations are generated against the new provider.
+    - Apps scaffolded by `rask new` still wire SQLite by hand in `Program.cs` and switch there.
+    - `rask deploy` still assumes SQLite.
 - **A kit button or link given a generated route navigates inside the app.** `UiButton.Href` and
   `UiLink.Href` take a `RouteUrl`, so `UiButton.Href(Routes.CreateProduct())["New product"]` renders an
   `<a>` carrying `data-rask-nav` and the deploy's path base, and the runtime routes the click without
@@ -481,6 +526,24 @@ them until tagged releases begin.
   field. `Product.Where(…).AsQueryable()` works the same way. EF Core's own operators (`Include`,
   `IgnoreQueryFilters`) go on before it, because EF ignores them on any other query provider.
 
+- **Every Rask package ships for .NET 11 as well as .NET 10.** Each package now carries a `lib/net11.0` build
+  (and `lib/net11.0-browser1.0` where it has a browser face) beside its .NET 10 one, so an app on the .NET 11
+  release candidate references Rask exactly as it does today. .NET 10 stays the primary, LTS target: `rask new`
+  still scaffolds `net10.0`, and until .NET 11 is generally available (November 2026) the .NET 11 builds keep
+  depending on the 10.0.x Microsoft packages, because a stable Rask release may not depend on a prerelease one.
+  - **Building Rask itself needs the .NET 11 SDK.** `RASKSDK001` fails the build up front on an older SDK and
+    names the install command. CI installs both SDKs, plus the `wasm-tools-net10` workload the .NET 11 SDK needs
+    to relink a `net10.0-browser` app, and `pages.yml` now uses the shared setup action.
+  - **The test suites run on either version.** Test projects build for `$(RaskTestTarget)` — `net10.0` by
+    default, which is what the unit gate runs — and `scripts/run-unit-net11-local.sh` (also in
+    `scripts/run-all-gates.sh`) runs the whole suite on .NET 11, failing unless every test assembly reports
+    `net11.0`.
+  - **The CLI build gate checks what shipped:** in the feed it packs, every `lib/net10.0*` folder must have a
+    `lib/net11.0*` twin holding the same files, and Rask.Server must carry `lib/net11.0/Rask.Core.dll`. That feed
+    is the gate's own package list rather than every package; what covers the rest is the build error
+    `RaskVerifyTargetFrameworks`, which fails any shipped project that does not take its frameworks from
+    `RaskNetTargets`.
+
 ### Changed
 
 - **BREAKING: `Rask.Data` has no unit of work and no tracked writes on the model.** Removed outright, with
@@ -802,6 +865,21 @@ them until tagged releases begin.
   restored if it throws. This is what made `HttpPageTests` time out under a busy gate (#1067). WebAssembly
   is single-threaded and never hit it.
 
+- **`rask new --wasm` scaffolded an app that could not start.** `Rask.Wasm.Hosting` and `Rask.Server`
+  both exported `AddRask(this IServiceCollection)`. Referencing both packages — which the `--wasm`
+  server lane does — did **not** make a bare `AddRask()` ambiguous: C# prefers the candidate with no
+  omitted optional parameters, so the WASM host's parameterless overload won the tie-break silently
+  over `Rask.Server`'s all-optional one. The app compiled, started without the live runtime registered,
+  and died at `UseRask<TApp>()` with `No service for type 'RaskLiveMarker'` — naming a type the author
+  had never heard of.
+
+  `Rask.Wasm.Hosting.AddRask()` is now **`AddRaskWasmHost()`**, which the package already shipped as an
+  alias for exactly this hazard, with the trap written down beside it. Documenting it held only while
+  every call site remembered: the configuration refactor that moved `RenderModes.Wasm` into
+  `appsettings.json` dropped the named argument that had been disambiguating the scaffolded app by
+  accident, and every `--wasm` app stopped booting. One name per behaviour is what removes the failure
+  (#1095). A standalone WASM-hosted app changes `AddRask()` to `AddRaskWasmHost()`.
+
 - **Filtering the log by a scope key that looks like a JSON path now finds its entries.**
   - **The cause.** The SQLite file store filtered scopes with `json_extract(Scopes, '$.' || key)`, which reads the
     key as a JSON path.
@@ -863,6 +941,45 @@ them until tagged releases begin.
   connection open. It now opens through EF, which also counts opens and so still leaves a caller's open
   connection open. Each batch that owns its transaction now runs inside the execution strategy, so a retrying
   strategy replays the failed batch alone instead of surfacing the first transient error.
+
+- **A scaffolded SPA or meta app could not start.** All thirteen front-end templates produced a project
+  that built clean and then aborted on launch, and the browser journeys added with the template trees are
+  what found it — nothing in the repository had ever *run* one of these apps, only built it. Three
+  independent faults, each fatal on its own, and all three predate the template trees. A fourth, deeper
+  one is filed rather than fixed here: `Rask.Auth` needs host services (`IAuthSignIn`, one of the
+  `RaskHostContracts`) that only `Rask.Server` and `Rask.Wasm` register, so accounts on the front-end
+  lanes need a design decision, not a patch. The three below are what stood between these apps and a
+  process that stays up:
+
+  - `Rask.Auth` was referenced on lanes that carry no Rask component runtime. It compiles against
+    `Rask.Core` with `PrivateAssets="all"` and ships `[Route]` pages, so `Rask.Auth.dll`'s module
+    initializer runs `__RaskRoutesRegistry.Init()` at startup — and `Rask.Core.dll` is bundled only
+    inside `Rask.Server` and `Rask.Wasm`. The host aborted with
+    `FileNotFoundException: Could not load file or assembly 'Rask.Core'` before reaching `Main`.
+  - `app.UseAuthorization()` was called with no `AddAuthorization()`. `AddRaskAuth` registers Identity
+    and Rask's `IAuth`, not the authorization services, so the host threw *"Unable to find the required
+    services"*. On the server template the call was supplied incidentally by the dashboard's policy
+    registration; the front-end lanes had nothing.
+  - No template declared a user entity. `AddRaskAuth<TContext>()` resolves the app's account type
+    through `AuthUser.Binding`, which the generator sets only when the app declares an `IdentityUser`
+    subclass — so on these lanes it registered **nothing at all, silently**, and `MapRaskAuth()` then
+    threw `No service for type 'Rask.Auth.AuthOptions'`. Every front-end template now carries the same
+    `Features/Shared/User.cs` the server template has, owned by the same batteries as its `AppDbContext`.
+
+- **`--storage` is a server-template flag now, because `Rask.Storage` cannot run anywhere else.**
+  `MapRaskStorage()` is called at startup and its body names `Rask.Core.Live` types, so the JIT loads
+  `Rask.Core` there and then — and the front-end hosts ship no copy of it. Every one of the thirteen
+  templates aborted with `FileNotFoundException: Rask.Core` before `Main` with the battery on. Filed as
+  #1086: uploads from a JavaScript front end are a real thing to want, and making the package work on
+  those lanes is the fix; listing the flag where it works is the stopgap.
+
+- **The operator dashboard was scaffolded onto lanes that can never serve it.** `Rask.Dashboard` is built
+  from Rask components carrying `[Route]`, so it is reachable only through `UseRask<TApp>()` — which only
+  the server template calls. The thirteen front-end templates registered `AddRaskDashboard<AppDbContext>()`
+  and a `RaskDashboardPolicies.Access` policy that no request could ever reach, and paid for it with a
+  `Rask.Dashboard` → `Rask.Ui` reference that dragged the component runtime into an app with no renderer.
+  `--ops` is now listed on the server template alone rather than accepted and disregarded, which is what
+  `TemplateFlagParityTests` exists to catch. A dead `Rask.Ui` reference went with it on all thirteen.
 
 - **Three templates installed an older Tailwind than the C# host downloads.** solidstart `^4.0.7`,
   nextjs `^4` and tanstack-start `^4.1.18` against a pinned 4.3 — floors their own creators wrote, which

@@ -27,6 +27,9 @@
 
          Deliberately NOT Rask.Auth: that half carries ASP.NET Core Identity and Entity Framework, and
          neither has any business in a browser publish. The two halves agree through AuthApi in Core. -->
+    <!-- The /api/auth wire contract (paths, headers, DTOs). In Rask.Wire rather than Core so the
+         server half and the browser half can both take it without either taking the renderer. -->
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
   </ItemGroup>
 

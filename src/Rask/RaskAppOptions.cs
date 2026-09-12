@@ -35,6 +35,11 @@ namespace Rask;
 public sealed class RaskAppOptions
 {
     /// <summary>The database and Rask.Data's EF Core interceptors. Every battery below it depends on this.</summary>
+    /// <remarks>
+    /// <c>Rask:Database:Provider</c> picks the database — <c>sqlite</c> (the default), <c>postgres</c> or
+    /// <c>sqlserver</c> — at <c>Rask:ConnectionStrings:App</c>. An app with its own context registers it with
+    /// <c>UseRaskDatabase(sp)</c> so the same setting picks its provider.
+    /// </remarks>
     public Battery Data { get; } = new();
 
     /// <summary>The source-generated CQRS mediator, and the query cache that rides with it.</summary>
@@ -115,11 +120,16 @@ public sealed class RaskAppOptions
     public Battery<WebPushOptions> Push { get; } = new();
 
     /// <summary>Scheduled point-in-time snapshots of the SQLite file.</summary>
+    /// <remarks>
+    /// On PostgreSQL or SQL Server there is no file to copy: left on by default, the battery is simply left out, and a
+    /// snapshot the app configured (a <c>Rask:Snapshots</c> value, <c>Configure</c> or <c>On</c>) refuses the start.
+    /// </remarks>
     public Battery<SqliteSnapshotOptions> Snapshots { get; } = new();
 
     /// <summary>
-    /// The durable log store. Alone among the batteries it does not need the database — it keeps a SQLite
-    /// file of its own, so it survives the restart that hid the log you wanted.
+    /// The durable log store. On SQLite it does not need the database — it keeps a SQLite file of its own, so it
+    /// survives the restart that hid the log you wanted. On PostgreSQL or SQL Server, with <see cref="Data"/> on, it
+    /// keeps the log in the application database's <c>RaskLog</c> table instead (unless the app wired a store itself).
     /// </summary>
     public Battery<RaskLoggingOptions> Logs { get; } = new();
 
@@ -194,7 +204,8 @@ public sealed class RaskAppOptions
     /// Litestream replica's source path and the snapshot source among them.
     /// </summary>
     /// <remarks>
-    /// Read from <c>Rask:ConnectionStrings:App</c> when unset, falling back to a local <c>app.db</c>.
+    /// Read from <c>Rask:ConnectionStrings:App</c> when unset, falling back to a local <c>app.db</c> on SQLite. On
+    /// PostgreSQL or SQL Server there is no fallback: a missing connection string fails naming the key to set.
     /// When set, it wins over that key wherever it came from (appsettings, environment, user-secrets).
     /// <c>rask deploy</c> sets that key to a path on the mounted volume, so the database outlives the
     /// container the same way the key ring does.

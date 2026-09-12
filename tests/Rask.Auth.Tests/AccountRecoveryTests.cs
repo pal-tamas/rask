@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Auth.Pages;
 using Rask.Core.Authentication;
 using Rask.Testing;
+using Rask.Wire;
 
 namespace Rask.Auth.Tests;
 

@@ -62,8 +62,24 @@ internal static class TemplateCatalog
     /// database <em>in</em> — the server template, and the front-end templates' ASP.NET host.
     /// A pure browser-WASM SPA has no server to run them on.
     /// </summary>
+    /// <remarks>
+    ///     Two flags are deliberately NOT here, and both for the same reason: they need
+    ///     <c>Rask.Core</c>, which is <c>IsPackable=false</c> and travels inside the host packages that
+    ///     render components — so <c>Rask.Spa.Hosting</c> and <c>Rask.Meta.Hosting</c> ship no copy and
+    ///     an app that reaches for it aborts before <c>Main</c> (#1069).
+    ///     <list type="bullet">
+    ///         <item><c>ops</c> — the operator dashboard is Rask components carrying <c>[Route]</c>, so
+    ///         it is reachable only through <c>UseRask&lt;TApp&gt;()</c>, which only the server template
+    ///         calls. On a front-end lane it would register services no request can ever reach.</item>
+    ///         <item><c>storage</c> — <c>MapRaskStorage()</c> is CALLED at startup and its body names
+    ///         <c>Rask.Core.Live</c> types, so the JIT loads Core there and then: every front-end
+    ///         template crashed with <c>FileNotFoundException: Rask.Core</c> until this flag came off
+    ///         them. See #1086.</item>
+    ///     </list>
+    ///     Both are listed on the server template alone rather than accepted and then disregarded.
+    /// </remarks>
     private static readonly string[] DatabaseFlags =
-        ["cqrs", "data", "jobs", "mail", "cache", "storage", "outbox", "snapshots", "logs", "ops"];
+        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs"];
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
@@ -72,7 +88,7 @@ internal static class TemplateCatalog
         // templates either already ARE the browser half or carry a hand-written one.
         new("server", "Rask Server app",
             new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags, "push", "wasm"],
+                [.. WebFlags, .. DatabaseFlags, "ops", "storage", "push", "wasm"],
                 StringComparer.Ordinal),
             // The server runtime carries ICU regardless, so scaffolding the registration costs nothing.
             ShipsLocalization: true),

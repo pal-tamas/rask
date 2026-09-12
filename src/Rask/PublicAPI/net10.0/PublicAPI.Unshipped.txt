@@ -68,3 +68,6 @@ static Rask.RaskApiValidation.AddRaskApiValidation(this Microsoft.Extensions.Dep
 static Rask.RaskApiValidation.RequireRaskValidation<TBuilder>(this TBuilder builder) -> TBuilder
 static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.Builder.WebApplicationBuilder!>? configure = null) -> Rask.RaskApp!
 static Rask.RaskRequestValidation.AddRaskRequestValidation(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.RaskDatabaseDbContextOptionsExtensions
+static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, System.IServiceProvider! services) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
+static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, System.IServiceProvider! services) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!

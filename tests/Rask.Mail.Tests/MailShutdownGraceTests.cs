@@ -17,7 +17,7 @@ public sealed class MailShutdownGraceTests
             Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
         };
         await using var h = new MailHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5), sender);
-        await h.Queue.SendAsync(Email.To("ada@example.com").Subject("Hi").Body("<p>hi</p>"));
+        await h.Queue.SendAsync(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"));
 
         await h.Processor.StartAsync(CancellationToken.None);
         await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -44,7 +44,7 @@ public sealed class MailShutdownGraceTests
             Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
         };
         await using var h = new MailHarness(o => o.ShutdownGracePeriod = TimeSpan.FromMilliseconds(50), sender);
-        await h.Queue.SendAsync(Email.To("ada@example.com").Subject("Hi").Body("<p>hi</p>"));
+        await h.Queue.SendAsync(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"));
 
         await h.Processor.StartAsync(CancellationToken.None);
         await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));

@@ -58,7 +58,7 @@ public sealed class MailUnitTests
             .Cc("carol@example.com")
             .ReplyTo("support@example.com", "Support")
             .Subject("Report")
-            .Body("<p>body</p>")
+            .Html("<p>body</p>")
             .PlainText("body")
             .Attach("report.txt", "text/plain", [1, 2, 3]);
 

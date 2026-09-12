@@ -4,7 +4,7 @@
        out of both git hooks' unit gate: it needs Docker, and a hook that needs Docker ends up skipped. Every fact
        reports SKIPPED rather than failing when its server's connection string is not set. -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
