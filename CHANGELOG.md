@@ -574,6 +574,19 @@ them until tagged releases begin.
     `RaskVerifyTargetFrameworks`, which fails any shipped project that does not take its frameworks from
     `RaskNetTargets`.
 
+- **A tree joins the UI kit.** `UiTree.Roots(files).NodeKey(f => f.Path).Item(f => Span[f.Name]).Label("Files")[f =>
+  f.Children]` — the children are the indexer, because a tree's children are a function of a node rather than content
+  written at the call site. Expansion and selection are each the page's or the tree's own, one axis at a time, as on the
+  data grid; `ExpandDepth(1)` opens the roots to start with. `Selection` is `None`, `Single` or `Multiple`, and passing
+  `Selected` or `OnSelectionChange` without naming one means `Single` rather than silently nothing. The tree is one
+  focusable element with an `aria-activedescendant` cursor: arrows, `Home`/`End`, `PageUp`/`PageDown`, `→`/`←` to open,
+  close and climb, `*` to open a row's siblings, `Enter`/`Space` to select, and type-ahead over `NodeText` — all in C#,
+  so the kit still ships no JavaScript. `ItemSize` switches a large tree to a virtualized flat list carrying
+  `aria-level`, `aria-setsize` and `aria-posinset`; `OnHover` reports the node under the pointer. A key seen twice
+  renders once, which is also what ends a cycle. Rask's runtime now keeps the navigation keys from scrolling the page
+  while a tree has focus, and scrolls the cursor back into view when it moves out of sight — including to an unrendered
+  row's place in a virtualized tree. Documented in [docs/tree.md](docs/tree.md), live at `/docs/ui/tree`.
+
 ### Changed
 
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides

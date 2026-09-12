@@ -397,6 +397,11 @@ public static class GuideCatalog
             SearchTitle = "Data grid in C#: sorting, paging and selection",
             Description = "A typed C# data grid with sortable columns, paging, typed row selection, expandable detail rows, grouping, a column chooser and a card layout on phones.",
         },
+        new("tree", "Tree", "Expandable hierarchies with a keyboard, typed selection and virtualization.", "Integration")
+        {
+            SearchTitle = "Tree view in C#: keyboard and virtualization",
+            Description = "A typed C# tree view: expand and collapse, single or multiple selection, a keyboard with type-ahead, and virtualization.",
+        },
         new("logging", "Logging", "A durable log store in a database of its own.", "Integration")
         {
             SearchTitle = "Durable .NET log storage in SQLite",

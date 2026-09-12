@@ -156,6 +156,13 @@ calls `preventDefault`, so without it ArrowDown would scroll the document behind
 would submit the surrounding form. It keys off `aria-expanded` on the closest `[role=combobox]`, and
 deliberately leaves Escape alone, since Escape's default *is* the dismissal.
 
+`UiTree` has the same shape and its own rule: one focusable `[role=tree]` with the cursor named by
+`aria-activedescendant`, the arrows, Home/End, Page keys and Space contained while it has focus (Enter
+left alone — a focused non-form element has no default for it). Because the cursor is an attribute
+rather than the focus, the runtime also scrolls the named row back into view when it moves out of sight,
+and in a virtualized tree — where that row is not rendered at all — it scrolls to where the row will be,
+which is what loads it.
+
 ## Navigation
 
 Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:

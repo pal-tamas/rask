@@ -823,6 +823,69 @@ export function applyFrameInvokes(
     }, true);
 })();
 
+// A tree is one focusable element with a cursor inside it, so the navigation keys mean "move the cursor",
+// not "scroll": ArrowUp/Down and Home/End would scroll the document behind it, ArrowLeft/Right would
+// scroll it sideways, and Space would page down. The C# handler still receives every one of them —
+// preventDefault only — and Enter is left alone, because a focused non-form element has no default for it.
+//
+// Keyed on the TARGET's role rather than closest(): a control an item renders keeps its own keys.
+//
+// The observer below follows the cursor. An active descendant the reader cannot see is this control's
+// version of "focus is off screen", and a virtualized tree does not even render that row — so when the
+// attribute changes, the row is scrolled into view, or, when it is not in the DOM, the tree is scrolled to
+// where the row would be. The scroll it causes re-renders the window, and the row arrives.
+(function () {
+    // No DOM in the Node fixtures — see the block above.
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function") {
+        return;
+    }
+
+    const CONTAIN = [" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"];
+    document.addEventListener("keydown", function (e) {
+        if (CONTAIN.indexOf(e.key) < 0 || e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        const t = e.target;
+        if (t instanceof Element && t.getAttribute("role") === "tree") {
+            e.preventDefault();
+        }
+    }, true);
+
+    if (typeof MutationObserver !== "function") {
+        return;
+    }
+
+    new MutationObserver(function (records) {
+        for (const record of records) {
+            const tree = record.target;
+            if (!(tree instanceof HTMLElement) || tree.getAttribute("role") !== "tree") {
+                continue;
+            }
+            const id = tree.getAttribute("aria-activedescendant");
+            const row = id ? document.getElementById(id) : null;
+            if (row && tree.contains(row)) {
+                row.scrollIntoView({block: "nearest"});
+                continue;
+            }
+            // Not rendered: the tree is virtualized, and it says how tall a row is and where this one sits.
+            const top = Number(tree.getAttribute("data-rask-active-top"));
+            const size = Number(tree.getAttribute("data-rask-item-size"));
+            if (!(size > 0) || !(top >= 0)) {
+                continue;
+            }
+            if (top < tree.scrollTop) {
+                tree.scrollTop = top;
+            } else if (top + size > tree.scrollTop + tree.clientHeight) {
+                tree.scrollTop = top + size - tree.clientHeight;
+            }
+        }
+    }).observe(document.documentElement, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["aria-activedescendant"],
+    });
+})();
+
 // ----- Recovery affordance (data-rask-reload) ----------------------------
 // A click on any element carrying data-rask-reload reloads the page. Used by the default error page so a
 // user stranded on an uncaught fault has an in-app way back without hunting for the browser's reload.
