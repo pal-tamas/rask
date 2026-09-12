@@ -40,12 +40,19 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         // Counted rather than assumed, so adding a sixth here has to come with a decision about this
         // number — which is how Solid arrived: #958 added it to this page and this count stayed at
         // three, so the suite went red on main and named the omission.
+        //
+        // Still five with six islands on the page: the ColorPicker is a CHILD of the React counter. Its
+        // component travels inside the counter's props and React renders both in one tree, so it has no
+        // <rask-external> of its own — a sixth host here would mean children had stopped nesting.
         await Expect(Page.Locator("rask-external[data-rask-opaque]")).ToHaveCountAsync(5);
 
         // Mounted, not merely rendered: these nodes exist only because an adapter created them, which
         // means the chunk was fetched from the manifest and executed inside the browser-WASM host.
         await Expect(Page.GetByTestId("vue-chart")).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("react-counter")).ToBeVisibleAsync();
+
+        // The package island rendered inside its parent's React tree, not beside it.
+        await Expect(Page.Locator("[data-testid=react-children] .react-colorful")).ToBeVisibleAsync();
         await Expect(Page.GetByTestId("svelte-meter")).ToBeVisibleAsync();
 
         // Solid earns a named assertion rather than only the count. It and React both compile .tsx, so
@@ -145,5 +152,39 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
 
         await Expect(Page.GetByTestId("lit-value")).ToHaveTextAsync("55");
         await Expect(Page.GetByTestId("lit-nudges")).ToHaveTextAsync("1");
+    });
+
+    /// <summary>
+    ///     A React component straight from npm, nested inside a hand-written React island, calls back into C#, and a
+    ///     later C# change reaches it as a prop update rather than a remount.
+    /// </summary>
+    /// <remarks>
+    ///     The picker has no <c>.tsx</c>: its chain steps were generated from react-colorful's own declarations, and it
+    ///     is a CHILD island, so its callback travels inside the parent's props and still has to reach C# through this
+    ///     tab's runtime. The node probe is what "not a remount" means here — React reconciles the same component at the
+    ///     same position, so the DOM node C# re-rendered around is the one that was there before.
+    /// </remarks>
+    [Fact]
+    public Task APackageIslandNestedInAReactIslandCallsBackIntoCSharp() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(Docs + "/islands");
+        await WaitForInteractiveAsync();
+
+        var picker = Page.Locator("[data-testid=react-children] .react-colorful");
+        await Expect(picker).ToBeVisibleAsync();
+        await Expect(Page.Locator("#island-color")).ToHaveTextAsync("#c026d3");
+
+        // The hue slider is keyboard-operable: a key press moves it, react-colorful calls onChange with the new hex, and
+        // that callback is the one C# wired.
+        await picker.Locator(".react-colorful__hue .react-colorful__interactive").FocusAsync();
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(Page.Locator("#island-color")).Not.ToHaveTextAsync("#c026d3");
+
+        // Mark the live node, then change the colour from C#.
+        await picker.EvaluateAsync("node => { node.dataset.raskProbe = 'kept'; }");
+        await Page.Locator("#island-reset").ClickAsync();
+
+        await Expect(Page.Locator("#island-color")).ToHaveTextAsync("#c026d3");
+        await Expect(picker).ToHaveAttributeAsync("data-rask-probe", "kept");
     });
 }

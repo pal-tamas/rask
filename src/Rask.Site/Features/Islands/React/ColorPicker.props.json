@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "runtime": "react",
+  "module": "react-colorful",
+  "export": "HexColorPicker",
+  "package": {
+    "name": "react-colorful",
+    "version": "5.8.1"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "color",
+      "required": false,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onChange",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "newColor",
+            "type": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "onChangeEnd",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "newColor",
+            "type": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "skipped": []
+}

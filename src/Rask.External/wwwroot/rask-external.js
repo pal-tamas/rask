@@ -32,6 +32,44 @@ const mounted = new WeakMap();
  */
 const manifests = new Map();
 
+// ----- <head> nodes an island's library injects -------------------------------------------------------------------
+//
+// A component library styles itself by appending to <head>: react-colorful's <style>, emotion's, a web font's <link>.
+// The page runtime keeps such nodes across its head morphs by watching <head> and tagging what gets added there as
+// data-rask-managed, which the morph skips. But on a prerendered page THIS runtime loads first and mounts islands at
+// once, long before the page runtime arms that watch, so a library's style was indistinguishable from the boot shell
+// and the takeover morph deleted it, leaving the island unstyled for good (a library injects once per document).
+//
+// So this watches <head> until the page runtime arms its own observer, which calls the handoff below synchronously:
+// pending records are tagged and this one stops, before any head morph of the page runtime's own could be mistaken for
+// a library's. Nothing parsed from the HTML is ever an added record, and a data-rask-key node is the framework's own.
+function tagHeadRecords(records) {
+    for (const record of records) {
+        for (const node of record.addedNodes) {
+            if (node.nodeType === 1 && !node.hasAttribute("data-rask-key") && !node.hasAttribute("data-rask-managed")) {
+                node.setAttribute("data-rask-managed", "");
+            }
+        }
+    }
+}
+
+function watchHeadUntilHandoff() {
+    if (typeof document === "undefined" || typeof MutationObserver !== "function" || !document.head) return;
+
+    // The page runtime is already watching: every node added from here on is its to tag, or not.
+    if (globalThis.__raskHeadObserverArmed) return;
+
+    const observer = new MutationObserver(tagHeadRecords);
+    observer.observe(document.head, {childList: true});
+    globalThis.__raskExternalHeadHandoff = () => {
+        tagHeadRecords(observer.takeRecords());
+        observer.disconnect();
+        globalThis.__raskExternalHeadHandoff = undefined;
+    };
+}
+
+watchHeadUntilHandoff();
+
 /** Cached @vite/client import. One per page, and only under `rask dev`. */
 let hmrClient = null;
 

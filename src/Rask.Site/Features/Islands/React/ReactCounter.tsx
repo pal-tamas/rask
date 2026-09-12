@@ -1,14 +1,16 @@
 // An ordinary React component. Nothing here imports Rask, and nothing here knows it is an island.
 //
 // The props type is GENERATED from ReactCounter.cs, so renaming a C# property stops this compiling —
-// the contract is checked in both directions rather than maintained by discipline.
+// the contract is checked in both directions rather than maintained by discipline. It carries
+// `children` too: whatever C# nests inside this island — text, or another React island such as the
+// ColorPicker the demo puts here — arrives as ordinary React children.
 //
 // This file is also what "Preact rides the React adapter unchanged" means in practice: a Preact
 // project aliases react/react-dom to preact/compat, and this source is byte-identical either way.
 import { useEffect, useState } from 'react'
 import type { ReactCounterProps } from '@rask/ReactCounter.props'
 
-export default function ReactCounter({ step, caption, onTotalChanged }: ReactCounterProps) {
+export default function ReactCounter({ step, caption, onTotalChanged, children }: ReactCounterProps) {
   // State React owns and C# never sees. Raising the step from C# must not reset it.
   const [total, setTotal] = useState(0)
 
@@ -29,6 +31,12 @@ export default function ReactCounter({ step, caption, onTotalChanged }: ReactCou
       <span className="total">
         total <strong data-testid="react-total">{total}</strong>
       </span>
+
+      {children && (
+        <div className="react-counter-children" data-testid="react-children">
+          {children}
+        </div>
+      )}
     </div>
   )
 }
