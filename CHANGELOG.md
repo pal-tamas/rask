@@ -29,6 +29,31 @@ them until tagged releases begin.
   `Body(Component)` makes the compiler load `Rask.Core` at the call site — which is exactly what a
   Core-free package cannot do.
 
+
+- **The database is a setting: `Rask:Database:Provider` picks SQLite, PostgreSQL or SQL Server.** The `Rask`
+  package now brings `Rask.Postgres` and `Rask.SqlServer` beside SQLite. `RaskApp` opens whichever database the key
+  names — `sqlite` (the default), `postgres` or `sqlserver` — at `Rask:ConnectionStrings:App`. An app with its own
+  context registers it with the new `UseRaskDatabase(sp)`, which does the same.
+  - **The batteries follow the database.** On PostgreSQL or SQL Server:
+    - the durable log moves into the application database (`RaskAppDbContext` maps `RaskLog` there and nowhere
+      else)
+    - the `app.db` and snapshot-directory defaults are not added, so a missing connection string fails naming the
+      key
+  - **SQLite-only backups are skipped or refused.** On a server database:
+    - Snapshots, on by default, is left out.
+    - Snapshots the app configured (a `Rask:Snapshots` value, `Configure` or `On`) refuse the start, naming what to
+      remove.
+    - A `Rask:Litestream:ReplicaUrl` refuses the start the same way.
+  - **A context on the wrong provider fails at start.** An app's own context that opens a different database than
+    the setting names fails the boot, naming `UseRaskDatabase(sp)`. The check runs before the batteries'
+    validation, so a battery failing on the wrong database cannot hide it.
+  - **An app's own log store wins.** An app that wires `AddRaskLogging()` itself keeps it on a server database, and
+    is not asked to map the log table.
+  - **Moving an existing app takes more than the setting.**
+    - An app's own context maps `modelBuilder.AddRaskLogging()` on a server database.
+    - Migrations are generated against the new provider.
+    - Apps scaffolded by `rask new` still wire SQLite by hand in `Program.cs` and switch there.
+    - `rask deploy` still assumes SQLite.
 - **A kit button or link given a generated route navigates inside the app.** `UiButton.Href` and
   `UiLink.Href` take a `RouteUrl`, so `UiButton.Href(Routes.CreateProduct())["New product"]` renders an
   `<a>` carrying `data-rask-nav` and the deploy's path base, and the runtime routes the click without
