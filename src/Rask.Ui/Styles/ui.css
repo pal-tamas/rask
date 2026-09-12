@@ -691,6 +691,54 @@
 }
 
 /*
+  A TREE IS ONE FOCUSABLE ELEMENT, AND ITS CURSOR IS NOT THE FOCUS RING.
+
+  The focus is on the tree; the cursor is a row inside it, named by aria-activedescendant. A ring around the
+  control's own box would be a 40vh outline that says nothing about where the keyboard is, so the ring goes on
+  the row — and the tree keeps one of its own only while it has no rows to point at.
+
+  The flat mode is the virtualized one: every row must be exactly the height the scroll window was computed
+  from, or the rows drift out of step with the offset. daisyUI's menu padding would otherwise decide it. The
+  depth is a CSS variable rather than a class, because a composed class name (`ps-` + depth) is invisible to
+  Tailwind's scan and would emit nothing; nested mode needs none of this, since the nested lists indent
+  themselves.
+*/
+@layer rask {
+  .ui-tree:focus,
+  .ui-tree:focus-visible {
+    outline: none;
+  }
+
+  .ui-tree:focus:not(:has([role="treeitem"])) {
+    outline: 2px solid var(--color-base-content);
+    outline-offset: 2px;
+  }
+
+  .ui-tree:focus .ui-tree-cursor,
+  .ui-tree:focus-visible .ui-tree-cursor {
+    outline: 2px solid var(--color-base-content);
+    outline-offset: -2px;
+  }
+
+  /* On a leaf too, so a leaf's label lines up with its siblings' labels rather than with their chevrons. */
+  .ui-tree-toggle {
+    display: inline-flex;
+    inline-size: 1rem;
+    flex-shrink: 0;
+    justify-content: center;
+  }
+
+  .ui-tree-flat > li[role="treeitem"] {
+    block-size: var(--ui-tree-row);
+    overflow: hidden;
+  }
+
+  .ui-tree-flat > li[role="treeitem"] > .ui-tree-row {
+    padding-inline-start: calc(0.75rem + var(--ui-tree-depth, 0) * 1rem);
+  }
+}
+
+/*
   A GRID CELL MAY BREAK A LONG TOKEN; THE CONTROLS INSIDE IT MAY NOT.
 
   "anywhere" rather than "break-word", because only "anywhere" counts while the table's column widths are worked
