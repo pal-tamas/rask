@@ -4,7 +4,7 @@
        use Rask.Testing's PUBLIC API (and Core's public API) — the same surface a real consumer has. That
        is exactly what proves the shipped testing API is sufficient to test a component. -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

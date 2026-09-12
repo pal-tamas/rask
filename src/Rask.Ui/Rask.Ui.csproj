@@ -146,7 +146,9 @@
       <_RaskUiPackCandidate Include="obj/*/ui.generated.css"/>
     </ItemGroup>
 
-    <!-- Batched to ONE value: two faces built means two matches, and PackagePath takes a single file. -->
+    <!-- Batched to ONE value: every built face is a match — four of them now (net10.0, net10.0-browser, net11.0,
+         net11.0-browser) — and PackagePath takes a single file. The sheet is Tailwind's scan of this project's
+         sources and does not vary by framework, so whichever one the batch ends on is the right bytes. -->
     <PropertyGroup Condition="'@(_RaskUiPackCandidate)' != ''">
       <_RaskUiPackStylesheet>%(_RaskUiPackCandidate.FullPath)</_RaskUiPackStylesheet>
     </PropertyGroup>

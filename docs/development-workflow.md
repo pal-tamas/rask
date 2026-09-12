@@ -363,6 +363,18 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 
   Opted into by `RASK_TEMPLATE_E2E=1`, which the script exports; without it every case reports
   **SKIPPED** rather than passing silently.
+- **The unit suite runs on .NET 11 by hand.** Every shipped package builds for `net10.0` and `net11.0`
+  (`RaskNetTargets`, `Directory.Build.props`), so the compile, the analyzers and the public-API gate cover
+  both on every commit. What only a RUN can show is behaviour — a test that passes on the .NET 10 runtime
+  and fails on 11 — and that means rebuilding the whole test graph for a second framework, which the hooks'
+  one-minute budget cannot carry. `scripts/run-unit-net11-local.sh` is that run, and a row in
+  `run-all-gates.sh`. It sets `RaskTestTarget=net11.0` for one command (test projects name their framework
+  as `$(RaskTestTarget)`; MSBuild reads an environment variable as a property) and invokes
+  `run-unit-local.sh` itself, so the gate still appears in `ps` under that name and
+  `scripts/lib/machine-lane.sh` keeps counting its slots. It then reads its own log back and fails unless
+  every test assembly reported `.NETCoreApp,Version=v11.0` — a run that quietly stayed on .NET 10 would
+  otherwise be green and prove nothing. It leaves the test projects' restore graphs on `net11.0`, so the
+  next ordinary unit gate restores them again.
 - **A red gate names the culprit it actually found.** Both the CLI build gate and the E2E gate build
   browser targets, so both can fail for a reason that has nothing to do with your branch — most often
   `NETSDK1147`, the `wasm-tools` workload resolving as missing because a workload install elsewhere on

@@ -6,7 +6,7 @@
     that is subtly malformed would otherwise surface as a bundler error in someone else's project.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

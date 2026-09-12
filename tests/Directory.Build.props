@@ -24,6 +24,21 @@
     <DisableMsCoverageReferencedPathMaps>true</DisableMsCoverageReferencedPathMaps>
   </PropertyGroup>
 
+  <!--
+    The ONE .NET version a test run builds and runs on. Test projects name it as
+    <TargetFramework>$(RaskTestTarget)</TargetFramework> rather than listing every version, so a run is one
+    version at a time: the unit gate keeps the primary (LTS) target, and scripts/run-unit-net11-local.sh sets
+    RaskTestTarget=net11.0 in the environment of that one command — MSBuild reads an environment variable as a
+    property, and the condition below yields to it — to run the same suite on .NET 11.
+
+    A property of its own rather than -p:TargetFramework: a global TargetFramework flows into every project a
+    test references, including the netstandard2.0 generators and tasks, which do not have that framework.
+    Nothing outside tests/ reads this one.
+  -->
+  <PropertyGroup>
+    <RaskTestTarget Condition=" '$(RaskTestTarget)' == '' ">$(RaskPrimaryNetTarget)</RaskTestTarget>
+  </PropertyGroup>
+
   <!-- Bound how many tests one assembly runs at once.
 
        This is the second half of the machine's slot budget (scripts/lib/machine-lane.sh). That budget

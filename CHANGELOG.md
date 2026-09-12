@@ -356,6 +356,24 @@ them until tagged releases begin.
   RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
   is it documented — and nothing asked whether a documented rule existed.
 
+- **Every Rask package ships for .NET 11 as well as .NET 10.** Each package now carries a `lib/net11.0` build
+  (and `lib/net11.0-browser1.0` where it has a browser face) beside its .NET 10 one, so an app on the .NET 11
+  release candidate references Rask exactly as it does today. .NET 10 stays the primary, LTS target: `rask new`
+  still scaffolds `net10.0`, and until .NET 11 is generally available (November 2026) the .NET 11 builds keep
+  depending on the 10.0.x Microsoft packages, because a stable Rask release may not depend on a prerelease one.
+  - **Building Rask itself needs the .NET 11 SDK.** `RASKSDK001` fails the build up front on an older SDK and
+    names the install command. CI installs both SDKs, plus the `wasm-tools-net10` workload the .NET 11 SDK needs
+    to relink a `net10.0-browser` app, and `pages.yml` now uses the shared setup action.
+  - **The test suites run on either version.** Test projects build for `$(RaskTestTarget)` — `net10.0` by
+    default, which is what the unit gate runs — and `scripts/run-unit-net11-local.sh` (also in
+    `scripts/run-all-gates.sh`) runs the whole suite on .NET 11, failing unless every test assembly reports
+    `net11.0`.
+  - **The CLI build gate checks what shipped:** in the feed it packs, every `lib/net10.0*` folder must have a
+    `lib/net11.0*` twin holding the same files, and Rask.Server must carry `lib/net11.0/Rask.Core.dll`. That feed
+    is the gate's own package list rather than every package; what covers the rest is the build error
+    `RaskVerifyTargetFrameworks`, which fails any shipped project that does not take its frameworks from
+    `RaskNetTargets`.
+
 ### Changed
 
 - **Every shipped package reads its .NET versions from one place** — the groundwork for building each package

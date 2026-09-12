@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-Target `net10.0` (`net10.0-browser` for WASM); nullable + implicit usings on. **Rask** is a C#
+Every package targets `net10.0` AND `net11.0` (plus the `-browser` face of each for WASM), from `RaskNetTargets`
+in `Directory.Build.props`; .NET 10 stays primary/LTS and **building needs the .NET 11 SDK** (RASKSDK001).
+Test projects build for ONE of them, `$(RaskTestTarget)`. Nullable + implicit usings on. **Rask** is a C#
 component framework (Blazor-like): Roslyn factory generator, scoped CSS/TypeScript, routing, live diff
 runtime over WS (Server) or JSImport/JSExport (WASM). This file is the **map** — read the code,
 the `docs/`, and the tests for depth. Keep this file small; put how-to detail in `.claude/skills/`.
