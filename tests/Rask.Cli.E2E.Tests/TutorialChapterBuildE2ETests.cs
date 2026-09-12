@@ -12,24 +12,29 @@ namespace Rask.Cli.E2E.Tests;
 /// <remarks>
 /// <para>
 /// The chapter is the framework's teaching code now, and until this test existed nothing compiled it.
-/// Writing it found four defects that had shipped, none of which a parser could see: the
-/// <c>AppDbContext</c> instruction gave the <c>DbSet</c> line but not the <c>using</c> the slice needs;
-/// the list page linked to <c>UpdateProduct</c> and <c>DeleteProduct</c>, which the chapter never
-/// provided; and the form used <c>DataAnnotationsValidator</c> without saying it comes from its own
-/// package. A reader following the chapter exactly got four compiler errors.
+/// Writing it found four defects that had shipped, none of which a parser could see: a context
+/// instruction gave the <c>DbSet</c> line but not the <c>using</c> the slice needs; the list page linked
+/// to <c>UpdateProduct</c> and <c>DeleteProduct</c>, which the chapter never provided; and the form used
+/// <c>DataAnnotationsValidator</c> without saying it comes from its own package. A reader following the
+/// chapter exactly got four compiler errors.
 /// </para>
 /// <para>
-/// Extending it found more of the same. Chapter 4's job handler used <c>IDbContextFactory</c> and
-/// <c>AppDbContext</c> with no <c>using</c> and no namespace. Chapter 7 told the reader to give
-/// <c>Order</c> a <c>Customer</c> field it never had — its snippets came from a generator run with
-/// different fields than chapter 3 used, which the old <c>--force</c> regeneration papered over and a
-/// reader patching by hand cannot.
+/// Extending it found more of the same. Chapter 4's job handler used a context factory with no
+/// <c>using</c> and no namespace. Chapter 7 told the reader to give <c>Order</c> a <c>Customer</c> field
+/// it never had — its snippets came from a generator run with different fields than chapter 3 used, which
+/// the old <c>--force</c> regeneration papered over and a reader patching by hand cannot.
 /// </para>
 /// <para>
-/// The chapters build on each other — chapter 4's handler reads <c>db.Orders</c>, which only exists
-/// after chapter 3; chapter 7 rewrites the <c>Order</c> chapter 3 wrote — so they are walked
-/// cumulatively rather than in isolation. Chapter 6 is absent because its accessor snippet is elided
-/// (<c>…</c>), leaving no complete file to write.
+/// The pages read and write through the model surface — <c>Product.FindAsync</c>,
+/// <c>Product.AsQueryable()</c> and the generated <c>Product.CreateAsync(ProductModel)</c> — so nothing
+/// here patches a context: declaring the entity is the whole of the data code a reader types, and this
+/// walk is what proves the generated form model and writes exist for it.
+/// </para>
+/// <para>
+/// The chapters build on each other — chapter 4's handler reads <c>Order</c>, which only exists after
+/// chapter 3; chapter 7 rewrites the <c>Order</c> chapter 3 wrote and its handler enqueues chapter 4's
+/// job — so they are walked cumulatively rather than in isolation. Chapter 6 is absent because its
+/// accessor snippet is elided (<c>…</c>), leaving no complete file to write.
 /// </para>
 /// <para>
 /// Opt-in with the rest of the build gates (<c>RASK_CLI_BUILD_E2E=1</c>) because it packs the framework
@@ -72,53 +77,39 @@ public sealed partial class TutorialChapterBuildE2ETests
                 fs.WriteAllText(file.Path, file.Content);
             }
 
-            // Chapter 2: every file it hands the reader.
+            // Chapter 2: every file it hands the reader. The entity is the only data code in it — the form
+            // model and the writes the pages call are generated from it, and it is mapped with no context
+            // to edit, so there is nothing else to overlay.
             var slice = Path.Combine(projectDir, "Features", "Products");
             fs.CreateDirectory(slice);
             Write(fs, slice, "Product.cs", Fence("class Product : Model<Guid>"));
-            Write(fs, slice, "ProductRequest.cs", Fence("class ProductRequest"));
-            Write(fs, slice, "ProductConfiguration.cs", Fence("ProductConfiguration"));
-            Write(fs, slice, "UpdateProduct.cs", Fence("UpdateProductCommandHandler"));
-            Write(fs, slice, "DeleteProduct.cs", Fence("DeleteProductCommandHandler"));
+            Write(fs, slice, "CreateProduct.cs", Fence("[Route(\"/products/new\")]"));
+            Write(fs, slice, "UpdateProduct.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
+            Write(fs, slice, "DeleteProduct.cs", Fence("class DeleteProduct : Component"));
             Write(fs, slice, "ProductsPage.cs", Fence("class ProductsPage"));
-
-            // The chapter splits CreateProduct across two fences — "and the page that uses it, in the
-            // same file" — so they are joined the way a reader would join them.
-            Write(fs, slice, "CreateProduct.cs",
-                Fence("CreateProductCommandHandler").TrimEnd() + "\n\n" + Fence("[Route(\"/products/new\")]"));
-
-            // …and the two lines it says to add to the context.
-            var contextPath = Path.Combine(projectDir, "Features", "Shared", "AppDbContext.cs");
-            var context = Strip(Fence("using Shop.Features.Products;")) + "\n" + fs.ReadAllText(contextPath);
-            fs.WriteAllText(
-                contextPath,
-                OpeningBrace().Replace(context, "$1    " + Strip(Fence("DbSet<Product>")) + "\n\n", 1));
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on a model
-            // and expects it to be enforced; validation ships inside Rask.Core, so a project straight out
-            // of `rask new` already has it. If it ever stops being built in, this build still succeeds and
-            // the chapter still compiles — so the guarantee is pinned by the unit suite
+            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on an entity
+            // and expects the generated form model to enforce it; validation ships inside Rask.Core, so a
+            // project straight out of `rask new` already has it. If it ever stops being built in, this build
+            // still succeeds and the chapter still compiles — so the guarantee is pinned by the unit suite
             // (Rask.Validation.Tests), and this gate only has to prove no `dotnet add package` is needed.
             var csproj = Path.Combine(projectDir, "Shop.csproj");
 
             await Build(csproj, "chapter 2");
 
-            // --- Chapter 3: a second slice on the same database ---
+            // --- Chapter 3: a second entity on the same database ---
             var orders = Path.Combine(projectDir, "Features", "Orders");
             fs.CreateDirectory(orders);
             Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Model<Guid>", "3"));
 
-            context = Strip(Pick(ch3, "using Shop.Features.Orders;", "3")) + "\n" + fs.ReadAllText(contextPath);
-            fs.WriteAllText(
-                contextPath,
-                OpeningBrace().Replace(context, "$1    " + Strip(Pick(ch3, "DbSet<Order>", "3")) + "\n\n", 1));
-
             await Build(csproj, "chapter 3");
 
-            // --- Chapter 4: a durable job, whose handler reads the Orders set chapter 3 added ---
-            var jobHandler = Pick(ch4, "SendOrderReceiptHandler(IDbContextFactory", "4");
+            // --- Chapter 4: a durable job, whose handler reads the Order chapter 3 added ---
+            // The chapter shows the record and the filled-in handler as separate snippets, the handler's
+            // `using` above it; they are joined into one file the way a reader would join them.
+            var jobHandler = Pick(ch4, "Order.FindAsync(job.OrderId", "4");
             var shared = Path.Combine(projectDir, "Features", "Shared");
             Write(
                 fs, shared, "SendOrderReceipt.cs",
@@ -134,13 +125,19 @@ public sealed partial class TutorialChapterBuildE2ETests
 
             await Build(csproj, "chapter 5");
 
-            // --- Chapter 7: domain events through the outbox ---
+            // --- Chapter 7: a domain event through the outbox ---
             // The chapter shows the revised Order.cs whole rather than as a patch, which is both what a
-            // reader needs (the Raise calls have to go somewhere specific) and what lets this walk apply
+            // reader needs (the Raise call has to go somewhere specific) and what lets this walk apply
             // it — a fragment could not replace the file chapter 3 wrote.
-            Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderCreated", "7"));
-            Write(fs, orders, "Order.cs", Pick(ch7, "entity.Raise(new OrderCreated", "7"));
-            Write(fs, orders, "OrderCreatedHandler.cs", Pick(ch7, "INotificationHandler<OrderCreated>", "7"));
+            //
+            // PlaceOrder is the chapter's one piece of plain EF Core — IDbContextFactory<AppDbContext>,
+            // Order.Place, db.Set<Order>(), SaveChangesAsync — and it is a whole component precisely so it
+            // is compiled here: it is the only snippet that names the scaffold's context type, so it is the
+            // one that breaks if the context the scaffold writes and the context the tutorial teaches drift.
+            Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderPlaced", "7"));
+            Write(fs, orders, "Order.cs", Pick(ch7, "Raise(new OrderPlaced", "7"));
+            Write(fs, orders, "PlaceOrder.cs", Pick(ch7, "Order.Place(ProductId", "7"));
+            Write(fs, orders, "OrderPlacedHandler.cs", Pick(ch7, "INotificationHandler<OrderPlaced>", "7"));
 
             await Build(csproj, "chapter 7");
         }
@@ -175,9 +172,6 @@ public sealed partial class TutorialChapterBuildE2ETests
             $"Chapter {chapter} no longer contains a C# snippet with '{contains}'. If the chapter was "
             + "restructured, update this test to match — don't delete the coverage.");
 
-    /// <summary>A snippet line with its trailing "// at the top of the file" aside removed.</summary>
-    private static string Strip(string fence) => fence.Trim().Split("//")[0].Trim();
-
     private static void Write(IFileSystem fs, string directory, string name, string code) =>
         fs.WriteAllText(Path.Combine(directory, name), code);
 
@@ -196,7 +190,4 @@ public sealed partial class TutorialChapterBuildE2ETests
 
     [GeneratedRegex(@"```csharp\r?\n(?<code>.*?)```", RegexOptions.Singleline)]
     private static partial Regex CSharpFence();
-
-    [GeneratedRegex(@"(\{\n)")]
-    private static partial Regex OpeningBrace();
 }

@@ -229,6 +229,17 @@ public sealed class PageMetaTests
     }
 
     [Fact]
+    public void ALinkKeepsTheRoutesPageType()
+    {
+        // A kit button or link navigates in place only for a URL that still knows its page. Losing the type
+        // to the slash turned it back into a string, which the browser follows with a full reload.
+        var route = Rask.Site.Features.Routes.GuidesIndexPage();
+
+        Assert.NotNull(route.PageType);
+        Assert.Equal(route.PageType, PageMeta.LinkTo(route).PageType);
+    }
+
+    [Fact]
     public async Task AHostileGuideSlugCannotCloseTheStructuredDataScript()
     {
         // The one visitor-controlled value that reaches the JSON-LD: an unknown slug in /docs/guides/{slug},

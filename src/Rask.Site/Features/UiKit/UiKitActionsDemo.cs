@@ -38,6 +38,19 @@ public sealed partial class UiKitActionsDemo : Component
             ]),
 
         Section(
+            "Button and link — going somewhere",
+            "Given a generated route, a button or a link is an <a> the runtime routes inside the app, so the "
+            + "page changes without reloading. A plain string stays an ordinary link, for a URL that leaves.",
+            Div.Data(Testid("ui-button-route")).Class("flex flex-wrap items-center gap-3")[
+                UiButton.Key("to-navigation").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation components"],
+                UiLink.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))
+                    .Text("Data display components"),
+                UiButton.Key("to-github").Variant(UiVariant.Ghost)
+                    .Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]
+            ]),
+
+        Section(
             "Dropdown",
             "Open is nullable, and the three settings mean three different things: unset lets the "
             + "browser open it on focus, true and false hand the decision to this page.",

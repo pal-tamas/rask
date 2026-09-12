@@ -283,12 +283,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 // `Callback?` is a struct, so the TypeKind test alone would fold it and defeat the render
                 // cache for every element that carries a handler.
                 var isDelegate = p.Type.TypeKind == TypeKind.Delegate
-                                 || CarrierDelegates(p.Type.ToDisplayString(FullyQualifiedNullable))
+                                 || CarrierDelegates(TypeName(p.Type, FullyQualifiedNullable, compilation))
                                      .Count > 0;
                 var (defaultLiteral, isRequired) = DefaultLiteralFor(p, compilation);
                 shared.Add(new SharedSetter(
                     p.Name,
-                    p.Type.ToDisplayString(FullyQualifiedNullable),
+                    TypeName(p.Type, FullyQualifiedNullable, compilation),
                     owner,
                     isDelegate,
                     // Same rule as ResetLiteralFor: a required prop has no default on either surface, so
@@ -1580,6 +1580,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
             SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
             | SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
+
+    // Every type a prop, parameter or entry is DECLARED with goes through here. A Rask.Data entity's
+    // generated model (ProductModel) is emitted by another generator into this same compilation, so to this
+    // one it is an unresolved error type — and an error type displays as the bare name its author wrote,
+    // which binds from the author's file (it has the using) and not from RaskBuilderSetters.g.cs (it does
+    // not). Byte-identical for every type that involves no generated model.
+    private static string TypeName(ITypeSymbol type, SymbolDisplayFormat format, Compilation compilation) =>
+        Shared.GeneratedModelShape.DisplayName(type, format, compilation);
 
     private readonly record struct SetterHost(
         string AssemblyName,
@@ -3741,11 +3749,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 switch (member)
                 {
                     case IPropertySymbol { IsIndexer: false } p:
-                        into.Add(new EntryRef(hostFqn, p.Name, p.Type.ToDisplayString(FullyQualifiedNullable),
+                        into.Add(new EntryRef(hostFqn, p.Name, TypeName(p.Type, FullyQualifiedNullable, compilation),
                             string.Empty, string.Empty, string.Empty, string.Empty));
                         break;
                     case IMethodSymbol { MethodKind: MethodKind.Ordinary } m:
-                        into.Add(ExternalMethodEntry(hostFqn, m));
+                        into.Add(ExternalMethodEntry(hostFqn, m, compilation));
                         break;
                 }
             }
@@ -3785,7 +3793,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return new EquatableArray<EntryRef>(entries.ToImmutableArray());
     }
 
-    private static EntryRef ExternalMethodEntry(string hostFqn, IMethodSymbol m)
+    private static EntryRef ExternalMethodEntry(string hostFqn, IMethodSymbol m, Compilation compilation)
     {
         var typeParameters = m.TypeParameters.Length == 0
             ? string.Empty
@@ -3801,7 +3809,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             var p = m.Parameters[i];
-            parameters.Append(p.Type.ToDisplayString(FullyQualifiedNullable)).Append(' ')
+            parameters.Append(TypeName(p.Type, FullyQualifiedNullable, compilation)).Append(' ')
                 .Append(EscapeIdentifier(p.Name));
             arguments.Append(EscapeIdentifier(p.Name));
         }
@@ -3809,7 +3817,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return new EntryRef(
             hostFqn,
             m.Name,
-            m.ReturnType.ToDisplayString(FullyQualifiedNullable),
+            TypeName(m.ReturnType, FullyQualifiedNullable, compilation),
             typeParameters,
             BuildConstraintsClause(m.TypeParameters),
             parameters.Append(')').ToString(),
@@ -4217,7 +4225,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var hasParameterlessCtor = HasPublicParameterlessConstructor(symbol);
         var hasDICtor = HasDIConstructor(symbol);
         var isPublic = IsExternallyVisible(symbol);
-        var formControl = GetFormControlInfo(symbol);
+        var formControl = GetFormControlInfo(symbol, ctx.SemanticModel.Compilation);
         var properties = GetFactoryProperties(symbol, formControl is not null, ctx.SemanticModel.Compilation);
         var typeParams = symbol.IsGenericType
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
@@ -4233,7 +4241,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        var forwarders = GetForwarderInfos(symbol);
+        var forwarders = GetForwarderInfos(symbol, ctx.SemanticModel.Compilation);
         return new Candidate(
             ns,
             symbol.Name,
@@ -4287,16 +4295,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
     // Detects IFormControl<T> among the component's implemented interfaces and returns the bound value
     // type T (fully qualified). Null when the component is not a form control.
-    private static FormControlInfo? GetFormControlInfo(INamedTypeSymbol symbol)
+    private static FormControlInfo? GetFormControlInfo(INamedTypeSymbol symbol, Compilation compilation)
     {
         foreach (var i in symbol.AllInterfaces)
         {
             if (i.TypeArguments.Length == 1 &&
                 i.OriginalDefinition.ToDisplayString() == FormControlOpenFullName)
             {
-                var valueType = i.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+                var valueType = TypeName(i.TypeArguments[0], FullyQualifiedNullable, compilation);
                 return new FormControlInfo(valueType);
             }
         }
@@ -4304,7 +4310,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return null;
     }
 
-    private static List<ForwarderInfo> GetForwarderInfos(INamedTypeSymbol symbol)
+    private static List<ForwarderInfo> GetForwarderInfos(INamedTypeSymbol symbol, Compilation compilation)
     {
         var result = new List<ForwarderInfo>();
         foreach (var member in symbol.GetMembers())
@@ -4342,9 +4348,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             var parameters = new List<ForwarderParamInfo>();
             foreach (var p in method.Parameters)
             {
-                var typeFqn = p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+                var typeFqn = TypeName(p.Type, FullyQualifiedNullable, compilation);
                 var defaultLiteral = string.Empty;
                 if (p.HasExplicitDefaultValue)
                 {
@@ -4894,9 +4898,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                                  || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
                                      SpecialType.System_Nullable_T);
 
-                var typeFqn = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+                var typeFqn = TypeName(prop.Type, FullyQualifiedNullable, compilation);
 
                 // A bound-mode IFormControl<T> member (Bind/Validate/AfterBind):
                 // excluded from the controlled factory and instead emitted on the synthesized bound factory.
@@ -4934,7 +4936,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 // handler simply reports propsChanged: true on every frame, and the render cache is
                 // defeated tree-wide. Only the allocation benchmarks would notice.
                 var isDelegate = prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate }
-                                 || CarrierDelegates(prop.Type.ToDisplayString(FullyQualifiedNullable))
+                                 || CarrierDelegates(TypeName(prop.Type, FullyQualifiedNullable, compilation))
                                      .Count > 0;
 
                 // An unconstrained type-parameter prop (e.g. `TValue? Value`) can't default to `null` —

@@ -442,7 +442,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         ITypeSymbol? resultType,
         Compilation compilation)
     {
-        var message = WireShape.Classify(type, allowFile: true);
+        // The compilation lets a Rask.Data entity's generated model — which this generator cannot see — be
+        // encoded from the entity rather than rejected as a type with no way to build it.
+        var message = WireShape.Classify(type, allowFile: true, compilation: compilation);
         if (message.Kind == WireKind.Unsupported)
         {
             return ContractModel.Failed(message.Reason!);
@@ -452,7 +454,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         WireType? result = null;
         if (resultType is not null && !returnsFile)
         {
-            result = WireShape.Classify(resultType, allowFile: false);
+            result = WireShape.Classify(resultType, allowFile: false, compilation: compilation);
             if (result.Kind == WireKind.Unsupported)
             {
                 return ContractModel.Failed(
@@ -470,7 +472,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                 ? "global::Rask.Wire.FileDownload"
                 : resultType is null
                     ? "global::Rask.Cqrs.Unit"
-                    : resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    : GeneratedModelShape.DisplayName(resultType, SymbolDisplayFormat.FullyQualifiedFormat, compilation),
             ReturnsFile = returnsFile,
             CarriesFiles = message.ContainsFile,
             WireName = type.ToDisplayString(),

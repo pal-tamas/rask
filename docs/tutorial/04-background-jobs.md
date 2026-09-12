@@ -27,36 +27,43 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 }
 ```
 
-A job is just a record marked `IBackgroundJob` plus an `ICommandHandler<T>` — the same handler shape the CRUD slices
-use. Give the job the data it needs by adding a parameter:
+A job is a record marked `IBackgroundJob` plus the class that does the work. `ICommandHandler<T>` is simply
+the interface the job worker hands a job to, and nothing registers the handler: it is found at build time.
+Give the job the data it needs by adding a parameter:
 
 ```csharp
 public sealed record SendOrderReceipt(Guid OrderId) : IBackgroundJob;
 ```
 
-Fill in the handler with whatever the work is (we'll make it send an email in the next chapter):
+Pass the id, not the order. The job runs later — possibly after a restart — and should read the order as it
+is *then*.
+
+Fill in the handler with whatever the work is (we'll make it send an email in the next chapter). Reading the
+order is the same call a page makes:
 
 ```csharp
-using Microsoft.EntityFrameworkCore;   // for IDbContextFactory
+using Shop.Features.Orders;   // for Order
 
-public sealed class SendOrderReceiptHandler(IDbContextFactory<AppDbContext> dbFactory)
-    : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
     public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
-        var order = await db.Orders.FindAsync([job.OrderId], ct);
+        var order = await Order.FindAsync(job.OrderId, ct);
         // … process the order …
     }
 }
 ```
+
+There's nothing to inject for that read. `Order.FindAsync` opens its own context and disposes it before it
+returns, which is as right on a background worker as it is on a page.
 
 ## 2. What's already wired
 
 Chapter 1's `rask new` registered jobs for you. Worth reading anyway, because two of these lines are
 the ones you'd have to get right by hand.
 
-In `Program.cs`:
+In `Program.cs` the scaffold wrote `builder.Services.AddRaskJobs<AppDbContext>();`. To tune the worker, give
+that same line options:
 
 ```csharp
 builder.Services.AddRaskJobs<AppDbContext>();
@@ -74,63 +81,73 @@ Its tuning has defaults, so there is nothing for it in `appsettings.json` yet. T
 }
 ```
 
-`AddRaskJobs` needs `AddRaskCqrs()` to dispatch jobs to their handlers, and it resolves
+Both values are the defaults, so this changes nothing until you edit a number. `AddRaskJobs` resolves
 `IDbContextFactory<AppDbContext>` — never a scoped `DbContext`, because a live session is long-lived over a
-WebSocket and a scoped context would outlive any unit of work. Both are already in place.
+WebSocket and a scoped context would outlive any unit of work. It hands each job to its handler through the
+scaffold's `AddRaskCqrs()` line, which is why that line is there.
 
-The jobs table is mapped in `AppDbContext.OnModelCreating`:
+The jobs tables are mapped in `AppDbContext.OnModelCreating`:
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
+    base.OnModelCreating(modelBuilder);       // every Model<TId> you declared
     modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-    modelBuilder.ApplyRaskConventions();
-    modelBuilder.AddRaskJobs();               // ← the Jobs table
+    modelBuilder.AddRaskOutbox();
+    modelBuilder.AddRaskJobs();               // ← the Job + RecurringJobState tables
+    modelBuilder.AddRaskMail();
+    modelBuilder.AddRaskCache();
+    modelBuilder.AddRaskAuth();
+    modelBuilder.ApplyRaskConventions();      // always last
 }
 ```
 
-Then migrate:
-
-```bash
-rask db add AddJobs
-rask db update
-```
+The first migration `rask new` applied already created those tables, so there is nothing to migrate.
 
 ## 3. Enqueue from your code
 
-Inject `IJob` into the generated `CreateOrderCommandHandler` in `Features/Orders/CreateOrder.cs` and
-enqueue right after the order is saved:
+Inject `IJob` into chapter 3's `CreateOrder` page in `Features/Orders/CreateOrder.cs`, and enqueue right
+after the order is saved. `SendOrderReceipt` lives in `Features/Shared/`, so the page also needs
+`using Shop.Features.Shared;`:
 
 ```csharp
-public sealed class CreateOrderCommandHandler(
-    IDbContextFactory<AppDbContext> dbContextFactory,
-    IJob jobs) : ICommandHandler<CreateOrderCommand, Guid>
+public sealed partial class CreateOrder(IJob jobs, Navigator navigator) : Component
 {
-    public async Task<Guid> HandleAsync(CreateOrderCommand command, CancellationToken cancellationToken)
-    {
-        var entity = Order.Create(command.Request.Total, command.Request.ProductId, command.Request.Placed);
-        await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        db.Orders.Add(entity);
-        await db.SaveChangesAsync(cancellationToken);
+    // … the fields and Render() are unchanged …
 
-        await jobs.EnqueueAsync(new SendOrderReceipt(entity.Id), cancellationToken);   // ← enqueue
-        return entity.Id;
+    private async Task SaveAsync(OrderModel model)
+    {
+        try
+        {
+            var order = await Order.CreateAsync(model, CancellationToken);
+            await jobs.EnqueueAsync(new SendOrderReceipt(order.Id), CancellationToken);   // ← enqueue
+            navigator.NavigateTo(Routes.OrdersPage());
+        }
+        catch (Exception)
+        {
+            _error = "Something went wrong — please try again.";
+        }
     }
 }
 ```
 
-`EnqueueAsync` returns as soon as the row is written — the customer's request finishes immediately, and the
-worker runs the job moments later. Need it *later*? `ScheduleAsync(job, TimeSpan.FromHours(24))` or
-`ScheduleAsync(job, aDateTimeOffset)`. Need it *repeatedly*? Register a recurring job at startup:
+`CreateAsync` hands back the saved `Order`, its `Id` included. `EnqueueAsync` returns as soon as the job row
+is written — the customer's request finishes immediately, and the worker runs the job moments later. Need it
+*later*? `ScheduleAsync(job, TimeSpan.FromHours(24))` or `ScheduleAsync(job, aDateTimeOffset)`. Need it
+*repeatedly*? Register a recurring job in the same `AddRaskJobs` options:
 `o.AddRecurring<PurgeStaleCarts>("purge-carts", every: TimeSpan.FromHours(1), () => new PurgeStaleCarts())`.
+
+> **Two writes, not one.** The order and the job are saved separately, so a crash between them keeps the
+> order and loses its receipt. For a receipt that is a real gap, and [Chapter 7](07-outbox-events.md)
+> closes it.
 
 ## Verify
 
-- After `rask db update`, placing an order returns instantly and a row appears in the jobs table.
+- Placing an order returns instantly and a row appears in the jobs table.
 - Add a `Console.WriteLine` (or a breakpoint) in `SendOrderReceiptHandler.HandleAsync` — it fires within
   `PollInterval` of the order being created.
 - Throw from the handler once and watch it retry (up to `MaxAttempts`) rather than losing the work.
 
-**Learn more:** [background jobs](../jobs.md) · [CQRS](../cqrs.md)
+**Learn more:** [background jobs](../jobs.md)
 
 Next → **[Chapter 5: Transactional email](05-email.md)**

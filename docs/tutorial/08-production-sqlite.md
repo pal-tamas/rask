@@ -26,9 +26,11 @@ There is no connection string in `Program.cs`: `UseRaskSqlite` reads `Rask:Conne
 `appsettings.json` — `Data Source=app.db` while you develop — which is why it takes the service provider.
 
 It is a drop-in for `UseSqlite` that also installs the pragma interceptor — one word, and every background
-processor (jobs, mail, outbox) and every page shares a connection that won't spuriously fail under load.
-Retrofitting an existing app is the same one-word change — the package is already there, since `Rask`
-brings it.
+processor (jobs, mail, outbox), every page, and every `Product.Where(…)` or `Product.CreateAsync(…)` shares a
+connection that won't spuriously fail under load. `StrictTables` makes SQLite enforce each column's declared
+type rather than quietly storing the text `"lots"` in an `INTEGER` column — see
+[STRICT tables](../sqlite.md#strict-tables--making-the-store-enforce-your-types). Retrofitting an existing app
+is the same one-word change — the package is already there, since `Rask` brings it.
 
 See [production SQLite](../sqlite.md) for the full pragma table, the load-test numbers, and the
 non-blocking write-retry story.
@@ -77,6 +79,8 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 
 var app = builder.Build();
 
+// (Db.Configure and the first middleware sit here — nothing that touches the database.)
+
 if (!string.IsNullOrWhiteSpace(replicaUrl))
 {
     // Restore BEFORE anything opens the database — a no-op when app.db is already there.
@@ -95,7 +99,8 @@ Two details the scaffold gets right and are easy to get wrong by hand:
   `dotnet run` works on a laptop with no `litestream` binary and no cloud credentials. (The restore call
   throws when Litestream was never registered — useful for a real wiring mistake, fatal for a fresh
   scaffold, hence the guard.) The csproj also sets `RaskLitestreamDownload=false`: the binary belongs in
-  the Docker image, which `--docker` copies it into, rather than being fetched during everyone's build.
+  the Docker image, which the scaffolded `Dockerfile` copies it into, rather than being fetched during
+  everyone's build.
 
 Set the replica when you deploy:
 
