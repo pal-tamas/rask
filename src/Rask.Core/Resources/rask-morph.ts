@@ -481,6 +481,21 @@ function _raskEnsureHeadObserver() {
     // at a head morph / applyDiff, where the records are still pending.
     _raskHeadObserver = new MutationObserver((records) => _raskTagHeadRecords(records));
     _raskHeadObserver.observe(_raskObservedHead, { childList: true });
+    _raskTakeOverHeadObservation();
+}
+
+// This observer only sees nodes added after it arms, and on a prerendered page an island can be mounted long before
+// that: the island runtime (Rask.External's rask-external.js) loads ahead of the page runtime and mounts at once, and a
+// component library styles itself by appending to <head> — react-colorful's <style>, emotion's. Untagged, the takeover
+// morph trimmed it as boot-shell content and the island stayed unstyled for good, because a library injects once.
+//
+// So the island runtime watches <head> itself until this moment and hands over here, synchronously: it tags what it saw
+// and disconnects before any head morph of ours could be mistaken for a library's. The flag is set FIRST, so an island
+// runtime that loads after this point never starts watching at all.
+function _raskTakeOverHeadObservation() {
+    const g = globalThis as { __raskHeadObserverArmed?: boolean; __raskExternalHeadHandoff?: () => void };
+    g.__raskHeadObserverArmed = true;
+    if (typeof g.__raskExternalHeadHandoff === "function") g.__raskExternalHeadHandoff();
 }
 
 // Tag the nodes added by these mutation records — a <style>/<link>/<script> a library injected — with

@@ -62,6 +62,20 @@ public class GeneratedPropTypesTests
     }
 
     [Fact]
+    public void A_react_island_takes_children_as_react_types_them_and_a_vue_or_lit_island_takes_none_as_a_prop()
+    {
+        // Every hand-written island accepts children, so its front-end file destructures `children` like any other prop —
+        // typed as its framework types children, not as `any`.
+        Assert.Contains("children?: import(\"react\").ReactNode;", RaskExternalGeneratedTypeScript.Chart,
+            StringComparison.Ordinal);
+
+        // Vue receives children as the default slot and Lit as light-DOM content: neither is a prop, so declaring one
+        // would describe a value the component never gets.
+        Assert.DoesNotContain("children", RaskExternalGeneratedTypeScript.Board, StringComparison.Ordinal);
+        Assert.DoesNotContain("children", RaskExternalGeneratedTypeScript.Gauge, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_async_callback_is_still_void_on_the_front_end()
     {
         // Func<T, Task> is void here, and deliberately: the callback crosses as a handler reference

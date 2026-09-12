@@ -186,6 +186,20 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
+    public void APackageIslandsSnapshotReachesTheCompanion()
+    {
+        // A package island's chain steps are generated from the `{Island}.props.json` beside its class, and Rask.External
+        // globs for those from the companion's own directory inside obj/, where none lives. Without the app's snapshots
+        // the island compiled with no steps and the prerendered publish failed on its first one as CS1929 — the way this
+        // repo's own islands page did, with a green build and a red publish.
+        var project = Generate().Replace('\\', '/');
+
+        Assert.Contains("<AdditionalFiles Include=\"", project, StringComparison.Ordinal);
+        Assert.Contains("/**/*.props.json\" />", project, StringComparison.Ordinal);
+        Assert.Contains("/obj/**\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void EachResourceIsEmittedExactlyOnce()
     {
         // Two emission lines partition the set on whether the item names itself. A condition wrong the
