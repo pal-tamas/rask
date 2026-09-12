@@ -15,6 +15,7 @@ using Rask.Server.Authentication;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
+using Rask.Server.Transport;
 
 namespace Rask.Server;
 
@@ -29,7 +30,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // thread-pool workers from a user `await Task.Yield()` posting back through the captured
     // sync context). Two concurrent View.RenderAsLiveRoot walks on different threads otherwise
     // mutate the same Component state — _children, _stateDirty, _cachedRenderResult — and one
-    // wins, dropping the other's payload, or both call _socket.SendAsync on the same WebSocket.
+    // wins, dropping the other's payload, or both send on the same transport at once.
     private readonly SemaphoreSlim _renderLock = new(1, 1);
 
     // Set by AttachSocket on a reconnect to force the next render to bypass the HTML/buffer
@@ -64,13 +65,17 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // across threads or a dropped render goes unrecovered.
     private volatile bool _renderRequestedWhileDetached;
 
-    // Volatile so AttachSocket's "publish _socket last" actually carries release semantics: the
-    // volatile write makes the preceding _renderRequestedWhileDetached / _forceResend writes visible
-    // before the new socket becomes observable, and a reader's acquiring read sees them in lockstep.
-    // Without it the store-store order holds on x86 (TSO) but not on weaker models (ARM64), where a
-    // concurrent render could observe the fresh socket yet miss the resend flags and drop the
-    // reconnect catch-up frame.
-    private volatile WebSocket? _socket;
+    // The connection this session writes its frames to: a WebSocket today, and whatever else a client
+    // negotiated tomorrow. Published with Volatile.Write so AttachTransport's "publish the transport last"
+    // carries release semantics — the preceding _renderRequestedWhileDetached / _forceResend writes are
+    // visible before the new connection is, and a reader's acquiring read sees them in lockstep. Without
+    // that, the store-store order holds on x86 (TSO) but not on weaker models (ARM64), where a concurrent
+    // render could observe the fresh connection yet miss the resend flags and drop the catch-up frame.
+    //
+    // NOT declared volatile: DetachTransport swaps it with a compare-exchange, and C# refuses to treat a
+    // volatile field as volatile through a ref argument (CS0420). Every read goes through Volatile.Read,
+    // which is the same fence the modifier gave.
+    private ILiveTransport? _transport;
     private CancellationToken _socketCt;
 
     // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
@@ -287,7 +292,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         // _disposed short-circuits a StateHasChanged raised from an Unmount/Dispose callback during
         // teardown: the tree walk runs under _renderLock, so re-entering RenderAndSendAsync (which
         // also waits on _renderLock) would deadlock disposal against itself.
-        if (_disposed || _socket is null || _socket.State != WebSocketState.Open)
+        if (_disposed || Volatile.Read(ref _transport) is not { IsOpen: true })
         {
             _renderRequestedWhileDetached = true;
             return;
@@ -462,7 +467,14 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </remarks>
     internal bool LastRenderFaulted => View is RootErrorBoundary { RenderedFallback: true };
 
-    public void AttachSocket(WebSocket socket, CancellationToken ct)
+    /// <summary>Attaches a WebSocket — the transport a browser is served first.</summary>
+    public void AttachSocket(WebSocket socket, CancellationToken ct) =>
+        AttachTransport(new WebSocketTransport(socket), ct);
+
+    /// <summary>
+    ///     Attaches the connection this session renders to, in place of whatever was attached before.
+    /// </summary>
+    public void AttachTransport(ILiveTransport transport, CancellationToken ct)
     {
         _socketCt = ct;
         SuppressEventsUntilReconnect = false;
@@ -478,12 +490,11 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             _forceResend = true;
         }
 
-        // Publish _socket last. _socket is volatile, so this write has release semantics: the
-        // resend flags set above are guaranteed visible before the new socket is — a concurrent
-        // background render either reads the old null/closed socket (early-returns, having recorded
-        // the drop) or reads the new socket and sees the flags set. The ordering holds on weak
-        // memory models too (see the _socket field note).
-        _socket = socket;
+        // Publish the transport last, with release semantics: the resend flags set above are visible
+        // before the new connection is — a concurrent background render either reads the old null/closed
+        // one (early-returns, having recorded the drop) or reads the new one and sees the flags set. The
+        // ordering holds on weak memory models too (see the _transport field note).
+        Volatile.Write(ref _transport, transport);
         _hasAttachedBefore = true;
     }
 
@@ -524,10 +535,24 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         return publishOnly ? RequestPublishRenderAsync() : RequestRenderAsync();
     }
 
-    public void DetachSocket()
+    /// <summary>
+    ///     Detaches <paramref name="expected" />, and reports whether it was still the attached one.
+    /// </summary>
+    /// <remarks>
+    ///     A compare-exchange rather than an unconditional clear, because a tab that reconnects quickly runs
+    ///     two connections at once for a moment: the new one attaches from its own hello while the old one
+    ///     is still unwinding. Clearing unconditionally detached the LIVE connection, stopped its renders
+    ///     and armed the session for removal while the client sat there waiting for a frame (#1076).
+    /// </remarks>
+    public bool DetachTransport(ILiveTransport expected)
     {
-        _socket = null;
+        if (!ReferenceEquals(Interlocked.CompareExchange(ref _transport, null, expected), expected))
+        {
+            return false;
+        }
+
         _socketCt = default;
+        return true;
     }
 
     /// <summary>
@@ -538,7 +563,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </summary>
     internal async Task SendOutOfBandAsync(ReadOnlyMemory<byte> payload)
     {
-        if (_socket is null || _socket.State != WebSocketState.Open)
+        if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
             return;
         }
@@ -546,7 +571,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
         try
         {
-            if (_socket is null || _socket.State != WebSocketState.Open)
+            if (Volatile.Read(ref _transport) is not { IsOpen: true })
             {
                 return;
             }
@@ -585,7 +610,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </param>
     internal async Task CloseForShutdownAsync(CancellationToken ct)
     {
-        if (_socket is null || _socket.State != WebSocketState.Open)
+        if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
             return;
         }
@@ -596,13 +621,13 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         await _renderLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (_socket is null || _socket.State != WebSocketState.Open)
+            if (Volatile.Read(ref _transport) is not { IsOpen: true } transport)
             {
                 return;
             }
 
-            await _socket.CloseOutputAsync(
-                WebSocketCloseStatus.EndpointUnavailable, "server-shutdown", ct).ConfigureAwait(false);
+            await transport.CloseAsync(
+                LiveTransportClose.GoingAway, "server-shutdown", ct).ConfigureAwait(false);
         }
         finally
         {
@@ -610,9 +635,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
     }
 
-    // Host transport for LiveSessionBase.TryEmitFrameAsync: write the frame's bytes to the WebSocket
-    // (ReadOnlyMemory<byte>, zero-copy). RenderAndSendAsync guards _socket non-null/Open before the
-    // shared send runs, and the render lock serialises teardown, so _socket is valid here.
+    // Host transport for LiveSessionBase.TryEmitFrameAsync: write the frame's bytes to the connection
+    // (ReadOnlyMemory<byte>, zero-copy). RenderAndSendAsync guards the transport open before the shared
+    // send runs, and the render lock serialises teardown, so it is still valid here.
     protected override ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame) => SendGuardedAsync(frame);
 
     /// <summary>
@@ -634,9 +659,11 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </remarks>
     private async ValueTask SendGuardedAsync(ReadOnlyMemory<byte> payload)
     {
+        var transport = Volatile.Read(ref _transport)!;
+
         if (_sendTimeout <= TimeSpan.Zero)
         {
-            await _socket!.SendAsync(payload, WebSocketMessageType.Text, true, _socketCt).ConfigureAwait(false);
+            await transport.SendAsync(payload, _socketCt).ConfigureAwait(false);
             return;
         }
 
@@ -644,7 +671,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         cts.CancelAfter(_sendTimeout);
         try
         {
-            await _socket!.SendAsync(payload, WebSocketMessageType.Text, true, cts.Token).ConfigureAwait(false);
+            await transport.SendAsync(payload, cts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!_socketCt.IsCancellationRequested)
         {
@@ -655,14 +682,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
                 RaskLogLevel.Warning, "Rask.Live",
                 $"Aborting a socket whose send did not complete within {_sendTimeout}. The client stopped "
                 + "reading; its session is kept for the reconnect grace period.");
-            try
-            {
-                _socket!.Abort();
-            }
-            catch
-            {
-                // Already torn down by the receive loop — nothing left to abort.
-            }
+            transport.Abort();
 
             throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Send timed out.");
         }
@@ -671,7 +691,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
         bool publishOnly = false)
     {
-        if (_socket is null || _socket.State != WebSocketState.Open)
+        if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
             return;
         }

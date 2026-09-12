@@ -1281,6 +1281,29 @@ them until tagged releases begin.
   are walked and never cached, which is why nothing hit this until the showcase moved onto `Rask.Ui`.
   The `.Key(submitting)` workaround in `FormSubmitStateDemo` is gone.
 
+- **A live session is only driven by the user it belongs to.** The session id is the only thing tying a
+  connection to a session, and it travels in the page HTML — so a leaked one (a shared log, a screenshot, a
+  proxy that records URLs) let a *different* signed-in user open a socket, attach, and then have the
+  session's principal overwritten with their own: the victim's page, driven under the attacker's identity.
+  A `hello` now compares the connecting principal with the session's through the same `SameSessionUser`
+  rule the upload and download endpoints already applied — an anonymous session is matched by anyone, since
+  the unguessable id is the only authority there, and an owned one requires the same identity. A mismatch
+  answers the same unknown-session frame an id this host never had answers, so a prober cannot tell an
+  existing session from a missing one.
+
+- **A fast reconnect no longer kills the connection it just made.** A tab that reconnects quickly runs two
+  connections at once for a moment: the new one attaches from its own `hello` while the old one is still
+  unwinding. The old one's cleanup cleared the session's connection unconditionally, so it detached the
+  *live* one — renders stopped reaching a client sitting there connected, and the session was armed for
+  removal underneath it. Detaching is now a compare-exchange against the connection that is actually
+  attached, and only a detach that wins arms the grace period.
+
+- **The connected-session count is per connection, and a repeated `hello` releases what it replaced.** A
+  resumed session attached without ever counting while every cleanup decremented, so the gauge — the one
+  `AddRaskLiveSessions` reports Degraded and Unhealthy from — drifted below the truth across a restart. A
+  second `hello` naming a different session also left the first attached to a connection nobody read until
+  its grace period expired.
+
 
 ## [0.21.0] - 2026-09-10
 

@@ -48,6 +48,7 @@ using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.Http;
 using Rask.Server.JSInterop;
+using Rask.Server.Transport;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;
@@ -956,7 +957,16 @@ public static partial class RaskEndpointExtensions
             catch { }
         });
         var metrics = store.Metrics;
+
+        // One transport for this connection: what the session sends through, and the identity the detach
+        // below compares against.
+        var transport = new WebSocketTransport(ws);
         LiveSession? session = null;
+
+        // Whether THIS connection has been counted in the store's connected total. One increment per
+        // connection, whichever hello did it: a resumed session used to attach without counting while every
+        // finally decremented, so the gauge drifted below zero over a restart (#1059).
+        var counted = false;
         var buffer = new byte[16 * 1024];
         var message = new ArrayBufferWriter<byte>(16 * 1024);
 
@@ -1118,6 +1128,10 @@ public static partial class RaskEndpointExtensions
                         continue;
                     }
 
+                    // The session this connection was driving, if any. A second hello naming a different
+                    // one leaves the first with nothing reading for it, and the finally below only ever sees
+                    // the last (#1059).
+                    var previous = session;
                     session = store.Get(sessionId);
                     if (session is null)
                     {
@@ -1141,7 +1155,14 @@ public static partial class RaskEndpointExtensions
 
                         // The rebuilt session has a NEW id. The client learns it from the full frame below,
                         // which re-stamps data-rask-root — see LiveSessionBase's full-payload path.
-                        session.AttachSocket(ws, ct);
+                        session.AttachTransport(transport, ct);
+                        if (!counted)
+                        {
+                            store.SocketAttached();
+                            counted = true;
+                        }
+
+                        ReleasePrevious(previous, session, transport, store, limits);
                         session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
 
                         // A resumed session is a NEW DI scope, so its culture starts at the app default.
@@ -1155,11 +1176,33 @@ public static partial class RaskEndpointExtensions
                         continue;
                     }
 
-                    session.AttachSocket(ws, ct);
-                    // Counted here rather than inside AttachSocket: the store owns the number, and the
-                    // session has no reason to know a store exists.
-                    store.SocketAttached();
-                    session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
+                    // WHOSE session is this? The id in the hello is the only thing tying this connection to
+                    // a session, so a leaked id must not let a different signed-in user drive a victim's
+                    // page — the rule the upload and download endpoints already apply (SameSessionUser). An
+                    // anonymous session is matched by anyone, because the unguessable id is the only
+                    // authority there. A mismatch answers session/unknown rather than a refusal of its own,
+                    // so a prober cannot tell an existing session from one this host never had (#1075).
+                    var owner = session.Services.GetRequiredService<SessionUserProvider>();
+                    if (!SameSessionUser(wsUser, owner.Current))
+                    {
+                        // Leave this connection attached to whatever it was already driving: it never
+                        // attached to the one it just asked for, so the cleanup below must not detach it.
+                        session = previous;
+                        await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
+                        return;
+                    }
+
+                    session.AttachTransport(transport, ct);
+                    // Counted here rather than inside the session: the store owns the number, and a session
+                    // has no reason to know a store exists.
+                    if (!counted)
+                    {
+                        store.SocketAttached();
+                        counted = true;
+                    }
+
+                    ReleasePrevious(previous, session, transport, store, limits);
+                    owner.Set(wsUser);
 
                     // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the
                     // destination page mounts fresh under the new identity (its OnMountAsync runs against
@@ -1296,11 +1339,18 @@ public static partial class RaskEndpointExtensions
         catch (WebSocketException) { }
         finally
         {
-            if (session is not null)
+            // Only when this connection still owns the session. A tab that reconnected quickly has already
+            // attached a newer connection, and detaching that one would stop its renders and arm the session
+            // for removal while the client sat there connected (#1076).
+            if (session is not null && session.DetachTransport(transport))
             {
-                session.DetachSocket();
-                store.SocketDetached();
                 store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+            }
+
+            // Decremented for the connection, not for the session: this one is going away either way.
+            if (counted)
+            {
+                store.SocketDetached();
             }
 
             if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
@@ -1309,6 +1359,24 @@ public static partial class RaskEndpointExtensions
                 try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", closeCts.Token); }
                 catch { }
             }
+        }
+    }
+
+    // A hello that moves this connection to a different session leaves the previous one attached to a
+    // transport nobody reads any more. Detach it here — guarded, so a session another connection has since
+    // claimed is left alone — and arm the same grace period a disconnect would.
+    private static void ReleasePrevious(
+        LiveSession? previous, LiveSession current, ILiveTransport transport, LiveSessionStore store,
+        RaskServerLimits limits)
+    {
+        if (previous is null || ReferenceEquals(previous, current))
+        {
+            return;
+        }
+
+        if (previous.DetachTransport(transport))
+        {
+            store.ScheduleRemoval(previous.Id, limits.SessionGracePeriod);
         }
     }
 
