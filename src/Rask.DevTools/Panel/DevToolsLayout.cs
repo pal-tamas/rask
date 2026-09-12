@@ -1,4 +1,5 @@
 using Rask.Core;
+using Rask.Core.Components;
 using Rask.Core.Routing;
 using Rask.Ui;
 
@@ -24,9 +25,19 @@ internal sealed partial class DevToolsLayout : Component
     ];
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        UiShell[
+    protected override Component? Render()
+    {
+        // Every router matches every mounted application's pages, so a live app session can navigate itself here over
+        // its own socket, past the admission its page handler runs. Only the panel's own shell provides the root marker;
+        // anywhere else the panel shows nothing of the session it names.
+        if (!Context.Has<DevToolsPanelRoot>())
+        {
+            return UiAlert["The Rask DevTools panel opens only in its own frame. Open it from the page's Rask pill."];
+        }
+
+        return UiShell[
             UiTopBar[UiBrand.Label("Rask DevTools").Href("#")],
             UiMain[Outlet]
         ];
+    }
 }

@@ -1,4 +1,5 @@
 using Rask.Core;
+using Rask.Core.Components;
 using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
@@ -10,7 +11,8 @@ namespace Rask.DevTools.Panel;
 /// <remarks>
 ///     It renders the router and nothing else, like the operator console's shell: the chrome is
 ///     <see cref="DevToolsLayout" />'s. Who may reach it is decided before it renders, by the Server host's admission
-///     check — never by anything here.
+///     check. What it adds is <see cref="DevToolsPanelRoot" />, which the layout requires, so the panel's pages render
+///     only under a root that check chose.
 /// </remarks>
 internal sealed partial class DevToolsShell : Component
 {
@@ -34,5 +36,5 @@ internal sealed partial class DevToolsShell : Component
         ];
 
     /// <inheritdoc />
-    protected override Component? Render() => Router;
+    protected override Component? Render() => Context.Provide(DevToolsPanelRoot.Instance)[Router];
 }

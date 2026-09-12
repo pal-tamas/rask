@@ -91,9 +91,10 @@
     fixture that no longer compiles fails the BUILD instead of failing a test with node's message.
   -->
   <ItemGroup>
-    <!-- PreactAdapterFixture is excluded because it needs npm packages and therefore its own target
+    <!-- The adapter fixtures are excluded because they need npm packages and therefore their own targets
          below; everything else here bundles with nothing installed. -->
-    <_RaskNodeFixture Include="*Fixture.ts" Exclude="PreactAdapterFixture.ts;LitAdapterFixture.ts"/>
+    <_RaskNodeFixture Include="*Fixture.ts"
+                      Exclude="PreactAdapterFixture.ts;LitAdapterFixture.ts;ReactAdapterFixture.ts;VueAdapterFixture.ts;SolidAdapterFixture.ts"/>
   </ItemGroup>
 
   <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
@@ -105,21 +106,24 @@
 
   <!--
     ==========================================================================================
-    The Preact adapter fixture (#963).
+    The adapter fixtures (#963).
     ==========================================================================================
 
     PreactAdapterFixture.ts drives src/Rask.External/client/preact.ts against the REAL preact and a
-    real DOM, so it needs two npm packages that no other fixture here does.
+    real DOM; the React, Vue and Solid fixtures drive their adapters' children the same way against the
+    real react/react-dom, vue and solid-js. Lit needs only the DOM. So one install serves all of them,
+    and it holds the npm packages no other fixture here needs.
 
     They are installed under obj/, NOT into a shared per-user cache. A cache keyed by version would be
     installed once for the whole machine and is what the esbuild/tsgo resolver does — but that resolver
     unpacks into a temp directory and moves it into place, and `npm install` has no equivalent. Two
     worktrees running their gates at once would then install into the same tree concurrently. obj/ is
-    per worktree, costs one 2-second install per checkout, and cannot be raced.
+    per worktree, costs one install per checkout, and cannot be raced.
 
     `obj/preact-fixture` rather than $(IntermediateOutputPath): the install is configuration-neutral,
     and Debug and Release should not each pay for their own copy. Same reasoning as
-    _RaskExternalStableObj in Rask.External.targets.
+    _RaskExternalStableObj in Rask.External.targets. The Preact-named properties and path predate the
+    other frameworks joining the install, and keep their names so a build passing them still works.
 
     Note the location: a package.json here would NOT make this project bundlable — _RaskExternalBundlable
     probes $(MSBuildProjectDirectory)/package.json exactly, and obj/ is excluded from every island glob.
@@ -127,17 +131,24 @@
     over its 13 fixture components.
   -->
   <PropertyGroup>
-    <!-- Pinned, and the only copy of either number. Listed in the check-dependency-updates skill. -->
+    <!-- Pinned, and the only copy of each number. Listed in the check-dependency-updates skill. -->
     <RaskPreactFixtureVersion Condition="'$(RaskPreactFixtureVersion)' == ''">10.29.8</RaskPreactFixtureVersion>
     <RaskHappyDomFixtureVersion Condition="'$(RaskHappyDomFixtureVersion)' == ''">20.14.0</RaskHappyDomFixtureVersion>
+    <RaskReactFixtureVersion Condition="'$(RaskReactFixtureVersion)' == ''">19.3.0</RaskReactFixtureVersion>
+    <RaskVueFixtureVersion Condition="'$(RaskVueFixtureVersion)' == ''">3.5.42</RaskVueFixtureVersion>
+    <RaskSolidFixtureVersion Condition="'$(RaskSolidFixtureVersion)' == ''">1.9.15</RaskSolidFixtureVersion>
 
     <!-- The one switch that turns the whole thing off, for a build with no npm and no network. The
-         test then reports SKIPPED rather than passing, so a machine that never runs it says so. -->
+         tests then report SKIPPED rather than passing, so a machine that never runs them says so. -->
     <RaskPreactFixture Condition="'$(RaskPreactFixture)' == ''">true</RaskPreactFixture>
 
     <_PreactFixtureRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/obj/preact-fixture'))</_PreactFixtureRoot>
     <_PreactFixtureModules>$(_PreactFixtureRoot)/node_modules</_PreactFixtureModules>
     <_PreactFixtureStamp>$(_PreactFixtureRoot)/.installed</_PreactFixtureStamp>
+
+    <!-- happy-dom pulls in `ws` and requires `events` at load. Bundled to ESM there is no `require` in scope, and
+         esbuild's shim throws "Dynamic require of ... is not supported" before a fixture's first line runs. -->
+    <_RaskFixtureRequireBanner>&quot;--banner:js=import{createRequire as __raskRequire}from 'node:module';const require=__raskRequire(import.meta.url);&quot;</_RaskFixtureRequireBanner>
   </PropertyGroup>
 
   <!--
@@ -146,7 +157,7 @@
     A missing npm, a proxy, an offline machine: none of those should fail a build of the C# framework,
     and none of them should look like success either. So the install is allowed to fail quietly, the
     stamp is conditioned on the installed trees being THERE rather than on the exit code, and the
-    bundle below is conditioned on the stamp. What reaches a person is a SKIPPED test naming the
+    bundles below are conditioned on the stamp. What reaches a person is a SKIPPED test naming the
     reason — the one outcome that is neither a red build nor a silent pass.
 
     Failure therefore costs a retry on every build rather than being remembered. That is deliberate:
@@ -157,10 +168,10 @@
           Inputs="$(MSBuildProjectFullPath)" Outputs="$(_PreactFixtureStamp)">
     <MakeDir Directories="$(_PreactFixtureRoot)"/>
 
-    <!-- Exact versions, no ranges: a fixture that quietly moved to a new preact minor would be
-         reporting on a version nobody chose. -->
+    <!-- Exact versions, no ranges: a fixture that quietly moved to a new minor would be reporting on a
+         version nobody chose. -->
     <WriteLinesToFile File="$(_PreactFixtureRoot)/package.json" Overwrite="true" WriteOnlyWhenDifferent="true"
-                      Lines="{&quot;name&quot;:&quot;rask-preact-fixture&quot;,&quot;private&quot;:true,&quot;type&quot;:&quot;module&quot;,&quot;dependencies&quot;:{&quot;preact&quot;:&quot;$(RaskPreactFixtureVersion)&quot;,&quot;happy-dom&quot;:&quot;$(RaskHappyDomFixtureVersion)&quot;}}"/>
+                      Lines="{&quot;name&quot;:&quot;rask-preact-fixture&quot;,&quot;private&quot;:true,&quot;type&quot;:&quot;module&quot;,&quot;dependencies&quot;:{&quot;preact&quot;:&quot;$(RaskPreactFixtureVersion)&quot;,&quot;happy-dom&quot;:&quot;$(RaskHappyDomFixtureVersion)&quot;,&quot;react&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;react-dom&quot;:&quot;$(RaskReactFixtureVersion)&quot;,&quot;vue&quot;:&quot;$(RaskVueFixtureVersion)&quot;,&quot;solid-js&quot;:&quot;$(RaskSolidFixtureVersion)&quot;}}"/>
 
     <Exec Command="npm install --no-audit --no-fund --loglevel=error"
           WorkingDirectory="$(_PreactFixtureRoot)"
@@ -169,21 +180,17 @@
           ContinueOnError="true"/>
 
     <Touch Files="$(_PreactFixtureStamp)" AlwaysCreate="true"
-           Condition="Exists('$(_PreactFixtureModules)/preact/package.json') AND Exists('$(_PreactFixtureModules)/happy-dom/package.json')"/>
+           Condition="Exists('$(_PreactFixtureModules)/preact/package.json') AND Exists('$(_PreactFixtureModules)/happy-dom/package.json') AND Exists('$(_PreactFixtureModules)/react-dom/package.json') AND Exists('$(_PreactFixtureModules)/vue/package.json') AND Exists('$(_PreactFixtureModules)/solid-js/package.json')"/>
 
-    <Message Importance="high" Text="Rask.External.Tests: npm could not install preact@$(RaskPreactFixtureVersion) + happy-dom@$(RaskHappyDomFixtureVersion) into '$(_PreactFixtureRoot)', so PreactAdapterTests will report SKIPPED."
+    <Message Importance="high" Text="Rask.External.Tests: npm could not install preact@$(RaskPreactFixtureVersion), happy-dom@$(RaskHappyDomFixtureVersion), react@$(RaskReactFixtureVersion), vue@$(RaskVueFixtureVersion) and solid-js@$(RaskSolidFixtureVersion) into '$(_PreactFixtureRoot)', so the adapter tests will report SKIPPED."
              Condition="!Exists('$(_PreactFixtureStamp)')"/>
   </Target>
 
   <!--
-    The aliases are what let the adapter — which lives in src/Rask.External/client, nowhere near this
-    node_modules — resolve `preact` at all: esbuild walks up from the IMPORTING file, and no ancestor
+    The aliases are what let an adapter — which lives in src/Rask.External/client, nowhere near this
+    node_modules — resolve its framework at all: esbuild walks up from the IMPORTING file, and no ancestor
     of the adapter has a node_modules. esbuild has no NODE_PATH equivalent on its command line either,
     so an alias per package is the whole mechanism.
-
-    The banner is for happy-dom, which pulls in `ws` and requires `events` at load. Bundled to ESM
-    there is no `require` in scope, and esbuild's shim throws "Dynamic require of ... is not
-    supported" before the fixture's first line runs.
   -->
   <!-- ResolveProjectReferences for the reason the sibling target states: ResolveTypeScriptToolTask is
        loaded from a generated Rask.TypeScript.Tasks.dll that exactly that reference edge produces
@@ -203,14 +210,13 @@
 
     <MakeDir Directories="$(OutDir)node-fixtures"/>
 
-    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;PreactAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:preact=&quot;$(_PreactFixtureModules)/preact&quot; --alias:preact/hooks=&quot;$(_PreactFixtureModules)/preact/hooks&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; &quot;--banner:js=import{createRequire as __raskRequire}from 'node:module';const require=__raskRequire(import.meta.url);&quot; --outfile=&quot;$(OutDir)node-fixtures/PreactAdapterFixture.mjs&quot;"
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;PreactAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:preact=&quot;$(_PreactFixtureModules)/preact&quot; --alias:preact/hooks=&quot;$(_PreactFixtureModules)/preact/hooks&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/PreactAdapterFixture.mjs&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 
   <!--
-    The Lit adapter fixture: happy-dom and nothing else, so it borrows the Preact fixture's install rather than paying
-    for a second one, and is bundled exactly when that install arrived. The same `require` banner, for the same reason:
-    happy-dom requires `events` at load, and an ESM bundle has no `require` in scope.
+    The Lit adapter fixture: happy-dom and nothing else, so it borrows the install rather than paying for a second one,
+    and is bundled exactly when that install arrived.
   -->
   <Target Name="_RaskBundleLitFixture" AfterTargets="Build"
           DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
@@ -227,7 +233,77 @@
 
     <MakeDir Directories="$(OutDir)node-fixtures"/>
 
-    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;LitAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; &quot;--banner:js=import{createRequire as __raskRequire}from 'node:module';const require=__raskRequire(import.meta.url);&quot; --outfile=&quot;$(OutDir)node-fixtures/LitAdapterFixture.mjs&quot;"
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;LitAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/LitAdapterFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!--
+    The React adapter fixture: children rendered by the real react-dom. NODE_ENV is defined so react resolves one build
+    rather than branching on `process.env` at every call; the value is a single-quoted JS string so it survives both sh
+    and cmd quoting.
+  -->
+  <Target Name="_RaskBundleReactFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_PreactFixtureStamp)')"
+          Inputs="ReactAdapterFixture.ts;$(_PreactFixtureStamp);@(_RaskNodeFixtureDependency);..\..\src\Rask.External\client\react.ts;..\..\src\Rask.External\client\adapter.ts"
+          Outputs="$(OutDir)node-fixtures/ReactAdapterFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;ReactAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:react=&quot;$(_PreactFixtureModules)/react&quot; --alias:react-dom=&quot;$(_PreactFixtureModules)/react-dom&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; &quot;--define:process.env.NODE_ENV='production'&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/ReactAdapterFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!-- The Vue adapter fixture: children as the default slot, rendered by the real vue runtime. The defines are the
+       compile-time flags vue's bundler builds read, set as a bundler would. -->
+  <Target Name="_RaskBundleVueFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_PreactFixtureStamp)')"
+          Inputs="VueAdapterFixture.ts;$(_PreactFixtureStamp);@(_RaskNodeFixtureDependency);..\..\src\Rask.External\client\vue.ts;..\..\src\Rask.External\client\adapter.ts"
+          Outputs="$(OutDir)node-fixtures/VueAdapterFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;VueAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:vue=&quot;$(_PreactFixtureModules)/vue&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; --define:__VUE_OPTIONS_API__=true --define:__VUE_PROD_DEVTOOLS__=false --define:__VUE_PROD_HYDRATION_MISMATCH_DETAILS__=false &quot;--define:process.env.NODE_ENV='production'&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/VueAdapterFixture.mjs&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+  </Target>
+
+  <!-- The Solid adapter fixture: children through a reconciled store, rendered by the real solid-js. Each entry is
+       aliased to its BROWSER build file, and that is load-bearing: an alias to the package directory turns
+       `solid-js/web` into a path, which esbuild resolves through that folder's main/module fields rather than the
+       package's export conditions — the SERVER build, whose render throws "Client-only API called on the server
+       side". The exact keys win over the package prefix, and web.js imports `solid-js` through the same alias as the
+       fixture and the adapter, so all three share one Solid instance. -->
+  <Target Name="_RaskBundleSolidFixture" AfterTargets="Build"
+          DependsOnTargets="ResolveProjectReferences;_RaskRestorePreactFixture"
+          Condition="'$(RaskPreactFixture)' == 'true' AND '$(DesignTimeBuild)' != 'true' AND Exists('$(_PreactFixtureStamp)')"
+          Inputs="SolidAdapterFixture.ts;$(_PreactFixtureStamp);@(_RaskNodeFixtureDependency);..\..\src\Rask.External\client\solid.ts;..\..\src\Rask.External\client\adapter.ts"
+          Outputs="$(OutDir)node-fixtures/SolidAdapterFixture.mjs">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <MakeDir Directories="$(OutDir)node-fixtures"/>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;SolidAdapterFixture.ts&quot; --bundle --format=esm --platform=node --target=node20 --log-level=warning --alias:solid-js=&quot;$(_PreactFixtureModules)/solid-js/dist/solid.js&quot; --alias:solid-js/web=&quot;$(_PreactFixtureModules)/solid-js/web/dist/web.js&quot; --alias:solid-js/store=&quot;$(_PreactFixtureModules)/solid-js/store/dist/store.js&quot; --alias:happy-dom=&quot;$(_PreactFixtureModules)/happy-dom&quot; $(_RaskFixtureRequireBanner) --outfile=&quot;$(OutDir)node-fixtures/SolidAdapterFixture.mjs&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

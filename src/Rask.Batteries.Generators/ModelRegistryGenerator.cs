@@ -109,29 +109,10 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
     }
 
     // Walks to Model<TId>, handing back TId. Returns false for a class that is not an entity at all.
-    private static bool TryGetIdType(INamedTypeSymbol symbol, out ITypeSymbol? idType)
-    {
-        idType = null;
-
-        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
-        {
-            // By name and namespace rather than by display string: Model and Model<TId> are both the
-            // base, and a display string carries the type-parameter name, which is not ours to depend on.
-            if (current.Name != ModelBase || current.ContainingNamespace?.ToDisplayString() != RaskDataNamespace)
-            {
-                continue;
-            }
-
-            if (current.TypeArguments.Length == 1)
-            {
-                idType = current.TypeArguments[0];
-            }
-
-            return true;
-        }
-
-        return false;
-    }
+    // Defined in GeneratedModelShape, so "what is an entity" has one answer in the registry, the model
+    // generator, and every generator that reconstructs a generated model it cannot see.
+    internal static bool TryGetIdType(INamedTypeSymbol symbol, out ITypeSymbol? idType) =>
+        GeneratedModelShape.TryGetIdType(symbol, out idType);
 
     // Every path from the entity down to a value-object property, so nested value objects are mapped all
     // the way. Depth-limited and cycle-guarded: a value object referring to its own type would otherwise
@@ -413,14 +394,19 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         source.AppendLine("    }");
     }
 
-    private static string Local(Candidate entity) => "__" + entity.SimpleName.ToLowerInvariant();
+    // From the fully qualified name, not the simple one: two entities called Product in two namespaces
+    // would otherwise declare the same local twice and the generated registry would not compile.
+    private static string Local(Candidate entity) =>
+        "__" + entity.FullyQualifiedName.Replace("global::", "").Replace('.', '_');
 
     private static string ConverterName(StronglyTypedId id) =>
         "__" + id.TypeName!.Split('.').Last().Replace("<", "").Replace(">", "") + "Converter";
 
     private readonly record struct ValueObjectPath(EquatableArray<string> Segments);
 
-    private readonly record struct StronglyTypedId(string? TypeName, string? ValueTypeName, string? ValueMember, string? Problem)
+    // Internal so the model generator's CreateAsync asks "is this a strongly-typed id, and over what" of the same
+    // definition the registry registers the value converter from.
+    internal readonly record struct StronglyTypedId(string? TypeName, string? ValueTypeName, string? ValueMember, string? Problem)
     {
         // A strongly-typed id is a user-defined type with one public value and a constructor that takes
         // it. Anything the BCL already maps (Guid, int, string, …) is not one and needs no converter.

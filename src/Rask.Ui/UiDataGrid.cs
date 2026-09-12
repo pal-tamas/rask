@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.DragAndDrop;
+using Rask.Core.Routing;
 
 namespace Rask.Ui;
 
@@ -156,6 +157,15 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     /// <summary>Called with the page the reader asked for.</summary>
     public Callback<int>? OnPageChange { get; set; }
 
+    /// <summary>Makes each page in the pager a link, from its page number counted from zero.</summary>
+    /// <remarks>
+    ///     For a grid whose page lives in the URL — <c>?page=2</c> — so a page can be shared, bookmarked and
+    ///     reached with the back button. The link does the navigating, so <see cref="OnPageChange" /> is not
+    ///     called: the new page arrives as <see cref="Page" /> on the render that follows. Counted from zero
+    ///     like <see cref="Page" />, whatever the URL itself counts from.
+    /// </remarks>
+    public Fn<int, RouteUrl>? PageHref { get; set; }
+
 
     /// <summary>
     ///     How many rows stand behind the ones given, when <see cref="Data" /> holds one already-sliced
@@ -206,6 +216,13 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     /// <summary>Extra classes for one row, from the row.</summary>
     public Fn<T, string?>? RowClass { get; set; }
+
+    /// <summary>Tints one row with a tone, from the row — a dead letter in <see cref="UiTone.Error" />.</summary>
+    /// <remarks>
+    ///     A typed tone rather than a <see cref="RowClass" />, because a class written in a consuming library is
+    ///     a class the kit's compiled sheet never saw. The tint here is a complete literal, so it is in the sheet.
+    /// </remarks>
+    public Fn<T, UiTone?>? RowTone { get; set; }
 
     /// <summary>Called with the row that was clicked.</summary>
     /// <remarks>
@@ -951,12 +968,18 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private string CellClass(UiColumn<T> column) =>
         UiClass.Compose(
+            // The kit's marker for a body cell, which ui.css gives overflow-wrap:anywhere: a cell holding one
+            // unbroken token — a type name, a request id, a path — otherwise sets the table's minimum width, and
+            // the table spills out of a phone. A rule rather than the wrap-anywhere utility because the property
+            // INHERITS: a badge or a button in the cell then broke its own label letter by letter inside its
+            // fixed height — a level badge reading "mati" for "Information" — and only a rule can put those back.
+            "ui-grid-cell",
             StackedCards
                 ? "max-sm:flex max-sm:items-baseline max-sm:justify-between max-sm:gap-3 "
                   + "max-sm:before:font-medium max-sm:before:text-base-content/60 "
                   + "max-sm:before:content-[attr(data-label)]"
                 : "",
-            column.Class);
+            column.CellClasses);
 
     // Shared and immutable, so the common case — a busy-free, unnamed grid — allocates nothing for its
     // aria bag. Only a grid that is both named and busy builds one.
@@ -1014,7 +1037,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             .Style(MaxHeight is { } max ? "max-height:" + max : null)[table];
 
         return Div.Class(UiClass.Compose("flex flex-col gap-3", Class))[
-            Toolbar,
+            ToolbarRow(),
             Chrome(columns, groups),
             scroller,
             Cards(rows.Rows),
@@ -1060,7 +1083,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         var head = Th
             .Key(column.FieldName ?? column.Title ?? "")
             .Scope("col")
-            .Class(column.Class);
+            .Class(column.HeaderClasses);
 
         // Only where there is a sort state to report. Passing null writes a BARE `aria-sort`, which is
         // not "no sort state" — it is an aria-sort with no value, on a header that cannot be sorted.
@@ -1152,6 +1175,20 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private IEnumerable<Component?> Rows(
         IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> rows, int span, int offset)
     {
+        // A cell's class depends on its column and on the grid, never on the row, so it is composed once per
+        // column here rather than once per cell. A polling grid re-renders on every update, and composing per cell
+        // was a builder and a string for every cell of every row, every time, for the same few values.
+        var classes = new string[visible.Count];
+        var clickable = OnRowClick is null ? null : new string[visible.Count];
+        for (var c = 0; c < visible.Count; c++)
+        {
+            classes[c] = CellClass(visible[c]);
+            if (clickable is not null)
+            {
+                clickable[c] = UiClass.Compose(classes[c], "cursor-pointer");
+            }
+        }
+
         for (var i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
@@ -1165,10 +1202,11 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                     Hover ?? OnRowClick is not null
                         ? "hover:bg-base-200"
                         : "",
+                    RowTone?.Invoke(row) is { } tone ? UiClassNames.RowTone(tone) : "",
                     RowClass?.Invoke(row)))[
                 SelectionEnabled ? Td.Class("w-0")[SelectBox(row)] : null,
                 Expandable ? Td.Class("w-0")[Expander(row, key, open)] : null,
-                visible.Select(column => Cell(column, row))
+                Cells(visible, row, classes, clickable)
             ];
 
             if (open && Detail?.Invoke(row) is { } detail)
@@ -1180,11 +1218,22 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         }
     }
 
-    private Component Cell(UiColumn<T> column, T row)
+    private Component?[] Cells(IReadOnlyList<UiColumn<T>> visible, T row, string[] classes, string[]? clickable)
+    {
+        var cells = new Component?[visible.Count];
+        for (var c = 0; c < visible.Count; c++)
+        {
+            cells[c] = Cell(visible[c], row, classes[c], clickable?[c]);
+        }
+
+        return cells;
+    }
+
+    private Component Cell(UiColumn<T> column, T row, string cellClass, string? clickableClass)
     {
         var cell = Td
             .Key(column.FieldName ?? column.Title ?? "")
-            .Class(CellClass(column));
+            .Class(cellClass);
 
         // Only where the stacked layout will read it. Passing null writes a BARE `data-label`, so a grid
         // with its own card markup carried an empty attribute on every cell it had.
@@ -1195,9 +1244,9 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
         // The row-click handler goes on the CELLS rather than the row, so a column can carve itself out
         // of it — see UiColumn.RowClickable for why a custom cell does so by default.
-        if (column.IsRowClickable && RowClickHandler(row) is { } click)
+        if (column.IsRowClickable && clickableClass is not null && RowClickHandler(row) is { } click)
         {
-            cell = cell.OnClick(click).Class(UiClass.Compose(CellClass(column), "cursor-pointer"));
+            cell = cell.OnClick(click).Class(clickableClass);
         }
 
         return cell[column.Body(row)];
@@ -1560,7 +1609,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             Tr[
                 LeadingCells > 0 ? Td.Colspan(LeadingCells) : null,
                 visible.Select(column =>
-                    Td.Key(column.FieldName ?? column.Title ?? "").Class(column.Class)[column.Foot(all)])
+                    Td.Key(column.FieldName ?? column.Title ?? "").Class(column.CellClasses)[column.Foot(all)])
             ]
         ];
     }
@@ -1574,6 +1623,14 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                         .Class("rounded-xl border border-base-300 bg-base-100 p-3")[card.Invoke(row)])
             ];
 
+    // One row of controls from sm up, one control per line below it: three filters side by side at 360px
+    // leave each too narrow to show the value it is set to, which is the one thing a filter has to show.
+    // Stacked through max-sm: variants, for the same cross-sheet reason as the cells above.
+    private Component? ToolbarRow() =>
+        Toolbar is null
+            ? null
+            : Div.Class("flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-stretch")[Toolbar];
+
     private Component? Pager(Resolved rows)
     {
         if (Paging <= 0 || rows.Pages <= 1)
@@ -1581,14 +1638,22 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             return null;
         }
 
+        var current = Math.Clamp(CurrentPage, 0, rows.Pages - 1) + 1;
+
+        // The pager counts from one and the grid from zero; the conversion happens here, once, in both modes.
         return Div.Class("flex flex-wrap items-center justify-between gap-2")[
             Span.Class("text-sm text-base-content/60")[
                 rows.Total.ToString(CultureInfo.InvariantCulture) + " rows"
             ],
-            UiPagination
-                .Pages(rows.Pages)
-                .Current(Math.Clamp(CurrentPage, 0, rows.Pages - 1) + 1)
-                .OnSelect(page => _ = GoToPageAsync(page - 1, rows.Pages))
+            PageHref is { } href
+                ? UiPagination
+                    .Pages(rows.Pages)
+                    .Current(current)
+                    .Href(page => href.Invoke(page - 1))
+                : UiPagination
+                    .Pages(rows.Pages)
+                    .Current(current)
+                    .OnSelect(page => _ = GoToPageAsync(page - 1, rows.Pages))
         ];
     }
 }

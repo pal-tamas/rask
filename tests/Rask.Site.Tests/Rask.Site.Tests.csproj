@@ -77,6 +77,16 @@
   <ItemGroup>
     <AdditionalFiles Include="..\..\src\Rask.Site\**\*.css"
                      Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\node_modules\**;..\..\src\Rask.Site\wwwroot\**;..\..\src\Rask.Site\Styles\**"/>
+
+    <!--
+      A package island's committed props snapshot, for the same linked-sources reason. The generator finds the
+      snapshot beside a class by its `.props.json` name and produces the class's chain steps from it; but
+      Rask.External.targets globs *.props.json under THIS project's directory, which holds none, so without this the
+      linked ColorPicker.cs compiles with no steps and IslandsDemo does not compile at all (RASK077, fatal under
+      warnings-as-errors).
+    -->
+    <AdditionalFiles Include="..\..\src\Rask.Site\**\*.props.json"
+                     Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\node_modules\**;..\..\src\Rask.Site\wwwroot\**"/>
   </ItemGroup>
 
   <!--

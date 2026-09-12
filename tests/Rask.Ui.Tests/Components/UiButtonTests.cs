@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rask.Core.Routing;
 
 namespace Rask.Ui.Tests.Components;
 
@@ -243,6 +244,41 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void New_tab_without_an_href_changes_nothing() =>
         Assert.DoesNotContain("target", UiButton.NewTab(true)["Save"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_generated_route_navigates_inside_the_app()
+    {
+        // A route carries its page type, which is what makes the URL this app's to route: the runtime
+        // intercepts a[data-rask-nav], where a bare anchor would boot the whole app again to reach a page it
+        // already has.
+        var html = UiButton.Href(new RouteUrl("/orders", null, typeof(UiButtonTests)))["Orders"].ToHtml();
+
+        Assert.Equal("<a class=\"btn\" href=\"/orders\" data-rask-nav>Orders</a>", html);
+    }
+
+    [Fact]
+    public void A_string_stays_an_ordinary_link_even_to_an_in_app_path() =>
+        // A string names no page, so it is followed by the browser: the right thing for a URL that leaves the
+        // app, and the reason a page of this app should be reached through its route.
+        Assert.DoesNotContain("data-rask-nav", UiButton.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_null_string_destination_leaves_it_a_button() =>
+        // string -> RouteUrl is an implicit conversion, so a null string arrives as a RouteUrl with no path,
+        // not as a missing Href. It must still render the button it did when Href was a string.
+        Assert.Equal(
+            "<button class=\"btn\" type=\"button\">Save</button>",
+            UiButton.Href((string)null!)["Save"].ToHtml());
+
+    [Fact]
+    public void A_generated_route_in_a_new_tab_is_not_intercepted()
+    {
+        var html = UiButton.Href(new RouteUrl("/orders", null, typeof(UiButtonTests))).NewTab(true)["Orders"].ToHtml();
+
+        // The runtime would skip a target anyway; writing no data-rask-nav keeps the markup saying so.
+        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-nav", html, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void An_icon_only_anchor_still_has_an_accessible_name() =>

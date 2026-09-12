@@ -72,6 +72,18 @@ public class BrowserCompanionGenerationTests : IDisposable
     }
 
     [Fact]
+    public void APackageIslandsSnapshotReachesTheCompanion()
+    {
+        // A package island's chain steps are generated from the `{Island}.props.json` beside its class. The companion
+        // compiles the app's sources but globs snapshots from its own directory inside obj/, where none lives, so
+        // without the app's the island compiled with no steps and the browser half failed on its first one as CS1929.
+        var project = Slashes(Generate());
+
+        Assert.Contains("<AdditionalFiles Include=\"", project, StringComparison.Ordinal);
+        Assert.Contains("/**/*.props.json\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ABrowserOnlyReferenceReachesTheBundleAndNotTheServer()
     {
         // One project, two halves, one reference list — and some pairs exist precisely so that neither

@@ -6,24 +6,16 @@
 ## 1. A second feature in the same database
 
 The One Person Framework idea is *one* database for the whole product — so a second feature does **not**
-get a second `DbContext`. It maps through the one the app already has.
+get a second `DbContext`. It is mapped through the one the app already has.
 
 `Features/Orders/Order.cs` is chapter 2's shape with different fields:
 
 ```csharp
 namespace Shop.Features.Orders;
 
-public sealed class Order : Model<Guid>
+public sealed class Order : Model<Guid>, ITimestamped, IVersioned
 {
     private Order() { } // EF Core materialization
-
-    private Order(decimal total, Guid productId, DateTime placed)
-    {
-        Id = Guid.NewGuid();
-        this.Total = total;
-        this.ProductId = productId;
-        this.Placed = placed;
-    }
 
     public decimal Total { get; private set; }
 
@@ -31,42 +23,33 @@ public sealed class Order : Model<Guid>
 
     public DateTime Placed { get; private set; }
 
-    public static Order Create(decimal total, Guid productId, DateTime placed) => new(total, productId, placed);
-
-    public void Update(decimal total, Guid productId, DateTime placed)
-    {
-        this.Total = total;
-        this.ProductId = productId;
-        this.Placed = placed;
-    }
+    public int Version { get; private set; }
 }
 ```
 
-Then the same four companions as before — `OrderRequest`, `OrderConfiguration`, the command/handler/page
-files, and the list page. They're the chapter 2 files with `Product` swapped for `Order` — copy them and
-change the type.
+Build, and `Order` gets everything `Product` got: an `OrderModel`, `Order.CreateAsync` / `UpdateAsync` /
+`DeleteAsync`, and `order.ToModel()`. Then the same four components as before — `CreateOrder`,
+`UpdateOrder`, `DeleteOrder` and `OrdersPage`. They're the chapter 2 files with `Product` swapped for
+`Order`, `ProductModel` for `OrderModel`, the routes moved under `/orders`, and the three inputs and grid
+columns changed to `Total`, `ProductId` and `Placed` — copy them and change the names.
 
-What ties it to the existing database goes in `Features/Shared/AppDbContext.cs`, next to `Products` —
-the slice's namespace, and the set:
-
-```csharp
-using Shop.Features.Orders;   // at the top, beside the Products one
-```
-```csharp
-public DbSet<Order> Orders => Set<Order>();   // inside the class
-```
-
-That's the whole of "sharing a database": one context, one connection string, one migration history,
-however many features you add. Nothing else in the slice knows or cares.
+What ties the slice to the existing database: nothing you write. `AppDbContext`'s base maps `Order` exactly
+as it maps `Product`, with no `DbSet` to add. That's the whole of "sharing a database": one context, one
+connection string, one migration history, however many features you add. Nothing else in the slice knows
+or cares.
 
 > **Relating entities.** `Order.ProductId` is a plain foreign key here. To have EF understand it as a
-> relationship, add a navigation property and map it in `OrderConfiguration`:
+> relationship, give `Order` a static `Configure` — the place for any mapping rule the conventions don't
+> cover (it needs `using Microsoft.EntityFrameworkCore;`, `using Microsoft.EntityFrameworkCore.Metadata.Builders;`
+> and `using Shop.Features.Products;`):
 >
 > ```csharp
-> entity.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId);
+> public static void Configure(EntityTypeBuilder<Order> builder) =>
+>     builder.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId);
 > ```
 >
-> See [Rask.Data](../data.md) for the full relationship shapes.
+> It is found by its signature and runs after Rask's conventions. See [Rask.Data](../data.md) for the full
+> relationship shapes.
 
 ### Migrate
 
@@ -90,8 +73,8 @@ offers two gates, and you'll use both:
 
 ### Gate the write pages
 
-Add `[Authorize]` (from `Microsoft.AspNetCore.Authorization`) to the generated create / edit / delete pages —
-`Features/Products/CreateProduct.cs`, `UpdateProduct.cs`, `DeleteProduct.cs`:
+Add `[Authorize]` (from `Microsoft.AspNetCore.Authorization`) to the two write pages —
+`Features/Products/CreateProduct.cs` and `UpdateProduct.cs`:
 
 ```csharp
 using Microsoft.AspNetCore.Authorization;
@@ -101,25 +84,32 @@ using Microsoft.AspNetCore.Authorization;
 public sealed partial class CreateProduct : Component { … }
 ```
 
-Leave the read-only `ProductsPage` (`/products`) public so shoppers can browse.
+Leave the read-only `ProductsPage` (`/products`) public so shoppers can browse. `DeleteProduct` isn't a
+page — it has no URL anyone could deep-link to — so it's gated the other way, by not rendering it.
 
 ### Hide the "New / Edit / Delete" buttons from anonymous users
 
 Route gating stops direct navigation, but you also don't want to *show* buttons that will just bounce to the
-login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`), which the accounts battery
-already uses in `Auth/MembersPage.cs`:
+login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`):
 
 ```csharp
-Authorize[                                 // only rendered for signed-in users
-    NavLink.Href(CreateProduct)["New product"]
+UiHeader.Heading("Products").Actions(
+    Authorize[                             // only rendered for signed-in users
+        UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]
+    ])
+```
+
+For role-specific bits — say a "Delete" button only admins should see — pass `Roles`. In the grid's
+actions column that is:
+
+```csharp
+Authorize.Roles(["admin"])[
+    DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
 ]
 ```
 
-For role-specific bits — say a "Delete" button only admins should see — pass `Roles`:
-
-```csharp
-Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
-```
+A button that is never rendered has no click handler on the page, so hiding it is a real gate on a live
+page, not just a cosmetic one.
 
 ## Verify
 
@@ -129,6 +119,6 @@ Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
 - After signing in (register an account first at `/register` — the first one is the administrator),
   the create/edit/delete pages and buttons appear and work.
 
-**Learn more:** [authentication](../authentication.md) · [the `rask` CLI](../cli.md)
+**Learn more:** [authentication](../authentication.md) · [Rask.Data](../data.md) · [the `rask` CLI](../cli.md)
 
 Next → **[Chapter 4: Background jobs](04-background-jobs.md)**

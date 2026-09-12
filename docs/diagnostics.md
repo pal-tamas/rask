@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK080, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK085, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -16,6 +16,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
+| **RASK084** | makes the accessor `private set` / `private init`, or the field `private` |
+| **RASK085** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -95,7 +97,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK059](#rask059) | Error | Module override must be a constant string |
 | [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
 | [RASK061](#rask061) | Error | Blazor island must be partial |
-| [RASK062](#rask062) | Error | An island takes no children |
+| [RASK062](#rask062) | Error | An island cannot render these children |
 | [RASK064](#rask064) | Error | Blazor island name collision |
 | [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
 | [RASK067](#rask067) | Error | Endpoint shape has no wire encoding |
@@ -112,6 +114,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK078](#rask078) | Error | Props snapshot cannot be read |
 | [RASK079](#rask079) | Error | Props snapshot describes a different component |
 | [RASK080](#rask080) | Warning | Package prop was not generated |
+| [RASK081](#rask081) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
+| [RASK082](#rask082) | Error | A type already has the generated model's name |
+| [RASK083](#rask083) | Warning | Nested entity gets no generated model |
+| [RASK084](#rask084) | Warning | Model state can be changed from outside the type |
+| [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1370,32 +1377,53 @@ missing `WriteParameters` the author never wrote and should not have to know abo
 
 ## RASK062
 
-**An island takes no children** · Error
+**An island cannot render these children** · Error
 
-An island renders markup a foreign renderer owns — a hosted Blazor component, a React tree, a Lit
-element — and nothing else. It is a leaf.
+An island renders what a foreign renderer owns, so what it can take as children depends on the
+renderer.
+
+**A Blazor island takes none.** It is a leaf:
 
 ```csharp
-// ✗ RASK062 — the children would compile and never render
+// ✗ RASK062 — 'Chart' is a Blazor island and cannot take Rask children
 Chart.Series(_series)[ H2["Revenue"] ]
 
 // ✓ compose the other way round
 Div.Class("rounded-xl border p-4")[ H2["Revenue"], Chart.Series(_series) ]
 ```
 
-Rask children would have to cross the diff boundary, and no crossing is right for every component. A
-hosted Blazor component may have no `RenderFragment` parameter at all, one under a name only it knows
-(`Content`, `Body`), or several (`HeaderContent`, `RowTemplate`); a `.tsx` or Lit component takes the
-nodes and then owns them, so once its framework has moved them every DOM path Rask holds is wrong and
-the content goes dead after its first paint.
+Rask children would have to cross the diff boundary, and no crossing is right for every hosted
+component: it may have no `RenderFragment` parameter at all, one under a name only it knows (`Content`,
+`Body`), or several (`HeaderContent`, `RowTemplate`).
 
-This is an error rather than a convention because it cannot be one. The children indexer lives on
-`Component` and `Build<T>`, so it is available on every chain and cannot be withheld from a single
-type — without the diagnostic the children bind, compile, and silently render nothing.
+**A JS island takes children of its own runtime** — a React island accepts React islands, text,
+numbers and dates — because they travel inside its props and React renders them. Rask markup, or
+another runtime's island, cannot: once a front-end framework has moved Rask's nodes into its own tree,
+every DOM path Rask holds into them is wrong and the content goes dead after its first paint.
 
-Applies to both island families: `BlazorComponent<T>` (see [Blazor
-components](blazor-components.md#an-island-takes-no-children)) and `ReactComponent`/`LitComponent`
-(see [islands](islands.md#an-island-takes-no-children)).
+```csharp
+// ✗ RASK062 — 'MuiCard' is a React island; its children are React islands, text, numbers and dates
+MuiCard[ Span["Revenue"] ]
+MuiCard[ VueChip.Label("new") ]
+
+// ✓
+MuiCard[ "Revenue ", MuiChip.Label("new") ]
+Div[ MuiCard["Revenue"], Span["updated today"] ]
+```
+
+A package island whose component takes no content accepts nothing:
+`'MuiIcon' is a React island that takes no children`.
+
+The compiler refuses these on its own — an island's children indexers are typed to its runtime, and
+the ones it inherits return a type that cannot become a component — but it says so late, where the
+result fails to convert, and not at all for `var x = MuiCard[Span["x"]]`. RASK062 reports the call at
+its brackets instead.
+
+**Assigning `Children`** is reported on both families: an island never renders it, so the children
+would compile and silently never appear. Pass them through the indexer.
+
+See [islands](islands.md#children) and [Blazor
+components](blazor-components.md#an-island-takes-no-children).
 
 ## RASK064
 
@@ -1855,6 +1883,218 @@ public sealed partial class MuiToggle : ReactComponent
     public string? Value { get; set; }
 }
 ```
+
+## RASK081
+
+**Entity has no parameterless constructor, so `CreateAsync(model)` is not generated** · Warning
+
+Every `Rask.Data.Model` gets a generated form model — `ProductModel` for `Product` — and the writes that
+take it ([data guide](data.md)). `Product.CreateAsync(model)` builds a new entity before inserting it, and
+it starts from a constructor that takes nothing. It may be private: it is reached the way EF Core reaches
+the constructor it materializes rows through. An entity whose only constructors take arguments leaves it
+nothing to start from.
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    public Product(string name) => Name = name;   // ⚠ RASK081 — the only constructor takes a name
+
+    public string Name { get; private set; }
+}
+```
+
+**Fix:** add a parameterless constructor. Keep it private, and the domain's own constructor stays the
+only public way to make one:
+
+```csharp
+private Product() { }                            // ✓ for EF Core and the generated CreateAsync
+public Product(string name) => Name = name;
+```
+
+Everything that works on a row that already exists is still generated — `ProductModel`,
+`product.ToModel()`, `Product.UpdateAsync(id, model)` and `Product.DeleteAsync(id)` — so the rest of the form
+flow keeps working. An entity that is never created from a form can be inserted with plain EF Core
+instead; mark it `[SkipModel]` if it should have no form model at all.
+
+---
+
+## RASK082
+
+**A type already has the generated model's name** · Error
+
+The generated form model is emitted beside its entity, in the same namespace, as `{Entity}Model`. A
+hand-written, non-`partial` type of that name — often a request model written before the generator
+existed — would collide with it as `CS0101`, a message that names neither the generator nor the way
+out. So the generator stands down for that entity and says why: no `ProductModel`, and no
+`CreateAsync`, `UpdateAsync` or `DeleteAsync`.
+
+```csharp
+public sealed class Product : Model<Guid> { /* … */ }
+
+public sealed class ProductModel                  // ✗ RASK082 — the generated model's name
+{
+    public string Name { get; set; } = "";
+}
+```
+
+**Fix:** one of three, depending on what the hand-written type was for.
+
+```csharp
+public sealed class ProductForm { /* … */ }       // ✓ rename it and keep both
+
+public sealed partial class ProductModel          // ✓ extend the generated one instead
+{
+    public string Slug => Name.ToLowerInvariant().Replace(' ', '-');
+}
+
+[SkipModel]                                       // ✓ this entity has no generated form model
+public sealed class Product : Model<Guid> { /* … */ }
+```
+
+A `partial` declaration is not reported: it merges into the generated class, which is the supported way
+to add members, interfaces such as `IValidatableObject`, or computed display values to a model.
+
+---
+
+## RASK083
+
+**Nested entity gets no generated model** · Warning
+
+The generated model and the extension class holding its writes are siblings of the entity in its
+namespace. An entity declared inside another type has no such place to put them, so it is still mapped
+— it gets its table like any other — but no form model is generated for it.
+
+```csharp
+public static class Catalog
+{
+    public sealed class Product : Model<Guid> { }  // ⚠ RASK083 — nested in Catalog
+}
+```
+
+**Fix:** declare the entity at namespace level, or mark it `[SkipModel]` to say that having no form
+model is intended:
+
+```csharp
+namespace Shop.Catalog;
+
+public sealed class Product : Model<Guid> { }      // ✓ gets ProductModel and its writes
+```
+
+---
+
+## RASK084
+
+**Model state can be changed from outside the type** · Warning
+
+An entity — a class deriving from `Rask.Data.Model`, including your own abstract base classes between
+`Model` and the entity — and a value object (`IValueObject`) are changed only by themselves. The
+generated form model writes an entity through its private setters, so nothing in the framework needs a
+public one; a public setter is only a way for any caller to go around the methods that keep the entity
+valid.
+
+Reported, at the accessor or the field:
+
+- a property `set` accessor that is public (`{ get; set; }` on a public property);
+- a public `init` accessor;
+- a public instance field that is neither `readonly` nor `const`.
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    public string Name { get; set; } = "";            // ⚠ RASK084 — 'Product.Name' has a public setter
+    public int Stock;                                  // ⚠ RASK084 — a public field that is not readonly
+}
+
+public sealed record Address : IValueObject
+{
+    public string City { get; init; } = "";           // ⚠ RASK084 — a public init accessor
+}
+```
+
+**Fix:** make the member private, and change the state through the type's own methods or its constructor
+(**quick-fix available**: `set` → `private set`, `init` → `private init`, a public field → `private`):
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    private Product() { }                              // for EF Core and the generated CreateAsync
+
+    public Product(string name) => Name = name;
+
+    public string Name { get; private set; } = "";    // ✓
+    public int Stock { get; private set; }             // ✓
+
+    public void Rename(string name) => Name = name;    // ✓ the entity changes itself
+}
+```
+
+`private`, `protected` and `internal` accessors are all fine — `protected set` is the natural choice on an
+abstract base whose derived entities write the property. Members inherited from `Model<TId>` (its
+`protected set` `Id`) are never reported, and neither is an `override`: it cannot narrow what it
+overrides, so the base declaration is where it is reported.
+
+**Positional records are exempt.** The properties a positional record parameter declares get public
+`init` accessors from the compiler, and that is exactly the immutable value object:
+
+```csharp
+public sealed record Money(decimal Amount, string Currency) : IValueObject;          // ✓ not reported
+public readonly record struct Weight(decimal Grams) : IValueObject;                  // ✓ not reported
+public record struct Height(decimal Centimetres) : IValueObject;                     // ⚠ RASK084 — a real set
+```
+
+A positional parameter of a record struct that is not `readonly` gets a real `set`, so it is reported at
+the parameter; declare it `readonly record struct`. The quick-fix is not offered where `private` would not
+compile — a `required` or `abstract` property, an accessor whose sibling already has a modifier
+(`{ private get; set; }`), or a setter an interface you implement demands — and the warning stands for you
+to decide.
+
+---
+
+## RASK085
+
+**Entity exposes a mutable collection of entities** · Warning
+
+A private setter does not protect a list: `order.Lines.Add(line)` changes the order without calling any
+of its methods. Reported for a publicly readable property of an entity whose type is a mutable collection
+(it implements `ICollection<T>` — `List<T>`, `IList<T>`, `ICollection<T>`, `HashSet<T>`, `ISet<T>`,
+`Collection<T>`) of other **entities**. A collection of strings or of value objects is not a navigation
+and is not reported; neither are `ReadOnlyCollection<T>` and the immutable collections.
+
+```csharp
+public sealed class Order : Model<Guid>
+{
+    public List<OrderLine> Lines { get; private set; } = new();   // ⚠ RASK085
+}
+```
+
+**Fix:** keep the collection in a private readonly field, expose `IReadOnlyCollection<T>`,
+`IReadOnlyList<T>` or `IEnumerable<T>`, and add to it through the entity (**quick-fix available**: it
+writes the field and the read-only property, and points this instance's own references (`Lines`, `this.Lines` in an instance member) at the field — an
+access through a lambda parameter such as `Configure`'s `b.HasMany(o => o.Lines)`, another instance's
+`other.Lines` and `nameof(Lines)` keep naming the property;
+references outside the type are yours to move onto a method):
+
+```csharp
+public sealed class Order : Model<Guid>
+{
+    private readonly List<OrderLine> _lines = [];
+
+    public IReadOnlyCollection<OrderLine> Lines => _lines;         // ✓
+
+    public void Add(OrderLine line) => _lines.Add(line);           // ✓ the order changes itself
+}
+```
+
+EF Core maps this with no configuration: it finds the `_lines` backing field by naming convention and
+reads and writes the navigation through it, so `Include(o => o.Lines)` and lines added through `Add` both
+round-trip. Keep the field named `_` plus the camel-cased property name.
+
+The quick-fix keeps a `HashSet<T>` as a `HashSet<T>` field and uses `List<T>` otherwise. It is not offered
+when the rewrite could not keep the meaning: an initializer with elements or arguments, a property with
+accessor bodies, a `required` property, a property assigned inside the type (the field is `readonly`), a
+type split across several files, or a member that already has the field's name.
+
+---
 
 ## RASKVAL001
 

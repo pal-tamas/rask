@@ -28,5 +28,9 @@ internal sealed partial class DevToolsBootstrap
         {
             services.AddSingleton(new RaskMountedApp(typeof(DevToolsShell), PanelPattern, typeof(DevToolsShell).Assembly));
         }
+
+        // An app VS Code's F5 launched: the .test address when `rask dev` has set it up, and where to point the
+        // browser. Registers nothing unless the build was a dev session.
+        Server.EditorDevSessionServices.Add(services);
     }
 }

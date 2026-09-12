@@ -312,6 +312,30 @@ Form.Model(_model).OnValidSubmit(m => _submission = "Saved").Context(_ctx)[
 
 `Form` requires either `Model` or `Context` — they are the two ways to open its chain.
 
+### Binding a data model
+
+A [`Rask.Data`](data.md) entity keeps its setters private, so it is not what a form edits. The build
+generates a companion that is: `ProductModel` beside `Product`, every mapped property settable and the
+entity's DataAnnotations copied onto it. Bind one and the form validates by the entity's own rules, with
+nothing declared here:
+
+```csharp
+private readonly ProductModel _product = new();
+
+Form.Model(_product).OnValidSubmit(CreateAsync)[
+    Input.Bind(() => _product.Name),
+    Input.Bind(() => _product.Price),
+    Button.Type("submit")["Create"]
+]
+
+private Task CreateAsync(ProductModel product) => Product.CreateAsync(product, CancellationToken);
+```
+
+An edit form binds `product.ToModel()` and submits to `Product.UpdateAsync(id, model)`, with the id from
+the page's own route — the model carries none, so a submitted model cannot pick its row. It does carry
+the row's `Version` back with it, so a save that lost a race throws `DbUpdateConcurrencyException`
+rather than overwriting the other one. See [a create and an edit form](data.md#a-create-and-an-edit-form).
+
 ### Rendering messages
 
 Two headless components read the context — both take a required `Template:` so you own the markup,

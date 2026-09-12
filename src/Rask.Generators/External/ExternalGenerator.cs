@@ -256,7 +256,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var model = Describe(spc, type, runtime, snapshots, resolved);
+            var model = Describe(spc, type, runtime, snapshots, resolved, compilation);
             if (model is null)
             {
                 continue;
@@ -433,10 +433,19 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // not exist.
             var argument = handler.Shape.Argument is null
                 ? string.Empty
-                : "value: " + emitter.Ensure(WireShape.Classify(handler.Shape.Argument, allowFile: false));
+                : "value: " + emitter.Ensure(handler.ArgumentWire!);
 
             members.Append("  ").Append(handler.WireName).Append("?: (")
                 .Append(argument).AppendLine(") => void;");
+        }
+
+        // Every hand-written island accepts children, so its front-end file destructures `children` like any other
+        // prop — typed as its framework types children. Inline `import()` types rather than an import statement, so the
+        // declaration stays one self-contained block. Vue, Lit and Angular receive children as a slot or as projected
+        // content, never as a prop, so their props type declares none.
+        if (ChildrenType(component.Runtime) is { } children)
+        {
+            members.Append("  children?: ").Append(children).AppendLine(";");
         }
 
         var sb = new StringBuilder();
@@ -456,6 +465,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         sb.AppendLine("}");
         return sb.ToString();
     }
+
+    /// <summary>The TypeScript type a runtime's components receive children as, or null where children are not a prop.</summary>
+    private static string? ChildrenType(string runtime) => runtime switch
+    {
+        "react" => "import(\"react\").ReactNode",
+        "preact" => "import(\"preact\").ComponentChildren",
+        "solid" => "import(\"solid-js\").JSX.Element",
+        "svelte" => "import(\"svelte\").Snippet",
+        _ => null,
+    };
 
     // Escaped rather than a raw string literal: the TypeScript carries quotes and braces of its own,
     // and an escaped literal cannot be broken by anything a doc comment or a prop name contains.
@@ -507,7 +526,8 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         INamedTypeSymbol type,
         string runtime,
         EquatableArray<PropsSnapshot> snapshots,
-        Dictionary<IslandFacts, PackageIsland> resolved)
+        Dictionary<IslandFacts, PackageIsland> resolved,
+        Compilation compilation)
     {
         var location = type.Locations.FirstOrDefault(l => l.IsInSource);
         var fqn = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -570,11 +590,17 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
             if (Callback(property.Type) is { } shape)
             {
-                model.Handlers.Add(new IslandHandler(property.Name, wireName, shape));
+                model.Handlers.Add(new IslandHandler(
+                    property.Name,
+                    wireName,
+                    shape,
+                    shape.Argument is null
+                        ? null
+                        : WireShape.Classify(shape.Argument, allowFile: false, compilation: compilation)));
                 continue;
             }
 
-            var wire = WireShape.Classify(property.Type, allowFile: false);
+            var wire = WireShape.Classify(property.Type, allowFile: false, compilation: compilation);
             if (wire.Kind == WireKind.Unsupported)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
@@ -590,9 +616,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                 property.Name,
                 wireName,
                 wire,
-                property.Type.NullableAnnotation == NullableAnnotation.Annotated,
+                WireShape.IsNullable(property.Type, compilation),
                 property.IsRequired,
+                // An unresolved type gets this far only as a Rask.Data entity's generated model (anything
+                // else was classified Unsupported above), and a generated model is a class.
                 property.Type.IsReferenceType
+                || property.Type.TypeKind == TypeKind.Error
                 || property.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T));
         }
 
@@ -981,6 +1010,35 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine();
         }
 
+        // The children indexers, on every island whose component can render content: a hand-written island always — its
+        // front-end file decides where children go — and a package island when its snapshot says the component takes
+        // content. They return the island itself, so a nested island converts to its parent's child type. The three
+        // indexers ExternalComponent declares return NotAChildOfThisIsland instead, which RASK062 reports; a package
+        // island with no snapshot yet gets none until its first build writes one.
+        if (ExternalRuntimes.ChildTypeOf(island.Runtime) is { } child
+            && (!island.IsPackage || string.Equals(island.Snapshot?.Content, "node", StringComparison.Ordinal)))
+        {
+            var runtimeBase = "global::" + child.BaseName;
+            var childType = "global::" + child.ChildName;
+            const string enumerable = "global::System.Collections.Generic.IEnumerable";
+
+            sb.AppendLine($"    /// <summary>This island with children its framework renders: {child.Label} islands, text, numbers and dates.</summary>");
+            sb.AppendLine($"    public {island.Name} this[params {childType}[] children] {{ get {{ SetChildren(children); return this; }} }}");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>This island with a sequence of children, materialised while the page renders.</summary>");
+            sb.AppendLine($"    public {island.Name} this[{enumerable}<{childType}> children] {{ get {{ SetChildren(children); return this; }} }}");
+            sb.AppendLine();
+
+            // A user-defined conversion never lifts through IEnumerable<>, so a projection of islands —
+            // `items.Select(i => MuiListItem.Primary(i.Name))` — binds here, by covariance, rather than to the one above.
+            sb.AppendLine($"    /// <summary>This island with a sequence of {child.Label} islands as its children.</summary>");
+            sb.AppendLine($"    public {island.Name} this[{enumerable}<{runtimeBase}?> children] {{ get {{ SetChildren(children); return this; }} }}");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>This island with a sequence of text as its children.</summary>");
+            sb.AppendLine($"    public {island.Name} this[{enumerable}<string?> children] {{ get {{ SetTextChildren(children); return this; }} }}");
+            sb.AppendLine();
+        }
+
         sb.AppendLine("    /// <summary>The props, as members of the JSON object the client runtime hands to the adapter.</summary>");
         sb.AppendLine("    protected override void WriteProps(global::System.Text.Json.Utf8JsonWriter writer)");
         sb.AppendLine("    {");
@@ -1122,7 +1180,9 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         bool IsRequired,
         bool CanBeNull);
 
-    private sealed record IslandHandler(string ClrName, string WireName, CallbackShape Shape);
+    // ArgumentWire is classified in Describe, where the compilation is in hand: a Rask.Data entity's generated
+    // model can only be described from it (GeneratedModelShape). Null exactly when Shape.Argument is.
+    private sealed record IslandHandler(string ClrName, string WireName, CallbackShape Shape, WireType? ArgumentWire);
 
     private sealed class ComponentModel
     {

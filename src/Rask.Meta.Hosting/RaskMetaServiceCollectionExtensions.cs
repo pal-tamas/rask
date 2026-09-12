@@ -62,9 +62,20 @@ public static class RaskMetaServiceCollectionExtensions
 
         if (registered)
         {
-            // PostConfigure, so a dev session's port lands after the section and every callback.
+            // PostConfigure, so a dev session's port lands after the section and every callback. `rask dev`'s dev
+            // server first: it turns supervision off, which is what makes an editor-launched session (VS Code's F5)
+            // step aside rather than start a second dev server.
             services.AddOptions<MetaHostingOptions>()
-                .PostConfigure(static o => ApplyDevServer(o, Environment.GetEnvironmentVariable));
+                .PostConfigure(static o =>
+                {
+                    ApplyDevServer(o, Environment.GetEnvironmentVariable);
+                    ApplyEditorDevServer(
+                        o,
+                        EditorDevSession.IsActive(
+                            Assembly.GetEntryAssembly(),
+                            IsDevelopment(Environment.GetEnvironmentVariable),
+                            Environment.GetEnvironmentVariable));
+                });
         }
 
         services.TryAddSingleton<MetaPaths>();
@@ -156,6 +167,43 @@ public static class RaskMetaServiceCollectionExtensions
         options.SuperviseNode = false;
         options.Port = port;
     }
+
+    /// <summary>
+    ///     Runs the framework's own dev server under the supervisor, for an app an editor launched as a dev
+    ///     session.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The F5 twin of <see cref="ApplyDevServer" />. A dev-session build skipped the production front-end
+    ///         build, so there is no server entry to run — and under a debugger there is no <c>rask dev</c>
+    ///         running the dev server beside the app either. So the supervisor runs that dev server itself, on
+    ///         the framework's own port, and forwards to it.
+    ///     </para>
+    ///     <para>
+    ///         Skipped when supervision is already off: that is <c>rask dev</c> having pointed the host at a
+    ///         dev server it started, or an app that runs its front end some other way on purpose.
+    ///     </para>
+    /// </remarks>
+    internal static void ApplyEditorDevServer(MetaHostingOptions options, bool editorSession)
+    {
+        if (!editorSession || !options.SuperviseNode)
+        {
+            return;
+        }
+
+        options.RunDevServer = true;
+        options.Port = options.Framework.DevServerPort;
+    }
+
+    /// <summary>
+    ///     Whether the environment names Development — read from the variables, because the host environment
+    ///     is not built yet when services are registered. The same precedence the web host itself applies.
+    /// </summary>
+    internal static bool IsDevelopment(Func<string, string?> readEnv) =>
+        string.Equals(
+            readEnv("ASPNETCORE_ENVIRONMENT") ?? readEnv("DOTNET_ENVIRONMENT"),
+            Environments.Development,
+            StringComparison.OrdinalIgnoreCase);
 
     /// <summary>A dev server URL (<c>http://localhost:3000</c>) or a bare port.</summary>
     private static bool TryReadPort(string value, out int port)

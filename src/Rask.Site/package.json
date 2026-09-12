@@ -10,6 +10,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "@vitejs/plugin-vue": "^6.0.8",
     "react": "^19.2.8",
+    "react-colorful": "5.8.1",
     "react-dom": "^19.2.8",
     "solid-js": "^1.9.15",
     "svelte": "^5.57.0",

@@ -59,6 +59,18 @@ public sealed record MetaFramework
     public string WorkingSubdirectory { get; init; } = string.Empty;
 
     /// <summary>
+    ///     Where the framework's own dev server listens by default — what an editor-launched app forwards to
+    ///     and opens, having started that server itself.
+    /// </summary>
+    /// <remarks>
+    ///     The framework's answer, not something Rask configures: Nitro's dev servers and Next take 3000, the
+    ///     two built on Vite's own server take 5173. <c>rask new</c> prints the same numbers from its own
+    ///     table, and a test holds the two together. Internal because it is the dev loop's business, not
+    ///     something an app sets.
+    /// </remarks>
+    internal int DevServerPort { get; init; } = 3000;
+
+    /// <summary>
     ///     The framework's built client assets, served by Kestrel rather than forwarded.
     /// </summary>
     /// <remarks>
@@ -133,6 +145,7 @@ public sealed record MetaFramework
         Name = "analog",
         ServerEntry = "dist/analog/server/index.mjs",
         StaticRoots = NitroPublic("dist/analog"),
+        DevServerPort = 5173,
     };
 
     /// <summary>SvelteKit, built with <c>adapter-node</c>.</summary>
@@ -146,6 +159,7 @@ public sealed record MetaFramework
         Name = "sveltekit",
         ServerEntry = "build/index.js",
         StaticRoots = [new StaticRoot(string.Empty, "build/client")],
+        DevServerPort = 5173,
     };
 
     /// <summary>Next.js, built with <c>output: 'standalone'</c>.</summary>

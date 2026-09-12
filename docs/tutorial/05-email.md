@@ -41,13 +41,18 @@ public sealed partial class OrderReceipt : Component
 }
 ```
 
+This is the one component in the tutorial written with plain tags rather than the Rask.Ui kit, and on
+purpose: a mail client never loads the kit's stylesheet, so kit components would arrive unstyled.
+
 ## 2. It's already wired
 
-Chapter 1's `rask new` already registered mail, so there is nothing to add. Had you scaffolded with
-`--no-mail`, these are the two lines to add yourself:
+Chapter 1's `rask new` already registered mail and mapped its table (`modelBuilder.AddRaskMail()` in
+`AppDbContext`), and the first migration created it — so there is nothing to add and nothing to migrate. The
+registration it wrote in `Program.cs` is:
 
-- `builder.Services.AddRaskMail<AppDbContext>()` in `Program.cs`, and
-- the mail table mapped with `modelBuilder.AddRaskMail();` in `OnModelCreating`.
+```csharp
+builder.Services.AddRaskMail<AppDbContext>();
+```
 
 All that's left is your real sender address and, for production, an SMTP server. Both are settings rather
 than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.json`:
@@ -64,18 +69,10 @@ than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.js
 }
 ```
 
-Then create the table:
-
-```bash
-rask db add AddMail
-rask db update
-```
-
 > **Zero-config in development.** With no `Smtp` section, Rask.Mail doesn't try to reach a server — it writes
-> messages to a pickup directory (or logs them), so you can build and test the flow with no mail account.
->
-> **No database yet?** `AddRaskMail<TContext>` needs a `DbContext` to queue into — add the two lines above
-> once you have one (chapter 2 writes it).
+> each message to `mail-pickup` as an `.eml` file, so you can build and test the flow with no mail account.
+> The SMTP password comes from the environment — user-secrets on your machine, the deploy's environment file
+> in production ([Chapter 11](11-deploy.md)) — never from `appsettings.json` or `Program.cs`.
 
 ## 3. Send it from the job
 
@@ -83,14 +80,13 @@ Remember the `SendOrderReceipt` job from Chapter 4? That's exactly where the ema
 thread. Inject `IMail` into the handler and send:
 
 ```csharp
-public sealed class SendOrderReceiptHandler(
-    IDbContextFactory<AppDbContext> dbFactory,
-    IMail mail) : ICommandHandler<SendOrderReceipt>
+using Shop.Features.Orders;   // for Order
+
+public sealed class SendOrderReceiptHandler(IMail mail) : ICommandHandler<SendOrderReceipt>
 {
     public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
-        var order = await db.Orders.FindAsync([job.OrderId], ct);
+        var order = await Order.FindAsync(job.OrderId, ct);
         if (order is null) return;
 
         // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
@@ -103,6 +99,9 @@ public sealed class SendOrderReceiptHandler(
 }
 ```
 
+`Order.FindAsync` returns `null` for an order that has been deleted since the job was queued, which is why
+the handler checks before sending.
+
 `Email.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
 which renders your component to HTML right there. Note `Body(OrderReceipt.OrderId(…).Total(…))` builds the
 component with its **chain**, not `new OrderReceipt(...)` — every Rask component is built that way (the
@@ -112,9 +111,9 @@ just queues the row; the background sender delivers it. You now have the full ch
 
 ## Verify
 
-- With `Smtp` unset, placing an order writes a mail row and (within the poll interval) a message file to the
-  pickup directory / log — body rendered from your `OrderReceipt` component.
-- Point `Smtp` at a real server (or a local catcher like Mailpit) and the receipt actually arrives.
+- With no SMTP host configured, placing an order writes a mail row and (within the poll interval) an `.eml`
+  file in `mail-pickup` — body rendered from your `OrderReceipt` component.
+- Add a `Smtp` section under `Rask:Mail` for a real server (or a local catcher like Mailpit) and the receipt actually arrives.
 
 **Learn more:** [transactional email](../mail.md) · [background jobs](../jobs.md)
 

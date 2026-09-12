@@ -45,7 +45,7 @@ protected override Component? HeadAssets =>
 `UiStylesheet.Href()` carries a content hash, so the file can be cached hard and still change when the
 kit does. A library that renders kit components into somebody else's host wants no file in a `wwwroot`
 it does not own; that case keeps `UiStylesheet.Css` and inlines it in a `<style>`, which is what
-`Rask.Dashboard` does.
+`Rask.Dashboard` does — and it is the only stylesheet the console carries, reset included.
 
 **2. Turn the theme on.** Nothing in the kit has a colour until an ancestor carries the theme scope:
 
@@ -131,8 +131,8 @@ UiShell.Theme(UiThemeName.Light)[ /* … */ ]
 Leave it off and that subtree follows the OS. Writing `data-theme` on an ancestor does **not** settle
 it, because the rule that follows the OS is `[data-rask-ui]:not([data-theme])` and it matches the
 shell's own element — which is how a surface with its own fixed palette can render its chrome dark and
-its content light on the same screen. `Rask.Dashboard` pins `Light` for exactly that reason; see
-[the dashboard](dashboard.md).
+its content light on the same screen. `Rask.Dashboard` pins `Light` on both its `<html>` and its shell for
+exactly that reason; see [the dashboard](dashboard.md).
 
 ```csharp
 UiThemeController.Label("Dark").Theme(UiThemeName.Dark).Active(_theme is UiThemeName.Dark)
@@ -292,6 +292,23 @@ The kit pads cells and rows with a stylesheet rule on its `ui-table` / `ui-list`
 below your utilities. A `px-0` on a cell therefore gets flush content. A `[&_td]:px-3` variant would have
 out-specified it.
 
+## Buttons and links that go somewhere
+
+`UiButton.Href` and `UiLink.Href` take a `RouteUrl`. Hand them a **generated route** and they navigate
+inside the app, the way `NavLink` does: the anchor carries `data-rask-nav`, which the runtime intercepts
+and routes without reloading the page, and the deploy's path base, so a new tab or a copied link reaches
+the same page. Hand them a **string** and they are ordinary links the browser follows itself, which is
+what a URL that leaves the app wants.
+
+```csharp
+UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]    // stays in the app
+UiLink.Href(Routes.ProductsPage()).Text("Back to the list")                   // stays in the app
+UiButton.Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]     // leaves it
+```
+
+A string that happens to name one of your own pages is still a string: it reloads the whole app to get
+there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
+
 ## What is in it
 
 Grouped as daisyUI groups them, so its documentation reads straight across.
@@ -299,14 +316,14 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `UiButton` `UiDropdown` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
-| **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTextRotate` `UiTimeline` |
+| **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
 | **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
-| **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiNotice` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
-| **Support** | `UiIcon` / `UiIconName`, `UiTheme` / `UiThemeName`, `UiStyles`, `UiStylesheet` |
+| **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
+| **Support** | `UiIcon` / `UiIconName`, `UiTheme` / `UiThemeName`, `UiBreakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state
 

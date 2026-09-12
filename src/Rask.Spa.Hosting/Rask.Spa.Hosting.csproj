@@ -49,6 +49,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- An app VS Code's F5 launched starts the bundler's dev server itself (SpaDevServer). Named file by file:
+         the rest of Rask.Hosting.Shared\Dev is the .test dev host, which this lane never serves on. -->
+    <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevScript.cs" Link="Shared\Dev\DevScript.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\DevServerProcess.cs" Link="Shared\Dev\DevServerProcess.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!--
       Build-order-only edge to the MSBuild task project, which drops Rask.Spa.Tasks.dll into build/
       here (CopyTaskAssemblyToHostingBuildFolders) for <UsingTask> to load and for the build\** Pack glob to

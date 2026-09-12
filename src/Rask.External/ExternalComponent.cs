@@ -190,11 +190,156 @@ public abstract partial class ExternalComponent : Component
         var buffer = new ArrayBufferWriter<byte>(256);
         using (var writer = new Utf8JsonWriter(buffer))
         {
-            writer.WriteStartObject();
-            WriteProps(writer);
-            writer.WriteEndObject();
+            WriteObject(writer);
         }
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    // ----- children -----------------------------------------------------------------------------------------------
+
+    // The props keys an island's children travel under. `$`-prefixed like the handler and date markers, which no
+    // extracted prop may use, so a component's own prop can never collide with them.
+    private const string ChildrenKey = "$c";
+    private const string ChildNameKey = "n";
+    private const string ChildKeyKey = "k";
+    private const string ChildManifestKey = "m";
+    private const string ChildPropsKey = "p";
+
+    // Each element is an island of this island's runtime or the text a child renders as. Set during the enclosing
+    // component's Render(), like Component.Children, and a lazy sequence is materialised then: a child island built by
+    // the chain is the same entry on every render, so its handler ids do not churn.
+    private object?[]? _islandChildren;
+
+    // True while this island's props are being written. An island reached again inside its own children is a cycle,
+    // which would otherwise recurse until the stack overflowed.
+    private bool _writing;
+
+    /// <summary>Refused: an island renders children of its own runtime only. Reported as RASK062.</summary>
+    /// <remarks>
+    ///     Hides <see cref="Component" />'s indexer rather than overriding it — an override cannot narrow the parameter,
+    ///     so it could only throw while rendering. The result cannot become a component, so a wrong child is a compile
+    ///     error; the island's own typed indexers, generated for every island whose component takes content, are the
+    ///     ones its children bind to.
+    /// </remarks>
+    [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
+    public new NotAChildOfThisIsland this[params Component?[] children] => default;
+
+    /// <summary>Refused: an island renders children of its own runtime only. Reported as RASK062.</summary>
+    [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
+    public new NotAChildOfThisIsland this[IEnumerable<Component?> children] => default;
+
+    /// <summary>Refused: an island renders children of its own runtime only. Reported as RASK062.</summary>
+    public new NotAChildOfThisIsland this[params object?[] children] => default;
+
+    /// <summary>
+    ///     Nothing: an island's children travel inside its props and its framework renders them, so the host element
+    ///     stays empty on the server.
+    /// </summary>
+    /// <remarks>
+    ///     Sealed so no island can put Rask children below the opaque boundary, where the diff would never reach them
+    ///     again. <see cref="Component.Children" /> assigned by hand is reported as RASK062 and lands here unrendered.
+    /// </remarks>
+    protected sealed override IEnumerable<Component?> RenderChildren() => [];
+
+    /// <summary>Stores text children. Called by the generated <c>this[IEnumerable&lt;string?&gt;]</c> indexer.</summary>
+    /// <param name="children">The text, one child per element; a null element renders nothing.</param>
+    protected void SetTextChildren(IEnumerable<string?> children) => SetIslandChildren(children, static text => text);
+
+    /// <summary>Stores children, materialised now, as the island or the text each one renders as.</summary>
+    private protected void SetIslandChildren<TChild>(IEnumerable<TChild> children, Func<TChild, object?> value)
+    {
+        if (children is TChild[] array)
+        {
+            var values = new object?[array.Length];
+            for (var i = 0; i < array.Length; i++)
+            {
+                values[i] = value(array[i]);
+            }
+
+            _islandChildren = values;
+            return;
+        }
+
+        var list = new List<object?>();
+        foreach (var child in children)
+        {
+            list.Add(value(child));
+        }
+
+        _islandChildren = list.ToArray();
+    }
+
+    /// <summary>This island's props object, children included — for its own attribute and for a parent's children.</summary>
+    private void WriteObject(Utf8JsonWriter writer)
+    {
+        if (_writing)
+        {
+            throw new InvalidOperationException(
+                $"'{ComponentName}' is among its own children, so its props would never finish writing.");
+        }
+
+        _writing = true;
+        try
+        {
+            writer.WriteStartObject();
+            WriteProps(writer);
+            WriteChildren(writer);
+            writer.WriteEndObject();
+        }
+        finally
+        {
+            _writing = false;
+        }
+    }
+
+    /// <summary>
+    ///     Writes <c>"$c": [ … ]</c>: text as a string, a child island as
+    ///     <c>{ "n": name, "k"?: key, "m"?: manifest, "p": { its props, "$c"?: its children } }</c>. Absent when no
+    ///     children indexer was called, so an island without children writes exactly what it always wrote.
+    /// </summary>
+    private void WriteChildren(Utf8JsonWriter writer)
+    {
+        if (_islandChildren is not { } children)
+        {
+            return;
+        }
+
+        writer.WriteStartArray(ChildrenKey);
+        foreach (var child in children)
+        {
+            switch (child)
+            {
+                case string text:
+                    writer.WriteStringValue(text);
+                    break;
+                case ExternalComponent island:
+                    island.WriteAsChild(writer);
+                    break;
+            }
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private void WriteAsChild(Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WriteString(ChildNameKey, ComponentName);
+        if (KeyString is { } key)
+        {
+            writer.WriteString(ChildKeyKey, key);
+        }
+
+        // Only when it is not the app's own, as on the host element.
+        if (ManifestUrl is { Length: > 0 } manifest
+            && !string.Equals(manifest, ExternalDefaults.DefaultManifestUrl, StringComparison.Ordinal))
+        {
+            writer.WriteString(ChildManifestKey, manifest);
+        }
+
+        writer.WritePropertyName(ChildPropsKey);
+        WriteObject(writer);
+        writer.WriteEndObject();
     }
 }

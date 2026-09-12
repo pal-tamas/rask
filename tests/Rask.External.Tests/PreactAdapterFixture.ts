@@ -12,18 +12,20 @@
 // a bundled APP, though: a test fixture installs preact and nothing else, so the conflict never
 // arises here.
 //
-// The four things the adapter can get wrong, none of which any C# test can see:
+// The things the adapter can get wrong, none of which any C# test can see:
 //   * mount must render into the island element itself, since that is the handle everything else uses;
 //   * update must RECONCILE, not remount — `render()` into the same element is the whole update path,
 //     and the proof is the component's own `useState` surviving a prop change it did not cause;
 //   * a callback must reach the host dispatch channel, and must stop firing once C# clears it;
+//   * a child island must render inside its parent, keep ITS OWN state across a parent update, and run
+//     its cleanup when C# removes it;
 //   * unmount must be `render(null, element)`, which runs the tree's cleanup effects — dropping the
 //     element instead leaks every effect still subscribed inside it, silently.
 //
 // The C# test (PreactAdapterTests) runs this and asserts the JSON on stdout.
 
 import {Window} from 'happy-dom'
-import {h, options} from 'preact'
+import {h, options, type ComponentChildren} from 'preact'
 import {useEffect, useState} from 'preact/hooks'
 import {preactComponent} from '../../src/Rask.External/client/preact'
 
@@ -47,7 +49,7 @@ globalThis.MutationObserver = window.MutationObserver as never
 // would silently have to outlast that 100ms fallback instead.
 options.requestAnimationFrame = (callback: () => void) => setTimeout(callback, 0)
 
-// ----- the island component, exactly as an author would write one -----
+// ----- the island components, exactly as an author would write them -----
 
 let effectRuns = 0
 let cleanupRuns = 0
@@ -55,6 +57,7 @@ let cleanupRuns = 0
 interface CounterProps {
     heading?: string
     onPointClick?: (value: number) => void
+    children?: ComponentChildren
 }
 
 function Counter(props: CounterProps) {
@@ -73,11 +76,34 @@ function Counter(props: CounterProps) {
         h('span', {id: 'count'}, String(count)),
         h('button', {id: 'bump', onClick: () => setCount((c) => c + 1)}, 'bump'),
         h('button', {id: 'ping', onClick: () => props.onPointClick?.(42)}, 'ping'),
+        h('div', {id: 'slot'}, props.children),
     ])
 }
 
-// What the generated entry module does, and the only Rask-aware line an island's front end ever gets.
+let badgeEffects = 0
+let badgeCleanups = 0
+
+// Rendered only as a CHILD island.
+function Badge(props: {label?: string}) {
+    // State the child owns. A parent update that remounted the child — a changed type, a lost key — would reset it.
+    const [clicks, setClicks] = useState(0)
+
+    useEffect(() => {
+        badgeEffects++
+        return () => {
+            badgeCleanups++
+        }
+    }, [])
+
+    return h('button', {id: 'badge', onClick: () => setClicks((c) => c + 1)}, `${props.label}:${clicks}`)
+}
+
+// What the generated entry modules do: the adapter as the default export, the component beside it.
 const adapter = preactComponent(Counter)
+const chunks: Record<string, unknown> = {
+    Chart: {default: adapter, component: Counter},
+    Badge: {default: preactComponent(Badge), component: Badge},
+}
 
 // ----- the host the runtime expects -----
 
@@ -88,7 +114,7 @@ const globals = globalThis as unknown as Record<string, unknown>
 globals.__raskExternal = {
     resolve: (name: string) => {
         requested.push(name)
-        return Promise.resolve({default: adapter})
+        return Promise.resolve(chunks[name])
     },
 }
 globals.__raskHost = {send: (payload: unknown) => dispatched.push(payload)}
@@ -152,13 +178,44 @@ await settle()
 click('ping')
 await settle()
 const dispatchedAfterClear = dispatched.length
+const requestedBeforeChildren = [...requested]
+
+// ----- children -----
+
+const withChild = (heading: string, label: string) =>
+    JSON.stringify({heading, $c: ['Revenue ', {n: 'Badge', k: 'b1', p: {label}}]})
+
+// C# gave the island a child: its chunk loads, and the child renders inside the parent's slot.
+island.setAttribute('props', withChild('Costs', 'new'))
+await settle()
+const slotWithChild = text('slot')
+
+// The child's own state, moved off its initial value.
+click('badge')
+await settle()
+const badgeAfterClick = text('badge')
+
+// The parent re-renders with a new heading and the same keyed child: Preact reconciles the child in place, so its state
+// survives and its new prop arrives.
+island.setAttribute('props', withChild('Margin', 'newer'))
+await settle()
+const badgeAfterParentUpdate = text('badge')
+const countAfterChildUpdate = text('count')
+const badgeEffectsAfterParentUpdate = badgeEffects
+
+// C# removed the child: it unmounts inside the parent's tree, cleanup included, and the parent stays.
+island.setAttribute('props', JSON.stringify({heading: 'Margin'}))
+await settle()
+const badgeGone = document.querySelector('#badge') === null
+const badgeCleanupsAfterRemoval = badgeCleanups
+const headingWithoutChild = text('heading')
 
 // Teardown, as the runtime performs it when the island leaves the document.
 runtime.__internals.unmount(island)
 await settle()
 
 process.stdout.write(JSON.stringify({
-    requested,
+    requested: requestedBeforeChildren,
     headingOnMount,
     effectsOnMount,
     countAfterClick,
@@ -169,6 +226,15 @@ process.stdout.write(JSON.stringify({
     dispatched,
     dispatchedAfterCall,
     dispatchedAfterClear,
+    childRequests: requested.filter((name) => name === 'Badge').length,
+    slotWithChild,
+    badgeAfterClick,
+    badgeAfterParentUpdate,
+    countAfterChildUpdate,
+    badgeEffectsAfterParentUpdate,
+    badgeGone,
+    badgeCleanupsAfterRemoval,
+    headingWithoutChild,
     cleanupsAfterUnmount: cleanupRuns,
     islandEmptyAfterUnmount: island.childNodes.length === 0,
 }) + '\n')

@@ -204,6 +204,17 @@
       <_RaskCompanionLine Include="    &lt;Compile Remove=&quot;$(MSBuildProjectDirectory)\Server\%2A%2A&quot; /&gt;"/>
       <_RaskCompanionLine Include="    &lt;Compile Include=&quot;Program.g.cs&quot; /&gt;"/>
       <!--
+        A package island's committed props snapshot, beside the sources it generates steps for. Rask.External globs
+        `*.props.json` from the companion's own directory, inside obj\, where none lives — so without these lines a
+        package island compiled with no chain steps and the browser half failed on its first step as CS1929. Server\**
+        is removed to match the sources above.
+      -->
+      <_RaskCompanionLine Include="    &lt;AdditionalFiles Include=&quot;$(MSBuildProjectDirectory)\%2A%2A\%2A.props.json&quot; /&gt;"/>
+      <_RaskCompanionLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\obj\%2A%2A&quot; /&gt;"/>
+      <_RaskCompanionLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\bin\%2A%2A&quot; /&gt;"/>
+      <_RaskCompanionLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\node_modules\%2A%2A&quot; /&gt;"/>
+      <_RaskCompanionLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\Server\%2A%2A&quot; /&gt;"/>
+      <!--
         The typed API client the server's own generator wrote. An Include AFTER the obj\** Remove, so
         it survives it: the file lives under obj by construction, and the blanket removal above is
         what stops the companion compiling the server's other generated output.

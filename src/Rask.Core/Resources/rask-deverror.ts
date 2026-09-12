@@ -53,7 +53,9 @@ function installDevErrorStyles() {
         ".rask-deverr__detail{margin:0;max-height:38vh;overflow:auto;white-space:pre-wrap;" +
         "word-break:break-word;font-size:12px;color:#f0b8c0;background:#140c0e;border-radius:6px;" +
         "padding:10px;}" +
-        ".rask-deverr__detail[hidden]{display:none;}";
+        ".rask-deverr__detail[hidden]{display:none;}" +
+        ".rask-deverr__src{color:#ffd7dd;text-decoration:underline;text-underline-offset:2px;}" +
+        ".rask-deverr__src:hover{color:#fff;}";
     document.head.appendChild(style);
 }
 
@@ -159,6 +161,73 @@ function devErrorHeading(kind: string | undefined): string {
     return "Unhandled exception";
 }
 
+// ---- source links ----
+//
+// A stack frame or a compiler error that names a file on THIS machine becomes a link that opens it in
+// VS Code at that line — the panel says where it broke, so it should take you there. Two shapes:
+//
+//     at Shop.Cart.Add() in /Users/me/Shop/Features/Cart.cs:line 42          (.NET stack frame)
+//     /Users/me/Shop/Features/Cart.cs(42,13): error CS0103: The name …      (MSBuild diagnostic)
+//
+// Only ABSOLUTE paths are linked: a relative one has no root to open it against, and guessing one would
+// open the wrong file. Deterministic build paths (`/_/src/…`, what a Release package's pdb records) name
+// no file that exists here, so the framework's own frames stay plain text. Everything is built with
+// text nodes and textContent and nothing is ever parsed as markup — the message and the stack are the
+// app's own strings.
+var DEVERR_FRAME = /^(.*? in )((?:[A-Za-z]:[\\/]|\/)[^:]*?):line (\d+)\s*$/;
+var DEVERR_BUILD = /^((?:[A-Za-z]:[\\/]|\/)[^(]*?)\((\d+),(\d+)\)(:.*)$/;
+
+// vscode://file/<absolute path>:<line>[:<column>]. Backslashes become slashes and a POSIX path keeps
+// exactly one leading slash after `file`. encodeURI leaves `#` and `?` alone, and either would end the
+// path early, so those two are escaped by hand.
+export function devErrorEditorHref(path: string, line: string, column?: string): string {
+    var normalized = path.replace(/\\/g, "/");
+    if (normalized.charAt(0) !== "/") normalized = "/" + normalized;
+    var encoded = encodeURI(normalized).replace(/#/g, "%23").replace(/\?/g, "%3F");
+    return "vscode://file" + encoded + ":" + line + (column ? ":" + column : "");
+}
+
+function isDeterministicPath(path: string): boolean {
+    return path.indexOf("/_/") === 0 || path.indexOf("\\_\\") === 0;
+}
+
+function devErrorSourceLink(path: string, line: string, column: string | undefined, label: string): HTMLElement {
+    var a = document.createElement("a");
+    a.className = "rask-deverr__src";
+    a.setAttribute("href", devErrorEditorHref(path, line, column));
+    a.setAttribute("title", "Open in VS Code");
+    a.textContent = label;
+    return a;
+}
+
+function appendDetailLine(target: HTMLElement, line: string): void {
+    var frame = DEVERR_FRAME.exec(line);
+    if (frame && !isDeterministicPath(frame[2])) {
+        target.appendChild(document.createTextNode(frame[1]));
+        target.appendChild(devErrorSourceLink(frame[2], frame[3], undefined, frame[2] + ":line " + frame[3]));
+        return;
+    }
+
+    var build = DEVERR_BUILD.exec(line);
+    if (build && !isDeterministicPath(build[1])) {
+        target.appendChild(devErrorSourceLink(build[1], build[2], build[3], build[1] + "(" + build[2] + "," + build[3] + ")"));
+        target.appendChild(document.createTextNode(build[4]));
+        return;
+    }
+
+    target.appendChild(document.createTextNode(line));
+}
+
+// Replaces the detail's content with `text`, one line at a time so each can carry its own link.
+export function renderDevErrorDetail(target: HTMLElement, text: string): void {
+    while (target.firstChild) target.removeChild(target.firstChild);
+    var lines = text.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+        if (i > 0) target.appendChild(document.createTextNode("\n"));
+        appendDetailLine(target, lines[i]);
+    }
+}
+
 // Shows (or updates) the panel. `info` is the payload's devError object: {kind,title,message,detail}.
 export function showDevError(info: DevErrorInfo | null | undefined): void {
     if (!devErrorEnabled() || !info || typeof info !== "object") return;
@@ -188,7 +257,7 @@ export function showDevError(info: DevErrorInfo | null | undefined): void {
 
     var detail = part(panel, ".rask-deverr__detail");
     if (detail) {
-        detail.textContent = info.detail || "";
+        renderDevErrorDetail(detail, info.detail || "");
         // Collapsed on arrival: the message is what you read first, and a stack that opened itself
         // would cover the app this panel exists to keep visible.
         detail.hidden = true;

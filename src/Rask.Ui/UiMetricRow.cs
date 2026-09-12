@@ -16,7 +16,10 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiMetricRow : Component
 {
-    /// <summary>How many across from <c>sm</c> up. Four unless said otherwise; two on a phone regardless.</summary>
+    /// <summary>
+    /// How many across from <c>sm</c> up — two, three, four or five. Four unless said otherwise; two on a phone
+    /// regardless.
+    /// </summary>
     /// <remarks>
     /// Spelled as whole literal class strings rather than composed from the number. Tailwind scans this file
     /// for class names as TEXT — an interpolated <c>sm:grid-cols-{n}</c> is not a class name it can see, and
@@ -29,6 +32,8 @@ public sealed partial class UiMetricRow : Component
         Div.Class(
             "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-base-300 bg-base-300 " + (Columns switch
             {
+                // Two across on a phone already, so two across from sm up is nothing more to say.
+                2 => "",
                 // An odd number of tiles in two columns leaves the last slot empty, and because the
                 // hairlines are the container's own background showing through the gaps, an empty slot is
                 // not blank — it is a grey block that reads as a broken tile. The last one spans the row

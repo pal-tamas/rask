@@ -46,6 +46,10 @@
          nothing at all when none of them is present, so without this reference every test of it would
          pass by generating nothing. -->
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
+    <!-- Rask.Data, as a plain library, so the RASK084/RASK085 quick-fix tests compile their entities against
+         the real Model base. Both analyzers resolve Rask.Data.Model by metadata name and register nothing
+         without it, so a fix test over a stub would report no diagnostic to fix. -->
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
 
   <!-- The repo-walking helper, source-linked rather than referenced: it prunes build output, vendored

@@ -9,12 +9,68 @@ them until tagged releases begin.
 
 ### Added
 
+- **The database is a setting: `Rask:Database:Provider` picks SQLite, PostgreSQL or SQL Server.** The `Rask`
+  package now brings `Rask.Postgres` and `Rask.SqlServer` beside SQLite. `RaskApp` opens whichever database the key
+  names — `sqlite` (the default), `postgres` or `sqlserver` — at `Rask:ConnectionStrings:App`. An app with its own
+  context registers it with the new `UseRaskDatabase(sp)`, which does the same.
+  - **The batteries follow the database.** On PostgreSQL or SQL Server:
+    - the durable log moves into the application database (`RaskAppDbContext` maps `RaskLog` there and nowhere
+      else)
+    - the `app.db` and snapshot-directory defaults are not added, so a missing connection string fails naming the
+      key
+  - **SQLite-only backups are skipped or refused.** On a server database:
+    - Snapshots, on by default, is left out.
+    - Snapshots the app configured (a `Rask:Snapshots` value, `Configure` or `On`) refuse the start, naming what to
+      remove.
+    - A `Rask:Litestream:ReplicaUrl` refuses the start the same way.
+  - **A context on the wrong provider fails at start.** An app's own context that opens a different database than
+    the setting names fails the boot, naming `UseRaskDatabase(sp)`. The check runs before the batteries'
+    validation, so a battery failing on the wrong database cannot hide it.
+  - **An app's own log store wins.** An app that wires `AddRaskLogging()` itself keeps it on a server database, and
+    is not asked to map the log table.
+  - **Moving an existing app takes more than the setting.**
+    - An app's own context maps `modelBuilder.AddRaskLogging()` on a server database.
+    - Migrations are generated against the new provider.
+    - Apps scaffolded by `rask new` still wire SQLite by hand in `Program.cs` and switch there.
+    - `rask deploy` still assumes SQLite.
+- **A kit button or link given a generated route navigates inside the app.** `UiButton.Href` and
+  `UiLink.Href` take a `RouteUrl`, so `UiButton.Href(Routes.CreateProduct())["New product"]` renders an
+  `<a>` carrying `data-rask-nav` and the deploy's path base, and the runtime routes the click without
+  reloading the page, as it does for a `NavLink`. A string still converts and still renders an ordinary
+  link, which is what a URL leaving the app wants, and `NewTab(true)` is never intercepted. Until now a
+  button-shaped link to one of the app's own pages reloaded the whole app to get there. The tutorial's
+  New, Edit, Cancel and Back links are kit buttons and links now, and rask.sh's `PageMeta.LinkTo` keeps
+  the route's page type through the trailing slash it adds.
+
+- **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json` and
+  `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a dev session and
+  runs it under the C# debugger, so breakpoints hit from startup. Edits need a restart there (Ctrl+Shift+F5):
+  the runtime refuses to apply a hot-reload update to a process a debugger is attached to, and C# Dev Kit's
+  debug hot reload reports itself unavailable for this launch, so `rask dev` stays the live-edit loop. The
+  editor launches the app — and the app does what `rask dev` would have done beside it. It starts its own
+  front-end dev server (the islands' Vite, a React/Vue/Angular client's bundler, or a meta framework's own
+  dev server), and ends one a debugger's hard stop left holding its port; it serves on `https://<name>.test`
+  when an earlier `rask dev` already set that name up on this machine, and on localhost otherwise, never
+  prompting; and it prints `Rask dev: open <url>`, which `launch.json` opens. None of it runs under
+  `rask dev`, outside Development, or for a build that was not a dev session. The scaffold's `.gitignore` commits those three files and keeps the rest of
+  `.vscode/` personal. A handler or async lifecycle hook that throws now **stops the debugger** once, on the line
+  that threw, rather than being swallowed by its error boundary (Just My Code and "User-Unhandled Exceptions"
+  on): a handler's exception is reported user-unhandled as it leaves your code, and for a lifecycle hook, whose
+  exception arrives through a faulted task no debugger sees, Rask calls `Debugger.BreakForUserUnhandledException`; and the dev error panel turns every stack frame and compiler
+  error that names an absolute path into a `vscode://file` link to that line. One MSBuild switch,
+  `RaskDevSession=true`, now drives both `rask dev` and the F5 build: each package expands it for itself (a
+  WASM host serves its client's build output, SPA and meta lanes skip their production front-end build,
+  islands come from Vite), replacing the four properties `rask dev` passed by hand; an explicit value still
+  wins. Browser-side debugging — C# running in WASM, and scoped `.ts` — is not covered yet (#1073).
+
 - **The devtools panel lists the inspected page's wire traffic.** Every frame the page and the app exchange is
   listed newest first, under totals for each direction: events and navigations the page sent, and render frames and
   acks it received. Each row shows the frame's size, how many edit ops a render diff carried, and the time since the
   frame before it. The panel follows the page live and refreshes at most every 200 ms however busy the page is; it
   keeps the last 1,000 frames per session, and lists the newest 200. It checks the session's token and owner again on
-  every render, so a panel that navigates itself to another session's id finds nothing.
+  every render, so a panel that navigates itself to another session's id finds nothing. Its pages also render only
+  under the panel's own shell: an app session that navigates itself onto `/_rask-devtools` over its socket, past the
+  page handler's admission, gets a notice instead of a tab.
 
 - **The Rask pill opens a live panel in Debug Development builds, and only the developer who owns the page can open it.** Each
   interactive page's devtools tag now names its panel, `/_rask-devtools/?inspect={session}&t={token}`. The panel is
@@ -355,6 +411,99 @@ them until tagged releases begin.
   real severity must have a descriptor in `src/`. Retired ids carry an em dash instead, which is how
   RASK030 and RASK034 are already recorded. Every existing check ran the other way — descriptor first,
   is it documented — and nothing asked whether a documented rule existed.
+- **`Rask.Ui` grows the steps an operator screen needs, so a page drawn with the kit writes no class strings.**
+  `UiDataGrid` columns take `ShowFrom(UiBreakpoint.Md)` — a secondary column waits until the table has room for
+  it, while the phone's stacked lines still list it — and `Mono(true)` for ids, keys and paths. A row takes
+  `RowTone(r => …)`; `Toolbar` lays its controls out as one row that stacks on a phone; and
+  `PageHref(page => …)` makes the pager's pages links, so a page that lives in `?page=` can be shared and
+  answers the back button. `UiPagination.Href` does the same on its own, and the page you are on is not a
+  link but says `aria-current`. `UiCard` takes `Href` (the whole card is one link) and `Icon`; `UiMetricRow.Columns(2)`; `UiBadge.Mono(true)` wraps a long token instead of widening its
+  row; `UiCode.Label("Payload")` captions a block; and **`UiEmpty`** is the empty state —
+  `UiEmpty.Heading("Nothing stored matches").Detail("Retention drops entries by age and by count.")`.
+  `UiMain` spaces the sections it holds, `UiHeader` no longer carries a margin of its own, and a `UiModal` body
+  spaces its sections too. A grid cell now lets one long unbroken token — a type name, a request id — break
+  instead of widening the table past a phone. The kit's sheet
+  also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
+  the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
+
+
+- **An island takes children of its own runtime.** A React island accepts React islands, text, numbers
+  and dates — `MuiCard["Revenue ", _total, MuiButton.OnClick(Save)["Save"]]` — a Vue island Vue islands,
+  and so on across all seven runtimes, and a list of islands or of text binds directly
+  (`MuiList[_names]`). Children travel inside the host's `props` as `$c`, and its framework renders
+  them, so the whole tree reconciles there and the host element stays empty on the server. Every
+  hand-written island accepts children; a package island does when its snapshot says its component
+  takes content. Each built entry now also exports its framework component, which is what a parent
+  loads to render it. **Breaking:** RASK062 no longer reports every indexer on a JS island. It reports
+  a child the island cannot render — Rask markup, another runtime's island, or anything for a component
+  that takes no content — at the brackets, naming what the island accepts, including
+  `var x = MuiCard[Span["x"]]`, which the compiler alone lets through; and it now reports assigning
+  `Children` on any island. A Blazor island still takes no children. The adapters take the children as an
+  optional third argument to `mount` and `update`, so an adapter you vendored and edited keeps working and
+  renders no children until you add them.
+
+- **A package island and island children, live on the islands page.** `/docs/islands` now nests
+  react-colorful's `HexColorPicker` inside the hand-written React counter as a child island — no `.tsx`
+  of its own, its `.Color`/`.OnChange` steps generated from the committed `ColorPicker.props.json` —
+  and reports the picked colour back to C#. A hand-written island's generated props type now declares
+  `children`, typed as its framework types children (React's `ReactNode`, Preact's
+  `ComponentChildren`, Solid's `JSX.Element`, Svelte's `Snippet`), so the front-end file destructures
+  it with no cast; Vue, Lit and Angular receive children as a slot or content rather than a prop.
+  A prerendered WASM publish and a Server app's browser half now compile package islands: both companion
+  projects carry the app's `*.props.json`, without which the island had no chain steps and the publish
+  failed on its first one (CS1929) while the ordinary build stayed green. And a style an island's
+  library injects into `<head>` — react-colorful's, emotion's — now survives a prerendered page going
+  interactive: the island runtime mounts islands before the page runtime watches `<head>`, so the
+  takeover morph trimmed that `<style>` as boot-shell content and the island rendered at zero size. The
+  island runtime now tags what is added to `<head>` until the page runtime arms its own watch and takes
+  over.
+
+- **Every `Rask.Data` model gets a generated, form-shaped companion and the writes that take it.** For
+  `Product` the build writes `ProductModel`: a settable copy of every mapped property except the key,
+  `Version` included, `Id`, `CreatedAt`/`UpdatedAt`/`DeletedAt` and navigations left out, and the
+  DataAnnotations attributes copied so `Form.Model(model)` validates by the entity's own rules. Beside it
+  come `Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id, version)` and
+  `product.ToModel()`. The entity keeps its private constructor and private setters, and does not have to
+  be `partial`.
+
+  Each write opens a context, makes one change through the change tracker and disposes the context, so
+  the interceptors stamp, version, soft-delete and publish exactly as for any other save. `UpdateAsync`
+  writes only the columns that changed and throws `KeyNotFoundException` for a missing or soft-deleted
+  row. On an `IVersioned` model it checks `model.Version`, so a lost race is a
+  `DbUpdateConcurrencyException`. `DeleteAsync` takes the version when the caller has one and deletes the
+  current row when it does not; a model that is not `IVersioned` gets `DeleteAsync(id)` alone.
+  `[SkipModel]` keeps a property off the model, and a value-object property becomes a nested
+  `{ValueObject}Model`. The build warns about an entity with no parameterless constructor
+  ([RASK081](docs/diagnostics.md#rask081): it gets no `CreateAsync`) and about a nested entity
+  ([RASK083](docs/diagnostics.md#rask083): no model), and refuses a hand-written, non-`partial`
+  `ProductModel` beside a `Product` ([RASK082](docs/diagnostics.md#rask082)) — a `partial` one merges into
+  the generated class, which is how a model gains members of its own.
+
+  The other generators recognise a model although it is generated and they cannot see it: a CQRS message,
+  a query handler's result, an API endpoint, an island prop, a component prop or an
+  `AbstractValidator<ProductModel>` carrying one gets its codec, registration or validator exactly as for a
+  hand-written type. On the wire a model's properties are camelCase; the entity's `[JsonPropertyName]` is
+  not copied onto it.
+
+  The model carries no id: `UpdateAsync` takes the row's id as its own argument, so a model posted over a
+  wire cannot choose the row it writes. `CreateAsync(model)` assigns a `Guid` key itself (an integer key comes
+  from the database), `CreateAsync(id, model)` takes one, and a key Rask cannot produce — a strongly-typed id
+  over an `int` — gets only the overload that takes it. Non-integer `Model<TId>` keys are never EF-generated,
+  so a child entity with its own id added to a loaded aggregate is saved as an insert. A write the entity
+  declares itself (`public static Task<Product> CreateAsync(ProductModel model, …)`) overrides the generated
+  one at every call site; the generated one stays reachable as `ProductModelExtensions.CreateAsync` to wrap.
+
+- **Two build warnings keep an entity's state inside the entity.** [RASK084](docs/diagnostics.md#rask084)
+  reports a public `set` or `init` (a value object's positional record parameters excepted) or a public
+  non-readonly field on a `Model`, the app's abstract bases between `Model` and its entities, and every
+  `IValueObject`; [RASK085](docs/diagnostics.md#rask085) reports an entity exposing a mutable collection of
+  other entities instead of `IReadOnlyCollection<T>` over a private field. Both ship a lightbulb fix.
+
+- **`Product.AsQueryable()` hands a model query to a component that composes its own LINQ.** It is a
+  standard `IQueryable<T>` that holds no context and opens one for each execution, so
+  `UiDataGrid.Data(Product.AsQueryable())` sorts and pages in the database and is safe to keep in a page's
+  field. `Product.Where(…).AsQueryable()` works the same way. EF Core's own operators (`Include`,
+  `IgnoreQueryFilters`) go on before it, because EF ignores them on any other query provider.
 
 - **Every Rask package ships for .NET 11 as well as .NET 10.** Each package now carries a `lib/net11.0` build
   (and `lib/net11.0-browser1.0` where it has a browser face) beside its .NET 10 one, so an app on the .NET 11
@@ -375,6 +524,28 @@ them until tagged releases begin.
     `RaskNetTargets`.
 
 ### Changed
+
+- **BREAKING: `Rask.Data` has no unit of work and no tracked writes on the model.** Removed outright, with
+  no `[Obsolete]` step: the tracker verbs
+  `Product.Add`/`AddRange`/`Update`/`UpdateRange`/`Remove`/`RemoveRange`/`Attach`/`Entry`/`Set`; the
+  instance `entity.SaveAsync()` and `entity.DeleteAsync()`; `AsTracking()` and `AsNoTracking()`;
+  `Db.Begin()` and the `UnitOfWork` type; and `Db.Current`, `Db.HasCurrent`, `Db.CurrentUnitOfWork`,
+  `Db.SaveChangesAsync`, `Db.Set<T>()` and `Db.Entry()`. `Db` keeps only its three `Configure` overloads,
+  `IsConfigured` and `Reset()`. A `Model<TId>` key that is not an integer is no longer generated by EF Core:
+  the entity assigns its own id (or the generated `CreateAsync` does), and saving one added with its key
+  still at the default now throws instead of inserting an empty key. A key an app configured itself
+  (`ValueGeneratedOnAdd()`, a database default) is left as it was.
+
+  An ambient context is the wrong shape for a live page, which outlives any scope a `DbContext` should
+  have. A second spelling of EF Core's own unit of work was also one more thing to learn, and it bought no
+  capability. A form's write moves to the generated `Product.CreateAsync`/`UpdateAsync`/`DeleteAsync`. A
+  domain operation or a transaction is plain EF Core: inject `IDbContextFactory<RaskAppDbContext>` on a
+  page, or `RaskAppDbContext` in a CQRS handler or an endpoint, and call `SaveChangesAsync`. See
+  `docs/data.md`.
+
+  **Every read is now untracked, with no opt-out, and `FindAsync(key)` is an untracked query by key.** It
+  applies the global query filters, so a soft-deleted row is not found. Batch `ExecuteUpdateAsync` and
+  `ExecuteDeleteAsync` are unchanged, and still bypass the interceptors.
 
 - **Every shipped package reads its .NET versions from one place** — the groundwork for building each package
   for .NET 10 and .NET 11 side by side. `Directory.Build.props` now states `RaskNetTargets` /
@@ -643,6 +814,26 @@ them until tagged releases begin.
   islands, real Blazor components, TypeScript SPAs and meta frameworks all run on it, over standard
   ASP.NET Core and EF Core. The head-to-head suite in `tests/Rask.Benchmarks.VsBlazor` and its local
   gate are unchanged.
+- **The `/_rask` console is drawn with `Rask.Ui` and nothing else.** Every table is a `UiDataGrid`: a dead letter
+  carries the error tone, a secondary column waits until the table has room for it, a phone lists every column
+  as its own labelled line, and the Logs history pages are links you can share. The banners are `UiAlert`s, the
+  empty states `UiEmpty`, and each queue card on the overview is one link. `Rask.Dashboard` no longer compiles or
+  embeds a stylesheet of its own — the document inlines only the kit's, whose `.rask-ops` reset is the console's
+  page base — and `DashboardIsKitOnlyTests` fails on any class string written in the package. The System page's
+  snapshots moved to a card of their own.
+- **A long `UiPagination` draws a window of pages instead of every one.** A join is one unbreakable row, so
+  a pager over forty pages was wider than a phone and dragged the whole document sideways. Past seven pages
+  it now draws the first, the last, and the current page with its neighbours, with a gap marker between —
+  never more than seven items. The console's screenshot pass caught it on the Logs history.
+- **Breaking: `UiNotice` and `UiStyles.Button`, `UiStyles.Danger` and `UiStyles.Quiet` are removed.** Nothing
+  in the framework drew with them once the operator console moved onto kit components, and each duplicated one
+  that already exists. Use `UiAlert.Tone(…)` for a notice, and `UiButton` for an action — `.Tone(UiTone.Error).Variant(UiVariant.Outline)`
+  for one that destroys or re-runs work, `.Variant(UiVariant.Ghost)` for a quiet dismiss — rather than a class
+  string on a raw `<button>`.
+- **Breaking: `UiStat.Tone` is a `UiTone?`.** It was a string matched against `"danger"` and `"warn"` — names
+  nothing else in the kit uses — so the natural `"error"` compiled and rendered a neutral tile without a word.
+  Write `.Tone(UiTone.Error)` or `.Tone(UiTone.Warning)`.
+
 
 ### Fixed
 

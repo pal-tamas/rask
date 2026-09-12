@@ -43,6 +43,28 @@ internal static class GeneratorHarness
         string source,
         IIncrementalGenerator generator,
         IReadOnlyDictionary<string, string>? globalOptions,
+        params string[] extraAssemblies) =>
+        Run(source, [generator], globalOptions, extraAssemblies);
+
+    /// <summary>
+    /// Runs SEVERAL generators in one driver over <paramref name="source"/>, the way a build runs them.
+    /// </summary>
+    /// <remarks>
+    /// Generators cannot see each other's output, so a question about how two of them meet — a codec over a
+    /// type another generator emits, say — has no answer from either run alone. One driver puts both
+    /// outputs into <see cref="GeneratorRun.GeneratedCompileErrors"/>, which is the only place the
+    /// combination is compiled.
+    /// </remarks>
+    public static GeneratorRun Run(string source, IIncrementalGenerator[] generators, params string[] extraAssemblies) =>
+        Run(source, generators, globalOptions: null, extraAssemblies);
+
+    /// <summary>
+    /// Runs SEVERAL generators in one driver with MSBuild properties visible to all of them.
+    /// </summary>
+    public static GeneratorRun Run(
+        string source,
+        IIncrementalGenerator[] generators,
+        IReadOnlyDictionary<string, string>? globalOptions,
         params string[] extraAssemblies)
     {
         // Give the tree a real path. Roslyn scopes `file`-local types by syntax-tree path, so trees that
@@ -58,7 +80,7 @@ internal static class GeneratorHarness
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
-        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator)
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generators)
             .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest));
 
         if (globalOptions is not null)
