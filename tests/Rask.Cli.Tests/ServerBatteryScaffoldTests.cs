@@ -329,10 +329,18 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Equal("06:00:00", rask.GetProperty("Snapshots").GetProperty("Interval").GetString());
         Assert.Equal(7, rask.GetProperty("Snapshots").GetProperty("Retain").GetInt32());
         Assert.Equal("mailto:admin@example.com", rask.GetProperty("WebPush").GetProperty("Subject").GetString());
-        Assert.True(rask.GetProperty("Server").GetProperty("RenderModes").GetProperty("Wasm").GetBoolean());
+
+        // A --wasm server renders no pages of its own, so it tunes no live runtime and ships no culture list:
+        // those sections would be settings nothing reads.
+        Assert.False(rask.TryGetProperty("Server", out _));
+        Assert.False(rask.TryGetProperty("Culture", out _));
 
         // …and none of the old spellings survive in the code that used to read them.
         var program = files["Program.cs"];
+
+        // Nor does either file's settings note name AddRask, which a --wasm server never calls.
+        Assert.DoesNotContain("AddRask reads", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddRask reads", program, StringComparison.Ordinal);
         Assert.DoesNotContain("GetConnectionString(", program, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Litestream:ReplicaUrl\"", program, StringComparison.Ordinal);
         Assert.DoesNotContain("\"WebPush:PublicKey\"", program, StringComparison.Ordinal);

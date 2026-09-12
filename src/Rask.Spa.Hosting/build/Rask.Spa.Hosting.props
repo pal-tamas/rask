@@ -23,8 +23,10 @@
 
       A dev session turns it off, because the bundler's dev server owns the build then and paying for a
       production bundle on every save would make watch unusable. The repo's own unit gate passes false
-      too, so a machine with no node can still build a solution that contains a front end. Same shape as
-      RaskWasmDevBundle on the WASM host.
+      too, so a machine with no node can still build a solution that contains a front end.
+
+      For a Rask WebAssembly client the same switch skips the client's publish, and the host serves the
+      client's build output instead — which is the only way hot reload can reach the browser.
 
       RaskDevSession is that dev session: ONE switch, passed by `rask dev` and by the scaffolded VS Code
       build task alike, that each Rask package expands into what it needs. An explicit RaskSpaBuild

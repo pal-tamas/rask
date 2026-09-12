@@ -20,7 +20,7 @@ namespace Rask.Cli.Tests;
 public sealed class DevSessionPropertyTests
 {
     private static readonly string[] Properties =
-        ["RaskSpaBuild", "RaskMetaBuild", "RaskExternalDevServer", "RaskWasmDevBundle"];
+        ["RaskSpaBuild", "RaskMetaBuild", "RaskExternalDevServer"];
 
     [Fact]
     public async Task A_dev_session_flips_every_package_property()
@@ -30,7 +30,6 @@ public sealed class DevSessionPropertyTests
         Assert.Equal("false", values["RaskSpaBuild"]);
         Assert.Equal("false", values["RaskMetaBuild"]);
         Assert.Equal("true", values["RaskExternalDevServer"]);
-        Assert.Equal("true", values["RaskWasmDevBundle"]);
     }
 
     [Fact]
@@ -41,24 +40,21 @@ public sealed class DevSessionPropertyTests
         Assert.Equal("true", values["RaskSpaBuild"]);
         Assert.Equal("true", values["RaskMetaBuild"]);
         Assert.Equal("false", values["RaskExternalDevServer"]);
-        Assert.Equal(string.Empty, values["RaskWasmDevBundle"]);
     }
 
     [Fact]
     public async Task An_explicit_value_beats_the_dev_session()
     {
-        // How `rask dev --no-hot-reload` keeps a wasm-hosted app on its published bundle.
+        // How `rask dev --no-hot-reload` keeps a WebAssembly client on its published bundle: RaskSpaBuild=true.
         var values = await Evaluate(
             $"-p:{DevCommand.DevSessionProperty}=true",
             "-p:RaskSpaBuild=true",
             "-p:RaskMetaBuild=true",
-            "-p:RaskExternalDevServer=false",
-            "-p:RaskWasmDevBundle=false");
+            "-p:RaskExternalDevServer=false");
 
         Assert.Equal("true", values["RaskSpaBuild"]);
         Assert.Equal("true", values["RaskMetaBuild"]);
         Assert.Equal("false", values["RaskExternalDevServer"]);
-        Assert.Equal("false", values["RaskWasmDevBundle"]);
     }
 
     [Theory]
@@ -90,7 +86,6 @@ public sealed class DevSessionPropertyTests
                    <Import Project="{Path.Combine(root, "src", "Rask.Spa.Hosting", "build", "Rask.Spa.Hosting.props")}" />
                    <Import Project="{Path.Combine(root, "src", "Rask.Meta.Hosting", "build", "Rask.Meta.Hosting.props")}" />
                    <Import Project="{Path.Combine(root, "src", "Rask.External", "build", "Rask.External.props")}" />
-                   <Import Project="{Path.Combine(root, "src", "Rask.Wasm.Hosting", "build", "Rask.Wasm.Hosting.targets")}" />
                  </Project>
                  """);
 

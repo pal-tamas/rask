@@ -95,7 +95,7 @@ machine with no SDK simply has no `dotnetSdk` key, where the human report prints
 rask                                 # the wizard, from a blank slate
 rask new                             # the same wizard
 rask new MyApp                       # everything: a server app with the whole stack wired
-rask new MyApp --wasm                # + a browser bundle, published from this same project
+rask new MyApp --wasm                # a WebAssembly app in Client/, served by this same project
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Spa --template wasm         # an installable browser-WASM PWA
@@ -114,10 +114,10 @@ and the localization machinery. Not a sample page to delete: the wiring, ready f
 **Three things are left to you**, because they are the ones that change what the app *is* rather than
 what it can do:
 
-- **the browser rung** — `--wasm` publishes a browser bundle beside the server from the same project,
-  so an eligible page moves into WebAssembly once it has downloaded
-  ([render modes](render-modes.md)). Off by default because every publish then links a WebAssembly
-  runtime, which takes minutes; `dotnet run` is unaffected.
+- **where the UI runs** — `--wasm` writes the app's pages into `Client/` as a WebAssembly app that the
+  server serves ([single-page apps](spa.md#a-rask-webassembly-app)), instead of pages the server renders
+  live. Message records go in `Shared/`, handlers stay on the server. Off by default because every
+  publish then links a WebAssembly runtime, which takes minutes.
 
 - **the .NET version** — `--framework net11.0` targets .NET 11 instead of the default `net10.0`, in the
   csproj and in the Dockerfile's images. Every Rask package ships for both, so this decides only what your
@@ -242,7 +242,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `<name>` (or `--name`) | The project name. Required. |
 | `--template`, `-t` | `server` (default), `wasm`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
 | `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
-| `--wasm` | Also publish a browser bundle from this project (server template), so an eligible page moves into WebAssembly once it has downloaded — see [render modes](render-modes.md). Publish takes minutes longer; `dotnet run` is unaffected. |
+| `--wasm` | Write the UI as a WebAssembly app in `Client/` (server template), with message records in `Shared/`; the server answers its API and serves it with `UseRaskSpa()` rather than rendering pages — see [single-page apps](spa.md#a-rask-webassembly-app). Publish takes minutes longer. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator — and [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
 | `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |

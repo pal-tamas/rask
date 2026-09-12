@@ -51,7 +51,7 @@
 
   <!--
     The host defaults every Rask web host applies, source-linked rather than shared through a package —
-    the same arrangement Rask.Wasm.Hosting and Rask.Spa.Hosting already use for this folder. Named file
+    the same arrangement Rask.Spa.Hosting already uses for this folder. Named file
     by file instead of globbing it: the rest of Rask.Hosting.Shared is static-file serving that a live
     server host has no use for, and pulling it in would put two unused types in this assembly.
   -->

@@ -120,7 +120,7 @@ A few things to know:
 | Section | Options type | Package | Notes |
 | --- | --- | --- | --- |
 | `Rask:Live` | `RaskLiveOptions` | `Rask.Server` | `DiffMode`, `MaxSessions`, `MinifyScopedAssets`, `PathBase`. A non-empty `UseRask<App>(pathBase:)` argument wins over `PathBase`. [Details](#live-runtime--rasklive). |
-| `Rask:Server` | `RaskServerOptions` | `Rask.Server` | WebSocket caps, grace periods, resume, shutdown drain, and `RenderModes`. [Details](#server-host--raskserver). |
+| `Rask:Server` | `RaskServerOptions` | `Rask.Server` | WebSocket caps, grace periods, resume, shutdown drain, and the initial render's `QuiescenceTimeout`. [Details](#server-host--raskserver). |
 | `Rask:Culture` | `RaskCultureOptions` | `Rask.Server` | `SupportedCultures` (the first is the default; appended to), negotiation switches. See [localization](localization.md). |
 | `Rask:Uploads` | `RaskUploadOptions` | `Rask.Server` | [File uploads](#file-uploads--raskuploads). |
 | `Rask:DataProtection:KeyPath` | — | `Rask.Server` | Where the key ring persists. See [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy). |
@@ -277,7 +277,7 @@ In the environment: `Rask__Live__MaxSessions=1000`.
 | `ResumeTokenLifetime` | `1 h` | How long a resume record stays redeemable. Not the reconnect grace period: that covers a blip against the *intact* session, this covers the session being gone. |
 | `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
 | `ShutdownDrainTimeout` | `5 s` | Budget for the graceful shutdown drain: announce the shutdown, let in-flight handlers finish, close each socket with a real handshake, dispose the sessions. `0` disables the drain (abort immediately). See [Shutdown and redeploy](#shutdown-and-redeploy). |
-| `RenderModes` | — | The render-mode ceiling, nested: `Static`, `Streaming`, `ServerInteractivity`, `Wasm`, `WasmBundle`, `QuiescenceTimeout`. See [render modes](render-modes.md). |
+| `QuiescenceTimeout` | `5 s` | How long the initial `GET` waits for a page's async lifecycle work to settle before serving its HTML. `0` disables the wait. See [live pages](render-modes.md#the-initial-get-waits-for-your-data). |
 
 ```jsonc
 {
@@ -285,15 +285,13 @@ In the environment: `Rask__Live__MaxSessions=1000`.
     "Server": {
       "MaxInboundFramesPerSecond": 500,
       "SessionGracePeriod": "00:00:20",
-      "RenderModes": {
-        "Static": true
-      }
+      "QuiescenceTimeout": "00:00:02"
     }
   }
 }
 ```
 
-In the environment: `Rask__Server__SessionGracePeriod=00:00:20`, `Rask__Server__RenderModes__Static=true`.
+In the environment: `Rask__Server__SessionGracePeriod=00:00:20`, `Rask__Server__QuiescenceTimeout=00:00:02`.
 
 `AddRask` still takes the two callbacks — `configure` for `RaskLiveOptions` and `configureServer` for
 `RaskServerOptions` — and they run after the sections, so a value set there wins:

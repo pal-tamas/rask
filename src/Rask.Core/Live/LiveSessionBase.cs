@@ -223,33 +223,6 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
     public Component View { get; }
 
-    private InteractivityReason _interactivity;
-
-    /// <summary>
-    ///     Why this session's render needs a live connection, or <see cref="InteractivityReason.None" />
-    ///     if nothing does. Accumulated across every wave of the initial render and never cleared.
-    /// </summary>
-    internal InteractivityReason InteractivityReasons => _interactivity;
-
-    /// <summary>Whether anything in the render needs a live connection.</summary>
-    internal bool RequiresLiveSession => _interactivity != InteractivityReason.None;
-
-    void IRenderHandle.ReportLatePush() => OnLatePush();
-
-    /// <summary>
-    ///     A re-render was requested after the component left the tree. Ignored by default; a host
-    ///     that discards sessions for static pages overrides it to say so.
-    /// </summary>
-    protected virtual void OnLatePush()
-    {
-    }
-
-    void IRenderHandle.ReportRequiresLiveSession(InteractivityReason reason) =>
-        _interactivity |= reason;
-
-    /// <summary>Record a reason discovered by the host rather than by the walk.</summary>
-    internal void MarkRequiresLiveSession(InteractivityReason reason) => _interactivity |= reason;
-
     /// <summary>
     ///     Whether the last render actually mounted <paramref name="pageType" />.
     /// </summary>

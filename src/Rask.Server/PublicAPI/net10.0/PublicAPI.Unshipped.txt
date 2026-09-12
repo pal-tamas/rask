@@ -54,20 +54,6 @@ Rask.Server.LiveSessionStore.PendingHandlerCount.get -> int
 Rask.Server.LiveSessionStore.RerenderAllAsync() -> System.Threading.Tasks.Task!
 Rask.Server.RaskEndpointExtensions
 Rask.Server.RaskPwaExtensions
-Rask.Server.RaskRenderModes
-Rask.Server.RaskRenderModes.QuiescenceTimeout.get -> System.TimeSpan
-Rask.Server.RaskRenderModes.QuiescenceTimeout.set -> void
-Rask.Server.RaskRenderModes.RaskRenderModes() -> void
-Rask.Server.RaskRenderModes.ServerInteractivity.get -> bool
-Rask.Server.RaskRenderModes.ServerInteractivity.set -> void
-Rask.Server.RaskRenderModes.Static.get -> bool
-Rask.Server.RaskRenderModes.Static.set -> void
-Rask.Server.RaskRenderModes.Streaming.get -> bool
-Rask.Server.RaskRenderModes.Streaming.set -> void
-Rask.Server.RaskRenderModes.Wasm.get -> bool
-Rask.Server.RaskRenderModes.Wasm.set -> void
-Rask.Server.RaskRenderModes.WasmBundle.get -> string!
-Rask.Server.RaskRenderModes.WasmBundle.set -> void
 Rask.Server.RaskServerOptions
 Rask.Server.RaskServerOptions.HandlerTimeout.get -> System.TimeSpan
 Rask.Server.RaskServerOptions.HandlerTimeout.set -> void
@@ -82,7 +68,8 @@ Rask.Server.RaskServerOptions.MaxPendingHandlerBytes.set -> void
 Rask.Server.RaskServerOptions.MaxPendingHandlers.get -> int
 Rask.Server.RaskServerOptions.MaxPendingHandlers.set -> void
 Rask.Server.RaskServerOptions.RaskServerOptions() -> void
-Rask.Server.RaskServerOptions.RenderModes.get -> Rask.Server.RaskRenderModes!
+Rask.Server.RaskServerOptions.QuiescenceTimeout.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.QuiescenceTimeout.set -> void
 Rask.Server.RaskServerOptions.ResumeTokenLifetime.get -> System.TimeSpan
 Rask.Server.RaskServerOptions.ResumeTokenLifetime.set -> void
 Rask.Server.RaskServerOptions.SendTimeout.get -> System.TimeSpan

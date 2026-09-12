@@ -133,24 +133,6 @@ interface Navigator {
 }
 
 interface Window {
-    /**
-     * Raised by the WASM runtime when it prepared a takeover instead of painting: another runtime is
-     * still driving this document, so a start that never rendered is correct rather than a hang.
-     *
-     * Read by Browser/main.ts alongside `__raskPainted` — without it, every takeover boot would
-     * report a boot failure over a working page.
-     */
-    __raskPrepared?: boolean;
-
-    /**
-     * Which runtime currently owns the document. Set by the server runtime when it attaches; its
-     * presence tells a booting browser runtime it is arriving into a page it must not paint over.
-     */
-    __raskOwner?: string;
-
-    /** Published by publishPaint(): what a live server runtime calls to hand over the page. */
-    __raskWasmPaint?: (url?: string | null) => Promise<void> | void;
-
     IdleDetector?: typeof IdleDetector;
 }
 

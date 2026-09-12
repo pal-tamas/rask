@@ -37,6 +37,8 @@
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Query\Rask.Query.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- WebRootAssetFallbackTests: the operator dashboard mounted beside a WebAssembly app UseRaskSpa serves. -->
+    <ProjectReference Include="..\..\src\Rask.Spa.Hosting\Rask.Spa.Hosting.csproj"/>
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"

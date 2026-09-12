@@ -592,9 +592,8 @@ public sealed class PackagingContractTests
     ///     <c>CS0101 ... already contains a definition for RaskBuilderSetters&lt;Assembly&gt;</c>, pointing
     ///     at generated code the author never wrote.
     ///     <para>
-    ///         Referencing two hosts is not hypothetical: a wasm-hosted app whose <c>.Server</c> mounts the
-    ///         operator dashboard pulls in Rask.Wasm.Hosting (and with it Rask.Wasm) alongside Rask.Server.
-    ///         <c>_RaskDeduplicateAnalyzers</c> in the shared core targets is what keeps that buildable.
+    ///         Referencing two hosts is legal — any project that takes Rask.Wasm alongside Rask.Server —
+    ///         and <c>_RaskDeduplicateAnalyzers</c> in the shared core targets is what keeps that buildable.
     ///     </para>
     ///     <para>
     ///         Structural, and cheap, for the same reason as everything else here: the behavioural proof is

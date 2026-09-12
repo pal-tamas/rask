@@ -102,9 +102,6 @@
          that ships in the host's analyzer payload. -->
     <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
 
-    <!-- The browser rung: `c.Wasm = true` publishes a bundle from this same project and serves it. -->
-    <ProjectReference Include="..\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
-
     <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
     <ProjectReference Include="..\Rask.SQLite.Litestream\Rask.SQLite.Litestream.csproj"/>
   </ItemGroup>

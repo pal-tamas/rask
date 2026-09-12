@@ -10,10 +10,8 @@
 // id to another, and is useless anyway (the live app needs the WebSocket — there is no client-side router
 // to take over offline). So we cache ONLY a static offline.html and serve it for failed navigations.
 //
-// Note that a page needing nothing live may now be served WITHOUT a session and with an ordinary
-// `private` cache policy (RaskServerOptions.StaticPages). That does not change this file's job — the HTTP
-// cache handles those, not us — but if anyone ever teaches this SW to cache navigations, it MUST key on
-// the Cache-Control the server actually sent. The Cache Storage API honours nothing automatically and
+// Every Rask Server page keeps a live session, so every page is served no-store. If anyone ever teaches
+// this SW to cache navigations anyway, it MUST key on the Cache-Control the server actually sent. The Cache Storage API honours nothing automatically and
 // would happily store a page that was never meant to outlive its request.
 //
 // The offline page is resolved relative to the SW's own scope ({PathBase}/), so no base-path injection is

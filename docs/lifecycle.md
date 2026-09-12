@@ -76,7 +76,7 @@ On the **Server host the initial `GET` waits for that fetch**, so the first resp
 forecasts rather than the placeholder — which is what a crawler, a cache and the user's first paint
 all see. The placeholder still renders whenever the page mounts later (a client-side navigation), and
 still shows if the fetch outlives the budget, in which case the page keeps its live session and
-finishes loading over the socket. See [Render modes](render-modes.md).
+finishes loading over the socket. See [Live pages](render-modes.md#the-initial-get-waits-for-your-data).
 
 Work you deliberately detach from the hook is **not** waited on. A poll loop started with
 `_ = LoopAsync()` returns from `OnMountAsync` immediately, so the response goes out and the loop

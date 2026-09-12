@@ -129,7 +129,7 @@ public sealed class FeedCoverageTests
     [Fact]
     public void Browser_only_packages_are_in_the_local_feed_too()
     {
-        // RaskBrowserPackageReference is NOT a PackageReference, so it never reaches
+        // RaskClientPackageReference is NOT a PackageReference, so it never reaches
         // ScaffoldResult.Packages and AssertFeedCovers cannot see it. That makes the coverage guard
         // blind to exactly the references the one-project build adds for the bundle — the class of gap
         // where a missing package means no build case can exist rather than one that fails.

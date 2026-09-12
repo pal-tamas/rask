@@ -12,10 +12,10 @@
   <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core.targets') "/>
 
-  <!-- The one-project build: generates and drives the browser half on publish. Gates itself on
-       RaskBrowserRung, so importing it unconditionally costs an app that has not opted in nothing. -->
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Server.Browser.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Server.Browser.targets') "/>
+  <!-- The one-project build for a WebAssembly client in Client/. Gates itself on Client/Program.cs, so
+       importing it unconditionally costs an app without one nothing. -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Server.Client.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Server.Client.targets') "/>
 
   <!--
     Tailwind. Packed alongside this file by src\RaskTailwindBuildPack.targets, and imported from here

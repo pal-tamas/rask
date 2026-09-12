@@ -151,7 +151,7 @@ public class ConfigurableLimitsTests
             ["Rask:Server:MaxInboundFramesPerSecond"] = "250",
             ["Rask:Server:MaxPendingHandlers"] = "64",
             ["Rask:Server:SessionGracePeriod"] = "00:00:15",
-            ["Rask:Server:RenderModes:QuiescenceTimeout"] = "00:00:02",
+            ["Rask:Server:QuiescenceTimeout"] = "00:00:02",
         });
 
         var limits = provider.GetRequiredService<RaskServerLimits>();

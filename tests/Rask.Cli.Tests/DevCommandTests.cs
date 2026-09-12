@@ -359,8 +359,7 @@ public sealed class DevCommandTests
             Assert.DoesNotContain(args, a =>
                 a.StartsWith("--property:RaskSpaBuild", StringComparison.Ordinal)
                 || a.StartsWith("--property:RaskMetaBuild", StringComparison.Ordinal)
-                || a.StartsWith("--property:RaskExternalDevServer", StringComparison.Ordinal)
-                || a == "--property:RaskWasmDevBundle=true");
+                || a.StartsWith("--property:RaskExternalDevServer", StringComparison.Ordinal));
         }
     }
 
@@ -377,15 +376,15 @@ public sealed class DevCommandTests
     public void Without_hot_reload_a_wasm_hosted_app_keeps_its_published_bundle()
     {
         // Nothing to apply, so the published bundle is the honest thing to serve. Explicit, because an
-        // explicit value is what beats the dev session's default in Rask.Wasm.Hosting.targets.
+        // explicit value is what beats the dev session's default in Rask.Spa.Hosting.props.
         var args = Args(kind: DevTemplateKind.WasmHosted, noHotReload: true);
 
         Assert.Contains($"--property:{DevCommand.DevSessionProperty}=true", args);
-        Assert.Contains("--property:RaskWasmDevBundle=false", args);
+        Assert.Contains("--property:RaskSpaBuild=true", args);
 
         // …and only then: with hot reload on, the dev session's build output is exactly what is wanted.
-        Assert.DoesNotContain("--property:RaskWasmDevBundle=false", Args(kind: DevTemplateKind.WasmHosted));
-        Assert.DoesNotContain("--property:RaskWasmDevBundle=false", Args(kind: DevTemplateKind.Server, noHotReload: true));
+        Assert.DoesNotContain("--property:RaskSpaBuild=true", Args(kind: DevTemplateKind.WasmHosted));
+        Assert.DoesNotContain("--property:RaskSpaBuild=true", Args(kind: DevTemplateKind.Server, noHotReload: true));
     }
 
     // ---- helpers ----

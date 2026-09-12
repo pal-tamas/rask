@@ -163,17 +163,6 @@ public sealed class RaskAppOptions
     /// </remarks>
     public IList<string> Cultures { get; } = [];
 
-    /// <summary>
-    /// Publish a browser bundle alongside the server, so an eligible page moves into WebAssembly once it
-    /// has downloaded.
-    /// </summary>
-    /// <remarks>
-    /// Turns on the render-mode ceiling, the bundle host, and the asset mapping together — the three
-    /// pieces that only make sense as one decision. Publish-only: linking a WebAssembly runtime takes
-    /// minutes and buys nothing in development, where the page is server-live and hot-reloaded.
-    /// </remarks>
-    public bool Wasm { get; set; }
-
     /// <summary>The live-runtime options — diff mode, session cap, path base.</summary>
     public Action<RaskLiveOptions>? Live { get; set; }
 

@@ -378,7 +378,7 @@ internal sealed class DevCommand(
             // ONE switch for the whole dev session, expanded by each referenced package's own props into
             // what that package needs — and ignored by every package the project does not reference:
             //
-            //   • Rask.Wasm.Hosting serves the client's BUILD output. The published bundle is republished
+            //   • Rask.Spa.Hosting serves a WebAssembly client's BUILD output. The published bundle is republished
             //     by a nested emscripten relink on every save, and it is trimmed — trimming folds
             //     MetadataUpdater.IsSupported to false, so an applied delta could never reach the page.
             //   • Rask.Spa.Hosting and Rask.Meta.Hosting skip their production front-end build: the
@@ -400,7 +400,7 @@ internal sealed class DevCommand(
             // bundle as it always did. Explicit, because an explicit value beats the dev session's.
             if (kind == DevTemplateKind.WasmHosted && noHotReload)
             {
-                args.Add("--property:RaskWasmDevBundle=false");
+                args.Add("--property:RaskSpaBuild=true");
             }
         }
 

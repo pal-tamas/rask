@@ -77,17 +77,16 @@ public sealed class IslandDevServerTests
     [Fact]
     public void The_islands_address_is_stamped_only_in_development()
     {
-        var limits = RaskServerLimits.From(new RaskServerOptions());
         const string html = "<html><body></body></html>";
 
         Assert.Contains(
             "data-rask-islands-dev=\"http://localhost:5174\"",
-            PageDocument.Live(html, "s1", limits, dev: true, "http://localhost:5174", devTools: null),
+            PageDocument.Live(html, "s1", dev: true, "http://localhost:5174", devTools: null),
             StringComparison.Ordinal);
 
         Assert.DoesNotContain(
             "data-rask-islands-dev",
-            PageDocument.Live(html, "s1", limits, dev: false, "http://localhost:5174", devTools: null),
+            PageDocument.Live(html, "s1", dev: false, "http://localhost:5174", devTools: null),
             StringComparison.Ordinal);
     }
 

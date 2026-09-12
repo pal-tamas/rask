@@ -47,8 +47,7 @@ Or add to an existing project. **Pick a host:**
 dotnet add package Rask                   # batteries included — the host plus every battery, all on
 dotnet add package Rask.Server            # the lean host on its own: server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
-dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
-dotnet add package Rask.Spa.Hosting       # host a built TypeScript SPA on ASP.NET
+dotnet add package Rask.Spa.Hosting       # host a built SPA on ASP.NET: a Rask WASM app or a TypeScript bundle
 dotnet add package Rask.Meta.Hosting      # host Nuxt/Next/SvelteKit/Start/SolidStart/Analog beside your C# (needs Node)
 dotnet add package Rask.External           # a .tsx/.vue/.svelte/Lit component as a Rask component (needs Node)
 dotnet add package Rask.Blazor             # a real Blazor component (MudBlazor, an RCL) as a Rask component

@@ -16,13 +16,11 @@ namespace Rask.Wasm.Tasks;
 ///     <para>
 ///         Why this exists: the in-WASM-browser runtime computes per-component asset
 ///         hashes from the component assembly loaded into the .NET-in-Wasm
-///         runtime. Without baking, the only thing that can serve those URLs is a
-///         <c>Rask.Wasm.Hosting</c> host whose process also loaded the same assembly
-///         (the <c>UseRask&lt;TApp&gt;()</c> generic forces that load). Standalone WASM
-///         runs under WasmAppHost — a static-asset dev server — and 404s on every
-///         <c>/_rask/a/{hash}.{ext}</c> unless the files are registered/served. This task
-///         writes them into a staging dir that the targets register as static web assets,
-///         so any static-file server works.
+///         runtime. No server process loads that assembly, so without baking nothing can
+///         answer those URLs: WasmAppHost, <c>UseRaskSpa</c> and a CDN are all static-file
+///         servers, and 404 on every <c>/_rask/a/{hash}.{ext}</c> unless the files exist.
+///         This task writes them into a staging dir that the targets register as static web
+///         assets, so any static-file server works.
 ///     </para>
 ///     <para>
 ///         The task is invoked from <c>Rask.Wasm/build/Rask.Wasm.targets</c>'s
@@ -153,9 +151,9 @@ public sealed class BakeScopedAssetsTask : Task
         catch (Exception ex)
         {
             // Treat bake failure as a warning rather than a build break: missing baked
-            // assets fall back to the in-process endpoint (Rask.Wasm.Hosting case) or
-            // surface as 404s in the browser (standalone WASM case). Stopping the
-            // build because of a bake hiccup would block far more than it'd protect.
+            // assets surface as 404s in the browser, and a publish that shipped none is
+            // refused by _RaskVerifyPublishedScopedAssets. Stopping every build because of
+            // a bake hiccup would block far more than it'd protect.
             Log.LogWarning($"Rask asset bake: failed — '{ex.Message}'. Build continues; standalone " +
                            "WASM hosting may 404 on /_rask/a/ URLs until the bake succeeds.");
             return true;

@@ -4,18 +4,18 @@ using Rask.Cli.Scaffolding;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-/// What <c>rask new --wasm</c> writes to make remote CQRS dispatch work across the one-project build.
+/// What <c>rask new --wasm</c> writes: a browser app in <c>Client/</c> served by the server, and remote CQRS
+/// dispatch between them.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The one-project build compiles a single set of sources into two halves, so the interesting assertions
-/// here are about what each half gets and what it must NOT get. <c>Rask.Cqrs.Client</c> in the server
-/// would ship endpoint-calling code into the process that answers those endpoints, which is the whole
-/// reason those two packages were split.
+/// One project, two halves. The interesting assertions are about what each half gets and what it must NOT
+/// get: <c>Rask.Cqrs.Client</c> in the server would ship endpoint-calling code into the process that
+/// answers those endpoints, which is the whole reason those two packages were split.
 /// </para>
 /// <para>
 /// These pin generated text. Whether any of it restores and compiles is a different question, and only a
-/// real publish can answer it — see <see cref="BrowserRungPublishE2ETests"/>.
+/// real publish can answer it — see <c>ClientPublishE2ETests</c>.
 /// </para>
 /// </remarks>
 public sealed class WasmRemoteDispatchTests
@@ -32,47 +32,72 @@ public sealed class WasmRemoteDispatchTests
                 StringComparer.Ordinal);
 
     [Fact]
-    public void The_browser_half_is_given_somewhere_to_register_its_client()
+    public void The_browser_app_lives_in_Client_and_the_server_writes_no_pages_of_its_own()
     {
-        var files = Generate("wasm", "cqrs");
+        var files = Generate("wasm");
 
-        // The bundle has no Program.cs of its own — that file is the server's, and the companion excludes
-        // it — so without this there is nowhere for AddRaskCqrsClient to be called at all.
-        Assert.True(
-            files.ContainsKey("Browser/BrowserStartup.cs"),
-            "a --wasm --cqrs app has no BrowserStartup, so its bundle can never register the client.");
+        Assert.Contains("Client/Program.cs", files.Keys);
+        Assert.Contains("Client/App.cs", files.Keys);
+        Assert.Contains("Client/Pages/HomePage.cs", files.Keys);
+        Assert.Contains("Client/wwwroot/index.html", files.Keys);
 
-        Assert.Contains(
-            "services.AddRaskCqrsClient();",
-            files["Browser/BrowserStartup.cs"],
-            StringComparison.Ordinal);
+        // The server's own pages are REPLACED, not joined: two App classes and two routes for "/" in one
+        // project would be a compile error on one half and a routing collision on the other.
+        Assert.DoesNotContain("Features/Home/HomePage.cs", files.Keys);
+        Assert.DoesNotContain("Features/Shared/App.cs", files.Keys);
+        Assert.DoesNotContain("Features/Shared/ErrorPage.cs", files.Keys);
 
-        // The call needs the client package's OWN namespace, which is not the mediator's. Getting this
-        // wrong scaffolds a project that does not compile, and every assertion above still passes — the
-        // publish gate is what caught it the first time.
-        Assert.Contains(
-            "using Rask.Cqrs.Client;",
-            files["Browser/BrowserStartup.cs"],
-            StringComparison.Ordinal);
-
-        // And the csproj has to name it, or the generated entry point never calls it.
-        Assert.Contains(
-            "<RaskBrowserStartup>$(RootNamespace).Browser.BrowserStartup</RaskBrowserStartup>",
-            files["App.csproj"],
-            StringComparison.Ordinal);
+        var program = files["Program.cs"];
+        Assert.Contains("app.UseRaskSpa();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("UseRask<App>", program, StringComparison.Ordinal);
+        Assert.Contains("using Rask.Spa.Hosting;", program, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("wasm")] // the browser rung, but no mediator to dispatch
-    [InlineData("cqrs")] // a mediator, but no browser half to dispatch from
-    public void Nothing_browser_only_is_written_without_both_halves(string flag)
+    [Fact]
+    public void Without_wasm_the_server_keeps_its_pages_and_writes_no_client()
     {
-        var files = Generate(flag);
+        var files = Generate("cqrs");
 
-        Assert.False(
-            files.ContainsKey("Browser/BrowserStartup.cs"),
-            $"--{flag} alone scaffolded a browser startup it has no use for.");
+        Assert.Contains("Features/Home/HomePage.cs", files.Keys);
+        Assert.Contains("Features/Shared/App.cs", files.Keys);
+        Assert.DoesNotContain(files.Keys, k => k.StartsWith("Client/", StringComparison.Ordinal));
+        Assert.Contains("app.UseRask<App>();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
 
+        // Nor the endpoint half of remote dispatch, which answers a browser app this project does not have.
+        // Its package and using are written only with --wasm, so a call written without them is an app that
+        // does not compile: the database-free AddRaskCqrsServer once sat outside the wasm region, and --cqrs
+        // alone failed with CS1061.
+        Assert.DoesNotContain("AddRaskCqrsServer", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs.Server", files["App.csproj"], StringComparison.Ordinal);
+
+        // Nor its setting: an app with no endpoints has no sign-in for them to waive.
+        Assert.DoesNotContain("RequireAuthenticatedUser", files["appsettings.json"], StringComparison.Ordinal);
+
+        // Nor the bare comment line that joined that call's paragraph to the one before it, which was left
+        // dangling straight after the query cache's registration.
+        Assert.DoesNotContain(
+            "builder.Services.AddRaskQuery();\n//\n", files["Program.cs"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_browser_app_registers_its_client_in_its_own_entry_point()
+    {
+        var client = Generate("wasm", "cqrs")["Client/Program.cs"];
+
+        Assert.Contains("host.Services.AddRaskCqrsClient();", client, StringComparison.Ordinal);
+
+        // The call needs the client package's OWN namespace, which is not the mediator's. Getting this wrong
+        // scaffolds a project that does not compile while every assertion above still passes.
+        Assert.Contains("using Rask.Cqrs.Client;", client, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_a_mediator_the_browser_app_registers_no_client()
+    {
+        var files = Generate("wasm");
+
+        Assert.DoesNotContain("AddRaskCqrsClient", files["Client/Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
 
         // The endpoint half belongs to the browser rung too. Its package and using are written only with
@@ -96,11 +121,9 @@ public sealed class WasmRemoteDispatchTests
     {
         var csproj = Generate("wasm", "cqrs")["App.csproj"];
 
-        // RaskBrowserPackageReference is the seam: one project, two halves, one reference list. As a
-        // plain PackageReference this would compile endpoint-CALLING code into the process that answers
-        // those endpoints.
+        // RaskClientPackageReference is the seam: one project, two halves, one reference list.
         Assert.Contains(
-            $"""<RaskBrowserPackageReference Include="Rask.Cqrs.Client" Version="{Version}"/>""",
+            $"""<RaskClientPackageReference Include="Rask.Cqrs.Client" Version="{Version}"/>""",
             csproj,
             StringComparison.Ordinal);
 
@@ -117,27 +140,33 @@ public sealed class WasmRemoteDispatchTests
     }
 
     [Fact]
-    public void The_endpoints_are_mapped_before_the_catch_all_that_would_swallow_them()
+    public void The_endpoints_are_mapped_before_the_fallback_that_would_answer_them()
     {
         var program = Generate("wasm", "cqrs")["Program.cs"];
 
-        // UseRask ends the pipeline with a catch-all that renders a page for any unmatched path. Mapped
-        // after it, /_rask/cqrs/request/{name} is answered with HTML rather than reached — which surfaces
-        // in the browser as a JSON parse error, a long way from the line that caused it.
-        var routing = program.IndexOf("app.UseRouting();", StringComparison.Ordinal);
         var map = program.IndexOf("app.MapRaskCqrs();", StringComparison.Ordinal);
-        var rask = program.IndexOf("app.UseRask<App>();", StringComparison.Ordinal);
+        var spa = program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal);
 
-        // Same trap as the client's: the endpoint half has its own namespace, and without the using the
-        // whole scaffolded app fails to compile rather than mis-ordering anything.
         Assert.Contains("using Rask.Cqrs.Server;", program, StringComparison.Ordinal);
-
-        Assert.True(routing >= 0, "UseRouting is never called, so the endpoints have no router.");
         Assert.True(map >= 0, "the CQRS endpoints are never mapped.");
-        Assert.True(rask >= 0, "the Rask catch-all is never mounted.");
+        Assert.True(spa >= 0, "the browser app is never served.");
+        Assert.True(map < spa, "MapRaskCqrs reads above UseRaskSpa, whose fallback answers every other route.");
+    }
 
-        Assert.True(routing < map, "MapRaskCqrs needs a router, so UseRouting must come first.");
-        Assert.True(map < rask, "MapRaskCqrs must precede UseRask or the catch-all answers the endpoints.");
+    [Fact]
+    public void The_dashboard_is_the_one_server_rendered_part()
+    {
+        var program = Generate("wasm", "cqrs", "data", "ops")["Program.cs"];
+
+        Assert.Contains("builder.Services.AddRaskServer();", program, StringComparison.Ordinal);
+        Assert.Contains(
+            """app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");""",
+            program,
+            StringComparison.Ordinal);
+        Assert.True(
+            program.IndexOf("UseRaskServer<RaskDashboardShell>", StringComparison.Ordinal)
+            < program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal),
+            "the dashboard must be mounted above the browser app's fallback.");
     }
 
     [Fact]
@@ -145,9 +174,8 @@ public sealed class WasmRemoteDispatchTests
     {
         // RequireAuthenticatedUser defaults to TRUE, which is right for an app that has authentication.
         // This app does not, so left on every message answers 401 — and the failure reads as broken
-        // transport rather than as the secure default doing its job. That is the exact shape this feature
-        // exists to avoid: a page that looks eligible for the browser and cannot reach its own server.
-        // It is a setting, so it lives in appsettings.json beside the note on when to turn it back on.
+        // transport rather than as the secure default doing its job: a browser app that cannot reach its own
+        // server. It is a setting, so it lives in appsettings.json beside the note on when to turn it back on.
         var files = Generate("wasm", "cqrs");
 
         Assert.Contains("builder.Services.AddRaskCqrsServer();", files["Program.cs"], StringComparison.Ordinal);
