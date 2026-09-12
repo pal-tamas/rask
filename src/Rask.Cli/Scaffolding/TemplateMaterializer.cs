@@ -75,11 +75,14 @@ internal static class TemplateMaterializer
         string name,
         ServerBatteries batteries,
         string version,
-        IReadOnlyList<string>? islands = null)
+        DotnetTarget dotnet,
+        IReadOnlyList<string>? islands = null,
+        bool vsCode = false)
     {
         ArgumentException.ThrowIfNullOrEmpty(targetDirectory);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(batteries);
+        ArgumentNullException.ThrowIfNull(dotnet);
 
         var assets = TemplateAssets.Load(templateKey);
         var owners = ReadOwners(assets, templateKey);
@@ -124,9 +127,64 @@ internal static class TemplateMaterializer
             files.Add(new ScaffoldFile(destination, text));
         }
 
-        return islands is { Count: > 0 }
+        var written = islands is { Count: > 0 }
             ? IslandAssembly.Apply(targetDirectory, islands, name, files)
             : files;
+
+        // The .vscode fragment tree is assembled HERE, next to the islands, for the reason the rewrite
+        // below exists: it is one more set of files added to this list, and anything added after the
+        // rewrite is a file the rewrite never saw. It carried net10.0 in launch.json's program path, so
+        // F5 on a net11.0 scaffold started a dll that was never built.
+        if (vsCode)
+        {
+            written = VsCodeAssembly.Apply(targetDirectory, name, written);
+        }
+
+        // Last, and over the ASSEMBLED list rather than each asset as it is read: both assemblers above
+        // contribute files of their own, and a rewrite inside the loop reached none of them. A no-op for
+        // the default target, so a plain `rask new` still writes the committed trees byte for byte.
+        written = [.. written.Select(file =>
+            file.Bytes is null ? file with { Content = dotnet.Rewrite(file.Content) } : file)];
+
+        VerifyFrameworkRewritten(written, dotnet);
+        return written;
+    }
+
+    /// <summary>
+    ///     Every csproj and Dockerfile a scaffold writes names the .NET version that was asked for.
+    /// </summary>
+    /// <remarks>
+    ///     The rewrite is by exact literal (<see cref="DotnetTarget.Rewrite" />), so a template that spells its
+    ///     framework some other way — an attribute instead of an element, a Docker tag written differently, a
+    ///     file an assembler adds after the loop — is simply not rewritten, and says nothing. What reaches the
+    ///     user is then a project whose csproj and container disagree about the .NET version: `dotnet run`
+    ///     works and `docker build` fails on a restore error that names neither. Checked rather than trusted,
+    ///     and only when a version other than the default was asked for.
+    /// </remarks>
+    private static void VerifyFrameworkRewritten(IReadOnlyList<ScaffoldFile> files, DotnetTarget dotnet)
+    {
+        if (dotnet == DotnetTarget.Default)
+        {
+            return;
+        }
+
+        // Every text file, not just csproj and Dockerfile. The spellings StillNamesTheDefault looks for
+        // are exact enough that prose mentioning net10.0 does not match one, and narrowing this to the
+        // two obvious file types is what let .vscode/launch.json through.
+        var missed = files
+            .Where(file => file.Bytes is null)
+            .Where(file => dotnet.StillNamesTheDefault(file.Content))
+            .Select(file => Path.GetFileName(file.Path))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        if (missed.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"--framework {dotnet.Moniker} did not reach {string.Join(", ", missed)}: the template names "
+                + $"{DotnetTarget.Default.Moniker} in a spelling DotnetTarget.Rewrite does not match. Scaffolding "
+                + "would have produced a project whose csproj and Dockerfile disagree about the .NET version.");
+        }
     }
 
     /// <summary>Whether a committed tree exists for <paramref name="templateKey"/>.</summary>

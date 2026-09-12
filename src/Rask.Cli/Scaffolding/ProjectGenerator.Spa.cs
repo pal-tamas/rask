@@ -25,7 +25,8 @@ internal static partial class ProjectGenerator
         string name,
         SpaFramework framework,
         ServerBatteries requested,
-        string version)
+        string version,
+        DotnetTarget? dotnet = null)
     {
         var batteries = requested.Normalized() with { Cqrs = true };
 
@@ -36,9 +37,9 @@ internal static partial class ProjectGenerator
         // it is committed under src/Rask.Templates/ — so the scaffold needs no network, no Node, and
         // no editing of files it did not write.
         return new ScaffoldResult(
-            VsCodeAssembly.Apply(
-                targetDirectory, name,
-                TemplateMaterializer.Files(targetDirectory, framework.Key, name, batteries, version)),
+            TemplateMaterializer.Files(
+                targetDirectory, framework.Key, name, batteries, version, dotnet ?? DotnetTarget.Default,
+                vsCode: true),
             SpaNextSteps(name, framework, batteries.Docker))
         {
             Packages = ["Rask.Cqrs", "Rask.Cqrs.Server", "Rask.Spa.Hosting"],

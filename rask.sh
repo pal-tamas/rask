@@ -34,6 +34,11 @@ set -eu
 # the URLs at a local fixture tree and the install dirs at a mktemp, so no test touches a real box.
 
 RASK_INSTALL_DOTNET_CHANNEL="${RASK_INSTALL_DOTNET_CHANNEL:-10.0}"
+# Empty by default, and passed to dotnet-install only when set: a released channel needs no quality, and
+# an empty one is an argument error rather than a no-op. Set it to `preview` (with CHANNEL=11.0 and
+# MAJOR=11) to install an SDK whose channel has not shipped yet. No flag of its own — this is the same
+# environment seam every other install location here already uses.
+RASK_INSTALL_DOTNET_QUALITY="${RASK_INSTALL_DOTNET_QUALITY:-}"
 RASK_INSTALL_DOTNET_MAJOR="${RASK_INSTALL_DOTNET_MAJOR:-10}"
 RASK_INSTALL_DOTNET_ROOT="${RASK_INSTALL_DOTNET_ROOT:-${DOTNET_ROOT:-$HOME/.dotnet}}"
 RASK_INSTALL_PREFIX="${RASK_INSTALL_PREFIX:-$HOME/.local/share/rask}"
@@ -493,10 +498,18 @@ step_dotnet() {
             "Microsoft's dotnet-install.sh is a bash script; this installer is not." \
             "Install bash, or install the SDK yourself from https://dot.net and re-run with --no-sdk."
 
-    rask_run "$_dn_bash" "$_dn_script" \
-        --channel "$RASK_INSTALL_DOTNET_CHANNEL" \
-        --install-dir "$RASK_INSTALL_DOTNET_ROOT" \
-        --no-path
+    if [ -n "$RASK_INSTALL_DOTNET_QUALITY" ]; then
+        rask_run "$_dn_bash" "$_dn_script" \
+            --channel "$RASK_INSTALL_DOTNET_CHANNEL" \
+            --quality "$RASK_INSTALL_DOTNET_QUALITY" \
+            --install-dir "$RASK_INSTALL_DOTNET_ROOT" \
+            --no-path
+    else
+        rask_run "$_dn_bash" "$_dn_script" \
+            --channel "$RASK_INSTALL_DOTNET_CHANNEL" \
+            --install-dir "$RASK_INSTALL_DOTNET_ROOT" \
+            --no-path
+    fi
     rm -f "$_dn_script"
     trap - EXIT INT TERM
 
@@ -556,25 +569,49 @@ step_ef() {
     fi
 }
 
+# Which wasm workloads this SDK needs. On .NET 11 and later a net10.0-browser app — every app `rask new`
+# scaffolds today — relinks only with the net10 toolchain, so the pair is needed rather than the one.
+rask_wasm_workloads() {
+    # head -n1 BEFORE cut: `dotnet --version` can print a notice alongside the version (this very SDK
+    # prints NETSDK1057 on a preview), and over multi-line input `cut` yields a multi-line $major — which
+    # trips the non-numeric guard below and silently drops wasm-tools-net10 on a .NET 11 box, failing
+    # open into the NETSDK1147 this step exists to prevent.
+    major="$(rask_dotnet --version 2>/dev/null | head -n 1 | cut -d. -f1)"
+    case "$major" in
+        ''|*[!0-9]*) printf 'wasm-tools' ;;
+        *) [ "$major" -ge 11 ] && printf 'wasm-tools wasm-tools-net10' || printf 'wasm-tools' ;;
+    esac
+}
+
+# Is one workload id installed? The FIRST column, matched WHOLE: `wasm-tools-net10` begins with
+# `wasm-tools`, so a prefix test reports the pair present on a machine that has only the net10 half —
+# and the browser build then fails with the NETSDK1147 this check exists to prevent.
+rask_workload_installed() {
+    printf '%s\n' "$2" | grep -qE "^$1([[:space:]]|\$)"
+}
+
 step_wasm_tools() {
     [ "$RASK_DO_WASM_TOOLS" = 1 ] || return 0
-    rask_step "Installing the wasm-tools workload (browser-wasm builds)"
+    rask_step "Installing the wasm-tools workloads (browser-wasm builds)"
 
-    if rask_dotnet workload list 2>/dev/null | grep -q '^wasm-tools'; then
-        rask_detail "already installed"
-        return 0
-    fi
-    if ! rask_run_quiet "$(rask_dotnet_bin)" workload install wasm-tools; then
-        # Against the ~/.dotnet SDK this script installs, no elevation is needed. Against a
-        # pre-existing system SDK (apt, rpm, the macOS pkg) the workload dir is root-owned and this
-        # fails. We print the command rather than running it: an installer that silently sudos is a
-        # worse trade than one that tells you what to type.
-        rask_warn \
-            "could not install the wasm-tools workload." \
-            "Your .NET SDK is probably system-wide, so the workload needs elevation:" \
-            "  sudo dotnet workload install wasm-tools" \
-            "Only browser-wasm builds need it — a server app is unaffected."
-    fi
+    listed="$(rask_dotnet workload list 2>/dev/null || true)"
+    for workload in $(rask_wasm_workloads); do
+        if rask_workload_installed "$workload" "$listed"; then
+            rask_detail "$workload already installed"
+            continue
+        fi
+        if ! rask_run_quiet "$(rask_dotnet_bin)" workload install "$workload"; then
+            # Against the ~/.dotnet SDK this script installs, no elevation is needed. Against a
+            # pre-existing system SDK (apt, rpm, the macOS pkg) the workload dir is root-owned and this
+            # fails. We print the command rather than running it: an installer that silently sudos is a
+            # worse trade than one that tells you what to type.
+            rask_warn \
+                "could not install the $workload workload." \
+                "Your .NET SDK is probably system-wide, so the workload needs elevation:" \
+                "  sudo dotnet workload install $workload" \
+                "Only browser-wasm builds need it — a server app is unaffected."
+        fi
+    done
 }
 
 step_node() {

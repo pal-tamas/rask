@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new --framework net11.0` scaffolds an app on .NET 11.** The csproj takes the version asked for
+  (`net11.0`, or `net11.0-browser` on the WASM template), the Dockerfile takes the matching `sdk:11.0` /
+  `aspnet:11.0` images, and `.vscode/launch.json` points at the build output that version actually produces,
+  so the project, the container and F5 all agree. `net10.0` stays the default — it is the LTS
+  release, and an app inherits its support window from the runtime it names — and every Rask package ships
+  for both, so the flag decides only what your app targets.
+  - **Refused before a file is written** when the SDK for that version is not installed, naming what to
+    install: a scaffold that cannot compile is worse than not scaffolding, and the SDK's own NETSDK1045
+    names a framework the author chose deliberately rather than the SDK they lack.
+  - **The committed template trees are unchanged.** They are written for the default, so a plain `rask new`
+    still writes them byte for byte; the rewrite runs only when another version is asked for, and it fails
+    the scaffold if a csproj or Dockerfile it should have reached still names the default.
+  - **`rask doctor` and the installers tell the two wasm workloads apart.** `wasm-tools-net10` starts with
+    `wasm-tools`, so the old prefix match reported a machine carrying only the net10 toolchain as fully
+    equipped, and the browser build then failed with the NETSDK1147 these checks exist to prevent. They now
+    match the workload id exactly, and on a .NET 11 SDK they also expect `wasm-tools-net10`, which is what
+    relinks a `net10.0-browser` app there.
+  - **`RASK_INSTALL_DOTNET_QUALITY` installs an SDK from a channel that has not shipped yet.** Unset by
+    default and handed to `dotnet-install` only when set, so `RASK_INSTALL_DOTNET_CHANNEL=11.0
+    RASK_INSTALL_DOTNET_MAJOR=11 RASK_INSTALL_DOTNET_QUALITY=preview` installs the .NET 11 SDK before it is
+    generally available. No new flag on either installer — this is the same environment seam every other
+    install location already uses ([installation](docs/installation.md)).
+
 - **`Rask.Auth.Api` — the accounts battery for a host that renders nothing.** Identity, the
   `/api/auth` endpoints, the cookie, bearer tokens and the account lifecycle, with no `Rask.Core`.
   `Rask.Auth` is now this package plus the two things that need a renderer: the built-in `/login`,
@@ -672,8 +695,7 @@ them until tagged releases begin.
 - **The HTTP demo's retries run on an injected `TimeProvider`.** `HttpFetchDemo` waits out its retry delays
   and per-attempt deadline on the clock it is given (the site registers `TimeProvider.System`), so
   `HttpPageTests` advances a manual clock instead of sleeping. The retry tests settle in about 60 ms rather
-  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all. It does
-  not remove the tests' wait on thread-pool turns, which #1067 still tracks.
+  than 470 ms, and a fetch that never settles, four 5 s deadlines on real time, is now tested at all.
 
 - **`ExternalComponent.WriteProps` writes into a `Utf8JsonWriter` instead of returning a string.** The generated
   writer now writes members only; `ExternalComponent` owns the object, the buffer and the braces, so anything it
@@ -877,6 +899,14 @@ them until tagged releases begin.
 
 
 ### Fixed
+
+- **A state change made while its component is rendering is no longer lost.** A component's render cleared
+  its dirty flags only after `Render()` had read its state, so a `StateHasChanged()` from another thread in
+  that window was erased. That thread is typically an async lifecycle hook resuming on the thread pool, which
+  is the Server host's normal case. The stale output was cached and every later render replayed it, so the
+  page stopped updating until something else changed. The flags are now cleared before `Render()` runs, and
+  restored if it throws. This is what made `HttpPageTests` time out under a busy gate (#1067). WebAssembly
+  is single-threaded and never hit it.
 
 - **`rask new --wasm` scaffolded an app that could not start.** `Rask.Wasm.Hosting` and `Rask.Server`
   both exported `AddRask(this IServiceCollection)`. Referencing both packages — which the `--wasm`
