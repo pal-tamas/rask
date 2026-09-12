@@ -16,8 +16,8 @@ public sealed record EmailAttachment(string FileName, string ContentType, byte[]
 
 /// <summary>
 /// A fluent builder for an email. Start with <see cref="To(string, string?)"/>, chain recipients, a
-/// <see cref="Subject"/>, and a <see cref="Body(Component)"/> (a Rask component rendered to HTML) or
-/// <see cref="Body(string)"/> (raw HTML), then hand it to <see cref="IMail.SendAsync"/>. After building
+/// <see cref="Subject"/>, and a body — <see cref="Body(Component)"/> renders a Rask component to HTML,
+/// <see cref="Html(string)"/> takes the HTML directly — then hand it to <see cref="IMail.SendAsync"/>. After building
 /// it holds only strings and bytes, so it serializes to a <see cref="QueuedMail"/> row trivially.
 /// </summary>
 public sealed class Email
@@ -101,7 +101,14 @@ public sealed class Email
     }
 
     /// <summary>Sets the HTML body from a raw HTML string.</summary>
-    public Email Body(string html)
+    /// <remarks>
+    ///     Named <c>Html</c> rather than a second <c>Body</c> overload so that a package which must not
+    ///     load <c>Rask.Core</c> can still set a body. Overload resolution needs every candidate's
+    ///     signature, so a call to <c>Body("…")</c> makes the compiler load <see cref="Component" />
+    ///     — and <c>Rask.Auth.Api</c>, which exists precisely because Core is absent on hosts that
+    ///     render nothing (#1069), cannot. One name per body kind costs nothing and removes the trap.
+    /// </remarks>
+    public Email Html(string html)
     {
         HtmlBody = html ?? throw new ArgumentNullException(nameof(html));
         return this;

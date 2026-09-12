@@ -87,6 +87,7 @@ dotnet add package Rask.Query             # cache, dedup and invalidate dispatch
 dotnet add package Rask.Cqrs.Server       # host the endpoint those clients dispatch to
 dotnet add package Rask.Auth             # accounts: register, sign in, sign out, confirm, reset
 dotnet add package Rask.Auth.Client      # the same flows from a WebAssembly client
+dotnet add package Rask.Auth.Api         # the same accounts as JSON only, for a host that renders nothing
 dotnet add package Rask.Jobs              # durable background jobs
 dotnet add package Rask.Mail              # transactional email queue
 dotnet add package Rask.Cache             # read-through cache

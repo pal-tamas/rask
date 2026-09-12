@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Auth.Api</PackageId>
+    <Title>Rask.Auth.Api — accounts and /api/auth for any ASP.NET host</Title>
+    <Description>Register, sign in and sign out as JSON endpoints, for an ASP.NET Core app that renders no Rask components — a TypeScript SPA host or a meta-framework host, where the front end owns the UI. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed at /api/auth, with email confirmation and password reset through the app's own mail queue and optional bearer tokens. The first account to register becomes the admin. This is the host-neutral half of Rask.Auth: no components, no renderer, no Rask.Core. Add Rask.Auth instead when the app IS a Rask app and wants the built-in sign-in pages.</Description>
+    <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims spa dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <!-- SignInManager, the cookie handler and the authorization services are in the shared framework,
+       not in the Identity EF stores package. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Bearer is opt-in (AuthOptions.Bearer) and this is what validates and issues the tokens. The
+         standard ASP.NET handler rather than anything hand-rolled: JWT validation is the last place to
+         write our own crypto. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+  </ItemGroup>
+
+  <!--
+    Deliberately NO reference to Rask.Core, and that is this package's whole reason to exist.
+
+    Rask.Core is IsPackable=false and travels inside the host packages that render components
+    (Rask.Server, Rask.Wasm). A host that renders none — Rask.Spa.Hosting, Rask.Meta.Hosting — ships
+    no copy, so a battery that needs Core cannot run there at all: the assembly is simply absent and
+    the app aborts before Main. That is what #1069 was, and it is why the accounts battery is split
+    rather than patched.
+
+    The wire contract comes from Rask.Wire, which both this package and the browser-side
+    Rask.Auth.Client can take without either taking the renderer.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
+
+    <!-- The confirmation and reset links go out through the app's own mail queue. A REAL package
+         dependency: Rask.Mail is its own package rather than something a host re-packs.
+
+         The dependency is on the TYPE only. IMail is resolved from the container at send time, so an
+         app that never calls AddRaskMail still registers, signs in and signs out — it is told it
+         cannot send a reset link rather than silently queueing one nowhere. Bodies are handed over as
+         HTML strings, never as a Component: Email.Body(Component) is the one member of Rask.Mail that
+         would drag Rask.Core in. -->
+    <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+
+    <!-- The first-run token is a cryptographically random string, and this is the one generator the
+         framework uses for every such string (live-session ids, auth tickets). Source-linked rather
+         than referenced because it is `internal` in Rask.Core, which this package deliberately does not
+         take — the same arrangement as Rask.Generators.Shared, and for the same reason: two copies of
+         an internal helper cannot collide, while a second implementation of "random token" could
+         differ in the one way that matters. -->
+    <Compile Include="..\Rask.Core\SecureToken.cs" Link="Shared\SecureToken.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Auth"/>
+    <InternalsVisibleTo Include="Rask.Auth.Tests"/>
+    <InternalsVisibleTo Include="Rask.Auth.Api.Tests"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Auth;` to downstream consumers. Same namespace as Rask.Auth, so an
+       app that swaps one package for the other changes its PackageReference and nothing else. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

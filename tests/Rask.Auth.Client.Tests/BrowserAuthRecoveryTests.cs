@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
+using Rask.Wire;
 
 namespace Rask.Auth.Client.Tests;
 

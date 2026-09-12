@@ -1,5 +1,6 @@
 <Solution>
     <Folder Name="/src/">
+        <Project Path="src/Rask.Auth.Api/Rask.Auth.Api.csproj" />
         <Project Path="src/Rask.Auth.Client/Rask.Auth.Client.csproj" />
         <Project Path="src/Rask.Auth/Rask.Auth.csproj" />
         <Project Path="src/Rask.Cache/Rask.Cache.csproj" />
