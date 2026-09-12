@@ -126,6 +126,71 @@ public sealed class DoctorDependencyTests
         Assert.Equal("Warn", StatusOf(console.OutText, "wasm-tools"));
     }
 
+    /// <summary>A machine reporting a given SDK version and a given `dotnet workload list` table.</summary>
+    /// <remarks>
+    /// The workload row reads BOTH — which workloads are installed, and which SDK is going to use them —
+    /// so a probe that answers `dotnet` with one string cannot express the machines below.
+    /// </remarks>
+    private static Func<string, IReadOnlyList<string>, ProcessResult> Machine(string sdk, string workloads) =>
+        (exe, args) => (exe, args.Count > 0 ? args[0] : "") switch
+        {
+            ("dotnet", "workload") => new ProcessResult(0, workloads, ""),
+            ("dotnet", _) => new ProcessResult(0, sdk, ""),
+            _ => Healthy(exe, args),
+        };
+
+    private const string WorkloadHeader = "Installed Workload Id      Manifest Version\n"
+        + "--------------------------------------------\n";
+
+    [Fact]
+    public async Task The_net11_SDK_is_told_it_also_needs_the_net10_toolchain()
+    {
+        // The .NET 11 SDK relinks a net10.0-browser app only with the net10 toolchain. Without it the
+        // browser build fails with NETSDK1147 even though wasm-tools IS installed — the same illegible
+        // failure this row exists to pre-empt, on a machine that looks equipped.
+        var (console, command) = Build(Machine("11.0.100", WorkloadHeader + "wasm-tools      10.0.12/11.0.100\n"));
+
+        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal("Warn", StatusOf(console.OutText, "wasm-tools"));
+        Assert.Contains("dotnet workload install wasm-tools-net10", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_net11_SDK_carrying_both_workloads_is_not_warned_about()
+    {
+        // The negative control for the row above: without it, that test would pass on a doctor that
+        // warns on every .NET 11 machine, whatever is installed.
+        var (console, command) = Build(Machine(
+            "11.0.100",
+            WorkloadHeader + "wasm-tools           10.0.12/11.0.100\nwasm-tools-net10     10.0.12/11.0.100\n"));
+
+        await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal("Ok", StatusOf(console.OutText, "wasm-tools"));
+    }
+
+    [Fact]
+    public async Task The_net10_toolchain_alone_does_not_count_as_wasm_tools()
+    {
+        // The bug the exact match exists for: `wasm-tools-net10` STARTS WITH `wasm-tools`, so a prefix
+        // test reports a machine carrying only the net10 toolchain as fully equipped — and the build
+        // then fails with the NETSDK1147 this row promised was not coming.
+        var (console, command) = Build(Machine(
+            "10.0.302", WorkloadHeader + "wasm-tools-net10     10.0.12/11.0.100\n"));
+
+        await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal("Warn", StatusOf(console.OutText, "wasm-tools"));
+        Assert.Contains("dotnet workload install wasm-tools", console.OutText, StringComparison.Ordinal);
+
+        // And it asks for the one that is missing. "install wasm-tools" is a SUBSTRING of "install
+        // wasm-tools-net10", so the assertion above alone would be satisfied by a doctor that told this
+        // machine to install the toolchain it already has.
+        Assert.DoesNotContain("install wasm-tools-net10", console.OutText, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_missing_node_is_reported_against_the_templates_that_need_it()
     {

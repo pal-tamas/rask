@@ -78,6 +78,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
+            // No short name on purpose, though `dotnet new` spells this one `-f`: `rask deploy` already
+            // claims -f for --follow, and a short name that means two things across the CLI is worse than
+            // no short name at all (CliApplicationTests holds the whole surface to that).
+            .Option(
+                "framework",
+                valueHint: "tfm",
+                description: "The .NET version the project targets (default: " + DotnetTarget.Default.Moniker
+                + ", the LTS release). " + DotnetTarget.Preview.Moniker + " needs the matching SDK installed; "
+                + "Rask itself ships for both.",
+                choices: DotnetTarget.Monikers)
             .Flag("wasm", description: "Also publish a browser bundle from this project, so an eligible page moves into WebAssembly once it has downloaded. Publish takes minutes longer; `dotnet run` is unaffected.")
             .MultiOption(
                 "islands",
@@ -235,6 +245,27 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
         }
 
+        // The schema declares the accepted monikers as this option's choices, so the parse already rejected
+        // anything else; DotnetTarget.For maps the validated value.
+        var dotnet = DotnetTarget.For(parsed.Option("framework"));
+
+        // Refused BEFORE a file is written, not left to the build. Scaffolding first would leave a directory
+        // that cannot compile — and the SDK's own message (NETSDK1045) names a framework the author chose
+        // deliberately, which reads as Rask being broken rather than as an SDK they have not installed yet.
+        //
+        // Asked ONLY when a version was actually chosen. Every SDK that can build Rask at all builds the
+        // default target, so probing for it would buy nothing and spend a process on every scaffold — and
+        // `rask new` starting no process at all on the ordinary path is a promise its tests hold it to.
+        if (dotnet != DotnetTarget.Default
+            && await SdkMajorAsync(cancellationToken).ConfigureAwait(false) is { } sdkMajor
+            && sdkMajor < dotnet.SdkMajor)
+        {
+            return Fail(
+                $"--framework {dotnet.Moniker} needs the .NET {dotnet.SdkMajor} SDK, and the `dotnet` on your PATH "
+                + $"is {sdkMajor}.x. Install it from https://dotnet.microsoft.com/download, or scaffold for "
+                + $"{DotnetTarget.Default.Moniker} — Rask ships for both.");
+        }
+
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
@@ -247,7 +278,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 // being accepted by the parser and then generating something else.
                 if (SpaFramework.TryGet(template.Key, out var framework))
                 {
-                    return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version);
+                    return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version, dotnet);
                 }
 
                 // The other front-end lane, asked the same way and for the same reason: the meta
@@ -255,17 +286,46 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 // what gets built rather than a second list that can drift from it.
                 if (MetaTemplate.TryGet(template.Key, out var meta))
                 {
-                    return ProjectGenerator.GenerateMeta(dir, name, meta, batteries, version);
+                    return ProjectGenerator.GenerateMeta(dir, name, meta, batteries, version, dotnet);
                 }
 
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
-                        dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands),
-                    _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands),
+                        dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands, dotnet),
+                    _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands, dotnet),
                 };
             },
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The major version of the SDK `dotnet` resolves here, or null when it cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// Null rather than a guess when the probe fails: on a machine where `dotnet --version` does not answer,
+    /// refusing a scaffold over a version nobody could read would be worse than letting the build say so.
+    /// </remarks>
+    private async Task<int?> SdkMajorAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _process
+                .CaptureAsync("dotnet", ["--version"], _workingDirectory, cancellationToken)
+                .ConfigureAwait(false);
+
+            return result.ExitCode == 0
+                   && int.TryParse(
+                       result.StandardOutput.Trim().Split('.').FirstOrDefault(),
+                       CultureInfo.InvariantCulture,
+                       out var major)
+                ? major
+                : null;
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -521,7 +581,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             filled.AddRange(standard.Except(kept).Select(f => "--" + OffFlag(f)));
         }
 
-        WriteWizardSummary(filled, template);
+        WriteWizardSummary(filled, template, DotnetTarget.For(parsed.Option("framework")));
         return filled;
     }
 
@@ -560,7 +620,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// SPA it had chosen a database battery — a question that template never asks and does not support —
     /// which is worse than saying nothing, because it reads as confirmation.
     /// </remarks>
-    private void WriteWizardSummary(IReadOnlyList<string> args, TemplateInfo template)
+    private void WriteWizardSummary(IReadOnlyList<string> args, TemplateInfo template, DotnetTarget dotnet)
     {
         // Resolved through the same path the scaffold will take, rather than read back off the flags. The
         // summary's whole job is to be what happens next, and a second reading of the same answers is how
@@ -590,6 +650,18 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         grid.AddRow(Label("🐳", "Docker"), new Text(batteries.Docker ? "yes" : "no"));
+
+        // Only when it is not the default. The summary's job is to restate the DECISIONS, and .NET 10 is the
+        // one nobody made — a row saying so on every scaffold would be one more line to read past, and the
+        // wizard deliberately asks nothing about the version. The value comes from the PARSE, which has
+        // already normalised the choice, rather than from a second reading of the raw arguments:
+        // `--framework NET11.0` scaffolds net11.0, and a case-sensitive re-read would have dropped this row.
+        if (dotnet != DotnetTarget.Default)
+        {
+            grid.AddRow(
+                Label("🎯", ".NET"),
+                new Text($"{dotnet.Moniker} (the default is {DotnetTarget.Default.Moniker}, the LTS release)"));
+        }
 
         grid.AddRow(
             Label("🔋", "Batteries"),

@@ -138,7 +138,7 @@ internal sealed class DoctorCommand(
         // check anywhere and the least legible failure: a missing wasm-tools surfaces as NETSDK1147,
         // which reads like a broken machine rather than a missing install, and the requirement was
         // documented only in prose in the README.
-        checks.Add(await WorkloadCheckAsync(cancellationToken).ConfigureAwait(false));
+        checks.Add(await WorkloadCheckAsync(sdk, cancellationToken).ConfigureAwait(false));
 
         var node = await CaptureAsync(["--version"], cancellationToken, "node").ConfigureAwait(false);
         checks.Add(NodeCheck(node));
@@ -233,29 +233,58 @@ internal sealed class DoctorCommand(
         return new DoctorCheck("node", DoctorStatus.Ok, node, null);
     }
 
-    /// <summary>Is the `wasm-tools` workload installed? Every `net10.0-browser` build needs it.</summary>
+    /// <summary>Are the wasm-tools workloads installed? Every browser-WASM build needs them.</summary>
     /// <remarks>
-    ///     There is no `dotnet wasm-tools --version` to probe, so this reads `dotnet workload list`.
-    ///     Matched on a line whose FIRST column is the id, because the table's header and its trailing
-    ///     prose both contain the word elsewhere, and a plain substring test would report the workload
-    ///     as installed on a machine that has none.
+    ///     <para>
+    ///         There is no `dotnet wasm-tools --version` to probe, so this reads `dotnet workload list`.
+    ///         Matched on a line whose FIRST column is the id, because the table's header and its trailing
+    ///         prose both contain the word elsewhere, and a plain substring test would report the workload
+    ///         as installed on a machine that has none.
+    ///     </para>
+    ///     <para>
+    ///         The id has to match EXACTLY, not by prefix: `wasm-tools-net10` starts with `wasm-tools` and is a
+    ///         different workload. A machine carrying only the net10 toolchain would otherwise be told it has
+    ///         what it needs and then fail the build with NETSDK1147 — the very report this check exists to
+    ///         replace.
+    ///     </para>
+    ///     <para>
+    ///         On the .NET 11 SDK a `net10.0-browser` app also needs `wasm-tools-net10`: the newer SDK relinks an
+    ///         older runtime only with that version's toolchain. Reported separately so the fix names the
+    ///         workload that is actually missing.
+    ///     </para>
     /// </remarks>
-    private async Task<DoctorCheck> WorkloadCheckAsync(CancellationToken cancellationToken)
+    private async Task<DoctorCheck> WorkloadCheckAsync(string? sdk, CancellationToken cancellationToken)
     {
         var listed = await CaptureAsync(["workload", "list"], cancellationToken).ConfigureAwait(false);
 
-        var installed = listed is not null && listed
+        var ids = (listed ?? string.Empty)
             .Split('\n')
-            .Select(line => line.TrimStart())
-            .Any(line => line.StartsWith("wasm-tools", StringComparison.Ordinal));
+            .Select(line => line.TrimStart().Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault())
+            .Where(id => id is not null)
+            .ToHashSet(StringComparer.Ordinal);
 
-        return installed
-            ? new DoctorCheck("wasm-tools", DoctorStatus.Ok, "installed", null)
-            : new DoctorCheck(
+        if (!ids.Contains("wasm-tools"))
+        {
+            return new DoctorCheck(
                 "wasm-tools", DoctorStatus.Warn, "not installed",
                 "Every browser-WASM build needs it — `rask new --wasm`, the wasm template, and "
                 + "`dotnet publish` of either. Without it the build fails with NETSDK1147, which reads "
                 + "like a broken machine rather than a missing install. Fix: dotnet workload install wasm-tools");
+        }
+
+        // Only on an 11-or-later SDK, and only as a warning: a server app never relinks anything. The
+        // version is the one the caller already captured and SdkCheck already parsed — asking
+        // `dotnet --version` again here spent a second process to learn what was in hand.
+        if (NodeRequirement.Parse(sdk)?.Major is >= 11 && !ids.Contains("wasm-tools-net10"))
+        {
+            return new DoctorCheck(
+                "wasm-tools", DoctorStatus.Warn, "wasm-tools-net10 missing",
+                "The .NET 11 SDK relinks a net10.0-browser app only with the net10 toolchain, so a browser "
+                + "build of an app still on .NET 10 fails with NETSDK1147 even though wasm-tools is installed. "
+                + "Fix: dotnet workload install wasm-tools-net10");
+        }
+
+        return new DoctorCheck("wasm-tools", DoctorStatus.Ok, "installed", null);
     }
 
     /// <summary>`ssh`, which `rask deploy` shells out to for its host probe and bootstrap.</summary>

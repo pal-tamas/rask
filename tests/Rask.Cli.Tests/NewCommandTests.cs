@@ -711,6 +711,62 @@ public sealed class NewCommandTests
         Assert.False(fs.FileExists("/proj/Field/Field.csproj"));
     }
 
+    /// <summary>
+    /// A framework the installed SDK cannot build is refused before a single file is written.
+    /// </summary>
+    /// <remarks>
+    /// Scaffolding first and letting the build explain would leave a directory that cannot compile, and
+    /// the SDK's own NETSDK1045 names a framework the author chose deliberately — which reads as Rask
+    /// being broken rather than as an SDK they have not installed yet.
+    /// </remarks>
+    [Fact]
+    public async Task A_framework_the_installed_SDK_cannot_build_is_refused_and_scaffolds_nothing()
+    {
+        var (console, fs, runner, command) = Build();
+        runner.CaptureByExecutable = (executable, arguments) =>
+            executable == "dotnet" && arguments.Contains("--version", StringComparer.Ordinal)
+                ? new ProcessResult(0, "10.0.100", string.Empty)
+                : new ProcessResult(0, string.Empty, string.Empty);
+
+        var exit = await command.ExecuteAsync(
+            ["Field", "--template", "server", "--framework", "net11.0"], CancellationToken.None);
+
+        Assert.Equal(2, exit);
+        // It names what was asked for, what answered, and the way out — a refusal that only says "no"
+        // leaves the author to guess which of the two versions their machine actually has.
+        Assert.Contains("net11.0", console.ErrorText, StringComparison.Ordinal);
+        // The SDK that actually answered, in the message's own rendering. A bare "10.0" would be
+        // satisfied by the "or scaffold for net10.0" clause the line below already covers, so the
+        // machine's own version could drop out of the message and this would still pass.
+        Assert.Contains("is 10.x", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains(DotnetTarget.Default.Moniker, console.ErrorText, StringComparison.Ordinal);
+        Assert.False(fs.FileExists("/proj/Field/Field.csproj"));
+    }
+
+    /// <summary>
+    /// The default target asks the SDK nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// The probe exists for the opt-in. Every SDK that can build Rask builds the default target, so
+    /// asking about it would spend a process on every single scaffold to re-learn something already
+    /// known. The dry-run and no-restore tests happen to assert the same emptiness for their own
+    /// reasons; this one names THIS reason, so moving the probe back in front of the choice fails a
+    /// test that says why it was put behind it.
+    /// </remarks>
+    [Fact]
+    public async Task The_default_framework_starts_no_process_to_check_the_SDK()
+    {
+        var (_, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(
+            ["Field", "--template", "server", "--framework", "net10.0", "--no-restore", "--no-git"],
+            CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.True(fs.FileExists("/proj/Field/Field.csproj"));
+        Assert.Empty(runner.Invocations);
+    }
+
     // The first migration builds the project to load the DbContext, and with the batteries on that
     // build defaulted to RaskSpaBuild/RaskMetaBuild=true — so scaffolding a front-end template ran the
     // bundler, or on the meta lane a full Nuxt/Next PRODUCTION build, behind a line that reads

@@ -11,7 +11,8 @@ internal static partial class ProjectGenerator
         string name,
         ServerBatteries batteries,
         string version,
-        IReadOnlyList<string>? islands = null)
+        IReadOnlyList<string>? islands = null,
+        DotnetTarget? dotnet = null)
     {
         ArgumentNullException.ThrowIfNull(batteries);
 
@@ -22,9 +23,9 @@ internal static partial class ProjectGenerator
         batteries = batteries.Normalized();
 
         return new ScaffoldResult(
-            VsCodeAssembly.Apply(
-                targetDirectory, name,
-                TemplateMaterializer.Files(targetDirectory, "server", name, batteries, version, islands)),
+            TemplateMaterializer.Files(
+                targetDirectory, "server", name, batteries, version, dotnet ?? DotnetTarget.Default, islands,
+                vsCode: true),
             ServerNextSteps(name, batteries))
         {
             Packages = ServerPackages(batteries),
@@ -251,19 +252,6 @@ internal static partial class ProjectGenerator
     // ---- server-only template files ----
 
     /// <summary>
-    /// The production image. With <c>--data</c> on a file database it also carries the <c>litestream</c>
-    /// binary the app's replicator drives: the wiring in Program.cs is inert without it, so shipping one
-    /// without the other would mean a "continuous backup" that silently never runs. Copied from Litestream's
-    /// own published image — one layer, no package manager, and the right architecture picked by the manifest.
-    /// </summary>
-    /// <remarks>
-    /// Both spliced extras exist because the database is a <em>file on this box</em>, so a client-server
-    /// database gets neither. The two gates differ on purpose: the <c>/data</c> mount point tracks whatever
-    /// <c>rask deploy</c> mounts — which includes an app that has no <c>--data</c> yet, so adding it later
-    /// doesn't need a new Dockerfile — while the binary is only worth carrying once there is a database to
-    /// replicate.
-    /// </remarks>
-    /// <summary>
     /// A starter catalog. The neutral one carries the app's English; a translation starts as a copy so
     /// the keys line up and the build tells you which ones still need doing (RASK052).
     /// </summary>
@@ -286,59 +274,4 @@ internal static partial class ProjectGenerator
                 "Items": { "$plural": "count", "one": "{count} item", "other": "{count} items" }
               }
               """;
-
-    private static string Dockerfile(ServerBatteries batteries)
-    {
-        return Splice(Splice(DockerfileTemplate, "@@LITESTREAM@@", batteries.Data ? LitestreamLayer : null),
-            "@@DATADIR@@", DataDirectoryLayer);
-
-        // Fill the slot, or drop the marker and the line it sits on so an unused slot leaves no stray blank.
-        static string Splice(string template, string marker, string? content) =>
-            content is null
-                ? template.Replace(marker + "\n", string.Empty, StringComparison.Ordinal)
-                    .Replace(marker, string.Empty, StringComparison.Ordinal)
-                : template.Replace(marker, content, StringComparison.Ordinal);
-    }
-
-    // Both layers carry their own leading blank line so a filled slot is separated from what precedes it,
-    // and an empty slot collapses cleanly instead of leaving one behind.
-    private const string LitestreamLayer =
-        "\n# The replicator binary Program.cs drives when Rask__Litestream__ReplicaUrl is set (see docs/sqlite.md).\n"
-        + "COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream\n";
-
-    private const string DataDirectoryLayer =
-        "\n# A writable data directory for the SQLite database, owned by the image's non-root runtime user\n"
-        + "# ($APP_UID). `rask deploy` mounts a named volume here and points the app at /data/app.db (via\n"
-        + "# Rask:ConnectionStrings:App), so the database survives container replacement across redeploys. A fresh\n"
-        + "# named volume inherits this directory's ownership, so the non-root app can create app.db in it.\n"
-        + "USER root\n"
-        + "RUN mkdir -p /data && chown $APP_UID:$APP_UID /data\n"
-        + "USER $APP_UID";
-
-    private const string DockerfileTemplate =
-        """
-        # Multi-stage build: compile on the .NET SDK image, run on the smaller aspnet runtime.
-        # The aspnet:10.0 image already runs as a non-root user and listens on port 8080
-        # (ASPNETCORE_HTTP_PORTS=8080) — no extra hardening needed for a basic deploy.
-        FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-        WORKDIR /src
-
-        # Restore first (cached layer): only the csproj invalidates it, so code edits reuse the cache.
-        COPY ["Company.RaskServer.csproj", "./"]
-        RUN dotnet restore
-        COPY . .
-        RUN dotnet publish "Company.RaskServer.csproj" -c Release -o /app --no-restore
-
-        FROM mcr.microsoft.com/dotnet/aspnet:10.0
-        WORKDIR /app
-        COPY --from=build /app .
-        @@LITESTREAM@@
-        @@DATADIR@@
-
-        EXPOSE 8080
-        # The app calls UseHttpsRedirection(); inside the container no HTTPS port is configured,
-        # so it no-ops. Terminate TLS at your reverse proxy / ingress and forward plain HTTP to 8080.
-        ENTRYPOINT ["dotnet", "Company.RaskServer.dll"]
-
-        """;
 }

@@ -46,6 +46,31 @@ export RASK_INSTALL_LIB_ONLY
 
 ge() { if rask_version_ge "$1" "$2"; then printf 'yes'; else printf 'no'; fi; }
 
+installed() { if rask_workload_installed "$1" "$2"; then printf 'yes'; else printf 'no'; fi; }
+
+# The shape `dotnet workload list` prints: a header, a row per workload, then prose.
+workload_list_pair='Installed Workload Id      Manifest Version      Installation Source
+--------------------------------------------------------------------------------
+wasm-tools                 11.0.0-rc.1/11.0.100  SDK 11.0.100
+wasm-tools-net10           10.0.12/11.0.100      SDK 11.0.100
+
+Use `dotnet workload search` to search for available workloads.'
+workload_list_net10_only='Installed Workload Id      Manifest Version      Installation Source
+--------------------------------------------------------------------------------
+wasm-tools-net10           10.0.12/11.0.100      SDK 11.0.100'
+
+echo "==> rask_workload_installed"
+check "wasm-tools, both installed"             yes "$(installed wasm-tools "$workload_list_pair")"
+check "wasm-tools-net10, both installed"       yes "$(installed wasm-tools-net10 "$workload_list_pair")"
+# The bug this matcher exists for: `wasm-tools-net10` starts with `wasm-tools`, so a prefix test called
+# the pair installed on a machine carrying only the net10 half — and the browser build then failed with
+# the NETSDK1147 the installer step is meant to prevent.
+check "wasm-tools, only net10 installed"       no  "$(installed wasm-tools "$workload_list_net10_only")"
+check "wasm-tools-net10, only net10 installed" yes "$(installed wasm-tools-net10 "$workload_list_net10_only")"
+check "neither, empty list"                    no  "$(installed wasm-tools '')"
+# The word appears in the header and the trailing prose; neither is a row.
+check "prose alone is not an install"          no  "$(installed wasm-tools 'Use dotnet workload search wasm-tools to find it.')"
+
 echo "==> rask_version_ge"
 check "10.0.100 >= 10.0"                       yes "$(ge 10.0.100 10.0)"
 check "9.0.400 >= 10.0"                        no  "$(ge 9.0.400 10.0)"

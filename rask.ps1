@@ -57,6 +57,10 @@ $ProgressPreference = 'SilentlyContinue'   # a progress bar over `irm | iex` is 
 # Overridable from the environment, the same seam rask.sh exposes.
 
 $DotnetChannel = if ($env:RASK_INSTALL_DOTNET_CHANNEL) { $env:RASK_INSTALL_DOTNET_CHANNEL } else { '10.0' }
+# Empty by default, and passed to dotnet-install only when set: a released channel needs no quality, and
+# an empty one is an argument error rather than a no-op. Set it to 'preview' (with CHANNEL=11.0 and
+# MAJOR=11) to install an SDK whose channel has not shipped yet. Mirrors RASK_INSTALL_DOTNET_QUALITY in rask.sh.
+$DotnetQuality = if ($env:RASK_INSTALL_DOTNET_QUALITY) { $env:RASK_INSTALL_DOTNET_QUALITY } else { '' }
 $DotnetMajor = if ($env:RASK_INSTALL_DOTNET_MAJOR) { [int] $env:RASK_INSTALL_DOTNET_MAJOR } else { 10 }
 $DotnetRoot = if ($env:RASK_INSTALL_DOTNET_ROOT) { $env:RASK_INSTALL_DOTNET_ROOT } else { Join-Path $env:USERPROFILE '.dotnet' }
 $Prefix = if ($env:RASK_INSTALL_PREFIX) { $env:RASK_INSTALL_PREFIX } else { Join-Path $env:LOCALAPPDATA 'rask' }
@@ -213,7 +217,13 @@ function Step-Dotnet {
     }
 
     Write-Detail "not found — installing it into $DotnetRoot (per-user, no elevation)"
-    if ($DryRun) { Write-Detail "(dry-run) dotnet-install.ps1 -Channel $DotnetChannel -InstallDir $DotnetRoot"; return }
+    if ($DryRun) {
+        # Naming the quality too, when there is one: a dry run that prints a command the real run does
+        # not issue is worse than printing nothing.
+        $quality = if ($DotnetQuality) { " -Quality $DotnetQuality" } else { '' }
+        Write-Detail "(dry-run) dotnet-install.ps1 -Channel $DotnetChannel$quality -InstallDir $DotnetRoot"
+        return
+    }
 
     # Downloaded to a file and then run, never piped straight into the engine: a truncated download
     # would otherwise be executed as though it were the whole installer.
@@ -223,7 +233,12 @@ function Step-Dotnet {
         if (-not (Test-Path $script) -or (Get-Item $script).Length -eq 0) {
             Stop-Install 1 @("downloaded an empty dotnet-install.ps1 from $DotnetScriptUrl.")
         }
-        & $script -Channel $DotnetChannel -InstallDir $DotnetRoot -NoPath
+        if ($DotnetQuality) {
+            & $script -Channel $DotnetChannel -Quality $DotnetQuality -InstallDir $DotnetRoot -NoPath
+        }
+        else {
+            & $script -Channel $DotnetChannel -InstallDir $DotnetRoot -NoPath
+        }
     }
     finally {
         Remove-Item $script -Force -ErrorAction SilentlyContinue
@@ -275,22 +290,40 @@ function Step-Ef {
 
 function Step-WasmTools {
     if ($NoWasmTools) { return }
-    Write-Step 'Installing the wasm-tools workload (browser-wasm builds)'
+    Write-Step 'Installing the wasm-tools workloads (browser-wasm builds)'
 
-    $installed = & (Get-DotnetPath) workload list 2>$null | Select-String -Pattern '^wasm-tools' -Quiet
-    if ($installed) { Write-Detail 'already installed'; return }
-    if ($DryRun) { Write-Detail '(dry-run) dotnet workload install wasm-tools'; return }
+    # On .NET 11 and later a net10.0-browser app — every app `rask new` scaffolds today — relinks only with
+    # the net10 toolchain, so the pair is needed rather than the one.
+    $sdkMajor = 0
+    # The FIRST line before splitting: `dotnet --version` can print a notice alongside the version, and
+    # over several lines the split lands on whichever one came first — dropping wasm-tools-net10 on a
+    # .NET 11 box, which fails open into the NETSDK1147 this step exists to prevent. Mirrors rask.sh.
+    $sdkVersion = (& (Get-DotnetPath) --version 2>$null) | Select-Object -First 1
+    [int]::TryParse((($sdkVersion -split '\.')[0]), [ref] $sdkMajor) | Out-Null
+    $workloads = if ($sdkMajor -ge 11) { @('wasm-tools', 'wasm-tools-net10') } else { @('wasm-tools') }
 
-    & (Get-DotnetPath) workload install wasm-tools > $null 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        # Against a machine-wide SDK the workload directory is admin-owned. We print the command
-        # rather than relaunching elevated: an installer that silently prompts for admin is a worse
-        # trade than one that tells you what to run.
-        Write-Warn @(
-            'could not install the wasm-tools workload.',
-            'Your .NET SDK is probably machine-wide, so the workload needs an elevated prompt:',
-            '  dotnet workload install wasm-tools   (from an Administrator terminal)',
-            'Only browser-wasm builds need it — a server app is unaffected.')
+    $listed = & (Get-DotnetPath) workload list 2>$null
+    foreach ($workload in $workloads) {
+        # The FIRST column, matched WHOLE: `wasm-tools-net10` begins with `wasm-tools`, so a prefix test
+        # reports the pair present on a machine that has only the net10 half, and the browser build then
+        # fails with the NETSDK1147 this check exists to prevent.
+        if ($listed | Select-String -Pattern "^$workload(\s|$)" -Quiet) {
+            Write-Detail "$workload already installed"
+            continue
+        }
+        if ($DryRun) { Write-Detail "(dry-run) dotnet workload install $workload"; continue }
+
+        & (Get-DotnetPath) workload install $workload > $null 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            # Against a machine-wide SDK the workload directory is admin-owned. We print the command
+            # rather than relaunching elevated: an installer that silently prompts for admin is a worse
+            # trade than one that tells you what to run.
+            Write-Warn @(
+                "could not install the $workload workload.",
+                'Your .NET SDK is probably machine-wide, so the workload needs an elevated prompt:',
+                "  dotnet workload install $workload   (from an Administrator terminal)",
+                'Only browser-wasm builds need it — a server app is unaffected.')
+        }
     }
 }
 

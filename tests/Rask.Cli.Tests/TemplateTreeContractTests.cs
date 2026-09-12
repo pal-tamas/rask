@@ -126,7 +126,7 @@ public sealed class TemplateTreeContractTests
         // every one of them naming the placeholder, and the host then looks for a bundle under a
         // directory Angular never writes.
         var files = TemplateMaterializer.Files(
-            "/out", "angular", "Shop", new ServerBatteries(), "9.9.9");
+            "/out", "angular", "Shop", new ServerBatteries(), "9.9.9", DotnetTarget.Default);
 
         var leftovers = files
             .Where(f => f.Bytes is null
@@ -179,7 +179,8 @@ public sealed class TemplateTreeContractTests
     [MemberData(nameof(SpaTemplates))]
     public void A_scaffolded_client_never_keeps_the_placeholder_name(string key)
     {
-        var files = TemplateMaterializer.Files("/out", key, "Shop", new ServerBatteries(), "9.9.9");
+        var files = TemplateMaterializer.Files(
+            "/out", key, "Shop", new ServerBatteries(), "9.9.9", DotnetTarget.Default);
 
         var leftovers = files
             .Where(f => f.Bytes is null

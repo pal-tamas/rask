@@ -103,6 +103,7 @@ rask new Shop --template react       # a React client on an ASP.NET host (no Nod
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
 rask new Shop --template nuxt        # a Nuxt app Rask fronts and supervises (node at runtime)
 rask new Shop --template nextjs      # …or sveltekit, solidstart, tanstack-start, analog
+rask new Shop --framework net11.0    # target .NET 11 (default: net10.0, the LTS release)
 ```
 
 **Batteries are included.** `rask new MyApp` gives you everything the template carries as standard — a
@@ -117,6 +118,12 @@ what it can do:
   server serves ([single-page apps](spa.md#a-rask-webassembly-app)), instead of pages the server renders
   live. Message records go in `Shared/`, handlers stay on the server. Off by default because every
   publish then links a WebAssembly runtime, which takes minutes.
+
+- **the .NET version** — `--framework net11.0` targets .NET 11 instead of the default `net10.0`, in the
+  csproj and in the Dockerfile's images. Every Rask package ships for both, so this decides only what your
+  app targets; .NET 10 is the default because it is the LTS release (supported to November 2028) and an app
+  inherits its support window from the runtime it names. Asking for a version whose SDK is not installed is
+  refused before any file is written.
 
 Languages are **not** on that list, and not on the command line at all: a scaffolded server app ships
 English registered in `Program.cs`, and adding another is a line in the block that is already there.
@@ -234,6 +241,7 @@ commands to run rather than failing: the files on disk are correct either way.
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
 | `--template`, `-t` | `server` (default), `wasm`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
+| `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
 | `--wasm` | Write the UI as a WebAssembly app in `Client/` (server template), with message records in `Shared/`; the server answers its API and serves it with `UseRaskSpa()` rather than rendering pages — see [single-page apps](spa.md#a-rask-webassembly-app). Publish takes minutes longer. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator — and [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
