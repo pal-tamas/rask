@@ -17,18 +17,17 @@ namespace Rask.Data;
 ///         <code>
 /// await using var database = await TestDatabase.StartAsync(o => o.UseSqlite("Data Source=:memory:"));
 ///
-/// await using var uow = Db.Begin();
-/// Order.Add(order);
-/// await uow.SaveChangesAsync();
+/// database.Context.Add(Order.Place("A-1"));
+/// await database.Context.SaveChangesAsync();
 ///
-/// Assert.True(await order.TryCancelAsync());
+/// Assert.Equal(1, await Order.CountAsync());
 ///         </code>
 ///     </example>
 ///     <para>
 ///         It builds the generated model (so every <see cref="Model" /> in the test assembly is mapped),
 ///         creates the schema, wires the auditing and soft-delete interceptors so the conventions behave
-///         as they do in production, and points the ambient <see cref="Db" /> at it. Disposing clears the
-///         ambient database again, so one test cannot leak its database into the next.
+///         as they do in production, and points <see cref="Db" /> at it. Disposing clears it again, so one
+///         test cannot leak its database into the next.
 ///     </para>
 ///     <para>
 ///         <b>Provider-agnostic on purpose.</b> The options callback is yours, so this adds no provider
@@ -87,7 +86,12 @@ public sealed class TestDatabase : IAsyncDisposable
         return new TestDatabase(schemaOwner);
     }
 
-    /// <summary>The ambient database, for the rare assertion that wants the context itself.</summary>
+    /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
+    /// <remarks>
+    ///     One long-lived, tracking context for the fixture's lifetime, so an entity added through it stays
+    ///     tracked here. The model surface (<c>Product.Where(…)</c>, the generated writes) opens contexts of
+    ///     its own and sees only what was saved.
+    /// </remarks>
     public RaskDbContext Context => _schemaOwner;
 
     /// <inheritdoc />

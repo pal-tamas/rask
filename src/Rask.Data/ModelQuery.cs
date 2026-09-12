@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
@@ -11,24 +10,24 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         This is what <c>Product.Where(…)</c>, <c>Product.All</c> and friends return. It composes
-///         LINQ operators the way <see cref="IQueryable{T}" /> does, but records them instead of
-///         binding to a context — the context is opened by the terminal call
-///         (<c>ToListAsync</c>, <c>FirstOrDefaultAsync</c>, <c>CountAsync</c>, …)
-///         and disposed before it returns.
+///         This is what <c>Product.Where(…)</c>, <c>Product.All</c> and friends return. It composes LINQ
+///         operators the way <see cref="IQueryable{T}" /> does, but records them instead of binding to a
+///         context — the context is opened by the terminal call (<c>ToListAsync</c>,
+///         <c>FirstOrDefaultAsync</c>, <c>CountAsync</c>, …) and disposed before it returns.
 ///     </para>
 ///     <para>
 ///         That is what makes a read need no ceremony: <c>await Product.Where(p =&gt; p.Active).ToListAsync()</c>
-///         is complete and leaks nothing. Inside an open <see cref="UnitOfWork" /> the terminal call joins
-///         that unit's context instead of opening one of its own.
+///         is complete and leaks nothing.
 ///     </para>
 ///     <para>
-///         Rows come back <b>untracked</b> unless <see cref="AsTracking" /> asks otherwise — see that
-///         method for why, and for what it means when you want to write one back.
+///         <b>Rows always come back untracked.</b> Most reads are rendered and never written back, and the
+///         context is discarded as the call returns, so tracking would cost a graph walk and an identity-map
+///         entry to buy nothing. A change goes back through the generated <c>Product.UpdateAsync(id, model)</c>,
+///         or through an injected context when it is a domain operation.
 ///     </para>
 ///     <para>
-///         Every operator returns a new instance, so a partially-built query is safe to hold in a field
-///         and branch from.
+///         Every operator returns a new instance, so a partially-built query is safe to hold in a field and
+///         branch from.
 ///     </para>
 /// </remarks>
 /// <typeparam name="TEntity">The entity being queried.</typeparam>
@@ -37,17 +36,15 @@ public sealed class ModelQuery<TEntity>
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>>? _compose;
     private readonly bool _ordered;
-    private readonly bool _tracking;
 
     internal ModelQuery()
     {
     }
 
-    private ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered, bool tracking)
+    private ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered)
     {
         _compose = compose;
         _ordered = ordered;
-        _tracking = tracking;
     }
 
     /// <summary>Filters the query. Composes with any filter already applied.</summary>
@@ -109,28 +106,6 @@ public sealed class ModelQuery<TEntity>
         return Then(q => q.Include(navigationPropertyPath), _ordered);
     }
 
-    /// <summary>Returns entities that are not change-tracked. <b>The default</b>, stated explicitly.</summary>
-    public ModelQuery<TEntity> AsNoTracking() => With(_compose, _ordered, tracking: false);
-
-    /// <summary>
-    ///     Returns change-tracked entities, so that changing one and calling
-    ///     <see cref="UnitOfWork.SaveChangesAsync" /> writes it.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Queries are <b>no-tracking by default</b>, which is the right default for a UI: most reads
-    ///         are rendered and never written back, and outside a unit of work the context is discarded as
-    ///         the call returns, so tracking would cost a graph walk and an identity-map entry to buy
-    ///         nothing.
-    ///     </para>
-    ///     <para>
-    ///         The consequence to know: mutating an entity that came back untracked and then saving does
-    ///         <em>nothing</em>. Write it back explicitly with <c>Product.Update(entity)</c> — which is
-    ///         the ordinary way round here — or read it with this and mutate it in place.
-    ///     </para>
-    /// </remarks>
-    public ModelQuery<TEntity> AsTracking() => With(_compose, _ordered, tracking: true);
-
     /// <summary>
     ///     Drops the model's global query filters — notably the one
     ///     <see cref="ModelBuilderExtensions.ApplyRaskConventions" /> adds to every
@@ -143,15 +118,34 @@ public sealed class ModelQuery<TEntity>
 
     /// <summary>Projects each row, giving a query that returns <typeparamref name="TResult" />.</summary>
     /// <remarks>
-    ///     The point of projecting in the database rather than after <see cref="ToListAsync" /> is that
-    ///     the unread columns are never fetched. The result is no longer an entity, so it has the read
-    ///     operators and none of the tracker ones.
+    ///     The point of projecting in the database rather than after <see cref="ToListAsync" /> is that the
+    ///     unread columns are never fetched. The result is no longer an entity, so it has the read operators
+    ///     and nothing else.
     /// </remarks>
     public Projection<TEntity, TResult> Select<TResult>(Expression<Func<TEntity, TResult>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
         return new Projection<TEntity, TResult>(Apply, selector);
     }
+
+    /// <summary>
+    ///     This query as a standard <see cref="IQueryable{T}" /> that holds no context, for a component that
+    ///     composes its own LINQ — <c>UiDataGrid.Data(Product.Where(p =&gt; p.Active).AsQueryable())</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Every execution — a synchronous <c>Count()</c> or <c>ToList()</c>, an awaited
+    ///         <c>ToListAsync()</c> or <c>CountAsync()</c> — opens a context for itself and disposes it
+    ///         afterwards, so the queryable is safe to hold in a field for as long as a page lives.
+    ///         Rows are untracked, as they are everywhere else.
+    ///     </para>
+    ///     <para>
+    ///         The operators composed on this query so far travel with it, EF Core's own included. EF Core's
+    ///         extension methods called on the queryable this returns do nothing, because EF only applies
+    ///         them to its own provider — put <c>Include</c> or <c>IgnoreQueryFilters</c> here first.
+    ///     </para>
+    /// </remarks>
+    public IQueryable<TEntity> AsQueryable() => new ModelQueryProvider<TEntity>(this).Root;
 
     /// <summary>Runs the query and returns every row.</summary>
     public Task<List<TEntity>> ToListAsync(CancellationToken cancellationToken = default) =>
@@ -194,19 +188,20 @@ public sealed class ModelQuery<TEntity>
         RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
 
     /// <summary>
-    ///     Deletes every matching row in one statement, without loading or tracking them.
+    ///     Deletes every matching row in one statement, without loading them.
     /// </summary>
     /// <remarks>
     ///     <b>This bypasses the interceptors.</b> It is a <c>DELETE … WHERE</c> issued by the database, so
-    ///     nothing raises a domain event, stamps <c>UpdatedAt</c>, or turns the delete into a soft delete
-    ///     — an <see cref="ISoftDeletable" /> deleted this way is really gone. That is the trade for not
-    ///     round-tripping the rows; when you want the conventions, load and remove.
+    ///     nothing raises a domain event, stamps <c>UpdatedAt</c>, or turns the delete into a soft delete —
+    ///     an <see cref="ISoftDeletable" /> deleted this way is really gone. That is the trade for not
+    ///     round-tripping the rows; when you want the conventions, delete through the generated
+    ///     <c>Product.DeleteAsync(id)</c> or an injected context.
     /// </remarks>
     public Task<int> ExecuteDeleteAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.ExecuteDeleteAsync(ct), cancellationToken);
 
     /// <summary>
-    ///     Updates every matching row in one statement, without loading or tracking them.
+    ///     Updates every matching row in one statement, without loading them.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -223,11 +218,10 @@ public sealed class ModelQuery<TEntity>
     ///         </code>
     ///     </example>
     ///     <para>
-    ///         <b>This bypasses the interceptors</b>, exactly as EF Core's own
-    ///         <c>ExecuteUpdateAsync</c> does, and the
-    ///         omissions are the conventions Rask.Data otherwise maintains for you: no <c>UpdatedAt</c>
-    ///         stamp, no <c>Version</c> bump, and no domain events — nothing was loaded to raise any. Set
-    ///         them yourself when they matter:
+    ///         <b>This bypasses the interceptors</b>, exactly as EF Core's own <c>ExecuteUpdateAsync</c>
+    ///         does, and the omissions are the conventions Rask.Data otherwise maintains for you: no
+    ///         <c>UpdatedAt</c> stamp, no <c>Version</c> bump, and no domain events — nothing was loaded to
+    ///         raise any. Set them yourself when they matter:
     ///     </para>
     ///     <example>
     ///         <code>
@@ -266,16 +260,15 @@ public sealed class ModelQuery<TEntity>
 
     /// <summary>Enumerates the query, streaming rows as the database produces them.</summary>
     /// <remarks>
-    ///     The context stays open for the lifetime of the enumeration, so consume it promptly — this is
-    ///     for a large read that should not be materialised whole, not for holding a cursor across
-    ///     renders.
+    ///     The context stays open for the lifetime of the enumeration, so consume it promptly — this is for
+    ///     a large read that should not be materialised whole, not for holding a cursor across renders.
     /// </remarks>
     public async IAsyncEnumerable<TEntity> AsAsyncEnumerable(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await using var unitOfWork = Db.Begin();
+        await using var context = Db.CreateContext();
 
-        await foreach (var entity in Apply(unitOfWork.Context.Set<TEntity>())
+        await foreach (var entity in Apply(context.Set<TEntity>())
                            .AsAsyncEnumerable()
                            .WithCancellation(cancellationToken)
                            .ConfigureAwait(false))
@@ -285,14 +278,14 @@ public sealed class ModelQuery<TEntity>
     }
 
     /// <summary>
-    ///     Runs <paramref name="query" /> against the live <see cref="IQueryable{T}" />, for the shapes
-    ///     this type does not wrap — a group-by, a join, an aggregate.
+    ///     Runs <paramref name="query" /> against the live <see cref="IQueryable{T}" />, for the shapes this
+    ///     type does not wrap — a group-by, a join, an aggregate.
     /// </summary>
     /// <remarks>
-    ///     The escape hatch, and it is a real one: the operators composed so far are applied first, the
-    ///     context is opened for the call and disposed after it, and inside a unit of work it joins that
-    ///     one. Do not let the <see cref="IQueryable{T}" /> escape the callback — it dies with the
-    ///     context.
+    ///     The escape hatch, and it is a real one: the operators composed so far are applied first, and the
+    ///     context is opened for the call and disposed after it. Do not let the <see cref="IQueryable{T}" />
+    ///     escape the callback — it dies with the context; <see cref="AsQueryable" /> is the one that
+    ///     outlives a call.
     /// </remarks>
     public async Task<TResult> QueryAsync<TResult>(
         Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> query,
@@ -300,28 +293,23 @@ public sealed class ModelQuery<TEntity>
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        await using var unitOfWork = Db.Begin();
-        return await query(Apply(unitOfWork.Context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
+        await using var context = Db.CreateContext();
+        return await query(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
     }
 
-    // Tracking is decided at the head of the query rather than composed, so that AsTracking() and
-    // AsNoTracking() are last-one-wins wherever they appear in the chain instead of order-dependent.
+    // Untracked is decided at the head of the query rather than composed, so every read — through this
+    // type, a projection, or AsQueryable — starts from the same no-tracking source.
     internal IQueryable<TEntity> Apply(IQueryable<TEntity> source)
     {
-        var head = _tracking ? source.AsTracking() : source.AsNoTracking();
+        var head = source.AsNoTracking();
         return _compose is null ? head : _compose(head);
     }
 
     private ModelQuery<TEntity> Then(Func<IQueryable<TEntity>, IQueryable<TEntity>> step, bool ordered)
     {
         var previous = _compose;
-        return With(previous is null ? step : q => step(previous(q)), ordered, _tracking);
+        return new ModelQuery<TEntity>(previous is null ? step : q => step(previous(q)), ordered);
     }
-
-    private ModelQuery<TEntity> With(
-        Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose,
-        bool ordered,
-        bool tracking) => new(compose, ordered, tracking);
 
     private void RequireOrdering(string member)
     {
@@ -336,8 +324,8 @@ public sealed class ModelQuery<TEntity>
         Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> run,
         CancellationToken cancellationToken)
     {
-        await using var unitOfWork = Db.Begin();
-        return await run(Apply(unitOfWork.Context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
+        await using var context = Db.CreateContext();
+        return await run(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -346,8 +334,8 @@ public sealed class ModelQuery<TEntity>
 ///     produced by <see cref="ModelQuery{TEntity}.Select{TResult}" />.
 /// </summary>
 /// <remarks>
-///     Read-only by construction: a projection is not an entity, so there is nothing to track, save or
-///     delete through it.
+///     Read-only by construction: a projection is not an entity, so there is nothing to save or delete
+///     through it.
 /// </remarks>
 /// <typeparam name="TEntity">The entity being read.</typeparam>
 /// <typeparam name="TResult">What each row is projected to.</typeparam>
@@ -389,8 +377,8 @@ public sealed class Projection<TEntity, TResult>
         Func<IQueryable<TResult>, CancellationToken, Task<TValue>> run,
         CancellationToken cancellationToken)
     {
-        await using var unitOfWork = Db.Begin();
-        var projected = _source(unitOfWork.Context.Set<TEntity>()).Select(_selector);
+        await using var context = Db.CreateContext();
+        var projected = _source(context.Set<TEntity>()).Select(_selector);
         return await run(projected, cancellationToken).ConfigureAwait(false);
     }
 }

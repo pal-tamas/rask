@@ -56,8 +56,8 @@ public static class RaskDataServiceCollectionExtensions
 
     /// <summary>
     ///     Registers the interceptors as <see cref="AddRaskData" /> does, and binds
-    ///     <typeparamref name="TContext" /> as the context the ambient database opens — the one behind
-    ///     <c>Db.Begin()</c>, <c>Product.Where(…)</c> and <c>Product.Add(…)</c>.
+    ///     <typeparamref name="TContext" /> as the context the model surface opens — the one behind
+    ///     <c>Product.Where(…)</c> and the generated <c>Product.CreateAsync(model)</c>.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -68,7 +68,7 @@ public static class RaskDataServiceCollectionExtensions
     ///         string — is what actually opens the context.
     ///     </para>
     ///     <para>
-    ///         One line still has to run after the container is built, to hand the ambient database its
+    ///         One line still has to run after the container is built, to hand the model surface its
     ///         factory. A Rask app gets that from the host; anything else calls
     ///         <see cref="Db.Configure(IServiceProvider)" />:
     ///     </para>
@@ -94,7 +94,7 @@ public static class RaskDataServiceCollectionExtensions
         // Singleton and resolved lazily: IDbContextFactory<TContext> is itself a singleton, so the
         // binding never reaches into a request or session scope for the context it opens. TryAdd keeps
         // the first binding, so a second call naming another context does not silently repoint the
-        // ambient database out from under the first.
+        // model surface out from under the first.
         services.TryAddSingleton(sp => new AmbientContextBinding(
             typeof(TContext),
             () => sp.GetRequiredService<IDbContextFactory<TContext>>().CreateDbContext()));

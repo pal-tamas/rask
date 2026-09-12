@@ -20,7 +20,14 @@ query**. Queue depth is `SELECT count(*)`.
 | `Rask.Mail` | `QueuedMail` | Is mail going out, or piling up? |
 | `Rask.Cache` | `CacheEntry` | How much is cached right now? |
 
-They're ordinary EF entities. `db.Set<OutboxMessage>()` works exactly like `db.Products`.
+They're ordinary EF entities, mapped into the same `AppDbContext` as your products. They aren't `Model`s, so
+there's no `OutboxMessage.CountAsync(…)` — you reach them through the context, exactly as chapter 7's
+`PlaceOrder` did. Inject `IDbContextFactory<AppDbContext>` into the page as `dbFactory` and open one per
+refresh:
+
+```csharp
+await using var db = await dbFactory.CreateDbContextAsync(ct);
+```
 
 ## 2. Count what matters
 
@@ -87,8 +94,8 @@ ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys"),   // → 1
 
 ## Verify
 
-- Place an order and watch, without touching anything: outbox processed goes up, then mail sent, then jobs
-  processed — the chain from Chapter 7 moving through three pillars.
+- Buy a product and watch, without touching anything: outbox processed goes up, then jobs processed, then
+  mail sent — the chain from Chapter 7 moving through three pillars.
 - Outbox failed stays at `0`.
 - `journal_mode` reads `wal` and `foreign_keys` reads `1`.
 
@@ -103,19 +110,21 @@ table you can `SELECT` from, and now you've proved it.
 
 For the parts you'd rather not hand-roll, `Rask.Dashboard` ships the same idea finished: `/_rask` with the
 queue rows behind each counter, the error that caused each dead letter, a one-click retry, a log tail, and
-the pragmas you read above. `rask new` wires it in by default, so your Shop already has it —
-wires it in two lines:
+the pragmas you read above. `rask new` wires it in by default (`--no-ops` leaves it out), so your Shop already
+has these two lines in `Program.cs`:
 
 ```csharp
 builder.Services.AddRaskDashboard<AppDbContext>();
 
 builder.Services.AddAuthorization(o =>
-    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
+    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin)));
 ```
 
-That second line is not optional decoration. The dashboard shows job payloads and stored email bodies, so
-without a policy it refuses to serve anyone outside Development. Sign in and visit
-[https://localhost:5001/_rask](https://localhost:5001/_rask) to compare it with the page you just built.
+That second line is not optional decoration. The dashboard shows job payloads, stored email bodies and log
+lines, so it is gated on the **admin** role — the one the first account to register holds — rather than on
+merely being signed in, which on an app with open registration would mean everyone. Sign in as that first
+account and visit [https://localhost:5001/_rask](https://localhost:5001/_rask) to compare it with the page
+you just built.
 
 **Learn more:** [dashboard](../dashboard.md) · [observability](../observability.md) · [jobs](../jobs.md) · [outbox](../outbox.md)
 
