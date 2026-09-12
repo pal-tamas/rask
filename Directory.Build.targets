@@ -1,4 +1,48 @@
-<Project>
+<Project InitialTargets="RaskRequireSdk11">
+
+  <!--
+    Every shipped package builds for .NET 10 AND .NET 11 (RaskNetTargets, Directory.Build.props), so this
+    repository needs the .NET 11 SDK. An older SDK fails anyway — NETSDK1045, once per project, deep inside a
+    solution build — so this says it once, first, with the fix. InitialTargets, so it also fires in the
+    inner build a net10.0 test project's ProjectReference triggers: no invocation dodges it by building less.
+
+    Keyed off the list rather than hard-wired, so -p:RaskNetTargets=net10.0 on an older SDK still builds.
+  -->
+  <Target Name="RaskRequireSdk11"
+          Condition=" $(RaskNetTargets.Contains('net11.')) AND $([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '11.0.100')) ">
+    <Error Code="RASKSDK001"
+           Text="This repository builds net11.0 alongside net10.0, which needs the .NET 11 SDK; this build is running SDK $(NETCoreSdkVersion). Install it (dotnet-install.sh --channel 11.0 --quality preview), then: dotnet workload install wasm-tools wasm-tools-net10" />
+  </Target>
+
+  <!--
+    A test project building for .NET 11 drops the Microsoft.Extensions packages .NET 11 folded into its shared
+    framework.
+
+    .NET 11 ships these nine libraries in the base shared framework, and NuGet reports an explicit reference to
+    one as NU1510 — an error under warnings-as-errors — in a project that targets ONLY net11.0. A shipped package
+    never hits it: it builds for net10.0 as well, where the reference is still needed, and NuGet stays quiet for
+    a multi-targeted project. A test project builds for one version at a time ($(RaskTestTarget)), so on the
+    .NET 11 run (scripts/run-unit-net11-local.sh) every reference its net10.0 build needs became a restore
+    error before a single test ran. Removed here for that build only, rather than conditioned in each test
+    csproj, so the next test project that references one does not rediscover it. The APIs are all still there:
+    on net11.0 they come from the framework.
+  -->
+  <PropertyGroup>
+    <_RaskSharedFrameworkExtensions>Microsoft.Extensions.Caching.Abstractions;Microsoft.Extensions.Configuration.Abstractions;Microsoft.Extensions.DependencyInjection.Abstractions;Microsoft.Extensions.Diagnostics.Abstractions;Microsoft.Extensions.FileProviders.Abstractions;Microsoft.Extensions.Hosting.Abstractions;Microsoft.Extensions.Logging.Abstractions;Microsoft.Extensions.Options;Microsoft.Extensions.Primitives</_RaskSharedFrameworkExtensions>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(_RaskInSrc)' != 'true' AND '$(TargetFramework)' != '' AND $([MSBuild]::VersionGreaterThanOrEquals($([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')), '11.0')) ">
+    <PackageReference Remove="$(_RaskSharedFrameworkExtensions)"/>
+  </ItemGroup>
+
+  <!--
+    And again for a project with a LIST of frameworks, whose restore is computed in the outer, framework-less
+    evaluation the item group above cannot answer for. Nothing outside src/ multi-targets today, so this is the
+    latent half: without it, the day a test project takes a second framework, NU1510 returns as a build error.
+  -->
+  <ItemGroup Condition=" '$(_RaskInSrc)' != 'true' AND '$(TargetFramework)' == '' AND '$(TargetFrameworks)' != '' AND $(TargetFrameworks.Contains('net11.')) ">
+    <PackageReference Remove="$(_RaskSharedFrameworkExtensions)"/>
+  </ItemGroup>
 
   <!--
     In-repo auto-import for Rask build integration.

@@ -361,8 +361,38 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   a plugin's exported config name differs per plugin and per major, and a wrong one throws at ESLint
   *startup*, which nothing that merely reads the config file can see.
 
+  `--front-end` also **drives** each app, which is the half a build cannot make: building proves the
+  code compiles and the bundler ran, not that the bundle loads or that the client can reach the host.
+  A SPA is driven in a browser until the starter's greeting appears — one assertion covering the
+  bundle loading, dispatching to `/_rask`, a C# handler answering, and the typed result reaching the
+  DOM. A meta app is asserted with **no browser at all**: the server-rendered markup arriving over
+  plain HTTP is proof that Node produced it and Kestrel forwarded, and a `/_rask` request that comes
+  back as a rendered *page* is this lane's characteristic failure — the forwarder shadowing a route
+  the host should have answered.
+
+  `--container` adds the meta **container boot**, and it is worth its cost for one reason: in
+  development the browser talks to the framework's own dev server directly, so Kestrel's forwarder,
+  its supervision of Node as a child, and the static roots it serves itself run at **deploy time and
+  nowhere else** (#946's Risk 1). The image is where the two toolchains meet — it carries a Node
+  runtime beside the .NET one and runs `npm ci` plus a production framework build inside itself —
+  which a local `dotnet run` cannot show, because a local run has the developer's own Node on PATH.
+  Nuxt only unless `RASK_META_CONTAINER_ALL=1`; the forwarder is shared, and the per-framework
+  differences are covered by the build gate.
+
   Opted into by `RASK_TEMPLATE_E2E=1`, which the script exports; without it every case reports
   **SKIPPED** rather than passing silently.
+- **The unit suite runs on .NET 11 by hand.** Every shipped package builds for `net10.0` and `net11.0`
+  (`RaskNetTargets`, `Directory.Build.props`), so the compile, the analyzers and the public-API gate cover
+  both on every commit. What only a RUN can show is behaviour — a test that passes on the .NET 10 runtime
+  and fails on 11 — and that means rebuilding the whole test graph for a second framework, which the hooks'
+  one-minute budget cannot carry. `scripts/run-unit-net11-local.sh` is that run, and a row in
+  `run-all-gates.sh`. It sets `RaskTestTarget=net11.0` for one command (test projects name their framework
+  as `$(RaskTestTarget)`; MSBuild reads an environment variable as a property) and invokes
+  `run-unit-local.sh` itself, so the gate still appears in `ps` under that name and
+  `scripts/lib/machine-lane.sh` keeps counting its slots. It then reads its own log back and fails unless
+  every test assembly reported `.NETCoreApp,Version=v11.0` — a run that quietly stayed on .NET 10 would
+  otherwise be green and prove nothing. It leaves the test projects' restore graphs on `net11.0`, so the
+  next ordinary unit gate restores them again.
 - **A red gate names the culprit it actually found.** Both the CLI build gate and the E2E gate build
   browser targets, so both can fail for a reason that has nothing to do with your branch — most often
   `NETSDK1147`, the `wasm-tools` workload resolving as missing because a workload install elsewhere on

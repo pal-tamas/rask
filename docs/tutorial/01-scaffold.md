@@ -14,10 +14,11 @@ cd Shop
 ```
 
 **The batteries come as standard.** That one command wires every One Person Framework pillar into the
-project: a SQLite database and the CQRS mediator, background jobs, transactional email, a cache, a
-durable outbox, scheduled snapshots, continuous backup, a durable log store, the operator dashboard, an
-installable PWA with Web Push, and a production `Dockerfile`. Each chapter from here on teaches you what
-one of them is *for*; none of them needs a wiring detour first.
+project: a SQLite database, background jobs, transactional email, a cache, a durable outbox, scheduled
+snapshots, continuous backup, a durable log store, the operator dashboard, an installable PWA with Web
+Push, and a production `Dockerfile`. It also creates and applies the database's **first migration**, so
+every battery's tables exist before you run anything. Each chapter from here on teaches you what one of
+them is *for*; none of them needs a wiring detour first.
 
 Two things you might expect to choose are not choices:
 
@@ -27,7 +28,7 @@ Two things you might expect to choose are not choices:
 - The pages are styled with **Tailwind**, which every project gets — the compiler ships inside the host
   package, so there is no flag, no package to add, and nothing to turn on or off.
 
-These are **scaffold-time** choices — they wire into `Program.cs` and the `DbContext` as the project is
+These are **scaffold-time** choices — they wire into `Program.cs` and `AppDbContext` as the project is
 created, so you pick them up front rather than bolting them on later.
 
 > **Want less?** Every battery has a `--no-` — `rask new Shop --no-push --no-ops` leaves those two out.
@@ -67,20 +68,44 @@ also have a working **`/login`** page and a protected **`/members`** page.
 The `server` template is deliberately small — a handful of files, no example pages to clean up:
 
 - **`Program.cs`** — host setup. `builder.Services.AddRask()` registers the framework and
-  `app.UseRask<App>()` mounts your root component. This is where every pillar you add in later chapters gets
-  one line of registration. `AddRaskAuth<AppDbContext>()` is already here — that is the accounts battery.
+  `app.UseRask<App>()` mounts your root component. Between them, one commented registration per battery,
+  each naming the app's context — `AddRaskAuth<AppDbContext>()`, `AddRaskJobs<AppDbContext>()`,
+  `AddRaskMail<AppDbContext>()` and so on. None of them carries settings: each reads its own section of
+  `appsettings.json` (`Rask:Mail`, `Rask:Jobs`, …), so when a later chapter tunes a pillar, that section is
+  what it edits. The database part is these lines, plus `Db.Configure(app.Services)` after the app is built:
+
+  ```csharp
+  builder.Services.AddRaskData<AppDbContext>();
+  builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+      .UseRaskSqlite(sp)
+      .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+  ```
+
+  `UseRaskSqlite(sp)` reads the connection string from `Rask:ConnectionStrings:App` — `Data Source=app.db`
+  in the scaffolded `appsettings.json` — which is why it takes the service provider.
+
+  You'll also see `builder.Services.AddRaskCqrs()`. It's plumbing: the jobs and outbox batteries hand their
+  work to your handlers through it. Nothing in this tutorial calls it.
+- **`Features/Shared/AppDbContext.cs`** — the app's one database context. It derives from `RaskDbContext`,
+  whose base maps every entity you declare, so there is no `DbSet` property or configuration class to add as
+  you go. Its `OnModelCreating` maps the batteries' tables (`modelBuilder.AddRaskJobs()` and friends) — those
+  are what the first migration created.
 - **`Features/Shared/App.cs`** — the **root component**: it renders into `<body>` (Rask builds the
   document around it, filling `<head>` from every component's `Head` override) and drops a `Router()`
   where the current page appears. It lives in `Features/Shared/` — the bucket for cross-cutting code the
   whole app shares.
 - **`Features/Home/HomePage.cs`** — the `/` welcome page, its own feature slice. Edit or replace it.
+- **The [Rask.Ui](../ui-kit.md) kit** — referenced by the project, imported everywhere by a
+  `<Using Include="Rask.Ui"/>` in the csproj, and its stylesheet linked first in `App.cs`. Every page in this
+  tutorial is built from its components — `UiInput`, `UiButton`, `UiCard`, `UiDataGrid` — rather than from
+  raw tags and class strings.
 - **No `Features/Auth/` folder** — and nothing missing. The sign-in, registration and sign-out pages ship
   inside `Rask.Auth`, already routed. You replace any of them by declaring your own page at the same
   route, which wins over the built-in one.
 
 Everything the CLI generates lands under `Features/`: a screen is its own `Features/<Name>/` slice, and
-cross-cutting code (the app root, components, jobs, emails, the `DbContext`) sits in `Features/Shared/`. You'll
-add your first `Features/<Name>/` slice in the next chapter.
+cross-cutting code (the app root, components, jobs, emails, `AppDbContext`) sits in `Features/Shared/`.
+You'll add your first `Features/<Name>/` slice in the next chapter.
 
 For the component model itself — state, event handlers, the chain, routing — see
 [Getting started](../getting-started.md). This tutorial focuses on everything *behind* the UI.
@@ -88,6 +113,7 @@ For the component model itself — state, event handlers, the chain, routing —
 ## Verify
 
 - `rask dev` prints a URL and the app loads with the "Hello, Rask! 👋" welcome card.
+- A `Migrations/` folder exists and `app.db` sits next to the project — the first migration already ran.
 - Browsing to `/login` shows a sign-in form and `/register` offers to claim the app (proof the accounts battery
   wired in).
 - Editing `HomePage` in `Features/Home/HomePage.cs` and saving updates the page without a manual refresh.

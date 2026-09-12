@@ -6,16 +6,34 @@ public class Battery
     /// <summary>Whether this battery will be wired.</summary>
     public bool Enabled { get; private set; } = true;
 
+    /// <summary>
+    /// Whether the app asked for this battery with <see cref="On"/>, rather than leaving it on by default. A battery that
+    /// cannot run on this app's database is skipped when merely defaulted, and refused when asked for.
+    /// </summary>
+    internal bool TurnedOn { get; private set; }
+
     /// <summary>Leave this battery out of the app.</summary>
     /// <remarks>
     /// The package stays referenced — this stops the registration, nothing more. Turning it back on is
     /// then a one-line edit rather than a change to the project file, which is the point of referencing
     /// everything.
     /// </remarks>
-    public void Off() => Enabled = false;
+    public void Off()
+    {
+        Enabled = false;
+        TurnedOn = false;
+    }
 
-    /// <summary>Wire this battery. The default, so this only ever undoes an <see cref="Off"/>.</summary>
-    public void On() => Enabled = true;
+    /// <summary>
+    /// Wire this battery. Every battery is on by default, so this undoes an <see cref="Off"/> — and also records that the
+    /// app asked for it: on a database the battery cannot run on (Snapshots on PostgreSQL or SQL Server), a battery
+    /// turned on this way refuses the start, where one left on by default is quietly left out.
+    /// </summary>
+    public void On()
+    {
+        Enabled = true;
+        TurnedOn = true;
+    }
 }
 
 /// <summary>A battery with its own options.</summary>
@@ -36,6 +54,9 @@ public sealed class Battery<TOptions> : Battery
     where TOptions : class
 {
     private readonly List<Action<TOptions>> _configure = [];
+
+    /// <summary>Whether the app configured this battery in code at all.</summary>
+    internal bool IsConfigured => _configure.Count > 0;
 
     /// <summary>Configures this battery. Call it as often as you like; each call adds to the last.</summary>
     /// <example>

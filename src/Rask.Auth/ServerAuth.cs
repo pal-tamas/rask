@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Rask.Core.Authentication;
+using Rask.Wire;
 
 namespace Rask.Auth;
 

@@ -20,7 +20,8 @@ jobs:
 
       - uses: ./.github/actions/setup
         with:
-          workloads: wasm-tools
+          # wasm-tools-net10: the .NET 11 SDK relinks a net10.0-browser build only with the net10 toolchain.
+          workloads: wasm-tools wasm-tools-net10
 
       - name: Restore
         run: dotnet restore Rask.slnx

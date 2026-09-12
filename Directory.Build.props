@@ -67,16 +67,21 @@
     The PRIMARY target is the single inner build that owns work producing one shared file, such as a bundle
     written into the project directory: every framework's build would otherwise race to write it.
 
-    Applications (src/Rask.Site, the templates), test projects and build tooling (generators, tasks) keep
-    their own single framework — an app runs on one runtime, and tooling loads into the compiler or MSBuild.
-    A global property wins over these (-p:RaskNetTargets=...), which is how the cost of a second version is
-    measured before it is switched on.
+    Applications (src/Rask.Site, the templates) and build tooling (generators, tasks) keep their own single
+    framework — an app runs on one runtime, and tooling loads into the compiler or MSBuild. Test projects
+    build for ONE of these versions at a time, RaskTestTarget in tests/Directory.Build.props: the unit gate
+    stays on the primary target, and scripts/run-unit-net11-local.sh runs the same suite on .NET 11.
+
+    .NET 11 is the second version (STS; .NET 10 stays the primary, LTS target). Building it needs the .NET 11
+    SDK, which RaskRequireSdk11 in Directory.Build.targets checks before anything else runs. The Microsoft
+    package pins stay on 10.0.x for both until .NET 11 is GA: a stable Rask package may not depend on a
+    prerelease one (NU5104). A global property still wins over these (-p:RaskNetTargets=net10.0).
   -->
   <PropertyGroup>
     <RaskPrimaryNetTarget>net10.0</RaskPrimaryNetTarget>
     <RaskPrimaryBrowserTarget>net10.0-browser</RaskPrimaryBrowserTarget>
-    <RaskNetTargets>$(RaskPrimaryNetTarget)</RaskNetTargets>
-    <RaskBrowserTargets>$(RaskPrimaryBrowserTarget)</RaskBrowserTargets>
+    <RaskNetTargets>$(RaskPrimaryNetTarget);net11.0</RaskNetTargets>
+    <RaskBrowserTargets>$(RaskPrimaryBrowserTarget);net11.0-browser</RaskBrowserTargets>
   </PropertyGroup>
 
   <!--

@@ -220,6 +220,15 @@
                        Include="@(_RaskApiClientFile->'    &lt;Compile Include=&quot;%(FullPath)&quot; /&gt;')"/>
       <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.css&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;AdditionalFiles Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
+      <!--
+        A package island's committed props snapshot, beside the class it generates chain steps for.
+        Rask.External globs `*.props.json` from the COMPANION's own directory, inside obj\, where none lives,
+        so without these the island compiles with no steps and the browser half fails on its first one as
+        CS1929. Rooted at Client/ and Shared/, so no obj/bin/node_modules removals are needed.
+      -->
+      <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.props.json&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;AdditionalFiles Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
+      <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Shared\%2A%2A\%2A.props.json&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;_RaskScopedTs Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.ts&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;_RaskScopedTs Remove=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.d.ts&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;_RaskScopedTs Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>

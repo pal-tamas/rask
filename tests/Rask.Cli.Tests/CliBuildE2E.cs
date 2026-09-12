@@ -39,6 +39,7 @@ internal static class CliBuildE2E
         "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
         "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
         "Rask.Auth",                        // --data: the scaffolded context maps the account tables
+        "Rask.Auth.Api",                    // the same, on the lanes with no renderer — and under Rask.Auth
         "Rask.Meta.Hosting",                // the meta templates: the node supervisor, and the same emit
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
@@ -95,8 +96,58 @@ internal static class CliBuildE2E
         var nupkg = Directory.GetFiles(feed, "Rask.Server.*.nupkg").Single();
         var version = Path.GetFileNameWithoutExtension(nupkg)["Rask.Server.".Length..];
 
+        AssertEveryDotnetVersionShipsTheSamePayload(feed, nupkg);
+
         EvictFromGlobalCache(version);
         return (feed, version);
+    }
+
+    /// <summary>
+    ///     Every package ships the same files for .NET 11 as for .NET 10: each <c>lib/net10.0*</c> folder has a
+    ///     <c>lib/net11.0*</c> twin with an identical file list.
+    /// </summary>
+    /// <remarks>
+    ///     Pack cannot see this. A folder a package forgot is simply not there — the literal <c>lib/net10.0/</c>
+    ///     paths that used to bundle Rask.Core would have shipped <c>lib/net11.0/</c> without it, and a consumer
+    ///     on .NET 11 would restore cleanly and die on the first render. So the packed feed is read back, and
+    ///     Rask.Core in Rask.Server's .NET 11 folder is named outright, so a feed with no second version at all
+    ///     cannot pass by having nothing to compare.
+    ///     <para>
+    ///         Scoped to <see cref="FeedPackages" />, which is what this gate packs — not every packable project.
+    ///         A package outside that list losing its .NET 11 face is not caught here; the repo-wide statement is
+    ///         RaskVerifyTargetFrameworks in Directory.Build.targets, which fails any shipped project that does not
+    ///         take its frameworks from RaskNetTargets.
+    ///     </para>
+    /// </remarks>
+    private static void AssertEveryDotnetVersionShipsTheSamePayload(string feed, string serverPackage)
+    {
+        foreach (var package in Directory.GetFiles(feed, "*.nupkg"))
+        {
+            using var zip = System.IO.Compression.ZipFile.OpenRead(package);
+            // The whole path under lib/<tfm>/, not just the file name: a satellite assembly sits one level deeper
+            // (lib/<tfm>/<culture>/X.resources.dll), and comparing names alone would let a framework ship without
+            // its translations while the folders still looked identical.
+            var lib = zip.Entries
+                .Select(e => e.FullName.Split('/'))
+                .Where(parts => parts.Length >= 3 && parts[0] == "lib" && parts[^1].Length > 0)
+                .GroupBy(parts => parts[1], parts => string.Join('/', parts[2..]), StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.ToHashSet(StringComparer.Ordinal), StringComparer.Ordinal);
+
+            foreach (var (folder, files) in lib.Where(f => f.Key.StartsWith("net10.0", StringComparison.Ordinal)))
+            {
+                var twin = "net11.0" + folder["net10.0".Length..];
+                Assert.True(
+                    lib.TryGetValue(twin, out var twinFiles),
+                    $"{Path.GetFileName(package)} ships lib/{folder}/ but no lib/{twin}/, so .NET 11 consumers get nothing.");
+                Assert.True(
+                    files.SetEquals(twinFiles!),
+                    $"{Path.GetFileName(package)}: lib/{folder}/ has [{string.Join(", ", files.Order(StringComparer.Ordinal))}] "
+                    + $"but lib/{twin}/ has [{string.Join(", ", twinFiles!.Order(StringComparer.Ordinal))}].");
+            }
+        }
+
+        using var server = System.IO.Compression.ZipFile.OpenRead(serverPackage);
+        Assert.Contains(server.Entries, e => e.FullName == "lib/net11.0/Rask.Core.dll");
     }
 
     /// <summary>

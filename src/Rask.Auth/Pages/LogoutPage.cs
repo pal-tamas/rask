@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
+using Rask.Wire;
 
 namespace Rask.Auth.Pages;
 

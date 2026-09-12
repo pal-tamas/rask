@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+// SecureToken, source-linked from Rask.Core (see the csproj) and keeping its namespace there.
 using Rask.Core;
 
 namespace Rask.Auth;

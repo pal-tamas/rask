@@ -31,6 +31,9 @@ cd "$root"
 # label · script · the env it needs to actually do anything (empty = runs unconditionally)
 gates=(
   "unit + format|scripts/run-unit-local.sh|"
+  # The same unit suite on the second .NET version every package ships for. By hand rather than in the hook:
+  # it rebuilds the test graph for another framework, which the one-minute budget cannot carry.
+  "unit on .NET 11|scripts/run-unit-net11-local.sh|"
   "browser E2E|scripts/run-e2e-local.sh|"
   "CLI build|scripts/run-cli-build-e2e.sh|RASK_CLI_BUILD_E2E=1"
   # Every template scaffolded and built. Not --front-end here: that tier installs and builds

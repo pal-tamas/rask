@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Rask.Core.Authentication;
+using Rask.Wire;
 
 namespace Rask.Auth.Client;
 

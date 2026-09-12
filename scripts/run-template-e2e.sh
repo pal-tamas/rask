@@ -10,23 +10,36 @@
 # was built by anything — the meta lane's only gate publishes a hand-written stub csproj against
 # stand-in files, so a real Nuxt or SvelteKit app compiling was never checked anywhere.
 #
-# Two tiers, because the costs differ by two orders of magnitude:
+# Three tiers, because the costs differ by orders of magnitude:
 #
 #   scripts/run-template-e2e.sh              the C# half of all fifteen
 #   scripts/run-template-e2e.sh --front-end  plus each client's real npm ci, lint and production
-#                                            build — 4.5-6 minutes PER template on a cold cache
+#                                            build, AND the journeys: a scaffolded SPA is driven in a
+#                                            browser until a dispatch round-trips to a C# handler, and
+#                                            a meta app is asked for its server-rendered page with no
+#                                            browser at all. 4.5-6 minutes PER template, cold.
+#   scripts/run-template-e2e.sh --container  plus the meta CONTAINER boot: a docker build that runs
+#                                            npm ci and a production framework build inside itself,
+#                                            then boots it and exercises the forwarder. This is
+#                                            #946's Risk 1 and the one gap nothing else covers —
+#                                            in dev the browser talks to the framework's own dev
+#                                            server, so Kestrel's forwarder runs at deploy time and
+#                                            nowhere else. Needs Docker; nuxt only unless
+#                                            RASK_META_CONTAINER_ALL=1.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
 front_end=0
+container=0
 filter=""
 for arg in "$@"; do
   case "$arg" in
     --front-end) front_end=1 ;;
+    --container) container=1 ;;
     --filter=*)  filter="${arg#--filter=}" ;;
-    *) echo "usage: $0 [--front-end] [--filter=<vstest filter>]" >&2; exit 2 ;;
+    *) echo "usage: $0 [--front-end] [--container] [--filter=<vstest filter>]" >&2; exit 2 ;;
   esac
 done
 
@@ -41,9 +54,18 @@ mkdir -p "$NUGET_PACKAGES"
 
 if [ "$front_end" -eq 1 ]; then
   export RASK_TEMPLATE_FRONTEND_E2E=1
-  echo "==> Template gate (C# + front ends). This installs and builds thirteen front ends; expect an hour."
+  echo "==> Template gate (C# + front ends + journeys). This installs, builds and RUNS thirteen front"
+  echo "    ends; expect an hour or more."
 else
-  echo "==> Template gate (C# half). Pass --front-end to also install and build every client."
+  echo "==> Template gate (C# half). Pass --front-end to install, build and drive every client."
+fi
+
+if [ "$container" -eq 1 ]; then
+  export RASK_META_CONTAINER_E2E=1
+  if ! docker info >/dev/null 2>&1; then
+    echo "!! --container needs Docker running; its cases will report SKIPPED." >&2
+  fi
+  echo "==> Meta container boot included (#946 Risk 1: the forwarder, exercised nowhere else)."
 fi
 
 args=(test tests/Rask.Templates.E2E.Tests/Rask.Templates.E2E.Tests.csproj -c Release

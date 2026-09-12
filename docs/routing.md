@@ -105,7 +105,8 @@ instead of pushing a new one, and it navigates through the ambient `Navigator.Cu
 itself, it may only be called **from an event handler**.
 
 > **`NavLink`, not `A`, for anywhere in your own app — and never a `target` on one.** The runtime intercepts
-> clicks on `a[data-rask-nav]`, and `NavLink` is the only thing that writes that attribute. An
+> clicks on `a[data-rask-nav]`, which `NavLink` writes — as do the kit's `UiButton.Href` and `UiLink.Href`
+> when they are handed a generated route rather than a string ([UI kit](ui-kit.md#buttons-and-links-that-go-somewhere)). An
 > `A.Href("/orders")` renders a perfectly valid link that the browser handles itself: a full document
 > navigation that downloads and boots the whole app again, discarding every piece of client state on the way.
 > Nothing warns you, because nothing is wrong with the markup — the link works, it is just not client-side.

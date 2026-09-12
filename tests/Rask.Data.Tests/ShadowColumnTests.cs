@@ -46,8 +46,7 @@ public sealed class ShadowColumnTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var note = Memo.Write("first");
-        await note.SaveAsync();
+        await GeneratedModelWrites.CreateAsync(Memo.Write("first"));
 
         var created = await Memo.All.QueryAsync((q, ct) =>
             q.Select(n => EF.Property<DateTime>(n, "CreatedAt")).ToListAsync(ct));
@@ -61,10 +60,9 @@ public sealed class ShadowColumnTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var note = Memo.Write("doomed");
-        await note.SaveAsync();
+        var note = await GeneratedModelWrites.CreateAsync(Memo.Write("doomed"));
 
-        await note.DeleteAsync();
+        await GeneratedModelWrites.DeleteAsync<Memo>(note.Id, version: null);
 
         Assert.Equal(0, await Memo.CountAsync());
         Assert.Equal(1, await Memo.IgnoreQueryFilters().CountAsync());
@@ -165,27 +163,33 @@ public sealed class ShadowColumnTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveAsync_still_tells_an_insert_from_an_update_without_a_readable_CreatedAt()
+    public async Task A_generated_update_stamps_the_shadow_UpdatedAt_and_leaves_CreatedAt()
     {
-        // A shadow CreatedAt lives in the change tracker, so a detached model has none to read — this is
-        // the path that asks the database instead. Both directions have to come out right.
-        await using var database = await StartDatabaseAsync();
+        // The generated update loads the row into a context, so the shadow columns are in the change
+        // tracker where the interceptor can stamp them — the class never having seen them.
+        var start = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
+        var clock = new FakeClock(start);
+        await using var database = await StartDatabaseAsync(clock);
 
-        var note = Memo.Write("once");
-        await note.SaveAsync();
-        Assert.Equal(1, await Memo.CountAsync());
+        var note = await GeneratedModelWrites.CreateAsync(Memo.Write("once"));
 
-        await note.SaveAsync();
-        Assert.Equal(1, await Memo.CountAsync());
+        clock.UtcNow = start.AddHours(1);
+        await GeneratedModelWrites.UpdateAsync<Memo>(note.Id, version: null, m => m.Edit("twice"));
 
-        var loaded = await Memo.FirstOrDefaultAsync(n => n.Text == "once");
-        loaded!.Edit("twice");
-        await loaded.SaveAsync();
+        var stored = await Memo.All.QueryAsync((q, ct) => q
+            .Select(n => new
+            {
+                n.Text,
+                CreatedAt = EF.Property<DateTime>(n, Columns.CreatedAt),
+                UpdatedAt = EF.Property<DateTime>(n, Columns.UpdatedAt),
+            })
+            .SingleAsync(ct));
 
-        Assert.Equal(1, await Memo.CountAsync());
-        Assert.Equal(1, await Memo.CountAsync(n => n.Text == "twice"));
+        Assert.Equal("twice", stored.Text);
+        Assert.Equal(start.UtcDateTime, stored.CreatedAt);
+        Assert.Equal(start.AddHours(1).UtcDateTime, stored.UpdatedAt);
     }
 
-    private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"));
+    private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>
+        TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
 }

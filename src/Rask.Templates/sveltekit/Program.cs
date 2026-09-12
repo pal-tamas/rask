@@ -11,9 +11,6 @@ using Rask.Storage;
 // rask:end
 using Rask.Cqrs;
 using Rask.Cqrs.Server;
-// rask:if cqrs data ops
-using Rask.Dashboard;
-// rask:end
 // rask:if cqrs data
 using Rask.Data;
 // rask:if jobs
@@ -79,9 +76,9 @@ builder.Services.AddRaskMeta();
 // DbSet property, no configuration class, no registration — then `rask db add <Name>` /
 // `rask db update` to create and apply the migration.
 //
-// The generic overload is what names the context to the ambient database, so `Product.Add(…)`
-// and `Product.Where(…)` know which one to open. The non-generic AddRaskData() registers only
-// the interceptors, and Db.Configure below then has nothing to bind.
+// The generic overload is what names the context to the model surface, so `Product.Where(…)`
+// and the generated `Product.CreateAsync(model)` know which one to open. The non-generic
+// AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
 builder.Services.AddRaskData<AppDbContext>();
 // rask:if outbox
 // Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
@@ -112,6 +109,11 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:Litestream:ReplicaUrl
 // island. The FIRST account to register becomes the administrator; while none exists, that
 // registration needs the one-time token written to the startup log.
 builder.Services.AddRaskAuth<AppDbContext>();
+
+// app.UseAuthorization() below needs the authorization services, and AddRaskAuth does not
+// register them — it registers Identity and Rask's IAuth. Without this the host throws
+// "Unable to find the required services" at startup, after a build that succeeded.
+builder.Services.AddAuthorization();
 // rask:if jobs
 
 // Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJob;
@@ -172,21 +174,6 @@ builder.Services.AddRaskSqliteSnapshots();
 // on the default settings. Either raise the floor for that category in Logging:LogLevel, or
 // add "Microsoft.EntityFrameworkCore.Database" to Rask:Logging:ExcludedCategories.
 builder.Services.AddRaskLogging();
-
-// rask:end
-// rask:if cqrs data ops
-// An operator dashboard at /_rask over every battery's table: queue depth, dead letters and the
-// errors behind them, cache contents, the log, and how this database is configured. A panel
-// only appears for a battery this app actually registered — the Logs page keeps a live tail
-// in memory, and gains a searchable History over the stored log when Rask.Logging is on.
-builder.Services.AddRaskDashboard<AppDbContext>();
-
-// WHO MAY OPERATE THE APP. The dashboard shows job payloads, stored email bodies and log
-// lines, so it is gated on the ADMIN role — the one the first account to register holds.
-// Requiring merely a signed-in user would open all of that to anyone who registered,
-// which on an app with open registration is everyone.
-builder.Services.AddAuthorization(o =>
-    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin)));
 
 // rask:end
 var app = builder.Build();

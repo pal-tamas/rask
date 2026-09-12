@@ -112,10 +112,10 @@ public static class GuideCatalog
             SearchTitle = "Tutorial 1: scaffold an ASP.NET Core app",
             Description = "Create the Shop project with rask new, run it, and tour what the server template generates: an ASP.NET Core app with SQLite, auth and batteries wired.",
         },
-        new("02-first-feature", "Ch 2 · First feature", "Generate a CRUD feature and wire the database.", "Tutorial", "tutorial/02-first-feature.md")
+        new("02-first-feature", "Ch 2 · First feature", "Declare an entity and build its list, create and edit pages.", "Tutorial", "tutorial/02-first-feature.md")
         {
             SearchTitle = "Tutorial 2: CRUD with EF Core and SQLite in C#",
-            Description = "Build a database-backed Products catalog as a vertical slice: entity, form model, EF Core mapping, CQRS commands and pages, then migrate with rask db.",
+            Description = "Build a database-backed Products catalog: declare the entity, bind its generated form model in Rask.Ui pages, list it in a data grid, migrate with rask db.",
         },
         new("03-orders-and-auth", "Ch 3 · Orders & auth", "A second feature, and locking it down.", "Tutorial", "tutorial/03-orders-and-auth.md")
         {
@@ -172,10 +172,10 @@ public static class GuideCatalog
             SearchTitle = "A .NET CLI to scaffold, run, migrate and deploy apps",
             Description = "Reference for the rask .NET tool: rask new to scaffold projects, rask dev for hot reload, rask db for EF Core migrations and backups, rask deploy over SSH.",
         },
-        new("data", "Rask.Data", "Base entity + EF Core interceptors: audit, soft-delete, domain events.", "One Person Framework")
+        new("data", "Rask.Data", "Declare models, read them off the type, write through generated form models.", "One Person Framework")
         {
             SearchTitle = "EF Core models without writing a DbContext in C#",
-            Description = "Declare EF Core models and query them directly, with no DbContext or DbSet to write: units of work, value objects, strongly-typed ids and bulk insert.",
+            Description = "Declare EF Core models in C# and read them off the type, with generated form models, create, update and delete writes, value objects and bulk insert.",
         },
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework")
         {

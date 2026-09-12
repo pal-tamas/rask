@@ -92,6 +92,27 @@ public sealed class LitAdapterTests
         Assert.True(doc.GetProperty("cardKept").GetBoolean(), "removing the children removed the element with them");
     }
 
+    [SkippableFact]
+    public void A_style_an_islands_library_injects_before_the_page_runtime_arms_is_kept_through_the_takeover()
+    {
+        // On a prerendered page the island runtime mounts islands before the page runtime watches <head>. A library that
+        // styles itself there (react-colorful, emotion) was trimmed by the takeover morph as boot-shell content and never
+        // re-injected, so the island rendered at zero size — found by the site's islands E2E. Tagged data-rask-managed,
+        // the morph skips it.
+        var doc = Run();
+
+        Assert.True(doc.GetProperty("headHandoffInstalled").GetBoolean(), "the island runtime is not watching <head>");
+        Assert.True(doc.GetProperty("headLibraryTagged").GetBoolean(), "a library's injected <style> was not tagged");
+        Assert.True(doc.GetProperty("headKeyedUntagged").GetBoolean(), "a framework keyed head node was tagged as foreign");
+        Assert.True(doc.GetProperty("headPendingTaggedAtHandoff").GetBoolean(),
+            "a node still pending when the page runtime armed was dropped rather than tagged");
+
+        // After the handoff the page runtime owns the watch: tagging here would mark its own head morphs as foreign and keep
+        // stale framework nodes alive forever.
+        Assert.True(doc.GetProperty("headAfterHandoffUntagged").GetBoolean(), "the island runtime kept tagging after the handoff");
+        Assert.True(doc.GetProperty("headHandoffCleared").GetBoolean(), "the handoff hook outlived the handoff");
+    }
+
     private static string[] Ids(JsonElement doc, string name) =>
         doc.GetProperty(name).EnumerateArray().Select(e => e.GetString()!).ToArray();
 

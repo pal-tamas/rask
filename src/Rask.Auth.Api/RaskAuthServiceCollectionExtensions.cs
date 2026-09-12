@@ -11,8 +11,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Rask.Core.Authentication;
 using Rask.Hosting.Shared;
+using Rask.Wire;
 
 namespace Rask.Auth;
 
@@ -21,7 +21,7 @@ public static class RaskAuthServiceCollectionExtensions
 {
     /// <summary>
     /// Adds ASP.NET Core Identity over the application's own context, the cookie scheme, and the
-    /// host-neutral <see cref="IAuth"/> the pages and endpoints are written against.
+    /// host-neutral <c>IAuth</c> the pages and endpoints are written against.
     /// </summary>
     /// <typeparam name="TContext">The application context that owns the account tables.</typeparam>
     /// <param name="services">The service collection.</param>
@@ -139,7 +139,20 @@ public static class RaskAuthServiceCollectionExtensions
         // The endpoints resolve the store without naming the user type — MapRaskAuth() is a
         // parameterless extension method, so it has no way to know which one this app configured.
         services.TryAddScoped<IAccounts>(sp => sp.GetRequiredService<AccountService<TUser>>());
-        services.TryAddScoped<IAuth, ServerAuth<TUser>>();
+
+        // Whatever the Rask host adds on top: an IAuth bound to its sign-in relay, and email bodies
+        // rendered from real components. Null on a host that renders none, which is the whole point of
+        // this package — see AuthHost.
+        //
+        // BEFORE the defaults below, because every registration here is TryAdd and TryAdd is
+        // FIRST-wins. Registering a default first would make the host's contribution a silent no-op:
+        // the app would still start, still sign people in, and quietly send the plain-HTML emails
+        // instead of its own.
+        AuthHost.EnsureHostLoaded();
+        AuthHost.Services?.Register<TUser>(services);
+
+        // The bodies for the confirmation and reset emails, when the host contributed none.
+        services.TryAddSingleton<IAuthEmailBodies, AuthEmailBodies>();
 
         // Before the first-run token initializer, so an app whose model never mapped the account tables
         // fails the boot with the line to type rather than at the first registration — Identity's EF

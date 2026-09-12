@@ -590,10 +590,44 @@ public class PackageDependencyTests
                 }
             }
 
+            // A package NuGet PRUNES from a framework is one that framework supplies itself, so it reaches the consumer
+            // without a declaration. .NET 11 folded nine Microsoft.Extensions libraries into its shared framework
+            // (Primitives and DependencyInjection.Abstractions among them), and they are absent from every net11
+            // graph by design rather than missing — which read as nine undeclared dependencies the moment the hosts
+            // gained a net11.0 target. The restore graph records exactly which packages it pruned, per framework,
+            // so that record is read rather than a list kept here; a package no framework supplies — ObjectPool on
+            // the WASM track, the #742 regression — is on none of them and still has to be declared.
+            reached.UnionWith(PrunedPackages(root, target.Name));
+
             perTarget[target.Name] = reached;
         }
 
         return perTarget;
+    }
+
+    // The packages NuGet pruned from one framework's graph because that framework provides them. A target name can
+    // carry a runtime identifier ("net10.0-browser/browser-wasm"); the framework section is keyed without it.
+    //
+    // .NET 11 and later ONLY, which is the case this exists for. Every framework prunes something — Rask.Wasm's
+    // net10.0 graph lists 272 entries — and each entry carries a version BOUND that the name-only comparison below
+    // ignores. Widening this to net10 would therefore start excusing a package referenced ABOVE its bound (say
+    // System.Memory 4.6 against a `(,4.3.32767]` prune), which NuGet does not supply and a consumer would not get.
+    private static string[] PrunedPackages(JsonElement assetsRoot, string targetName)
+    {
+        var framework = targetName.Split('/')[0];
+        var moniker = framework.Split('-')[0];
+
+        if (!moniker.StartsWith("net", StringComparison.Ordinal)
+            || !Version.TryParse(moniker["net".Length..], out var version)
+            || version.Major < 11)
+        {
+            return [];
+        }
+
+        return assetsRoot.GetProperty("project").GetProperty("frameworks").TryGetProperty(framework, out var section)
+               && section.TryGetProperty("packagesToPrune", out var pruned)
+            ? [.. pruned.EnumerateObject().Select(p => p.Name)]
+            : [];
     }
 
     // Mirrors how the repo declares it: an explicit <IsPackable>false</IsPackable>. Everything else in src/

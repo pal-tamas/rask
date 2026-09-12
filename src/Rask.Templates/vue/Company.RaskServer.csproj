@@ -22,12 +22,14 @@
       the API still works, and the site serves a page saying there is nothing built yet.
     -->
     <PackageReference Include="Rask.Spa.Hosting" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
     <!-- rask:if data -->
     <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.SQLite.Litestream" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Auth" Version="{{RaskVersion}}"/>
+    <!-- Accounts as JSON only. Rask.Auth is the same battery plus the built-in sign-in PAGES,
+         which are Rask components — and this host renders none, so it carries no Rask.Core for
+         them to render with. -->
+    <PackageReference Include="Rask.Auth.Api" Version="{{RaskVersion}}"/>
     <!-- rask:if outbox -->
     <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
@@ -52,9 +54,6 @@
     <!-- rask:end -->
     <!-- rask:if push pwa -->
     <PackageReference Include="Rask.WebPush" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if data ops -->
-    <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
   </ItemGroup>
 

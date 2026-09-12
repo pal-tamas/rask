@@ -121,6 +121,18 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
+    public void A_package_islands_snapshot_reaches_the_browser_app()
+    {
+        // A package island's chain steps are generated from the committed {Island}.props.json beside its class.
+        // Rask.External globs those from the companion's own directory, inside obj/, where none lives — so without
+        // the app's, the island compiles with no steps and the browser half fails on its first one as CS1929.
+        var project = Slashes(Generate());
+
+        Assert.Contains("/Client/**/*.props.json\" />", project, StringComparison.Ordinal);
+        Assert.Contains("/Shared/**/*.props.json\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_companion_publishes_outside_its_own_project_directory()
     {
         // Publishing into the companion's own folder makes each publish an input to the next.

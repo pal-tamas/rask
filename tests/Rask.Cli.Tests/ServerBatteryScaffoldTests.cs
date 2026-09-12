@@ -146,7 +146,7 @@ public sealed class ServerBatteryScaffoldTests
         // that absence is the point — this is the line that would regress if the old conditional came back.
         //
         // The TYPE argument is a different thing and is required: the generic overload is what binds the
-        // context to the ambient database, so Db.Configure has something to point at. This test used to
+        // context to the model surface, so Db.Configure has something to point at. This test used to
         // assert the bare `AddRaskData();`, which read as though the type argument were unwanted too.
         var program = Generate(flag)["Program.cs"];
 
@@ -412,7 +412,7 @@ public sealed class ServerBatteryScaffoldTests
     /// <remarks>
     /// No other gate can catch this. Over plain <c>DbContext</c> the file compiles, the app boots and the
     /// migration succeeds — every model just quietly maps to nothing, and the first
-    /// <c>Product.Add(…)</c> throws at runtime saying the entity type was not found. So the base type is
+    /// <c>Product.CreateAsync(model)</c> throws at runtime saying the entity type was not found. So the base type is
     /// asserted here, in text, rather than left to the build E2E.
     /// </remarks>
     [Fact]

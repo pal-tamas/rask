@@ -72,13 +72,31 @@ internal static class RaskBatteryWiring
         ["Rask:Snapshots:DestinationDirectory"] = "snapshots",
     };
 
+    /// <summary>
+    /// The defaults that only make sense for a SQLite app: a database FILE to fall back to, and a directory to copy it
+    /// into. On PostgreSQL or SQL Server a missing connection string must fail naming the key, not quietly become
+    /// "Data Source=app.db" handed to a server driver — and any Rask:Snapshots value there is one the app set.
+    /// </summary>
+    private static readonly HashSet<string> SqliteOnlyDefaults =
+        new(["Rask:ConnectionStrings:App", "Rask:Snapshots:DestinationDirectory"], StringComparer.Ordinal);
+
+    /// <summary>The development defaults for an app on <paramref name="provider"/>.</summary>
+    internal static IReadOnlyDictionary<string, string?> DefaultsFor(RaskDatabaseProvider provider) =>
+        provider == RaskDatabaseProvider.Sqlite
+            ? Defaults
+            : Defaults.Where(d => !SqliteOnlyDefaults.Contains(d.Key)).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+
     internal static void Apply(WebApplicationBuilder builder, RaskAppOptions options)
     {
         var services = builder.Services;
 
+        // Read while services are registered, like Rask:Cqrs, because it decides which services exist: where the log is
+        // kept, whether snapshots run. Read before the defaults go in, which name no provider.
+        var provider = RaskDatabase.Provider(builder.Configuration);
+
         // Underneath every source the builder already has — appsettings.json, the environment, user secrets, the
         // command line — so each of them overrides these.
-        builder.Configuration.Sources.Insert(0, new MemoryConfigurationSource { InitialData = Defaults });
+        builder.Configuration.Sources.Insert(0, new MemoryConfigurationSource { InitialData = DefaultsFor(provider) });
 
         // A connection string set in code beats every configuration source, the same way a Configure callback does.
         // Written into configuration rather than passed along, so everything that derives from the database — the
@@ -125,7 +143,20 @@ internal static class RaskBatteryWiring
             services.AddRaskData();
         }
 
-        if (options.Logs.Enabled)
+        // On PostgreSQL or SQL Server the log goes into the application database (WireFor), so it is not wired here.
+        var serverDatabase = data && provider != RaskDatabaseProvider.Sqlite;
+
+        // The app's own context, when it registered one. Read here so its provider check is registered before any
+        // battery: options are validated in the order they were registered, before any hosted service starts, so a
+        // battery whose validation fails on the wrong database (a snapshot of a file a server connection string does
+        // not name) would otherwise report first and hide the real mistake. See RaskDatabaseProviderCheck.
+        var appContext = data ? FindDbContext(services) : null;
+        if (appContext is not null)
+        {
+            AddProviderCheck(services, appContext);
+        }
+
+        if (options.Logs.Enabled && !serverDatabase)
         {
             // Its own file, deliberately: log lines arrive at machine rates, and the line you most want is
             // the one written while a transaction is failing — which on the app's context would roll back
@@ -181,28 +212,35 @@ internal static class RaskBatteryWiring
             return;
         }
 
-        // Continuous backup, inert until a replica is configured. It is what makes one box a safe place to
-        // keep your only copy: if the machine dies, a fresh one restores from the replica and carries on. The
-        // database it replicates defaults to the file behind Rask:ConnectionStrings:App.
-        if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:Litestream:ReplicaUrl"]))
+        if (provider == RaskDatabaseProvider.Sqlite)
         {
-            services.AddRaskSqliteLitestream();
-        }
+            // Continuous backup, inert until a replica is configured. It is what makes one box a safe place to
+            // keep your only copy: if the machine dies, a fresh one restores from the replica and carries on. The
+            // database it replicates defaults to the file behind Rask:ConnectionStrings:App.
+            if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:Litestream:ReplicaUrl"]))
+            {
+                services.AddRaskSqliteLitestream();
+            }
 
-        if (options.Snapshots.Enabled)
+            if (options.Snapshots.Enabled)
+            {
+                // A second line of defence beside the continuous replication. Taken through SQLite's Online
+                // Backup API rather than a file copy: with WAL on, copying the .db can capture a torn database
+                // because the committed data is split across the file and the -wal.
+                services.AddRaskSqliteSnapshots(o => options.Snapshots.Apply(o));
+            }
+        }
+        else
         {
-            // A second line of defence beside the continuous replication. Taken through SQLite's Online
-            // Backup API rather than a file copy: with WAL on, copying the .db can capture a torn database
-            // because the committed data is split across the file and the -wal.
-            services.AddRaskSqliteSnapshots(o => options.Snapshots.Apply(o));
+            RefuseSqliteOnlyBatteries(builder.Configuration, options, provider);
         }
 
         // The pillars need the application's DbContext as a type argument. The app already named it, in
         // its own AddDbContextFactory call — and because this runs last, that registration is sitting in
         // the collection. Reading it there beats asking for the name a second time.
-        if (FindDbContext(services) is { } context)
+        if (appContext is not null)
         {
-            WireContextBatteries(services, options, context);
+            WireContextBatteries(services, options, appContext, provider);
         }
         else
         {
@@ -213,10 +251,53 @@ internal static class RaskBatteryWiring
             // library the app has not yet touched would make "are there entities?" answer differently
             // depending on what ran first.
             services.AddDbContextFactory<RaskAppDbContext>((sp, o) => o
-                .UseRaskSqlite(sp)
+                .UseRaskDatabase(sp)
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
-            WireContextBatteries(services, options, typeof(RaskAppDbContext));
+            WireContextBatteries(services, options, typeof(RaskAppDbContext), provider);
+        }
+    }
+
+    /// <summary>
+    /// On PostgreSQL or SQL Server: leaves out the SQLite-only batteries the app merely defaulted, and refuses the ones
+    /// it asked for.
+    /// </summary>
+    /// <remarks>
+    /// Snapshots and Litestream both copy a SQLite FILE, and a server database has none. A battery that is on only
+    /// because every battery is on by default is left out without a word — a Postgres app should not have to say
+    /// <c>Snapshots.Off()</c>. One the app configured, though, is a backup it believes it has, and quietly never running
+    /// it would be the worst answer, so that refuses the start and names what to remove.
+    /// </remarks>
+    private static void RefuseSqliteOnlyBatteries(
+        IConfiguration configuration,
+        RaskAppOptions options,
+        RaskDatabaseProvider provider)
+    {
+        var name = RaskDatabase.Name(provider);
+
+        if (!string.IsNullOrWhiteSpace(configuration["Rask:Litestream:ReplicaUrl"]))
+        {
+            throw new InvalidOperationException(
+                $"Rask:Litestream:ReplicaUrl is set, but {RaskDatabase.ProviderKey} is {name}. Litestream replicates a "
+                + "SQLite file, and this app has none: back the database up with its own tools, and remove "
+                + "Rask:Litestream:ReplicaUrl (Rask__Litestream__ReplicaUrl in the environment).");
+        }
+
+        if (!options.Snapshots.Enabled)
+        {
+            return;
+        }
+
+        // Only the app's own sources can hold a Rask:Snapshots value here: its default is not added off SQLite.
+        var configured = configuration.GetSection("Rask:Snapshots").AsEnumerable()
+            .Any(setting => !string.IsNullOrWhiteSpace(setting.Value));
+
+        if (configured || options.Snapshots.IsConfigured || options.Snapshots.TurnedOn)
+        {
+            throw new InvalidOperationException(
+                $"Snapshots are configured, but {RaskDatabase.ProviderKey} is {name}. A snapshot copies the SQLite file, "
+                + "and this app has none. Remove the Rask:Snapshots section and any c.Snapshots.Configure or "
+                + "c.Snapshots.On call, or turn the battery off with app.Configure(c => c.Snapshots.Off()).");
         }
     }
 
@@ -247,18 +328,61 @@ internal static class RaskBatteryWiring
     // rooted by the app's own AddDbContextFactory<T> call, so it is never trimmed away.
     [UnconditionalSuppressMessage("Trimming", "IL2060",
         Justification = "TContext comes from the app's own IDbContextFactory<T> registration, which roots it.")]
-    private static void WireContextBatteries(IServiceCollection services, RaskAppOptions options, Type context) =>
+    private static void WireContextBatteries(
+        IServiceCollection services,
+        RaskAppOptions options,
+        Type context,
+        RaskDatabaseProvider provider) =>
         typeof(RaskBatteryWiring)
             .GetMethod(nameof(WireFor), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(context)
-            .Invoke(null, [services, options]);
+            .Invoke(null, [services, options, provider]);
 
-    private static void WireFor<TContext>(IServiceCollection services, RaskAppOptions options)
+    // The same reflection point as WireContextBatteries, over the same app-rooted context type.
+    [UnconditionalSuppressMessage("Trimming", "IL2060",
+        Justification = "The context type comes from the app's own IDbContextFactory<T> registration, which roots it.")]
+    private static void AddProviderCheck(IServiceCollection services, Type context) =>
+        typeof(RaskBatteryWiring)
+            .GetMethod(nameof(AddProviderCheckFor), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(context)
+            .Invoke(null, [services]);
+
+    // A start-up validation rather than a hosted service, because validation runs before every hosted service — and
+    // in registration order, which Apply keeps ahead of every battery. The check throws its own message; returning
+    // false would only offer a fixed one, and the useful message names both providers.
+    private static void AddProviderCheckFor<TContext>(IServiceCollection services)
+        where TContext : DbContext =>
+        services.AddOptions<RaskDatabaseProviderCheck<TContext>>()
+            .Validate<IDbContextFactory<TContext>, IConfiguration>(
+                static (check, contexts, configuration) => check.Verify(contexts, configuration))
+            .ValidateOnStart();
+
+    private static void WireFor<TContext>(
+        IServiceCollection services,
+        RaskAppOptions options,
+        RaskDatabaseProvider provider)
         where TContext : DbContext
     {
-        // Bind the ambient database to this context, so `Product.Where(…)` and `Db.Begin()` reach it
-        // without anything being injected. AddRaskData is idempotent, so this only adds the binding.
+        // Bind the model surface to this context, so `Product.Where(…)` and the generated
+        // `Product.CreateAsync(model)` reach it without anything being injected. AddRaskData is idempotent,
+        // so this only adds the binding.
         services.AddRaskData<TContext>();
+
+        // Unless the app wired a log store itself, which wins here as it does for every battery. Calling
+        // AddRaskLogging<TContext> anyway would register its model check for a table nothing writes, and fail the boot.
+        if (options.Logs.Enabled && provider != RaskDatabaseProvider.Sqlite
+            && !services.Any(static d => d.ServiceType == typeof(ILogs)))
+        {
+            // On PostgreSQL or SQL Server the log goes into the application database. The reasons it keeps a file of its
+            // own on SQLite weigh differently there: the server locks rows rather than the whole database, and every
+            // flush runs on a context and connection of its own, so a line logged inside a failing transaction still
+            // survives the rollback. EF's per-command logging is excluded for the same reason as on SQLite.
+            services.AddRaskLogging<TContext>(o =>
+            {
+                o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database");
+                options.Logs.Apply(o);
+            });
+        }
 
         // The outbox first, so a reader meets durable delivery before the things that use it. Order is not
         // load-bearing — see OutboxDeliveryHandoverTests, which pins that both ways round work.
