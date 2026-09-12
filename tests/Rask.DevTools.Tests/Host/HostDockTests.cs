@@ -57,5 +57,11 @@ public sealed class HostDockTests
 
         // 6. Nothing to frame, no frame.
         Assert.Equal(0, Int("framesWithoutPanel"));
+
+        // 7. A panel that is not a page: one frame given the document, and the host told once, with the frame attached.
+        Assert.Equal(1, Int("wasmFrameCount"));
+        Assert.Equal("<!DOCTYPE html><title>panel</title>", Str("wasmFrameDocument"));
+        Assert.Equal("", Str("wasmFrameSrc"));
+        Assert.Equal(["attached"], r.GetProperty("framed").EnumerateArray().Select(e => e.GetString() ?? ""));
     }
 }

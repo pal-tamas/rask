@@ -30,6 +30,17 @@ updates:
       # from Directory.Packages.props as well.
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
       - dependency-name: "Microsoft.CodeAnalysis.CSharp.Workspaces"
+      #
+      # MSBuild's task API — compile-only (ExcludeAssets="runtime") in the five src/*.Tasks projects,
+      # with runtime assets in their test projects. 18.10 is the .NET 11 SDK line: it and its
+      # exactly-pinned Microsoft.Build.Framework [18.10.1] ship lib/net11.0 + lib/net472 ONLY, where
+      # 18.9.6 ships lib/net10.0. The failure mode is the dangerous one — a net10.0 project still
+      # COMPILES, because it binds ref/netstandard2.0, so the build is green and only the tests that
+      # load a task fail, with FileNotFoundException on Microsoft.Build.{Utilities.Core,Framework},
+      # Version=15.1.0.0. That was 70 failures across the four *.Tasks.Tests projects; PR #1064 was
+      # closed for it. Lift this when the repo targets net11.0, and bump both halves together.
+      - dependency-name: "Microsoft.Build.Utilities.Core"
+        versions: [">=18.10.0"]
     groups:
       # The .NET platform stack ships as one versioned family (10.0.x) and lands in a single
       # Directory.Packages.props — group it so a patch wave is one PR. Ungrouped members each open

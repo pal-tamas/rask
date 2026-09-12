@@ -447,7 +447,6 @@ them until tagged releases begin.
   also carries a reset scoped to the console frame (`UiShell`'s `.rask-ops`), so a mounted app drawn only with
   the kit needs no stylesheet of its own; an application that links the sheet is untouched by it.
 
-
 - **An island takes children of its own runtime.** A React island accepts React islands, text, numbers
   and dates — `MuiCard["Revenue ", _total, MuiButton.OnClick(Save)["Save"]]` — a Vue island Vue islands,
   and so on across all seven runtimes, and a list of islands or of text binds directly
@@ -526,6 +525,14 @@ them until tagged releases begin.
   field. `Product.Where(…).AsQueryable()` works the same way. EF Core's own operators (`Include`,
   `IgnoreQueryFilters`) go on before it, because EF ignores them on any other query provider.
 
+- **The Rask pill opens the devtools panel on WASM pages too.** A Debug build of a WASM app served from this machine
+  (`localhost` or a loopback address) gets the same pill and drawer as a Server app, and the Wire tab lists the page's
+  frames. With no server to run it on, the panel runs as a second live session inside the app's own .NET runtime, with
+  its own route state and services, and starts only when the drawer first opens. Its frames are posted into a `srcdoc`
+  frame whose small client applies them, so no second runtime boots. The scripts are embedded in `Rask.DevTools` and
+  imported from a `data:` URL, so a Release publish that strips the assembly strips them too; a development page whose
+  Content-Security-Policy forbids `data:` scripts logs one warning instead. A Debug bundle deployed to a real host keeps
+  the tools off for its visitors.
 - **Every Rask package ships for .NET 11 as well as .NET 10.** Each package now carries a `lib/net11.0` build
   (and `lib/net11.0-browser1.0` where it has a browser face) beside its .NET 10 one, so an app on the .NET 11
   release candidate references Rask exactly as it does today. .NET 10 stays the primary, LTS target: `rask new`

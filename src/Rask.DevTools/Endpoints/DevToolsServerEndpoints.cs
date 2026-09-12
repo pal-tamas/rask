@@ -62,12 +62,7 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
         // devtools stay off — and say so once, instead of a pill that opens a broken frame.
         if (!_uiKitAvailable())
         {
-            RaskDiagnostics.Report(
-                RaskLogLevel.Warning,
-                "Rask.DevTools",
-                "Rask DevTools are off: their panel is drawn with Rask.Ui, which this app does not reference. Add a "
-                + "PackageReference to Rask.Ui to turn them on — apps created with `rask new` and the Rask package already "
-                + "have one.");
+            DevToolsUiKit.ReportMissing();
             return;
         }
 

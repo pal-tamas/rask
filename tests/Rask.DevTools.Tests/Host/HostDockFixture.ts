@@ -9,7 +9,8 @@
 //      pill; a plain Ctrl+D is left alone; Cmd+Shift+D reopens without a second frame;
 //   4. docking right is remembered by the next install;
 //   5. with storage blocked the dock still installs and docks, and nothing throws;
-//   6. with no panel URL, opening creates no frame.
+//   6. with no panel URL, opening creates no frame;
+//   7. with a frame document instead (the WASM host), one srcdoc frame, and onFrame once, with the frame attached.
 //
 // The C# test (HostDockTests) runs this and asserts the single JSON line on stdout.
 
@@ -161,11 +162,29 @@ const noPanel = installDock({panelUrl: null});
 noPanel.toggle();
 const framesWithoutPanel = parts(noPanel.element as unknown as StubElement).drawer.find("iframe").length;
 
+// 7. A panel that is not a page (the WASM host's): the frame is given its document, and the host is told once, after the
+// frame is attached — a frame's window exists only then.
+newDocument();
+const framed: string[] = [];
+const wasm = installDock({
+    panelUrl: null,
+    frameDocument: "<!DOCTYPE html><title>panel</title>",
+    onFrame: (frame: HTMLIFrameElement) =>
+        framed.push((frame as unknown as StubElement).parentNode ? "attached" : "detached"),
+});
+wasm.toggle();
+wasm.toggle();
+wasm.toggle();
+const wasmFrames = parts(wasm.element as unknown as StubElement).drawer.find("iframe");
+const wasmFrameDocument = (wasmFrames[0] as unknown as {srcdoc?: string} | undefined)?.srcdoc ?? null;
+const wasmFrameSrc = wasmFrames[0]?.src ?? null;
+
 process.stdout.write(JSON.stringify({
     mountedAfterBody, managed, closedAtStart, framesAtStart, sideAtStart, shortcutListenerIsCapture,
     openAfterPill, frameCount: frames.length, frameSrc,
     closedByShortcut, shortcutSwallowed, focusReturnedToPill, plainIgnored, reopenedByMac, framesAfterReopen,
     storedSide, drawerSide, rightPressed, sideOnNextInstall,
     blockedThrew, blockedSide,
-    framesWithoutPanel
+    framesWithoutPanel,
+    wasmFrameCount: wasmFrames.length, wasmFrameDocument, wasmFrameSrc, framed
 }) + "\n");

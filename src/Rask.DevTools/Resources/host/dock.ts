@@ -13,9 +13,20 @@ export type Dock = "bottom" | "right";
 
 export const DOCK_STORAGE_KEY = "rask.devtools.dock";
 
+declare global {
+    interface Window {
+        /** Present once the devtools host has run in this document, whichever host loaded it. */
+        __raskDevtoolsHost?: { readonly version: 1; readonly dock: DockHandle };
+    }
+}
+
 export interface DockOptions {
-    /** The panel page the drawer frames, or null while there is none to show. */
+    /** The panel page the drawer frames: a Server host's panel URL, or null when the panel is not a page. */
     readonly panelUrl: string | null;
+    /** The panel frame's document, for a host whose panel is not a page (WASM). Used when there is no panel URL. */
+    readonly frameDocument?: string | null;
+    /** Called once, when the drawer first opens and its frame has been attached. */
+    readonly onFrame?: (frame: HTMLIFrameElement) => void;
 }
 
 export interface DockHandle {
@@ -118,12 +129,18 @@ export function installDock(options: DockOptions): DockHandle {
     };
 
     const open = () => {
-        if (!frame && options.panelUrl) {
+        if (!frame && (options.panelUrl || options.frameDocument)) {
             frame = document.createElement("iframe");
             frame.className = "frame";
             frame.title = "Rask DevTools panel";
-            frame.src = options.panelUrl;
+            if (options.panelUrl) {
+                frame.src = options.panelUrl;
+            } else {
+                frame.srcdoc = options.frameDocument!;
+            }
             drawer.appendChild(frame);
+            // Attached first: a frame's window exists only once it is in the document.
+            options.onFrame?.(frame);
         }
         drawer.hidden = false;
         pill.setAttribute("aria-expanded", "true");
