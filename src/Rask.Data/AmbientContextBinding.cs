@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data;
 
 /// <summary>
-///     Names the <see cref="DbContext" /> the ambient database opens, registered by
+///     Names the <see cref="DbContext" /> the model surface opens, registered by
 ///     <c>AddRaskData&lt;TContext&gt;()</c> and read by <see cref="Db.Configure(IServiceProvider)" />.
 /// </summary>
 /// <remarks>
@@ -24,6 +24,6 @@ public sealed class AmbientContextBinding
     /// <summary>The bound context type.</summary>
     public Type ContextType { get; }
 
-    /// <summary>Opens a fresh, unshared context. The unit of work owns and disposes what this returns.</summary>
+    /// <summary>Opens a fresh, unshared context. The caller — one read or one write — owns and disposes it.</summary>
     public DbContext CreateContext() => _createContext();
 }

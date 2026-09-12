@@ -111,6 +111,17 @@ internal sealed class BulkInsertPlan
             }
 
             var mapping = property.GetTypeMapping();
+
+            // Nothing generates or assigns values on this path, so a key left at its default would be written
+            // as-is - and the second such row would collide on the primary key. That covers a value-generated
+            // property, and a Guid key the entity assigns itself: Rask.Data's key convention marks a Model<TId>
+            // key never generated, so a factory that forgot its Id would otherwise insert Guid.Empty here. Only a
+            // Guid (or a strongly-typed id stored as one) is guarded that way - an enum or integer key whose
+            // default is a real value must still insert.
+            var entityAssignedGuidKey = property.IsPrimaryKey()
+                && ((Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType) == typeof(Guid)
+                    || mapping.Converter?.ProviderClrType == typeof(Guid));
+
             var parameter = $"p{columns.Count}";
             columns.Add(new BulkInsertColumn(
                 columnName,
@@ -119,9 +130,9 @@ internal sealed class BulkInsertPlan
                 BuildGetter<TEntity>(property),
                 mapping.Converter,
                 (mapping as RelationalTypeMapping)?.DbType,
-                // Nothing generates values on this path, so a client-generated key left at its default would
-                // be written as-is - and the second such row would collide on the primary key.
-                property.ValueGenerated != ValueGenerated.Never ? $"{typeof(TEntity).Name}.{property.Name}" : null,
+                property.ValueGenerated != ValueGenerated.Never || entityAssignedGuidKey
+                    ? $"{typeof(TEntity).Name}.{property.Name}"
+                    : null,
                 GetDefault(property.ClrType)));
         }
 
@@ -227,13 +238,14 @@ internal sealed record BulkInsertColumn(
     {
         var value = Read(entity);
 
-        // EF would have filled a value-generated property before the insert; this path has no one to do that,
-        // so an unset one must be reported rather than written as a default that collides on the next row.
+        // EF would have filled a value-generated property before the insert, and an entity assigns its own Guid
+        // key; this path does neither, so an unset one must be reported rather than written as a default that
+        // collides on the next row.
         if (GeneratedName is not null && Equals(value, ClrDefault))
         {
             throw BulkInsertPlan.Unsupported(
-                $"{GeneratedName} is value-generated but still unset, and nothing generates values on this " +
-                "path. Assign it before inserting.");
+                $"{GeneratedName} is still unset, and nothing generates or assigns values on this path. " +
+                "Assign it before inserting.");
         }
 
         return value is null ? null : Converter is null ? value : Converter.ConvertToProvider(value);

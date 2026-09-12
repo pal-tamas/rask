@@ -309,12 +309,12 @@ public sealed class ProjectGeneratorTests
         // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that reads Rask:ConnectionStrings:App,
         // which appsettings.json carries and `rask deploy` redirects to a mounted volume.
         var program = on["Program.cs"];
-        // The GENERIC overload: it is what names the context to the ambient database. The non-generic one
+        // The GENERIC overload: it is what names the context to the model surface. The non-generic one
         // registers only the interceptors, and Db.Configure then has nothing to bind.
         Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
 
-        // …and the one call that points the ambient database at it, after the container is built. Without
-        // this the app boots and serves, and throws on the first Product.Add(…).
+        // …and the one call that points the model surface at it, after the container is built. Without
+        // this the app boots and serves, and throws on the first Product.Where(…).
         Assert.Contains("Db.Configure(app.Services);", program, StringComparison.Ordinal);
         Assert.True(
             program.IndexOf("var app = builder.Build();", StringComparison.Ordinal)

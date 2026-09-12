@@ -3,14 +3,14 @@ using Rask.Cqrs;
 namespace Rask.Data;
 
 /// <summary>
-/// The root of the entity hierarchy, and what the active-record surface is keyed on: every type that
-/// derives from this gains the static members <see cref="ModelSet" /> declares — <c>Product.Add</c>,
-/// <c>Product.Where</c>, <c>Product.FindAsync</c> — and the instance ones (<c>SaveAsync</c>,
-/// <c>DeleteAsync</c>, <c>ReloadAsync</c>).
+/// The root of the entity hierarchy, and what the model surface is keyed on: every type that derives from
+/// this gains the reads <see cref="ModelSet" /> declares — <c>Product.Where</c>, <c>Product.FindAsync</c>,
+/// <c>Product.AsQueryable</c> — and the source generator gives it a <c>ProductModel</c> with the writes
+/// that take one (<c>Product.CreateAsync</c>, <c>Product.UpdateAsync</c>, <c>Product.DeleteAsync</c>).
 /// </summary>
 /// <remarks>
 /// Carries no state. It exists so that surface can be constrained to entities rather than to
-/// <c>class</c>, which would put <c>Where</c> and <c>Add</c> on every type in the program. Derive from
+/// <c>class</c>, which would put <c>Where</c> on every type in the program. Derive from
 /// <see cref="Model{TId}" /> instead of this — it is the one that has an identity.
 /// </remarks>
 public abstract class Model

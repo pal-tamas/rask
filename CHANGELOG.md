@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A kit button or link given a generated route navigates inside the app.** `UiButton.Href` and
+  `UiLink.Href` take a `RouteUrl`, so `UiButton.Href(Routes.CreateProduct())["New product"]` renders an
+  `<a>` carrying `data-rask-nav` and the deploy's path base, and the runtime routes the click without
+  reloading the page, as it does for a `NavLink`. A string still converts and still renders an ordinary
+  link, which is what a URL leaving the app wants, and `NewTab(true)` is never intercepted. Until now a
+  button-shaped link to one of the app's own pages reloaded the whole app to get there. The tutorial's
+  New, Edit, Cancel and Back links are kit buttons and links now, and rask.sh's `PageMeta.LinkTo` keeps
+  the route's page type through the trailing slash it adds.
+
 - **F5 in VS Code debugs a Rask app.** `rask new` scaffolds `.vscode/` — `launch.json`, `tasks.json` and
   `extensions.json` — into every template with an ASP.NET host. F5 builds the project as a dev session and
   runs it under the C# debugger, so breakpoints hit from startup. Edits need a restart there (Ctrl+Shift+F5):
@@ -409,7 +418,76 @@ them until tagged releases begin.
   optional third argument to `mount` and `update`, so an adapter you vendored and edited keeps working and
   renders no children until you add them.
 
+- **Every `Rask.Data` model gets a generated, form-shaped companion and the writes that take it.** For
+  `Product` the build writes `ProductModel`: a settable copy of every mapped property except the key,
+  `Version` included, `Id`, `CreatedAt`/`UpdatedAt`/`DeletedAt` and navigations left out, and the
+  DataAnnotations attributes copied so `Form.Model(model)` validates by the entity's own rules. Beside it
+  come `Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id, version)` and
+  `product.ToModel()`. The entity keeps its private constructor and private setters, and does not have to
+  be `partial`.
+
+  Each write opens a context, makes one change through the change tracker and disposes the context, so
+  the interceptors stamp, version, soft-delete and publish exactly as for any other save. `UpdateAsync`
+  writes only the columns that changed and throws `KeyNotFoundException` for a missing or soft-deleted
+  row. On an `IVersioned` model it checks `model.Version`, so a lost race is a
+  `DbUpdateConcurrencyException`. `DeleteAsync` takes the version when the caller has one and deletes the
+  current row when it does not; a model that is not `IVersioned` gets `DeleteAsync(id)` alone.
+  `[SkipModel]` keeps a property off the model, and a value-object property becomes a nested
+  `{ValueObject}Model`. The build warns about an entity with no parameterless constructor
+  ([RASK081](docs/diagnostics.md#rask081): it gets no `CreateAsync`) and about a nested entity
+  ([RASK083](docs/diagnostics.md#rask083): no model), and refuses a hand-written, non-`partial`
+  `ProductModel` beside a `Product` ([RASK082](docs/diagnostics.md#rask082)) — a `partial` one merges into
+  the generated class, which is how a model gains members of its own.
+
+  The other generators recognise a model although it is generated and they cannot see it: a CQRS message,
+  a query handler's result, an API endpoint, an island prop, a component prop or an
+  `AbstractValidator<ProductModel>` carrying one gets its codec, registration or validator exactly as for a
+  hand-written type. On the wire a model's properties are camelCase; the entity's `[JsonPropertyName]` is
+  not copied onto it.
+
+  The model carries no id: `UpdateAsync` takes the row's id as its own argument, so a model posted over a
+  wire cannot choose the row it writes. `CreateAsync(model)` assigns a `Guid` key itself (an integer key comes
+  from the database), `CreateAsync(id, model)` takes one, and a key Rask cannot produce — a strongly-typed id
+  over an `int` — gets only the overload that takes it. Non-integer `Model<TId>` keys are never EF-generated,
+  so a child entity with its own id added to a loaded aggregate is saved as an insert. A write the entity
+  declares itself (`public static Task<Product> CreateAsync(ProductModel model, …)`) overrides the generated
+  one at every call site; the generated one stays reachable as `ProductModelExtensions.CreateAsync` to wrap.
+
+- **Two build warnings keep an entity's state inside the entity.** [RASK084](docs/diagnostics.md#rask084)
+  reports a public `set` or `init` (a value object's positional record parameters excepted) or a public
+  non-readonly field on a `Model`, the app's abstract bases between `Model` and its entities, and every
+  `IValueObject`; [RASK085](docs/diagnostics.md#rask085) reports an entity exposing a mutable collection of
+  other entities instead of `IReadOnlyCollection<T>` over a private field. Both ship a lightbulb fix.
+
+- **`Product.AsQueryable()` hands a model query to a component that composes its own LINQ.** It is a
+  standard `IQueryable<T>` that holds no context and opens one for each execution, so
+  `UiDataGrid.Data(Product.AsQueryable())` sorts and pages in the database and is safe to keep in a page's
+  field. `Product.Where(…).AsQueryable()` works the same way. EF Core's own operators (`Include`,
+  `IgnoreQueryFilters`) go on before it, because EF ignores them on any other query provider.
+
 ### Changed
+
+- **BREAKING: `Rask.Data` has no unit of work and no tracked writes on the model.** Removed outright, with
+  no `[Obsolete]` step: the tracker verbs
+  `Product.Add`/`AddRange`/`Update`/`UpdateRange`/`Remove`/`RemoveRange`/`Attach`/`Entry`/`Set`; the
+  instance `entity.SaveAsync()` and `entity.DeleteAsync()`; `AsTracking()` and `AsNoTracking()`;
+  `Db.Begin()` and the `UnitOfWork` type; and `Db.Current`, `Db.HasCurrent`, `Db.CurrentUnitOfWork`,
+  `Db.SaveChangesAsync`, `Db.Set<T>()` and `Db.Entry()`. `Db` keeps only its three `Configure` overloads,
+  `IsConfigured` and `Reset()`. A `Model<TId>` key that is not an integer is no longer generated by EF Core:
+  the entity assigns its own id (or the generated `CreateAsync` does), and saving one added with its key
+  still at the default now throws instead of inserting an empty key. A key an app configured itself
+  (`ValueGeneratedOnAdd()`, a database default) is left as it was.
+
+  An ambient context is the wrong shape for a live page, which outlives any scope a `DbContext` should
+  have. A second spelling of EF Core's own unit of work was also one more thing to learn, and it bought no
+  capability. A form's write moves to the generated `Product.CreateAsync`/`UpdateAsync`/`DeleteAsync`. A
+  domain operation or a transaction is plain EF Core: inject `IDbContextFactory<RaskAppDbContext>` on a
+  page, or `RaskAppDbContext` in a CQRS handler or an endpoint, and call `SaveChangesAsync`. See
+  `docs/data.md`.
+
+  **Every read is now untracked, with no opt-out, and `FindAsync(key)` is an untracked query by key.** It
+  applies the global query filters, so a soft-deleted row is not found. Batch `ExecuteUpdateAsync` and
+  `ExecuteDeleteAsync` are unchanged, and still bypass the interceptors.
 
 - **Every shipped package reads its .NET versions from one place** — the groundwork for building each package
   for .NET 10 and .NET 11 side by side. `Directory.Build.props` now states `RaskNetTargets` /

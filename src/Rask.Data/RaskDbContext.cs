@@ -13,14 +13,15 @@ namespace Rask.Data;
 ///         <c>DbSet</c> property, and no <see cref="IEntityTypeConfiguration{TEntity}" /> to write.
 ///     </para>
 ///     <para>
-///         It is reached through the active-record surface (<c>Product.Where(…)</c>, <c>Db.Current</c>),
-///         not by injection — a Rask session outlives any context, so what is registered is an
-///         <see cref="IDbContextFactory{TContext}" /> and each unit of work opens its own.
+///         The model surface (<c>Product.Where(…)</c>, <c>Product.CreateAsync(model)</c>) reaches it with
+///         nothing injected — a Rask session outlives any context, so what is registered is an
+///         <see cref="IDbContextFactory{TContext}" /> and each call opens its own. A domain operation
+///         injects that factory (or, in a scoped handler, the context) and uses EF Core directly.
 ///     </para>
 ///     <para>
 ///         <b>An app that outgrows this writes its own context and Rask steps aside.</b> Registering an
-///         <c>IDbContextFactory&lt;YourContext&gt;</c> is enough — the batteries bind the ambient
-///         database to the context the app registered, and this one is never used. Call
+///         <c>IDbContextFactory&lt;YourContext&gt;</c> is enough — the batteries bind the model surface to
+///         the context the app registered, and this one is never used. Call
 ///         <c>modelBuilder.ApplyRaskConventions()</c> (or <c>ModelRegistry.Apply(modelBuilder)</c> to keep
 ///         the generated model too) from its <c>OnModelCreating</c>.
 ///     </para>

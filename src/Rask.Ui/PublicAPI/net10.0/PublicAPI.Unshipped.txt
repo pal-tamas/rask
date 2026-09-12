@@ -108,7 +108,7 @@ Rask.Ui.RaskPending_UiLink_Href.Key(object? key) -> Rask.Ui.RaskPending_UiLink_H
 Rask.Ui.RaskPending_UiLink_Href.RaskPending_UiLink_Href() -> void
 Rask.Ui.RaskPending_UiLink_Href.Text(string! Text) -> Rask.Ui.UiLink!
 Rask.Ui.RaskPending_UiLink_Text
-Rask.Ui.RaskPending_UiLink_Text.Href(string! Href) -> Rask.Ui.UiLink!
+Rask.Ui.RaskPending_UiLink_Text.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.Ui.UiLink!
 Rask.Ui.RaskPending_UiLink_Text.Key(object? key) -> Rask.Ui.RaskPending_UiLink_Text
 Rask.Ui.RaskPending_UiLink_Text.RaskPending_UiLink_Text() -> void
 Rask.Ui.RaskPending_UiMegamenuPanel_Id
@@ -414,7 +414,7 @@ Rask.Ui.RaskSeed_UiKbd.Key(object? key) -> Rask.Ui.RaskSeed_UiKbd
 Rask.Ui.RaskSeed_UiKbd.RaskSeed_UiKbd() -> void
 Rask.Ui.RaskSeed_UiKbd.Text(string! Text) -> Rask.Ui.UiKbd!
 Rask.Ui.RaskSeed_UiLink
-Rask.Ui.RaskSeed_UiLink.Href(string! Href) -> Rask.Ui.RaskPending_UiLink_Href
+Rask.Ui.RaskSeed_UiLink.Href(Rask.Core.Routing.RouteUrl Href) -> Rask.Ui.RaskPending_UiLink_Href
 Rask.Ui.RaskSeed_UiLink.Key(object? key) -> Rask.Ui.RaskSeed_UiLink
 Rask.Ui.RaskSeed_UiLink.RaskSeed_UiLink() -> void
 Rask.Ui.RaskSeed_UiLink.Text(string! Text) -> Rask.Ui.RaskPending_UiLink_Text
@@ -677,7 +677,7 @@ Rask.Ui.UiButton.CommandFor.get -> string?
 Rask.Ui.UiButton.CommandFor.set -> void
 Rask.Ui.UiButton.Disabled.get -> bool?
 Rask.Ui.UiButton.Disabled.set -> void
-Rask.Ui.UiButton.Href.get -> string?
+Rask.Ui.UiButton.Href.get -> Rask.Core.Routing.RouteUrl?
 Rask.Ui.UiButton.Href.set -> void
 Rask.Ui.UiButton.NewTab.get -> bool?
 Rask.Ui.UiButton.NewTab.set -> void
@@ -1333,7 +1333,7 @@ Rask.Ui.UiLabel.UiLabel() -> void
 Rask.Ui.UiLink
 Rask.Ui.UiLink.Class.get -> string?
 Rask.Ui.UiLink.Class.set -> void
-Rask.Ui.UiLink.Href.get -> string!
+Rask.Ui.UiLink.Href.get -> Rask.Core.Routing.RouteUrl
 Rask.Ui.UiLink.Href.set -> void
 Rask.Ui.UiLink.Text.get -> string!
 Rask.Ui.UiLink.Text.set -> void
@@ -2312,9 +2312,9 @@ static RaskBuilderSettersRask_Ui.Horizontal(this Rask.Ui.UiFooter! __b, bool? va
 static RaskBuilderSettersRask_Ui.Horizontal(this Rask.Ui.UiMenu! __b, bool? value) -> Rask.Ui.UiMenu!
 static RaskBuilderSettersRask_Ui.Hover<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiBrand! __b, Rask.Core.Routing.RouteUrl value) -> Rask.Ui.UiBrand!
-static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiButton! __b, string? value) -> Rask.Ui.UiButton!
+static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiButton! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.Ui.UiButton!
 static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiCard! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.Ui.UiCard!
-static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiLink! __b, string! value) -> Rask.Ui.UiLink!
+static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiLink! __b, Rask.Core.Routing.RouteUrl value) -> Rask.Ui.UiLink!
 static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiMenuItem! __b, string? value) -> Rask.Ui.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiMetric! __b, string? value) -> Rask.Ui.UiMetric!
 static RaskBuilderSettersRask_Ui.Href(this Rask.Ui.UiNavTab! __b, Rask.Core.Routing.RouteUrl value) -> Rask.Ui.UiNavTab!

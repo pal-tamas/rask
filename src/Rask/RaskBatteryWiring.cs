@@ -256,8 +256,9 @@ internal static class RaskBatteryWiring
     private static void WireFor<TContext>(IServiceCollection services, RaskAppOptions options)
         where TContext : DbContext
     {
-        // Bind the ambient database to this context, so `Product.Where(…)` and `Db.Begin()` reach it
-        // without anything being injected. AddRaskData is idempotent, so this only adds the binding.
+        // Bind the model surface to this context, so `Product.Where(…)` and the generated
+        // `Product.CreateAsync(model)` reach it without anything being injected. AddRaskData is idempotent,
+        // so this only adds the binding.
         services.AddRaskData<TContext>();
 
         // The outbox first, so a reader meets durable delivery before the things that use it. Order is not

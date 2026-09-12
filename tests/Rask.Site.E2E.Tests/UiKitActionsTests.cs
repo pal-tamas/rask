@@ -248,6 +248,32 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(disabled).ToBeDisabledAsync();
     });
 
+    [Fact]
+    public Task AButtonGivenARouteNavigatesWithoutReloadingTheApp() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-button-route']");
+        var button = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Navigation components" });
+        var github = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "GitHub" });
+
+        // The markup half: the route is intercepted, the external new-tab link is not.
+        await Expect(button).ToHaveAttributeAsync("data-rask-nav", "");
+        await Expect(github).ToHaveAttributeAsync("target", "_blank");
+        Assert.Null(await github.GetAttributeAsync("data-rask-nav"));
+
+        // The behaviour half. A value on window survives only a client-side navigation: a full document
+        // load starts a fresh window and boots the app again, which is what a link without data-rask-nav
+        // costs even when its URL is the same.
+        await Page.EvaluateAsync("() => { window.__raskStayedInApp = true; }");
+        await button.ClickAsync();
+
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navigation",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskStayedInApp === true"),
+            "the button reloaded the app instead of navigating inside it.");
+    });
+
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);
