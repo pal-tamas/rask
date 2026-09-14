@@ -180,7 +180,8 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         var feed = feeds.For(session);
         if (renders is not null)
         {
-            feed.RecordCommit(renders, Distinct(walk, renders), _snapshots, Stopwatch.GetTimestamp());
+            feed.RecordCommit(
+                renders, Distinct(walk, renders), _snapshots, Stopwatch.GetTimestamp(), walk, FrameSinkScope.Current);
         }
 
         // Kept whether or not a panel is watching, so one that opens before the page renders again still has a tree. The

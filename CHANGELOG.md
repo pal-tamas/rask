@@ -634,6 +634,16 @@ them until tagged releases begin.
   renders, whichever comes first, and **Clear** starts the count again. The guide has a Renders section and a
   screenshot.
 
+- **The devtools can flash renders on the page.** "Flash on the page" in the Renders tab boxes each component that
+  rendered in amber, labelled `TaskRow · props`, and each node the patch changed in teal — so a component that
+  rendered and changed nothing stands out as amber with no teal inside. The amber boxes are the render log's own:
+  while flashing is on, each render is recorded with its place on the page (the diff's own coordinates, the same the
+  Tree tab's hover uses), and the panel's script posts each new commit's places to the page. The teal ones the page
+  sees for itself, with a `MutationObserver` that ignores the devtools' own element, `<head>`, and the document or body
+  toggling an attribute. Both are drawn in the devtools' shadow root from a pool of 64 boxes that fade in under a
+  second. The switch is off by default and remembered in the page's `localStorage`; flashing continues with the drawer
+  closed, and a page reloaded with it on loads the panel behind the closed drawer so renders flash straight away.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level

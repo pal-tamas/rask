@@ -62,6 +62,32 @@ public sealed class DevToolsRenderCaptureTests
         socket.Dispose();
     }
 
+    [Fact]
+    public async Task While_a_panel_flashes_each_render_carries_the_place_the_tree_gives_that_component()
+    {
+        using var host = DevToolsLivePage.Host<DevToolsTestApp>();
+        var (_, feed, socket, handlerId) = await DevToolsLivePage.OpenAsync(host);
+        Assert.All(feed.CommitsSnapshot().SelectMany(c => c.Renders), r => Assert.Null(r.At));
+
+        using var places = feed.WatchPlaces();
+        using var tree = feed.WatchTree();
+        var before = feed.CommitsSnapshot().Length;
+        // The shape the client really sends for a click, so this drives the page's own dispatch path.
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+
+        Assert.True(await DevToolsLivePage.WaitFor(
+            () => feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders).Any(r => r.Type == nameof(DevToolsTestApp)),
+            TimeSpan.FromSeconds(5)));
+        var app = feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders).First(r => r.Type == nameof(DevToolsTestApp));
+
+        // The same place the Tree tab boxes on hover, so the flash and the highlight agree.
+        Assert.NotNull(app.At);
+        Assert.True(await DevToolsLivePage.WaitFor(
+            () => feed.TreeSnapshot() is { } t && Nodes(t).Any(n => n.Id == app.Id && n.At == app.At),
+            TimeSpan.FromSeconds(5)), "the tree has no node with the render's id and place " + app.At);
+        socket.Dispose();
+    }
+
     private static IEnumerable<DevToolsComponentNode> Nodes(DevToolsComponentNode node) =>
         node.Children.SelectMany(Nodes).Prepend(node);
 }

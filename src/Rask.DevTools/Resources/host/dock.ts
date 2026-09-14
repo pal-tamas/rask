@@ -37,6 +37,8 @@ export interface DockHandle {
     readonly shadow: ShadowRoot;
     isOpen(): boolean;
     toggle(): void;
+    /** Creates the panel frame without opening the drawer, so the panel runs while it is shut. */
+    preload(): void;
     side(): Dock;
     setSide(side: Dock): void;
 }
@@ -132,7 +134,8 @@ export function installDock(options: DockOptions): DockHandle {
         toRight.setAttribute("aria-pressed", String(current === "right"));
     };
 
-    const open = () => {
+    // The panel frame, created once: on first open, or earlier when the page needs the panel running with the drawer shut.
+    const ensureFrame = () => {
         if (!frame && (options.panelUrl || options.frameDocument)) {
             frame = document.createElement("iframe");
             frame.className = "frame";
@@ -146,6 +149,10 @@ export function installDock(options: DockOptions): DockHandle {
             // Attached first: a frame's window exists only once it is in the document.
             options.onFrame?.(frame);
         }
+    };
+
+    const open = () => {
+        ensureFrame();
         drawer.hidden = false;
         pill.setAttribute("aria-expanded", "true");
     };
@@ -162,6 +169,7 @@ export function installDock(options: DockOptions): DockHandle {
         shadow,
         isOpen: () => !drawer.hidden,
         toggle: () => (drawer.hidden ? open() : shut()),
+        preload: ensureFrame,
         side: () => current,
         setSide: (side: Dock) => {
             current = side;

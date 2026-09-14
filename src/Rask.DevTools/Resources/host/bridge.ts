@@ -1,9 +1,11 @@
 // The page's side of the conversation with the panel frame about the overlays, shared by both hosts: a hover boxes the
-// row's nodes, a pick request turns the picker on, and what the picker chooses goes back to the panel.
+// row's nodes, a pick request turns the picker on, and what the picker chooses goes back to the panel; the flash switch
+// is remembered and starts or stops the page's flashes, and each commit's renders are flashed.
 
-import {asFrameMessage, CHANNEL, type FrameMessage} from "../rask-devtools-frame-protocol.js";
+import {asFrameMessage, CHANNEL, type FrameMessage, writeFlashSetting} from "../rask-devtools-frame-protocol.js";
 import {parseAnchors} from "./anchors.js";
 import type {DockHandle} from "./dock.js";
+import type {Flash} from "./flash.js";
 import type {Overlay} from "./overlay.js";
 
 export interface PanelBridge {
@@ -13,7 +15,9 @@ export interface PanelBridge {
     closed(): void;
 }
 
-export function createBridge(dock: DockHandle, overlay: Overlay, post: (message: FrameMessage) => void): PanelBridge {
+export function createBridge(
+    dock: DockHandle, overlay: Overlay, flash: Flash, post: (message: FrameMessage) => void,
+): PanelBridge {
     const cancel = () => post({channel: CHANNEL, kind: "pick-cancelled"});
 
     return {
@@ -35,6 +39,18 @@ export function createBridge(dock: DockHandle, overlay: Overlay, post: (message:
                     return true;
                 case "toggle":
                     dock.toggle();
+                    return true;
+                case "flash-setting":
+                    if (typeof message.on === "boolean") {
+                        writeFlashSetting(message.on);
+                        flash.setEnabled(message.on);
+                    }
+                    return true;
+                case "flash":
+                    if (Array.isArray(message.boxes)) {
+                        flash.renders(message.boxes.filter(b =>
+                            Array.isArray(b) && typeof b[0] === "string" && typeof b[1] === "string"));
+                    }
                     return true;
                 default:
                     return false;

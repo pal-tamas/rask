@@ -69,6 +69,7 @@ internal sealed class DevToolsFeed
     // a big page can carry thousands.
     private readonly Queue<DevToolsCommit> _commits = new();
     private int _heldRenders;
+    private int _placeWatchers;
 
     // Every component this feed has seen render, weakly: the first render of one is its mount.
     private static readonly object Seen = new();
@@ -138,7 +139,7 @@ internal sealed class DevToolsFeed
             _ = BuildFromCaptureAsync();
         }
 
-        return new TreeWatch(this);
+        return new Watch(() => Interlocked.Decrement(ref _treeWatchers));
     }
 
     /// <summary>
@@ -221,8 +222,8 @@ internal sealed class DevToolsFeed
         }
     }
 
-    /// <summary>One tab's interest in the tree, given up exactly once however often it is disposed.</summary>
-    private sealed class TreeWatch(DevToolsFeed feed) : IDisposable
+    /// <summary>One panel's interest in something the feed builds, given up exactly once however often it is disposed.</summary>
+    private sealed class Watch(Action release) : IDisposable
     {
         private int _released;
 
@@ -230,7 +231,7 @@ internal sealed class DevToolsFeed
         {
             if (Interlocked.Exchange(ref _released, 1) == 0)
             {
-                Interlocked.Decrement(ref feed._treeWatchers);
+                release();
             }
         }
     }
@@ -239,17 +240,35 @@ internal sealed class DevToolsFeed
     ///     Records the components that rendered in the commit the page just made. Called by the probe from inside that render;
     ///     a commit in which nothing rendered — every component served from its cache — is still a commit, and recorded.
     /// </summary>
-    internal void RecordCommit(List<DevToolsRenderItem> renders, int walked, DevToolsTreeSnapshotter ids, long timestamp)
+    internal void RecordCommit(
+        List<DevToolsRenderItem> renders, int walked, DevToolsTreeSnapshotter ids, long timestamp,
+        List<DevToolsWalkItem>? walk = null, FrameWriter? frames = null)
     {
+        // Where each rendered component is on the page, only while a panel flashes renders: the frames are the walk's own,
+        // still in the writer, and the spans are the walk's record of what each component wrote.
+        Dictionary<Component, (int Start, int End)>? spans = null;
+        if (WantsPlaces && walk is not null && frames is not null)
+        {
+            spans = new Dictionary<Component, (int, int)>(walk.Count, ReferenceEqualityComparer.Instance);
+            foreach (var item in walk)
+            {
+                spans[item.Component] = (item.FrameStart, item.FrameEnd);
+            }
+        }
+
         // Built outside the lock: the ids and names are the snapshotter's and the type cache's, and a mount is known by
         // the table below, which only this session's render thread writes.
         var items = new DevToolsRender[renders.Count];
+        var path = spans is null ? null : new List<int>();
         for (var i = 0; i < items.Length; i++)
         {
             var (component, cause, self) = renders[i];
             var reason = _rendered.TryAdd(component, Seen) ? DevToolsRenderReason.Mount : DevToolsNames.ReasonOf(cause);
+            var at = spans is not null && spans.TryGetValue(component, out var span)
+                ? DevToolsPlaces.Locate(frames!.WrittenSpan, span.Start, span.End, path!)
+                : null;
             items[i] = new DevToolsRender(
-                ids.IdOf(component), DevToolsNames.Of(component.GetType()), component.Key?.ToString(), reason, self);
+                ids.IdOf(component), DevToolsNames.Of(component.GetType()), component.Key?.ToString(), reason, self, at);
         }
 
         lock (_gate)
@@ -265,6 +284,16 @@ internal sealed class DevToolsFeed
         }
 
         Changed?.Invoke();
+    }
+
+    /// <summary>Whether a panel is flashing this session's renders, so each render is recorded with its place.</summary>
+    internal bool WantsPlaces => Volatile.Read(ref _placeWatchers) > 0;
+
+    /// <summary>Asks for renders with their places, until the returned token is disposed.</summary>
+    internal IDisposable WatchPlaces()
+    {
+        Interlocked.Increment(ref _placeWatchers);
+        return new Watch(() => Interlocked.Decrement(ref _placeWatchers));
     }
 
     /// <summary>The commits currently held, oldest first.</summary>
