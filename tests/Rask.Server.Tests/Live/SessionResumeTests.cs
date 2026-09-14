@@ -237,6 +237,54 @@ public sealed class SessionResumeTests
         }
     }
 
+    /// <summary>
+    /// A resumed socket is a connected socket (#1059). The resume path attached without counting while the
+    /// close always counted, so every deploy's reconnect storm drove <c>ConnectedCount</c> — the health
+    /// check's and the gauge's number — below zero for good.
+    /// </summary>
+    [Fact]
+    public async Task A_resumed_socket_is_counted_while_open_and_uncounted_once_closed()
+    {
+        var (host, sessionId, token) = await StartAndCapture(seed: 2);
+        using var _ = host;
+        await host.Store.RemoveAsync(sessionId);
+        Assert.True(await WebSocketHelper.EventuallyAsync(
+            () => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5)));
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
+        await ReadFrameWithHtmlAsync(ws);
+
+        Assert.Equal(1, host.Store.ConnectedCount);
+
+        await ws.CloseAndAwaitServerCleanupAsync();
+        Assert.Equal(0, host.Store.ConnectedCount);
+    }
+
+    /// <summary>
+    /// A socket gets one session (#1059). A second hello carrying a valid record used to build — and
+    /// register — another whole session per frame, bounded only by MaxSessions.
+    /// </summary>
+    [Fact]
+    public async Task A_second_hello_with_a_record_closes_the_socket_and_builds_nothing()
+    {
+        var (host, sessionId, token) = await StartAndCapture(seed: 4);
+        using var _ = host;
+        await host.Store.RemoveAsync(sessionId);
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
+        await ReadFrameWithHtmlAsync(ws);
+        Assert.Equal(1, host.Store.Count);
+
+        await ws.SendJsonAsync(new { type = "hello", session = "another-unknown-id", resume = token });
+
+        var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5));
+        Assert.NotNull(close);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.Value.Status);
+        Assert.Equal(1, host.Store.Count);
+    }
+
     [Fact]
     public async Task Without_a_record_an_unknown_session_still_reloads()
     {
