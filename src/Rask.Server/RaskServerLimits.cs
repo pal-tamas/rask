@@ -51,6 +51,9 @@ internal sealed class RaskServerLimits
     /// <summary>Budget for the graceful shutdown drain. Zero = off (abort immediately, as before).</summary>
     public TimeSpan ShutdownDrainTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>Whether the page document is served compressed. See <see cref="RaskServerOptions.CompressPageHtml" />.</summary>
+    public bool CompressPageHtml { get; init; } = true;
+
     /// <summary>Projects a validated <see cref="RaskServerOptions" /> into the per-host limit snapshot.</summary>
     public static RaskServerLimits From(RaskServerOptions o) => new()
     {
@@ -67,5 +70,6 @@ internal sealed class RaskServerLimits
         SessionResume = o.SessionResume,
         ResumeTokenLifetime = o.ResumeTokenLifetime,
         ShutdownDrainTimeout = o.ShutdownDrainTimeout,
+        CompressPageHtml = o.CompressPageHtml,
     };
 }

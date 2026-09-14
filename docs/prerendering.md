@@ -303,6 +303,14 @@ The singleton tags are resolved rather than concatenated: a browser takes the **
 appending the page's head to the shell's would leave every page titled whatever the shell says. The
 page's title wins; the shell's `<base>` wins.
 
+**The shell's `<head>` comments stay in the source and are left out of the page.** A shell is a hand-written
+file, and its comments explain it to the next maintainer. Visitors had no use for them and downloaded them
+anyway: this repo's own shell spent 1,697 bytes raw (769 gzipped) of every page on its comments. The pass
+now drops them from the published head. It keeps what is not prose. `<script>` and `<style>` contents are
+raw text, so a `<!--` inside one is left alone. The comments every minifier keeps also stay: a conditional
+comment (`<!--[if IE]>`), and one marked important with `<!--!`, `@license` or `@preserve`. Nothing is
+stripped under `dotnet run`, since only a publish splices.
+
 The runtime then does what it always did — morphs its first real render onto the document, exactly as
 it morphed over the boot spinner. The prerendered body is the placeholder that morph replaces; it is
 simply a useful one.

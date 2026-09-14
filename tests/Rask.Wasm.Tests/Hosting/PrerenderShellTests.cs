@@ -408,6 +408,118 @@ public class PrerenderShellTests
             """<html><head><title>Rask</title></head><body><div data-rask-key="k1"></div></body></html>"""));
     }
 
+    [Fact]
+    public void TheShellsHeadCommentsAreNotServed()
+    {
+        // The shell is hand-written, so its head explains itself — and every one of those explanations
+        // used to reach every visitor. rask.sh's own paid 1,697 bytes raw / 769 gzipped for it.
+        const string Commented =
+            """
+            <!doctype html>
+            <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <!--
+                  NOTHING ABOVE THIS LINE. This <title> and <base> are rewritten at publish.
+                -->
+                <!-- <base href> is rewritten per sub-path publish. -->
+                <base href="/"/>
+                <title>Shell</title>
+            </head>
+            <body><div class="rask-boot">Loading</div><script src="main.js" type="module"></script></body>
+            </html>
+            """;
+
+        var merged = PrerenderShell.Merge(Commented, Document);
+
+        Assert.DoesNotContain("<!--", merged, StringComparison.Ordinal);
+        Assert.DoesNotContain("NOTHING ABOVE", merged, StringComparison.Ordinal);
+        // Taking a comment's whole line with it: no blank line is left behind where one stood.
+        Assert.Contains("<meta charset=\"utf-8\"/>\n    <base href=\"/\"/>", merged, StringComparison.Ordinal);
+        // And stripping the prose did not confuse the splice it mentions: one base, one title, the document's.
+        Assert.Equal(1, CountOf(merged, "<base "));
+        Assert.Equal(1, CountOf(merged, "<title>"));
+        Assert.Contains("<title>Rask — the .NET One Person Framework</title>", merged, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ACommentSharingALineWithMarkup_TakesOnlyItself() =>
+        Assert.Equal(
+            "<meta charset=\"utf-8\"/> <base href=\"/\"/>\n",
+            PrerenderShell.StripComments("<meta charset=\"utf-8\"/><!-- why --> <base href=\"/\"/>\n"));
+
+    [Theory]
+    // Raw text: a "<!--" inside a script or a stylesheet is a string, not a comment.
+    [InlineData("<script>var s = \"<!-- not a comment -->\";</script>")]
+    [InlineData("<style>/* <!-- */ .a{color:red} /* --> */</style>")]
+    [InlineData("<SCRIPT type=\"module\">\n<!--\nlegacy();\n-->\n</SCRIPT>")]
+    // Comments every minifier keeps: conditional, and marked important.
+    [InlineData("<!--[if IE]><link rel=\"stylesheet\" href=\"ie.css\"/><![endif]-->")]
+    [InlineData("<!--! keep: served on purpose -->")]
+    [InlineData("<!-- Vendor widget @license MIT -->")]
+    [InlineData("<!-- @preserve -->")]
+    // Unterminated: the parser swallows the rest either way; removing half would change what it is.
+    [InlineData("<meta charset=\"utf-8\"/><!-- never closed <title>x</title>")]
+    public void WhatIsNotProseIsKept(string headInner) =>
+        Assert.Equal(headInner, PrerenderShell.StripComments(headInner));
+
+    [Fact]
+    public void ACommentAfterARawTextElementIsStillStripped() =>
+        // Stepping over a script must resume AFTER it, not stop looking.
+        Assert.Equal(
+            "<script>a()</script>\n<title>x</title>",
+            PrerenderShell.StripComments("<script>a()</script>\n<!-- gone -->\n<title>x</title>"));
+
+    [Theory]
+    // The parser closes both as EMPTY comments. Looking for "-->" only after "<!--" missed that and ran on
+    // to the next real "-->", deleting the charset and the stylesheet in between from the served page.
+    [InlineData("<!-->")]
+    [InlineData("<!--->")]
+    public void AnAbruptlyClosedEmptyComment_EndsWhereTheParserEndsIt(string empty) =>
+        Assert.Equal(
+            "<meta charset=\"utf-8\"/><link rel=\"stylesheet\" href=\"app.css\"/>",
+            PrerenderShell.StripComments(
+                empty + "<meta charset=\"utf-8\"/><link rel=\"stylesheet\" href=\"app.css\"/><!-- note -->"));
+
+    [Fact]
+    public void CrlfLinesAreRemovedWhole() =>
+        Assert.Equal(
+            "<meta charset=\"utf-8\"/>\r\n<title>x</title>",
+            PrerenderShell.StripComments("<meta charset=\"utf-8\"/>\r\n  <!-- gone -->\r\n<title>x</title>"));
+
+    [Fact]
+    public void TheSitesRealShell_ServesNoComment_AndKeepsItsCharsetFirst()
+    {
+        // The shell this was measured on. Its comments are the reason the change exists, and they must
+        // stay in the SOURCE — this proves the publish drops them without the file having to.
+        var shell = File.ReadAllText(Path.Combine(LocateRepoRoot(), "src", "Rask.Site", "wwwroot", "index.html"));
+        Assert.Contains("<!--", shell, StringComparison.Ordinal);
+
+        var merged = PrerenderShell.Merge(shell, Document);
+
+        var head = merged[..merged.IndexOf("</head>", StringComparison.OrdinalIgnoreCase)];
+        Assert.DoesNotContain("<!--", head, StringComparison.Ordinal);
+        // The charset must land inside the first 1024 bytes to count at all — the trap the shell's own
+        // first comment warns about. Stripping may only ever move it earlier.
+        Assert.InRange(
+            System.Text.Encoding.UTF8.GetByteCount(merged[..merged.IndexOf("charset", StringComparison.Ordinal)]),
+            0, 1024);
+        // The boot-screen stylesheet is raw text and its /* */ comments are CSS; they are untouched.
+        Assert.Contains(".rask-boot", merged, StringComparison.Ordinal);
+    }
+
+    private static string LocateRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        return dir?.FullName
+               ?? throw new InvalidOperationException($"Could not locate Rask.slnx above {AppContext.BaseDirectory}");
+    }
+
     private static int CountOf(string haystack, string needle)
     {
         var count = 0;

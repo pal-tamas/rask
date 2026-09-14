@@ -189,6 +189,34 @@ public sealed class RaskServerOptions
     public TimeSpan ShutdownDrainTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    ///     Whether page responses are compressed (brotli, then gzip). <c>true</c> by default.
+    ///     <para>
+    ///         A rendered page is highly compressible — repeated tag names, class lists and attribute
+    ///         patterns — so this is the single largest payload win the host has: rask.sh's landing page
+    ///         measures 78,525 bytes raw against 15,540 gzipped, an 80% reduction. Scoped CSS/TypeScript
+    ///         bundles were already compressed by their own content-addressed path
+    ///         (<c>ScopedAssetCompression</c>); this covers the <c>text/html</c> document itself.
+    ///     </para>
+    ///     <para>
+    ///         Only the page is compressed. The page handler encodes its own document, so the app's other
+    ///         endpoints and its own <c>ResponseCompressionOptions</c> are untouched — Rask adds no
+    ///         middleware and registers no <c>AddResponseCompression</c>. An app that already compresses
+    ///         is not encoded twice: its middleware sees <c>Content-Encoding</c> set and passes the body
+    ///         through. <c>Accept-Encoding</c> quality values are honoured, so <c>br;q=0</c> is a refusal.
+    ///     </para>
+    ///     <para>
+    ///         Turn it off if a page renders a long-lived secret. Compressing a response that carries a
+    ///         secret alongside attacker-influenced input is the BREACH side channel, and it is why
+    ///         ASP.NET ships <c>EnableForHttps</c> off by default. The framework's own per-page secret is
+    ///         not exposed to it: <c>data-rask-root</c> is minted fresh for every <c>GET</c>, and a secret
+    ///         that changes per response gives the attack nothing to converge on — no antiforgery token is
+    ///         rendered into the markup either. Application data is the app's call, which is what this
+    ///         switch is for.
+    ///     </para>
+    /// </summary>
+    public bool CompressPageHtml { get; set; } = true;
+
+    /// <summary>
     ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Run by the
     ///     options validation <c>AddRask</c> registers — after <c>Rask:Server</c> is bound and the
     ///     caller's <c>configureServer</c> runs, and validated on start — so a bad value (a negative

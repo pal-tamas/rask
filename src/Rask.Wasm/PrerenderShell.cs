@@ -119,8 +119,16 @@ internal static class PrerenderShell
             ? document[documentHead.InnerStart..documentHead.InnerEnd]
             : string.Empty;
 
+        // The shell is a hand-written file, so its head carries the comments that explain it to the next
+        // person — and every one of them was being served to every visitor. They are source
+        // documentation, not page content, so they are dropped HERE rather than deleted from the file:
+        // the explanation stays where it is useful and the visitor stops paying for it. Measured on this
+        // repo's own shell at 1,697 bytes raw / 769 gzipped, which is larger than every formatting
+        // saving in this class put together.
+        var shellHeadStripped = StripComments(shellHeadInner);
+
         builder.Append(MergeHtmlAttributes(shell[..shellHead.InnerStart], document));
-        builder.Append(HasTitle(documentHeadInner) ? RemoveTitle(shellHeadInner) : shellHeadInner);
+        builder.Append(HasTitle(documentHeadInner) ? RemoveTitle(shellHeadStripped) : shellHeadStripped);
         builder.Append(StripShellOwnedTags(documentHeadInner));
         AppendBetweenHeadAndBody(
             builder, MergeBodyAttributes(shell[shellHead.InnerEnd..shellBody.InnerStart], document));
@@ -361,6 +369,142 @@ internal static class PrerenderShell
 
         return false;
     }
+
+    /// <summary>
+    ///     Removes the HTML comments from a shell's head, leaving no blank line where one stood alone.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>&lt;script&gt;</c> and <c>&lt;style&gt;</c> are raw text: a <c>&lt;!--</c> inside one is
+    ///         part of a string or a stylesheet, not a comment, so both are copied over untouched.
+    ///     </para>
+    ///     <para>
+    ///         Three kinds of comment are kept, by the conventions every minifier already honours: a
+    ///         conditional comment (<c>&lt;!--[if …]&gt;</c> and its <c>&lt;![endif]</c> close), and one
+    ///         marked important with a leading <c>!</c>, <c>@license</c> or <c>@preserve</c>. A licence
+    ///         notice a vendor requires be served is not prose for the next maintainer. An unterminated
+    ///         comment is left alone too — the parser swallows everything after it either way, and
+    ///         removing half of it would change what that is.
+    ///     </para>
+    /// </remarks>
+    internal static string StripComments(string headInner)
+    {
+        if (!headInner.Contains("<!--", StringComparison.Ordinal))
+        {
+            return headInner;
+        }
+
+        var builder = new StringBuilder(headInner.Length);
+        var cursor = 0;
+        while (cursor < headInner.Length)
+        {
+            var comment = headInner.IndexOf("<!--", cursor, StringComparison.Ordinal);
+            if (comment < 0)
+            {
+                break;
+            }
+
+            // IndexOfTag already steps over comments, so a raw-text element it finds before this comment
+            // really does open before it — and this "comment" may be inside it.
+            var rawEnd = RawTextEnd(headInner, cursor, comment);
+            if (rawEnd > 0)
+            {
+                builder.Append(headInner, cursor, rawEnd - cursor);
+                cursor = rawEnd;
+                continue;
+            }
+
+            // Searched from just after "<!", not after "<!--": the parser closes "<!-->" and "<!--->" as
+            // empty comments, and starting past the dashes would miss that and run to the NEXT "-->",
+            // deleting whatever real markup lies between.
+            var close = headInner.IndexOf("-->", comment + 2, StringComparison.Ordinal);
+            if (close < 0)
+            {
+                break;
+            }
+
+            var end = close + 3;
+            var bodyStart = Math.Min(comment + 4, close);
+            if (IsPreserved(headInner.AsSpan(bodyStart, close - bodyStart)))
+            {
+                builder.Append(headInner, cursor, end - cursor);
+                cursor = end;
+                continue;
+            }
+
+            // A comment on a line of its own takes the line with it; one sharing a line with markup
+            // takes only itself.
+            var lineStart = comment;
+            while (lineStart > cursor && headInner[lineStart - 1] is ' ' or '\t')
+            {
+                lineStart--;
+            }
+
+            var lineEnd = end;
+            while (lineEnd < headInner.Length && headInner[lineEnd] is ' ' or '\t')
+            {
+                lineEnd++;
+            }
+
+            var aloneBefore = lineStart == 0 || headInner[lineStart - 1] == '\n';
+            var aloneAfter = lineEnd == headInner.Length || headInner[lineEnd] is '\r' or '\n';
+            if (aloneBefore && aloneAfter)
+            {
+                builder.Append(headInner, cursor, lineStart - cursor);
+                if (lineEnd < headInner.Length && headInner[lineEnd] == '\r')
+                {
+                    lineEnd++;
+                }
+
+                if (lineEnd < headInner.Length && headInner[lineEnd] == '\n')
+                {
+                    lineEnd++;
+                }
+
+                cursor = lineEnd;
+            }
+            else
+            {
+                builder.Append(headInner, cursor, comment - cursor);
+                cursor = end;
+            }
+        }
+
+        builder.Append(headInner, cursor, headInner.Length - cursor);
+        return builder.ToString();
+    }
+
+    /// <summary>
+    ///     The end of a <c>&lt;script&gt;</c> or <c>&lt;style&gt;</c> element that opens at or after
+    ///     <paramref name="from" /> and before <paramref name="before" />, or <c>-1</c> when none does.
+    /// </summary>
+    private static int RawTextEnd(string html, int from, int before)
+    {
+        var end = -1;
+        var earliest = before;
+        foreach (var name in (ReadOnlySpan<string>)["script", "style"])
+        {
+            var open = IndexOfTag(html.AsSpan(from, before - from), name);
+            if (open < 0 || from + open >= earliest)
+            {
+                continue;
+            }
+
+            var closeTag = $"</{name}>";
+            var close = html.IndexOf(closeTag, from + open, StringComparison.OrdinalIgnoreCase);
+            earliest = from + open;
+            end = close < 0 ? html.Length : close + closeTag.Length;
+        }
+
+        return end;
+    }
+
+    private static bool IsPreserved(ReadOnlySpan<char> body) =>
+        body.StartsWith("[if", StringComparison.OrdinalIgnoreCase)
+        || body.StartsWith("<![endif]", StringComparison.OrdinalIgnoreCase)
+        || body.StartsWith("!", StringComparison.Ordinal)
+        || body.Contains("@license", StringComparison.OrdinalIgnoreCase)
+        || body.Contains("@preserve", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     ///     Tags the shell owns outright, dropped from the document's head so the merge cannot end up
