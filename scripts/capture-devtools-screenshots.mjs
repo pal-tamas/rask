@@ -64,6 +64,17 @@ try {
         return !!label && !label.hidden && label.textContent.startsWith("TaskRow");
     }, null, {timeout: 10000});
     await shot("highlight");
+
+    // The Renders tab, counting what the two clicks above rendered.
+    await page.mouse.move(0, 0);
+    const rendersTab = panel.getByRole("tab", {name: "Renders"});
+    await rendersTab.click();
+    // Waited on what only this tab shows: the Tree tab names TaskBoard too, and a shot taken then catches the switch.
+    await panel.locator('[role=tab][aria-selected="true"]', {hasText: "Renders"}).waitFor({timeout: 10000});
+    await panel.getByRole("cell", {name: "TaskBoard"}).first().waitFor({timeout: 10000});
+    await panel.locator("body").hover({position: {x: 5, y: 5}});
+    await panel.locator("[role=tablist]").evaluate(el => el.scrollIntoView({block: "start"}));
+    await shot("renders");
 } catch (e) {
     await shot("failure").catch(() => {});
     throw e;

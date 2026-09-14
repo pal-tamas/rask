@@ -23,7 +23,7 @@ own ("blazor", "react"). Map every new page to one:
 | background jobs / outbox / cache .NET without Redis | `jobs`, `outbox`, `cache` |
 | file uploads ASP.NET Core to disk / S3 / Azure Blob, presigned URLs without the AWS SDK | `file-storage` |
 | Tailwind CSS .NET without npm | `tailwind` |
-| inspect a running C# web app, component tree / network devtools for .NET | `devtools` |
+| inspect a running C# web app, component tree / render counts / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |
 | .NET One Person Framework | `one-person-framework`, `/` |

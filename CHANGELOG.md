@@ -625,6 +625,15 @@ them until tagged releases begin.
   where it lives under `src/Rask.Site/wwwroot` renders on GitHub, and the site and the guide's Markdown twin serve the
   same file.
 
+- **The devtools panel counts what rendered, and why.** A Renders tab lists only the components whose `Render()`
+  actually ran — the ones served from their render cache did no work and are left out — either totalled per
+  component instance (renders, the reasons as badges, its own render time, the last commit it rendered in, most
+  renders first) or commit by commit (how many of the page's components rendered, which ones, folded by type and
+  reason). A reason is the runtime's own: new props, state, `BypassRenderCache`, context, children, nothing cached —
+  or a mount, the first render the devtools saw of that component. The feed keeps the last 200 commits or 5,000
+  renders, whichever comes first, and **Clear** starts the count again. The guide has a Renders section and a
+  screenshot.
+
 ### Changed
 
 - **Rask.Server compresses the page itself.** The page handler serves its document as brotli or gzip, whichever

@@ -5,8 +5,8 @@ using Rask.Ui;
 namespace Rask.DevTools.Panel;
 
 /// <summary>
-///     The panel: the inspected session's wire traffic and its component tree. Renders, perf and errors join them as they
-///     arrive.
+///     The panel: the inspected session's wire traffic, its component tree and what rendered. Perf and errors join them as
+///     they arrive.
 /// </summary>
 /// <remarks>
 ///     The tab is C# state rather than a route, because one host has no routes to spend on it: a WASM panel runs as a
@@ -18,6 +18,7 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
 {
     private const string Wire = "wire";
     private const string Tree = "tree";
+    private const string Renders = "renders";
 
     private string _tab = Wire;
 
@@ -44,16 +45,20 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
             return UiAlert["No session to inspect. Open the panel from a page's Rask pill."];
         }
 
-        Component tab = _tab == Tree
-            ? DevToolsTreeTab.Key(session + "-tree").Feed(feed)
-            : DevToolsWireTab.Key(session + "-wire").Feed(feed);
+        Component tab = _tab switch
+        {
+            Tree => DevToolsTreeTab.Key(session + "-tree").Feed(feed),
+            Renders => DevToolsRendersTab.Key(session + "-renders").Feed(feed),
+            _ => DevToolsWireTab.Key(session + "-wire").Feed(feed),
+        };
 
         return Div.Class("flex flex-col gap-3")[
             // Whichever tab is showing, so the Tree tab has a tree the moment it is picked.
             DevToolsTreeWatcher.Key(session + "-watch").Feed(feed),
             Div.Role("tablist").Class("flex items-center gap-1")[
                 TabButton(Wire, "Wire"),
-                TabButton(Tree, "Tree")
+                TabButton(Tree, "Tree"),
+                TabButton(Renders, "Renders")
             ],
             tab
         ];

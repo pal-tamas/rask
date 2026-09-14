@@ -1,7 +1,7 @@
 # DevTools: inspect the page you are building
 
 Rask DevTools is a panel inside the page you are working on. It shows what the page and the app say to each other,
-and which components the page is made of and what each one was given. It is there while you develop and gone from
+which components the page is made of and what each one was given, and which of them render, and why. It is there while you develop and gone from
 what you ship.
 
 <!--
@@ -120,3 +120,36 @@ the value never reaches the panel. A prop is treated as sensitive when:
   `[ProtectedPersonalData]`.
 
 Add one of those attributes to a prop whose name does not give it away.
+
+## Renders
+
+**Renders** counts the components whose `Render()` ran. A component that Rask served from its render cache did no
+work, so it isn't counted. What's left is the list to read when a page feels slow: a component near the top that you
+didn't expect to render on every click is the one to look at.
+
+![The Renders tab after two clicks, listing the task board and its rows with how often each rendered and why](../src/Rask.Site/wwwroot/img/devtools/renders.webp)
+
+**By component** totals each component instance, most renders first:
+
+- **Renders**: how many times its `Render()` ran.
+- **Why**: each reason it rendered, with a count.
+- **Time**: how long its own `Render()` took, added up. Its children aren't included; they render after it returns.
+- **Last commit**: the number of the last commit it rendered in.
+
+**By commit** lists the renders the page committed, newest first. Each row shows how many of the page's components
+rendered, which ones, and why, with repeats folded together: `TaskRow ×3` rather than three rows.
+
+A reason is one of these:
+
+| Reason         | Why the component rendered                                                                   |
+|----------------|----------------------------------------------------------------------------------------------|
+| `mount`        | Its first render.                                                                            |
+| `props`        | Its parent passed props that changed.                                                        |
+| `state`        | `StateHasChanged`, or one of its own handlers ran.                                           |
+| `bypass cache` | It overrides `BypassRenderCache`, so it renders whenever its parent does.                    |
+| `context`      | It read context or the culture, so it renders whenever its parent does.                      |
+| `children`     | It takes children, so it renders whenever its parent does.                                   |
+| `uncached`     | Nothing marked it, and it had no cached render: it renders nothing, or its output was reused. |
+
+The tab holds the last 200 commits, or 5,000 renders if that comes first, so its totals cover the page's recent
+past. **Clear** starts them again from nothing.
