@@ -1,9 +1,3 @@
-using System.Net;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
 using Rask.DevTools.Panel;
 using Rask.DevTools.Probe;
@@ -16,7 +10,7 @@ namespace Rask.DevTools.Tests.Panel;
 ///     watching.
 /// </summary>
 [Collection(DevToolsHookCollection.Name)]
-public sealed partial class DevToolsTreeTabTests
+public sealed class DevToolsTreeTabTests
 {
     [Fact]
     public async Task A_page_that_renders_while_a_tab_watches_hands_it_a_tree()
@@ -159,14 +153,7 @@ public sealed partial class DevToolsTreeTabTests
     [Fact]
     public async Task A_kit_page_holds_every_node_once()
     {
-        using var host = RaskTestHost.Create<DevToolsKitTestApp>(
-            configureServices: s => RaskDevToolsLoader.Attach(s),
-            configureMiddleware: app => app.Use((ctx, next) =>
-            {
-                ctx.Connection.RemoteIpAddress = IPAddress.Loopback;
-                return next(ctx);
-            }),
-            environment: "Development");
+        using var host = DevToolsLivePage.Host<DevToolsKitTestApp>();
         var (_, feed, socket, _) = await LivePage(host);
         using var watch = feed.WatchTree();
 
@@ -200,23 +187,6 @@ public sealed partial class DevToolsTreeTabTests
         }
     }
 
-    /// <summary>Polls until <paramref name="until" /> holds, so a test says what it is waiting for rather than how long.</summary>
-    private static async Task<bool> WaitFor(Func<bool> until, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            if (until())
-            {
-                return true;
-            }
-
-            await Task.Delay(25);
-        }
-
-        return until();
-    }
-
     private static async Task<DevToolsComponentNode?> WaitForTree(DevToolsFeed feed, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
@@ -233,41 +203,10 @@ public sealed partial class DevToolsTreeTabTests
         return feed.TreeSnapshot();
     }
 
-    private static RaskTestHost Host() =>
-        RaskTestHost.Create<DevToolsTestApp>(
-            configureServices: s => RaskDevToolsLoader.Attach(s),
-            configureMiddleware: app => app.Use((ctx, next) =>
-            {
-                ctx.Connection.RemoteIpAddress = IPAddress.Loopback;
-                return next(ctx);
-            }),
-            environment: "Development");
+    private static RaskTestHost Host() => DevToolsLivePage.Host<DevToolsTestApp>();
 
-    /// <summary>The app's page, live on a socket: the session, its feed, the socket, and the page's click handler.</summary>
-    private static async Task<(LiveSessionBase Session, DevToolsFeed Feed, System.Net.WebSockets.WebSocket Socket, string HandlerId)>
-        LivePage(RaskTestHost host)
-    {
-        var html = await host.Http.GetStringAsync("/");
-        var sessionId = SessionId().Match(html).Groups[1].Value;
-        var handlerId = HandlerId().Match(html).Groups[1].Value;
-        Assert.False(string.IsNullOrEmpty(handlerId), "the page has no click handler:" + Environment.NewLine + html);
+    private static Task<(LiveSessionBase Session, DevToolsFeed Feed, System.Net.WebSockets.WebSocket Socket, string HandlerId)>
+        LivePage(RaskTestHost host) => DevToolsLivePage.OpenAsync(host);
 
-        var session = host.Store.Get(sessionId);
-        Assert.NotNull(session);
-        var feed = host.Services.GetRequiredService<DevToolsFeeds>().For(session);
-
-        var socket = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await socket.SendJsonAsync(new { type = "hello", session = sessionId });
-        while (await socket.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300)) is not null)
-        {
-        }
-
-        return (session, feed, socket, handlerId);
-    }
-
-    [GeneratedRegex("data-rask-root=\"([^\"]+)\"")]
-    private static partial Regex SessionId();
-
-    [GeneratedRegex("data-rask-on-click=\"([^\"]+)\"")]
-    private static partial Regex HandlerId();
+    private static Task<bool> WaitFor(Func<bool> until, TimeSpan timeout) => DevToolsLivePage.WaitFor(until, timeout);
 }

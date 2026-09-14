@@ -137,7 +137,8 @@ internal sealed class DevToolsTreeSnapshotter
         return new Builder(this, capture).Build(root);
     }
 
-    private long IdOf(Component component) =>
+    /// <summary>The component's id: handed out on first sight, kept for as long as the component lives.</summary>
+    internal long IdOf(Component component) =>
         _ids.GetValue(component, _ => new StrongBox<long>(Interlocked.Increment(ref _next))).Value;
 
     private static DevToolsComponentNode Describe(
@@ -148,25 +149,7 @@ internal sealed class DevToolsTreeSnapshotter
         var describer = new PropsDescriber();
         component.DescribeProps(describer);
         return new DevToolsComponentNode(
-            id, Name(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at);
-    }
-
-    // `UiTree<Node, string>` rather than `UiTree\`2`, and no namespace: a tree of full names reads as one column of noise.
-    private static string Name(Type type)
-    {
-        if (!type.IsGenericType)
-        {
-            return type.Name;
-        }
-
-        var name = type.Name;
-        var tick = name.IndexOf('`', StringComparison.Ordinal);
-        if (tick >= 0)
-        {
-            name = name[..tick];
-        }
-
-        return name + "<" + string.Join(", ", type.GetGenericArguments().Select(Name)) + ">";
+            id, DevToolsNames.Of(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at);
     }
 
     private sealed class Builder
