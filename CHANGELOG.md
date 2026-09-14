@@ -1065,6 +1065,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The landing page's Counter.cs sample no longer flickers or shows a late scrollbar in Safari.** Hydration
+  never touched it. The code was simply wider than its window at every desktop width: 510px of code in a
+  496px box, or 525px in the fallback font a cold load paints first. So the `<pre>` was a horizontal
+  scroller hiding the line's closing `];`, and Safari reveals an overlay scrollbar when a scroller's content
+  size changes, which is exactly what the web font swapping in does. The hero now gives the code a 34rem
+  track beside a flexible text column, so the sample fits in either font from 768px up and there is
+  nothing left to scroll. The headline eases to 2.75rem beside it, which keeps its two lines. A site E2E
+  test measures the overflow at 1024, 1280 and 1920px with the font loaded and with it blocked.
 - **A live session only accepts a socket from the user it belongs to.** A WebSocket `hello` naming an
   existing session used to attach whoever sent it, so a leaked session id let a different signed-in user,
   or an anonymous one, receive that session's frames and dispatch its handlers (#1075). It now attaches
