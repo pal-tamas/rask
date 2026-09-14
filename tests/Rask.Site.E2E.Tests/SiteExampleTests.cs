@@ -256,6 +256,75 @@ public sealed class SiteExampleTests
     }
 
     /// <summary>
+    ///     The hero's Counter.cs window fits its code at every two-column width, in the web font AND in the
+    ///     fallback a cold load paints first — so there is nothing in it to scroll.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Reported as "the counter example still flickers and shows the scrollbar later in Safari",
+    ///         after <see cref="Hydration_DoesNotReflowThePage" /> was already green. It was never the morph:
+    ///         the <c>&lt;pre&gt;</c> is untouched by hydration. At an even column split the window was 496px
+    ///         and its longest line 510px (525px in the fallback), so the <c>&lt;pre&gt;</c> was a horizontal
+    ///         scroller at every desktop width, and Safari reveals an overlay scrollbar when a scroller's
+    ///         content size changes — which the <c>font-display: swap</c> face arriving does, after first
+    ///         paint. Headless browsers draw no overlay scrollbar, so this measures the precondition instead:
+    ///         a scroller with no overflow has nothing to show.
+    ///     </para>
+    ///     <para>
+    ///         The fallback leg aborts the font requests rather than delaying them, because a delay would
+    ///         measure whichever face happened to be applied when the probe ran.
+    ///     </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(1024, false)]
+    [InlineData(1280, false)]
+    [InlineData(1920, false)]
+    [InlineData(1024, true)]
+    [InlineData(1280, true)]
+    public async Task CounterSample_FitsItsWindowWithoutScrolling(int width, bool fallbackFont)
+    {
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = _app.BaseUrl,
+            ViewportSize = new ViewportSize { Width = width, Height = 900 },
+        });
+        var page = await context.NewPageAsync();
+        try
+        {
+            if (fallbackFont)
+            {
+                await page.RouteAsync("**/fonts/**", route => route.AbortAsync());
+            }
+
+            await page.GotoAsync("/index.html");
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("class Counter");
+            await page.EvaluateAsync("() => document.fonts.ready");
+
+            var fit = await page.Locator(".hero-grid pre").EvaluateAsync<string>(
+                @"pre => [pre.scrollWidth - pre.clientWidth, pre.clientWidth,
+                          getComputedStyle(pre).fontFamily.split(',')[0],
+                          [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family).join('|')].join(' ')");
+
+            Assert.True(fit.StartsWith("0 ", StringComparison.Ordinal),
+                $"the Counter.cs <pre> scrolls horizontally at {width}px (fallback font: {fallbackFont}): "
+                + $"overflow, clientWidth, family, loaded faces = {fit}");
+
+            // The trade the wider code track makes must not cost the headline its two designed lines
+            // where the row has its full 1100px.
+            if (width >= 1100 && !fallbackFont)
+            {
+                var lines = await page.Locator(".hero-grid h1").EvaluateAsync<double>(
+                    "h1 => h1.getBoundingClientRect().height / parseFloat(getComputedStyle(h1).lineHeight)");
+                Assert.True(lines < 2.5, $"the hero headline wraps to {lines:0.#} lines at {width}px");
+            }
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
+    /// <summary>
     ///     The faces are served from this origin, and nothing defers a stylesheet to get them.
     /// </summary>
     /// <remarks>
@@ -560,5 +629,20 @@ public sealed class SiteExampleTests
         Assert.True(card.IsSuccessStatusCode, $"/img/og-card.png answered {(int)card.StatusCode}");
         Assert.Equal("image/png", card.Content.Headers.ContentType?.MediaType);
         Assert.Contains("property=\"og:image\" content=\"https://rask.sh/img/og-card.png\"", guide, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/index.html")]
+    [InlineData("/docs/guides/elements/index.html")]
+    public async Task APublishedPage_CarriesNoComment(string path)
+    {
+        // Two sources of comments nobody reads, both paid for in every visit's bytes: the boot shell's <head>
+        // notes (dropped when a page is spliced into it) and a doc's editor note (elements.md explains its MDN
+        // link table in one; dropped by the guide renderer). A comment shown as code is &lt;!-- and passes.
+        using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
+
+        var page = await http.GetStringAsync(path);
+
+        Assert.DoesNotContain("<!--", page, StringComparison.Ordinal);
     }
 }

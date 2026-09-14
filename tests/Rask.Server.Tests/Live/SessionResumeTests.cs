@@ -6,6 +6,7 @@ using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Tests.Infrastructure;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Live;
 
@@ -278,6 +279,54 @@ public sealed class SessionResumeTests
         }
     }
 
+    /// <summary>
+    /// A resumed socket is a connected socket (#1059). The resume path attached without counting while the
+    /// close always counted, so every deploy's reconnect storm drove <c>ConnectedCount</c> — the health
+    /// check's and the gauge's number — below zero for good.
+    /// </summary>
+    [Fact]
+    public async Task A_resumed_socket_is_counted_while_open_and_uncounted_once_closed()
+    {
+        var (host, sessionId, token) = await StartAndCapture(seed: 2);
+        using var _ = host;
+        await host.Store.RemoveAsync(sessionId);
+        await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
+        await ReadFrameWithHtmlAsync(ws);
+
+        Assert.Equal(1, host.Store.ConnectedCount);
+
+        await ws.CloseAndAwaitServerCleanupAsync();
+        Assert.Equal(0, host.Store.ConnectedCount);
+    }
+
+    /// <summary>
+    /// A socket gets one session (#1059). A second hello carrying a valid record used to build — and
+    /// register — another whole session per frame, bounded only by MaxSessions.
+    /// </summary>
+    [Fact]
+    public async Task A_second_hello_with_a_record_closes_the_socket_and_builds_nothing()
+    {
+        var (host, sessionId, token) = await StartAndCapture(seed: 4);
+        using var _ = host;
+        await host.Store.RemoveAsync(sessionId);
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
+        await ReadFrameWithHtmlAsync(ws);
+        Assert.Equal(1, host.Store.Count);
+
+        await ws.SendJsonAsync(new { type = "hello", session = "another-unknown-id", resume = token });
+
+        var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5));
+        Assert.NotNull(close);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.Value.Status);
+        Assert.Equal(1, host.Store.Count);
+    }
+
+
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
     public async Task Without_a_record_an_unknown_session_still_reloads(LiveTransportKind transport)
@@ -379,6 +428,26 @@ public sealed class SessionResumeTests
     /// the html itself rather than the envelope — the envelope is JSON, so its markup is escaped and would
     /// not match anything a test looks for.
     /// </summary>
+    private static Task<string> ReadFrameWithHtmlAsync(WebSocket ws) =>
+        ReadFrameWithHtmlAsync(new RawSocket(ws));
+
+    /// <summary>A socket a test opened by hand, read through the same reader.</summary>
+    private sealed class RawSocket(WebSocket ws) : ILiveTestConnection
+    {
+        public bool IsOpen => ws.State == WebSocketState.Open;
+
+        public Task SendJsonAsync(object payload) => ws.SendJsonAsync(payload);
+
+        public Task SendRawAsync(string frame) => throw new NotSupportedException();
+
+        public Task<string?> TryReceiveTextAsync(TimeSpan timeout) => ws.TryReceiveTextAsync(timeout);
+
+        public async Task<string?> TryReceiveCloseReasonAsync(TimeSpan timeout) =>
+            await ws.TryReceiveCloseAsync(timeout) is { } close ? close.Reason : null;
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
     private static async Task<string> ReadFrameWithHtmlAsync(ILiveTestConnection ws)
     {
         for (var i = 0; i < 8; i++)

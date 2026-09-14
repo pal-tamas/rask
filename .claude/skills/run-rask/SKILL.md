@@ -191,6 +191,30 @@ webkit` also records a video under `screenshots/video/`. Decode it with Playwrig
 revision installs through `Microsoft.Playwright.Program.Main(["install", "webkit"])` from a one-line
 file-based app, because `scripts/playwright.sh` needs the E2E project built.
 
+### One element, not the page (`subtreeprobe.cs`, `fitprobe.cs`)
+
+```bash
+dotnet run subtreeprobe.cs -- http://127.0.0.1:5090 / "pre" webkit 1500   # last arg: delay fonts by ms
+dotnet run fitprobe.cs     -- http://127.0.0.1:5090 webkit ['<css to try>'] # does Counter.cs fit its window?
+```
+
+`subtreeprobe.cs` answers "did hydration touch THIS element": every mutation under the selector, whether it
+is the same node with the same outerHTML afterwards, and its geometry (client/scroll width, font, face
+status) in every rAF where it changed. The optional font delay emulates a cold visit, where a
+`font-display: swap` face lands after first paint — a loopback server delivers it in 5ms and hides the swap.
+
+`fitprobe.cs` measures the hero's Counter.cs `<pre>` overflow at eleven widths, with the web font and with the
+font requests ABORTED (the fallback a cold load paints first). The third arg injects CSS, so a layout can be
+tried before the source is edited. Pass `--` before the args: `dotnet run` reads an arg starting with `@` as a
+response file.
+
+What they found (the "Counter.cs flickers and shows its scrollbar late in Safari" report, after every
+hydration probe above was clean): hydration never touched the `<pre>`. At an even column split its code was
+14px wider than its window (29px in the fallback), so it was a live scroller at every desktop width, and
+Safari reveals an overlay scrollbar when a scroller's content size changes — the font swap. **Headless
+browsers draw no overlay scrollbar**, so no screenshot shows this; measure the overflow instead. Real Safari
+can only be driven after enabling Settings → Developer → "Allow remote automation" (`safaridriver`).
+
 **Quote the shell's args as separate words.** Under zsh an unquoted `$cfg` is NOT split, so a loop over
 `"/ 1280 900 dark -"` requests the literal path `/ 1280 900 dark -`, gets the 404 boot shell, and shows a
 spinner-then-page "flicker" that is entirely the probe's fault. Put matrices in a bash script file.

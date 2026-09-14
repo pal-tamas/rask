@@ -154,7 +154,13 @@ public sealed partial class HomePage : Component
     private Component Hero() =>
         Section.Class("pt-14 pb-16 sm:pt-20 sm:pb-24")[
             Div.Class(Wrap)[
-                Div.Class("hero-grid grid items-start gap-10 lg:grid-cols-2 lg:gap-14")[
+                // The code track is SIZED FOR ITS CODE, not half the row. At an even split the Counter.cs
+                // window is 496px and its longest line 510px in JetBrains Mono (525px in the fallback a
+                // cold load paints first), so at every two-column width the <pre> was a live horizontal
+                // scroller over 14px of nothing — and Safari shows an overlay scrollbar late, when a
+                // scroller's content size changes under it (the font swapping in). 34rem clears the
+                // fallback with room to spare; nothing to scroll means no scrollbar to show.
+                Div.Class("hero-grid grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-14")[
                     // min-w-0 on BOTH tracks. A grid item's min-width defaults to `auto`, which
                     // resolves to its min-content size — and the code window's <pre> carries
                     // `white-space: pre`, so its min-content is the longest source line, 510px.
@@ -165,7 +171,9 @@ public sealed partial class HomePage : Component
                     // rendered small and clipped rather than wrapped.
                     Div.Class("min-w-0")[
                         P.Class(Eyebrow)["The .NET One Person Framework"],
-                        H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-ui-ink sm:text-5xl")[
+                        // 2.75rem beside the code: "Ship a whole product." is 483px at 3rem, and the narrower
+                        // text track (452px) would break the headline's two designed lines into three.
+                        H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-ui-ink sm:text-5xl lg:text-[2.75rem]")[
                             "Ship a whole product.", Br, "Just you, and ",
                             Span.Class("text-ui-brand-ink")["C#"], "."
                         ],

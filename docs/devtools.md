@@ -1,0 +1,107 @@
+# DevTools: inspect the page you are building
+
+Rask DevTools is a panel inside the page you are working on. It shows what the page and the app say to each other,
+and which components the page is made of and what each one was given. It is there while you develop and gone from
+what you ship.
+
+<!--
+  The pictures are taken of the real panel, not drawn: scripts/capture-devtools-screenshots.sh runs
+  tests/Rask.DevTools.Showcase in Development, drives the pill and the panel in Chromium, and writes them to
+  src/Rask.Site/wwwroot/img/devtools/. Re-run it whenever the panel changes.
+-->
+
+![A Rask page with the Rask pill in its bottom-left corner](../src/Rask.Site/wwwroot/img/devtools/pill.webp)
+
+## Turning it on
+
+An app made with `rask new` already has it. Run the app from a Debug build and the **Rask** pill is in the page's
+bottom-left corner. Click it, or press **Ctrl+Shift+D** (**Cmd+Shift+D** on a Mac), and the panel opens.
+
+An existing app adds the package. The panel is drawn with [the UI kit](ui-kit.md), so the app references that too:
+
+```bash
+dotnet add package Rask.DevTools
+dotnet add package Rask.Ui
+```
+
+An app without the kit keeps running without the pill. On a Server host it logs a warning at startup naming the
+package to add.
+
+The panel appears only when all of these hold:
+
+| Host   | When the panel is on                                                                          |
+|--------|-----------------------------------------------------------------------------------------------|
+| Server | A Debug build, the `Development` environment, and a browser on the same machine as the app.   |
+| WASM   | A Debug build, and a page served from `localhost` or another loopback address.                |
+
+A development server you reach from another machine refuses the panel. Set `RASK_DEVTOOLS_ALLOW_REMOTE=1` in the
+app's environment to allow it. Each panel is also tied to the page that opened it, and to the signed-in user who
+opened that page.
+
+## Nothing of it ships
+
+`RaskDevTools` is `true` in a Debug build and `false` in every other. When it is `false`, a publish leaves out the
+devtools assembly, its scripts and its entry in the `.deps.json`. Then it checks the output, and **fails the
+publish** if any of them is still there. Set the property yourself to decide otherwise, for example to turn the
+devtools off in a Debug build:
+
+```xml
+<PropertyGroup>
+  <RaskDevTools>false</RaskDevTools>
+</PropertyGroup>
+```
+
+What a Release build of the framework keeps is a few hundred bytes of inert hooks in the page runtime. A size test
+pins them.
+
+## Docking
+
+The panel opens as a drawer along the bottom of the window. **Right** docks it along the right edge instead, and the
+page remembers the choice. **Close**, the shortcut, or the pill hides it again. Your place in the panel stays where you
+left it.
+
+## Wire
+
+**Wire** lists every frame the page and the app exchange: each event the page sends, and each render frame the app
+answers with. The totals sit on top: frames and bytes, each way.
+
+![The Wire tab after two clicks: the click events the page sent and the render frames that came back](../src/Rask.Site/wwwroot/img/devtools/wire.webp)
+
+Each row shows:
+
+- **Direction**: *sent* for what the page sent, *received* for what came back.
+- **Type**: the event the page sent, such as `click`, or `frame` for a render.
+- **Size**: the frame's size on the wire.
+- **Diff**: for a render, how many edits it made to the page. A frame that replaced the whole document has none.
+- **Gap**: the time since the frame before it. A round trip, or a handler that renders more often than it needs to,
+  shows up here.
+
+The Wire tab records only the page's own traffic. The panel's own frames never show up in it.
+
+## Tree
+
+**Tree** shows the page's components nested the way they sit on the page. A card's rows sit under the card, even when
+the page that uses the card is the one that built them. Each row shows what its component was given:
+
+![The Tree tab: the app's components nested as on the page, with each component's props on its row and a token shown as dots](../src/Rask.Site/wwwroot/img/devtools/tree.webp)
+
+- **The type**, as you write it: `TaskRow`, `UiTree<Node, string>`.
+- **The key**, as a badge, when the component has one.
+- **Its props**, as `Name=value`. Rask writes the code that reads them when it builds the app, so they are there in a
+  trimmed WASM app too.
+
+**Show HTML tags** adds the elements between the components, so you can see which `<ul>` a row sits in.
+
+The tree is ready as soon as you open the tab, and it follows every render after that. Branches you open stay open
+while the page re-renders.
+
+### Secrets stay out of it
+
+A prop that looks sensitive is never read. It shows as `••••` instead. The decision is made when the app is built, so
+the value never reaches the panel. A prop is treated as sensitive when:
+
+- its name contains `password`, `passcode`, `secret`, `token`, `apikey` or `credential`, or is exactly `pin` or `ssn`;
+- or it carries `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
+  `[ProtectedPersonalData]`.
+
+Add one of those attributes to a prop whose name does not give it away.

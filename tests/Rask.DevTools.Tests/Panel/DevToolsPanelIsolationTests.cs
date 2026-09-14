@@ -11,16 +11,15 @@ namespace Rask.DevTools.Tests.Panel;
 
 /// <summary>
 ///     A panel page renders only in the panel's own document. A live app session can navigate itself onto the panel's path
-///     over its socket, which no admission check sees, so the panel's layout refuses to render its tabs anywhere its shell
-///     is not the root.
+///     over its socket, which no admission check sees. The panel is a mounted application, so the server answers that
+///     navigation by sending the client to load the URL as a page, and the panel's GET runs its admission (#1094). The
+///     panel's layout still refuses to render its tabs anywhere its shell is not the root, as a second line.
 /// </summary>
 [Collection(DevToolsHookCollection.Name)]
 public sealed partial class DevToolsPanelIsolationTests
 {
-    private const string Refusal = "opens only in its own frame";
-
     [Fact]
-    public async Task An_app_session_that_navigates_to_its_own_panel_url_renders_no_tab()
+    public async Task An_app_session_that_navigates_to_its_own_panel_url_is_sent_to_load_it_as_a_page()
     {
         using var host = Host();
         // No app route matches "/", so the page answers 404 — but its root still renders live, with its handler, its session
@@ -51,14 +50,16 @@ public sealed partial class DevToolsPanelIsolationTests
         while (await socket.TryReceiveTextAsync(TimeSpan.FromSeconds(2)) is { } frame)
         {
             frames.Add(frame);
-            if (frame.Contains(Refusal, StringComparison.Ordinal))
-            {
-                break;
-            }
         }
 
         var all = string.Join(Environment.NewLine, frames);
-        Assert.Contains(Refusal, all, StringComparison.Ordinal);
+        var location = Assert.Single(frames);
+        using (var doc = System.Text.Json.JsonDocument.Parse(location))
+        {
+            Assert.Equal("location", doc.RootElement.GetProperty("type").GetString());
+            Assert.Equal(panel, doc.RootElement.GetProperty("url").GetString());
+        }
+
         Assert.DoesNotContain("wire-isolation-event", all, StringComparison.Ordinal);
         Assert.DoesNotContain("Frames sent", all, StringComparison.Ordinal);
     }

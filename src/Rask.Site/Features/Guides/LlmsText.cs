@@ -214,7 +214,11 @@ public static partial class LlmsText
     private static string Url(string sourcePath, string link)
     {
         var target = DocLinks.Resolve(sourcePath, link);
-        return target.GuideSlug is { } slug ? PageUrl(slug) : target.GitHubUrl;
+        // A file the site serves — a guide's screenshot — is linked where the site serves it, so a reader of the twin
+        // gets the picture rather than GitHub's page about it.
+        return target.GuideSlug is { } slug ? PageUrl(slug)
+            : target.SitePath is { } sitePath ? $"{Root}/{sitePath}"
+            : target.GitHubUrl;
     }
 
     // ](/path) — rooted on the site, but not protocol-relative (//host).

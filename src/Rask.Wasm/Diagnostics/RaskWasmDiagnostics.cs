@@ -13,16 +13,18 @@ namespace Rask.Wasm.Diagnostics;
 ///         Without it, a WASM app was the one host where framework faults never reached the app's own
 ///         logging at all: swallow-and-log is the framework's primary failure mode for navigate faults,
 ///         JS dispatch faults and malformed frames, and all of them went to the seam's stderr default
-///         while the app's configured providers saw nothing. The host already calls
-///         <c>Services.AddLogging()</c>, so the factory was there the whole time; nothing consumed it.
+///         while the app's configured providers saw nothing. Forwarding alone was not enough, either: a
+///         factory with no provider writes nowhere, so an app that registered none lost every diagnostic until the
+///         host began adding <see cref="BrowserConsoleLoggerProvider" /> in that case (#1096).
 ///     </para>
 ///     <para>
 ///         Deliberately a sibling rather than a shared type. The two hosts live in packages that share no
 ///         assembly carrying <c>Microsoft.Extensions.Logging</c> — <c>Rask.Core</c> cannot take that
 ///         dependency, which is the entire reason this seam exists — and giving <c>Rask.Server</c> a
 ///         reference to a browser-side package to dedupe sixty lines would trade a real packaging
-///         constraint for a cosmetic one. <c>RaskDiagnosticsBridgeParityTests</c> pins the two
-///         implementations to the same level mapping so the copies cannot drift.
+///         constraint for a cosmetic one. The two copies are pinned to the same level mapping by mirrored
+///         tests, <c>RaskServerDiagnosticsBridgeTests</c> and <c>RaskWasmDiagnosticsTests</c>, so a change to one
+///         mapping fails a test until the other matches.
 ///     </para>
 /// </remarks>
 internal static class RaskWasmDiagnostics

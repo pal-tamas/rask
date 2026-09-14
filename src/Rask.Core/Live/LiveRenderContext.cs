@@ -176,6 +176,12 @@ public sealed class LiveRenderContext : IDisposable
 
     private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
 
+    /// <summary>
+    ///     The component whose subtree the walk is inside — where a component sits on the PAGE, which is not always the
+    ///     component that constructed it. Read by the devtools before the walk pushes the next one.
+    /// </summary>
+    internal Component WalkParent => CurrentParent;
+
     public void Dispose()
     {
         IsActive = false;

@@ -161,7 +161,8 @@ public sealed class RaskMetrics : IDisposable
     /// <summary>
     ///     Counts an inbound frame/socket the receive loop refused, tagged with the limit that tripped:
     ///     <c>size</c> (frame exceeded the byte cap), <c>rate</c> (frame-per-second flood),
-    ///     <c>backlog</c> (pending-handler queue overflow), or <c>idle</c> (idle-socket timeout).
+    ///     <c>backlog</c> (pending-handler queue overflow), <c>idle</c> (idle-socket timeout), or
+    ///     <c>hello</c> (a second session-establishing hello on one socket).
     /// </summary>
     public void FrameRejected(string reason) =>
         _framesRejected.Add(1, new KeyValuePair<string, object?>("reason", reason));

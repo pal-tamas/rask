@@ -75,4 +75,15 @@ internal static class WebSocketHelper
             return null;
         }
     }
+
+    /// <summary>
+    ///     Closes from the client and waits for the server's answering close frame. The server sends that
+    ///     frame from the receive loop's <c>finally</c>, AFTER detaching the socket from its session, so on
+    ///     return the loop's cleanup has run — no sleep needed to observe what it did.
+    /// </summary>
+    public static async Task CloseAndAwaitServerCleanupAsync(this WebSocket ws)
+    {
+        await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+        Assert.NotNull(await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5)));
+    }
 }

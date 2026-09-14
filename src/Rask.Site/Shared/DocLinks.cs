@@ -37,8 +37,23 @@ public static class DocLinks
     /// <param name="RepositoryPath">The target's path from the repository root, e.g. <c>docs/cqrs.md</c>.</param>
     public readonly record struct Target(string? GuideSlug, string RepositoryPath)
     {
+        private const string SiteRoot = "src/Rask.Site/wwwroot/";
+
         /// <summary>The target on GitHub. A blob URL naming a folder redirects to the folder's tree view.</summary>
         public string GitHubUrl => $"{SiteIdentity.Repository}/blob/main/{RepositoryPath}";
+
+        /// <summary>
+        ///     Where the site itself serves the target, relative to its root — <c>img/devtools/wire.webp</c> — or
+        ///     <c>null</c> when it is not one of the site's own files.
+        /// </summary>
+        /// <remarks>
+        ///     How a guide shows a picture on both sides: it links the file where it lives in the repository, which GitHub
+        ///     renders, and the site serves the same file from its own root. One copy, no second path to keep in step.
+        /// </remarks>
+        public string? SitePath =>
+            RepositoryPath.StartsWith(SiteRoot, StringComparison.Ordinal) && RepositoryPath.Length > SiteRoot.Length
+                ? RepositoryPath[SiteRoot.Length..]
+                : null;
     }
 
     /// <summary>Resolves <paramref name="link" />, as written in the doc at <paramref name="sourcePath" />.</summary>

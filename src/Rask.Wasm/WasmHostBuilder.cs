@@ -211,7 +211,7 @@ public sealed class WasmHostBuilder
             RaskWasmBatteryRegistry.Apply(this, Services);
 
             await WasmPrerender
-                .RunAsync<TApp>(Services.BuildServiceProvider(), prerenderOutput, TimeSpan.FromSeconds(30))
+                .RunAsync<TApp>(BuildServices(), prerenderOutput, TimeSpan.FromSeconds(30))
                 .ConfigureAwait(false);
             return;
         }
@@ -232,6 +232,18 @@ public sealed class WasmHostBuilder
             ReportBootFailure(ex);
             throw;
         }
+    }
+
+    /// <summary>Builds the app's container. Boot and the prerender pass both come through here, so they agree on it.</summary>
+    /// <remarks>
+    ///     Adds the browser console logger first when the app registered no logging provider. The framework's
+    ///     diagnostics are forwarded into this container's logger factory, and without a provider every one of them
+    ///     was written nowhere (#1096).
+    /// </remarks>
+    internal ServiceProvider BuildServices()
+    {
+        BrowserConsoleLoggerProvider.AddIfNoneRegistered(Services);
+        return Services.BuildServiceProvider();
     }
 
     /// <summary>The boot sequence proper. See <see cref="RunAsync{TApp}" />, which reports its failures.</summary>
@@ -264,7 +276,7 @@ public sealed class WasmHostBuilder
         // moment, for the same reason. Found by name, so the app writes nothing.
         RaskDevToolsLoader.TryAttach(Services);
 
-        var provider = Services.BuildServiceProvider();
+        var provider = BuildServices();
 
         // Route framework diagnostics into the app's own logging before anything can report one. Until
         // this existed, WASM was the one host where a swallowed framework fault never reached the app's

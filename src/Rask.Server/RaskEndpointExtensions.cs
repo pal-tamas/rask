@@ -586,6 +586,9 @@ public static partial class RaskEndpointExtensions
                     .ConfigureAwait(false);
                 return;
             }
+
+            BindToApplication(session, selector, path);
+
             // The visitor's language, negotiated from the request and remembered on the response here,
             // because this handler is what holds a response. It reaches the session inside the render
             // below, alongside the identity and the route and BEFORE the first wave — so the page is built
@@ -1046,7 +1049,7 @@ public static partial class RaskEndpointExtensions
         var resumeToken = ctx.Request.Headers["Rask-Resume"].ToString();
         var attach = await AttachAsync(
             sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, transport, store, limits, UserOf(ctx),
-            resume, selector, metrics, culture, current: null, counted: false, ct).ConfigureAwait(false);
+            resume, selector, metrics, culture, ct).ConfigureAwait(false);
 
         if (attach.Status != AttachStatus.Attached || attach.Session is null)
         {
@@ -1100,13 +1103,8 @@ public static partial class RaskEndpointExtensions
             if (session.DetachTransport(transport))
             {
                 session.LastStreamGeneration = generation;
-                store.ScheduleRemoval(session.Id, session.Leaving ? TimeSpan.Zero : limits.SessionGracePeriod);
-            }
-
-            // For the CONNECTION, not the session: this stream is going away whichever way the detach went (#1059).
-            if (attach.Counted)
-            {
                 store.SocketDetached();
+                store.ScheduleRemoval(session.Id, session.Leaving ? TimeSpan.Zero : limits.SessionGracePeriod);
             }
         }
     }
@@ -1175,8 +1173,9 @@ public static partial class RaskEndpointExtensions
         await stream.Inbound.WaitAsync(ctx.RequestAborted).ConfigureAwait(false);
         try
         {
-            // Replaced or ended while this request waited its turn.
-            if (!stream.Transport.IsOpen)
+            // Replaced or ended while this request waited its turn — or the tab has since attached another
+            // connection, which is the one that speaks for the session now.
+            if (!stream.Transport.IsOpen || !session.IsAttached(stream.Transport))
             {
                 ctx.Response.StatusCode = StatusCodes.Status409Conflict;
                 return;
@@ -1365,11 +1364,6 @@ public static partial class RaskEndpointExtensions
         // below compares against.
         var transport = new WebSocketTransport(ws);
         LiveSession? session = null;
-
-        // Whether THIS connection has been counted in the store's connected total. One increment per
-        // connection, whichever hello did it: a resumed session used to attach without counting while every
-        // finally decremented, so the gauge drifted below zero over a restart (#1059).
-        var counted = false;
         var buffer = new byte[16 * 1024];
         var message = new ArrayBufferWriter<byte>(16 * 1024);
 
@@ -1523,12 +1517,25 @@ public static partial class RaskEndpointExtensions
 
                 if (hasType && t.ValueEquals("hello"u8))
                 {
+                    // One session per socket. The client sends exactly one hello per connection, so a
+                    // second is a protocol violation — and honouring it leaked: it re-pointed this loop
+                    // at another session without detaching the first, and with a resume token it built
+                    // one more session per frame (#1059).
+                    if (session is not null)
+                    {
+                        metrics?.FrameRejected("hello");
+                        await ClosePolicyViolationAsync(ws, "hello").ConfigureAwait(false);
+                        break;
+                    }
+
                     var attach = await AttachAsync(
                         StringProperty(root, "session"), StringProperty(root, "resume"), transport, store, limits,
-                        wsUser, resume, selector, metrics, resumeCulture, session, counted, ct).ConfigureAwait(false);
+                        wsUser, resume, selector, metrics, resumeCulture, ct).ConfigureAwait(false);
 
-                    session = attach.Session;
-                    counted = attach.Counted;
+                    if (attach.Status == AttachStatus.Ignored)
+                    {
+                        continue;
+                    }
 
                     if (attach.Status == AttachStatus.Unknown)
                     {
@@ -1537,10 +1544,21 @@ public static partial class RaskEndpointExtensions
                         return;
                     }
 
+                    session = attach.Session;
                     continue;
                 }
 
                 if (session is null)
+                {
+                    continue;
+                }
+
+                // A socket another hello has replaced speaks for the session no longer. Its loop runs on
+                // until the socket itself dies, and a frame from it must not dispatch: that socket was
+                // admitted for the principal the session had THEN, which a sign-in on the new socket may
+                // have changed since. Dropped rather than closed, so a duplicated tab holding the same id
+                // does not fall into a reconnect tug-of-war with the original.
+                if (!session.IsAttached(transport))
                 {
                     continue;
                 }
@@ -1561,18 +1579,13 @@ public static partial class RaskEndpointExtensions
         catch (WebSocketException) { }
         finally
         {
-            // Only when this connection still owns the session. A tab that reconnected quickly has already
-            // attached a newer connection, and detaching that one would stop its renders and arm the session
-            // for removal while the client sat there connected (#1076).
+            // Only when this loop's socket is still the attached one. A tab that reconnected before the
+            // server noticed this socket die has attached a new one already: detaching, counting the
+            // disconnect or arming removal here would do all three to the live connection (#1076).
             if (session is not null && session.DetachTransport(transport))
             {
-                store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
-            }
-
-            // Decremented for the connection, not for the session: this one is going away either way.
-            if (counted)
-            {
                 store.SocketDetached();
+                store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
             }
 
             if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
@@ -1707,7 +1720,7 @@ public static partial class RaskEndpointExtensions
     /// <summary>What a <c>hello</c> did.</summary>
     internal enum AttachStatus
     {
-        /// <summary>The frame named no session, or named one nobody may drive. Keep reading.</summary>
+        /// <summary>The frame named no session. Keep reading: nothing was asked for, so nothing is refused.</summary>
         Ignored,
 
         /// <summary>The connection is attached to a session and has been counted.</summary>
@@ -1721,8 +1734,8 @@ public static partial class RaskEndpointExtensions
         Unknown,
     }
 
-    /// <summary>The session this connection is now driving, and whether it has been counted.</summary>
-    internal readonly record struct AttachOutcome(AttachStatus Status, LiveSession? Session, bool Counted);
+    /// <summary>The session this connection is now driving.</summary>
+    internal readonly record struct AttachOutcome(AttachStatus Status, LiveSession? Session);
 
     /// <summary>
     ///     Attaches a connection to the session its <c>hello</c> names, resuming one this host never had
@@ -1745,22 +1758,18 @@ public static partial class RaskEndpointExtensions
         RaskRootSelector selector,
         RaskMetrics? metrics,
         CultureNegotiation resumeCulture,
-        LiveSession? current,
-        bool counted,
         CancellationToken ct)
     {
         if (string.IsNullOrEmpty(sessionId))
         {
-            return new AttachOutcome(AttachStatus.Ignored, current, counted);
+            return new AttachOutcome(AttachStatus.Ignored, null);
         }
 
-        // The session this connection was driving, if any. A second hello naming a different one leaves the
-        // first with nothing reading for it, and the cleanup only ever sees the last (#1059).
-        var previous = current;
-
-        // Peek, not Get: Get cancels the session's pending removal, and a hello refused below would then leave a
-        // detached session alive for good. The removal is cancelled once this connection has actually attached.
-        var session = store.Peek(sessionId);
+        // A session that is not this principal's is treated exactly as one that does not exist — resume record
+        // and all — so a leaked id tells a stranger nothing, not even that it is live (#1075). Peek, not Get:
+        // Get cancels the session's pending removal, which a refused hello must not be able to do. It is
+        // cancelled below, once this connection has actually attached.
+        var session = store.Peek(sessionId) is { } existing && MayAttach(user, existing) ? existing : null;
         if (session is null)
         {
             // This host has never heard of the session. Before the resume protocol that was the end of it —
@@ -1772,15 +1781,18 @@ public static partial class RaskEndpointExtensions
 
             if (session is null)
             {
-                return new AttachOutcome(AttachStatus.Unknown, current, counted);
+                return new AttachOutcome(AttachStatus.Unknown, null);
             }
 
-            // The rebuilt session has a NEW id. The client learns it from the full frame below, which
-            // re-stamps data-rask-root — see LiveSessionBase's full-payload path.
-            session.AttachTransport(transport, ct);
-            var countedByRebuild = !counted;
-            counted = Count(store, counted);
-            ReleasePrevious(previous, session, transport, store, limits);
+            // The rebuilt session has a NEW id. The client learns it from the full frame below, which re-stamps
+            // data-rask-root — see LiveSessionBase's full-payload path. Counted like any other attach: the
+            // cleanup counts the detach, so an uncounted attach here drove ConnectedCount negative after every
+            // deploy (#1059).
+            if (session.AttachTransport(transport, ct))
+            {
+                store.SocketAttached();
+            }
+
             session.Services.GetRequiredService<SessionUserProvider>().Set(user);
 
             // A resumed session is a NEW DI scope, so its culture starts at the app default. Without this the
@@ -1797,114 +1809,74 @@ public static partial class RaskEndpointExtensions
             }
             catch
             {
-                AbandonAttach(session, transport, store, limits, countedByRebuild);
+                AbandonAttach(session, transport, store, limits);
                 throw;
             }
 
-            return new AttachOutcome(AttachStatus.Attached, session, counted);
+            return new AttachOutcome(AttachStatus.Attached, session);
         }
 
-        // WHOSE session is this? The id in the hello is the only thing tying this connection to a session, so
-        // a leaked id must not let a different signed-in user drive a victim's page — the rule the upload and
-        // download endpoints already apply (SameSessionUser). An anonymous session is matched by anyone,
-        // because the unguessable id is the only authority there (#1075).
-        //
-        // A redeemed sign-in or sign-out ticket changes the cookie before the tab reconnects, so that reconnect
-        // arrives as someone the session does not know yet. The redeem stamped who that is; the ticket was the
-        // proof, being single-use and bound to this session.
-        var owner = session.Services.GetRequiredService<SessionUserProvider>();
-        if (!SameSessionUser(user, session.ExpectedOwner ?? owner.Current))
+        // Counted here rather than inside AttachTransport: the store owns the number, and the session has no
+        // reason to know a store exists. A connection that replaces one still attached is not counted again;
+        // that one's cleanup will not count its detach.
+        if (session.AttachTransport(transport, ct))
         {
-            // This connection never attached to the session it asked for, so it keeps driving whatever it
-            // already had and the caller's cleanup has nothing new to undo.
-            return new AttachOutcome(AttachStatus.Unknown, current, counted);
+            store.SocketAttached();
         }
 
-        session.AttachTransport(transport, ct);
+        // After publishing, not before: a stale connection's cleanup that ran in between could otherwise arm a
+        // removal nothing cancels. (The removal also skips a session with an open connection when it fires.)
         store.CancelPendingRemoval(session.Id);
-        session.ExpectedOwner = null;
         session.Leaving = false;
-        var countedByAttach = !counted;
-        counted = Count(store, counted);
-        ReleasePrevious(previous, session, transport, store, limits);
-        owner.Set(user);
+        session.Services.GetRequiredService<SessionUserProvider>().Set(user);
 
-        // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination page
-        // mounts fresh under the new identity (its OnMountAsync runs against the redeemed principal). The
-        // attach flagged a pending render for this reconnect, so the flush below performs a real render
-        // against the updated route. See LiveSession.PendingAuthNavigation.
-        if (session.PendingAuthNavigation is { } authDest)
-        {
-            session.PendingAuthNavigation = null;
-            var routeState = session.Services.GetRequiredService<RouteState>();
-            var (path, query) = SplitUrl(authDest);
-            routeState.Path = path;
-            routeState.Query = query;
-        }
-
-        // Only emit a catch-up render when something asked to render during the GET-to-hello handoff window
-        // (or while detached across a reconnect). When no drop happened, the browser's HTML still reflects the
-        // session state and re-rendering would just re-fire OnRendered on every alive component for no visible
-        // change — that's what made Server's initial-mount hook count diverge from WASM's.
-        // FlushPendingRenderAsync is a no-op when nothing's pending.
         try
         {
+            // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination
+            // page mounts fresh under the new identity (its OnMountAsync runs against the redeemed principal).
+            // The attach flagged a pending render for this reconnect, so the flush below performs a real render
+            // against the updated route. See LiveSession.PendingAuthNavigation.
+            if (session.PendingAuthNavigation is { } authDest)
+            {
+                session.PendingAuthNavigation = null;
+                var routeState = session.Services.GetRequiredService<RouteState>();
+                var (path, query) = SplitUrl(authDest);
+                routeState.Path = path;
+                routeState.Query = query;
+
+                // A return URL into another application on this host: load it as a page (#1094).
+                if (await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false))
+                {
+                    return new AttachOutcome(AttachStatus.Attached, session);
+                }
+            }
+
+            // Only emit a catch-up render when something asked to render during the GET-to-hello handoff window
+            // (or while detached across a reconnect). When no drop happened, the browser's HTML still reflects
+            // the session state and re-rendering would just re-fire OnRendered on every alive component for no
+            // visible change — that's what made Server's initial-mount hook count diverge from WASM's.
+            // FlushPendingRenderAsync is a no-op when nothing's pending.
             await session.FlushPendingRenderAsync().ConfigureAwait(false);
         }
         catch
         {
-            AbandonAttach(session, transport, store, limits, countedByAttach);
+            AbandonAttach(session, transport, store, limits);
             throw;
         }
 
-        return new AttachOutcome(AttachStatus.Attached, session, counted);
+        return new AttachOutcome(AttachStatus.Attached, session);
     }
 
     // The attach's render threw — most often the client dropping mid-attach. The caller never learns this
     // connection attached (no outcome is returned), so its cleanup cannot undo it: this does, or the session keeps
     // a dead transport with no removal armed and the connected count never comes back down.
     private static void AbandonAttach(
-        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits, bool counted)
+        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits)
     {
         if (session.DetachTransport(transport))
         {
-            store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
-        }
-
-        if (counted)
-        {
             store.SocketDetached();
-        }
-    }
-
-    // One increment per CONNECTION, whichever hello did it: the store owns the number, and a session has no
-    // reason to know a store exists.
-    private static bool Count(LiveSessionStore store, bool counted)
-    {
-        if (counted)
-        {
-            return true;
-        }
-
-        store.SocketAttached();
-        return true;
-    }
-
-    // A hello that moves this connection to a different session leaves the previous one attached to a
-    // transport nobody reads any more. Detach it here — guarded, so a session another connection has since
-    // claimed is left alone — and arm the same grace period a disconnect would.
-    private static void ReleasePrevious(
-        LiveSession? previous, LiveSession current, ILiveTransport transport, LiveSessionStore store,
-        RaskServerLimits limits)
-    {
-        if (previous is null || ReferenceEquals(previous, current))
-        {
-            return;
-        }
-
-        if (previous.DetachTransport(transport))
-        {
-            store.ScheduleRemoval(previous.Id, limits.SessionGracePeriod);
+            store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
         }
     }
 
@@ -2182,6 +2154,7 @@ public static partial class RaskEndpointExtensions
 
         // Seed the route and the declared state BEFORE the first render, so the page builds against them
         // rather than rendering a default and then correcting itself in a second frame the user would see.
+        BindToApplication(session, selector, path);
         var routeState = session.Services.GetRequiredService<RouteState>();
         routeState.Path = path;
         routeState.Query = query;
@@ -2191,6 +2164,50 @@ public static partial class RaskEndpointExtensions
         return session;
     }
 
+
+    // Ties a new session to the application on this host that owns the path it was opened at (#1094): its live
+    // navigations and its Router resolve against that application's route table, and a navigation to a path
+    // another application owns becomes a real page load (see NavigateAcrossApplicationsAsync). Both ways a
+    // session is born — the GET and a resume — come through here, so they cannot disagree.
+    private static void BindToApplication(LiveSession session, RaskRootSelector selector, string path)
+    {
+        session.Services.GetRequiredService<RouteState>().Table = selector.TableFor(path);
+        session.OwnsPath = other => selector.SameApplication(path, other);
+    }
+
+    // When the session's route has moved to a path another application on this host owns, tells the client to
+    // load that URL as a page, so its GET builds the root that application renders with. Returns whether it did.
+    // Rendering the path in place would show another application's pages inside this one's document — or, now
+    // that the table is scoped, this application's not-found page for a URL that does exist.
+    private static async Task<bool> NavigateAcrossApplicationsAsync(LiveSession session, bool replace)
+    {
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        if (session.OwnsPath is not { } owns || owns(routeState.Path))
+        {
+            return false;
+        }
+
+        // The path came from the client's navigate frame or the app's own navigation; either way it must stay on
+        // this origin once the client hands it to location.
+        var url = LocalUrl.Sanitize(QueryString.Build(routeState.Path, routeState.Query));
+        await session.SendOutOfBandAsync(LocationFrame(url, replace)).ConfigureAwait(false);
+        return true;
+    }
+
+    private static byte[] LocationFrame(string url, bool replace)
+    {
+        var buffer = new ArrayBufferWriter<byte>(64 + url.Length);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("type"u8, "location"u8);
+            writer.WriteString("url"u8, url);
+            writer.WriteBoolean("replace"u8, replace);
+            writer.WriteEndObject();
+        }
+
+        return buffer.WrittenSpan.ToArray();
+    }
 
     private static void HandleJsResult(LiveSession session, JsonElement root)
     {
@@ -2353,7 +2370,7 @@ public static partial class RaskEndpointExtensions
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!RouteResolver.TryResolve(routeState.Path, out var chain))
+        if (!RouteResolver.TryResolve(routeState.CurrentTable, routeState.Path, out var chain, out _))
         {
             return true;
         }
@@ -2376,8 +2393,14 @@ public static partial class RaskEndpointExtensions
         // principal. The post-reconnect render does the real check with the new identity.
         if (auth is null)
         {
+            // A path another application on this host owns is not this session's to render at all (#1094).
+            if (await NavigateAcrossApplicationsAsync(session, replace).ConfigureAwait(false))
+            {
+                return;
+            }
+
             var routeState = session.Services.GetRequiredService<RouteState>();
-            if (RouteResolver.TryResolve(routeState.Path, out var chain))
+            if (RouteResolver.TryResolve(routeState.CurrentTable, routeState.Path, out var chain, out _))
             {
                 var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
                 var result = await RouteAuthorizationGuard
@@ -2469,16 +2492,6 @@ public static partial class RaskEndpointExtensions
             return;
         }
 
-        // The tab reconnects next, carrying the cookie this request is about to set or clear — a different user
-        // than the session recorded. Say who, so the hello's owner check lets exactly that reconnect through
-        // rather than answering "session unknown" to every sign-out and account switch.
-        if (ctx.RequestServices.GetRequiredService<LiveSessionStore>().Peek(sessionId) is { } redeemed)
-        {
-            redeemed.ExpectedOwner = ticket.Action == AuthAction.SignIn
-                ? ticket.Principal!
-                : new ClaimsPrincipal(new ClaimsIdentity());
-        }
-
         var scheme = await ResolveAuthSchemeAsync(ctx.RequestServices, ticket.Scheme).ConfigureAwait(false);
         if (ticket.Action == AuthAction.SignIn)
         {
@@ -2487,6 +2500,16 @@ public static partial class RaskEndpointExtensions
         else
         {
             await ctx.SignOutAsync(scheme).ConfigureAwait(false);
+        }
+
+        // The reconnect that follows carries this principal, not the session's owner, so let the hello
+        // admission check expect it (MayAttach). Opened here rather than when the handler issued the
+        // ticket: the client reconnects only once this response arrives, and tying the window to the
+        // redeem means only whoever holds the ticket can open it. A sign-out opened at issue time let
+        // any anonymous holder of the session id attach before the client had even redeemed (#1075).
+        if (ctx.RequestServices.GetService<LiveSessionStore>()?.Peek(ticket.SessionId) is { } handoffSession)
+        {
+            handoffSession.PendingAuthHandoff = ticket.Principal ?? new ClaimsPrincipal(new ClaimsIdentity());
         }
 
         ctx.Response.StatusCode = StatusCodes.Status200OK;
@@ -2544,6 +2567,24 @@ public static partial class RaskEndpointExtensions
         }
 
         return string.Equals(UserKey(request), UserKey(owner), StringComparison.Ordinal);
+    }
+
+    // Whether a hello's principal may attach to a session that already exists (#1075). The owner may,
+    // under the same rule the upload and download endpoints apply. So may the one principal an auth
+    // handoff in flight is waiting for: that reconnect is the whole point of the handoff, and it arrives
+    // as the redeemed identity (sign-in) or as nobody (sign-out) while the session still holds the old
+    // one. Strict in both directions: a sign-out admits an anonymous reconnect, never some other user.
+    internal static bool MayAttach(ClaimsPrincipal request, LiveSession session)
+    {
+        if (SameSessionUser(request, session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            return true;
+        }
+
+        return session.PendingAuthHandoff is { } expected
+               && (expected.Identity?.IsAuthenticated == true
+                   ? SameSessionUser(request, expected)
+                   : request.Identity?.IsAuthenticated != true);
     }
 
     private static string? UserKey(ClaimsPrincipal user) =>

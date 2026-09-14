@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using Rask.Core;
 using Rask.Server.Tests.Infrastructure;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.WebSockets;
 
@@ -101,6 +102,31 @@ public class HelloMessageTests
         Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame!);
         Assert.True(doc.RootElement.TryGetProperty("html", out _));
+    }
+
+    // #1059: one session per socket. A second hello used to re-point the loop at another session without
+    // detaching the first, counting a second attach the loop would only ever detach once.
+    [Fact]
+    public async Task Hello_SecondOnOneSocket_ClosesItWithPolicyViolation_AndTheCountReturnsToZero()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var first = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+        var second = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = first });
+        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
+
+        await ws.SendJsonAsync(new { type = "hello", session = second });
+
+        var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5));
+        Assert.NotNull(close);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.Value.Status);
+        Assert.Equal("hello", close.Value.Reason);
+        // Answer the handshake so the server's CloseAsync returns now rather than at its 2 s deadline.
+        await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+        await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
+        ws.Dispose();
     }
 
     [Fact]

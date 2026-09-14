@@ -10,6 +10,7 @@ using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Diagnostics;
+using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Authentication;
@@ -73,11 +74,16 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // that, the store-store order holds on x86 (TSO) but not on weaker models (ARM64), where a concurrent
     // render could observe the fresh connection yet miss the resend flags and drop the catch-up frame.
     //
-    // NOT declared volatile: DetachTransport swaps it with a compare-exchange, and C# refuses to treat a
-    // volatile field as volatile through a ref argument (CS0420). Every read goes through Volatile.Read,
-    // which is the same fence the modifier gave.
+    // Written only under _socketGate, read lock-free through Volatile.Read — the same fence a volatile
+    // modifier gives, kept explicit so every read site says so.
     private ILiveTransport? _transport;
     private CancellationToken _socketCt;
+
+    // Serialises AttachTransport against DetachTransport, so a detach can compare the connection and clear
+    // the pair (_transport, _socketCt) as one step. Readers stay lock-free, as above. Without it a
+    // reconnect's attach could land between an old connection's compare and its clear, and _socketCt would
+    // end up defaulted under the new one (#1076).
+    private readonly Lock _socketGate = new();
 
     // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
     // from a component's Unmount/Dispose callback can't re-enter the render path and deadlock on
@@ -115,6 +121,25 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // its OnMountAsync never re-runs — leaving data loaded for the old identity/tenant).
     public string? PendingAuthNavigation { get; set; }
 
+    // Whether a path belongs to the application on this host the session was opened for — the host's own, or one
+    // mounted under its prefix. Null for a session built outside the page endpoint (tests, a bare store), which
+    // owns every path, as before (#1094).
+    internal Func<string, bool>? OwnsPath { get; set; }
+
+    // The principal the auth handoff's reconnect is expected to carry: the signed-in user for a sign-in,
+    // an unauthenticated principal for a sign-out, null when no handoff is in flight. The hello admission
+    // check lets exactly that principal attach besides the owner, because the reconnect deliberately
+    // arrives as someone the session does not belong to yet (#1075). Written by the handler that issued
+    // the ticket and read by the next socket's receive loop, which runs on another thread, hence volatile.
+    // Cleared by AttachSocket.
+    private volatile ClaimsPrincipal? _pendingAuthHandoff;
+
+    internal ClaimsPrincipal? PendingAuthHandoff
+    {
+        get => _pendingAuthHandoff;
+        set => _pendingAuthHandoff = value;
+    }
+
     // What the client's current resume record was built from. -1 means it has none, so the first payload
     // always carries one. The URL is tracked alongside the version because a navigation moves the page
     // without touching the bag: version alone would leave the client holding a record that rebuilds the
@@ -126,6 +151,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public string Id { get; }
 
     internal override string? DevToolsSessionId => Id;
+
+    // The inner gate, not Lock: a render that runs mid-handler holds only this one.
+    internal override SemaphoreSlim? DevToolsRenderGate => _renderLock;
 
     public IServiceScope Scope { get; }
     public SemaphoreSlim Lock { get; } = new(1, 1);
@@ -178,6 +206,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        // First, so a language switch during teardown cannot queue a render of a tree being disposed. Both
+        // disposal paths do it; neither delegates to the other (#1093).
+        DetachCulture();
         // Serialise teardown against any in-flight render. RenderAndSendAsync mutates the
         // component tree's child dictionaries under _renderLock (the swap+Clear in
         // Component.BuildRenderTree, then GetOrCreateChild inserts), and
@@ -211,6 +242,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public void Dispose()
     {
         _disposed = true;
+        DetachCulture();
         // See DisposeAsync: take the render lock so the synchronous tree walk can't race an
         // in-flight render mutating the same child dictionaries.
         _renderLock.Wait();
@@ -438,6 +470,10 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // deferred rotation.
     private string RenderRootWave(bool publishOnly)
     {
+        // The served render is this session's first walk, and the one a devtools panel opened before any interaction has
+        // to show — it reaches the page through the GET rather than through RenderTreeToHtml, which says so for the rest.
+        RaskDevToolsHook.Active?.WalkStarted(this, publishOnly);
+
         if (DiffMode == LiveDiffMode.DisabledFull)
         {
             return View.RenderAsLiveRoot(Services, publishOnly);
@@ -469,49 +505,47 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     internal bool LastRenderFaulted => View is RootErrorBoundary { RenderedFallback: true };
 
     /// <summary>Attaches a WebSocket — the transport a browser is served first.</summary>
-    public void AttachSocket(WebSocket socket, CancellationToken ct) =>
+    /// <returns>See <see cref="AttachTransport" />.</returns>
+    public bool AttachSocket(WebSocket socket, CancellationToken ct) =>
         AttachTransport(new WebSocketTransport(socket), ct);
 
-    /// <summary>
-    ///     Attaches the connection this session renders to, in place of whatever was attached before.
-    /// </summary>
-    public void AttachTransport(ILiveTransport transport, CancellationToken ct)
+    /// <summary>Makes <paramref name="transport" /> the session's connection, replacing any it had.</summary>
+    /// <returns>
+    ///     <c>true</c> when the session had no connection, so the store's connected count should go up;
+    ///     <c>false</c> when this replaced one that was still attached, which was already counted.
+    /// </returns>
+    public bool AttachTransport(ILiveTransport transport, CancellationToken ct)
     {
-        _socketCt = ct;
-        SuppressEventsUntilReconnect = false;
-
-        if (_hasAttachedBefore)
+        lock (_socketGate)
         {
-            // Reconnect path — possibly a different browser tab/window — needs the current
-            // HTML even when it byte-matches the prior socket's last frame, since the prior
-            // send chain may have lost a frame. Force a catch-up and drop the dedup baselines
-            // so the recovery render reliably emits. The baseline reset is deferred into the
-            // render lock (see _forceResend) to avoid racing a background RenderAndSendAsync.
-            _renderRequestedWhileDetached = true;
-            _forceResend = true;
+            var wasDetached = Volatile.Read(ref _transport) is null;
+            _socketCt = ct;
+            SuppressEventsUntilReconnect = false;
+            PendingAuthHandoff = null;
+
+            if (_hasAttachedBefore)
+            {
+                // Reconnect path — possibly a different browser tab/window — needs the current
+                // HTML even when it byte-matches the prior connection's last frame, since the prior
+                // send chain may have lost a frame. Force a catch-up and drop the dedup baselines
+                // so the recovery render reliably emits. The baseline reset is deferred into the
+                // render lock (see _forceResend) to avoid racing a background RenderAndSendAsync.
+                _renderRequestedWhileDetached = true;
+                _forceResend = true;
+            }
+
+            // Publish the transport last, with release semantics: the resend flags set above are visible
+            // before the new connection is — a concurrent background render either reads the old null/closed
+            // one (early-returns, having recorded the drop) or reads the new one and sees the flags set. The
+            // ordering holds on weak memory models too (see the _transport field note).
+            Volatile.Write(ref _transport, transport);
+            _hasAttachedBefore = true;
+            return wasDetached;
         }
-
-        // Publish the transport last, with release semantics: the resend flags set above are visible
-        // before the new connection is — a concurrent background render either reads the old null/closed
-        // one (early-returns, having recorded the drop) or reads the new one and sees the flags set. The
-        // ordering holds on weak memory models too (see the _transport field note).
-        Volatile.Write(ref _transport, transport);
-        _hasAttachedBefore = true;
-
-        // Again, after publishing: a stale connection whose detach won the compare-exchange just before the
-        // write above resets the token to default, and would otherwise leave this connection with none.
-        _socketCt = ct;
     }
 
     /// <summary>Whether a connection is attached and still open — the one state a session must never be removed in.</summary>
     internal bool HasOpenTransport => Volatile.Read(ref _transport)?.IsOpen == true;
-
-    /// <summary>
-    ///     The principal the session's next connection is expected to carry, stamped by a redeemed sign-in or
-    ///     sign-out ticket. The redeem changes the cookie before the tab reconnects, so the reconnect arrives as
-    ///     a different user than the session recorded; this is what lets that one reconnect through.
-    /// </summary>
-    internal ClaimsPrincipal? ExpectedOwner { get; set; }
 
     /// <summary>Set by a leave request: the tab has gone for good, so the session goes when its stream does.</summary>
     internal bool Leaving { get; set; }
@@ -556,24 +590,33 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         return publishOnly ? RequestPublishRenderAsync() : RequestRenderAsync();
     }
 
-    /// <summary>
-    ///     Detaches <paramref name="expected" />, and reports whether it was still the attached one.
-    /// </summary>
+    /// <summary>Whether <paramref name="transport" /> is the session's current connection.</summary>
+    internal bool IsAttached(ILiveTransport transport) => ReferenceEquals(Volatile.Read(ref _transport), transport);
+
+    /// <summary>Detaches <paramref name="expected" />, if it is still the session's connection.</summary>
+    /// <returns>
+    ///     <c>true</c> when it was, and the caller should count the disconnect and arm removal;
+    ///     <c>false</c> when a reconnect has already replaced it, which leaves the live connection alone.
+    /// </returns>
     /// <remarks>
-    ///     A compare-exchange rather than an unconditional clear, because a tab that reconnects quickly runs
-    ///     two connections at once for a moment: the new one attaches from its own hello while the old one
-    ///     is still unwinding. Clearing unconditionally detached the LIVE connection, stopped its renders
-    ///     and armed the session for removal while the client sat there waiting for a frame (#1076).
+    ///     A tab that reconnects before the server notices its old connection died attaches the new one
+    ///     first, and only then does the old one's cleanup run. An unconditional detach there cut the
+    ///     live connection off, drove the connected count low and scheduled an open tab's session for
+    ///     removal (#1076).
     /// </remarks>
     public bool DetachTransport(ILiveTransport expected)
     {
-        if (!ReferenceEquals(Interlocked.CompareExchange(ref _transport, null, expected), expected))
+        lock (_socketGate)
         {
-            return false;
-        }
+            if (!ReferenceEquals(Volatile.Read(ref _transport), expected))
+            {
+                return false;
+            }
 
-        _socketCt = default;
-        return true;
+            Volatile.Write(ref _transport, null);
+            _socketCt = default;
+            return true;
+        }
     }
 
     /// <summary>

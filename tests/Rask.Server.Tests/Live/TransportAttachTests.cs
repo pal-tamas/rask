@@ -17,9 +17,9 @@ namespace Rask.Server.Tests.Live;
 ///         for removal underneath it (#1076).
 ///     </para>
 ///     <para>
-///         The same window is why the connected count is per CONNECTION rather than per attach: a resumed
-///         session attached without ever counting, while every cleanup decremented, so the gauge drifted
-///         below the truth over a restart (#1059).
+///         The same window is why an attach reports whether it replaced a connection that was still attached:
+///         only an attach to a session with none counts, and only a detach that wins uncounts, so a replaced
+///         connection is never counted twice and a resumed one is never left uncounted (#1059).
 ///     </para>
 /// </remarks>
 public sealed class TransportAttachTests
@@ -120,9 +120,9 @@ public sealed class TransportAttachTests
     }
 
     /// <summary>
-    ///     The same race one step later: a stale connection's detach wins its compare-exchange just before the new
-    ///     connection publishes itself, and arms a removal the new attach has already cancelled. Nothing else would
-    ///     cancel it, so the session was disposed under a connected tab when the grace period ran out.
+    ///     The same race one step later: a stale connection's cleanup detaches just before the new connection
+    ///     attaches, and arms a removal the new attach never sees. Nothing else would cancel it, so the session
+    ///     was disposed under a connected tab when the grace period ran out.
     /// </summary>
     [Fact]
     public async Task A_removal_armed_under_a_connected_session_does_not_remove_it()
@@ -197,7 +197,7 @@ public sealed class TransportAttachTests
             services.GetRequiredService<SessionResumeSupport>(),
             // Only a resume rebuild consults it; this session is known.
             new RaskRootSelector(_ => new Shell(), []),
-            metrics: null, resumeCulture: default, current: null, counted: false, CancellationToken.None));
+            metrics: null, resumeCulture: default, CancellationToken.None));
 
         Assert.Equal(0, host.Store.ConnectedCount);
         Assert.False(session.HasOpenTransport);

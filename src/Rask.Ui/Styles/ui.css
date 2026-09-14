@@ -732,7 +732,15 @@
     block-size: var(--ui-tree-row);
     overflow: hidden;
   }
+}
 
+/*
+  The flat tree's indent, in `rask-ui-corrections` rather than `rask`, for the reason that layer exists: the
+  rule it has to beat is daisyUI's `.menu :where(li > …)` padding-inline, which daisyUI emits inside
+  `@layer utilities`. Written in `rask` it lost — every row of a virtualized tree computed the same 12px
+  whatever its depth, with the variable set on every row and this rule in the compiled sheet.
+*/
+@layer rask-ui-corrections {
   .ui-tree-flat > li[role="treeitem"] > .ui-tree-row {
     padding-inline-start: calc(0.75rem + var(--ui-tree-depth, 0) * 1rem);
   }

@@ -595,9 +595,12 @@ them until tagged releases begin.
 
 - **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
   drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
-  components costs the rows on screen. Each component keeps an id for as long as it lives, so the branches a developer
-  opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
-  open — a page nobody is inspecting walks its tree exactly as before.
+  components costs the rows on screen. Components are nested the way they sit on the PAGE — a card's rows under the
+  card, even when the page that uses the card built them — and a "Show HTML tags" toggle adds the elements between
+  them, read from the same frames the diff reads. Each component and element keeps an id across renders, so the
+  branches a developer opened stay open. The tree is there the moment the tab opens: every render of an inspected
+  session leaves its walk in buffers that stop allocating once they fit the page, and the tree is built from them only
+  while a panel is open, including from the render the page was served with.
 
 - **The devtools tree says what each component was given.** Every row carries the component's own properties and
   their values, read by an override the build writes for each component rather than by reflection — so a trimmed
@@ -605,6 +608,14 @@ them until tagged releases begin.
   all. A property holding a secret is never read in the first place: one named for a password, a token, a secret or
   a credential, or marked `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
   `[ProtectedPersonalData]`, is written out as `••••` when the build writes the override.
+
+- **A DevTools guide, with pictures of the real panel.** [docs/devtools.md](docs/devtools.md) (live at
+  `/docs/guides/devtools`) covers turning the panel on, what keeps it out of a Release build, and the Wire and Tree
+  tabs. rask.sh is a Release build on a public origin, where the devtools never switch on, so the guide shows them in
+  screenshots: `scripts/capture-devtools-screenshots.sh` runs a showcase app in Development, drives the pill and the
+  panel in Chromium, and writes the WebP files the guide links. A guide can now show pictures at all: an image linked
+  where it lives under `src/Rask.Site/wwwroot` renders on GitHub, and the site and the guide's Markdown twin serve the
+  same file.
 
 ### Changed
 
@@ -632,6 +643,9 @@ them until tagged releases begin.
   20 bytes gzipped; `HtmlSerializer` already writes none). `<script>`/`<style>` raw text is left untouched,
   as are conditional comments and comments marked `<!--!`, `@license` or `@preserve`. A comment on its own
   line takes the line with it, so no blank lines are left behind.
+- **rask.sh guides no longer ship the docs' editor notes.** A standalone HTML comment in a `docs/*.md` file
+  (hidden on GitHub) was rendered into the guide page's body; the site's Markdown renderer now drops it. A
+  comment shown as code — in a fenced sample or inline code — is still shown.
 - **Release builds strip comments from scoped TypeScript's emitted JavaScript.** tsgo now runs with
   `--removeComments` when `Configuration` is `Release`, which halves the scoped assets' gzipped size on rask.sh
   (3,493 → 1,696 bytes); Debug keeps the comments for devtools. Override with `RaskScopedTsRemoveComments`.
@@ -1065,6 +1079,59 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The landing page's Counter.cs sample no longer flickers or shows a late scrollbar in Safari.** Hydration
+  never touched it. The code was simply wider than its window at every desktop width: 510px of code in a
+  496px box, or 525px in the fallback font a cold load paints first. So the `<pre>` was a horizontal
+  scroller hiding the line's closing `];`, and Safari reveals an overlay scrollbar when a scroller's content
+  size changes, which is exactly what the web font swapping in does. The hero now gives the code a 34rem
+  track beside a flexible text column, so the sample fits in either font from 768px up and there is
+  nothing left to scroll. The headline eases to 2.75rem beside it, which keeps its two lines. A site E2E
+  test measures the overflow at 1024, 1280 and 1920px with the font loaded and with it blocked.
+- **A live page stays inside its own application.** On a host that mounts another application under its
+  own prefix, such as the operator console at `/_rask`, the first request resolved against the right route
+  table, but a live navigation resolved against every assembly's. So a page of your app could render
+  the console's pages inside your document, and the console could render yours (#1094). A session now
+  keeps the route table of the application it was opened for, and so does the `Router` it renders. A link
+  or back-button step to a path another application owns is loaded as a full page, so that application's
+  own root draws it. The same goes for a sign-in return URL into another application. `Router.Routes`'
+  documentation also said the default was the entry assembly's pages; it was every assembly's.
+- **A WebAssembly app shows framework warnings and errors in the browser console.** The host forwarded
+  every framework diagnostic into the app's `ILogger`, but registered logging with no provider. On an app
+  that added none, every render, lifecycle and handler fault the framework reported was written nowhere
+  (#1096). The host now adds a browser console provider when the app registered no `ILoggerProvider`,
+  and adds nothing when it did.
+- **A disposed session no longer re-renders when the language changes.** Sessions subscribe to the
+  culture service, but neither host unsubscribed on dispose (#1093). On WebAssembly, where that service
+  outlives every session, a language switch kept the disposed tree alive and re-rendered it. Both hosts
+  now unsubscribe first.
+- **A live session only accepts a socket from the user it belongs to.** A WebSocket `hello` naming an
+  existing session used to attach whoever sent it, so a leaked session id let a different signed-in user,
+  or an anonymous one, receive that session's frames and dispatch its handlers (#1075). It now attaches
+  only for the session's owner, by the same rule the upload and download endpoints already applied. The
+  one exception is the principal an in-flight sign-in or sign-out is waiting for: that reconnect
+  deliberately arrives as the redeemed user, or as nobody. That window opens only once the ticket has been
+  redeemed, so only whoever holds the ticket can open it. Anyone else is treated exactly as for an id
+  that never existed. They get `session/unknown`, or their own page rebuilt from their own resume record,
+  so a refusal does not reveal that the id is live, and it does not keep an abandoned session alive
+  either. A socket that a reconnect has replaced can no longer dispatch handlers: it was admitted for
+  whoever the session belonged to before that reconnect's sign-in. A session
+  nobody has signed into has no owner to compare against, so for anonymous pages the id's secrecy is
+  still what protects it. Upgrade note: a signed-in tab whose cookie expired while its socket was down
+  now reloads on reconnect, and the page's normal authorization challenge runs, instead of carrying on
+  anonymously in the old session.
+- **A fast reconnect no longer cuts off its own new connection.** When a tab reconnected before the server
+  noticed its previous socket had died, the old socket's cleanup detached the NEW socket: renders were
+  dropped, the connected count went low, and the session was scheduled for removal under an open tab
+  (#1076). Cleanup now detaches only the socket it owns. A removal armed anyway in that window finds the
+  session connected when it fires and leaves it alone, and an attach whose catch-up render fails — a client
+  dropping mid-attach — undoes itself rather than leaving a dead connection counted.
+- **`ConnectedCount` stays accurate across restarts and deploys.** A session rebuilt from its resume record
+  never counted its socket as connected but still counted the disconnect, so every deploy's reconnect storm
+  pushed the number (the `rask.sessions.connected` gauge and the live health check's `connectedSessions`)
+  below zero for good (#1059). The same socket can also no longer send a second `hello`. That used to
+  re-point it at another session without releasing the first, or, with a resume record, build and
+  register one more session per frame. The browser runtime sends one per connection, so the server now
+  closes the socket with `PolicyViolation` and counts it as `rask.ws.frames.rejected{reason=hello}`.
 - **A prerendered WASM page no longer changes when the runtime takes it over.** rask.sh still flickered
   slightly on load after #1049. Recording every painted frame and every DOM mutation through the handover
   found three differences between the prerendered document and the runtime's first frame:
@@ -1370,28 +1437,6 @@ them until tagged releases begin.
   are walked and never cached, which is why nothing hit this until the showcase moved onto `Rask.Ui`.
   The `.Key(submitting)` workaround in `FormSubmitStateDemo` is gone.
 
-- **A live session is only driven by the user it belongs to.** The session id is the only thing tying a
-  connection to a session, and it travels in the page HTML — so a leaked one (a shared log, a screenshot, a
-  proxy that records URLs) let a *different* signed-in user open a socket, attach, and then have the
-  session's principal overwritten with their own: the victim's page, driven under the attacker's identity.
-  A `hello` now compares the connecting principal with the session's through the same `SameSessionUser`
-  rule the upload and download endpoints already applied — an anonymous session is matched by anyone, since
-  the unguessable id is the only authority there, and an owned one requires the same identity. A mismatch
-  answers the same unknown-session frame an id this host never had answers, so a prober cannot tell an
-  existing session from a missing one. Signing in, out or into another account still reconnects to the same
-  page: redeeming the single-use ticket names the principal that reconnect will carry, and exactly that one
-  is let through. A refused `hello` no longer cancels the session's pending removal either, so it cannot be
-  what keeps a detached session in memory.
-
-- **A fast reconnect no longer kills the connection it just made.** A tab that reconnects quickly runs two
-  connections at once for a moment: the new one attaches from its own `hello` while the old one is still
-  unwinding. The old one's cleanup cleared the session's connection unconditionally, so it detached the
-  *live* one — renders stopped reaching a client sitting there connected, and the session was armed for
-  removal underneath it. Detaching is now a compare-exchange against the connection that is actually
-  attached, and only a detach that wins arms the grace period. A removal that a stale cleanup armed anyway
-  now finds the session connected when it fires and leaves it alone, and an attach whose catch-up render
-  fails (a client dropping mid-attach) undoes itself instead of leaving a dead connection counted.
-
 - **A page still works where WebSockets do not.** Some networks — corporate proxies, captive portals, a
   handful of mobile operators — block the WebSocket upgrade, and a Rask Server page that cannot open one had
   nothing to fall back to: it rendered, then sat there inert. The live protocol now also travels over plain
@@ -1414,13 +1459,6 @@ them until tagged releases begin.
   and a POST names the one it believes it is talking to — so a tab resumed from the back/forward cache, or
   one whose frames are still in flight after a reconnect, is answered `409` instead of driving the page its
   successor now owns. An unknown session, and one that belongs to somebody else, get the same answer.
-
-- **The connected-session count is per connection, and a repeated `hello` releases what it replaced.** A
-  resumed session attached without ever counting while every cleanup decremented, so the gauge — the one
-  `AddRaskLiveSessions` reports Degraded and Unhealthy from — drifted below the truth across a restart. A
-  second `hello` naming a different session also left the first attached to a connection nobody read until
-  its grace period expired.
-
 
 ## [0.21.0] - 2026-09-10
 
