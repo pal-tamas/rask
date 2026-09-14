@@ -59,6 +59,9 @@ internal sealed partial class NodeSupervisor : BackgroundService
         lifetime.ApplicationStopping.Register(drain.BeginDrain);
     }
 
+    // Whether StartAsync already marked readiness, with no process to supervise (#1092). RunAsync then leaves it alone.
+    private volatile bool _readyMarkedAtStart;
+
     /// <summary>The absolute path of the server entry this supervisor runs.</summary>
     internal string ServerEntryPath => _paths.ServerEntry;
 
@@ -90,6 +93,7 @@ internal sealed partial class NodeSupervisor : BackgroundService
         if (!_options.SuperviseNode)
         {
             _readiness.MarkReady();
+            _readyMarkedAtStart = true;
         }
 
         await base.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -135,8 +139,14 @@ internal sealed partial class NodeSupervisor : BackgroundService
     {
         if (!_options.SuperviseNode)
         {
-            // Someone else is running the front end. Nothing to supervise, and nothing to wait for.
-            _readiness.MarkReady();
+            // Someone else is running the front end. Nothing to supervise, and nothing to wait for. Marked here only
+            // when StartAsync did not already: marking again from this loop, whenever the pool got round to it,
+            // undid a MarkNotReady made after the host had started (#1107).
+            if (!_readyMarkedAtStart)
+            {
+                _readiness.MarkReady();
+            }
+
             return;
         }
 

@@ -1175,7 +1175,8 @@ them until tagged releases begin.
 - **A meta-framework host with no Node process to supervise forwards from the moment it starts.** With
   `SuperviseNode` off, readiness was set by the background loop, which the host starts after `StartAsync`
   returns. So the first request after start could still be refused as not ready (#1092). It is now set in
-  `StartAsync`.
+  `StartAsync`, and the loop no longer marks it a second time later, which had undone a readiness cleared
+  after start (#1107).
 - **Three by-hand gates ran no tests and reported success, and two tests failed gates they had nothing to do
   with.** The watch, deploy and Linux dev-host scripts built and filtered `Rask.Cli.Tests` for classes that had
   moved to `Rask.Cli.E2E.Tests`, and a filter matching nothing exits 0 (#1054). They now run the E2E project,

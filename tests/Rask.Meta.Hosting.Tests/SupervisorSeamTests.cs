@@ -76,6 +76,35 @@ public class SupervisorSeamTests
     }
 
     /// <summary>
+    ///     Readiness cleared after the host has started stays cleared once the supervision loop has run.
+    /// </summary>
+    /// <remarks>
+    ///     With no process to supervise, readiness is marked in <c>StartAsync</c> (#1092). The loop used to mark it
+    ///     again from <c>ExecuteAsync</c>, whenever the pool reached it, so a <c>MarkNotReady</c> made in between was
+    ///     silently undone — and the forwarder test that clears readiness to prove a 503 saw a 200 under load (#1107).
+    ///     Waiting for the loop to finish, rather than for time to pass, makes that ordering certain.
+    /// </remarks>
+    [Fact]
+    public async Task Readiness_cleared_after_start_is_not_re_marked_by_the_supervision_loop()
+    {
+        await using var app = BuildHost(options => options.SuperviseNode = false);
+        var supervisor = app.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<NodeSupervisor>().Single();
+        var readiness = app.Services.GetRequiredService<NodeReadiness>();
+
+        await app.StartAsync();
+        readiness.MarkNotReady();
+
+        // ExecuteTask is the loop itself; with supervision off it returns as soon as it has run.
+        if (supervisor.ExecuteTask is { } loop)
+        {
+            await loop.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+
+        Assert.False(readiness.IsReady);
+        await app.StopAsync();
+    }
+
+    /// <summary>
     ///     A missing server entry fails startup with a message naming the path.
     /// </summary>
     /// <remarks>
